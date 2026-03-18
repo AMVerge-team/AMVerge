@@ -113,6 +113,8 @@ body {
 
 .progress-bar {
   margin-top: 5px;
+    margin-left: auto;
+    margin-right: auto;
   width: 150px;
   height: 8px;
   background: #333;

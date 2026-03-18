@@ -11,7 +11,7 @@ use std::process::{Command, Stdio};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::path::{PathBuf, Path};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 
 use tokio::sync::Mutex as AsyncMutex;
 
@@ -240,60 +240,331 @@ async fn export_clips(
     }
 
 
-    // Export uses FFmpeg but does not re-encode.
-    // - merge_enabled: concat demuxer + stream copy
-    // - else: plain filesystem copies with consistent naming
+    // Export uses FFmpeg.
+    // - merge_enabled: prefer concat demuxer + stream copy (fast), with fallback to re-encode for compatibility
+    // - else: per-clip export prefers stream copy when already AE-friendly, else re-encodes for compatibility
     let ffmpeg = resolve_bundled_tool(&app, "ffmpeg")?;
+    let ffprobe = resolve_bundled_tool(&app, "ffprobe")?;
 
+    let mut save_path = PathBuf::from(&save_path);
 
-    let save_path = PathBuf::from(&save_path);
+    // If the user gave a path without an extension (or a template-ish name), default to mp4.
+    if save_path.extension().is_none() {
+        save_path.set_extension("mp4");
+    }
+
+    // Ensure destination directory exists for both merge and multi-export.
+    if let Some(parent) = save_path.parent() {
+        if !parent.exists() {
+            std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+    }
+
+    fn emit_export_progress(app: &AppHandle, percent: u8, message: &str) {
+        let p = percent.min(100);
+        let msg = message.replace('\n', " ").replace('\r', " ");
+        let _ = app.emit(
+            "scene_progress",
+            ProgressPayload {
+                percent: p,
+                message: msg,
+            },
+        );
+    }
+
+    async fn ffprobe_duration_ms(ffprobe: PathBuf, path: String) -> Result<Option<u64>, String> {
+        tokio::task::spawn_blocking(move || {
+            let out = Command::new(&ffprobe)
+                .args([
+                    "-v",
+                    "error",
+                    "-show_entries",
+                    "format=duration",
+                    "-of",
+                    "default=nk=1:nw=1",
+                    &path,
+                ])
+                .output()
+                .map_err(|e| format!("Failed to run ffprobe ({}): {e}", ffprobe.display()))?;
+
+            if !out.status.success() {
+                return Ok(None);
+            }
+
+            let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            if s.is_empty() {
+                return Ok(None);
+            }
+
+            let secs: f64 = s.parse().map_err(|_| "ffprobe duration parse failed".to_string())?;
+            if !secs.is_finite() || secs <= 0.0 {
+                return Ok(None);
+            }
+            Ok(Some((secs * 1000.0).round() as u64))
+        })
+        .await
+        .map_err(|e| format!("ffprobe task panicked: {e}"))?
+    }
+
+    async fn ffprobe_codec_name(
+        ffprobe: PathBuf,
+        path: String,
+        stream_selector: &'static str,
+    ) -> Result<Option<String>, String> {
+        tokio::task::spawn_blocking(move || {
+            let out = Command::new(&ffprobe)
+                .args([
+                    "-v",
+                    "error",
+                    "-select_streams",
+                    stream_selector,
+                    "-show_entries",
+                    "stream=codec_name",
+                    "-of",
+                    "default=nk=1:nw=1",
+                    &path,
+                ])
+                .output()
+                .map_err(|e| format!("Failed to run ffprobe ({}): {e}", ffprobe.display()))?;
+
+            if !out.status.success() {
+                return Ok(None);
+            }
+
+            let s = String::from_utf8_lossy(&out.stdout).trim().to_ascii_lowercase();
+            if s.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(s))
+            }
+        })
+        .await
+        .map_err(|e| format!("ffprobe task panicked: {e}"))?
+    }
+
+    async fn is_ae_copy_safe(ffprobe: PathBuf, clip_path: String) -> Result<bool, String> {
+        // "Safe" here means: if we stream-copy, AE is likely to import.
+        // We keep it conservative: H.264 video and AAC-or-no-audio.
+        let v = ffprobe_codec_name(ffprobe.clone(), clip_path.clone(), "v:0").await?;
+        if v.as_deref() != Some("h264") {
+            return Ok(false);
+        }
+        let a = ffprobe_codec_name(ffprobe, clip_path, "a:0").await?;
+        Ok(a.is_none() || a.as_deref() == Some("aac"))
+    }
+
+    fn run_ffmpeg_with_progress(
+        app: AppHandle,
+        ffmpeg: PathBuf,
+        mut args: Vec<String>,
+        total_ms: Option<u64>,
+        completed_ms: u64,
+        grand_total_ms: Option<u64>,
+        message_prefix: &str,
+    ) -> Result<(), String> {
+        // Force progress to stderr so we can parse it (while still receiving real errors).
+        // Note: ffmpeg writes key=value lines like out_time_ms=..., progress=continue/end.
+        args.insert(0, "-hide_banner".into());
+        args.insert(0, "-nostats".into());
+        args.insert(0, "pipe:2".into());
+        args.insert(0, "-progress".into());
+
+        let mut child = Command::new(&ffmpeg)
+            .args(&args)
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| format!("Failed to spawn ffmpeg ({}): {e}", ffmpeg.display()))?;
+
+        let stderr = child.stderr.take().ok_or("Failed to capture ffmpeg stderr")?;
+        let reader = BufReader::new(stderr);
+
+        let mut stderr_accum = String::new();
+        let mut last_emit = Instant::now() - Duration::from_secs(5);
+        let mut last_percent: Option<u8> = None;
+
+        for line in reader.lines().flatten() {
+            stderr_accum.push_str(&line);
+            stderr_accum.push('\n');
+
+            let line_trim = line.trim();
+            if let Some(v) = line_trim.strip_prefix("out_time_ms=") {
+                if let Ok(out_ms) = v.parse::<u64>() {
+                    let denom_ms = grand_total_ms.or(total_ms).unwrap_or(0);
+                    if denom_ms > 0 {
+                        let overall_ms = completed_ms.saturating_add(out_ms.min(total_ms.unwrap_or(out_ms)));
+                        let mut percent = ((overall_ms as f64 / denom_ms as f64) * 100.0).floor() as i32;
+                        percent = percent.clamp(0, 99);
+                        let p = percent as u8;
+
+                        if last_percent != Some(p)
+                            && (last_emit.elapsed() > Duration::from_millis(200) || p == 99)
+                        {
+                            last_emit = Instant::now();
+                            last_percent = Some(p);
+                            let msg = format!("{message_prefix} ({p}%)");
+                            let _ = app.emit(
+                                "scene_progress",
+                                ProgressPayload {
+                                    percent: p,
+                                    message: msg,
+                                },
+                            );
+                        }
+                    }
+                }
+            }
+
+            if line_trim == "progress=end" {
+                break;
+            }
+        }
+
+        let status = child
+            .wait()
+            .map_err(|e| format!("Failed waiting for ffmpeg: {e}"))?;
+
+        if !status.success() {
+            let err = stderr_accum.trim().to_string();
+            return Err(if err.is_empty() {
+                format!("FFmpeg failed ({})", ffmpeg.display())
+            } else {
+                err
+            });
+        }
+
+        // Successful run; emit a small step forward (caller may emit 100 at the end).
+        let _ = app.emit(
+            "scene_progress",
+            ProgressPayload {
+                percent: 80,
+                message: format!("{message_prefix}"),
+            },
+        );
+
+        Ok(())
+    }
+
+    fn ffmpeg_reencode_ae_args(input: &str, output: &str) -> Vec<String> {
+        // Timestamp normalization + re-encode to broadly compatible H.264/AAC MP4.
+        // This avoids common NLE import issues (black frames, odd timebases, missing PTS).
+        vec![
+            "-y",
+            "-i",
+            input,
+            "-fflags",
+            "+genpts",
+            "-avoid_negative_ts",
+            "make_zero",
+            // Video
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            "-profile:v",
+            "high",
+            "-level",
+            "4.1",
+            "-preset",
+            "medium",
+            "-crf",
+            "18",
+            // Audio
+            "-c:a",
+            "aac",
+            "-b:a",
+            "192k",
+            "-ar",
+            "48000",
+            "-ac",
+            "2",
+            // MP4 faststart
+            "-movflags",
+            "+faststart",
+            // Avoid rare muxing queue overflows on tricky inputs.
+            "-max_muxing_queue_size",
+            "1024",
+            output,
+        ]
+        .into_iter()
+        .map(|s| s.to_string())
+        .collect()
+    }
 
     if merge_enabled {
         // ---------------- MERGE ----------------
 
-        fn escape_concat_path(path: &str) -> String {
-            // FFmpeg concat demuxer is happier with forward slashes on Windows.
-            // Also escape single quotes when using the `file '...'
-            path.replace('\\', "/").replace('\'', "\\'")
+        emit_export_progress(&app, 0, "Merging clips...");
+
+        let out_str = save_path
+            .to_str()
+            .ok_or("Invalid output path")?
+            .to_string();
+
+        // Best-effort total duration for progress.
+        emit_export_progress(&app, 25, "Probing durations...");
+        let mut total_ms: Option<u64> = Some(0);
+        for c in &clips {
+            match ffprobe_duration_ms(ffprobe.clone(), c.clone()).await {
+                Ok(Some(ms)) => {
+                    if let Some(t) = total_ms {
+                        total_ms = Some(t.saturating_add(ms));
+                    }
+                }
+                _ => {
+                    total_ms = None;
+                    break;
+                }
+            }
         }
 
-        let list_path = {
-            let ts = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .map_err(|e| e.to_string())?
-                .as_millis();
-            std::env::temp_dir().join(format!(
-                "amverge_concat_{}_{}.txt",
-                std::process::id(),
-                ts
-            ))
+        // Always use the tolerant concat filter (decode + re-encode).
+        // This avoids concat-demuxer restrictions and matches your observed behavior.
+        emit_export_progress(&app, 50, "Merging...");
+
+        let n = clips.len();
+        let mut base_args: Vec<String> = Vec::new();
+        base_args.push("-y".into());
+        for c in &clips {
+            base_args.push("-i".into());
+            base_args.push(c.clone());
+        }
+
+        let filter_va = {
+            let mut s = String::new();
+            for i in 0..n {
+                s.push_str(&format!("[{i}:v:0][{i}:a:0]"));
+            }
+            s.push_str(&format!("concat=n={n}:v=1:a=1[v][a]"));
+            s
         };
 
-        let mut list_content = String::new();
-        for clip in &clips {
-            let escaped = escape_concat_path(clip);
-            list_content.push_str(&format!("file '{}'\n", escaped));
-        }
+        let filter_v = {
+            let mut s = String::new();
+            for i in 0..n {
+                s.push_str(&format!("[{i}:v:0]"));
+            }
+            s.push_str(&format!("concat=n={n}:v=1:a=0[v]"));
+            s
+        };
 
-        std::fs::write(&list_path, list_content).map_err(|e| e.to_string())?;
-
-        let output = Command::new(&ffmpeg)
-            .args([
-                "-y",
-                "-f",
-                "concat",
-                "-safe",
-                "0",
-                "-i",
-                list_path
-                    .to_str()
-                    .ok_or("Invalid concat list path")?,
-                // Normalize timestamps and re-encode for maximum compatibility (e.g., After Effects).
+        let build_filter_args = move |with_audio: bool| -> Vec<String> {
+            let filter = if with_audio { &filter_va } else { &filter_v };
+            let mut a: Vec<String> = Vec::new();
+            a.extend(base_args.iter().cloned());
+            a.push("-filter_complex".into());
+            a.push(filter.clone());
+            a.push("-map".into());
+            a.push("[v]".into());
+            if with_audio {
+                a.push("-map".into());
+                a.push("[a]".into());
+            }
+            a.extend([
                 "-fflags",
                 "+genpts",
                 "-avoid_negative_ts",
                 "make_zero",
-                // Video: widely-compatible H.264
                 "-c:v",
                 "libx264",
                 "-pix_fmt",
@@ -302,69 +573,104 @@ async fn export_clips(
                 "high",
                 "-level",
                 "4.1",
-                // Keep quality high; encoding is the cost we pay for reliability.
+                // Slightly faster than "medium".
                 "-preset",
-                "medium",
+                "veryfast",
                 "-crf",
                 "18",
-                // Audio: AAC stereo
-                "-c:a",
-                "aac",
-                "-b:a",
-                "192k",
-                "-ar",
-                "48000",
-                "-ac",
-                "2",
-                // Streamable MP4
                 "-movflags",
                 "+faststart",
-                // Avoid rare muxing queue overflows on tricky inputs.
                 "-max_muxing_queue_size",
                 "1024",
-                save_path
-                    .to_str()
-                    .ok_or("Invalid output path")?,
-            ])
-            .output()
-            .map_err(|e| {
-                format!(
-                    "Failed to run ffmpeg ({}): {}",
-                    ffmpeg.display(),
-                    e
-                )
-            })?;
-
-        let _ = std::fs::remove_file(&list_path);
-
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-            if stderr.is_empty() {
-                return Err("FFmpeg merge failed".into());
+            ]
+            .iter()
+            .map(|s| s.to_string()));
+            if with_audio {
+                a.extend([
+                    "-c:a",
+                    "aac",
+                    "-b:a",
+                    "192k",
+                    "-ar",
+                    "48000",
+                    "-ac",
+                    "2",
+                ]
+                .iter()
+                .map(|s| s.to_string()));
             }
-            return Err(format!("FFmpeg merge failed: {}", stderr));
+            a.push(out_str.clone());
+            a
+        };
+
+        let app_for_ffmpeg = app.clone();
+        let ffmpeg_clone = ffmpeg.clone();
+        let total_ms_f = total_ms;
+        let out = tokio::task::spawn_blocking(move || {
+            // Try with audio first; if it fails (missing audio on some clips), retry video-only.
+            let r = run_ffmpeg_with_progress(
+                app_for_ffmpeg.clone(),
+                ffmpeg_clone.clone(),
+                build_filter_args(true),
+                total_ms_f,
+                0,
+                total_ms_f,
+                "Merging",
+            );
+            if r.is_ok() {
+                return r;
+            }
+            run_ffmpeg_with_progress(
+                app_for_ffmpeg,
+                ffmpeg_clone,
+                build_filter_args(false),
+                total_ms_f,
+                0,
+                total_ms_f,
+                "Merging (video-only)",
+            )
+        })
+        .await
+        .map_err(|e| format!("ffmpeg task panicked: {e}"))?;
+
+        if let Err(e) = out {
+            return Err(format!("FFmpeg merge failed: {e}"));
         }
 
+        emit_export_progress(&app, 100, "Export complete");
     } else {
         // ---------------- MULTIPLE EXPORT ----------------
 
         // In merge-disabled mode, the frontend passes a *file path* chosen via a Save dialog.
         // We treat it as a naming template: <user_stem>_<clip_code>.<ext>
         let destination_dir = save_path.parent().ok_or("Invalid save path")?;
-        if !destination_dir.exists() {
-            std::fs::create_dir_all(destination_dir).map_err(|e| e.to_string())?;
-        }
-
         let user_stem = save_path
             .file_stem()
             .ok_or("Invalid filename")?
-            .to_string_lossy();
+            .to_string_lossy()
+            .to_string();
 
         let ext = save_path
             .extension()
             .and_then(|e| e.to_str())
-            .unwrap_or("mp4");
+            .unwrap_or("mp4")
+            .to_string();
 
+        // Probe durations once to produce smooth overall progress.
+        emit_export_progress(&app, 5, "Probing clip durations...");
+        let mut per_ms: Vec<Option<u64>> = Vec::with_capacity(clips.len());
+        let mut total_ms: Option<u64> = Some(0);
+        for c in &clips {
+            let d = ffprobe_duration_ms(ffprobe.clone(), c.clone()).await.ok().flatten();
+            per_ms.push(d);
+            if let (Some(t), Some(ms)) = (total_ms, d) {
+                total_ms = Some(t.saturating_add(ms));
+            } else {
+                total_ms = None;
+            }
+        }
+
+        let mut done_ms: u64 = 0;
         for (i, clip) in clips.iter().enumerate() {
             let clip_path = Path::new(clip);
             let clip_stem = clip_path
@@ -385,11 +691,109 @@ async fn export_clips(
                 format!("{:04}", i)
             };
 
-            let new_filename = format!("{}_{}.{}", user_stem, code, ext);
-            let destination = destination_dir.join(new_filename);
+            // Support the frontend's `####` placeholder: `base_####.mp4` -> `base_0001.mp4`.
+            // If not present, fall back to `base_<code>.mp4`.
+            let file_stem = if user_stem.contains("####") {
+                user_stem.replace("####", &code)
+            } else {
+                format!("{}_{}", user_stem, code)
+            };
 
-            std::fs::copy(clip_path, destination).map_err(|e| e.to_string())?;
+            let destination = destination_dir.join(format!("{}.{}", file_stem, ext));
+
+            let input_str = clip_path
+                .to_str()
+                .ok_or("Invalid clip path")?;
+            let output_str = destination
+                .to_str()
+                .ok_or("Invalid destination path")?;
+
+            let msg = format!("Exporting clip {}/{}", i + 1, clips.len());
+            emit_export_progress(&app, 10, &msg);
+
+            // Prefer stream copy when already AE-friendly.
+            let copy_ok = is_ae_copy_safe(ffprobe.clone(), clip.clone()).await.unwrap_or(false);
+            let clip_total = per_ms.get(i).copied().flatten();
+
+            let (mode_msg, args) = if copy_ok {
+                (
+                    format!("{msg} (copy)"),
+                    vec![
+                        "-y".into(),
+                        "-i".into(),
+                        input_str.into(),
+                        "-fflags".into(),
+                        "+genpts".into(),
+                        "-avoid_negative_ts".into(),
+                        "make_zero".into(),
+                        "-c".into(),
+                        "copy".into(),
+                        "-movflags".into(),
+                        "+faststart".into(),
+                        output_str.into(),
+                    ],
+                )
+            } else {
+                (format!("{msg} (re-encode)"), ffmpeg_reencode_ae_args(input_str, output_str))
+            };
+
+            let app_for_ffmpeg = app.clone();
+            let ffmpeg_clone = ffmpeg.clone();
+            let grand_total = total_ms;
+            let done_before = done_ms;
+            let run_msg = mode_msg.clone();
+            let run_args = args;
+            let result = tokio::task::spawn_blocking(move || {
+                run_ffmpeg_with_progress(
+                    app_for_ffmpeg,
+                    ffmpeg_clone,
+                    run_args,
+                    clip_total,
+                    done_before,
+                    grand_total,
+                    &run_msg,
+                )
+            })
+            .await
+            .map_err(|e| format!("ffmpeg task panicked: {e}"))?;
+
+            if let Err(e) = result {
+                // If copy failed, retry re-encode automatically.
+                if copy_ok {
+                    emit_export_progress(&app, 15, "Stream copy failed; re-encoding...");
+                    let app_for_ffmpeg = app.clone();
+                    let ffmpeg_clone = ffmpeg.clone();
+                    let grand_total = total_ms;
+                    let done_before = done_ms;
+                    let run_msg = format!("{msg} (re-encode)");
+                    let run_args = ffmpeg_reencode_ae_args(input_str, output_str);
+                    let result2 = tokio::task::spawn_blocking(move || {
+                        run_ffmpeg_with_progress(
+                            app_for_ffmpeg,
+                            ffmpeg_clone,
+                            run_args,
+                            clip_total,
+                            done_before,
+                            grand_total,
+                            &run_msg,
+                        )
+                    })
+                    .await
+                    .map_err(|e| format!("ffmpeg task panicked: {e}"))?;
+                    if let Err(e2) = result2 {
+                        return Err(format!("FFmpeg export failed.\n(copy)\n{e}\n\n(re-encode)\n{e2}"));
+                    }
+                } else {
+                    return Err(format!("FFmpeg export failed: {e}"));
+                }
+            }
+
+            if let Some(ms) = clip_total {
+                done_ms = done_ms.saturating_add(ms);
+            }
         }
+
+        emit_export_progress(&app, 100, "Export complete");
     }
 
     Ok(())
