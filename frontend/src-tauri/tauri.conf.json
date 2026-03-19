@@ -1,13 +1,13 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "AMVerge",
-  "version": "0.1.22",
+  "version": "0.1.23",
   "identifier": "com.amiri.amverge",
   "mainBinaryName": "AMVerge",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "npm run build:all",
     "frontendDist": "../dist"
   },
   "app": {
@@ -52,7 +52,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IERFMjU1QzVFMDZFNDNDOTgKUldTWVBPUUdYbHdsM3RpdzArNXRDNGt1SGU2N0lvVHpWRE5JSXFqTHFaeTVwOUZIcHJ4MWY4eWYK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJENTM0NUUzQTI1MjA5NTIKUldSU0NWS2k0MFZUdmVodDlQZDVqa3QreUVpTk1KeXJsOEdtcStUaWlNOWxCdUlOUERmVnpwcHQK",
       "endpoints": [
         "https://github.com/crptk/AMVerge/releases/latest/download/latest.json"
       ],

@@ -13,6 +13,9 @@ use std::sync::{Arc, Mutex};
 use std::path::{PathBuf, Path};
 use std::time::{Duration, Instant};
 
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+
 use tokio::sync::Mutex as AsyncMutex;
 
 use tauri::{AppHandle, Manager, State};
@@ -23,6 +26,64 @@ use serde::Serialize;
 struct ProgressPayload {
     percent: u8,
     message: String,
+}
+
+// --------------------
+// Console logging helpers (tester screenshot friendly)
+// --------------------
+
+fn file_name_only(s: &str) -> String {
+    let p = Path::new(s);
+    p.file_name()
+        .and_then(|x| x.to_str())
+        .unwrap_or(s)
+        .to_string()
+}
+
+fn dir_name_only(p: &Path) -> String {
+    if let Some(name) = p.file_name().and_then(|x| x.to_str()) {
+        return name.to_string();
+    }
+    p.to_string_lossy().to_string()
+}
+
+fn sanitize_for_console(s: &str) -> String {
+    // Keep it single-line and screenshot friendly.
+    s.replace('\r', " ").replace('\n', " ")
+}
+
+fn console_log(tag: &str, msg: &str) {
+    let tag = sanitize_for_console(tag);
+    let msg = sanitize_for_console(msg);
+    println!("AMVERGE|{}|{}", tag, msg);
+}
+
+fn sanitize_line_with_known_paths(
+    line: &str,
+    input_full: &str,
+    input_base: &str,
+    output_full: &str,
+    output_base: &str,
+) -> String {
+    let mut s = line.to_string();
+    if !input_full.is_empty() && input_full != input_base {
+        s = s.replace(input_full, input_base);
+    }
+    if !output_full.is_empty() && output_full != output_base {
+        s = s.replace(output_full, output_base);
+    }
+    s
+}
+
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+fn apply_no_window(cmd: &mut Command) {
+    // Prevent additional console windows from appearing for child processes.
+    #[cfg(windows)]
+    {
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
 }
 
 // --------------------
@@ -46,10 +107,19 @@ async fn check_hevc(app: AppHandle, video_path: String) -> Result<bool, String> 
         return Err("video_path is empty".to_string());
     }
 
+    let video_name = file_name_only(&video_path);
+
     let ffprobe = resolve_bundled_tool(&app, "ffprobe")?;
+    let ffprobe_name = ffprobe
+        .file_name()
+        .and_then(|x| x.to_str())
+        .unwrap_or("ffprobe.exe")
+        .to_string();
 
     let ffprobe_output = tokio::task::spawn_blocking(move || {
-        Command::new(&ffprobe)
+        let mut cmd = Command::new(&ffprobe);
+        apply_no_window(&mut cmd);
+        cmd
             .args([
                 "-v",
                 "error",
@@ -71,6 +141,21 @@ async fn check_hevc(app: AppHandle, video_path: String) -> Result<bool, String> 
         let stderr = String::from_utf8_lossy(&ffprobe_output.stderr)
             .trim()
             .to_string();
+
+        if !stderr.is_empty() {
+            console_log(
+                "ERROR|check_hevc",
+                &format!(
+                    "{ffprobe_name} failed for {video_name}: {stderr}"
+                ),
+            );
+        } else {
+            console_log(
+                "ERROR|check_hevc",
+                &format!("{ffprobe_name} failed for {video_name}"),
+            );
+        }
+
         return Err(if stderr.is_empty() {
             "ffprobe failed".to_string()
         } else {
@@ -94,7 +179,7 @@ async fn detect_scenes(
     app: AppHandle,
     video_path: String,
 ) -> Result<String, String> {
-    println!("detect_scenes called");
+    let video_name = file_name_only(&video_path);
     let output_dir = app
         .path()
         .app_data_dir()
@@ -113,6 +198,13 @@ async fn detect_scenes(
     }
     let output_dir_str = output_dir.to_string_lossy().to_string();
 
+    console_log(
+        "SCENE|start",
+        &format!("video={video_name} output_dir={}", dir_name_only(&output_dir)),
+    );
+
+    let output_dir_base = dir_name_only(&output_dir);
+
     let mut child = if cfg!(debug_assertions) {
         // DEV MODE → run python script from /backend using the local venv
         let mut root = std::env::current_dir().map_err(|e| e.to_string())?;
@@ -126,7 +218,20 @@ async fn detect_scenes(
             .join("Scripts")
             .join("python.exe");
 
-        Command::new(python_path)
+        let python_name = python_path
+            .file_name()
+            .and_then(|x| x.to_str())
+            .unwrap_or("python.exe");
+        console_log(
+            "SCENE|spawn",
+            &format!(
+                "mode=dev exe={python_name} script=backend_script.py args=[{video_name},{output_dir_base}]"
+            ),
+        );
+
+        let mut cmd = Command::new(python_path);
+        apply_no_window(&mut cmd);
+        cmd
             .arg(script_path)
             .arg(&video_path)
             .arg(&output_dir_str)
@@ -151,9 +256,20 @@ async fn detect_scenes(
                 tauri::path::BaseDirectory::Resource)
             .map_err(|e| e.to_string())?;
 
-        println!("Backend path: {:?}", backend);
-        println!("Backend exists: {}", backend.exists());
-        Command::new(backend)
+        let backend_name = backend
+            .file_name()
+            .and_then(|x| x.to_str())
+            .unwrap_or("backend_script.exe");
+        console_log(
+            "SCENE|spawn",
+            &format!(
+                "mode=prod exe={backend_name} args=[{video_name},{output_dir_base}]"
+            ),
+        );
+
+        let mut cmd = Command::new(backend);
+        apply_no_window(&mut cmd);
+        cmd
             .current_dir(&exe_dir)
             .arg(&video_path)
             .arg(&output_dir_str)
@@ -163,6 +279,8 @@ async fn detect_scenes(
             .map_err(|e| format!("Failed to spawn backend exe: {e}"))?
     };
 
+    console_log("SCENE|pid", &format!("pid={}", child.id()));
+
     let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
     let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
 
@@ -170,11 +288,23 @@ async fn detect_scenes(
     let app_for_thread = app.clone();
     let stderr_accum_for_thread = Arc::clone(&stderr_accum);
 
+    let input_full_for_thread = video_path.clone();
+    let input_base_for_thread = video_name.clone();
+    let output_full_for_thread = output_dir_str.clone();
+    let output_base_for_thread = output_dir_base.clone();
+
     let stderr_handle = tokio::task::spawn_blocking(move || {
         let reader = BufReader::new(stderr);
         for line in reader.lines().flatten() {
-            if line.starts_with("TIMING|") {
-                println!("{line}");
+            if !line.starts_with("PROGRESS|") {
+                let sanitized = sanitize_line_with_known_paths(
+                    &line,
+                    &input_full_for_thread,
+                    &input_base_for_thread,
+                    &output_full_for_thread,
+                    &output_base_for_thread,
+                );
+                console_log("BACKEND", &sanitized);
             }
             if let Ok(mut buf) = stderr_accum_for_thread.lock() {
                 buf.push_str(&line);
@@ -212,11 +342,32 @@ async fn detect_scenes(
         .map_err(|e| format!("wait thread panicked: {e}"))?
         .map_err(|e| format!("Failed waiting for python: {e}"))?;
 
+    console_log(
+        "SCENE|end",
+        &format!("video={video_name} status={}", status),
+    );
+
     if !status.success() {
         let err = stderr_accum
             .lock()
             .map(|s| s.clone())
             .unwrap_or_else(|_| "Python failed (stderr lock poisoned)".to_string());
+
+        console_log("ERROR|detect_scenes", &format!("video={video_name} exit={status}"));
+        console_log("ERROR|detect_scenes", "backend_stderr_dump_begin");
+        for l in err.lines() {
+            let sanitized = sanitize_line_with_known_paths(
+                l,
+                &video_path,
+                &video_name,
+                &output_dir_str,
+                &output_dir_base,
+            );
+            if !sanitized.trim().is_empty() && !sanitized.starts_with("PROGRESS|") {
+                console_log("BACKEND", &sanitized);
+            }
+        }
+        console_log("ERROR|detect_scenes", "backend_stderr_dump_end");
         return Err(err);
     }
 
@@ -238,6 +389,16 @@ async fn export_clips(
     if clips.is_empty() {
         return Ok(());
     }
+
+    console_log(
+        "EXPORT|start",
+        &format!(
+            "merge_enabled={} clips={} dest={}",
+            merge_enabled,
+            clips.len(),
+            file_name_only(&save_path)
+        ),
+    );
 
 
     // Export uses FFmpeg.
@@ -274,7 +435,9 @@ async fn export_clips(
 
     async fn ffprobe_duration_ms(ffprobe: PathBuf, path: String) -> Result<Option<u64>, String> {
         tokio::task::spawn_blocking(move || {
-            let out = Command::new(&ffprobe)
+            let mut cmd = Command::new(&ffprobe);
+            apply_no_window(&mut cmd);
+            let out = cmd
                 .args([
                     "-v",
                     "error",
@@ -312,7 +475,9 @@ async fn export_clips(
         stream_selector: &'static str,
     ) -> Result<Option<String>, String> {
         tokio::task::spawn_blocking(move || {
-            let out = Command::new(&ffprobe)
+            let mut cmd = Command::new(&ffprobe);
+            apply_no_window(&mut cmd);
+            let out = cmd
                 .args([
                     "-v",
                     "error",
@@ -369,7 +534,9 @@ async fn export_clips(
         args.insert(0, "pipe:2".into());
         args.insert(0, "-progress".into());
 
-        let mut child = Command::new(&ffmpeg)
+        let mut cmd = Command::new(&ffmpeg);
+        apply_no_window(&mut cmd);
+        let mut child = cmd
             .args(&args)
             .stdout(Stdio::null())
             .stderr(Stdio::piped())
@@ -425,7 +592,35 @@ async fn export_clips(
             .map_err(|e| format!("Failed waiting for ffmpeg: {e}"))?;
 
         if !status.success() {
-            let err = stderr_accum.trim().to_string();
+            // On failure, dump ffmpeg stderr to console (screenshot-friendly).
+            let mut err = stderr_accum.clone();
+
+            // Best-effort redact input/output paths down to filenames.
+            let mut inputs: Vec<String> = Vec::new();
+            for i in 0..args.len().saturating_sub(1) {
+                if args[i] == "-i" {
+                    inputs.push(args[i + 1].clone());
+                }
+            }
+            let output = args.last().cloned();
+            for p in inputs.into_iter().chain(output.into_iter()) {
+                let base = file_name_only(&p);
+                if !p.is_empty() && p != base {
+                    err = err.replace(&p, &base);
+                }
+            }
+
+            console_log(
+                "FFMPEG|failed",
+                &format!("{} status={}", ffmpeg.display(), status),
+            );
+            for l in err.lines() {
+                if !l.trim().is_empty() {
+                    console_log("FFMPEG", l);
+                }
+            }
+
+            let err = err.trim().to_string();
             return Err(if err.is_empty() {
                 format!("FFmpeg failed ({})", ffmpeg.display())
             } else {
@@ -634,6 +829,7 @@ async fn export_clips(
         .map_err(|e| format!("ffmpeg task panicked: {e}"))?;
 
         if let Err(e) = out {
+            console_log("ERROR|export_clips", &format!("merge failed: {}", sanitize_for_console(&e)));
             return Err(format!("FFmpeg merge failed: {e}"));
         }
 
@@ -737,6 +933,18 @@ async fn export_clips(
                 (format!("{msg} (re-encode)"), ffmpeg_reencode_ae_args(input_str, output_str))
             };
 
+            console_log(
+                "EXPORT|clip",
+                &format!(
+                    "{}/{} input={} output={} mode={}",
+                    i + 1,
+                    clips.len(),
+                    file_name_only(input_str),
+                    file_name_only(output_str),
+                    if copy_ok { "copy" } else { "re-encode" }
+                ),
+            );
+
             let app_for_ffmpeg = app.clone();
             let ffmpeg_clone = ffmpeg.clone();
             let grand_total = total_ms;
@@ -760,6 +968,16 @@ async fn export_clips(
             if let Err(e) = result {
                 // If copy failed, retry re-encode automatically.
                 if copy_ok {
+                    console_log(
+                        "EXPORT|retry",
+                        &format!(
+                            "clip {}/{} stream copy failed; retry re-encode (input={} output={})",
+                            i + 1,
+                            clips.len(),
+                            file_name_only(input_str),
+                            file_name_only(output_str)
+                        ),
+                    );
                     emit_export_progress(&app, 15, "Stream copy failed; re-encoding...");
                     let app_for_ffmpeg = app.clone();
                     let ffmpeg_clone = ffmpeg.clone();
@@ -781,9 +999,29 @@ async fn export_clips(
                     .await
                     .map_err(|e| format!("ffmpeg task panicked: {e}"))?;
                     if let Err(e2) = result2 {
+                        console_log(
+                            "ERROR|export_clips",
+                            &format!(
+                                "export failed clip {}/{} input={} output={}",
+                                i + 1,
+                                clips.len(),
+                                file_name_only(input_str),
+                                file_name_only(output_str)
+                            ),
+                        );
                         return Err(format!("FFmpeg export failed.\n(copy)\n{e}\n\n(re-encode)\n{e2}"));
                     }
                 } else {
+                    console_log(
+                        "ERROR|export_clips",
+                        &format!(
+                            "export failed clip {}/{} input={} output={}",
+                            i + 1,
+                            clips.len(),
+                            file_name_only(input_str),
+                            file_name_only(output_str)
+                        ),
+                    );
                     return Err(format!("FFmpeg export failed: {e}"));
                 }
             }
@@ -795,6 +1033,8 @@ async fn export_clips(
 
         emit_export_progress(&app, 100, "Export complete");
     }
+
+    console_log("EXPORT|end", "ok");
 
     Ok(())
 }
@@ -838,7 +1078,10 @@ async fn ensure_preview_proxy(
     let _guard = clip_lock.lock().await;
 
     let ffmpeg = resolve_bundled_tool(&app, "ffmpeg")?;
-    println!("ensure_preview_proxy|ffmpeg={}", ffmpeg.display());
+    console_log(
+        "PROXY|start",
+        &format!("clip={} ffmpeg={}", file_name_only(&clip_path), ffmpeg.display()),
+    );
 
     let input_path = PathBuf::from(&clip_path);
     if !input_path.exists() {
@@ -873,7 +1116,9 @@ async fn ensure_preview_proxy(
     let output = proxy_tmp_path.clone();
 
     let ffmpeg_output = tokio::task::spawn_blocking(move || {
-        Command::new(&ffmpeg_clone)
+        let mut cmd = Command::new(&ffmpeg_clone);
+        apply_no_window(&mut cmd);
+        cmd
             .args([
                 "-y",
                 "-i",
@@ -914,7 +1159,26 @@ async fn ensure_preview_proxy(
 
     if !ffmpeg_output.status.success() {
         let _ = std::fs::remove_file(&proxy_tmp_path);
-        let stderr = String::from_utf8_lossy(&ffmpeg_output.stderr).trim().to_string();
+        let mut stderr = String::from_utf8_lossy(&ffmpeg_output.stderr).to_string();
+
+        // Best-effort redact the known input/output paths.
+        let in_full = input_path.to_string_lossy().to_string();
+        let in_base = file_name_only(&in_full);
+        if in_full != in_base {
+            stderr = stderr.replace(&in_full, &in_base);
+        }
+        let out_full = proxy_tmp_path.to_string_lossy().to_string();
+        let out_base = file_name_only(&out_full);
+        if out_full != out_base {
+            stderr = stderr.replace(&out_full, &out_base);
+        }
+        stderr = stderr.trim().to_string();
+
+        if !stderr.is_empty() {
+            console_log("ERROR|proxy", &stderr);
+        } else {
+            console_log("ERROR|proxy", "FFmpeg proxy encode failed");
+        }
         return Err(if stderr.is_empty() {
             "FFmpeg proxy encode failed".to_string()
         } else {
@@ -943,7 +1207,9 @@ async fn ensure_preview_proxy(
         let _ = std::fs::remove_file(&proxy_tmp_path);
     }
 
-    Ok(proxy_path.to_string_lossy().to_string())
+    let final_path = proxy_path.to_string_lossy().to_string();
+    console_log("PROXY|end", &format!("ok proxy={}", file_name_only(&final_path)));
+    Ok(final_path)
 }
 
 fn resolve_bundled_tool(app: &AppHandle, tool_name: &str) -> Result<PathBuf, String> {
