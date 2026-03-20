@@ -47,16 +47,16 @@ def log(msg):
         # Never crash the backend due to logging.
         pass
 
-
 FFMPEG = get_binary("ffmpeg.exe")
 FFPROBE = get_binary("ffprobe.exe")
 
-log(f"frozen: {getattr(sys,'frozen',False)}")
-log(f"sys.executable: {sys.executable}")
-log(f"BASE_DIR: {BASE_DIR}")
-log(f"FFMPEG: {FFMPEG}")
-
 def generate_thumbnails(output_dir: str, scenes: list, file_name: str):
+    total = len(scenes)
+    if total == 0:
+        return
+    step = max(1, total // 25)  # ~25 updates max
+    done = 0
+
     def make_thumb(scene):
         i = scene["scene_index"]
         clip_path = os.path.join(output_dir, f"{file_name}_{i:04d}.mp4")
@@ -83,8 +83,11 @@ def generate_thumbnails(output_dir: str, scenes: list, file_name: str):
 
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
         futures = [executor.submit(make_thumb, scene) for scene in scenes]
+        emit_progress(90, f"Generating thumbnails... 0/{total}")
         for _ in as_completed(futures):
-            pass
+            done += 1
+            if done % step == 0 or done == total:
+                emit_progress(90, f"Generating thumbnails... {done}/{total}")
 
 def trim_scenes_at_keyframes(video_path: str, output_dir: str):
     os.makedirs(output_dir, exist_ok=True)
@@ -93,12 +96,22 @@ def trim_scenes_at_keyframes(video_path: str, output_dir: str):
     file_name = os.path.splitext(os.path.basename(video_path))[0]
 
     emit_progress(10, "Extracting keyframes...")
-    keyframes = generate_keyframes(video_path=video_path)
-    print(f"Keyframes found: {len(keyframes)}", file=sys.stderr)
-    print(f"First few: {keyframes[:5]}", file=sys.stderr)
+
+    def _kf_progress(percent: int, message: str) -> None:
+        emit_progress(percent, message)
+
+    keyframes = generate_keyframes(
+        video_path=video_path,
+        progress_cb=_kf_progress,
+        progress_base=10,
+        progress_range=30,
+        progress_interval_s=1.0,
+    )
+    print(f"Keyframes found: {len(keyframes)}", file=sys.stderr, flush=True)
+    print(f"First few: {keyframes[:5]}", file=sys.stderr, flush=True)
     
     if not keyframes:
-        print("No keyframes found, returning empty", file=sys.stderr)
+        print("No keyframes found, returning empty", file=sys.stderr, flush=True)
         return []
     
     # Skip the first keyframe(0.0)
@@ -123,7 +136,7 @@ def trim_scenes_at_keyframes(video_path: str, output_dir: str):
     log(result.stderr)
 
     print(f"Output dir: {output_dir}", file=sys.stderr)
-    print(f"Files created: {os.listdir(output_dir)}", file=sys.stderr)
+    # print(f"Files created: {os.listdir(output_dir)}", file=sys.stderr, flush=True)
 
     # Collect results
     emit_progress(75, "Building scenes..")
@@ -167,7 +180,7 @@ if __name__ == "__main__":
         output_dir = sys.argv[2]
 
         scenes = trim_scenes_at_keyframes(input_file, output_dir)
-        print("About to print JSON", file=sys.stderr)
+        print("About to print JSON", file=sys.stderr, flush=True)
         print(json.dumps(scenes)) # sends to stdout for rust to collect, react parses it
         if sys.stdout:
             sys.stdout.flush()

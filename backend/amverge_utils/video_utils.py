@@ -4,6 +4,7 @@ import os
 import threading
 import sys
 import av
+import time
 from pathlib import Path
 from shutil import which
 
@@ -85,20 +86,101 @@ def generate_keyframes_old_ffmpeg(video_path: str):
         if "best_effort_timestamp_time" in frame
     ]
 
-def generate_keyframes(video_path: str):
+def generate_keyframes(
+    video_path: str,
+    progress_cb=None,
+    *,
+    progress_base: int = 10,
+    progress_range: int = 30,
+    progress_interval_s: float = 1.0,
+):
+    """Generate keyframe timestamps (seconds).
+
+    This can take a while on long or oddly-indexed files. If provided,
+    `progress_cb(percent:int, message:str)` is called periodically (throttled)
+    so the UI can show liveness.
+
+    Percent mapping:
+    - If container duration is known and we can estimate current timestamp,
+      progress advances within [progress_base, progress_base+progress_range].
+    - Otherwise percent remains at progress_base and only the message updates.
+    """
+
+    def _safe_progress(percent: int, message: str) -> None:
+        if progress_cb is None:
+            return
+        try:
+            progress_cb(int(percent), str(message))
+        except Exception:
+            # Never let progress reporting break processing.
+            return
+
+    def _clamp_int(x: int, lo: int, hi: int) -> int:
+        return max(lo, min(hi, int(x)))
+
+    def _pts_to_seconds(pts, time_base) -> float | None:
+        try:
+            if pts is None or time_base is None:
+                return None
+            return float(pts * time_base)
+        except Exception:
+            return None
+
+    start_t = time.monotonic()
+    last_emit_t = start_t - 9999.0
+
+    def _percent_for_time(t_s: float | None, duration_s: float | None) -> int:
+        base = int(progress_base)
+        rng = max(0, int(progress_range))
+        if duration_s is None or duration_s <= 0 or t_s is None or t_s < 0:
+            return base
+        frac = t_s / duration_s
+        if frac < 0:
+            frac = 0.0
+        if frac > 1:
+            frac = 1.0
+        return _clamp_int(base + int(rng * frac), base, base + rng)
+
+    def _maybe_emit(stage: str, keyframes_found: int, t_s: float | None, duration_s: float | None) -> None:
+        nonlocal last_emit_t
+        now = time.monotonic()
+        if (now - last_emit_t) < float(progress_interval_s):
+            return
+        last_emit_t = now
+
+        elapsed_s = now - start_t
+        percent = _percent_for_time(t_s, duration_s)
+        if duration_s and duration_s > 0 and t_s is not None and t_s >= 0:
+            msg = (
+                f"Extracting keyframes… stage={stage} found={keyframes_found} "
+                f"at={t_s:.1f}s/{duration_s:.1f}s elapsed={elapsed_s:.0f}s"
+            )
+        else:
+            msg = (
+                f"Extracting keyframes… stage={stage} found={keyframes_found} "
+                f"elapsed={elapsed_s:.0f}s"
+            )
+        _safe_progress(percent, msg)
+
     def _decode_keyframe_times(container, stream):
-        # Still fast: decoder is instructed to skip non-key frames.
+        # decoder is instructed to skip non-key frames.
         times: list[float] = []
         try:
             stream.codec_context.skip_frame = "NONKEY"
         except Exception:
             pass
 
+        frame_i = 0
         for frame in container.decode(stream):
+            frame_i += 1
             if frame.pts is None:
                 continue
-            t = float(frame.pts * stream.time_base)  # type: ignore
+            t = _pts_to_seconds(frame.pts, stream.time_base)
+            if t is None:
+                continue
             times.append(t)
+            if frame_i % 250 == 0:
+                _maybe_emit("decode", len(times), t, None)
         return times
 
     def _looks_pathological(times: list[float], duration_s: float | None) -> bool:
@@ -135,13 +217,22 @@ def generate_keyframes(video_path: str):
         except Exception:
             duration_s = None
 
+        _maybe_emit("open", 0, 0.0, duration_s)
+
         # Fast path: packet flags.
         try:
+            packet_i = 0
+            last_pts_s: float | None = None
             for packet in container.demux(stream):
+                packet_i += 1
                 if packet.pts is None:
                     continue
+                last_pts_s = _pts_to_seconds(packet.pts, stream.time_base)
                 if packet.is_keyframe:
-                    keyframes.append(float(packet.pts * stream.time_base))  # type: ignore
+                    if last_pts_s is not None:
+                        keyframes.append(last_pts_s)
+                if packet_i % 500 == 0:
+                    _maybe_emit("demux", len(keyframes), last_pts_s, duration_s)
         except Exception:
             keyframes = []
 
@@ -151,12 +242,14 @@ def generate_keyframes(video_path: str):
                 # Re-open to reset demux/decode state.
                 with av.open(video_path) as container2:
                     stream2 = container2.streams.video[0]
+                    _maybe_emit("decode", 0, 0.0, duration_s)
                     keyframes = _decode_keyframe_times(container2, stream2)
             except Exception:
                 return []
 
     # Normalize: sort + de-dupe small floating noise.
     keyframes = sorted(set(round(t, 6) for t in keyframes if t is not None and t >= 0.0))
+    _safe_progress(int(progress_base) + max(0, int(progress_range)), f"Extracting keyframes… done found={len(keyframes)}")
     return keyframes
 
 def keyframe_windows(keyframes, radius=1.0, fps=24.0):
@@ -236,6 +329,7 @@ def merge_short_scenes(boundaries, min_duration=0.5):
     return merged
 
 _progress_lock = threading.Lock()
+
 def emit_progress(percent: int, message: str):
     import sys
     percent = max(0, min(100, int(percent)))
