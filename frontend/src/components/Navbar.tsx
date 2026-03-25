@@ -1,5 +1,4 @@
 import React from "react"
-import Logo from "../assets/AMverge_logo.png"
 
 type NavbarProps = {
     setSideBarEnabled: React.Dispatch<React.SetStateAction<boolean>>
