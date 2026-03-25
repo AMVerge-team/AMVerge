@@ -7,11 +7,11 @@ type NavbarProps = {
     videoIsHEVC: boolean | null
 }
 export default function Navbar({ setSideBarEnabled, userHasHEVC, videoIsHEVC }: NavbarProps ) {
-    setSideBarEnabled(true) // just putting this here to remove error
+    // setSideBarEnabled(true) // just putting this here to remove error
     return (
         <div className="navbar">
-            <div>
-                {/* <svg onClick={() =>setSideBarEnabled(prev => !prev )} width="800px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <div className="left-nav">
+                <svg onClick={ () =>setSideBarEnabled(prev => !prev) } width="800px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <g clipPath="url(#clip0_429_11066)">
                         <path d="M3 6.00092H21M3 12.0009H21M3 18.0009H21" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </g>
@@ -20,8 +20,8 @@ export default function Navbar({ setSideBarEnabled, userHasHEVC, videoIsHEVC }: 
                         <rect width="24" height="24" fill="white" transform="translate(0 0.000915527)"/>
                     </clipPath>
                     </defs>
-                </svg> */}
-                <img src={Logo}></img>
+                </svg>
+                <h1><span>AMV</span>erge</h1>
             </div>
 
             <div className="hevc-check">

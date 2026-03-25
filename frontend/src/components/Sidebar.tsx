@@ -1,45 +1,60 @@
+import type React from "react";
 
-const buttons = [
+export type Page = "home" | "settings";
+
+const buttons: { name: string; page: Page }[] = [
     {
-        "name": "Settings",
-        "directory": ""
+        name: "Home",
+        page: "home",
     },
     {
-        "name": "Test",
-        "directory": ""
-    }
-]
+        name: "Settings",
+        page: "settings",
+    },
+];
 
 type ButtonProps = {
-    name: String,
-    directory: string
-}
+    name: string;
+    page: Page;
+    activePage: Page;
+    setActivePage: React.Dispatch<React.SetStateAction<Page>>;
+};
 
-function ButtonComponent(props: ButtonProps) {
+function ButtonComponent({ name, page, activePage, setActivePage }: ButtonProps) {
     return (
         <div className="sidebar-button">
             <button
-            //  onClick={sendTo(props.directory)}
+                onClick={() => setActivePage(page)}
+                disabled={activePage === page}
+                aria-current={activePage === page ? "page" : undefined}
             >
-                {props.name}
+                {name}
             </button>
         </div>
     )
 }
 
-export default function Sidebar() {
+type SidebarProps = {
+    activePage: Page;
+    setActivePage: React.Dispatch<React.SetStateAction<Page>>;
+};
 
+export default function Sidebar({ activePage, setActivePage }: SidebarProps) {
     return (
         <div className="sidebar-container">
             {
-                buttons.map(button => (
-                    <ButtonComponent 
-                     name={button.name}
-                     directory={button.directory}/>
+                buttons.map((button) => (
+                    <ButtonComponent
+                        key={button.page}
+                        name={button.name}
+                        page={button.page}
+                        activePage={activePage}
+                        setActivePage={setActivePage}
+                    />
                 ))    
             }
             <div className="eps-container">
-                <p>eps-container here</p>
+                <p>hi work in progress</p>
             </div>
         </div>
     )

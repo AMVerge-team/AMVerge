@@ -19,15 +19,24 @@
 }
 
 body {
-    background: linear-gradient(
-    160deg,
-    #000000 50%,
-    #001a00 100%
-    );
+    /* Layer 1: optional user-selected image. Layer 2: theme gradient. */
+    background-image:
+        var(--app-bg-image),
+        linear-gradient(160deg, #000000 50%, var(--bg-accent) 100%);
+    background-size: cover, cover;
+    background-position: center, center;
+    background-repeat: no-repeat, no-repeat;
     color: white;
     margin: 0;
     overflow: hidden;
     font-family: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+:root {
+    --accent: #22c55e;
+    --accent-rgb: 34 197 94;
+    --app-bg-image: none;
+    --bg-accent: #001a00;
 }
 
 .app-root {
@@ -95,7 +104,7 @@ body {
   width: 60px;
   height: 60px;
   border: 6px solid rgba(255, 255, 255, 0.2);
-  border-top: 6px solid #00ff88;
+    border-top: 6px solid var(--accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -124,7 +133,7 @@ body {
 
 .progress-fill {
   height: 100%;
-  background: #00ff88;
+    background: var(--accent);
   transition: width 0.2s ease;
 }
 
@@ -134,7 +143,7 @@ body {
   background: linear-gradient(
     90deg,
     #161616 25%,
-    #035500 37%,
+        rgb(var(--accent-rgb) / 0.25) 37%,
     #161616 63%
   );
   background-size: 400% 100%;
@@ -192,6 +201,7 @@ body {
     color: white;
     background: none;
     transition: filter 0.2s ease;
+    margin-left: 10px;
 }
 
 .navbar svg:hover {
@@ -208,6 +218,24 @@ body {
   margin-top: 8px;
   gap: 4px;
 }
+
+.navbar h1 {
+    margin: 0;
+    font-size: 35px;
+    font-weight: 10;
+}
+
+.navbar > .left-nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0px;
+    gap: 10px;
+}
+
+.navbar span {
+    color: var(--accent)
+}  
 
 .hevc-row {
   display: flex;
@@ -226,8 +254,8 @@ body {
 }
 
 .status-dot.ok {
-  background: lime;
-  box-shadow: 0 0 8px rgba(0, 255, 0, 0.9);
+    background: rgba(0, 255, 34, 0.9);
+    box-shadow: 0 0 8px rgba(0, 255, 34, 0.9);
 }
 
 .status-dot.bad {
@@ -329,8 +357,8 @@ body {
     content: "";
     width: 6px;
     height: 10.5px;
-    border-right: 2px solid lime;
-    border-bottom: 2px solid lime;
+    border-right: 2px solid var(--accent);
+    border-bottom: 2px solid var(--accent);
     transform: rotate(45deg) translateY(-1px) translateX(-1px);
 }
 
@@ -353,7 +381,7 @@ body {
     width: 30px;
     height: 30px;
     background: black;
-    color: lime;
+    color: var(--accent);
     outline: none;
     border: 1px solid white;
     border-radius: 5px;
@@ -386,7 +414,7 @@ body {
     flex-direction: column;
     min-width: 20vh;
     border-right: 1px solid rgba(255, 255, 255, 0.1);;
-    margin-right: 10px;
+
 }
 
 .sidebar-container > .menu-buttons {
@@ -396,6 +424,7 @@ body {
     align-items: center;
     min-height: 5vh;
 }
+
 .sidebar-container > .eps-container {
     display: flex;
     flex-direction: column;
@@ -408,15 +437,34 @@ body {
     justify-content: center;
     align-items: center;
     height: 30px;
+    margin: 3px;
 }
+
 .sidebar-button > button {
     width: 100%;
     height: 100%;
-    font-size: 20px;
-    background:  rgba(255, 255, 255, 0.1);
+    font-size: 25px;
+    font-family: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    background:  rgba(15, 0, 0, 0.1);
+    border: 1px solid rgb(var(--accent-rgb) / 0.9);
+    color: white;
+    border-radius: 10px;
+    transition: background 0.2s ease;
+}
+
+.sidebar-button > button:hover {
+    width: 100%;
+    height: 100%;
+    font-size: 25px;
+    font-family: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    background:  rgb(var(--accent-rgb) / 0.18);
     border: none;
     color: white;
+    border-radius: 10px;
+    cursor: pointer;
 }
+
+
 /* --------------------
       LAYOUT SPLIT
 -------------------- */
@@ -483,13 +531,13 @@ body {
 }
 
 .clips-container::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 255, 0, 0.3);
+    background-color: rgb(var(--accent-rgb) / 0.3);
     border-radius: 999px;
     background-clip: padding-box;
 }
 
 .clips-container::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(0, 255, 0, 0.6);
+    background-color: rgb(var(--accent-rgb) / 0.6);
 }
 
 .clips-contianer::-webkit-scrollbar-button {
@@ -538,20 +586,20 @@ body {
 .clip-wrapper:hover {
     transform: translateY(-6px) scale(1.04);
     box-shadow: 
-        0 10px 30px rgba(0, 255, 0, 0.15),
-        0 0 0 1px rgba(0, 255, 0, 0.25);
+    0 10px 30px rgb(var(--accent-rgb) / 0.15),
+    0 0 0 1px rgb(var(--accent-rgb) / 0.25);
 }
 
 .clip-wrapper.focused {
-  outline: 3px solid #22c55e;
+    outline: 3px solid var(--accent);
   outline-offset: -3px;
 }
 
 .clip-wrapper.focused:hover {
     transform: translateY(-4px) scale(1.02);
     box-shadow:
-        0 0 0 3px #22c55e,
-        0 8px 24px rgba(0, 255, 0, 0.2);
+    0 0 0 3px var(--accent),
+    0 8px 24px rgb(var(--accent-rgb) / 0.2);
 }
 
 .clip-checkbox {
@@ -561,7 +609,7 @@ body {
   z-index: 10;
   width: 18px;
   height: 18px;
-  accent-color: #22c55e;
+    accent-color: var(--accent);
 }
 
 .clip-export-dot {
@@ -577,8 +625,8 @@ body {
 }
 
 .clip-export-dot.ok {
-    background: lime;
-    box-shadow: 0 0 8px rgba(0, 255, 0, 0.9);
+    background: var(--accent);
+    box-shadow: 0 0 8px rgb(var(--accent-rgb) / 0.9);
 }
 
 .clip {
@@ -619,7 +667,7 @@ body {
     align-items: center;
     background: black;
     border-radius: 8px;
-    border: 1px solid lime;
+    border: 1px solid var(--accent);
     overflow: hidden;
 }
 
@@ -696,7 +744,7 @@ body {
 .controls button {
     background: transparent;
     border: none;
-    color: #22c55e;
+    color: var(--accent);
     cursor: pointer;
 }
 
@@ -708,8 +756,8 @@ body {
 .controls button:hover {
     transform: scale(1.05);
     filter: 
-        drop-shadow(0 0 4px #22c55e)
-        drop-shadow(0 0 12px rgba(34, 197, 94, 0.6));
+    drop-shadow(0 0 4px var(--accent))
+    drop-shadow(0 0 12px rgb(var(--accent-rgb) / 0.6));
 }
 
 .progress {
@@ -733,12 +781,12 @@ body {
 
 
 .progress progress::-webkit-progress-value {
-    background-color: #22c55e;
+    background-color: var(--accent);
     border-radius: 999px;
 }
 
 #progress-bar {
-    background: green;
+    background: var(--accent);
 }
 
 /*Info Section*/
@@ -775,4 +823,49 @@ body {
 .dot.active {
     background: white;
     transform: scale(1.2);
+}
+
+/* --------------------
+        SETTINGS
+-------------------- */
+.settings-page {
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.settings-section {
+    border: 1px solid rgb(255 255 255 / 0.15);
+    background: rgb(0 0 0 / 0.25);
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.settings-section h3 {
+    margin: 0 0 10px 0;
+    font-weight: 100;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+}
+
+.settings-label {
+    font-size: 22px;
+}
+
+.settings-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-value {
+    font-size: 18px;
+    color: rgb(255 255 255 / 0.8);
 }

@@ -7,14 +7,12 @@ import { useEffect } from "react";
 import Navbar from "./components/Navbar.tsx";
 import ImportButtons from "./components/ImportButtons.tsx";
 import MainLayout from "./MainLayout";
-// import Sidebar from "./components/Sidebar.tsx"
+import Sidebar, { type Page } from "./components/Sidebar.tsx"
+import Settings from "./pages/Settings";
+import { applyThemeSettings, loadThemeSettings } from "./theme";
 import "./App.css";
 
 function App() {
-  /*
-  Create setSelectedClip function, whatever gets passed into it
-  becomes selectedClip
-  */
   const [focusedClip, setFocusedClip] = useState<string | null>(null);
   const [selectedClips, setSelectedClips] = useState<Set<string>>(new Set());
   const [importToken, setImportToken] = useState(() => Date.now().toString());
@@ -28,14 +26,15 @@ function App() {
   const [progressMsg, setProgressMsg] = useState("Starting..."); 
   const [isEmpty, setIsEmpty] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
-  const [sideBarEnabled, setSideBarEnabled] = useState(false);
+  const [sideBarEnabled, setSideBarEnabled] = useState(true);
+  const [activePage, setActivePage] = useState<Page>("home");
   const gridRef = useRef<HTMLDivElement>(null);
   const userHasHEVC = useRef<boolean>(false)
   const width = gridRef.current?.offsetWidth || 0;
   const gridSize = Math.floor(width / cols);
 
-  // Detect whether the current WebView can decode HEVC (e.g., HEVC Video Extensions on Windows).
-  // This is used as a capability gate: if HEVC is supported, we skip proxy logic and prefer originals.
+  // Detect whether the current WebView can decode HEVC (e.g., HEVC Video Extensions on Windows)
+  // This is used as a capability gate: if HEVC is supported, we skip proxy logic and prefer originals
   useEffect(() => {
     try {
       const candidates = [
@@ -64,6 +63,11 @@ function App() {
     } catch {
       userHasHEVC.current = false;
     }
+  }, []);
+
+  // load saved theme
+  useEffect(() => {
+    applyThemeSettings(loadThemeSettings());
   }, []);
 
   const snapGridBigger = () => {
@@ -262,7 +266,7 @@ function App() {
 
     let cancelled = false;
 
-    // Mark as "checking" for this import so hover previews can avoid black-screen attempts.
+    // Mark as "checking" for this import so hover previews can avoid black-screen attempts
     setVideoIsHEVC(null);
 
     (async () => {
@@ -309,43 +313,51 @@ function App() {
 
       )}
       <div className="window-wrapper">
-        {/* {sideBarEnabled && <Sidebar/>} */}
+        {sideBarEnabled && (
+          <Sidebar activePage={activePage} setActivePage={setActivePage} />
+        )}
         <div className="content-wrapper">
           <Navbar 
            setSideBarEnabled={setSideBarEnabled}
            userHasHEVC={userHasHEVC}
            videoIsHEVC={videoIsHEVC}/>
           <div className="main-content">
-            <ImportButtons 
-              cols={cols}
-              gridSize={gridSize}
-              onBigger={snapGridBigger}
-              onSmaller={snapGridSmaller}
-              setGridPreview={setGridPreview}
-              gridPreview={gridPreview}
-              selectedClips={selectedClips}
-              setSelectedClips={setSelectedClips}
-              onImport={onImportClick}
-              loading={loading}
-            />
-            <MainLayout 
-            cols={cols}
-            gridSize={gridSize}
-            gridRef={gridRef}
-            gridPreview={gridPreview}
-            selectedClips={selectedClips}
-            setSelectedClips={setSelectedClips}
-            clips={clips}
-            importToken={importToken}
-            loading={loading}
-            isEmpty={isEmpty}
-            handleExport={handleExport}
-            sideBarEnabled={sideBarEnabled}
-            videoIsHEVC={videoIsHEVC}
-            userHasHEVC={userHasHEVC}
-            focusedClip={focusedClip}
-            setFocusedClip={setFocusedClip}
-          />
+            {activePage === "home" ? (
+              <>
+                <ImportButtons 
+                  cols={cols}
+                  gridSize={gridSize}
+                  onBigger={snapGridBigger}
+                  onSmaller={snapGridSmaller}
+                  setGridPreview={setGridPreview}
+                  gridPreview={gridPreview}
+                  selectedClips={selectedClips}
+                  setSelectedClips={setSelectedClips}
+                  onImport={onImportClick}
+                  loading={loading}
+                />
+                <MainLayout 
+                  cols={cols}
+                  gridSize={gridSize}
+                  gridRef={gridRef}
+                  gridPreview={gridPreview}
+                  selectedClips={selectedClips}
+                  setSelectedClips={setSelectedClips}
+                  clips={clips}
+                  importToken={importToken}
+                  loading={loading}
+                  isEmpty={isEmpty}
+                  handleExport={handleExport}
+                  sideBarEnabled={sideBarEnabled}
+                  videoIsHEVC={videoIsHEVC}
+                  userHasHEVC={userHasHEVC}
+                  focusedClip={focusedClip}
+                  setFocusedClip={setFocusedClip}
+                />
+              </>
+            ) : (
+              <Settings />
+            )}
           </div>
         </div>
       </div>
