@@ -418,28 +418,8 @@ body {
     max-width: 60vw;
     min-height: 0;
     overflow: hidden;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);;
 
-}
 
-.sidebar-divider {
-    display: flex;
-    flex-direction: row;
-    width: 15px;
-    height: 50%;
-    cursor: col-resize;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 3px;
-    box-sizing: border-box;
-    align-self: stretch;
-    user-select: none;
-    touch-action: none;
-    transform: translateY(55%);
-}
-
-.sidebar-divider:hover {
-    background: rgba(255, 255, 255, 0.04);
 }
 
 body.is-resizing-sidebar {
@@ -626,6 +606,8 @@ body.is-resizing-sidebar {
     text-align: left;
     border-radius: 8px;
     cursor: pointer;
+    font-family: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 100;
 }
 
 .episode-context-menu-item:hover {
@@ -753,6 +735,13 @@ body.is-resizing-sidebar {
     min-height: 0;
 }
 
+.main-layout-wrapper {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+}
+
 .left-pane,
 .right-pane {
     display: flex;
@@ -775,9 +764,14 @@ body.is-resizing-sidebar {
     width: 10px;
     height: 50%;
     cursor: col-resize;
-    transform: translateY(49%);
     justify-content: space-between;
     align-items: center;
+    align-self: center;
+}
+
+/* Align sidebar divider vertically with the MainLayout divider (keep styling identical) */
+.divider.sidebar-splitter {
+    transform: translateY(var(--amverge-divider-offset, 0px));
 }
 
 .subdivider {

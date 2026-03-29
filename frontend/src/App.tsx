@@ -66,6 +66,8 @@ function App() {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
   const windowWrapperRef = useRef<HTMLDivElement | null>(null);
+  const mainLayoutWrapperRef = useRef<HTMLDivElement | null>(null);
+  const [dividerOffsetPx, setDividerOffsetPx] = useState(0);
   const [sidebarWidthPx, setSidebarWidthPx] = useState<number>(() => {
     try {
       const raw = localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY);
@@ -727,6 +729,34 @@ function App() {
     };
   }, [importedVideoPath, importToken])
 
+  useEffect(() => {
+    const update = () => {
+      const ww = windowWrapperRef.current;
+      const ml = mainLayoutWrapperRef.current;
+      if (!ww || !ml) return;
+
+      const wwRect = ww.getBoundingClientRect();
+      const mlRect = ml.getBoundingClientRect();
+
+      const wwCenterY = wwRect.top + wwRect.height / 2;
+      const mlCenterY = mlRect.top + mlRect.height / 2;
+      const offsetPx = mlCenterY - wwCenterY;
+
+      setDividerOffsetPx((prev) => (Math.abs(prev - offsetPx) < 0.5 ? prev : offsetPx));
+    };
+
+    update();
+
+    const ro = new ResizeObserver(() => update());
+    if (mainLayoutWrapperRef.current) ro.observe(mainLayoutWrapperRef.current);
+    window.addEventListener("resize", update);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [activePage, sideBarEnabled]);
+
   return (
     <main className="app-root">
       {loading && (
@@ -757,6 +787,7 @@ function App() {
         ref={windowWrapperRef}
         style={{
           ["--amverge-sidebar-width" as any]: `${sidebarWidthPx}px`,
+          ["--amverge-divider-offset" as any]: `${dividerOffsetPx}px`,
         }}
       >
         {sideBarEnabled && (
@@ -785,7 +816,7 @@ function App() {
               onClearEpisodePanelCache={handleClearEpisodePanelCache}
             />
             <div
-              className="sidebar-divider"
+              className="divider sidebar-splitter"
               onPointerDown={startSidebarResize}
               role="separator"
               aria-orientation="vertical"
@@ -817,24 +848,26 @@ function App() {
                   onImport={onImportClick}
                   loading={loading}
                 />
-                <MainLayout 
-                  cols={cols}
-                  gridSize={gridSize}
-                  gridRef={gridRef}
-                  gridPreview={gridPreview}
-                  selectedClips={selectedClips}
-                  setSelectedClips={setSelectedClips}
-                  clips={clips}
-                  importToken={importToken}
-                  loading={loading}
-                  isEmpty={isEmpty}
-                  handleExport={handleExport}
-                  sideBarEnabled={sideBarEnabled}
-                  videoIsHEVC={videoIsHEVC}
-                  userHasHEVC={userHasHEVC}
-                  focusedClip={focusedClip}
-                  setFocusedClip={setFocusedClip}
-                />
+                <div className="main-layout-wrapper" ref={mainLayoutWrapperRef}>
+                  <MainLayout 
+                    cols={cols}
+                    gridSize={gridSize}
+                    gridRef={gridRef}
+                    gridPreview={gridPreview}
+                    selectedClips={selectedClips}
+                    setSelectedClips={setSelectedClips}
+                    clips={clips}
+                    importToken={importToken}
+                    loading={loading}
+                    isEmpty={isEmpty}
+                    handleExport={handleExport}
+                    sideBarEnabled={sideBarEnabled}
+                    videoIsHEVC={videoIsHEVC}
+                    userHasHEVC={userHasHEVC}
+                    focusedClip={focusedClip}
+                    setFocusedClip={setFocusedClip}
+                  />
+                </div>
               </>
             ) : (
               <Settings />

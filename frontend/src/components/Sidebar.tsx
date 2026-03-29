@@ -235,6 +235,7 @@ function EpisodePanel(props: Omit<SidebarProps, "activePage" | "setActivePage">)
 
         clearClickGesture();
 
+        setFolderContextMenu(null);
         setPanelContextMenu(null);
 
         props.onSelectEpisode(episodeId);
@@ -251,6 +252,7 @@ function EpisodePanel(props: Omit<SidebarProps, "activePage" | "setActivePage">)
 
         clearClickGesture();
 
+        setContextMenu(null);
         setPanelContextMenu(null);
 
         props.onSelectFolder(folderId);
@@ -268,6 +270,8 @@ function EpisodePanel(props: Omit<SidebarProps, "activePage" | "setActivePage">)
         clearClickGesture();
         setContextMenu(null);
         setFolderContextMenu(null);
+        setTextModal(null);
+        setConfirmModal(null);
 
         setPanelContextMenu({ x: e.clientX, y: e.clientY });
     };
