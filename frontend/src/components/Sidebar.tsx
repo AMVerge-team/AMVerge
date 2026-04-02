@@ -688,6 +688,16 @@ function EpisodePanel(props: Omit<SidebarProps, "activePage" | "setActivePage">)
                                                     : "episode-panel-caret"
                                             }
                                             draggable={false}
+                                            onPointerDown={(e) => {
+                                                // Prevent the folder row's pointer-capture/drag handler from
+                                                // swallowing the first click on the caret.
+                                                e.stopPropagation();
+                                            }}
+                                            onMouseDown={(e) => {
+                                                // Keep the caret from taking focus and selecting the folder row.
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                            }}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 props.onToggleFolderExpanded(folder.id);
@@ -697,7 +707,7 @@ function EpisodePanel(props: Omit<SidebarProps, "activePage" | "setActivePage">)
                                             ▸
                                         </button>
                                         <span className="episode-panel-folder-name">{folder.name}</span>
-                                        <span className="episode-panel-count">{folderEpisodes.length}</span>
+                                        {/* <span className="episode-panel-count">{folderEpisodes.length}</span> */}
                                     </div>
 
                                     {folder.isExpanded && (childFolders.length > 0 || folderEpisodes.length > 0) && (

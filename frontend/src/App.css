@@ -579,7 +579,8 @@ body.is-resizing-sidebar {
 
 .episode-panel-count {
     opacity: 0.75;
-    font-size: 12px;
+    font-size: 15px;
+    font-weight: 10;
 }
 
 .episode-panel-caret {

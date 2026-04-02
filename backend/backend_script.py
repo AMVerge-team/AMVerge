@@ -113,6 +113,14 @@ def trim_scenes_at_keyframes(video_path: str, output_dir: str):
     if not keyframes:
         print("No keyframes found, returning empty", file=sys.stderr, flush=True)
         return []
+
+    def _fmt_ts(t: float) -> str:
+        # Keep the existing 6-decimal precision, but trim redundant trailing zeros
+        # to avoid Windows command-line length issues (WinError 206) when passing
+        # thousands of cut points to ffmpeg via `-segment_times`.
+        s = f"{float(t):.6f}"
+        s = s.rstrip("0").rstrip(".")
+        return s
     
     # Skip the first keyframe(0.0)
     cut_points = sorted(keyframes[1:])
@@ -127,7 +135,7 @@ def trim_scenes_at_keyframes(video_path: str, output_dir: str):
         "-i", video_path,
         "-c", "copy",
         "-f", "segment",
-        "-segment_times", ",".join(f"{t:.6f}" for t in cut_points),
+        "-segment_times", ",".join(_fmt_ts(t) for t in cut_points),
         "-reset_timestamps", "1",
         out_pattern
     ]
@@ -189,5 +197,6 @@ if __name__ == "__main__":
         log(f"FATAL ERROR: {e}")
         log(traceback.format_exc())
         print(json.dumps([]))
+        print(f"debug_log_dir: {DEBUG_LOG_DIR}", file=sys.stderr)
         sys.stdout.flush()
         sys.exit(1)
