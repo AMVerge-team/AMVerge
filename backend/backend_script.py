@@ -81,7 +81,7 @@ def generate_thumbnails(output_dir: str, scenes: list, file_name: str):
         except Exception:
             pass
 
-    with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+    with ThreadPoolExecutor(max_workers=min(4, os.cpu_count() or 4)) as executor:
         futures = [executor.submit(make_thumb, scene) for scene in scenes]
         emit_progress(90, f"Generating thumbnails... 0/{total}")
         for _ in as_completed(futures):

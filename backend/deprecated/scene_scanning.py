@@ -138,7 +138,7 @@ def detect_and_trim_scenes(
         i, (start, end) = args
         return read_frames(original_video_path, start, end, threshold, blocksize)
     
-    with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+    with ThreadPoolExecutor(max_workers=min(4, os.cpu_count() or 4)) as executor:
         futures = {executor.submit(scan_window, (i, w)): i for i, w in enumerate(windows)}
         completed = 0
         for future in as_completed(futures):
