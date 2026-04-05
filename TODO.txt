@@ -1,22 +1,7 @@
-Add more frontend stuff:
-- Implement hamburger menu as well as the file explorer
-    - Settings will be at top of hamburger menu
-      - Settings will have the directory for episode caches, color changes, background changes, more as needed
-    - File explorer will be below the hamburger menu
-      - File explorer will be styled in a way that it will turn the 2-divided MainLayout to a 3-divided MainLayout,
-        user can toggle it on and off to make more space for clip selection
-      - Episodes will automatically fill the cache of the file explorer, a name entry will be at the top to let the user know
-        that they can type the name of the file/directory
-      - One button at top of file explorer to add directory to drag and drop files/directories into
-      - Can right click the file explorer, if right clicking a directory, can delete. Can select multiple directories/episodes to right click > delete.
-      - Can drag and drop eps into directories in bulk, can rename directories and eps using f2 or right clicking > rename
-      
-    -  
-- Create settings which includes the directly for clip navigation, color changers, background changers, and more
-
-TODO RIGHT NOW:
-- Add visual checks for hevc on the user level and the video level
-- Add a "focused" variable that tracks the ones the user clicks, and add "selected" dots on each video thumbnail to show whether they're selected
-  or not 
-- Fix video encoding, make it 100% safe on merge so that it can be imported into AE 
-- Fix mp4 files being seen as images
+- Fix the # of selected not resetting after every episode import
+- The app slows down the pc with overtime use, optimize it:
+  1) make it so that HEVC preview all uses the same method as non-hevc preview all, whether they have hevc or they don't but the ep was not hevc encoded
+  2) ask ai why the app slows down the user's pc and if there's anything I can do to fix it
+- Add multiple file import supports
+- Add the original file name for eps incase they name it something they don't want, add output directory that saves persistently above export
+- Allow user to select multiple files in eps list via shift click

@@ -269,6 +269,8 @@ function App() {
       setProgress(0);
       setProgressMsg("Starting...");
       setLoading(true);
+      setSelectedClips(new Set());
+      setFocusedClip(null);
       setImportedVideoPath(file)
       setVideoIsHEVC(null);
       setImportToken(Date.now().toString());
@@ -608,6 +610,8 @@ function App() {
         });
       }
       
+      setSelectedClips(new Set());
+      setFocusedClip(null);
       console.log("Export complete");
     } catch (err) {
       console.log("Export failed:", err)
