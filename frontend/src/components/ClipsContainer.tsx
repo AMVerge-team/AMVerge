@@ -190,6 +190,93 @@ function useViewportAwareProxyQueue() {
 }
 
 // --------------------
+// Staggered Mount Queue
+// --------------------
+// When grid-preview is active, mounting all <video> elements at once can stall
+// the browser / GPU decoder.  Tiles register/unregister demand (same pattern
+// as the proxy queue).  Processing is deferred by one macrotask (setTimeout 0)
+// so that all effects from the same render commit register their demand before
+// the queue starts.  Then a setInterval ticks once every delayMs, processing
+// one tile per tick (lowest index = top-left first).
+
+type StaggerDemand = {
+  order: number;
+  onReady: () => void;
+};
+
+function useStaggeredMountQueue(delayMs = 50) {
+  const demandRef = useRef<Map<string, StaggerDemand>>(new Map());
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startScheduledRef = useRef(false);
+
+  const tick = useCallback(() => {
+    // Nothing left — stop the interval.
+    if (demandRef.current.size === 0) {
+      if (intervalRef.current !== null) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return;
+    }
+
+    // Pick the tile closest to the top-left (lowest order).
+    let bestKey: string | null = null;
+    let bestOrder = Infinity;
+    for (const [key, entry] of demandRef.current) {
+      if (entry.order < bestOrder) {
+        bestOrder = entry.order;
+        bestKey = key;
+      }
+    }
+    if (!bestKey) return;
+
+    const entry = demandRef.current.get(bestKey)!;
+    demandRef.current.delete(bestKey);
+    entry.onReady();
+  }, []);
+
+  const startProcessing = useCallback(() => {
+    startScheduledRef.current = false;
+    if (intervalRef.current !== null) return; // already running
+    if (demandRef.current.size === 0) return;
+
+    // Process the first tile immediately, then one every delayMs.
+    tick();
+    if (demandRef.current.size > 0) {
+      intervalRef.current = setInterval(tick, delayMs);
+    }
+  }, [tick, delayMs]);
+
+  const scheduleStart = useCallback(() => {
+    // If already scheduled or the interval is running, new entries will be
+    // picked up automatically — nothing to do.
+    if (startScheduledRef.current || intervalRef.current !== null) return;
+    startScheduledRef.current = true;
+    // Defer to the next macrotask so all effects from this render commit
+    // register their demand before we start processing.
+    setTimeout(startProcessing, 0);
+  }, [startProcessing]);
+
+  const reportStaggerDemand = useCallback(
+    (key: string, demand: StaggerDemand | null) => {
+      if (!demand) {
+        demandRef.current.delete(key);
+        if (demandRef.current.size === 0 && intervalRef.current !== null) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        return;
+      }
+      demandRef.current.set(key, demand);
+      scheduleStart();
+    },
+    [scheduleStart]
+  );
+
+  return { reportStaggerDemand };
+}
+
+// --------------------
 //   Lazy Video Cell
 // --------------------
 
@@ -215,6 +302,7 @@ type LazyClipProps = {
     e: React.MouseEvent<HTMLDivElement>
   ) => void;
   registerVideoRef: (clipId: string, el: HTMLVideoElement | null) => void;
+  reportStaggerDemand: (key: string, demand: { order: number; onReady: () => void } | null) => void;
   videoIsHEVC: boolean | null;
   userHasHEVC: React.RefObject<boolean>;
 };
@@ -231,6 +319,7 @@ const LazyClip = memo(function LazyClip({
   onClipClick,
   onClipDoubleClick,
   registerVideoRef,
+  reportStaggerDemand,
   videoIsHEVC,
   userHasHEVC,
 }: LazyClipProps) {
@@ -245,6 +334,11 @@ const LazyClip = memo(function LazyClip({
   const hasFirstFrameRef = useRef(false);
   const videoFrameCallbackIdRef = useRef<number | null>(null);
   const proxyInFlightRef = useRef(false);
+
+  // Staggered mount: gates video mounting under grid-preview so tiles
+  // mount sequentially (top-left first) instead of all at once.
+  const [staggerReady, setStaggerReady] = useState(false);
+  const staggerDoneRef = useRef(false);
 
   // When playback fails (e.g., missing HEVC codec), keep showing the thumbnail
   // while we generate/switch to a proxy instead of displaying a black video.
@@ -264,8 +358,10 @@ const LazyClip = memo(function LazyClip({
 
   const showVideo = isHovered || gridPreview;
   const waitingForRequiredProxy = needsHevcProxy && effectiveSrc === clip.src;
+  // During grid-preview, wait for the stagger queue unless this tile is hovered.
+  const staggerGate = !gridPreview || isHovered || staggerReady;
   const shouldMountVideo =
-    showVideo && !forceThumbnail && !waitingForRequiredProxy && !waitingForCodecInfo;
+    showVideo && !forceThumbnail && !waitingForRequiredProxy && !waitingForCodecInfo && staggerGate;
   const shouldShowThumbnail = !showVideo || !shouldMountVideo || !isVideoReady;
 
   // When Preview-all is enabled and we need an HEVC proxy, register demand only while visible.
@@ -302,6 +398,8 @@ const LazyClip = memo(function LazyClip({
       }
     }
     videoFrameCallbackIdRef.current = null;
+    staggerDoneRef.current = false;
+    setStaggerReady(false);
     setForceThumbnail(false);
     setIsVideoReady(false);
     setEffectiveSrc(clip.src);
@@ -360,7 +458,59 @@ const LazyClip = memo(function LazyClip({
     void run();
   }, [needsHevcProxy, isVisible, isHovered, gridPreview, effectiveSrc, clip.src, requestProxySequential]);
 
-  
+  // Stagger queue: report demand when grid-preview is on and tile is visible.
+  // Same pattern as the proxy queue — register/unregister, central loop picks
+  // the best candidate and calls onReady.  Hover bypasses the queue.
+  useEffect(() => {
+    if (!gridPreview) {
+      reportStaggerDemand(clip.id, null);
+      return;
+    }
+
+    // Hover bypasses the stagger queue — instant playback for the hovered tile.
+    if (isHovered) {
+      staggerDoneRef.current = true;
+      setStaggerReady(true);
+      reportStaggerDemand(clip.id, null);
+      return;
+    }
+
+    // Tile scrolled out — reset and unregister.
+    if (!isVisible) {
+      staggerDoneRef.current = false;
+      setStaggerReady(false);
+      reportStaggerDemand(clip.id, null);
+      return;
+    }
+
+    // Already stagger-mounted and still visible; don't re-queue.
+    if (staggerDoneRef.current) {
+      setStaggerReady(true);
+      reportStaggerDemand(clip.id, null);
+      return;
+    }
+
+    // HEVC proxy clips are already serialised by the proxy queue.
+    if (needsHevcProxy) {
+      setStaggerReady(true);
+      reportStaggerDemand(clip.id, null);
+      return;
+    }
+
+    // Register demand — the central queue will call onReady when it's our turn.
+    reportStaggerDemand(clip.id, {
+      order: index,
+      onReady: () => {
+        staggerDoneRef.current = true;
+        setStaggerReady(true);
+      },
+    });
+
+    return () => {
+      reportStaggerDemand(clip.id, null);
+    };
+  }, [gridPreview, isHovered, isVisible, needsHevcProxy, clip.id, index, reportStaggerDemand]);
+
   const requestFirstFrame = useCallback((video: HTMLVideoElement) => {
     if (hasFirstFrameRef.current) return;
     if (!(video as any).requestVideoFrameCallback) return;
@@ -530,14 +680,48 @@ const LazyClip = memo(function LazyClip({
                 const v = e.currentTarget;
                 const errorCode = v.error?.code ?? null;
                 if (import.meta.env.DEV) console.log(`Error on video -> CODE: ${errorCode}`);
-                // Signal Rust; no additional behavior yet.
+
+                // Report to Rust for logging.
                 invoke("hover_preview_error", {
                   clipId: clip.id,
                   clipPath: clip.src,
                   errorCode,
-                }).catch(() => {
-                  // Ignore errors (e.g., command not registered yet)
-                });
+                }).catch(() => {});
+
+                // Fallback: the original clip failed (likely HEVC that canPlayType
+                // claimed was supported but the decoder can't actually handle).
+                // Generate an H.264 proxy and swap to it.
+                if (proxyInFlightRef.current) return;
+                proxyInFlightRef.current = true;
+
+                const clipPath = clip.src;
+                (async () => {
+                  try {
+                    const proxyPath = gridPreview
+                      ? await requestProxySequential(clipPath, true)
+                      : await invoke<string>("ensure_preview_proxy", { clipPath });
+
+                    if (clip.src !== clipPath) return;
+                    if (!proxyPath) {
+                      setForceThumbnail(true);
+                      return;
+                    }
+
+                    setEffectiveSrc(proxyPath);
+                    setForceThumbnail(false);
+
+                    setTimeout(() => {
+                      const vid = internalVideoRef.current;
+                      if (!vid) return;
+                      vid.load();
+                      vid.play().catch(() => {});
+                    }, 0);
+                  } catch {
+                    setForceThumbnail(true);
+                  } finally {
+                    proxyInFlightRef.current = false;
+                  }
+                })();
               }}
             />
           )}
@@ -560,6 +744,7 @@ export default function ClipsContainer(props: ClipContainerProps) {
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
 
   const { requestProxySequential, reportProxyDemand } = useViewportAwareProxyQueue();
+  const { reportStaggerDemand } = useStaggeredMountQueue();
 
   const effectiveCols = props.loading
     ? props.cols
@@ -660,6 +845,7 @@ export default function ClipsContainer(props: ClipContainerProps) {
                     requestProxySequential={requestProxySequential}
                     reportProxyDemand={reportProxyDemand}
                     registerVideoRef={registerVideoRef}
+                    reportStaggerDemand={reportStaggerDemand}
                     onClipClick={onClipClick}
                     onClipDoubleClick={onClipDoubleClick}
                     videoIsHEVC={props.videoIsHEVC}

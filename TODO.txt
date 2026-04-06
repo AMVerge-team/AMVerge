@@ -1,6 +1,4 @@
-- Fix the # of selected not resetting after every episode import
 - The app slows down the pc with overtime use, optimize it:
-  1) make it so that HEVC preview all uses the same method as non-hevc preview all, whether they have hevc or they don't but the ep was not hevc encoded
   2) ask ai why the app slows down the user's pc and if there's anything I can do to fix it
 - Add multiple file import supports
 - Add the original file name for eps incase they name it something they don't want, add output directory that saves persistently above export
