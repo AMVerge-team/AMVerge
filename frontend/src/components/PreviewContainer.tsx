@@ -12,6 +12,9 @@ type PreviewContainerProps = {
     selectedClips: Set<string>,
     enableMerged: boolean
   ) => Promise<void>;
+  exportDir: string | null;
+  onPickExportDir: () => void;
+  onExportDirChange: (dir: string) => void;
 };
 
 export default function PreviewContainer (props: PreviewContainerProps) {
@@ -46,6 +49,22 @@ export default function PreviewContainer (props: PreviewContainerProps) {
             <span className="checkmark"></span>
           </label>
           <p>Merge clips</p>
+        </div>
+        <div className="export-dir-row">
+          <input
+            type="text"
+            className="export-dir-input"
+            placeholder="Output directory..."
+            value={props.exportDir || ""}
+            onChange={(e) => props.onExportDirChange(e.target.value)}
+          />
+          <button
+            className="buttons export-dir-browse"
+            onClick={props.onPickExportDir}
+            title="Browse for output folder"
+          >
+            Set Export Dir
+          </button>
         </div>
         <button 
           className="buttons" 

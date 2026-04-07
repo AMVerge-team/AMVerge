@@ -1,5 +1,3 @@
-- The app slows down the pc with overtime use, optimize it:
-  2) ask ai why the app slows down the user's pc and if there's anything I can do to fix it
 - Add multiple file import supports
 - Add the original file name for eps incase they name it something they don't want, add output directory that saves persistently above export
 - Allow user to select multiple files in eps list via shift click

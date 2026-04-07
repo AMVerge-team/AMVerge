@@ -29,6 +29,15 @@ struct ProgressPayload {
 }
 
 // --------------------
+// Active sidecar tracking (for abort)
+// --------------------
+
+#[derive(Default)]
+struct ActiveSidecar {
+    pid: Mutex<Option<u32>>,
+}
+
+// --------------------
 // Console logging helpers (tester screenshot friendly)
 // --------------------
 
@@ -210,6 +219,7 @@ async fn check_hevc(app: AppHandle, video_path: String) -> Result<bool, String> 
 #[tauri::command]
 async fn detect_scenes(
     app: AppHandle,
+    sidecar_state: State<'_, ActiveSidecar>,
     video_path: String,
     episode_cache_id: Option<String>,
 ) -> Result<String, String> {
@@ -311,7 +321,13 @@ async fn detect_scenes(
             .map_err(|e| format!("Failed to spawn backend exe: {e}"))?
     };
 
-    console_log("SCENE|pid", &format!("pid={}", child.id()));
+    let child_pid = child.id();
+    console_log("SCENE|pid", &format!("pid={}", child_pid));
+
+    // Store PID so abort_detect_scenes can kill this process tree.
+    if let Ok(mut lock) = sidecar_state.pid.lock() {
+        *lock = Some(child_pid);
+    }
 
     let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
     let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
@@ -377,6 +393,11 @@ async fn detect_scenes(
         .map_err(|e| format!("wait thread panicked: {e}"))?
         .map_err(|e| format!("Failed waiting for python: {e}"))?;
 
+    // Clear tracked PID now that the process has exited.
+    if let Ok(mut lock) = sidecar_state.pid.lock() {
+        *lock = None;
+    }
+
     console_log(
         "SCENE|end",
         &format!("video={video_name} status={}", status),
@@ -407,6 +428,47 @@ async fn detect_scenes(
     }
 
     Ok(stdout_string)
+}
+
+// --------------------
+// Abort active scene detection
+// --------------------
+
+#[tauri::command]
+async fn abort_detect_scenes(
+    sidecar_state: State<'_, ActiveSidecar>,
+) -> Result<(), String> {
+    let pid = {
+        let mut lock = sidecar_state.pid.lock().map_err(|e| e.to_string())?;
+        lock.take()
+    };
+
+    let Some(pid) = pid else {
+        console_log("ABORT", "no active sidecar to kill");
+        return Ok(());
+    };
+
+    console_log("ABORT", &format!("killing process tree pid={pid}"));
+
+    // taskkill /F /T kills the entire process tree (sidecar + ffmpeg children).
+    let result = tokio::task::spawn_blocking(move || {
+        let mut cmd = Command::new("taskkill");
+        apply_no_window(&mut cmd);
+        cmd.args(["/F", "/T", "/PID", &pid.to_string()])
+            .output()
+    })
+    .await
+    .map_err(|e| format!("taskkill task panicked: {e}"))?
+    .map_err(|e| format!("Failed to run taskkill: {e}"))?;
+
+    if result.status.success() {
+        console_log("ABORT", &format!("killed pid={pid} ok"));
+    } else {
+        let stderr = String::from_utf8_lossy(&result.stderr).trim().to_string();
+        console_log("ABORT", &format!("taskkill pid={pid} failed: {stderr}"));
+    }
+
+    Ok(())
 }
 
 // --------------------
@@ -1345,8 +1407,10 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(PreviewProxyLocks::default())
+        .manage(ActiveSidecar::default())
         .invoke_handler(tauri::generate_handler![
             detect_scenes,
+            abort_detect_scenes,
             export_clips,
             check_hevc,
             hover_preview_error,

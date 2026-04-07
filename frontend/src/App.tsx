@@ -1,6 +1,6 @@
 import { startTransition, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { save, open } from "@tauri-apps/plugin-dialog";
+import { open } from "@tauri-apps/plugin-dialog";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import Navbar from "./components/Navbar.tsx";
@@ -36,6 +36,7 @@ type EpisodeEntry = {
 
 const EPISODE_PANEL_STORAGE_KEY = "amverge_episode_panel_v1";
 const SIDEBAR_WIDTH_STORAGE_KEY = "amverge_sidebar_width_px_v1";
+const EXPORT_DIR_STORAGE_KEY = "amverge_export_dir_v1";
 
 function fileNameFromPath(path: string): string {
   const last = path.split(/[/\\]/).pop();
@@ -58,6 +59,13 @@ function App() {
   const [isDragging, setIsDragging] = useState(false);
   const [sideBarEnabled, setSideBarEnabled] = useState(true);
   const [activePage, setActivePage] = useState<Page>("home");
+  const [exportDir, setExportDir] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(EXPORT_DIR_STORAGE_KEY) || null;
+    } catch {
+      return null;
+    }
+  });
 
   const [episodeFolders, setEpisodeFolders] = useState<EpisodeFolder[]>([]);
   const [episodes, setEpisodes] = useState<EpisodeEntry[]>([]);
@@ -83,6 +91,12 @@ function App() {
   const userHasHEVC = useRef<boolean>(false)
   const lastExternalDropRef = useRef<{ path: string; ts: number } | null>(null);
   const importGenRef = useRef(0);
+  const abortedRef = useRef(false);
+
+  const [batchTotal, setBatchTotal] = useState(0);
+  const [batchDone, setBatchDone] = useState(0);
+  const [batchCurrentFile, setBatchCurrentFile] = useState("");
+
   const width = gridRef.current?.offsetWidth || 0;
   const gridSize = Math.floor(width / cols);
 
@@ -189,6 +203,19 @@ function App() {
     }
   }, [sidebarWidthPx]);
 
+  // Persist export directory
+  useEffect(() => {
+    try {
+      if (exportDir) {
+        localStorage.setItem(EXPORT_DIR_STORAGE_KEY, exportDir);
+      } else {
+        localStorage.removeItem(EXPORT_DIR_STORAGE_KEY);
+      }
+    } catch {
+      // ignore
+    }
+  }, [exportDir]);
+
   const startSidebarResize = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!sideBarEnabled) return;
     const wrapper = windowWrapperRef.current;
@@ -246,8 +273,8 @@ function App() {
   };
 
   const onImportClick = async () => {
-    const file = await open({
-      multiple: false,
+    const files = await open({
+      multiple: true,
       filters: [
         {
           name: "Video",
@@ -256,7 +283,17 @@ function App() {
       ]
     });
 
-    handleImport(file)
+    if (!files) return;
+
+    // open() with multiple:true returns string[] | null
+    const fileList = Array.isArray(files) ? files : [files];
+    if (fileList.length === 0) return;
+
+    if (fileList.length === 1) {
+      handleImport(fileList[0]);
+    } else {
+      handleBatchImport(fileList);
+    }
   }
 
   const handleImport = async (file: string | null) => {
@@ -304,6 +341,104 @@ function App() {
       console.error("Detection failed:", err);
     } finally {
       if (importGenRef.current === gen) setLoading(false);
+    }
+  };
+
+  const truncateFileName = (name: string): string => {
+    if (name.length <= 23) return name;
+    return name.slice(0, 10) + "..." + name.slice(-10);
+  };
+
+  const handleBatchImport = async (files: string[]) => {
+    const gen = ++importGenRef.current;
+    abortedRef.current = false;
+
+    const completedEpisodes: EpisodeEntry[] = [];
+
+    try {
+      setIsEmpty(false);
+      setProgress(0);
+      setProgressMsg("Starting...");
+      setLoading(true);
+      setSelectedClips(new Set());
+      setFocusedClip(null);
+      setVideoIsHEVC(null);
+      setBatchTotal(files.length);
+      setBatchDone(0);
+      setBatchCurrentFile("");
+
+      for (let i = 0; i < files.length; i++) {
+        if (abortedRef.current) break;
+        if (importGenRef.current !== gen) return;
+
+        const file = files[i];
+        const episodeId = crypto.randomUUID();
+        const fileName = fileNameFromPath(file);
+
+        setBatchDone(i);
+        setBatchCurrentFile(truncateFileName(fileName));
+        setProgress(0);
+        setProgressMsg("Starting...");
+
+        try {
+          const formatted = await detectScenes(file, episodeId);
+
+          if (abortedRef.current || importGenRef.current !== gen) {
+            // Aborted or superseded mid-flight — clean up this episode's cache
+            invoke("delete_episode_cache", { episodeCacheId: episodeId }).catch(() => {});
+            break;
+          }
+
+          const inferredName = formatted[0]?.originalName || fileNameFromPath(file);
+
+          const episodeEntry: EpisodeEntry = {
+            id: episodeId,
+            displayName: inferredName,
+            videoPath: file,
+            folderId: selectedFolderId,
+            importedAt: Date.now(),
+            clips: formatted,
+          };
+
+          completedEpisodes.push(episodeEntry);
+          setEpisodes((prev) => [episodeEntry, ...prev]);
+        } catch (err) {
+          if (abortedRef.current) {
+            invoke("delete_episode_cache", { episodeCacheId: episodeId }).catch(() => {});
+            break;
+          }
+          console.error(`Detection failed for ${fileName}:`, err);
+          invoke("delete_episode_cache", { episodeCacheId: episodeId }).catch(() => {});
+        }
+      }
+
+      // Open the first completed episode
+      if (completedEpisodes.length > 0 && importGenRef.current === gen) {
+        const first = completedEpisodes[0];
+        setSelectedEpisodeId(first.id);
+        setOpenedEpisodeId(first.id);
+        setImportedVideoPath(first.videoPath);
+        setImportToken(Date.now().toString());
+        startTransition(() => {
+          setClips(first.clips);
+        });
+      }
+    } finally {
+      if (importGenRef.current === gen) {
+        setLoading(false);
+        setBatchTotal(0);
+        setBatchDone(0);
+        setBatchCurrentFile("");
+      }
+    }
+  };
+
+  const handleAbort = async () => {
+    abortedRef.current = true;
+    try {
+      await invoke("abort_detect_scenes");
+    } catch (err) {
+      console.error("abort_detect_scenes failed:", err);
     }
   };
 
@@ -558,11 +693,25 @@ function App() {
     );
   };
   
+  const handlePickExportDir = async () => {
+    const dir = await open({ directory: true, multiple: false });
+    if (dir) setExportDir(dir as string);
+  };
+
   const handleExport = async(selectedClips: Set<string>, mergeEnabled: boolean) => {
     if (selectedClips.size === 0) return;
 
     const selected = clips.filter(c => selectedClips.has(c.id));
     if (selected.length === 0) return;
+
+    // If no export directory is set, prompt the user to pick one first
+    let dir = exportDir;
+    if (!dir) {
+      const picked = await open({ directory: true, multiple: false });
+      if (!picked) return;
+      dir = picked as string;
+      setExportDir(dir);
+    }
 
     try {
       setLoading(true);
@@ -572,19 +721,7 @@ function App() {
       if (mergeEnabled) {
         const episodeName = selected[0]?.originalName || "episode";
         const suffix = String(Math.floor(Math.random() * 999) + 1).padStart(3, "0");
-        const defaultName = `${episodeName}_merged_${suffix}.mp4`;
-
-        const savePath = await save({
-          filters: [
-            {
-              name: "Video",
-              extensions: ["mp4"],
-            },
-          ],
-          defaultPath: defaultName,
-        });
-
-        if (!savePath) return;
+        const savePath = `${dir}\\${episodeName}_merged_${suffix}.mp4`;
 
         await invoke("export_clips", {
           clips: clipArray,
@@ -596,19 +733,7 @@ function App() {
         const firstFile = firstClipPath.split(/[/\\]/).pop() || "episode_0000.mp4";
         const firstStem = firstFile.replace(/\.[^/.]+$/, "");
         const defaultBase = firstStem.replace(/_\d{4}$/, "");
-
-        const savePath = await save({
-          title: "Choose base name for exported clips",
-          filters: [
-            {
-              name: "Video",
-              extensions: ["mp4"],
-            },
-          ],
-          defaultPath: `${defaultBase}_####.mp4`,
-        });
-
-        if (!savePath) return;
+        const savePath = `${dir}\\${defaultBase}_####.mp4`;
 
         await invoke("export_clips", {
           clips: clipArray,
@@ -673,16 +798,29 @@ function App() {
       if (type === "drop") {
         setIsDragging(false);
 
-        const file = event.payload.paths?.[0];
-        if (!file) return;
+        const paths = event.payload.paths;
+        if (!paths || paths.length === 0) return;
 
         // De-dupe: some platforms/webviews may emit two drops.
         const now = Date.now();
         const last = lastExternalDropRef.current;
-        if (last && last.path === file && now - last.ts < 500) return;
-        lastExternalDropRef.current = { path: file, ts: now };
+        if (last && last.path === paths[0] && now - last.ts < 500) return;
+        lastExternalDropRef.current = { path: paths[0], ts: now };
 
-        handleImport(file);
+        // Filter to supported video extensions
+        const videoExtensions = ["mp4", "mkv", "mov"];
+        const videoFiles = paths.filter((p: string) => {
+          const ext = p.split(".").pop()?.toLowerCase() || "";
+          return videoExtensions.includes(ext);
+        });
+
+        if (videoFiles.length === 0) return;
+
+        if (videoFiles.length === 1) {
+          handleImport(videoFiles[0]);
+        } else {
+          handleBatchImport(videoFiles);
+        }
         return;
       }
 
@@ -783,6 +921,18 @@ function App() {
                 style={{ width: `${progress}%` }}
               />
             </div>
+
+            {batchTotal > 1 && (
+              <div className="batch-progress">
+                <div className="batch-counter">
+                  Cutting videos {batchDone + 1}/{batchTotal}...
+                </div>
+                <div className="batch-file-name">{batchCurrentFile}</div>
+                <button className="abort-button" onClick={handleAbort}>
+                  Abort
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -877,7 +1027,15 @@ function App() {
                     userHasHEVC={userHasHEVC}
                     focusedClip={focusedClip}
                     setFocusedClip={setFocusedClip}
+                    exportDir={exportDir}
+                    onPickExportDir={handlePickExportDir}
+                    onExportDirChange={(dir: string) => setExportDir(dir || null)}
                   />
+                  <div className="info-bar">
+                    {openedEpisodeId && importedVideoPath && (
+                      <span className="info-bar-filename">{fileNameFromPath(importedVideoPath)}</span>
+                    )}
+                  </div>
                 </div>
               </>
             ) : (

@@ -75,6 +75,7 @@ body {
     background: black;
     color: white;
     border-radius: 8px;
+    cursor: pointer;
 }
 
 .content-wrapper {
@@ -135,6 +136,47 @@ body {
   height: 100%;
     background: var(--accent);
   transition: width 0.2s ease;
+}
+
+.batch-progress {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.batch-counter {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.batch-file-name {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-family: monospace;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.abort-button {
+  margin-top: 6px;
+  padding: 6px 24px;
+  font-family: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  border: none;
+  border-radius: 6px;
+  background: #000000;
+  border: 1px solid white;
+  color: #ff0000;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.abort-button:hover {
+  background: #420700;
 }
 
 .clip-skeleton {
@@ -415,6 +457,22 @@ body {
     border-radius: 8px;
 }
 
+.info-bar {
+    height: 3%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding-left: 8px;
+}
+
+.info-bar-filename {
+    font-size: 0.75rem;
+    color: var(--text-secondary, rgba(255, 255, 255, 0.5));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    user-select: text;
+}
 /* --------------------
         SIDEBAR
 -------------------- */
@@ -759,6 +817,7 @@ body.is-resizing-sidebar {
     flex: 1;
     min-width: 0;
     min-height: 0;
+    flex-direction: column;
 }
 
 .left-pane,
@@ -961,7 +1020,57 @@ body.is-resizing-sidebar {
 }
 
 .preview-export {
+    display: flex;
+    flex-direction: column;
     margin-left: 10px;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+}
+
+.export-dir-row {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    margin-bottom: 6px;
+    width: 100%;
+    max-width: 400px;
+    box-sizing: border-box;
+}
+
+.export-dir-input {
+    flex: 1;
+    min-width: 0;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    font-family: inherit;
+    color: inherit;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    outline: none;
+    box-sizing: border-box;
+    max-width: 50vh;
+}
+
+.export-dir-input:focus {
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+.export-dir-input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.export-dir-browse {
+    padding: 4px 10px;
+    margin: 0;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.export-dir-browse:hover {
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
 }
 
 .checkbox-row {

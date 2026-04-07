@@ -24,6 +24,9 @@ type LayoutProps = {
     userHasHEVC: React.RefObject<boolean>
     focusedClip: string | null;
     setFocusedClip: React.Dispatch<React.SetStateAction<string | null>>
+    exportDir: string | null;
+    onPickExportDir: () => void;
+    onExportDirChange: (dir: string) => void;
 };
 export default function MainLayout(props: LayoutProps) {
     const [leftWidth, setLeftWidth] = useState(65);
@@ -121,6 +124,9 @@ export default function MainLayout(props: LayoutProps) {
                 videoIsHEVC={props.videoIsHEVC}
                 userHasHEVC={props.userHasHEVC}
                 importToken={props.importToken}
+                exportDir={props.exportDir}
+                onPickExportDir={props.onPickExportDir}
+                onExportDirChange={props.onExportDirChange}
                 />
             </div>
         </div>
