@@ -823,8 +823,14 @@ export default function ClipsContainer(props: ClipContainerProps) {
     [props.setFocusedClip, props.setSelectedClips]
   );
 
+  const containerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    containerRef.current?.scrollTo({ top: 0 });
+  }, [props.importToken]);
+
   return (
-    <main className="clips-container">
+    <main className="clips-container" ref={containerRef}>
       { props.isEmpty ? (
         <p id="empty-grid">No video loaded.</p>
       ) : (
