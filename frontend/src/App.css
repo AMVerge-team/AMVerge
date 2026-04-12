@@ -609,13 +609,18 @@ body.is-resizing-sidebar {
 }
 
 .episode-panel-row.is-focused {
-    background: rgb(var(--accent-rgb) / 0.12);
-    border: 1px solid rgb(var(--accent-rgb) / 0.35);
+    background: rgb(var(--accent-rgb) / 0.1);
+    border: 1px solid rgb(var(--accent-rgb) / 0.15);
  }
 
+.episode-panel-row.is-multi-selected {
+    background: rgb(var(--accent-rgb) / 0.1);
+    border: 1px solid rgb(var(--accent-rgb) / 0.15);
+}
+
 .episode-panel-row.folder-row.is-selected {
-    background: rgb(var(--accent-rgb) / 0.12);
-    border: 1px solid rgb(var(--accent-rgb) / 0.35);
+    background: rgb(var(--accent-rgb) / 0.1);
+    border: 1px solid rgb(var(--accent-rgb) / 0.15);
 }
 
 .folder-row {
@@ -689,6 +694,20 @@ body.is-resizing-sidebar {
 
 .episode-context-menu-item:hover {
     background: rgb(var(--accent-rgb) / 0.18);
+}
+
+.episode-context-menu-separator {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.12);
+    margin: 4px 6px;
+}
+
+.episode-context-menu-label {
+    padding: 4px 10px 2px;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.45);
+    font-family: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    user-select: none;
 }
 
 .episode-modal-overlay {

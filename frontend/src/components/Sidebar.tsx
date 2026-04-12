@@ -129,6 +129,8 @@ function EpisodePanel(props: Omit<SidebarProps, "activePage" | "setActivePage">)
     } | null>(null);
     const suppressClickRef = useRef(false);
     const clickGestureRef = useRef<{ key: string | null; ts: number }>({ key: null, ts: 0 });
+    const [multiSelectedIds, setMultiSelectedIds] = useState<Set<string>>(new Set());
+    const lastClickedEpisodeRef = useRef<string | null>(null);
 
     const clearClickGesture = () => {
         clickGestureRef.current = { key: null, ts: 0 };
@@ -157,6 +159,44 @@ function EpisodePanel(props: Omit<SidebarProps, "activePage" | "setActivePage">)
             clickGestureRef.current = { key: opts.key, ts: now };
             opts.onSingle();
         };
+    };
+
+    const handleEpisodeClick = (episodeId: string) => (e: React.MouseEvent) => {
+        if (suppressClickRef.current) return;
+
+        if (e.ctrlKey || e.metaKey) {
+            e.stopPropagation();
+            setMultiSelectedIds((prev) => {
+                const next = new Set(prev);
+                if (next.has(episodeId)) next.delete(episodeId);
+                else next.add(episodeId);
+                return next;
+            });
+            lastClickedEpisodeRef.current = episodeId;
+            return;
+        }
+
+        if (e.shiftKey && lastClickedEpisodeRef.current) {
+            e.stopPropagation();
+            const startIdx = flatEpisodeOrder.indexOf(lastClickedEpisodeRef.current);
+            const endIdx = flatEpisodeOrder.indexOf(episodeId);
+            if (startIdx >= 0 && endIdx >= 0) {
+                const lo = Math.min(startIdx, endIdx);
+                const hi = Math.max(startIdx, endIdx);
+                setMultiSelectedIds(new Set(flatEpisodeOrder.slice(lo, hi + 1)));
+            }
+            return;
+        }
+
+        // Normal click – clear multi-select, use double-click logic
+        setMultiSelectedIds(new Set());
+        lastClickedEpisodeRef.current = episodeId;
+
+        handleClickWithOptionalDouble({
+            key: `episode:${episodeId}`,
+            onSingle: () => props.onSelectEpisode(episodeId),
+            onDouble: () => props.onOpenEpisode(episodeId),
+        })();
     };
 
     const folderById = useMemo(() => {
@@ -229,6 +269,23 @@ function EpisodePanel(props: Omit<SidebarProps, "activePage" | "setActivePage">)
         return map;
     }, [props.episodes]);
 
+    const flatEpisodeOrder = useMemo(() => {
+        const order: string[] = [];
+        const visitFolder = (parentId: string | null) => {
+            const childFolders = foldersByParentId.get(parentId) ?? [];
+            for (const folder of childFolders) {
+                if (folder.isExpanded) {
+                    visitFolder(folder.id);
+                    const eps = episodesByFolderId.get(folder.id) ?? [];
+                    for (const ep of eps) order.push(ep.id);
+                }
+            }
+        };
+        visitFolder(null);
+        for (const ep of rootEpisodes) order.push(ep.id);
+        return order;
+    }, [foldersByParentId, episodesByFolderId, rootEpisodes, props.episodeFolders]);
+
     const openContextMenu = (episodeId: string, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -237,6 +294,11 @@ function EpisodePanel(props: Omit<SidebarProps, "activePage" | "setActivePage">)
 
         setFolderContextMenu(null);
         setPanelContextMenu(null);
+
+        // If right-clicking a non-multi-selected episode, clear multi-select
+        if (multiSelectedIds.size > 0 && !multiSelectedIds.has(episodeId)) {
+            setMultiSelectedIds(new Set());
+        }
 
         props.onSelectEpisode(episodeId);
         setContextMenu({
@@ -405,31 +467,43 @@ function EpisodePanel(props: Omit<SidebarProps, "activePage" | "setActivePage">)
         if (!target) return;
 
         if (source.type === "episode") {
+            const idsToMove = multiSelectedIds.size > 0 && multiSelectedIds.has(source.id)
+                ? [...multiSelectedIds]
+                : [source.id];
+
             if (target.kind === "root") {
-                props.onMoveEpisode(source.id, null);
+                for (const id of idsToMove) props.onMoveEpisode(id, null);
+                setMultiSelectedIds(new Set());
                 return;
             }
 
             if (target.kind === "folder") {
-                props.onMoveEpisode(source.id, target.folderId);
+                for (const id of idsToMove) props.onMoveEpisode(id, target.folderId);
+                setMultiSelectedIds(new Set());
                 return;
             }
 
             if (target.kind === "episode") {
-                if (target.episodeId === source.id) return;
+                if (idsToMove.length === 1) {
+                    if (target.episodeId === source.id) return;
 
-                const list = target.folderId
-                    ? (episodesByFolderId.get(target.folderId) ?? [])
-                    : rootEpisodes;
-                const index = list.findIndex((e) => e.id === target.episodeId);
-                if (index < 0) return;
+                    const list = target.folderId
+                        ? (episodesByFolderId.get(target.folderId) ?? [])
+                        : rootEpisodes;
+                    const index = list.findIndex((e) => e.id === target.episodeId);
+                    if (index < 0) return;
 
-                const beforeEpisodeId =
-                    target.insert === "before"
-                        ? target.episodeId
-                        : list[index + 1]?.id;
+                    const beforeEpisodeId =
+                        target.insert === "before"
+                            ? target.episodeId
+                            : list[index + 1]?.id;
 
-                props.onMoveEpisode(source.id, target.folderId, beforeEpisodeId);
+                    props.onMoveEpisode(source.id, target.folderId, beforeEpisodeId);
+                } else {
+                    // Multi-drag onto an episode row → move all into the same folder
+                    for (const id of idsToMove) props.onMoveEpisode(id, target.folderId);
+                    setMultiSelectedIds(new Set());
+                }
             }
 
             return;
@@ -559,6 +633,14 @@ function EpisodePanel(props: Omit<SidebarProps, "activePage" | "setActivePage">)
         }
 
         if (e.key === "Delete") {
+            if (multiSelectedIds.size > 0) {
+                e.preventDefault();
+                for (const id of multiSelectedIds) {
+                    void props.onDeleteEpisode(id);
+                }
+                setMultiSelectedIds(new Set());
+                return;
+            }
             if (props.selectedEpisodeId) {
                 e.preventDefault();
                 void props.onDeleteEpisode(props.selectedEpisodeId);
@@ -620,7 +702,10 @@ function EpisodePanel(props: Omit<SidebarProps, "activePage" | "setActivePage">)
                     onKeyDown={onPanelKeyDown}
                     onMouseDown={() => panelListRef.current?.focus()}
                     onClick={(e) => {
-                        if (e.target === e.currentTarget) props.onSelectFolder(null);
+                        if (e.target === e.currentTarget) {
+                            props.onSelectFolder(null);
+                            setMultiSelectedIds(new Set());
+                        }
                     }}
                     onContextMenu={(e) => {
                         if (e.target !== e.currentTarget) return;
@@ -636,14 +721,14 @@ function EpisodePanel(props: Omit<SidebarProps, "activePage" | "setActivePage">)
                         ) => {
                             const isOpen = props.openedEpisodeId === episode.id;
                             const isSelected = props.selectedEpisodeId === episode.id;
+                            const isMultiSelected = multiSelectedIds.has(episode.id);
                             const isDrop = dropTarget?.kind === "episode" && dropTarget.episodeId === episode.id;
 
-                            const rowClass =
-                                (isOpen
-                                    ? "episode-panel-row episode-row is-open"
-                                    : isSelected
-                                        ? "episode-panel-row episode-row is-focused"
-                                        : "episode-panel-row episode-row") + (isDrop ? " is-drop-target" : "");
+                            let rowClass = "episode-panel-row episode-row";
+                            if (isOpen) rowClass += " is-open";
+                            else if (isSelected) rowClass += " is-focused";
+                            if (isMultiSelected) rowClass += " is-multi-selected";
+                            if (isDrop) rowClass += " is-drop-target";
 
                             return (
                                 <div
@@ -653,11 +738,7 @@ function EpisodePanel(props: Omit<SidebarProps, "activePage" | "setActivePage">)
                                     data-episode-folder-id={folderId ?? ""}
                                     style={{ paddingLeft: `${8 + depth * 12 + 28}px` }}
                                     onPointerDown={beginPointerDrag({ type: "episode", id: episode.id })}
-                                    onClick={handleClickWithOptionalDouble({
-                                        key: `episode:${episode.id}`,
-                                        onSingle: () => props.onSelectEpisode(episode.id),
-                                        onDouble: () => props.onOpenEpisode(episode.id),
-                                    })}
+                                    onClick={handleEpisodeClick(episode.id)}
                                     onContextMenu={(e) => openContextMenu(episode.id, e)}
                                     title={episode.videoPath}
                                 >
@@ -744,14 +825,14 @@ function EpisodePanel(props: Omit<SidebarProps, "activePage" | "setActivePage">)
                     {rootEpisodes.map((episode) => {
                         const isOpen = props.openedEpisodeId === episode.id;
                         const isSelected = props.selectedEpisodeId === episode.id;
+                        const isMultiSelected = multiSelectedIds.has(episode.id);
                         const isDrop = dropTarget?.kind === "episode" && dropTarget.episodeId === episode.id;
 
-                        const rowClass =
-                            (isOpen
-                                ? "episode-panel-row episode-row is-open"
-                                : isSelected
-                                    ? "episode-panel-row episode-row is-focused"
-                                    : "episode-panel-row episode-row") + (isDrop ? " is-drop-target" : "");
+                        let rowClass = "episode-panel-row episode-row";
+                        if (isOpen) rowClass += " is-open";
+                        else if (isSelected) rowClass += " is-focused";
+                        if (isMultiSelected) rowClass += " is-multi-selected";
+                        if (isDrop) rowClass += " is-drop-target";
 
                         return (
                             <div
@@ -760,11 +841,7 @@ function EpisodePanel(props: Omit<SidebarProps, "activePage" | "setActivePage">)
                                 data-episode-id={episode.id}
                                 data-episode-folder-id=""
                                 onPointerDown={beginPointerDrag({ type: "episode", id: episode.id })}
-                                onClick={handleClickWithOptionalDouble({
-                                    key: `episode:${episode.id}`,
-                                    onSingle: () => props.onSelectEpisode(episode.id),
-                                    onDouble: () => props.onOpenEpisode(episode.id),
-                                })}
+                                onClick={handleEpisodeClick(episode.id)}
                                 onContextMenu={(e) => openContextMenu(episode.id, e)}
                                 title={episode.videoPath}
                             >
@@ -883,26 +960,77 @@ function EpisodePanel(props: Omit<SidebarProps, "activePage" | "setActivePage">)
                         style={{ left: contextMenu.x, top: contextMenu.y }}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <button
-                            type="button"
-                            className="episode-context-menu-item"
-                            onClick={() => {
-                                openRenameEpisodeModal(contextMenu.episodeId);
-                                setContextMenu(null);
-                            }}
-                        >
-                            Rename
-                        </button>
-                        <button
-                            type="button"
-                            className="episode-context-menu-item"
-                            onClick={() => {
-                                void props.onDeleteEpisode(contextMenu.episodeId);
-                                setContextMenu(null);
-                            }}
-                        >
-                            Delete
-                        </button>
+                        {multiSelectedIds.size > 1 && multiSelectedIds.has(contextMenu.episodeId) ? (
+                            <>
+                                <button
+                                    type="button"
+                                    className="episode-context-menu-item"
+                                    onClick={() => {
+                                        for (const id of multiSelectedIds) {
+                                            void props.onDeleteEpisode(id);
+                                        }
+                                        setMultiSelectedIds(new Set());
+                                        setContextMenu(null);
+                                    }}
+                                >
+                                    Delete {multiSelectedIds.size} episodes
+                                </button>
+                                <div className="episode-context-menu-separator" />
+                                <div className="episode-context-menu-label">Move to</div>
+                                <button
+                                    type="button"
+                                    className="episode-context-menu-item"
+                                    onClick={() => {
+                                        for (const id of multiSelectedIds) {
+                                            props.onMoveEpisodeToFolder(id, null);
+                                        }
+                                        setMultiSelectedIds(new Set());
+                                        setContextMenu(null);
+                                    }}
+                                >
+                                    Root
+                                </button>
+                                {props.episodeFolders.map((folder) => (
+                                    <button
+                                        key={folder.id}
+                                        type="button"
+                                        className="episode-context-menu-item"
+                                        onClick={() => {
+                                            for (const id of multiSelectedIds) {
+                                                props.onMoveEpisodeToFolder(id, folder.id);
+                                            }
+                                            setMultiSelectedIds(new Set());
+                                            setContextMenu(null);
+                                        }}
+                                    >
+                                        {folder.name}
+                                    </button>
+                                ))}
+                            </>
+                        ) : (
+                            <>
+                                <button
+                                    type="button"
+                                    className="episode-context-menu-item"
+                                    onClick={() => {
+                                        openRenameEpisodeModal(contextMenu.episodeId);
+                                        setContextMenu(null);
+                                    }}
+                                >
+                                    Rename
+                                </button>
+                                <button
+                                    type="button"
+                                    className="episode-context-menu-item"
+                                    onClick={() => {
+                                        void props.onDeleteEpisode(contextMenu.episodeId);
+                                        setContextMenu(null);
+                                    }}
+                                >
+                                    Delete
+                                </button>
+                            </>
+                        )}
                     </div>
                 )}
 
