@@ -1,3 +1,1 @@
-- Add multiple file import supports
-- Add the original file name for eps incase they name it something they don't want, add output directory that saves persistently above export
-- Allow user to select multiple files in eps list via shift click
+ 

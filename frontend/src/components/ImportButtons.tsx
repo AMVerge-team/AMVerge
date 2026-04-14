@@ -45,6 +45,7 @@ export default function ImportButtons(props: ImportButtonsProps) {
                 type="checkbox" 
                 className="checkbox"
                 checked={hasSelection}
+                disabled={!hasSelection}
                 onChange={(e) => {
                   if (!e.target.checked) {
                     props.setSelectedClips(new Set())

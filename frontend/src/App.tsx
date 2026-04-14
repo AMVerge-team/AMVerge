@@ -741,8 +741,6 @@ function App() {
         });
       }
       
-      setSelectedClips(new Set());
-      setFocusedClip(null);
       console.log("Export complete");
     } catch (err) {
       console.log("Export failed:", err)
@@ -991,6 +989,7 @@ function App() {
         <div className="content-wrapper">
           <Navbar 
            setSideBarEnabled={setSideBarEnabled}
+           sideBarEnabled={sideBarEnabled}
            userHasHEVC={userHasHEVC}
            videoIsHEVC={videoIsHEVC}/>
           <div className="main-content">

@@ -230,20 +230,14 @@ body {
 .navbar {
     display: flex;
     justify-content: space-between;
-}
-.navbar img {
-    width: 150px;
-    height: auto;
-    margin: 10px 0px 3px 5px;
+    /* background: green; */
 }
 
 .navbar svg { 
-    width: 45px;
-    height: auto;
+    width: 35px;
+    height: 35px;
     color: white;
-    background: none;
     transition: filter 0.2s ease;
-    margin-left: 10px;
 }
 
 .navbar svg:hover {
@@ -272,7 +266,7 @@ body {
     justify-content: center;
     align-items: center;
     padding: 0px;
-    gap: 10px;
+    /* gap: 10px; */
 }
 
 .navbar span {
@@ -403,6 +397,15 @@ body {
     align-items: center;
     justify-content: center;
     transition: all 0.15s ease;
+}
+
+.custom-checkbox:has(input:disabled) {
+    cursor: not-allowed;
+}
+
+.custom-checkbox input:disabled + .checkmark {
+    border-color: #555;
+    opacity: 0.4;
 }
 
 .custom-checkbox input:checked + .checkmark::after {
