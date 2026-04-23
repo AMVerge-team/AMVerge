@@ -89,7 +89,7 @@ export default function AboutSection() {
 
         <h4>Episode Panel Cache</h4>
         <p>
-          AMVerge stores imported episode data so you can quickly revisit past imports. If you need space, use the <b>Clear</b> button. This removes clips from the episode panel only and does not touch your original episode or movie files.
+          AMVerge stores imported episode data so you can quickly revisit past imports. If you need space, use the "Clear" button. This removes clips from the episode panel only and does not touch your original episode or movie files.
         </p>
 
         <h4>HEVC (H.265) Support</h4>
