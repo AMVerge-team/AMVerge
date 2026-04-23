@@ -1286,15 +1286,83 @@ body.is-resizing-sidebar {
 }
 
 /* --------------------
-        SETTINGS
+        MENU
 -------------------- */
-.settings-page {
-    padding: 14px;
+.menu-page {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    height: 100%;
+    min-height: 0;
+    width: 100%;
 }
 
+.menu-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding-top: 24px;
+    padding-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.menu-title {
+    text-align: center;
+    margin: 0 0 8px 0;
+}
+
+.menu-nav {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 0;
+}
+
+.menu-nav-btn {
+    padding: 8px 24px;
+    border-radius: 8px;
+    border: 1px solid #ffffff;
+    background: #000;
+    color: #fff;
+    font-size: 1.1rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, border 0.15s ease, color 0.15s;
+}
+
+.menu-nav-btn.active {
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    color: #000;
+}
+
+.menu-nav-btn:hover {
+    border: 1px solid var(--accent);
+    color: var(--accent);
+}
+
+.menu-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  overflow: hidden;
+}
+
+.menu-section {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+/* --------------------
+        SETTINGS
+-------------------- */
 .settings-section {
     border: 1px solid rgb(255 255 255 / 0.15);
     background: rgb(0 0 0 / 0.25);
@@ -1325,7 +1393,71 @@ body.is-resizing-sidebar {
     gap: 10px;
 }
 
+.settings-control > .image-input {
+    width: 200px;
+}
+
 .settings-value {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 70px;
+    /* background: red; */
     font-size: 18px;
     color: rgb(255 255 255 / 0.8);
+}
+
+
+/* --------------------
+         ABOUT 
+-------------------- */
+.about-section {
+  display: flex;
+  flex-direction: column;
+  /* flex: 1 1 auto; */
+  min-height: 0;
+  height: 82vh;
+}
+
+.about-content {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) transparent;
+}
+.about-content::-webkit-scrollbar {
+  width: 10px;
+  background: transparent; /* No background */
+}
+
+.about-content::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 8px;
+}
+
+.about-content::-webkit-scrollbar-track {
+  background: transparent; /* No background */
+}
+
+/* For Firefox */
+.about-content {
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) transparent;
+}
+.about-content ul,
+.about-content ol {
+  margin-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+.about-section  p {
+    font-weight: normal;
+    font-size: 15px;
+}
+
+
+.about-section h4 {
+    font-size: 15px;
+    margin: 0;
 }

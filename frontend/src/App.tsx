@@ -7,7 +7,7 @@ import Navbar from "./components/Navbar.tsx";
 import ImportButtons from "./components/ImportButtons.tsx";
 import MainLayout from "./MainLayout";
 import Sidebar, { type Page } from "./components/Sidebar.tsx"
-import Settings from "./pages/Settings";
+import Menu from "./pages/Menu.tsx";
 import { applyThemeSettings, loadThemeSettings } from "./theme";
 import "./App.css";
 
@@ -1040,7 +1040,7 @@ function App() {
                 </div>
               </>
             ) : (
-              <Settings />
+              <Menu />
             )}
           </div>
         </div>

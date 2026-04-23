@@ -1,7 +1,7 @@
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-export type Page = "home" | "settings";
+export type Page = "home" | "menu";
 
 const buttons: { name: string; page: Page }[] = [
     {
@@ -9,8 +9,8 @@ const buttons: { name: string; page: Page }[] = [
         page: "home",
     },
     {
-        name: "Settings",
-        page: "settings",
+        name: "Menu",
+        page: "menu",
     },
 ];
 
