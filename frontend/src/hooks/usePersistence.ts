@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { applyThemeSettings, loadThemeSettings } from "../theme";
 import { EpisodeEntry, EpisodeFolder } from "../types/domain";
 
 type UsePersistenceProps = {
@@ -26,14 +25,14 @@ type UsePersistenceProps = {
 
 export default function usePersistence(props: UsePersistenceProps) {
   useEffect(() => {
-    applyThemeSettings(loadThemeSettings());
-  }, []);
-
-  useEffect(() => {
     try {
       const raw = localStorage.getItem(props.episodePanelStorageKey);
       if (!raw) return;
 
+
+      console.log("EPISODE PANEL RAW STORAGE:");
+      console.log(raw);
+            
       const parsed = JSON.parse(raw) as {
         episodeFolders?: EpisodeFolder[];
         episodes?: EpisodeEntry[];
