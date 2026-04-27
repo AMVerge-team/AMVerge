@@ -107,7 +107,7 @@ Good examples:
 
 Avoid:
 
-* Export changes + UI redesign + docs rewrite in one PR
+* Export changes + large UI changes + docs rewrite in one PR
 
 Small focused PRs are easier to review, test, and merge.
 

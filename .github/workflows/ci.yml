@@ -44,6 +44,24 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pyinstaller av pillow numpy
 
+      - name: Build Python sidecar
+        shell: pwsh
+        run: |
+          pyinstaller backend/app.py `
+            --name backend_script `
+            --onedir `
+            --noconsole `
+            --distpath backend/dist `
+            --workpath backend/build `
+            --specpath backend
+
+          New-Item -ItemType Directory -Force frontend/src-tauri/bin/backend_script-x86_64-pc-windows-msvc
+
+          Copy-Item backend/dist/backend_script/* `
+            frontend/src-tauri/bin/backend_script-x86_64-pc-windows-msvc/ `
+            -Recurse `
+            -Force
+
       - name: Check frontend build
         working-directory: frontend
         run: npm run build
