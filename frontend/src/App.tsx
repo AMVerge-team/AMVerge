@@ -174,20 +174,22 @@ function App() {
     setFocusedClip,
     setImportedVideoPath,
     setImportToken,
+    episodesPath: settings.episodesPath,
   });
 
-
   const remapEpisodePaths = (oldRoot: string, newRoot: string) => {
-    setEpisodes((prev) =>
-      prev.map((episode) => ({
+    setEpisodes((prev) => {
+      const updatedEpisodes = prev.map((episode) => ({
         ...episode,
         clips: episode.clips.map((clip) => ({
           ...clip,
           src: remapPathRoot(clip.src, oldRoot, newRoot),
           thumbnail: remapPathRoot(clip.thumbnail, oldRoot, newRoot),
         })),
-      }))
-    );
+      }));
+
+      return updatedEpisodes;
+    });
 
     setClips((prev) =>
       prev.map((clip) => ({
