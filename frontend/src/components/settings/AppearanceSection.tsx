@@ -1,25 +1,23 @@
-import { useEffect, useId, useState } from "react";
+import { useId } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
-import {
-  applyThemeSettings,
-  loadThemeSettings,
-  saveThemeSettings,
-  type ThemeSettings,
-} from "../../theme";
+import { getDarkerColor, type ThemeSettings } from "../../theme";
 
-export default function AppearanceSection() {
+type AppearanceSectionProps = {
+  settings: ThemeSettings;
+  setSettings: React.Dispatch<React.SetStateAction<ThemeSettings>>;
+  onReset: () => void;
+};
+
+export default function AppearanceSection({
+  settings,
+  setSettings,
+  onReset,
+}: AppearanceSectionProps) {
   const accentId = useId();
   const bgGradientId = useId();
   const bgOpacityId = useId();
   const bgBlurId = useId();
-
-  const [settings, setSettings] = useState<ThemeSettings>(() => loadThemeSettings());
-
-  useEffect(() => {
-    applyThemeSettings(settings);
-    saveThemeSettings(settings);
-  }, [settings]);
 
   const handlePickImage = async () => {
     const selected = await open({
@@ -60,9 +58,24 @@ export default function AppearanceSection() {
             id={accentId}
             type="color"
             value={settings.accentColor}
-            onChange={(e) =>
-              setSettings((prev) => ({ ...prev, accentColor: e.target.value }))
-            }
+            onChange={(e) => {
+              const newColor = e.target.value;
+              setSettings((prev) => {
+                const currentDark = getDarkerColor(prev.accentColor);
+                // Sync if gradient is the default dark green or matches the current darkened accent
+                const isDefaultGradient =
+                  prev.backgroundGradientColor === "#001a00" ||
+                  prev.backgroundGradientColor === currentDark;
+
+                return {
+                  ...prev,
+                  accentColor: newColor,
+                  backgroundGradientColor: isDefaultGradient
+                    ? getDarkerColor(newColor)
+                    : prev.backgroundGradientColor,
+                };
+              });
+            }}
             aria-label="Accent color"
           />
           <span className="settings-value">{settings.accentColor.toUpperCase()}</span>
@@ -158,6 +171,7 @@ export default function AppearanceSection() {
           <span className="settings-value">{settings.backgroundBlur}px</span>
         </div>
       </div>
+
     </section>
   );
 }
