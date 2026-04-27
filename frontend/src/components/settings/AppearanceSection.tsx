@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
+import { invoke } from "@tauri-apps/api/core";
 import {
   applyThemeSettings,
   loadThemeSettings,
@@ -30,8 +31,20 @@ export default function AppearanceSection() {
         },
       ],
     });
-    if (selected && typeof selected === "string") {
-      setSettings((prev) => ({ ...prev, backgroundImagePath: selected }));
+
+    if (!selected || typeof selected !== "string") return;
+
+    try {
+      const storedPath = await invoke<string>("save_background_image", {
+        sourcePath: selected,
+      });
+
+      setSettings((prev) => ({
+        ...prev,
+        backgroundImagePath: storedPath,
+      }));
+    } catch (error) {
+      console.error("Failed to save background image:", error);
     }
   };
 
