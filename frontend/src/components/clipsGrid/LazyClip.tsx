@@ -7,7 +7,7 @@
 import { memo, useState, useRef, useEffect, useCallback } from "react"
 import { invoke } from "@tauri-apps/api/core";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { LazyClipProps } from "../types.ts"
+import { LazyClipProps } from "./types.ts"
 
 
 export const LazyClip = memo(function LazyClip({

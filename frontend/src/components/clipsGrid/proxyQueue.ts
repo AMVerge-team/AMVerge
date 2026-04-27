@@ -3,10 +3,11 @@
  *
  * Custom React hook for managing HEVC/H.264 proxy generation and prioritization for video clips.
  * Ensures only visible/needed proxies are generated, and prioritizes hovered/active tiles.
+ * This only actually runs if the user does not have HEVC and the episode is encoded in HEVC.
  */
 import { useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { DeferredProxy, ProxyDemand } from "../types.ts"
+import { DeferredProxy, ProxyDemand } from "./types.ts"
 
 
 export default function useViewportAwareProxyQueue() {

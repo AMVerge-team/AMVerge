@@ -20,7 +20,7 @@ type episodePanelProps = {
   setImportToken: React.Dispatch<React.SetStateAction<string>>;
 };
 
-export function useEpisodePanelState(props: episodePanelProps) {
+export default function useEpisodePanelState(props: episodePanelProps) {
 
 	// Handlers
 	const handleSelectEpisode = (episodeId: string) => {

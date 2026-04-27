@@ -1,0 +1,47 @@
+.sidebar-container {
+  background: rgba(0,0,0,.4);
+  width: var(--amverge-sidebar-width, 280px);
+  flex: 0 0 var(--amverge-sidebar-width, 280px);
+  min-width: 220px;
+  max-width: 60vw;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+body.is-resizing-sidebar {
+  cursor: col-resize;
+}
+
+.episode-panel {
+  flex: 1;
+  min-height: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.episode-panel-list {
+  flex: 1;
+  overflow: auto;
+  border-radius: 10px;
+  padding: 6px;
+  background: rgba(0,0,0,.22);
+}
+
+.episode-panel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.episode-panel-row:hover {
+  background: rgba(255,255,255,.06);
+}
+
+.episode-panel-row.is-selected {
+  color: var(--accent);
+}

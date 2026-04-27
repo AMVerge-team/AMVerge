@@ -7,6 +7,7 @@ type LayoutProps = {
     gridSize: number;
     gridRef: React.RefObject<HTMLDivElement | null>;
     gridPreview: boolean;
+    setGridPreview: React.Dispatch<React.SetStateAction<boolean>>;
     selectedClips: Set<string>;
     setSelectedClips: React.Dispatch<
         React.SetStateAction<Set<string>>

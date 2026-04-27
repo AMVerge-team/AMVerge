@@ -5,9 +5,9 @@
  * Optimized for performance with lazy loading, proxying, and staggered mounting.
  */
 import { startTransition, useCallback, useEffect, useRef } from "react";
-import { LazyClip } from "./gridComponents/LazyClip.tsx"
-import { useStaggeredMountQueue } from "./gridComponents/staggeredMountQueue.ts";
-import useViewportAwareProxyQueue from "./gridComponents/proxyQueue.ts";
+import { LazyClip } from "./LazyClip.tsx"
+import { useStaggeredMountQueue } from "./staggeredMountQueue.ts";
+import useViewportAwareProxyQueue from "./proxyQueue.ts";
 import { ClipContainerProps } from "./types.ts";
 
 export default function ClipsContainer(props: ClipContainerProps) {
@@ -131,7 +131,7 @@ export default function ClipsContainer(props: ClipContainerProps) {
                   clip={clip}
                   index={index}
                   importToken={props.importToken}
-                  isExportSelected={props.selectedClips.has(clip.id)}
+                  isExportSelected={(props.selectedClips ?? new Set()).has(clip.id)}
                   isFocused={props.focusedClip === clip.src}
                   gridPreview={props.gridPreview}
                   requestProxySequential={requestProxySequential}

@@ -22,7 +22,7 @@ type ImportExportProps = {
   setProgressMsg: React.Dispatch<React.SetStateAction<string>>;
 };
 
-export function useImportExport(props: ImportExportProps) {
+export default function useImportExport(props: ImportExportProps) {
   const [loading, setLoading] = useState(false);
   const [importToken, setImportToken] = useState(() => Date.now().toString());
   const importGenRef = useRef(0);

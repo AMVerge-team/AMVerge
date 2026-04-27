@@ -1,0 +1,42 @@
+.menu-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.menu-header {
+  padding-top: 24px;
+  padding-bottom: 8px;
+  text-align: center;
+}
+
+.menu-nav {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.menu-nav-btn {
+  padding: 8px 24px;
+  border: 1px solid white;
+  background: black;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.menu-nav-btn.active {
+  background: var(--accent);
+  color: black;
+}
+
+.about-section {
+  display: flex;
+  flex-direction: column;
+  height: 82vh;
+}
+
+.about-content {
+  flex: 1;
+  overflow-y: auto;
+}
