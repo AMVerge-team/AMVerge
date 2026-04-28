@@ -4,7 +4,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { ClipItem, EpisodeEntry } from "../types/domain"
 import { fileNameFromPath, truncateFileName, detectScenes } from "../utils/episodeUtils";
 type ImportExportProps = {
-  abortedRef: React.MutableRefObject<boolean>;
+  abortedRef: React.RefObject<boolean>;
   clips: ClipItem[];
   setFocusedClip: React.Dispatch<React.SetStateAction<string | null>>;
   setSelectedClips: React.Dispatch<React.SetStateAction<Set<string>>>;
@@ -20,6 +20,8 @@ type ImportExportProps = {
   setExportDir: React.Dispatch<React.SetStateAction<string | null>>;
   setProgress: React.Dispatch<React.SetStateAction<number>>;
   setProgressMsg: React.Dispatch<React.SetStateAction<string>>;
+  episodesPath: string | null;
+  exportFormat: "mp4" | "mkv" | "mov" | "avi";
 };
 
 export default function useImportExport(props: ImportExportProps) {
@@ -35,7 +37,7 @@ export default function useImportExport(props: ImportExportProps) {
       filters: [
         {
           name: "Video",
-          extensions: ["mp4", "mkv", "mov"]
+          extensions: ["mp4", "mkv", "mov", "avi"]
         }
       ]
     });
@@ -70,9 +72,9 @@ export default function useImportExport(props: ImportExportProps) {
       props.setVideoIsHEVC(null);
       setImportToken(Date.now().toString());
 
-      const formatted = await detectScenes(file, episodeId);
+      const formatted = await detectScenes(file, episodeId, props.episodesPath);
 
-      // A newer import started while we were waiting — discard stale results.
+      // A newer import started while we were waiting - discard stale results.
       if (importGenRef.current !== gen) return;
 
       const inferredName = formatted[0]?.originalName || fileNameFromPath(file);
@@ -131,11 +133,14 @@ export default function useImportExport(props: ImportExportProps) {
         props.setProgressMsg("Starting...");
 
         try {
-          const formatted = await detectScenes(file, episodeId);
+          const formatted = await detectScenes(file, episodeId, props.episodesPath);
 
           if (props.abortedRef.current || importGenRef.current !== gen) {
             // Aborted or superseded mid-flight — clean up this episode's cache
-            invoke("delete_episode_cache", { episodeCacheId: episodeId }).catch(() => {});
+            invoke("delete_episode_cache", {
+              episodeCacheId: episodeId,
+              customPath: props.episodesPath,
+            }).catch(() => {});
             break;
           }
 
@@ -154,11 +159,17 @@ export default function useImportExport(props: ImportExportProps) {
           props.setEpisodes((prev) => [episodeEntry, ...prev]);
         } catch (err) {
           if (props.abortedRef.current) {
-            invoke("delete_episode_cache", { episodeCacheId: episodeId }).catch(() => {});
+            invoke("delete_episode_cache", {
+              episodeCacheId: episodeId,
+              customPath: props.episodesPath,
+            }).catch(() => {});
             break;
           }
           console.error(`Detection failed for ${fileName}:`, err);
-          invoke("delete_episode_cache", { episodeCacheId: episodeId }).catch(() => {});
+          invoke("delete_episode_cache", {
+            episodeCacheId: episodeId,
+            customPath: props.episodesPath,
+          }).catch(() => {});
         }
       }
 
@@ -202,10 +213,11 @@ export default function useImportExport(props: ImportExportProps) {
         setLoading(true);
 
         const clipArray = selected.map((c: ClipItem) => c.src);
+        const format = props.exportFormat || "mp4";
 
         if (mergeEnabled) {
         const baseName = mergeFileName || ((selected[0]?.originalName || "episode") + "_merged");
-        const savePath = `${dir}\\${baseName}.mp4`;
+        const savePath = `${dir}\\${baseName}.${format}`;
 
         await invoke("export_clips", {
             clips: clipArray,
@@ -214,10 +226,10 @@ export default function useImportExport(props: ImportExportProps) {
         });
         } else {
         const firstClipPath = selected[0]?.src || "";
-        const firstFile = firstClipPath.split(/[/\\]/).pop() || "episode_0000.mp4";
+        const firstFile = firstClipPath.split(/[/\\]/).pop() || `episode_0000.${format}`;
         const firstStem = firstFile.replace(/\.[^/.]+$/, "");
         const defaultBase = firstStem.replace(/_\d{4}$/, "");
-        const savePath = `${dir}\\${defaultBase}_####.mp4`;
+        const savePath = `${dir}\\${defaultBase}_####.${format}`;
 
         await invoke("export_clips", {
             clips: clipArray,

@@ -1,25 +1,28 @@
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { invoke } from "@tauri-apps/api/core";
-import {
-  applyThemeSettings,
-  loadThemeSettings,
-  saveThemeSettings,
-  type ThemeSettings,
-} from "../../theme";
+import { invoke, convertFileSrc } from "@tauri-apps/api/core";
+import { getDarkerColor, type ThemeSettings } from "../../settings/themeSettings";
+import ColorPicker from "../common/ColorPicker";
+import CropModal from "./CropModal";
 
-export default function AppearanceSection() {
+type AppearanceSectionProps = {
+  themeSettings: ThemeSettings;
+  setThemeSettings: React.Dispatch<React.SetStateAction<ThemeSettings>>;
+  onThemeReset: () => void;
+};
+
+export default function AppearanceSection({
+  themeSettings,
+  setThemeSettings,
+  onThemeReset
+}: AppearanceSectionProps) {
   const accentId = useId();
   const bgGradientId = useId();
   const bgOpacityId = useId();
   const bgBlurId = useId();
 
-  const [settings, setSettings] = useState<ThemeSettings>(() => loadThemeSettings());
-
-  useEffect(() => {
-    applyThemeSettings(settings);
-    saveThemeSettings(settings);
-  }, [settings]);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [originalPath, setOriginalPath] = useState<string | null>(null);
 
   const handlePickImage = async () => {
     const selected = await open({
@@ -33,18 +36,36 @@ export default function AppearanceSection() {
     });
 
     if (!selected || typeof selected !== "string") return;
+    
+    setOriginalPath(selected);
+    setImageToCrop(convertFileSrc(selected));
+  };
+
+  const handleCropComplete = async (cropData: any) => {
+    if (!originalPath) return;
 
     try {
-      const storedPath = await invoke<string>("save_background_image", {
-        sourcePath: selected,
+      const storedPath = await invoke<string>("crop_and_save_image", {
+        sourcePath: originalPath,
+        crop: {
+          x: cropData.x,
+          y: cropData.y,
+          width: cropData.width,
+          height: cropData.height,
+          rotation: cropData.rotation,
+          flip_h: cropData.flip.horizontal,
+          flip_v: cropData.flip.vertical,
+        }
       });
 
-      setSettings((prev) => ({
+      setThemeSettings((prev) => ({
         ...prev,
-        backgroundImagePath: storedPath,
+        backgroundImagePath: `${storedPath}?t=${Date.now()}`,
       }));
+      setImageToCrop(null);
+      setOriginalPath(null);
     } catch (error) {
-      console.error("Failed to save background image:", error);
+      console.error("Failed to crop and save image:", error);
     }
   };
 
@@ -56,16 +77,26 @@ export default function AppearanceSection() {
           Accent color
         </label>
         <div className="settings-control">
-          <input
-            id={accentId}
-            type="color"
-            value={settings.accentColor}
-            onChange={(e) =>
-              setSettings((prev) => ({ ...prev, accentColor: e.target.value }))
-            }
-            aria-label="Accent color"
+          <ColorPicker
+            color={themeSettings.accentColor}
+            onChange={(newColor) => {
+              setThemeSettings((prev) => {
+                const currentDark = getDarkerColor(prev.accentColor);
+                const isDefaultGradient =
+                  prev.backgroundGradientColor === "#001a00" ||
+                  prev.backgroundGradientColor === currentDark;
+
+                return {
+                  ...prev,
+                  accentColor: newColor,
+                  backgroundGradientColor: isDefaultGradient
+                    ? getDarkerColor(newColor)
+                    : prev.backgroundGradientColor,
+                };
+              });
+            }}
           />
-          <span className="settings-value">{settings.accentColor.toUpperCase()}</span>
+          <span className="settings-value">{themeSettings.accentColor.toUpperCase()}</span>
         </div>
       </div>
 
@@ -74,20 +105,17 @@ export default function AppearanceSection() {
           Background gradient
         </label>
         <div className="settings-control">
-          <input
-            id={bgGradientId}
-            type="color"
-            value={settings.backgroundGradientColor}
-            onChange={(e) =>
-              setSettings((prev) => ({
+          <ColorPicker
+            color={themeSettings.backgroundGradientColor}
+            onChange={(newColor) =>
+              setThemeSettings((prev) => ({
                 ...prev,
-                backgroundGradientColor: e.target.value,
+                backgroundGradientColor: newColor,
               }))
             }
-            aria-label="Background gradient color"
           />
           <span className="settings-value">
-            {settings.backgroundGradientColor.toUpperCase()}
+            {themeSettings.backgroundGradientColor.toUpperCase()}
           </span>
         </div>
       </div>
@@ -96,15 +124,15 @@ export default function AppearanceSection() {
         <label className="settings-label">Background image</label>
         <div className="settings-control">
           <button className="buttons" type="button" onClick={handlePickImage}>
-            {settings.backgroundImagePath ? "Change" : "Upload"}
+            {themeSettings.backgroundImagePath ? "Change" : "Upload"}
           </button>
           <button
             className="buttons"
             type="button"
             onClick={() =>
-              setSettings((prev) => ({ ...prev, backgroundImagePath: null }))
+              setThemeSettings((prev) => ({ ...prev, backgroundImagePath: null }))
             }
-            disabled={!settings.backgroundImagePath}
+            disabled={!themeSettings.backgroundImagePath}
           >
             Clear
           </button>
@@ -122,16 +150,16 @@ export default function AppearanceSection() {
             min="0"
             max="1"
             step="0.01"
-            value={settings.backgroundOpacity}
+            value={themeSettings.backgroundOpacity}
             onChange={(e) =>
-              setSettings((prev) => ({
+              setThemeSettings((prev) => ({
                 ...prev,
                 backgroundOpacity: parseFloat(e.target.value),
               }))
             }
           />
           <span className="settings-value">
-            {Math.round(settings.backgroundOpacity * 100)}%
+            {Math.round(themeSettings.backgroundOpacity * 100)}%
           </span>
         </div>
       </div>
@@ -147,17 +175,45 @@ export default function AppearanceSection() {
             min="0"
             max="100"
             step="1"
-            value={settings.backgroundBlur}
+            value={themeSettings.backgroundBlur}
             onChange={(e) =>
-              setSettings((prev) => ({
+              setThemeSettings((prev) => ({
                 ...prev,
                 backgroundBlur: parseInt(e.target.value),
               }))
             }
           />
-          <span className="settings-value">{settings.backgroundBlur}px</span>
+          <span className="settings-value">{themeSettings.backgroundBlur}px</span>
         </div>
       </div>
+
+      <div
+        className="settings-row"
+        style={{
+          marginTop: "12px",
+          paddingTop: "12px",
+          borderTop: "1px solid rgb(255 255 255 / 0.1)",
+        }}
+      >
+        <label className="settings-label">Factory Reset</label>
+        <div className="settings-control">
+          <button
+            className="buttons"
+            onClick={onThemeReset}
+            style={{ width: "auto", padding: "0 16px", marginBottom: 0 }}
+          >
+            Reset to Defaults
+          </button>
+        </div>
+      </div>
+
+      {imageToCrop && (
+        <CropModal
+          image={imageToCrop}
+          onClose={() => setImageToCrop(null)}
+          onCropComplete={handleCropComplete}
+        />
+      )}
     </section>
   );
 }

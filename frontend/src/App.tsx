@@ -1,6 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Event, listen } from "@tauri-apps/api/event";
+import { 
+  applyThemeSettings, 
+  loadThemeSettings, 
+  saveThemeSettings, 
+  DEFAULT_THEME,
+  type ThemeSettings 
+} from "./settings/themeSettings";
+
+import {
+  loadGeneralSettings,
+  saveGeneralSettings,
+  DEFAULT_GENERAL_SETTINGS,
+  type GeneralSettings,
+} from "./settings/generalSettings";
 
 import AppLayout from "./components/AppLayout";
 import HomePage from "./pages/HomePage";
@@ -16,6 +30,7 @@ import useHEVCSupport from "./hooks/useHEVCSupport";
 import useDragDropImport from "./hooks/useDragDropImport";
 import usePersistence from "./hooks/usePersistence";
 
+import { remapPathRoot } from "./utils/episodeUtils";
 const EPISODE_PANEL_STORAGE_KEY = "amverge_episode_panel_v1";
 const SIDEBAR_WIDTH_STORAGE_KEY = "amverge_sidebar_width_px_v1";
 const EXPORT_DIR_STORAGE_KEY = "amverge_export_dir_v1";
@@ -50,6 +65,39 @@ function App() {
   const [isDragging, setIsDragging] = useState(false);
   const [sideBarEnabled, setSideBarEnabled] = useState(true);
   const [activePage, setActivePage] = useState<Page>("home");
+  const [themeSettings, setThemeSettings] = useState<ThemeSettings>(() => loadThemeSettings());
+  const [generalSettings, setGeneralSettings] = useState<GeneralSettings>(() => loadGeneralSettings());
+
+  useEffect(() => {
+    applyThemeSettings(themeSettings);
+    saveThemeSettings(themeSettings);
+  }, [themeSettings]);
+
+  useEffect(() => {
+    saveGeneralSettings(generalSettings);
+  }, [generalSettings]);
+
+  const handleResetGeneralSettings = async () => {
+    try {
+      const resolvedOldPath = await invoke<string>("move_episodes_to_new_dir", {
+        oldDir: generalSettings.episodesPath,
+        newDir: null,
+      });
+
+      const defaultEpisodesPath = await invoke<string>("get_default_episodes_dir");
+
+      remapEpisodePaths(resolvedOldPath, defaultEpisodesPath);      
+      saveGeneralSettings(DEFAULT_GENERAL_SETTINGS);
+      setGeneralSettings(DEFAULT_GENERAL_SETTINGS);
+    } catch (err) {
+      window.alert("Failed to reset episode directory: " + String(err));
+    }
+  };
+
+  const handleResetTheme = async() => {
+    setThemeSettings(DEFAULT_THEME);
+  }
+
   const [progress, setProgress] = useState(0);
   const [progressMsg, setProgressMsg] = useState("Starting...");
   const [dividerOffsetPx, setDividerOffsetPx] = useState(0);
@@ -60,10 +108,7 @@ function App() {
       const raw = localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY);
       const parsed = raw ? Number.parseInt(raw, 10) : NaN;
       if (Number.isFinite(parsed) && parsed > 0) return parsed;
-    } catch {
-      // ignore
-    }
-
+    } catch {}
     return 280;
   });
 
@@ -110,6 +155,8 @@ function App() {
     EXPORT_DIR_STORAGE_KEY,
     exportDir,
     setExportDir,
+    episodesPath: generalSettings.episodesPath,
+    exportFormat: generalSettings.exportFormat,
   });
 
   // Episode panel actions
@@ -141,8 +188,32 @@ function App() {
     setFocusedClip,
     setImportedVideoPath,
     setImportToken,
+    episodesPath: generalSettings.episodesPath,
   });
 
+  const remapEpisodePaths = (oldRoot: string, newRoot: string) => {
+    setEpisodes((prev) => {
+      const updatedEpisodes = prev.map((episode) => ({
+        ...episode,
+        clips: episode.clips.map((clip) => ({
+          ...clip,
+          src: remapPathRoot(clip.src, oldRoot, newRoot),
+          thumbnail: remapPathRoot(clip.thumbnail, oldRoot, newRoot),
+        })),
+      }));
+
+      return updatedEpisodes;
+    });
+
+    setClips((prev) =>
+      prev.map((clip) => ({
+        ...clip,
+        src: remapPathRoot(clip.src, oldRoot, newRoot),
+        thumbnail: remapPathRoot(clip.thumbnail, oldRoot, newRoot),
+      }))
+    );
+  };
+    
   // App-level hooks
   useHEVCSupport(userHasHEVC);
 
@@ -260,7 +331,9 @@ function App() {
     dispatch({ type: "setVideoIsHEVC", value: null });
 
     try {
-      await invoke("clear_episode_panel_cache");
+      await invoke("clear_episode_panel_cache", {
+        customPath: generalSettings.episodesPath,
+      });
     } catch (err) {
       console.error("clear_episode_panel_cache failed:", err);
     }
@@ -447,11 +520,21 @@ function App() {
             defaultMergedName={(state.clips[0]?.originalName || "episode") + "_merged"}
             openedEpisodeId={state.openedEpisodeId}
             importedVideoPath={state.importedVideoPath}
+            generalSettings={generalSettings}
+            setGeneralSettings={setGeneralSettings}
           />
         ) : activePage === "menu" ? (
           <Menu />
         ) : (
-          <Settings />
+          <Settings
+            themeSettings={themeSettings}
+            setThemeSettings={setThemeSettings}
+            generalSettings={generalSettings}
+            setGeneralSettings={setGeneralSettings}
+            onGeneralSettingsReset={handleResetGeneralSettings}
+            onEpisodesPathChanged={remapEpisodePaths}
+            onThemeReset={handleResetTheme}
+          />
         )}
       </div>
     </AppLayout>

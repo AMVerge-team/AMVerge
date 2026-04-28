@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { GeneralSettings } from "./settings/generalSettings";
 import ClipsContainer from "./components/clipsGrid/ClipsContainer.tsx";
 import PreviewContainer from "./components/previewPanel/PreviewContainer.tsx";
 
@@ -30,6 +31,8 @@ type LayoutProps = {
     onPickExportDir: () => void;
     onExportDirChange: (dir: string) => void;
     defaultMergedName: string;
+    generalSettings: GeneralSettings;
+    setGeneralSettings: React.Dispatch<React.SetStateAction<GeneralSettings>>;
 };
 
 export default function MainLayout(props: LayoutProps) {
@@ -100,6 +103,7 @@ export default function MainLayout(props: LayoutProps) {
                     userHasHEVC={props.userHasHEVC}
                     setFocusedClip={props.setFocusedClip}
                     focusedClip={props.focusedClip}
+                    generalSettings={props.generalSettings}
                  />
             </div>
             
@@ -127,6 +131,8 @@ export default function MainLayout(props: LayoutProps) {
                     onPickExportDir={props.onPickExportDir}
                     onExportDirChange={props.onExportDirChange}
                     defaultMergedName={props.defaultMergedName}
+                    generalSettings={props.generalSettings}
+                    setGeneralSettings={props.setGeneralSettings}
                 />
             </div>
         </div>
