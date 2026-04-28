@@ -2,6 +2,16 @@ import VideoPlayer from "./videoPlayer/VideoPlayer.tsx"
 import InfoBox from "./InfoBox.tsx"
 import React from "react";
 import { FaFolderOpen } from "react-icons/fa";
+import { GeneralSettings } from "../../settings/generalSettings";
+import Dropdown from "../common/Dropdown";
+
+const EXPORT_OPTIONS = [
+  { value: "mp4", label: "MP4" },
+  { value: "mkv", label: "MKV" },
+  { value: "mov", label: "MOV" },
+  { value: "avi", label: "AVI" },
+  { value: "xml", label: "XML" },
+];
 type PreviewContainerProps = {
   focusedClip: string | null;
   focusedClipThumbnail: string | null;
@@ -18,6 +28,8 @@ type PreviewContainerProps = {
   onPickExportDir: () => void;
   onExportDirChange: (dir: string) => void;
   defaultMergedName: string;
+  generalSettings: GeneralSettings;
+  setGeneralSettings: React.Dispatch<React.SetStateAction<GeneralSettings>>;
 };
 
 export default function PreviewContainer (props: PreviewContainerProps) {
@@ -92,13 +104,26 @@ export default function PreviewContainer (props: PreviewContainerProps) {
             <FaFolderOpen />
           </button>
         </div>
-        <button 
-          className="buttons" 
-          id="file-button"
-          onClick={onExportClick}
-        >
-          Export
-        </button>
+        <div className="export-action-row">
+          <Dropdown
+            className="export-format-select"
+            options={EXPORT_OPTIONS}
+            value={props.generalSettings.exportFormat}
+            onChange={(val) =>
+              props.setGeneralSettings((prev) => ({
+                ...prev,
+                exportFormat: val as any,
+              }))
+            }
+          />
+          <button 
+            className="buttons" 
+            id="file-button"
+            onClick={onExportClick}
+          >
+            Export
+          </button>
+        </div>
       </div>
       
       <InfoBox/>
