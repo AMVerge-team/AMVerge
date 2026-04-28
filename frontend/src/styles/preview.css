@@ -42,6 +42,14 @@
     box-sizing: border-box;
 }
 
+.export-format-select {
+    width: 70px;
+    padding: 0 4px;
+    font-size: 0.75rem;
+    height: 32px;
+    flex-shrink: 0;
+}
+
 .export-dir-input {
     flex: 1;
     min-width: 0;
