@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import ReactCrop, { centerCrop, makeAspectCrop, Crop, PixelCrop } from "react-image-crop";
 import { FaUndo, FaRedo, FaArrowsAltH, FaArrowsAltV, FaExpand, FaSyncAlt } from "react-icons/fa";
 import "react-image-crop/dist/ReactCrop.css";
-import "../../styles/cropModal.css";
 
 type CropModalProps = {
   image: string;
@@ -236,46 +235,4 @@ export default function CropModal({ image, onClose, onCropComplete }: CropModalP
       </div>
     </div>
   );
-}
-
-async function getCroppedImg(
-  image: HTMLImageElement,
-  pixelCrop: PixelCrop,
-  rotation = 0,
-  flip = { horizontal: false, vertical: false }
-): Promise<string> {
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-
-  if (!ctx) return "";
-
-  const scaleX = image.naturalWidth / image.width;
-  const scaleY = image.naturalHeight / image.height;
-
-  canvas.width = pixelCrop.width * scaleX;
-  canvas.height = pixelCrop.height * scaleY;
-
-  ctx.imageSmoothingQuality = "high";
-
-  const centerX = image.naturalWidth / 2;
-  const centerY = image.naturalHeight / 2;
-
-  ctx.translate(canvas.width / 2, canvas.height / 2);
-  ctx.rotate((rotation * Math.PI) / 180);
-  ctx.scale(flip.horizontal ? -1 : 1, flip.vertical ? -1 : 1);
-  ctx.translate(-canvas.width / 2, -canvas.height / 2);
-
-  ctx.drawImage(
-    image,
-    pixelCrop.x * scaleX,
-    pixelCrop.y * scaleY,
-    pixelCrop.width * scaleX,
-    pixelCrop.height * scaleY,
-    0,
-    0,
-    pixelCrop.width * scaleX,
-    pixelCrop.height * scaleY
-  );
-
-  return canvas.toDataURL("image/jpeg");
 }

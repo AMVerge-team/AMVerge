@@ -1,31 +1,31 @@
 import time
 import threading
-from typing import Optional
+from typing import Optional, Any
+
+try:
+    from pypresence.presence import Presence
+    from pypresence import exceptions as rpc_exceptions
+    RPC_AVAILABLE = True
+except ImportError:
+    Presence = None
+    RPC_AVAILABLE = False
+    rpc_exceptions = None
 
 # Discord Application ID
 CLIENT_ID = "1497922104065134823" 
-
-try:
-    from pypresence import Presence, exceptions as rpc_exceptions
-    RPC_AVAILABLE = True
-except ImportError:
-    RPC_AVAILABLE = False
-    Presence = None
-    rpc_exceptions = None
-
 
 class DiscordRPC:
     """Discord Rich Presence handler for AMVerge."""
     
     def __init__(self, client_id: str = CLIENT_ID):
         self.client_id = client_id
-        self.rpc: Optional[Presence] = None
+        self.rpc: Optional[Any] = None
         self.connected = False
         self._lock = threading.Lock()
         
     def connect(self) -> bool:
         """Connect to Discord RPC."""
-        if not RPC_AVAILABLE:
+        if not RPC_AVAILABLE or Presence is None:
             print("[Discord RPC] pypresence not installed. Run: pip install pypresence")
             return False
             
@@ -129,12 +129,12 @@ class DiscordRPC:
     
     def _update(
         self,
-        state: str = None,
-        details: str = None,
-        large_image: str = None,
-        large_text: str = None,
-        small_image: str = None,
-        small_text: str = None,
+        state: Optional[str] = None,
+        details: Optional[str] = None,
+        large_image: Optional[str] = None,
+        large_text: Optional[str] = None,
+        small_image: Optional[str] = None,
+        small_text: Optional[str] = None,
         buttons: bool = True,
     ):
         """Internal method to update Discord presence."""

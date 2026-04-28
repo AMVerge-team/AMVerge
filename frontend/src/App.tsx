@@ -141,6 +141,7 @@ function App() {
     handleExport,
     handlePickExportDir,
     handleBatchImport,
+    handleDownloadSingleClip,
   } = useImportExport({
     clips: state.clips,
     setProgress,
@@ -527,6 +528,8 @@ function App() {
             importedVideoPath={state.importedVideoPath}
             generalSettings={generalSettings}
             setGeneralSettings={setGeneralSettings}
+            onDownloadClip={handleDownloadSingleClip}
+            themeSettings={themeSettings}
           />
         ) : activePage === "menu" ? (
           <Menu />

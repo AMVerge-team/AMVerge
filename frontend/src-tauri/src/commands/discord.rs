@@ -90,8 +90,19 @@ pub async fn stop_discord_rpc(
     state: State<'_, DiscordRPCState>,
 ) -> Result<(), String> {
     let mut child_guard = state.child.lock().unwrap();
+
+    if let Some(child) = child_guard.as_mut() {
+        if let Some(stdin) = child.stdin.as_mut() {
+            let _ = writeln!(stdin, r#"{{"type":"shutdown"}}"#);
+            let _ = stdin.flush();
+        }
+
+        std::thread::sleep(std::time::Duration::from_millis(300));
+    }
+
     if let Some(mut child) = child_guard.take() {
         let _ = child.kill();
     }
+
     Ok(())
 }

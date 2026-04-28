@@ -52,6 +52,10 @@ export default function useDiscordRPC(generalSettings: GeneralSettings, activePa
     } else {
       stopRPC();
     }
+
+    return () => {
+      stopRPC();
+    };
   }, [generalSettings.enableDiscordRPC, startRPC, stopRPC]);
 
   // Update status based on page navigation

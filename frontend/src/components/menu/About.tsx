@@ -1,6 +1,6 @@
 import { open } from '@tauri-apps/plugin-shell';
 
-export default function AboutSection() {
+export default function About() {
   return (
     <section className="settings-section about-section">
       <h3>About AMVerge</h3>

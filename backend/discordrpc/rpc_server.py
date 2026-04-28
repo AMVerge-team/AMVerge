@@ -47,7 +47,10 @@ def main():
                     last_state = state
             elif data.get("type") == "clear":
                 rpc.clear_presence()
-            elif data.get("type") == "exit":
+
+            elif data.get("type") in ("exit", "shutdown"):
+                rpc.clear_presence()
+                time.sleep(0.2)
                 break
         except Exception:
             pass
