@@ -1,5 +1,5 @@
 import VideoPlayer from "./videoPlayer/VideoPlayer.tsx"
-import InfoBox from "./InfoBox.tsx"
+import HowToUse from "./HowToUse.tsx"
 import React from "react";
 import { FaFolderOpen, FaFileExport, FaVideo, FaLayerGroup, FaFolder, FaRocket } from "react-icons/fa";
 import { GeneralSettings } from "../../settings/generalSettings";
@@ -149,7 +149,7 @@ export default function PreviewContainer (props: PreviewContainerProps) {
         </button>
       </div>
       
-      <InfoBox/>
+      <HowToUse/>
 
       {showMergeNameModal && (
         <div
