@@ -121,8 +121,8 @@
 }
 
 .preview-window.empty {
-    /* border-style: dashed; */
     background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--accent);
 }
 
 /* EXPORT PANEL */
@@ -344,6 +344,7 @@
     max-height: 100%;
     overflow: hidden;
     border-radius: 8px;
+    border: 1px solid var(--accent);
 }
 
 .video-frame > video {

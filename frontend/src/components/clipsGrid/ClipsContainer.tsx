@@ -110,19 +110,18 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     [setTimelineClipIds]
   );
 
-  // Handles double-click on a clip tile (focus + toggle selection)
+  // Handles double-click on a clip tile (toggle timeline/export selection — checkmark only)
   const handleClipDoubleClick = useCallback(
-    (clipId: string, clipSrc: string, _index: number, _e: React.MouseEvent<HTMLDivElement>) => {
-      setFocusedClip(clipSrc);
+    (clipId: string, _clipSrc: string, _index: number, _e: React.MouseEvent<HTMLDivElement>) => {
       startTransition(() => {
-        setSelectedClips((prev) => {
+        setTimelineClipIds((prev) => {
           const next = new Set(prev);
           next.has(clipId) ? next.delete(clipId) : next.add(clipId);
           return next;
         });
       });
     },
-    [setFocusedClip, setSelectedClips]
+    [setTimelineClipIds]
   );
 
 
