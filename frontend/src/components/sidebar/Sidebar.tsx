@@ -2,26 +2,23 @@
 import SidebarNav from "./SidebarNav";
 import EpisodePanel from "./episodePanel/EpisodePanel";
 import ClipsContainer from "../clipsGrid/ClipsContainer";
-import type { SidebarProps } from "./types";
-import { FaVideo } from "react-icons/fa";
+import { useUIStateStore } from "../../stores/UIStore";
 
-export default function Sidebar({
-  activePage,
-  setActivePage,
-  ...props
-}: SidebarProps) {
+export default function Sidebar() {
+  const activeMode = useUIStateStore((state) => state.activeMode);
+
   return (
     <div className="sidebar-container">
-      <SidebarNav activePage={activePage} setActivePage={setActivePage} />
+      <SidebarNav />
       
-      {props.activeMode === "selector" ? (
-        <EpisodePanel {...props} />
+      {activeMode === "selector" ? (
+        <EpisodePanel />
       ) : (
         <div className="sidebar-library">
           <div className="episode-panel-header">
             <div className="episode-panel-title">Clip Assets</div>
           </div>
-          <ClipsContainer {...props} cols={2} />
+          <ClipsContainer cols={2} />
         </div>
       )}
     </div>

@@ -4,98 +4,39 @@ import ImportButtons from "../components/ImportButtons";
 import MainLayout from "../MainLayout";
 import { fileNameFromPath } from "../utils/episodeUtils";
 import EditorPage from "./EditorPage";
-import { GeneralSettings } from "../settings/generalSettings";
-import { ThemeSettings } from "../settings/themeSettings";
+
 import { ClipItem } from "../types/domain";
 import useTimeline from "../hooks/useTimeline";
 import type { TimelineSegment } from "../types/timeline";
+import { useAppStateStore } from "../stores/appStore";
+import { useUIStateStore } from "../stores/UIStore";
+import { useGeneralSettingsStore } from "../stores/settingsStore";
+import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
 
 interface HomePageProps {
-  cols: number;
-  gridSize: number;
-  gridRef: React.RefObject<HTMLDivElement | null>;
-  snapGridBigger: () => void;
-  snapGridSmaller: () => void;
-  setGridPreview: React.Dispatch<React.SetStateAction<boolean>>;
-  gridPreview: boolean;
-  selectedClips: Set<string>;
-  setSelectedClips: (val: Set<string> | ((prev: Set<string>) => Set<string>)) => void;
-  onImportClick: () => void;
-  loading: boolean;
   mainLayoutWrapperRef: React.RefObject<HTMLDivElement | null>;
-  clips: { id: string; src: string; thumbnail: string; originalName?: string; start?: number; end?: number }[];
-  setClips: React.Dispatch<React.SetStateAction<ClipItem[]>>;
-  importToken: string;
-  isEmpty: boolean;
-  handleExport: (
-    selectedClips: Set<string>,
-    mergeEnabled: boolean,
-    mergeFileName?: string
-  ) => Promise<void>;
-  sideBarEnabled: boolean;
-  videoIsHEVC: boolean | null;
-  userHasHEVC: React.RefObject<boolean>;
-  focusedClip: string | null;
-  setFocusedClip: React.Dispatch<React.SetStateAction<string | null>>;
-  exportDir: string | null;
-  onPickExportDir: () => void;
-  onExportDirChange: (dir: string) => void;
-  defaultMergedName: string;
-  openedEpisodeId: string | null;
-  importedVideoPath: string | null;
-  generalSettings: GeneralSettings;
-  setGeneralSettings: React.Dispatch<React.SetStateAction<GeneralSettings>>;
-  onDownloadClip: (clip: ClipItem) => void;
-  themeSettings: ThemeSettings;
   timelineEnabled: boolean;
-  setTimelineEnabled: (val: boolean) => void;
-  activeMode: "selector" | "editor";
-  setActiveMode: (val: "selector" | "editor") => void;
-  timelineClipIds: Set<string>;
-  setTimelineClipIds: React.Dispatch<React.SetStateAction<Set<string>>>;
 }
 
 export default function HomePage({
-  cols,
-  gridSize,
-  gridRef,
-  snapGridBigger,
-  snapGridSmaller,
-  setGridPreview,
-  gridPreview,
-  selectedClips,
-  setSelectedClips,
-  onImportClick,
-  loading,
   mainLayoutWrapperRef,
-  clips,
-  setClips,
-  importToken,
-  isEmpty,
-  handleExport,
-  sideBarEnabled,
-  videoIsHEVC,
-  userHasHEVC,
-  focusedClip,
-  setFocusedClip,
-  exportDir,
-  onPickExportDir,
-  onExportDirChange,
-  defaultMergedName,
-  openedEpisodeId,
-  importedVideoPath,
-  generalSettings,
-  setGeneralSettings,
-  onDownloadClip,
-  themeSettings,
   timelineEnabled,
-  setTimelineEnabled,
-  activeMode,
-  setActiveMode,
-  timelineClipIds,
-  setTimelineClipIds,
 }: HomePageProps) {
   const isUpdatingFromTimeline = useRef(false);
+
+  const clips = useAppStateStore(s => s.clips);
+  const setClips = useAppStateStore(s => s.setClips);
+  const selectedClips = useAppStateStore(s => s.selectedClips);
+  const timelineClipIds = useAppStateStore(s => s.timelineClipIds);
+  const setTimelineClipIds = useAppStateStore(s => s.setTimelineClipIds);
+  const openedEpisodeId = useEpisodePanelRuntimeStore(s => s.openedEpisodeId);
+  const importedVideoPath = useAppStateStore(s => s.importedVideoPath);
+  
+  const activeMode = useUIStateStore(s => s.activeMode);
+  const setActiveMode = useUIStateStore(s => s.setActiveMode);
+  
+  const generalSettings = useGeneralSettingsStore();
+
   const selectedClipsRef = useRef(selectedClips);
   useEffect(() => {
     selectedClipsRef.current = selectedClips;
@@ -350,18 +291,7 @@ export default function HomePage({
 
   return (
     <>
-      <ImportButtons
-        cols={cols}
-        gridSize={gridSize}
-        onBigger={snapGridBigger}
-        onSmaller={snapGridSmaller}
-        setGridPreview={setGridPreview}
-        gridPreview={gridPreview}
-        selectedClips={selectedClips}
-        setSelectedClips={setSelectedClips}
-        onImport={onImportClick}
-        loading={loading}
-      />
+      <ImportButtons />
 
       <div className="mode-tabs">
         <button 
@@ -394,49 +324,12 @@ export default function HomePage({
       <div className="main-layout-wrapper" ref={mainLayoutWrapperRef}>
         {activeMode === "selector" ? (
           <MainLayout
-            cols={cols}
-            gridSize={gridSize}
-            gridRef={gridRef}
-            gridPreview={gridPreview}
-            setGridPreview={setGridPreview}
-            clips={clips}
-            importToken={importToken}
-            isEmpty={isEmpty}
-            handleExport={handleExport}
-            sideBarEnabled={sideBarEnabled}
-            videoIsHEVC={videoIsHEVC}
-            userHasHEVC={userHasHEVC}
-            focusedClip={focusedClip}
-            setFocusedClip={setFocusedClip}
-            exportDir={exportDir}
-            onPickExportDir={onPickExportDir}
-            onExportDirChange={onExportDirChange}
-            defaultMergedName={defaultMergedName}
-            selectedClips={selectedClips}
-            setSelectedClips={setSelectedClips}
-            timelineClipIds={timelineClipIds}
-            setTimelineClipIds={setTimelineClipIds}
-            loading={loading}
-            generalSettings={generalSettings}
-            setGeneralSettings={setGeneralSettings}
-            onDownloadClip={onDownloadClip}
-            themeSettings={themeSettings}
             timeline={timeline}
-            timelineEnabled={true} // Keep sync even if hidden
-            activeMode={activeMode}
+            timelineEnabled={timelineEnabled} // Keep sync even if hidden
           />
         ) : (
           <EditorPage 
             timeline={timeline}
-            clips={clips}
-            videoIsHEVC={videoIsHEVC}
-            userHasHEVC={userHasHEVC}
-            importToken={importToken}
-            importedVideoPath={importedVideoPath}
-            onBackToSelector={() => setActiveMode("selector")}
-            handleExport={handleExport}
-            timelineClipIds={timelineClipIds}
-            defaultMergedName={defaultMergedName}
           />
         )}
 

@@ -1,4 +1,4 @@
-import React, { useEffect, type RefObject } from "react";
+import { useEffect } from "react";
 import { FaExpand, FaPause, FaPlay, FaVolumeMute, FaVolumeUp } from "react-icons/fa";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useVideoPlayer } from "./useVideoPlayer";
@@ -6,7 +6,7 @@ import { useVideoPlayer } from "./useVideoPlayer";
 type VideoPlayerProps = {
     selectedClip: string;
     videoIsHEVC: boolean | null;
-    userHasHEVC: RefObject<boolean>;
+    userHasHEVC: boolean;
     posterPath: string | null;
     importToken: string;
     externalTime?: number;
@@ -32,7 +32,6 @@ export default function VideoPlayer({
         progressRef,
 
         effectiveClip,
-        isVideoReady,
         isPlaying,
         isMuted,
         currentTime,

@@ -2,41 +2,29 @@ import React, { useMemo, useRef, useCallback } from "react";
 import EditorVideoPlayer from "../components/previewPanel/videoPlayer/EditorVideoPlayer";
 import TimelineTrack from "../components/timeline/TimelineTrack";
 import type { UseTimelineReturn } from "../hooks/useTimeline";
-import type { ClipItem } from "../types/domain";
 import { fileNameFromPath } from "../utils/episodeUtils";
 import { FaRocket, FaChevronLeft, FaClock, FaDiscord } from "react-icons/fa";
+import { useAppStateStore } from "../stores/appStore";
+import { useUIStateStore } from "../stores/UIStore";
+import useImportExport from "../hooks/useImportExport";
 import "../styles/home/editor.css";
 
 type EditorPageProps = {
   timeline: UseTimelineReturn;
-  clips: ClipItem[];
-  videoIsHEVC: boolean | null;
-  userHasHEVC: React.RefObject<boolean>;
-  importToken: string;
-  importedVideoPath: string | null;
-  onBackToSelector: () => void;
-  handleExport: (
-    selectedClips: Set<string>,
-    enableMerged: boolean,
-    mergeFileName?: string
-  ) => Promise<void>;
-  timelineClipIds: Set<string>;
-  defaultMergedName: string;
 };
 
 export default function EditorPage({
   timeline,
-  clips: _clips,
-  videoIsHEVC,
-  userHasHEVC,
-  importToken,
-  importedVideoPath,
-  onBackToSelector,
-  handleExport,
-  timelineClipIds,
-  defaultMergedName,
 }: EditorPageProps) {
   const { state: timelineState } = timeline;
+  const clips = useAppStateStore((state) => state.clips);
+  const importedVideoPath = useAppStateStore((state) => state.importedVideoPath);
+  const timelineClipIds = useAppStateStore((state) => state.timelineClipIds);
+  const setActiveMode = useUIStateStore((state) => state.setActiveMode);
+  const { handleExport } = useImportExport();
+
+  const defaultMergedName = (clips[0]?.originalName || "episode") + "_merged";
+  const onBackToSelector = () => setActiveMode("selector");
 
   const activeSegment = useMemo(() => {
     const { segments, playheadSec } = timelineState;
@@ -72,6 +60,7 @@ export default function EditorPage({
       src: seg.sourceClip.src,
       thumbnail: seg.sourceClip.thumbnail,
       start: seg.start,
+      end: seg.end,
       sourceStart: sourceStart
     };
   }, [timelineState.segments, timelineState.playheadSec]);
@@ -269,9 +258,6 @@ export default function EditorPage({
                   <EditorVideoPlayer
                       key={`editor-player-${effectiveSegment.src}`}
                       selectedClip={effectiveSegment.src}
-                      videoIsHEVC={videoIsHEVC}
-                      userHasHEVC={userHasHEVC}
-                      importToken={importToken}
                       externalTime={sourceTime}
                       isPlaying={timelineState.isPlaying}
                       isDragging={timelineState.isDraggingPlayhead}

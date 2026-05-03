@@ -10,6 +10,9 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { LazyClipProps } from "./types.ts"
 import { DownloadButton } from "./DownloadButton.tsx";
 import { FaCheck, FaPlus } from "react-icons/fa";
+import { useAppStateStore } from "../../stores/appStore.ts";
+import { useUIStateStore } from "../../stores/UIStore.ts";
+import { useGeneralSettingsStore, useThemeSettingsStore } from "../../stores/settingsStore.ts";
 
 const DOWNLOAD_TONE_SAMPLE_SIZE = 24;
 const DOWNLOAD_TONE_SOURCE_SIZE = 34;
@@ -19,25 +22,24 @@ const DOWNLOAD_TONE_THRESHOLD = 158;
 export const LazyClip = memo(function LazyClip({
   clip,
   index,
-  importToken,
-  isExportSelected,
-  isSelected,
-  isFocused,
-  gridPreview,
   requestProxySequential,
   reportProxyDemand,
   onClipClick,
   onClipDoubleClick,
   onToggleTimeline,
-  onToggleSelection,
   registerVideoRef,
   reportStaggerDemand,
-  videoIsHEVC,
-  userHasHEVC,
-  generalSettings,
   onDownloadClip,
-  themeSettings,
 }: LazyClipProps) {
+  const importToken = useAppStateStore(s => s.importToken);
+  const isExportSelected = useAppStateStore(s => s.timelineClipIds.has(clip.id));
+  const isSelected = useAppStateStore(s => s.selectedClips.has(clip.id));
+  const isFocused = useAppStateStore(s => s.focusedClip === clip.src);
+  const gridPreview = useUIStateStore(s => s.gridPreview);
+  const videoIsHEVC = useAppStateStore(s => s.videoIsHEVC);
+  const userHasHEVC = useAppStateStore(s => s.userHasHEVC);
+  const generalSettings = useGeneralSettingsStore();
+  const themeSettings = useThemeSettingsStore();
   // state and refs for tile visibility, hover, video element, and proxy state
   const [isVisible, setIsVisible] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -67,8 +69,8 @@ export const LazyClip = memo(function LazyClip({
   const [downloadTone, setDownloadTone] = useState<"light" | "dark">("light");
 
   // determine if we need a proxy (HEVC not supported)
-  const needsHevcProxy = videoIsHEVC === true && userHasHEVC.current === false;
-  const waitingForCodecInfo = videoIsHEVC === null && userHasHEVC.current === false;
+  const needsHevcProxy = videoIsHEVC === true && userHasHEVC === false;
+  const waitingForCodecInfo = videoIsHEVC === null && userHasHEVC === false;
 
   // only show video if hovered or grid preview is on
   const showVideo = isHovered || gridPreview;

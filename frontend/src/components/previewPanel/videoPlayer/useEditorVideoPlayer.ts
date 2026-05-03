@@ -1,20 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
+import { useAppStateStore } from "../../../stores/appStore";
+
 type UseEditorVideoPlayerArgs = {
     selectedClip: string;
-    videoIsHEVC: boolean | null;
-    userHasHEVC: React.RefObject<boolean>;
     externalTime?: number;
-    onTimeUpdate?: (time: number) => void;
+    onTimeUpdate?: (time: number, isEnded?: boolean) => void;
     isPlaying: boolean;
     isDragging?: boolean;
 };
 
 export function useEditorVideoPlayer({
     selectedClip,
-    videoIsHEVC,
-    userHasHEVC,
     externalTime,
     onTimeUpdate,
     isPlaying,
@@ -23,14 +21,17 @@ export function useEditorVideoPlayer({
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const scrubTimeoutRef = useRef<number | null>(null);
     const [effectiveClip, setEffectiveClip] = useState<string | null>(selectedClip);
-    const [isVideoReady, setIsVideoReady] = useState(false);
-    const hasHevcSupport = userHasHEVC.current === true;
+
+    
+    const userHasHEVC = useAppStateStore((state) => state.userHasHEVC);
+    const videoIsHEVC = useAppStateStore((state) => state.videoIsHEVC);
+
+    const hasHevcSupport = userHasHEVC === true;
 
     // 1. Handle Clip Changes & Proxy Fallback
     useEffect(() => {
         if (!selectedClip) {
             setEffectiveClip(null);
-            setIsVideoReady(false);
             return;
         }
 
@@ -84,7 +85,6 @@ export function useEditorVideoPlayer({
     }, [isPlaying]);
 
     const handleLoadedMetadata = (_video: HTMLVideoElement) => {
-        setIsVideoReady(true);
     };
 
     const onTimeUpdateRef = useRef(onTimeUpdate);
@@ -115,7 +115,6 @@ export function useEditorVideoPlayer({
             src: video.src,
             effectiveClip
         });
-        setIsVideoReady(false);
     };
 
     const handleTimeUpdate = (isEnded?: boolean) => {

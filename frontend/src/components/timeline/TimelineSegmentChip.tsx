@@ -134,9 +134,12 @@ function TimelineSegmentChip({
         {/* Filmstrip body */}
         <div className="tl-segment-body">
             <div
-                className={`tl-segment-filmstrip ${filmstrip.spriteUrl ? "tl-segment-filmstrip--sprite" : ""} ${filmstrip.loading ? "tl-segment-filmstrip--loading" : ""}`}
+                className="tl-segment-filmstrip"
                 style={filmstripStyle ?? fallbackStyle}
             />
+            {filmstrip.loading && (
+                <div className="tl-segment-filmstrip-loading-overlay" />
+            )}
         </div>
 
         {/* Bottom progress strip */}

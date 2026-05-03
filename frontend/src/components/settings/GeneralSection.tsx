@@ -1,21 +1,19 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
-import { type GeneralSettings } from "../../settings/generalSettings";
+import { useGeneralSettingsStore } from "../../stores/settingsStore";
 import { useEffect, useState } from "react";
 
 type GeneralSectionProps = {
-  generalSettings: GeneralSettings;
-  setGeneralSettings: React.Dispatch<React.SetStateAction<GeneralSettings>>;
   onGeneralSettingsReset: () => void;
   onEpisodesPathChanged: (oldPath: string, newPath: string) => void;
 };
 
 export default function GeneralSection({
-  generalSettings,
-  setGeneralSettings,
   onGeneralSettingsReset,
   onEpisodesPathChanged,
 }: GeneralSectionProps) {
+  const generalSettings = useGeneralSettingsStore();
+  const setGeneralSettings = useGeneralSettingsStore.setState;
   const [loading, setLoading] = useState(false);
   const [showFactoryResetConfirm, setShowFactoryResetConfirm] = useState(false);
   const factoryResetConfirmation =

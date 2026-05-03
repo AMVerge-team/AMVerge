@@ -1,18 +1,18 @@
 import { useEffect, useRef } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { useUIStateStore } from "../stores/UIStore";
 
 type UseDragDropImportProps = {
-  setIsDragging: React.Dispatch<React.SetStateAction<boolean>>;
   handleImport: (file: string) => void | Promise<void>;
   handleBatchImport: (files: string[]) => void | Promise<void>;
 };
 
 export default function useDragDropImport({
-  setIsDragging,
   handleImport,
   handleBatchImport,
 }: UseDragDropImportProps) {
   const lastExternalDropRef = useRef<{ path: string; ts: number } | null>(null);
+  const setIsDragging = useUIStateStore((state) => state.setIsDragging);
 
   // Use refs for handlers to avoid restarting the effect if they change
   const handlersRef = useRef({ handleImport, handleBatchImport });

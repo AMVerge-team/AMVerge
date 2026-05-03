@@ -31,7 +31,6 @@ export default function TimelineTrack({ timeline, trackHeight = 96 }: Props) {
     deleteSelected,
     toggleSelect,
     selectRange,
-    selectAll,
     deselectAll,
     startDrag,
     moveDrag,

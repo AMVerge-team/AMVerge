@@ -1,38 +1,32 @@
-import React from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useEditorVideoPlayer } from "./useEditorVideoPlayer";
+import { useAppStateStore } from "../../../stores/appStore";
 
 type EditorVideoPlayerProps = {
     selectedClip: string;
-    videoIsHEVC: boolean | null;
-    userHasHEVC: React.RefObject<boolean>;
-    importToken: string;
     externalTime?: number;
-    onTimeUpdate?: (time: number) => void;
+    onTimeUpdate?: (time: number, isEnded?: boolean) => void;
     isPlaying: boolean;
     isDragging: boolean;
 };
 
 export default function EditorVideoPlayer({
     selectedClip,
-    videoIsHEVC,
-    userHasHEVC,
-    importToken,
     externalTime,
     onTimeUpdate,
     isPlaying,
     isDragging,
 }: EditorVideoPlayerProps) {
+    const importToken = useAppStateStore((state) => state.importToken);
+
     const {
         videoRef,
         effectiveClip,
         handleLoadedMetadata,
         handleVideoError,
-        handleTimeUpdate,
+        handleTimeUpdate: hookHandleTimeUpdate,
     } = useEditorVideoPlayer({
         selectedClip,
-        videoIsHEVC,
-        userHasHEVC,
         externalTime,
         onTimeUpdate,
         isPlaying,
@@ -56,8 +50,8 @@ export default function EditorVideoPlayer({
                     opacity: 1 
                 }}
                 onLoadedMetadata={(e) => handleLoadedMetadata(e.currentTarget)}
-                onTimeUpdate={() => handleTimeUpdate(false)}
-                onEnded={() => handleTimeUpdate(true)}
+                onTimeUpdate={() => hookHandleTimeUpdate(false)}
+                onEnded={() => hookHandleTimeUpdate(true)}
                 onError={handleVideoError}
             />
         </div>

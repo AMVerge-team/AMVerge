@@ -2,56 +2,24 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import ClipsContainer from "./components/clipsGrid/ClipsContainer";
 import PreviewContainer from "./components/previewPanel/PreviewContainer";
 import type { UseTimelineReturn } from "./hooks/useTimeline";
-import type { ClipItem } from "./types/domain";
-import type { GeneralSettings } from "./settings/generalSettings";
-import type { ThemeSettings } from "./settings/themeSettings";
+import { useAppStateStore } from "./stores/appStore";
 
 type LayoutProps = {
-    cols: number;
-    gridSize: number;
-    gridRef: React.RefObject<HTMLDivElement | null>;
-    gridPreview: boolean;
-    setGridPreview: React.Dispatch<React.SetStateAction<boolean>>;
-    clips: ClipItem[];
-    importToken: string;
-    isEmpty: boolean;
-    handleExport: (
-        selectedClips: Set<string>,
-        enableMerged: boolean,
-        mergeFileName?: string
-    ) => Promise<void>;
-    sideBarEnabled: boolean;
-    videoIsHEVC: boolean | null;
-    userHasHEVC: React.RefObject<boolean>;
-    focusedClip: string | null;
-    setFocusedClip: React.Dispatch<React.SetStateAction<string | null>>;
-    selectedClips: Set<string>;
-    setSelectedClips: (val: Set<string> | ((prev: Set<string>) => Set<string>)) => void;
-    timelineClipIds: Set<string>;
-    setTimelineClipIds: (val: Set<string> | ((prev: Set<string>) => Set<string>)) => void;
-    loading: boolean;
-    exportDir: string | null;
-    onPickExportDir: () => void;
-    onExportDirChange: (dir: string) => void;
-    defaultMergedName: string;
-    generalSettings: GeneralSettings;
-    setGeneralSettings: React.Dispatch<React.SetStateAction<GeneralSettings>>;
-    onDownloadClip: (clip: ClipItem) => void;
-    themeSettings: ThemeSettings;
     timeline: UseTimelineReturn;
     timelineEnabled: boolean;
-    activeMode: "selector" | "editor";
 };
 
 export default function MainLayout(props: LayoutProps) {
     const [leftWidth, setLeftWidth] = useState(65);
+    const focusedClip = useAppStateStore(s => s.focusedClip);
+    const clips = useAppStateStore(s => s.clips);
 
     const focusedClipThumbnail = useMemo(
         () =>
-            props.focusedClip
-                ? props.clips.find((c) => c.src === props.focusedClip)?.thumbnail ?? null
+            focusedClip
+                ? clips.find((c) => c.src === focusedClip)?.thumbnail ?? null
                 : null,
-        [props.focusedClip, props.clips]
+        [focusedClip, clips]
     );
 
     // ── Timeline-Preview Link ────────────────────────────────────────
@@ -109,27 +77,7 @@ export default function MainLayout(props: LayoutProps) {
         <div className="main-layout-root" style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
             <div className="split-layout" style={{ flex: 1, minHeight: 0 }}>
                 <div className="left-pane" style={{ width: `${leftWidth}%` }}>
-                    <ClipsContainer
-                        gridSize={props.gridSize}
-                        gridRef={props.gridRef}
-                        cols={props.cols}
-                        gridPreview={props.gridPreview}
-                        selectedClips={props.selectedClips}
-                        setSelectedClips={props.setSelectedClips}
-                        timelineClipIds={props.timelineClipIds}
-                        setTimelineClipIds={props.setTimelineClipIds}
-                        clips={props.clips}
-                        importToken={props.importToken}
-                        loading={props.loading}
-                        isEmpty={props.isEmpty}
-                        videoIsHEVC={props.videoIsHEVC}
-                        userHasHEVC={props.userHasHEVC}
-                        setFocusedClip={props.setFocusedClip}
-                        focusedClip={props.focusedClip}
-                        generalSettings={props.generalSettings}
-                        onDownloadClip={props.onDownloadClip}
-                        themeSettings={props.themeSettings}
-                    />
+                    <ClipsContainer />
                 </div>
 
                 <div className="divider" onMouseDown={startHorizontalResize}>
@@ -142,21 +90,8 @@ export default function MainLayout(props: LayoutProps) {
                         programClip={activeTimelineSource?.src ?? null}
                         programClipThumbnail={activeTimelineSource?.thumbnail ?? null}
                         programTime={activeTimelineSource?.time}
-                        sourceClip={props.focusedClip}
+                        sourceClip={focusedClip}
                         sourceClipThumbnail={focusedClipThumbnail}
-                        selectedClips={props.selectedClips}
-                        timelineClipIds={props.timelineClipIds}
-                        handleExport={props.handleExport}
-                        videoIsHEVC={props.videoIsHEVC}
-                        userHasHEVC={props.userHasHEVC}
-                        importToken={props.importToken}
-                        exportDir={props.exportDir}
-                        onPickExportDir={props.onPickExportDir}
-                        onExportDirChange={props.onExportDirChange}
-                        defaultMergedName={props.defaultMergedName}
-                        generalSettings={props.generalSettings}
-                        setGeneralSettings={props.setGeneralSettings}
-                        activeMode={props.activeMode}
                         onTimeUpdate={(time) => {
                             if (!props.timelineEnabled) return;
                             const { segments, playheadSec } = props.timeline.state;

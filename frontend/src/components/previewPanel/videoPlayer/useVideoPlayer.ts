@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import type { RefObject } from "react";
+
 import { invoke } from "@tauri-apps/api/core";
 
 type UseVideoPlayerArgs = {
     selectedClip: string;
     videoIsHEVC: boolean | null;
-    userHasHEVC: RefObject<boolean>;
+    userHasHEVC: boolean;
     externalTime?: number;
     onTimeUpdate?: (time: number) => void;
 };
@@ -41,7 +41,7 @@ export function useVideoPlayer({
     const [duration, setDuration] = useState(0);
     const [isScrubbing, setIsScrubbing] = useState(false);
 
-    const hasHevcSupport = userHasHEVC.current === true;
+    const hasHevcSupport = userHasHEVC === true;
 
     const requestFirstFrame = (video: HTMLVideoElement) => {
         if (hasFirstFrameRef.current) return;

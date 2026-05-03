@@ -1,40 +1,38 @@
-import { useState, useRef, startTransition, useCallback } from "react";
+import { useRef, startTransition, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { ClipItem, EpisodeEntry } from "../types/domain"
 import { fileNameFromPath, truncateFileName, detectScenes } from "../utils/episodeUtils";
-import { GeneralSettings } from "../settings/generalSettings";
+
+import { useAppStateStore, useAppPersistedStore } from "../stores/appStore";
+import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
+import { useGeneralSettingsStore } from "../stores/settingsStore";
 
 type ImportExportProps = {
-  abortedRef: React.RefObject<boolean>;
-  clips: ClipItem[];
-  setFocusedClip: React.Dispatch<React.SetStateAction<string | null>>;
-  setSelectedClips: React.Dispatch<React.SetStateAction<Set<string>>>;
-  setVideoIsHEVC: React.Dispatch<React.SetStateAction<boolean | null>>;
-  setImportedVideoPath: React.Dispatch<React.SetStateAction<string | null>>;
-  setClips: React.Dispatch<React.SetStateAction<ClipItem[]>>;
-  setEpisodes: React.Dispatch<React.SetStateAction<EpisodeEntry[]>>;
-  setSelectedEpisodeId: React.Dispatch<React.SetStateAction<string | null>>;
-  setOpenedEpisodeId: React.Dispatch<React.SetStateAction<string | null>>;
-  selectedFolderId: string | null;
-  EXPORT_DIR_STORAGE_KEY: string;
-  exportDir: string | null;
-  setExportDir: React.Dispatch<React.SetStateAction<string | null>>;
-  setProgress: React.Dispatch<React.SetStateAction<number>>;
-  setProgressMsg: React.Dispatch<React.SetStateAction<string>>;
-  episodesPath: string | null;
-  exportFormat: "mp4" | "mkv" | "mov" | "avi";
+  abortedRef?: React.RefObject<boolean>;
   onRPCUpdate?: (data: any) => void;
-  generalSettings: GeneralSettings;
 };
 
-export default function useImportExport(props: ImportExportProps) {
-  const [loading, setLoading] = useState(false);
-  const [importToken, setImportToken] = useState(() => Date.now().toString());
+export default function useImportExport(props?: ImportExportProps) {
+  const appState = useAppStateStore();
+  const episodeState = useEpisodePanelRuntimeStore();
+  const generalSettings = useGeneralSettingsStore();
+  const persistedState = useAppPersistedStore();
+
+  const loading = appState.loading;
+  const setLoading = appState.setLoading;
+  const importToken = appState.importToken;
+  const setImportToken = appState.setImportToken;
+  const batchTotal = appState.batchTotal;
+  const setBatchTotal = appState.setBatchTotal;
+  const batchDone = appState.batchDone;
+  const setBatchDone = appState.setBatchDone;
+  const batchCurrentFile = appState.batchCurrentFile;
+  const setBatchCurrentFile = appState.setBatchCurrentFile;
+
   const importGenRef = useRef(0);
-  const [batchTotal, setBatchTotal] = useState(0);
-  const [batchDone, setBatchDone] = useState(0);
-  const [batchCurrentFile, setBatchCurrentFile] = useState("");
+  const localAbortedRef = useRef(false);
+  const abortedRef = props?.abortedRef || localAbortedRef;
 
   const handleImport = useCallback(async (file: string | null) => {
     // This opens the file dialog to select a video file
@@ -44,32 +42,32 @@ export default function useImportExport(props: ImportExportProps) {
     const gen = ++importGenRef.current;
 
     try {
-      props.setProgress(0);
-      props.setProgressMsg("Starting...");
+      appState.setProgress(0);
+      appState.setProgressMsg("Starting...");
       setLoading(true);
-      props.setSelectedClips(new Set());
-      props.setFocusedClip(null);
-      props.setImportedVideoPath(file);
-      props.setVideoIsHEVC(null);
+      appState.setSelectedClips(new Set());
+      appState.setFocusedClip(null);
+      appState.setImportedVideoPath(file);
+      appState.setVideoIsHEVC(null);
       setImportToken(Date.now().toString());
 
       const rpcButtons = [];
-      if (props.generalSettings.rpcShowButtons) {
+      if (generalSettings.rpcShowButtons) {
         rpcButtons.push({ label: "Discord Server", url: "https://discord.gg/asJkqwqb" });
         rpcButtons.push({ label: "Website", url: "https://amverge.app/" });
       }
 
-      props.onRPCUpdate?.({
+      props?.onRPCUpdate?.({
         type: "update",
-        details: `Detecting: ${props.generalSettings.rpcShowFilename ? fileNameFromPath(file) : "Video"}`,
+        details: `Detecting: ${generalSettings.rpcShowFilename ? fileNameFromPath(file) : "Video"}`,
         state: "Processing Video",
         large_image: "amverge_logo",
-        small_image: props.generalSettings.rpcShowMiniIcons ? "loading_icon_new" : undefined,
-        small_text: props.generalSettings.rpcShowMiniIcons ? "Detecting..." : undefined,
-        buttons: props.generalSettings.rpcShowButtons,
+        small_image: generalSettings.rpcShowMiniIcons ? "loading_icon_new" : undefined,
+        small_text: generalSettings.rpcShowMiniIcons ? "Detecting..." : undefined,
+        buttons: generalSettings.rpcShowButtons,
       });
 
-      const formatted = await detectScenes(file, episodeId, props.episodesPath);
+      const formatted = await detectScenes(file, episodeId, generalSettings.episodesPath);
 
       // A newer import started while we were waiting - discard stale results.
       if (importGenRef.current !== gen) return;
@@ -80,16 +78,16 @@ export default function useImportExport(props: ImportExportProps) {
         id: episodeId,
         displayName: inferredName,
         videoPath: file,
-        folderId: props.selectedFolderId,
+        folderId: episodeState.selectedFolderId,
         importedAt: Date.now(),
         clips: formatted,
       };
 
-      props.setEpisodes((prev) => [episodeEntry, ...prev]);
-      props.setSelectedEpisodeId(episodeId);
-      props.setOpenedEpisodeId(episodeId);
+      episodeState.setEpisodes((prev) => [episodeEntry, ...prev]);
+      episodeState.setSelectedEpisodeId(episodeId);
+      episodeState.setOpenedEpisodeId(episodeId);
       startTransition(() => {
-        props.setClips(formatted);
+        appState.setClips(formatted);
       });
     } catch (err) {
       if (importGenRef.current !== gen) return;
@@ -97,7 +95,7 @@ export default function useImportExport(props: ImportExportProps) {
     } finally {
       if (importGenRef.current === gen) setLoading(false);
     }
-  }, [props.setProgress, props.setProgressMsg, props.setSelectedClips, props.setFocusedClip, props.setImportedVideoPath, props.setVideoIsHEVC, props.generalSettings, props.episodesPath, props.selectedFolderId, props.setEpisodes, props.setSelectedEpisodeId, props.setOpenedEpisodeId, props.setClips, props.onRPCUpdate]);
+  }, [appState, episodeState, generalSettings, props?.onRPCUpdate]);
 
   const onImportClick = useCallback(async () => {
     const files = await open({
@@ -125,23 +123,23 @@ export default function useImportExport(props: ImportExportProps) {
 
   const handleBatchImport = useCallback(async (files: string[]) => {
     const gen = ++importGenRef.current;
-    props.abortedRef.current = false;
+    abortedRef.current = false;
 
     const completedEpisodes: EpisodeEntry[] = [];
 
     try {
-      props.setProgress(0);
-      props.setProgressMsg("Starting...");
+      appState.setProgress(0);
+      appState.setProgressMsg("Starting...");
       setLoading(true);
-      props.setSelectedClips(new Set());
-      props.setFocusedClip(null);
-      props.setVideoIsHEVC(null);
+      appState.setSelectedClips(new Set());
+      appState.setFocusedClip(null);
+      appState.setVideoIsHEVC(null);
       setBatchTotal(files.length);
       setBatchDone(0);
       setBatchCurrentFile("");
 
       for (let i = 0; i < files.length; i++) {
-        if (props.abortedRef.current) break;
+        if (abortedRef.current) break;
         if (importGenRef.current !== gen) return;
 
         const file = files[i];
@@ -150,17 +148,17 @@ export default function useImportExport(props: ImportExportProps) {
 
         setBatchDone(i);
         setBatchCurrentFile(truncateFileName(fileName));
-        props.setProgress(0);
-        props.setProgressMsg("Starting...");
+        appState.setProgress(0);
+        appState.setProgressMsg("Starting...");
 
         try {
-          const formatted = await detectScenes(file, episodeId, props.episodesPath);
+          const formatted = await detectScenes(file, episodeId, generalSettings.episodesPath);
 
-          if (props.abortedRef.current || importGenRef.current !== gen) {
+          if (abortedRef.current || importGenRef.current !== gen) {
             // Aborted or superseded mid-flight — clean up this episode's cache
             invoke("delete_episode_cache", {
               episodeCacheId: episodeId,
-              customPath: props.episodesPath,
+              customPath: generalSettings.episodesPath,
             }).catch(() => { });
             break;
           }
@@ -171,25 +169,25 @@ export default function useImportExport(props: ImportExportProps) {
             id: episodeId,
             displayName: inferredName,
             videoPath: file,
-            folderId: props.selectedFolderId,
+            folderId: episodeState.selectedFolderId,
             importedAt: Date.now(),
             clips: formatted,
           };
 
           completedEpisodes.push(episodeEntry);
-          props.setEpisodes((prev) => [episodeEntry, ...prev]);
+          episodeState.setEpisodes((prev) => [episodeEntry, ...prev]);
         } catch (err) {
-          if (props.abortedRef.current) {
+          if (abortedRef.current) {
             invoke("delete_episode_cache", {
               episodeCacheId: episodeId,
-              customPath: props.episodesPath,
+              customPath: generalSettings.episodesPath,
             }).catch(() => { });
             break;
           }
           console.error(`Detection failed for ${fileName}:`, err);
           invoke("delete_episode_cache", {
             episodeCacheId: episodeId,
-            customPath: props.episodesPath,
+            customPath: generalSettings.episodesPath,
           }).catch(() => { });
         }
       }
@@ -197,12 +195,12 @@ export default function useImportExport(props: ImportExportProps) {
       // Open the first completed episode
       if (completedEpisodes.length > 0 && importGenRef.current === gen) {
         const first = completedEpisodes[0];
-        props.setSelectedEpisodeId(first.id);
-        props.setOpenedEpisodeId(first.id);
-        props.setImportedVideoPath(first.videoPath);
+        episodeState.setSelectedEpisodeId(first.id);
+        episodeState.setOpenedEpisodeId(first.id);
+        appState.setImportedVideoPath(first.videoPath);
         setImportToken(Date.now().toString());
         startTransition(() => {
-          props.setClips(first.clips);
+          appState.setClips(first.clips);
         });
       }
     } finally {
@@ -210,24 +208,24 @@ export default function useImportExport(props: ImportExportProps) {
         setLoading(false);
         setBatchTotal(0);
         setBatchDone(0);
-        setBatchCurrentFile("");
+        setBatchCurrentFile(null);
       }
     }
-  }, [props.abortedRef, props.setProgress, props.setProgressMsg, props.setSelectedClips, props.setFocusedClip, props.setVideoIsHEVC, props.episodesPath, props.selectedFolderId, props.setEpisodes, props.setSelectedEpisodeId, props.setOpenedEpisodeId, props.setImportedVideoPath, props.setClips]);
+  }, [appState, episodeState, generalSettings, abortedRef]);
 
   const handleExport = useCallback(async (selectedClips: Set<string>, mergeEnabled: boolean, mergeFileName?: string) => {
     if (selectedClips.size === 0) return;
 
-    const selected = props.clips.filter((c: ClipItem) => selectedClips.has(c.id));
+    const selected = appState.clips.filter((c: ClipItem) => selectedClips.has(c.id));
     if (selected.length === 0) return;
 
     // If no export directory is set, prompt the user to pick one first
-    let dir = props.exportDir;
+    let dir = persistedState.exportDir;
     if (!dir) {
       const picked = await open({ directory: true, multiple: false });
       if (!picked) return;
       dir = picked as string;
-      props.setExportDir(dir);
+      persistedState.setExportDir(dir);
     }
 
     try {
@@ -235,16 +233,16 @@ export default function useImportExport(props: ImportExportProps) {
 
       const sep = dir.includes('\\') ? '\\' : '/';
       const clipArray = selected.map((c: ClipItem) => c.src);
-      const format = props.exportFormat || "mp4";
+      const format = generalSettings.exportFormat || "mp4";
 
-      props.onRPCUpdate?.({
+      props?.onRPCUpdate?.({
         type: "update",
         details: `Exporting ${selected.length} clips`,
         state: "Saving Progress",
         large_image: "amverge_logo",
-        small_image: props.generalSettings.rpcShowMiniIcons ? "save_icon_new" : undefined,
-        small_text: props.generalSettings.rpcShowMiniIcons ? "Exporting..." : undefined,
-        buttons: props.generalSettings.rpcShowButtons,
+        small_image: generalSettings.rpcShowMiniIcons ? "save_icon_new" : undefined,
+        small_text: generalSettings.rpcShowMiniIcons ? "Exporting..." : undefined,
+        buttons: generalSettings.rpcShowButtons,
       });
 
       if (mergeEnabled) {
@@ -270,26 +268,26 @@ export default function useImportExport(props: ImportExportProps) {
         });
       }
 
-      props.onRPCUpdate?.({
+      props?.onRPCUpdate?.({
         type: "update",
         details: "Export Finished!",
         state: "Success",
         large_image: "amverge_logo",
-        small_image: props.generalSettings.rpcShowMiniIcons ? "check_icon_new" : undefined,
-        small_text: props.generalSettings.rpcShowMiniIcons ? "Done" : undefined,
-        buttons: props.generalSettings.rpcShowButtons,
+        small_image: generalSettings.rpcShowMiniIcons ? "check_icon_new" : undefined,
+        small_text: generalSettings.rpcShowMiniIcons ? "Done" : undefined,
+        buttons: generalSettings.rpcShowButtons,
       });
 
       // Revert back to normal state after 10 seconds
       setTimeout(() => {
-        props.onRPCUpdate?.({
+        props?.onRPCUpdate?.({
           type: "update",
           details: "Editing Episode",
           state: "Ready",
           large_image: "amverge_logo",
-          small_image: props.generalSettings.rpcShowMiniIcons ? "edit_icon_new" : undefined,
-          small_text: props.generalSettings.rpcShowMiniIcons ? "Editing" : undefined,
-          buttons: props.generalSettings.rpcShowButtons,
+          small_image: generalSettings.rpcShowMiniIcons ? "edit_icon_new" : undefined,
+          small_text: generalSettings.rpcShowMiniIcons ? "Editing" : undefined,
+          buttons: generalSettings.rpcShowButtons,
         });
       }, 10000);
     } catch (err) {
@@ -297,16 +295,16 @@ export default function useImportExport(props: ImportExportProps) {
     } finally {
       setLoading(false);
     }
-  }, [props.clips, props.exportDir, props.exportFormat, props.generalSettings, props.onRPCUpdate, props.setExportDir]);
+  }, [appState.clips, persistedState, generalSettings, props?.onRPCUpdate]);
 
   const handlePickExportDir = useCallback(async () => {
     const dir = await open({ directory: true, multiple: false });
-    if (dir) props.setExportDir(dir as string);
-  }, [props.setExportDir]);
+    if (dir) persistedState.setExportDir(dir as string);
+  }, [persistedState]);
 
   const handleDownloadSingleClip = useCallback(async (clip: ClipItem) => {
     try {
-      const format = props.exportFormat || "mp4";
+      const format = generalSettings.exportFormat || "mp4";
       const fileName = clip.originalName || fileNameFromPath(clip.src);
       const defaultPath = `${fileName}.${format}`;
 
@@ -329,7 +327,7 @@ export default function useImportExport(props: ImportExportProps) {
     } finally {
       setLoading(false);
     }
-  }, [props.exportFormat]);
+  }, [generalSettings.exportFormat]);
 
   return {
     loading,
