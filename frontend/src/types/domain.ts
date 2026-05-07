@@ -4,6 +4,8 @@ export type ClipItem = {
   srcList?: string[];
   thumbnail: string;
   originalName?: string;
+  thumbnailReady?: boolean;
+  mergedSrcs?: string[];
   start?: number;
   end?: number;
 };

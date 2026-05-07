@@ -5,6 +5,7 @@ import { useVideoPlayer } from "./useVideoPlayer";
 
 type VideoPlayerProps = {
     selectedClip: string;
+    mergedSrcs?: string[];
     videoIsHEVC: boolean | null;
     userHasHEVC: boolean;
     posterPath: string | null;
@@ -15,6 +16,7 @@ type VideoPlayerProps = {
 
 export default function VideoPlayer({
     selectedClip,
+    mergedSrcs,
     videoIsHEVC,
     userHasHEVC,
     posterPath,
@@ -51,6 +53,7 @@ export default function VideoPlayer({
         handleProgressMouseDown,
     } = useVideoPlayer({
         selectedClip,
+        mergedSrcs,
         videoIsHEVC,
         userHasHEVC,
         externalTime,
