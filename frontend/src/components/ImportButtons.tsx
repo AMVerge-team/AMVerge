@@ -5,9 +5,7 @@ import useImportExport from "../hooks/useImportExport";
 export default function ImportButtons() {
   const selectedClips = useAppStateStore((s: any) => s.selectedClips);
   const setSelectedClips = useAppStateStore((s: any) => s.setSelectedClips);
-  const setTimelineClipIds = useAppStateStore((s: any) => s.setTimelineClipIds);
   const loading = useAppStateStore((s: any) => s.loading);
-  const bgProgress = useAppStateStore((s: any) => s.bgProgress);
   const gridPreview = useUIStateStore((s: any) => s.gridPreview);
   const setGridPreview = useUIStateStore((s: any) => s.setGridPreview);
   const cols = useUIStateStore((s: any) => s.cols);
@@ -22,11 +20,11 @@ export default function ImportButtons() {
   return (
       <main className="clips-import">
         <div className="import-buttons-container">
-          <button onClick={onImportClick}
-                  disabled={loading || bgProgress !== null}
+          <button onClick={onImportClick}      
+                  disabled={loading}
                   id="file-button"
           >
-            {loading ? "Processing..." : "Import Episode"}
+            {loading ? "Processing...": "Import Episode"}
           </button>
         </div>
         <div className="grid-checkboxes">
@@ -52,8 +50,7 @@ export default function ImportButtons() {
                   disabled={!hasSelection}
                   onChange={(e) => {
                     if (!e.target.checked) {
-                      setSelectedClips(new Set());
-                      setTimelineClipIds(new Set());
+                      setSelectedClips(new Set())
                     }
                   }}
                 />

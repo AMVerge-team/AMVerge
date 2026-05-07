@@ -4,7 +4,6 @@ import { useAppStateStore } from "../../../stores/appStore";
 
 type EditorVideoPlayerProps = {
     selectedClip: string;
-    mergedSrcs?: string[];
     externalTime?: number;
     onTimeUpdate?: (time: number, isEnded?: boolean) => void;
     isPlaying: boolean;
@@ -13,7 +12,6 @@ type EditorVideoPlayerProps = {
 
 export default function EditorVideoPlayer({
     selectedClip,
-    mergedSrcs,
     externalTime,
     onTimeUpdate,
     isPlaying,
@@ -29,7 +27,6 @@ export default function EditorVideoPlayer({
         handleTimeUpdate: hookHandleTimeUpdate,
     } = useEditorVideoPlayer({
         selectedClip,
-        mergedSrcs,
         externalTime,
         onTimeUpdate,
         isPlaying,

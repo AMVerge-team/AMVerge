@@ -62,10 +62,10 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
       const isCtrlOrCmd = e.ctrlKey || e.metaKey;
       const isShift = e.shiftKey;
 
-      // Shift-click: select a range of clips
+      // Shift-click: select a range of clips for the timeline
       if (isShift) {
         const anchorIndex = focusedClip
-          ? clips.findIndex((c) => c.id === focusedClip)
+          ? clips.findIndex((c) => c.src === focusedClip)
           : -1;
         const startIndex = anchorIndex !== -1 ? anchorIndex : index;
         const [start, end] = [startIndex, index].sort((a, b) => a - b);
@@ -73,31 +73,24 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
 
         startTransition(() => {
           setSelectedClips(new Set(rangeIds));
-          setTimelineClipIds(new Set(rangeIds));
         });
         return;
       }
 
-      // Ctrl/Cmd-click: toggle this clip in the multi-selection
+      // Ctrl/Cmd-click: toggle timeline state for this clip
       if (isCtrlOrCmd) {
-        setFocusedClip(clipId);
         startTransition(() => {
           setSelectedClips((prev) => {
             const next = new Set(prev);
             next.has(clipId) ? next.delete(clipId) : next.add(clipId);
             return next;
           });
-          setTimelineClipIds((prev) => {
-            const next = new Set(prev);
-            next.has(clipId) ? next.delete(clipId) : next.add(clipId);
-            return next;
-          });
         });
         return;
       }
 
-      // Single click: focus for preview only
-      setFocusedClip(clipId);
+      // Single click: focus this clip for preview (NO timeline change)
+      setFocusedClip(clipSrc);
     },
     [clips, focusedClip, setFocusedClip, setSelectedClips]
   );
@@ -112,34 +105,23 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
           next.has(clipId) ? next.delete(clipId) : next.add(clipId);
           return next;
         });
-        setSelectedClips((prev) => {
-          const next = new Set(prev);
-          next.has(clipId) ? next.delete(clipId) : next.add(clipId);
-          return next;
-        });
       });
     },
-    [setTimelineClipIds, setSelectedClips]
+    [setTimelineClipIds]
   );
 
-  // Handles double-click on a clip tile: toggle timeline + multi-select toggle + focus
+  // Handles double-click on a clip tile (toggle timeline/export selection — checkmark only)
   const handleClipDoubleClick = useCallback(
-    (clipId: string, clipSrc: string, _index: number, _e: React.MouseEvent<HTMLDivElement>) => {
-      setFocusedClip(clipId);
+    (clipId: string, _clipSrc: string, _index: number, _e: React.MouseEvent<HTMLDivElement>) => {
       startTransition(() => {
         setTimelineClipIds((prev) => {
           const next = new Set(prev);
           next.has(clipId) ? next.delete(clipId) : next.add(clipId);
           return next;
         });
-        setSelectedClips((prev) => {
-          const next = new Set(prev);
-          next.has(clipId) ? next.delete(clipId) : next.add(clipId);
-          return next;
-        });
       });
     },
-    [setFocusedClip, setTimelineClipIds, setSelectedClips]
+    [setTimelineClipIds]
   );
 
 

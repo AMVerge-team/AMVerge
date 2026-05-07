@@ -58,11 +58,6 @@ export default function EditorPage({
       id: seg.id,
       clipId: seg.sourceClip.id,
       src: seg.sourceClip.src,
-      mergedSrcs:
-        seg.sourceClip.mergedSrcs ??
-        (seg.sourceClips && seg.sourceClips.length > 1
-          ? seg.sourceClips.map((clip) => clip.src)
-          : undefined),
       thumbnail: seg.sourceClip.thumbnail,
       start: seg.start,
       end: seg.end,
@@ -87,7 +82,7 @@ export default function EditorPage({
   }, [timelineState.playheadSec, timelineState.isDraggingPlayhead, effectiveSegment?.id, effectiveSegment?.start, effectiveSegment?.sourceStart]);
 
   const onExportClick = () => {
-    handleExport(timelineClipIds, true, defaultMergedName);
+    handleExport(timelineClipIds, undefined, defaultMergedName);
   };
 
   const playheadRef = useRef(timelineState.playheadSec);
@@ -263,7 +258,6 @@ export default function EditorPage({
                   <EditorVideoPlayer
                       key={`editor-player-${effectiveSegment.src}`}
                       selectedClip={effectiveSegment.src}
-                      mergedSrcs={effectiveSegment.mergedSrcs}
                       externalTime={sourceTime}
                       isPlaying={timelineState.isPlaying}
                       isDragging={timelineState.isDraggingPlayhead}

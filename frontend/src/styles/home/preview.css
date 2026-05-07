@@ -139,6 +139,8 @@
     flex-direction: column;
     gap: 16px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 20;
 }
 
 .export-header {
@@ -165,7 +167,7 @@
 
 .export-settings-row {
     display: flex;
-    gap: 20px;
+    gap: 0;
     align-items: flex-start;
 }
 
@@ -174,6 +176,13 @@
     flex-direction: column;
     gap: 6px;
     flex: 1;
+    min-width: 0;
+}
+
+.export-profile-group {
+    flex: 0 1 auto;
+    width: min(320px, 100%);
+    min-width: 0;
 }
 
 .export-label {
@@ -192,31 +201,144 @@
     opacity: 0.6;
 }
 
+.export-profile-select,
 .export-format-select {
     width: 100% !important;
+    max-width: 320px;
     background: transparent !important;
     border: none !important;
 }
 
+.export-profile-select.open {
+    z-index: 4500;
+}
+
+.export-profile-select .dropdown-trigger,
 .export-format-select .dropdown-trigger {
-    height: 36px !important;
+    min-height: 44px !important;
+    height: auto !important;
+    padding: 8px 10px !important;
     background: rgba(255, 255, 255, 0.05) !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
     border-radius: 8px !important;
     transition: all 0.2s ease !important;
 }
 
+.export-profile-select .dropdown-trigger:hover,
 .export-format-select .dropdown-trigger:hover {
     border-color: rgba(var(--accent-rgb), 0.5) !important;
     background: rgba(255, 255, 255, 0.08) !important;
 }
 
+.export-profile-select .dropdown-value,
 .export-format-select .dropdown-value {
     letter-spacing: 1px !important;
 }
 
+.export-profile-select .dropdown-value.rich .dropdown-item-content {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    grid-template-areas:
+        "icon label"
+        "icon desc";
+    column-gap: 10px;
+    row-gap: 2px;
+    align-items: center;
+}
+
+.export-profile-select .dropdown-value.rich .dropdown-item-main {
+    display: contents;
+}
+
+.export-profile-select .dropdown-value.rich .dropdown-item-icon {
+    grid-area: icon;
+}
+
+.export-profile-select .dropdown-value.rich .dropdown-item-label {
+    grid-area: label;
+}
+
+.export-profile-select .dropdown-value.rich .dropdown-item-description {
+    grid-area: desc;
+}
+
+.export-profile-select .dropdown-item-content {
+    display: grid;
+    grid-template-columns: 26px minmax(0, 1fr);
+    grid-template-areas:
+        "icon label"
+        "icon desc";
+    column-gap: 6px;
+    row-gap: 2px;
+    align-items: center;
+}
+
+.export-profile-select .dropdown-item-main {
+    display: contents;
+}
+
+.export-profile-select .dropdown-item-label {
+    grid-area: label;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+.export-profile-select .dropdown-item-description {
+    grid-area: desc;
+    font-size: 0.74rem;
+    color: rgba(255, 255, 255, 0.58);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.45;
+    letter-spacing: 0.22px;
+}
+
+.export-profile-select .dropdown-item-icon {
+    grid-area: icon;
+    align-self: center;
+    justify-self: center;
+}
+
+.export-profile-select .dropdown-item {
+    padding: 7px 10px;
+}
+
+.export-profile-select .dropdown-item.active,
 .export-format-select .dropdown-item.active {
-    color: black !important;
+    color: var(--selector-active-fg) !important;
+}
+
+.export-profile-select .dropdown-item.active .dropdown-item-icon {
+    background: rgb(0 240 122 / 0.12) !important;
+    border-color: rgb(0 240 122 / 0.38) !important;
+    color: var(--selector-active-fg) !important;
+}
+
+.export-profile-select .dropdown-menu {
+    max-height: 168px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--accent-rgb), 0.55) rgba(255, 255, 255, 0.06);
+}
+
+.export-profile-select .dropdown-menu::-webkit-scrollbar {
+    width: 8px;
+}
+
+.export-profile-select .dropdown-menu::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 999px;
+}
+
+.export-profile-select .dropdown-menu::-webkit-scrollbar-thumb {
+    background: rgba(var(--accent-rgb), 0.55);
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+.export-profile-select .dropdown-menu::-webkit-scrollbar-thumb:hover {
+    background: rgba(var(--accent-rgb), 0.75);
 }
 
 .export-path-section {
@@ -229,10 +351,12 @@
     display: flex;
     gap: 8px;
     width: 100%;
+    align-items: stretch;
 }
 
 .export-dir-input {
     flex: 1;
+    min-width: 0;
     height: 36px;
     padding: 0 12px;
     background: rgba(255, 255, 255, 0.05);
@@ -426,6 +550,8 @@
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-direction: column;
+    position: relative;
+    z-index: 10;
 }
 
 .info-panel.expanded {
@@ -616,4 +742,121 @@
 .steps-list li b {
     color: white;
     font-weight: 500;
+}
+
+@media (max-width: 980px) {
+    .preview-container {
+        padding: 12px;
+    }
+
+    .preview-view-switcher {
+        gap: 16px;
+        margin-bottom: 10px;
+    }
+
+    .export-panel,
+    .info-panel {
+        max-width: 100%;
+    }
+
+    .export-profile-group,
+    .export-profile-select,
+    .export-format-select {
+        width: 100% !important;
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    .preview-container {
+        padding: 10px;
+    }
+
+    .switcher-btn {
+        font-size: 0.66rem;
+        letter-spacing: 1.6px;
+    }
+
+    .export-panel {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .export-title {
+        font-size: 0.95rem;
+        letter-spacing: 1.5px;
+    }
+
+    .export-label {
+        font-size: 0.72rem;
+        letter-spacing: 1px;
+    }
+
+    .export-profile-select .dropdown-trigger,
+    .export-format-select .dropdown-trigger {
+        min-height: 40px !important;
+        padding: 7px 8px !important;
+    }
+
+    .export-profile-select .dropdown-value.rich .dropdown-item-content {
+        grid-template-columns: 28px minmax(0, 1fr);
+        column-gap: 8px;
+    }
+
+    .export-profile-select .dropdown-item-icon {
+        width: 28px;
+        height: 28px;
+        flex: 0 0 28px;
+    }
+
+    .export-profile-select .dropdown-item-icon svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .export-profile-select .dropdown-item-label {
+        font-size: 0.84rem;
+    }
+
+    .export-profile-select .dropdown-item-description {
+        font-size: 0.7rem;
+        line-height: 1.45;
+        letter-spacing: 0.2px;
+    }
+
+    .export-main-button {
+        height: 38px !important;
+        font-size: 1rem !important;
+        letter-spacing: 1px;
+    }
+
+    .platform-switcher {
+        gap: 4px;
+        margin: 10px 0 14px 0;
+        padding: 3px;
+    }
+
+    .platform-btn {
+        font-size: 0.68rem;
+        letter-spacing: 0.6px;
+        gap: 4px;
+        padding: 6px 4px;
+    }
+}
+
+@media (max-width: 480px) {
+    .export-dir-row {
+        flex-direction: column;
+    }
+
+    .export-dir-browse {
+        width: 100% !important;
+        min-width: 100%;
+    }
+
+    .export-main-button {
+        font-size: 0.92rem !important;
+        letter-spacing: 0.7px;
+        gap: 8px;
+    }
 }

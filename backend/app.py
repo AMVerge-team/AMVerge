@@ -3,7 +3,6 @@ import os
 import subprocess
 import sys
 import tempfile
-import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
@@ -12,10 +11,6 @@ import av
 from PIL import Image
 
 from utils.video_utils import generate_keyframes, emit_progress, get_binary, merge_short_scenes, get_video_duration
-from utils.progress import emit_event
-from utils.cs_scenedetect import check_pair_similar
-
-INITIAL_THUMB_THRESHOLD = 24
 
 # Running commands like ffmpeg can open a command window on Windows.
 # This prevents that when the backend is launched from the app.
@@ -127,99 +122,45 @@ def make_thumbnail(clip_path: str, thumb_path: str) -> None:
         log(f"Thumbnail failed for {clip_path}: {error}")
 
 
-def generate_thumbnails_streaming(output_dir: str, scenes: list[dict[str, Any]], file_name: str) -> None:
+def generate_thumbnails(output_dir: str, scenes: list[dict[str, Any]], file_name: str) -> None:
     total = len(scenes)
     if total == 0:
-        emit_event("INITIAL_CLIPS_READY", json.dumps([]))
-        emit_event("PROCESSING_COMPLETE")
         return
 
-    threshold = min(INITIAL_THUMB_THRESHOLD, total)
-    position_ready = [False] * total
-    initial_emitted = [False]
-    next_pair_pos = [0]
-    lock = threading.Lock()
+    # Avoid spamming progress messages for large imports.
+    progress_step = max(1, total // 25)
+    completed = 0
 
-    def thumb_path_for(scene: dict) -> str:
-        return os.path.join(output_dir, f"{file_name}_{scene['scene_index']:04d}.jpg")
-
-    def try_advance_pairs_locked() -> None:
-        # Pairs are not emitted until INITIAL_CLIPS_READY has been sent so the
-        # frontend's positionToIdRef is populated before it sees pair events.
-        if not initial_emitted[0]:
-            return
-        while next_pair_pos[0] < total - 1:
-            pa = next_pair_pos[0]
-            pb = pa + 1
-            if not (position_ready[pa] and position_ready[pb]):
-                break
-            sa = scenes[pa]
-            sb = scenes[pb]
-            should_merge = check_pair_similar(thumb_path_for(sa), thumb_path_for(sb))
-            
-            emit_event("PAIR_RESULT", f"{pa}|{pb}|{'1' if should_merge else '0'}")
-            next_pair_pos[0] += 1
-
-    def try_emit_initial_locked() -> None:
-        if initial_emitted[0]:
-            return
-        if not all(position_ready[:threshold]):
-            return
-        scenes_json = [
-            {**s, "thumbnail_ready": position_ready[i]}
-            for i, s in enumerate(scenes)
-        ]
-        emit_event("INITIAL_CLIPS_READY", json.dumps(scenes_json))
-        initial_emitted[0] = True
-
-    def build_one(args: tuple[int, dict]) -> None:
-        pos, scene = args
+    def build_thumbnail(scene: dict[str, Any]) -> None:
         scene_index = scene["scene_index"]
         clip_path = os.path.join(output_dir, f"{file_name}_{scene_index:04d}.mp4")
-        t_path = thumb_path_for(scene)
+        thumb_path = os.path.join(output_dir, f"{file_name}_{scene_index:04d}.jpg")
 
         if not os.path.exists(clip_path):
             log(f"Thumbnail skipped, clip missing: {clip_path}")
-        else:
-            make_thumbnail(clip_path, t_path)
-            emit_event("THUMBNAIL_READY", str(pos))
+            return
 
-        with lock:
-            position_ready[pos] = True
-            try_emit_initial_locked()
-            try_advance_pairs_locked()
+        make_thumbnail(clip_path, thumb_path)
 
-    progress_step = max(1, total // 25)
     emit_progress(90, f"Generating thumbnails... 0/{total}")
+
     max_workers = min(4, os.cpu_count() or 4)
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(build_one, (i, s)): i for i, s in enumerate(scenes)}
-        done_count = 0
+        futures = [executor.submit(build_thumbnail, scene) for scene in scenes]
 
         for future in as_completed(futures):
-            done_count += 1
+            completed += 1
+
             try:
                 future.result()
             except Exception as error:
+                # build_thumbnail already handles most failures, but this keeps
+                # unexpected thread errors from crashing the whole import.
                 log(f"Thumbnail worker failed: {error}")
 
-            if done_count % progress_step == 0 or done_count == total:
-                emit_progress(90, f"Generating thumbnails... {done_count}/{total}")
-
-    with lock:
-        if not initial_emitted[0]:
-            scenes_json = [
-                {**s, "thumbnail_ready": position_ready[i]}
-                for i, s in enumerate(scenes)
-            ]
-            emit_event("INITIAL_CLIPS_READY", json.dumps(scenes_json))
-            initial_emitted[0] = True
-
-        # Emit any remaining pairs (edge case: all thumbnails done before lock was checked).
-        try_advance_pairs_locked()
-
-    emit_event("PROCESSING_COMPLETE")
+            if completed % progress_step == 0 or completed == total:
+                emit_progress(90, f"Generating thumbnails... {completed}/{total}")
 
 
 def run_ffmpeg_segment(video_path: str, output_pattern: str, cut_points: list[float]) -> None:
@@ -228,6 +169,12 @@ def run_ffmpeg_segment(video_path: str, output_pattern: str, cut_points: list[fl
         "-y",
         "-i",
         video_path,
+        "-map",
+        "0:v:0",
+        "-map",
+        "0:a?",
+        "-map_metadata",
+        "-1",
         "-c",
         "copy",
         "-f",
@@ -341,14 +288,16 @@ def trim_scenes_at_keyframes(video_path: str, output_dir: str) -> list[dict[str,
         total_duration=video_duration)
     )
 
-    thumb_start = time.perf_counter()
-    log(f"TIMING|thumbs_start|scenes={len(final_scenes)}")
-
     run_stage(
         90,
         "Generating thumbnails...",
-        lambda: generate_thumbnails_streaming(output_dir, final_scenes, file_name)
+        lambda: generate_thumbnails(output_dir, final_scenes, file_name)
     )
+
+    thumb_start = time.perf_counter()
+    log(f"TIMING|thumbs_start|scenes={len(final_scenes)}")
+
+    generate_thumbnails(output_dir, final_scenes, file_name)
 
     thumb_end = time.perf_counter()
     log(f"TIMING|thumbs_end|seconds={thumb_end - thumb_start:.3f}")

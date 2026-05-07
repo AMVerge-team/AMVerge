@@ -5,8 +5,10 @@ mod payloads;
 mod state;
 mod utils;
 
+use state::{
+    ActiveSidecar, DiscordRPCState, EditorImportAbortState, ExportAbortState, PreviewProxyLocks,
+};
 use tauri::Manager;
-use state::{ActiveSidecar, PreviewProxyLocks, DiscordRPCState};
 
 fn main() {
     tauri::Builder::default()
@@ -16,21 +18,31 @@ fn main() {
         .manage(PreviewProxyLocks::default())
         .manage(ActiveSidecar::default())
         .manage(DiscordRPCState::default())
+        .manage(EditorImportAbortState::default())
+        .manage(ExportAbortState::default())
         .invoke_handler(tauri::generate_handler![
             commands::scenes::detect_scenes,
             commands::scenes::abort_detect_scenes,
             commands::export::export_clips,
+            commands::export::abort_export,
+            commands::export::detect_nvidia_encoder_profile,
+            commands::export::detect_gpu_encoder_capabilities,
             commands::export::fast_merge,
             commands::export::fast_split,
+            commands::export_xml::export_timeline_xml,
+            commands::editor_import::import_media_to_editor,
+            commands::editor_import::import_original_cut_to_editor,
+            commands::editor_import::abort_editor_import,
             commands::filmstrip::generate_filmstrip,
             commands::preview::check_hevc,
             commands::preview::hover_preview_error,
             commands::preview::ensure_preview_proxy,
-            commands::preview::ensure_merged_preview,
             commands::cache::delete_episode_cache,
             commands::cache::clear_episode_panel_cache,
             commands::settings::save_background_image,
             commands::settings::crop_and_save_image,
+            commands::settings::crop_and_save_profile_icon,
+            commands::settings::delete_profile_icon_file,
             commands::settings::move_episodes_to_new_dir,
             commands::settings::get_default_episodes_dir,
             commands::discord::start_discord_rpc,

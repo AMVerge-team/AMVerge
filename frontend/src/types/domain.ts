@@ -4,8 +4,10 @@ export type ClipItem = {
   srcList?: string[];
   thumbnail: string;
   originalName?: string;
-  thumbnailReady?: boolean;
-  mergedSrcs?: string[];
+  originalPath?: string;
+  sceneIndex?: number;
+  startSec?: number;
+  endSec?: number | null;
   start?: number;
   end?: number;
 };

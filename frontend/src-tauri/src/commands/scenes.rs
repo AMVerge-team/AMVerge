@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use crate::payloads::{InitialClipsPayload, PairResultPayload, ProgressPayload, ThumbnailReadyPayload};
+use crate::payloads::ProgressPayload;
 use crate::state::ActiveSidecar;
 use crate::utils::logging::{
     console_log, emit_console_log, sanitize_for_console, sanitize_line_with_known_paths,
@@ -28,7 +28,10 @@ pub async fn detect_scenes(
     let base_dir = if let Some(p) = custom_path {
         PathBuf::from(p)
     } else {
-        app.path().app_data_dir().map_err(|e| e.to_string())?.join("episodes")
+        app.path()
+            .app_data_dir()
+            .map_err(|e| e.to_string())?
+            .join("episodes")
     };
 
     let output_dir = if let Some(raw_id) = episode_cache_id.as_deref() {
@@ -44,7 +47,10 @@ pub async fn detect_scenes(
 
     console_log(
         "SCENE|start",
-        &format!("video={video_name} output_dir={}", dir_name_only(&output_dir)),
+        &format!(
+            "video={video_name} output_dir={}",
+            dir_name_only(&output_dir)
+        ),
     );
 
     let output_dir_base = dir_name_only(&output_dir);
@@ -56,18 +62,28 @@ pub async fn detect_scenes(
 
         let script_path = root.join("backend").join("app.py");
         let python_path = if cfg!(windows) {
-            root.join("backend").join("venv").join("Scripts").join("python.exe")
+            root.join("backend")
+                .join("venv")
+                .join("Scripts")
+                .join("python.exe")
         } else {
             root.join("backend").join("venv").join("bin").join("python")
         };
 
-        let python_name = python_path
-            .file_name()
-            .and_then(|x| x.to_str())
-            .unwrap_or(if cfg!(windows) { "python.exe" } else { "python" });
+        let python_name =
+            python_path
+                .file_name()
+                .and_then(|x| x.to_str())
+                .unwrap_or(if cfg!(windows) {
+                    "python.exe"
+                } else {
+                    "python"
+                });
         console_log(
             "SCENE|spawn",
-            &format!("mode=dev exe={python_name} script=app.py args=[{video_name},{output_dir_base}]"),
+            &format!(
+                "mode=dev exe={python_name} script=app.py args=[{video_name},{output_dir_base}]"
+            ),
         );
 
         let mut cmd = Command::new(python_path);
@@ -101,10 +117,15 @@ pub async fn detect_scenes(
             .resolve(sidecar_rel, tauri::path::BaseDirectory::Resource)
             .map_err(|e| e.to_string())?;
 
-        let backend_name = backend
-            .file_name()
-            .and_then(|x| x.to_str())
-            .unwrap_or(if cfg!(windows) { "backend_script.exe" } else { "backend_script" });
+        let backend_name =
+            backend
+                .file_name()
+                .and_then(|x| x.to_str())
+                .unwrap_or(if cfg!(windows) {
+                    "backend_script.exe"
+                } else {
+                    "backend_script"
+                });
         console_log(
             "SCENE|spawn",
             &format!("mode=prod exe={backend_name} args=[{video_name},{output_dir_base}]"),
@@ -161,33 +182,13 @@ pub async fn detect_scenes(
                         },
                     );
 
-                    emit_console_log(&app_for_stderr, "python", "log", &format!("PROGRESS {p}% - {msg}"));
-                }
-            } else if let Some(clips_json) = line.strip_prefix("INITIAL_CLIPS_READY|") {
-                let _ = app_for_stderr.emit(
-                    "initial_clips_ready",
-                    InitialClipsPayload { clips_json: clips_json.to_string() },
-                );
-            } else if let Some(pos_str) = line.strip_prefix("THUMBNAIL_READY|") {
-                if let Ok(position) = pos_str.trim().parse::<u32>() {
-                    let _ = app_for_stderr.emit(
-                        "thumbnail_ready",
-                        ThumbnailReadyPayload { position },
+                    emit_console_log(
+                        &app_for_stderr,
+                        "python",
+                        "log",
+                        &format!("PROGRESS {p}% - {msg}"),
                     );
                 }
-            } else if let Some(rest) = line.strip_prefix("PAIR_RESULT|") {
-                let parts: Vec<&str> = rest.splitn(3, '|').collect();
-                if parts.len() == 3 {
-                    if let (Ok(pos_a), Ok(pos_b)) = (parts[0].parse::<u32>(), parts[1].parse::<u32>()) {
-                        let should_merge = parts[2].trim() == "1";
-                        let _ = app_for_stderr.emit(
-                            "pair_result",
-                            PairResultPayload { pos_a, pos_b, should_merge },
-                        );
-                    }
-                }
-            } else if line.trim() == "PROCESSING_COMPLETE" {
-                let _ = app_for_stderr.emit("processing_complete", ());
             } else {
                 emit_console_log(&app_for_stderr, "python", "log", &sanitized);
             }
@@ -214,7 +215,10 @@ pub async fn detect_scenes(
         *lock = None;
     }
 
-    console_log("SCENE|end", &format!("video={video_name} status={}", status));
+    console_log(
+        "SCENE|end",
+        &format!("video={video_name} status={}", status),
+    );
 
     if !status.success() {
         let err = stderr_accum
@@ -222,7 +226,10 @@ pub async fn detect_scenes(
             .map(|s| s.clone())
             .unwrap_or_else(|_| "Python failed (stderr lock poisoned)".to_string());
 
-        console_log("ERROR|detect_scenes", &format!("video={video_name} exit={status}"));
+        console_log(
+            "ERROR|detect_scenes",
+            &format!("video={video_name} exit={status}"),
+        );
         console_log("ERROR|detect_scenes", "backend_stderr_dump_begin");
         for l in err.lines() {
             let sanitized = sanitize_line_with_known_paths(
@@ -232,12 +239,7 @@ pub async fn detect_scenes(
                 &output_dir_str,
                 &output_dir_base,
             );
-            let is_event_line = sanitized.starts_with("PROGRESS|")
-                || sanitized.starts_with("INITIAL_CLIPS_READY|")
-                || sanitized.starts_with("THUMBNAIL_READY|")
-                || sanitized.starts_with("PAIR_RESULT|")
-                || sanitized.trim() == "PROCESSING_COMPLETE";
-            if !sanitized.trim().is_empty() && !is_event_line {
+            if !sanitized.trim().is_empty() && !sanitized.starts_with("PROGRESS|") {
                 emit_console_log(&app_for_stdout, "python", "log", &sanitized);
             }
         }

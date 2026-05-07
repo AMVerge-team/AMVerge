@@ -28,7 +28,6 @@ export type AppState = {
   batchCurrentFile: string | null;
   showLoaderCancel: boolean;
   loaderCancelLabel: string;
-  bgProgress: { done: number; total: number } | null;
 };
 
 export type AppStateStore = AppState & {
@@ -49,7 +48,6 @@ export type AppStateStore = AppState & {
   setBatchCurrentFile: (file: SetterValue<string | null>) => void;
   setShowLoaderCancel: (show: boolean) => void;
   setLoaderCancelLabel: (label: string) => void;
-  setBgProgress: (progress: { done: number; total: number } | null) => void;
 };
 
 export const DEFAULT_APP_STATE: AppState = {
@@ -70,7 +68,6 @@ export const DEFAULT_APP_STATE: AppState = {
   batchCurrentFile: null,
   showLoaderCancel: false,
   loaderCancelLabel: "Cancel",
-  bgProgress: null,
 };
 
 export const useAppStateStore = create<AppStateStore>()((set) => ({
@@ -93,7 +90,6 @@ export const useAppStateStore = create<AppStateStore>()((set) => ({
   setBatchCurrentFile: (val) => set((s) => ({ batchCurrentFile: resolveSetterValue(s.batchCurrentFile, val) })),
   setShowLoaderCancel: (showLoaderCancel) => set({ showLoaderCancel }),
   setLoaderCancelLabel: (loaderCancelLabel) => set({ loaderCancelLabel }),
-  setBgProgress: (bgProgress) => set({ bgProgress }),
 }));
 
 type AppPersistedState = {

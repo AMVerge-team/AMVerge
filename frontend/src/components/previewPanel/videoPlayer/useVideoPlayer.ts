@@ -4,7 +4,6 @@ import { invoke } from "@tauri-apps/api/core";
 
 type UseVideoPlayerArgs = {
     selectedClip: string;
-    mergedSrcs?: string[];
     videoIsHEVC: boolean | null;
     userHasHEVC: boolean;
     externalTime?: number;
@@ -13,7 +12,6 @@ type UseVideoPlayerArgs = {
 
 export function useVideoPlayer({
     selectedClip,
-    mergedSrcs,
     videoIsHEVC,
     userHasHEVC,
     externalTime,
@@ -25,8 +23,6 @@ export function useVideoPlayer({
     const selectedClipRef = useRef<string>(selectedClip);
     const proxyInFlightRef = useRef(false);
     const proxyAttemptedForClipRef = useRef<string | null>(null);
-    const mergedPreviewInFlightRef = useRef(false);
-    const mergedPreviewFetchedKeyRef = useRef<string | null>(null);
 
     const hasFirstFrameRef = useRef(false);
     const videoFrameCallbackIdRef = useRef<number | null>(null);
@@ -38,10 +34,8 @@ export function useVideoPlayer({
     const seekGenerationRef = useRef(0);
 
     const [effectiveClip, setEffectiveClip] = useState<string | null>(selectedClip);
-    const mergedSrcsKey = mergedSrcs ? mergedSrcs.join("|") : null;
-    const [mergedPreviewClip, setMergedPreviewClip] = useState<string | null>(null);
     const [isVideoReady, setIsVideoReady] = useState(false);
-    const [isPlaying, setIsPlaying] = useState(true);
+    const [isPlaying, setIsPlaying] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
@@ -226,37 +220,6 @@ export function useVideoPlayer({
         selectedClipRef.current = selectedClip;
     }, [selectedClip]);
 
-    // Merged preview: stream-copy concat for clips with mergedSrcs
-    useEffect(() => {
-        if (!mergedSrcs || mergedSrcs.length <= 1) {
-            mergedPreviewFetchedKeyRef.current = null;
-            mergedPreviewInFlightRef.current = false;
-            setMergedPreviewClip(null);
-            return;
-        }
-        if (videoIsHEVC === true && !hasHevcSupport) return;
-
-        const key = mergedSrcs.join("|");
-        if (mergedPreviewFetchedKeyRef.current === key) return;
-        if (mergedPreviewInFlightRef.current) return;
-
-        mergedPreviewFetchedKeyRef.current = key;
-        mergedPreviewInFlightRef.current = true;
-
-        invoke<string>("ensure_merged_preview", { srcs: mergedSrcs })
-            .then((path) => {
-                mergedPreviewInFlightRef.current = false;
-                if (mergedPreviewFetchedKeyRef.current !== key) return;
-                setMergedPreviewClip(path);
-            })
-            .catch((err) => {
-                mergedPreviewInFlightRef.current = false;
-                mergedPreviewFetchedKeyRef.current = null;
-                setMergedPreviewClip(null);
-                if (import.meta.env.DEV) console.warn("ensure_merged_preview failed", err);
-            });
-    }, [mergedSrcsKey, videoIsHEVC, hasHevcSupport]);
-
     useEffect(() => {
         const video = videoRef.current;
         if (!video) return;
@@ -266,7 +229,6 @@ export function useVideoPlayer({
 
         // 1. Handle Empty State
         if (!selectedClip) {
-            setMergedPreviewClip(null);
             setEffectiveClip(null);
             setIsVideoReady(false);
             setCurrentTime(0);
@@ -279,9 +241,6 @@ export function useVideoPlayer({
         proxyInFlightRef.current = false;
         proxyAttemptedForClipRef.current = null;
         hasFirstFrameRef.current = false;
-        // NOTE: do NOT reset mergedPreviewInFlightRef / mergedPreviewFetchedKeyRef here.
-        // The merged-preview effect manages those refs; clearing them here races with the
-        // in-flight invoke and causes the resolved path to be silently discarded.
 
         if (videoFrameCallbackIdRef.current && (video as any).cancelVideoFrameCallback) {
             try {
@@ -292,9 +251,8 @@ export function useVideoPlayer({
 
         // 3. Determine if we can use the source directly or need a proxy
         if (hasHevcSupport || videoIsHEVC === false) {
-            const nextClip = mergedPreviewClip ?? selectedClip;
-            if (effectiveClip !== nextClip) {
-                setEffectiveClip(nextClip);
+            if (effectiveClip !== selectedClip) {
+                setEffectiveClip(selectedClip);
                 setIsVideoReady(false);
             }
             return;
@@ -307,6 +265,7 @@ export function useVideoPlayer({
 
         // 4. Proxy Logic
         if (effectiveClip && effectiveClip !== selectedClip) {
+            // Only set to false if we are actually changing the clip
             setIsVideoReady(false);
         }
 
@@ -336,7 +295,7 @@ export function useVideoPlayer({
                 // Fallback to original even if proxy failed
                 setEffectiveClip(selectedClip);
             });
-    }, [selectedClip, mergedPreviewClip, videoIsHEVC, hasHevcSupport]);
+    }, [selectedClip, videoIsHEVC, hasHevcSupport]);
 
     // Keyboard shortcuts — use stable callbacks
     useEffect(() => {
@@ -437,18 +396,6 @@ export function useVideoPlayer({
             setCurrentTime(clampedTime);
         }
     }, [externalTime, duration, isVideoReady]);
-
-    useEffect(() => {
-        const video = videoRef.current;
-        if (!video || !effectiveClip) return;
-
-        setIsVideoReady(false);
-        video.load();
-
-        if (isPlaying) {
-            safePlay(video);
-        }
-    }, [effectiveClip]);
 
     return {
         videoRef,
