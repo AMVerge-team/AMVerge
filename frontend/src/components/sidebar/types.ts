@@ -52,8 +52,7 @@ export type SidebarProps = {
   gridPreview: boolean;
   selectedClips: Set<string>;
   setSelectedClips: (val: Set<string> | ((prev: Set<string>) => Set<string>)) => void;
-  timelineClipIds: Set<string>;
-  setTimelineClipIds: (val: Set<string> | ((prev: Set<string>) => Set<string>)) => void;
+
   importToken: string;
   loading: boolean;
   isEmpty: boolean;

@@ -40,7 +40,7 @@ export default function PreviewContainer (props: PreviewContainerProps) {
 
   const clips = useAppStateStore(s => s.clips);
   const selectedClips = useAppStateStore(s => s.selectedClips);
-  const timelineClipIds = useAppStateStore(s => s.timelineClipIds);
+
   const videoIsHEVC = useAppStateStore(s => s.videoIsHEVC);
   const userHasHEVC = useAppStateStore(s => s.userHasHEVC);
   const importToken = useAppStateStore(s => s.importToken);
@@ -102,7 +102,7 @@ export default function PreviewContainer (props: PreviewContainerProps) {
   }, [showMergeNameModal]);
 
   const onExportClick = () => {
-    const targetClips = activeView === "program" ? timelineClipIds : selectedClips;
+    const targetClips = selectedClips;
     if (canMergeWithActiveProfile) {
       setShowMergeNameModal(true);
     } else {
@@ -111,7 +111,7 @@ export default function PreviewContainer (props: PreviewContainerProps) {
   };
 
   const confirmMergeExport = () => {
-    const targetClips = activeView === "program" ? timelineClipIds : selectedClips;
+    const targetClips = selectedClips;
     const value = (mergeNameInputRef.current?.value ?? "").trim();
     if (!value) return;
     setShowMergeNameModal(false);

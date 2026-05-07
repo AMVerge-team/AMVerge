@@ -27,8 +27,7 @@ export default function HomePage({
   const clips = useAppStateStore(s => s.clips);
   const setClips = useAppStateStore(s => s.setClips);
   const selectedClips = useAppStateStore(s => s.selectedClips);
-  const timelineClipIds = useAppStateStore(s => s.timelineClipIds);
-  const setTimelineClipIds = useAppStateStore(s => s.setTimelineClipIds);
+  const setSelectedClips = useAppStateStore(s => s.setSelectedClips);
   const openedEpisodeId = useEpisodePanelRuntimeStore(s => s.openedEpisodeId);
   const importedVideoPath = useAppStateStore(s => s.importedVideoPath);
   
@@ -50,11 +49,6 @@ export default function HomePage({
   }, [generalSettings.enableEditor, activeMode, setActiveMode]);
 
 
-  const timelineClipIdsRef = useRef(timelineClipIds);
-  useEffect(() => {
-    timelineClipIdsRef.current = timelineClipIds;
-  }, [timelineClipIds]);
-
   // Track the "version" of external clip selections to avoid re-init loops.
   const [clipSyncVersion, setClipSyncVersion] = useState(0);
   const lastSyncedVersionRef = useRef(-1);
@@ -65,7 +59,7 @@ export default function HomePage({
         isUpdatingFromTimeline.current = true;
 
         setClips((prevClips) => {
-          const currentInTimeline = timelineClipIdsRef.current;
+          const currentInTimeline = selectedClipsRef.current;
           let insertIndex = prevClips.findIndex((c) => currentInTimeline.has(c.id));
           if (insertIndex === -1) insertIndex = prevClips.length;
 
@@ -91,9 +85,9 @@ export default function HomePage({
           ];
         });
 
-        setTimelineClipIds(new Set(segments.map((s: TimelineSegment) => s.id)));
+        setSelectedClips(new Set(segments.map((s: TimelineSegment) => s.id)));
       },
-      [setClips, setTimelineClipIds]
+      [setClips, setSelectedClips]
     )
   );
 
@@ -210,20 +204,20 @@ export default function HomePage({
   }, [segments, dispatchTimeline]);
 
   // Track the previous set of timeline clip IDs to detect additions in editor mode
-  const prevTimelineClipIdsRef = useRef<Set<string>>(new Set());
+  const prevSelectedClipsRef = useRef<Set<string>>(new Set());
 
   // Handle manual additions from sidebar in Editor Mode
   useEffect(() => {
     if (activeMode !== "editor" || isUpdatingFromTimeline.current) {
-      prevTimelineClipIdsRef.current = timelineClipIds;
+      prevSelectedClipsRef.current = selectedClips;
       return;
     }
 
-    const prev = prevTimelineClipIdsRef.current;
+    const prev = prevSelectedClipsRef.current;
     
     // Detect Additions
-    if (timelineClipIds.size > prev.size) {
-      const addedId = Array.from(timelineClipIds).find(id => !prev.has(id));
+    if (selectedClips.size > prev.size) {
+      const addedId = Array.from(selectedClips).find(id => !prev.has(id));
       if (addedId) {
         const clipToAdd = clips.find(c => c.id === addedId);
         if (clipToAdd) {
@@ -233,15 +227,15 @@ export default function HomePage({
     }
     
     // Detect Deletions
-    if (timelineClipIds.size < prev.size) {
-      const removedId = Array.from(prev).find(id => !timelineClipIds.has(id));
+    if (selectedClips.size < prev.size) {
+      const removedId = Array.from(prev).find(id => !selectedClips.has(id));
       if (removedId) {
         timeline.removeSegment(removedId);
       }
     }
     
-    prevTimelineClipIdsRef.current = timelineClipIds;
-  }, [timelineClipIds, activeMode, clips, timeline.addSegment, timeline.removeSegment]);
+    prevSelectedClipsRef.current = selectedClips;
+  }, [selectedClips, activeMode, clips, timeline.addSegment, timeline.removeSegment]);
 
   // Bump clipSyncVersion only on genuine user-driven changes (Selector Mode only)
   useEffect(() => {
@@ -252,7 +246,7 @@ export default function HomePage({
 
     if (activeMode === "editor") return; // Timeline is master in editor mode
     setClipSyncVersion((v) => v + 1);
-  }, [clips, timelineClipIds, activeMode]);
+  }, [clips, selectedClips, activeMode]);
 
   // Sync clips from timelineClipIds -> Timeline (only on genuine version bumps)
   useEffect(() => {
@@ -260,8 +254,8 @@ export default function HomePage({
     if (clipSyncVersion === lastSyncedVersionRef.current) return;
     lastSyncedVersionRef.current = clipSyncVersion;
 
-    if (clips.length > 0 && timelineClipIds.size > 0) {
-      const timelineItems = clips.filter((c) => timelineClipIds.has(c.id));
+    if (clips.length > 0 && selectedClips.size > 0) {
+      const timelineItems = clips.filter((c) => selectedClips.has(c.id));
 
       let currentTrackPos = 0;
       const segments = timelineItems.map((clip, i) => {
@@ -287,7 +281,7 @@ export default function HomePage({
     } else {
       timeline.init([], 0);
     }
-  }, [clipSyncVersion, clips, timelineClipIds, timeline.init, activeMode]);
+  }, [clipSyncVersion, clips, selectedClips, timeline.init, activeMode]);
 
   return (
     <>

@@ -19,7 +19,7 @@ export default function EditorPage({
   const { state: timelineState } = timeline;
   const clips = useAppStateStore((state) => state.clips);
   const importedVideoPath = useAppStateStore((state) => state.importedVideoPath);
-  const timelineClipIds = useAppStateStore((state) => state.timelineClipIds);
+  const selectedClips = useAppStateStore((state) => state.selectedClips);
   const setActiveMode = useUIStateStore((state) => state.setActiveMode);
   const { handleExport } = useImportExport();
 
@@ -82,7 +82,7 @@ export default function EditorPage({
   }, [timelineState.playheadSec, timelineState.isDraggingPlayhead, effectiveSegment?.id, effectiveSegment?.start, effectiveSegment?.sourceStart]);
 
   const onExportClick = () => {
-    handleExport(timelineClipIds, undefined, defaultMergedName);
+    handleExport(selectedClips, undefined, defaultMergedName);
   };
 
   const playheadRef = useRef(timelineState.playheadSec);

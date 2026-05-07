@@ -32,7 +32,7 @@ export const LazyClip = memo(function LazyClip({
   onDownloadClip,
 }: LazyClipProps) {
   const importToken = useAppStateStore(s => s.importToken);
-  const isExportSelected = useAppStateStore(s => s.timelineClipIds.has(clip.id));
+
   const isSelected = useAppStateStore(s => s.selectedClips.has(clip.id));
   const isFocused = useAppStateStore(s => s.focusedClip === clip.src);
   const gridPreview = useUIStateStore(s => s.gridPreview);
@@ -62,7 +62,7 @@ export const LazyClip = memo(function LazyClip({
   // the actual video source (original or proxy)
   const [effectiveSrc, setEffectiveSrc] = useState(clip.src);
   const originalPath = clip.src;
-  
+
   // Is this clip currently being merged or split on the backend?
   const isProcessing = clip.originalName === "Merging..." || clip.originalName === "Splitting...";
 
@@ -157,7 +157,7 @@ export const LazyClip = memo(function LazyClip({
             const vid = videoRef.current;
             if (!vid) return;
             vid.load();
-            vid.play().catch(() => {});
+            vid.play().catch(() => { });
           }, 0);
         } else {
           setForceThumbnail(true);
@@ -283,9 +283,9 @@ export const LazyClip = memo(function LazyClip({
 
       v.autoplay = true;
       v.loop = true;
-      
+
       v.load();
-      v.play().catch(() => {});
+      v.play().catch(() => { });
     } else {
       v.pause();
       v.muted = true;
@@ -402,12 +402,12 @@ export const LazyClip = memo(function LazyClip({
       }}
     >
       {generalSettings.enableEditor && (
-        <button 
-          className={`clip-timeline-toggle ${isExportSelected ? "active" : ""}`}
+        <button
+          className={`clip-timeline-toggle ${isSelected ? "active" : ""}`}
           onClick={(e) => onToggleTimeline(clip.id, e)}
-          title={isExportSelected ? "Remove from timeline" : "Add to timeline"}
+          title={isSelected ? "Remove from timeline" : "Add to timeline"}
         >
-          {isExportSelected ? <FaCheck /> : <FaPlus />}
+          {isSelected ? <FaCheck /> : <FaPlus />}
         </button>
       )}
 
@@ -450,7 +450,7 @@ export const LazyClip = memo(function LazyClip({
                   const audioEnabled = isHovered && generalSettings.audioPlaybackHover;
                   e.currentTarget.muted = !audioEnabled;
                   e.currentTarget.volume = generalSettings.playbackVolume;
-                  e.currentTarget.play().catch(() => {});
+                  e.currentTarget.play().catch(() => { });
                 }
               }}
               onPlaying={(e) => {
@@ -479,7 +479,7 @@ export const LazyClip = memo(function LazyClip({
                   clipId: clip.id,
                   clipPath: originalPath,
                   errorCode,
-                }).catch(() => {});
+                }).catch(() => { });
 
                 if (proxyInFlightRef.current) return;
                 proxyInFlightRef.current = true;
@@ -503,13 +503,13 @@ export const LazyClip = memo(function LazyClip({
                     setTimeout(() => {
                       const vid = videoRef.current;
                       if (!vid) return;
-                      
+
                       const audioEnabled = isHovered && generalSettings.audioPlaybackHover;
                       vid.muted = !audioEnabled;
                       vid.volume = generalSettings.playbackVolume;
-                      
+
                       vid.load();
-                      vid.play().catch(() => {});
+                      vid.play().catch(() => { });
                     }, 0);
                   } catch {
                     setForceThumbnail(true);
@@ -523,10 +523,10 @@ export const LazyClip = memo(function LazyClip({
 
           {/* Status Overlays */}
           {isProcessing && (
-          <div className="clip-status-overlay">
-            <span className="status-text">{clip.originalName}</span>
-          </div>
-        )}
+            <div className="clip-status-overlay">
+              <span className="status-text">{clip.originalName}</span>
+            </div>
+          )}
           {!isProcessing && forceThumbnail && needsHevcProxy && (
             <div className="clip-status-overlay">
               <span className="status-text">Processing...</span>

@@ -20,7 +20,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   const focusedClip = useAppStateStore((state) => state.focusedClip);
   const setFocusedClip = useAppStateStore((state) => state.setFocusedClip);
   const setSelectedClips = useAppStateStore((state) => state.setSelectedClips);
-  const setTimelineClipIds = useAppStateStore((state) => state.setTimelineClipIds);
+
   const defaultCols = useUIStateStore((state) => state.cols);
   const { handleDownloadSingleClip } = useImportExport();
 
@@ -95,33 +95,32 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     [clips, focusedClip, setFocusedClip, setSelectedClips]
   );
 
-  // Handles explicit timeline toggle (from the Plus/Check button)
   const handleToggleTimeline = useCallback(
     (clipId: string, e: React.MouseEvent) => {
       e.stopPropagation(); // Don't trigger focus click
       startTransition(() => {
-        setTimelineClipIds((prev) => {
+        setSelectedClips((prev) => {
           const next = new Set(prev);
           next.has(clipId) ? next.delete(clipId) : next.add(clipId);
           return next;
         });
       });
     },
-    [setTimelineClipIds]
+    [setSelectedClips]
   );
 
   // Handles double-click on a clip tile (toggle timeline/export selection — checkmark only)
   const handleClipDoubleClick = useCallback(
     (clipId: string, _clipSrc: string, _index: number, _e: React.MouseEvent<HTMLDivElement>) => {
       startTransition(() => {
-        setTimelineClipIds((prev) => {
+        setSelectedClips((prev) => {
           const next = new Set(prev);
           next.has(clipId) ? next.delete(clipId) : next.add(clipId);
           return next;
         });
       });
     },
-    [setTimelineClipIds]
+    [setSelectedClips]
   );
 
 

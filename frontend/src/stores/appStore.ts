@@ -16,7 +16,6 @@ export type AppState = {
   videoIsHEVC: boolean | null;
   userHasHEVC: boolean;
   importedVideoPath: string | null;
-  timelineClipIds: Set<string>;
   
   // App loading and progress state
   loading: boolean;
@@ -37,7 +36,6 @@ export type AppStateStore = AppState & {
   setVideoIsHEVC: (isHEVC: SetterValue<boolean | null>) => void;
   setUserHasHEVC: (hasHEVC: boolean) => void;
   setImportedVideoPath: (path: SetterValue<string | null>) => void;
-  setTimelineClipIds: (ids: SetterValue<Set<string>>) => void;
   
   setLoading: (loading: boolean) => void;
   setProgress: (progress: number) => void;
@@ -57,7 +55,6 @@ export const DEFAULT_APP_STATE: AppState = {
   videoIsHEVC: null,
   userHasHEVC: false,
   importedVideoPath: null,
-  timelineClipIds: new Set(),
   
   loading: false,
   progress: 0,
@@ -79,7 +76,6 @@ export const useAppStateStore = create<AppStateStore>()((set) => ({
   setVideoIsHEVC: (val) => set((s) => ({ videoIsHEVC: resolveSetterValue(s.videoIsHEVC, val) })),
   setUserHasHEVC: (hasHEVC) => set({ userHasHEVC: hasHEVC }),
   setImportedVideoPath: (val) => set((s) => ({ importedVideoPath: resolveSetterValue(s.importedVideoPath, val) })),
-  setTimelineClipIds: (val) => set((s) => ({ timelineClipIds: resolveSetterValue(s.timelineClipIds, val) })),
   
   setLoading: (loading) => set({ loading }),
   setProgress: (progress) => set({ progress }),
