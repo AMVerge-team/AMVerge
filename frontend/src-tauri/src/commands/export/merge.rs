@@ -267,6 +267,189 @@ pub(super) async fn run_merge_export(
             return Err(error_text);
         }
 
+        if use_stream_copy {
+            console_log(
+                "EXPORT|retry",
+                "merge stream copy failed; retry merge re-encode",
+            );
+
+            let audio_mode = runtime
+                .export_options
+                .as_ref()
+                .map(|options| options.audio_mode.as_str())
+                .unwrap_or("aac");
+            let selected_gpu_encoder = runtime.export_options.as_ref().and_then(|options| {
+                select_gpu_encoder_for_codec(options.codec.as_str(), &runtime.gpu_capabilities)
+            });
+
+            let mut retry_args = vec![
+                "-y".to_string(),
+                "-f".to_string(),
+                "concat".to_string(),
+                "-safe".to_string(),
+                "0".to_string(),
+                "-i".to_string(),
+                filelist_path.clone(),
+                "-map".to_string(),
+                "0:v:0".to_string(),
+                "-map".to_string(),
+                "0:a?".to_string(),
+                "-map_metadata".to_string(),
+                "-1".to_string(),
+                "-vf".to_string(),
+                "setpts=PTS-STARTPTS".to_string(),
+            ];
+            if audio_mode != "none" && audio_mode != "copy" {
+                retry_args.extend(["-af".to_string(), "asetpts=PTS-STARTPTS".to_string()]);
+            }
+
+            append_video_encode_args(
+                &mut retry_args,
+                runtime.export_options.as_ref(),
+                selected_gpu_encoder,
+            );
+            retry_args.extend(["-enc_time_base:v".to_string(), "demux".to_string()]);
+            append_audio_encode_args(&mut retry_args, runtime.export_options.as_ref());
+            retry_args.extend(["-fps_mode".to_string(), "passthrough".to_string()]);
+
+            if ext == "mp4" || ext == "mov" {
+                retry_args.extend(["-movflags".to_string(), "+faststart".to_string()]);
+            }
+
+            retry_args.extend([
+                "-max_muxing_queue_size".to_string(),
+                "1024".to_string(),
+                out_str.clone(),
+            ]);
+
+            let app_for_ffmpeg = runtime.app.clone();
+            let ffmpeg_clone = runtime.ffmpeg.clone();
+            let start_time = runtime.export_start_time;
+            let abort_requested_for_run = runtime.abort_requested.clone();
+            let active_pids_for_run = runtime.active_pids.clone();
+
+            let retry_result = tokio::task::spawn_blocking(move || {
+                run_ffmpeg_with_progress(
+                    app_for_ffmpeg,
+                    ffmpeg_clone,
+                    retry_args,
+                    total_ms,
+                    0,
+                    total_ms,
+                    "Merging (re-encode fallback)",
+                    start_time,
+                    abort_requested_for_run,
+                    active_pids_for_run,
+                    true,
+                )
+            })
+            .await
+            .map_err(|e| format!("ffmpeg task panicked: {e}"))?;
+
+            if let Err(retry_error_text) = retry_result {
+                if is_canceled_error_text(&retry_error_text) {
+                    return Err(retry_error_text);
+                }
+
+                if uses_gpu_encoding(runtime) && is_gpu_session_open_error(&retry_error_text) {
+                    console_log(
+                        "EXPORT|retry",
+                        "merge re-encode gpu init failed; retry merge re-encode on cpu",
+                    );
+
+                    let mut cpu_options = runtime.export_options.clone();
+                    if let Some(options) = cpu_options.as_mut() {
+                        options.hardware_mode = "cpu".to_string();
+                    }
+
+                    let mut cpu_args = vec![
+                        "-y".to_string(),
+                        "-f".to_string(),
+                        "concat".to_string(),
+                        "-safe".to_string(),
+                        "0".to_string(),
+                        "-i".to_string(),
+                        filelist_path.clone(),
+                        "-map".to_string(),
+                        "0:v:0".to_string(),
+                        "-map".to_string(),
+                        "0:a?".to_string(),
+                        "-map_metadata".to_string(),
+                        "-1".to_string(),
+                        "-vf".to_string(),
+                        "setpts=PTS-STARTPTS".to_string(),
+                    ];
+                    let cpu_audio_mode = cpu_options
+                        .as_ref()
+                        .map(|options| options.audio_mode.as_str())
+                        .unwrap_or("aac");
+                    if cpu_audio_mode != "none" && cpu_audio_mode != "copy" {
+                        cpu_args.extend(["-af".to_string(), "asetpts=PTS-STARTPTS".to_string()]);
+                    }
+
+                    append_video_encode_args(&mut cpu_args, cpu_options.as_ref(), None);
+                    cpu_args.extend(["-enc_time_base:v".to_string(), "demux".to_string()]);
+                    append_audio_encode_args(&mut cpu_args, cpu_options.as_ref());
+                    cpu_args.extend(["-fps_mode".to_string(), "passthrough".to_string()]);
+
+                    if ext == "mp4" || ext == "mov" {
+                        cpu_args.extend(["-movflags".to_string(), "+faststart".to_string()]);
+                    }
+
+                    cpu_args.extend([
+                        "-max_muxing_queue_size".to_string(),
+                        "1024".to_string(),
+                        out_str.clone(),
+                    ]);
+
+                    let app_for_ffmpeg = runtime.app.clone();
+                    let ffmpeg_clone = runtime.ffmpeg.clone();
+                    let start_time = runtime.export_start_time;
+                    let abort_requested_for_run = runtime.abort_requested.clone();
+                    let active_pids_for_run = runtime.active_pids.clone();
+                    let cpu_retry_result = tokio::task::spawn_blocking(move || {
+                        run_ffmpeg_with_progress(
+                            app_for_ffmpeg,
+                            ffmpeg_clone,
+                            cpu_args,
+                            total_ms,
+                            0,
+                            total_ms,
+                            "Merging (cpu fallback)",
+                            start_time,
+                            abort_requested_for_run,
+                            active_pids_for_run,
+                            true,
+                        )
+                    })
+                    .await
+                    .map_err(|e| format!("ffmpeg task panicked: {e}"))?;
+
+                    if let Err(cpu_error_text) = cpu_retry_result {
+                        if is_canceled_error_text(&cpu_error_text) {
+                            return Err(cpu_error_text);
+                        }
+                        return Err(format!(
+                            "FFmpeg merge failed.\n(copy)\n{error_text}\n\n(re-encode)\n{retry_error_text}\n\n(cpu fallback)\n{cpu_error_text}"
+                        ));
+                    }
+                } else {
+                    return Err(format!(
+                        "FFmpeg merge failed.\n(copy)\n{error_text}\n\n(re-encode)\n{retry_error_text}"
+                    ));
+                }
+            }
+
+            emit_export_progress(
+                &runtime.app,
+                100,
+                "Export complete",
+                runtime.export_start_time,
+            );
+
+            return Ok(out_str);
+        }
+
         if !use_stream_copy && uses_gpu_encoding(runtime) && is_gpu_session_open_error(&error_text)
         {
             console_log(

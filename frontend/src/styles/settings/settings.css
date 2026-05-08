@@ -128,6 +128,18 @@
 }
 
 .settings-tab-content {
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    padding-right: 0;
+    padding-bottom: 8px;
+    margin-left: 6px;
+    margin-right: 6px;
+}
+
+.settings-tab-content > .panel.settings-panel {
+    height: 100%;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
@@ -136,23 +148,23 @@
     scrollbar-color: rgb(var(--accent-rgb) / 0.42) rgb(255 255 255 / 0.02);
 }
 
-.settings-tab-content::-webkit-scrollbar {
+.settings-tab-content > .panel.settings-panel::-webkit-scrollbar {
     width: 8px;
 }
 
-.settings-tab-content::-webkit-scrollbar-track {
+.settings-tab-content > .panel.settings-panel::-webkit-scrollbar-track {
     background: rgb(255 255 255 / 0.02);
     border-radius: 10px;
 }
 
-.settings-tab-content::-webkit-scrollbar-thumb {
+.settings-tab-content > .panel.settings-panel::-webkit-scrollbar-thumb {
     background: rgb(var(--accent-rgb) / 0.34);
     border-radius: 10px;
     border: 2px solid transparent;
     background-clip: content-box;
 }
 
-.settings-tab-content::-webkit-scrollbar-thumb:hover {
+.settings-tab-content > .panel.settings-panel::-webkit-scrollbar-thumb:hover {
     background: rgb(var(--accent-rgb) / 0.52);
 }
 
@@ -160,6 +172,10 @@
     margin-right: 0;
     margin-left: 0;
     margin-bottom: 0;
+}
+
+.settings-panel > h3 {
+    margin-bottom: 12px;
 }
 
 .export-settings-panel {

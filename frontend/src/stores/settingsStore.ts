@@ -21,7 +21,6 @@ export type GeneralSettings = {
     exportProfiles: ExportProfile[];
     customProfileIcons: string[];
     activeExportProfileId: string;
-    quickDownloadProfileId: string;
     audioPlaybackHover: boolean;
     playbackVolume: number;
     discordRPCEnabled: boolean;
@@ -36,7 +35,6 @@ export type GeneralSettingsStore = GeneralSettings & {
     setExportPath: (path: string | null) => void;
     setOpenFileLocationAfterExport: (enabled: boolean) => void;
     setActiveExportProfileId: (profileId: string) => void;
-    setQuickDownloadProfileId: (profileId: string) => void;
     addExportProfile: () => void;
     deleteExportProfile: (profileId: string) => void;
     updateExportProfile: (profileId: string, changes: Partial<ExportProfile>) => void;
@@ -59,7 +57,6 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     exportProfiles: DEFAULT_EXPORT_PROFILES.map((profile) => ({ ...profile })),
     customProfileIcons: [],
     activeExportProfileId: DEFAULT_EXPORT_PROFILE_ID,
-    quickDownloadProfileId: DEFAULT_EXPORT_PROFILE_ID,
     audioPlaybackHover: false,
     playbackVolume: 0.2,
     discordRPCEnabled: true,
@@ -84,20 +81,12 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                     }
                     return { activeExportProfileId: profileId };
                 }),
-            setQuickDownloadProfileId: (profileId) =>
-                set((state) => {
-                    if (!state.exportProfiles.some((profile) => profile.id === profileId)) {
-                        return {};
-                    }
-                    return { quickDownloadProfileId: profileId };
-                }),
             addExportProfile: () =>
                 set((state) => {
                     const profile = createExportProfile(state.exportProfiles.length + 1);
                     return {
                         exportProfiles: [...state.exportProfiles, profile],
                         activeExportProfileId: profile.id,
-                        quickDownloadProfileId: profile.id,
                     };
                 }),
             deleteExportProfile: (profileId) =>
@@ -117,10 +106,6 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                             state.activeExportProfileId === profileId
                                 ? exportProfiles[0].id
                                 : state.activeExportProfileId,
-                        quickDownloadProfileId:
-                            state.quickDownloadProfileId === profileId
-                                ? exportProfiles[0].id
-                                : state.quickDownloadProfileId || state.activeExportProfileId,
                     };
                 }),
             updateExportProfile: (profileId, changes) =>

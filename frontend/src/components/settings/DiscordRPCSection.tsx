@@ -4,7 +4,7 @@ export default function DiscordRPCSection() {
   const generalSettings = useGeneralSettingsStore();
   const setGeneralSettings = useGeneralSettingsStore.setState;
   return (
-    <section className="panel">
+    <section className="panel menu-panel settings-panel">
       <h3>Discord Rich Presence</h3>
 
       <div className="settings-row">

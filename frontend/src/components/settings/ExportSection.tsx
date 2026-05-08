@@ -23,7 +23,6 @@ import {
   getCodecOptionsForFamily,
   getExportProfileSummary,
   isCodecGpuEligible,
-  isQuickDownloadCompatibleWorkflow,
   getParallelExportLimit,
   getSafeDefaultParallelExports,
   normalizeExportProfile,
@@ -146,9 +145,7 @@ function ProfileIconGlyph({ icon, customIconPath }: ProfileIconGlyphProps) {
 export default function ExportSection() {
   const exportProfiles = useGeneralSettingsStore((state) => state.exportProfiles);
   const activeExportProfileId = useGeneralSettingsStore((state) => state.activeExportProfileId);
-  const quickDownloadProfileId = useGeneralSettingsStore((state) => state.quickDownloadProfileId);
   const setActiveExportProfileId = useGeneralSettingsStore((state) => state.setActiveExportProfileId);
-  const setQuickDownloadProfileId = useGeneralSettingsStore((state) => state.setQuickDownloadProfileId);
   const addExportProfile = useGeneralSettingsStore((state) => state.addExportProfile);
   const deleteExportProfile = useGeneralSettingsStore((state) => state.deleteExportProfile);
   const updateExportProfile = useGeneralSettingsStore((state) => state.updateExportProfile);
@@ -197,31 +194,6 @@ export default function ExportSection() {
       }),
     [exportProfiles]
   );
-
-  const quickDownloadCompatibleIds = useMemo(() => {
-    const compatibleIds = new Set<string>();
-    for (const profile of exportProfiles) {
-      if (isQuickDownloadCompatibleWorkflow(profile.workflow)) {
-        compatibleIds.add(profile.id);
-      }
-    }
-    return compatibleIds;
-  }, [exportProfiles]);
-
-  const quickDownloadProfileOptions = useMemo(
-    () => profileOptions.filter((option) => quickDownloadCompatibleIds.has(option.value)),
-    [profileOptions, quickDownloadCompatibleIds]
-  );
-
-  const resolvedQuickDownloadProfileId = useMemo(() => {
-    if (quickDownloadProfileOptions.some((option) => option.value === quickDownloadProfileId)) {
-      return quickDownloadProfileId;
-    }
-    if (quickDownloadProfileOptions.some((option) => option.value === activeProfile.id)) {
-      return activeProfile.id;
-    }
-    return quickDownloadProfileOptions[0]?.value ?? activeProfile.id;
-  }, [quickDownloadProfileId, quickDownloadProfileOptions, activeProfile.id]);
 
   const encodingWorkflow = usesEncoding(activeProfile.workflow);
   const editorWorkflow = usesEditorTarget(activeProfile.workflow);
@@ -509,11 +481,6 @@ export default function ExportSection() {
   }, [showIconPicker]);
 
   useEffect(() => {
-    if (quickDownloadProfileId === resolvedQuickDownloadProfileId) return;
-    setQuickDownloadProfileId(resolvedQuickDownloadProfileId);
-  }, [quickDownloadProfileId, resolvedQuickDownloadProfileId, setQuickDownloadProfileId]);
-
-  useEffect(() => {
     if (!gpuProbeComplete || !encodingWorkflow) return;
 
     const resolvedProfile: NvidiaEncoderProfile = nvidiaDetection.hasNvidiaGpu
@@ -717,7 +684,7 @@ export default function ExportSection() {
   };
 
   return (
-    <section className="panel export-settings-panel">
+    <section className="panel menu-panel settings-panel">
       <h3>Export</h3>
 
       <ExportSetting
@@ -748,23 +715,6 @@ export default function ExportSection() {
           <span>Delete Profile</span>
         </button>
       </div>
-
-      <ExportSetting
-        label="Quick Download Profile"
-        description={
-          quickDownloadProfileOptions.length > 0
-            ? "Used by clip quick download buttons."
-            : "Used by clip quick download buttons."
-        }
-        control={
-          <Dropdown
-            className="settings-wide-dropdown export-profile-dropdown"
-            options={quickDownloadProfileOptions.length > 0 ? quickDownloadProfileOptions : profileOptions}
-            value={resolvedQuickDownloadProfileId}
-            onChange={setQuickDownloadProfileId}
-          />
-        }
-      />
 
       <ExportSetting
         label="Profile Name"

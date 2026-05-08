@@ -1,4 +1,3 @@
 - Fix the CSS below the video player (the info panel and the export settings)
 - Fix the css aroudn the settings pages, make it fit the same as the menu pages via margin 10px on sides
 - Remove the "Program" tab since i have no idea what that is
-- Remove the timeline feature

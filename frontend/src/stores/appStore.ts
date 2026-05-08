@@ -8,6 +8,9 @@ function resolveSetterValue<T>(prev: T, value: SetterValue<T>): T {
   return typeof value === "function" ? (value as (current: T) => T)(prev) : value;
 }
 
+/* =========================
+      GENERAL APP STATES
+   ========================= */
 export type AppState = {
   // App core state
   focusedClip: string | null;

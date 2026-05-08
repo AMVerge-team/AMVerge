@@ -61,7 +61,7 @@ export default function GeneralSection({
   };
 
   return (
-    <section className="panel">
+    <section className="panel menu-panel settings-panel">
       <h3>General</h3>
 
       {loading && (

@@ -46,7 +46,7 @@ export default function Settings({
 
       <div className="menu-content">
         <div className="menu-section">
-          <div className="tab-content settings-tab-content" style={{ flex: 1 }}>
+          <div className="settings-tab-content">
             {activeTab === "general" && (
               <GeneralSection
                 onGeneralSettingsReset={onGeneralSettingsReset}
