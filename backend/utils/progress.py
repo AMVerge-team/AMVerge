@@ -16,3 +16,12 @@ def emit_progress(percent: int, message: str) -> None:
 
     with _progress_lock:
         print(f"PROGRESS|{clamped}|{message}", file=sys.stderr, flush=True)
+
+
+def emit_event(event_type: str, payload: str = "") -> None:
+    """Emit an arbitrary background event to stderr."""
+    with _progress_lock:
+        if payload:
+            print(f"{event_type}|{payload}", file=sys.stderr, flush=True)
+        else:
+            print(event_type, file=sys.stderr, flush=True)
