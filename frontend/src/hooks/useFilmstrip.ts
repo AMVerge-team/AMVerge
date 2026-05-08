@@ -45,7 +45,7 @@ export type FilmstripResult = {
 
 /**
  * THUMB_WIDTH / THUMB_HEIGHT — small enough to be cheap, big enough
- * to look decent in the timeline track (which is typically 80–96px tall).
+ * to look decent in the clip preview strip.
  */
 const DEFAULT_THUMB_W = 160;
 const DEFAULT_THUMB_H = 90;

@@ -95,7 +95,7 @@
     accent-color: var(--accent);
 }
 
-.clip-timeline-toggle {
+.clip-selected {
     position: absolute;
     top: var(--clip-overlay-inset);
     left: var(--clip-overlay-inset);
@@ -117,26 +117,26 @@
     pointer-events: none;
 }
 
-.clip-wrapper:hover .clip-timeline-toggle,
-.clip-timeline-toggle.active {
+.clip-wrapper:hover .clip-selected,
+.clip-selected.active {
     opacity: 1;
     pointer-events: auto;
 }
 
-.clip-timeline-toggle:hover {
+.clip-selected:hover {
     transform: scale(1.1);
     background: rgba(0, 0, 0, 0.6);
     border-color: var(--accent);
 }
 
-.clip-timeline-toggle.active {
+.clip-selected.active {
     background: var(--accent);
     color: black;
     border-color: var(--accent);
     box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.3);
 }
 
-.clip-timeline-toggle.active:hover {
+.clip-selected.active:hover {
     background: white;
     box-shadow: 0 0 15px white;
 }

@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use tauri::{AppHandle, Manager};
 
@@ -334,6 +335,43 @@ pub fn delete_profile_icon_file(app: tauri::AppHandle, icon_path: String) -> Res
 
     fs::remove_file(&canonical_requested_path)
         .map_err(|e| format!("Failed to delete profile icon file: {e}"))?;
+
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+#[tauri::command]
+pub fn reveal_in_file_manager(file_path: String) -> Result<(), String> {
+    let raw_path = PathBuf::from(file_path.trim());
+    if !raw_path.exists() {
+        return Err("Exported file no longer exists on disk.".to_string());
+    }
+
+    let path = fs::canonicalize(&raw_path).unwrap_or(raw_path);
+    let path_string = path.to_string_lossy().to_string();
+
+    Command::new("explorer")
+        .arg("/select,")
+        .arg(path_string)
+        .spawn()
+        .map_err(|e| format!("Failed to open Explorer: {e}"))?;
+
+    Ok(())
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tauri::command]
+pub fn reveal_in_file_manager(file_path: String) -> Result<(), String> {
+    let path = PathBuf::from(file_path.trim());
+    let dir = path
+        .parent()
+        .ok_or("Could not resolve exported file directory.".to_string())?;
+
+    let opener = if cfg!(target_os = "macos") { "open" } else { "xdg-open" };
+    Command::new(opener)
+        .arg(dir)
+        .spawn()
+        .map_err(|e| format!("Failed to open file manager: {e}"))?;
 
     Ok(())
 }

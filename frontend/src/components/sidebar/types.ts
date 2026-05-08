@@ -42,9 +42,8 @@ export type SidebarProps = {
   onSortEpisodePanel: (direction: "asc" | "desc") => void;
   onClearEpisodePanelCache: () => void | Promise<void>;
   sideBarEnabled: boolean;
-  activeMode: "selector" | "editor";
 
-  // Clips grid props for the sidebar in editor mode
+  // Clips grid props used by sidebar-managed views
   clips: any[];
   gridSize: number;
   gridRef: React.RefObject<HTMLDivElement | null>;

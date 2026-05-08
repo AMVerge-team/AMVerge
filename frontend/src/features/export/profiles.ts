@@ -2,8 +2,7 @@ export type ExportWorkflow =
   | "video_encode"
   | "video_remux"
   | "editor_encode"
-  | "editor_remux"
-  | "editor_original_xml";
+  | "editor_remux";
 
 export type ExportCodecFamily =
   | "h264"
@@ -127,7 +126,6 @@ export const EXPORT_WORKFLOW_OPTIONS: { value: ExportWorkflow; label: string }[]
   { value: "video_remux", label: "Export video (stream copy / remux)" },
   { value: "editor_encode", label: "Export + editor auto-import (re-encode)" },
   { value: "editor_remux", label: "Export + editor auto-import (remux)" },
-  { value: "editor_original_xml", label: "Export editor XML from original source" },
 ];
 
 export const EXPORT_CODEC_OPTIONS: { value: ExportCodec; label: string }[] = [
@@ -363,20 +361,6 @@ export const DEFAULT_EXPORT_PROFILES: ExportProfile[] = [
     nvidiaEncoderProfile: "unknown",
     parallelExports: 1,
   },
-  {
-    id: "premiere-original-xml",
-    name: "Premiere XML",
-    icon: "premiere",
-    workflow: "editor_original_xml",
-    editorTarget: "premiere_pro",
-    codec: "h264_high",
-    audioMode: "copy",
-    container: "mp4",
-    mergeEnabled: false,
-    hardwareMode: "cpu",
-    nvidiaEncoderProfile: "unknown",
-    parallelExports: 1,
-  },
 ];
 
 const CODEC_LABELS: Record<ExportCodec, string> = {
@@ -527,27 +511,23 @@ export function usesEncoding(workflow: ExportWorkflow): boolean {
 }
 
 export function usesEditorTarget(workflow: ExportWorkflow): boolean {
-  return workflow === "editor_encode" || workflow === "editor_remux" || workflow === "editor_original_xml";
-}
-
-export function isXmlTimelineWorkflow(workflow: ExportWorkflow): boolean {
-  return workflow === "editor_original_xml";
+  return workflow === "editor_encode" || workflow === "editor_remux";
 }
 
 export function supportsClipMerge(workflow: ExportWorkflow): boolean {
-  return !isXmlTimelineWorkflow(workflow);
+  return true;
 }
 
 export function supportsAudioMode(workflow: ExportWorkflow): boolean {
-  return !isXmlTimelineWorkflow(workflow);
+  return true;
 }
 
 export function supportsContainerSelection(workflow: ExportWorkflow): boolean {
-  return !isXmlTimelineWorkflow(workflow);
+  return true;
 }
 
 export function isQuickDownloadCompatibleWorkflow(workflow: ExportWorkflow): boolean {
-  return !isXmlTimelineWorkflow(workflow);
+  return true;
 }
 
 export function getNvidiaEncoderProfile(profile: NvidiaEncoderProfile) {
@@ -649,11 +629,6 @@ export function getSafeDefaultParallelExports(limit: number): number {
 }
 
 export function getExportProfileSummary(profile: ExportProfile): string {
-  if (isXmlTimelineWorkflow(profile.workflow)) {
-    const editor = EDITOR_TARGET_LABELS[profile.editorTarget] || "No editor";
-    return `${editor} • Original source XML timeline`;
-  }
-
   const codec = coerceExportCodec(profile.codec);
   const codecLabel = usesEncoding(profile.workflow)
     ? getExportCodecLabel(codec)
@@ -689,9 +664,6 @@ export function normalizeExportProfile(profile: ExportProfile): ExportProfile {
       ? profile.editorTarget
       : "premiere_pro"
     : "none";
-  if (workflow === "editor_original_xml" && editorTarget === "capcut") {
-    editorTarget = "premiere_pro";
-  }
 
   const nvidiaEncoderProfile = profile.nvidiaEncoderProfile || "unknown";
 

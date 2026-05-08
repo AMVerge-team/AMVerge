@@ -10,7 +10,6 @@ export type UIState = {
     dividerOffsetPx: number;
     isDragging: boolean;
     activePage: Page;
-    activeMode: "selector" | "editor";
     settingsTab: string;
 };
 
@@ -30,7 +29,6 @@ export type UIStateStore = UIState & {
     ) => void;
     setIsDragging: (isDragging: boolean) => void;
     setActivePage: (activePage: Page | ((prev: Page) => Page)) => void;
-    setActiveMode: (mode: "selector" | "editor" | ((prev: "selector" | "editor") => "selector" | "editor")) => void;
     setSettingsTab: (tab: string) => void;
 };
 
@@ -42,7 +40,6 @@ export const DEFAULT_UI_STATE: UIState = {
     dividerOffsetPx: 0,
     isDragging: false,
     activePage: "home",
-    activeMode: "selector",
     settingsTab: "general",
 };
 
@@ -89,10 +86,6 @@ export const useUIStateStore = create<UIStateStore>()(
                 set((state) => ({
                     activePage: typeof activePage === "function" ? activePage(state.activePage) : activePage,
                 })),
-            setActiveMode: (mode) =>
-                set((state) => ({
-                    activeMode: typeof mode === "function" ? mode(state.activeMode) : mode,
-                })),
             setSettingsTab: (settingsTab) => set({ settingsTab }),
         }),
         {
@@ -103,7 +96,6 @@ export const useUIStateStore = create<UIStateStore>()(
                 cols: state.cols,
                 gridPreview: state.gridPreview,
                 sidebarEnabled: state.sidebarEnabled,
-                activeMode: state.activeMode,
             }),
         }
     )

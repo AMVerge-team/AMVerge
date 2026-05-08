@@ -62,7 +62,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
 
       const state = useAppStateStore.getState();
 
-      // Shift-click: select a range of clips for the timeline
+      // Shift-click: select a range of clips
       if (isShift) {
         const anchorIndex = state.focusedClip
           ? clips.findIndex((c) => c.src === state.focusedClip)
@@ -77,7 +77,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
         return;
       }
 
-      // Ctrl/Cmd-click: toggle timeline state for this clip
+      // Ctrl/Cmd-click: toggle selection state for this clip
       if (isCtrlOrCmd) {
         startTransition(() => {
           setSelectedClips((prev) => {
@@ -89,13 +89,13 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
         return;
       }
 
-      // Single click: focus this clip for preview (NO timeline change)
+      // Single click: focus this clip for preview without toggling selection
       setFocusedClip(clipSrc);
     },
     [clips, setFocusedClip, setSelectedClips]
   );
 
-  const handleToggleTimeline = useCallback(
+  const handleToggleSelection = useCallback(
     (clipId: string, e: React.MouseEvent) => {
       e.stopPropagation(); // Don't trigger focus click
       startTransition(() => {
@@ -109,7 +109,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     [setSelectedClips]
   );
 
-  // Handles double-click on a clip tile (toggle timeline/export selection — checkmark only)
+  // Handles double-click on a clip tile (toggle export selection — checkmark only)
   const handleClipDoubleClick = useCallback(
     (clipId: string, _clipSrc: string, _index: number, _e: React.MouseEvent<HTMLDivElement>) => {
       startTransition(() => {
@@ -158,7 +158,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
                   reportStaggerDemand={reportStaggerDemand}
                   onClipClick={handleClipClick}
                   onClipDoubleClick={handleClipDoubleClick}
-                  onToggleTimeline={handleToggleTimeline}
+                  onToggleSelection={handleToggleSelection}
                   onDownloadClip={handleDownloadSingleClip}
                 />
               ))}

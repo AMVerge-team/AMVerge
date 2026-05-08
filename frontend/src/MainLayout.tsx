@@ -1,15 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ClipsContainer from "./components/clipsGrid/ClipsContainer";
 import PreviewContainer from "./components/previewPanel/PreviewContainer";
-import type { UseTimelineReturn } from "./hooks/useTimeline";
 import { useAppStateStore } from "./stores/appStore";
 
-type LayoutProps = {
-    timeline: UseTimelineReturn;
-    timelineEnabled: boolean;
-};
-
-export default function MainLayout(props: LayoutProps) {
+export default function MainLayout() {
     const [leftWidth, setLeftWidth] = useState(65);
     const focusedClip = useAppStateStore(s => s.focusedClip);
     const clips = useAppStateStore(s => s.clips);
@@ -21,24 +15,6 @@ export default function MainLayout(props: LayoutProps) {
                 : null,
         [focusedClip, clips]
     );
-
-    // ── Timeline-Preview Link ────────────────────────────────────────
-    const activeTimelineSource = useMemo(() => {
-        const { segments, playheadSec } = props.timeline.state;
-        // Find segment under playhead
-        const seg = segments.find(s => playheadSec >= s.start && playheadSec < s.end);
-        if (!seg || !seg.sourceClip) return null;
-
-        const offset = playheadSec - seg.start;
-        const sourceTime = (seg.sourceStart ?? 0) + offset;
-
-        return {
-            id: seg.id, // Track the segment ID
-            src: seg.sourceClip.src,
-            time: sourceTime,
-            thumbnail: seg.sourceClip.thumbnail
-        };
-    }, [props.timeline.state.playheadSec, props.timeline.state.segments]);
 
     const resizeCleanupRef = useRef<(() => void) | null>(null);
 
@@ -89,22 +65,6 @@ export default function MainLayout(props: LayoutProps) {
                     <PreviewContainer
                         sourceClip={focusedClip}
                         sourceClipThumbnail={focusedClipThumbnail}
-                        onTimeUpdate={(time) => {
-                            if (!props.timelineEnabled) return;
-                            const { segments, playheadSec } = props.timeline.state;
-
-                            // Use the specific segment ID we derived
-                            const seg = segments.find(s => s.id === activeTimelineSource?.id);
-
-                            if (seg) {
-                                const offset = time - (seg.sourceStart ?? 0);
-                                const newPlayheadSec = seg.start + offset;
-
-                                if (Math.abs(playheadSec - newPlayheadSec) > 0.05) {
-                                    props.timeline.setPlayhead(newPlayheadSec);
-                                }
-                            }
-                        }}
                     />
                 </div>
             </div>

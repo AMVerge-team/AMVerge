@@ -188,13 +188,13 @@ export function useVideoPlayer({
 
         setCurrentTime(video.currentTime);
 
-        // Only drive the timeline from the video if the video is fully ready.
+        // Only emit playback position from the video when the media is fully ready.
         if (isVideoReady) {
-            // If playing or scrubbing, sync to timeline
+            // If playing or scrubbing, sync the external playback listener.
             if (!video.paused || isScrubbing) {
                 if (onTimeUpdate) {
                     if (import.meta.env.DEV && !video.paused) {
-                        console.log("[VideoPlayer] Syncing to Timeline ->", video.currentTime.toFixed(3));
+                        console.log("[VideoPlayer] Syncing playback position ->", video.currentTime.toFixed(3));
                     }
                     onTimeUpdate(video.currentTime);
                 }

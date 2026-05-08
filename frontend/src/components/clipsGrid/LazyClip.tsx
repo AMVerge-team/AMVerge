@@ -37,7 +37,7 @@ export const LazyClip = memo(function LazyClip({
   reportProxyDemand,
   onClipClick,
   onClipDoubleClick,
-  onToggleTimeline,
+  onToggleSelection,
   registerVideoRef,
   reportStaggerDemand,
   onDownloadClip,
@@ -49,7 +49,6 @@ export const LazyClip = memo(function LazyClip({
   const gridPreview = useUIStateStore(s => s.gridPreview);
   const videoIsHEVC = useAppStateStore(s => s.videoIsHEVC);
   const userHasHEVC = useAppStateStore(s => s.userHasHEVC);
-  const enableEditor = useGeneralSettingsStore(s => s.enableEditor);
   const audioPlaybackHover = useGeneralSettingsStore(s => s.audioPlaybackHover);
   const playbackVolume = useGeneralSettingsStore(s => s.playbackVolume);
   const showDownloadButton = useThemeSettingsStore(s => s.showDownloadButton);
@@ -449,9 +448,9 @@ export const LazyClip = memo(function LazyClip({
       }}
     >
       <button
-        className={`clip-timeline-toggle ${isSelected ? "active" : ""}`}
-        onClick={(e) => onToggleTimeline(clip.id, e)}
-        title={isSelected ? (enableEditor ? "Remove from timeline" : "Deselect clip") : (enableEditor ? "Add to timeline" : "Select clip")}
+        className={`clip-selected ${isSelected ? "active" : ""}`}
+        onClick={(e) => onToggleSelection(clip.id, e)}
+        title={isSelected ? "Deselect clip" : "Select clip"}
       >
         {isSelected ? <FaCheck /> : <FaPlus />}
       </button>

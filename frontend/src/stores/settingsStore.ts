@@ -17,6 +17,7 @@ export type GeneralSettings = {
     episodesPath: string | null;
     exportFormat: "mp4" | "mkv" | "mov" | "avi" | "xml";
     exportPath: string | null;
+    openFileLocationAfterExport: boolean;
     exportProfiles: ExportProfile[];
     customProfileIcons: string[];
     activeExportProfileId: string;
@@ -27,13 +28,13 @@ export type GeneralSettings = {
     rpcShowFilename: boolean;
     rpcShowButtons: boolean;
     rpcShowMiniIcons: boolean;
-    enableEditor: boolean;
 };
 
 export type GeneralSettingsStore = GeneralSettings & {
     setEpisodesPath: (path: string | null) => void;
     setExportFormat: (format: ExportFormat) => void;
     setExportPath: (path: string | null) => void;
+    setOpenFileLocationAfterExport: (enabled: boolean) => void;
     setActiveExportProfileId: (profileId: string) => void;
     setQuickDownloadProfileId: (profileId: string) => void;
     addExportProfile: () => void;
@@ -47,7 +48,6 @@ export type GeneralSettingsStore = GeneralSettings & {
     setRpcShowFilename: (enabled: boolean) => void;
     setRpcShowButtons: (enabled: boolean) => void;
     setRpcShowMiniIcons: (enabled: boolean) => void;
-    setEnableEditor: (enabled: boolean) => void;
     resetGeneralSettings: () => void;
 };
 
@@ -55,6 +55,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     episodesPath: null,
     exportFormat: "mp4",
     exportPath: null,
+    openFileLocationAfterExport: true,
     exportProfiles: DEFAULT_EXPORT_PROFILES.map((profile) => ({ ...profile })),
     customProfileIcons: [],
     activeExportProfileId: DEFAULT_EXPORT_PROFILE_ID,
@@ -65,7 +66,6 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     rpcShowFilename: true,
     rpcShowButtons: true,
     rpcShowMiniIcons: true,
-    enableEditor: true
 };
 
 export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
@@ -76,6 +76,7 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
             setEpisodesPath: (path) => set({ episodesPath: path }),
             setExportFormat: (format) => set({ exportFormat: format }),
             setExportPath: (path) => set({ exportPath: path }),
+            setOpenFileLocationAfterExport: (enabled) => set({ openFileLocationAfterExport: enabled }),
             setActiveExportProfileId: (profileId) =>
                 set((state) => {
                     if (!state.exportProfiles.some((profile) => profile.id === profileId)) {
@@ -175,8 +176,6 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                 set({ rpcShowButtons: enabled }),
             setRpcShowMiniIcons: (enabled) =>
                 set({ rpcShowMiniIcons: enabled }),
-            setEnableEditor: (enabled) =>
-                set({ enableEditor: enabled }),
 
             resetGeneralSettings: () => set(DEFAULT_GENERAL_SETTINGS),
         }),

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Event, listen } from "@tauri-apps/api/event";
 import { DEFAULT_GENERAL_SETTINGS } from "./stores/settingsStore";
@@ -52,19 +52,6 @@ function App() {
   const setSidebarEnabled = useUIStateStore(s => s.setSidebarEnabled);
   const activePage = useUIStateStore(s => s.activePage);
   const isDragging = useUIStateStore(s => s.isDragging);
-
-  const timelineEnabled = useMemo(() => {
-    try {
-      const raw = localStorage.getItem("amverge_timeline_enabled_v1");
-      return raw === null ? true : raw === "true";
-    } catch {
-      return true;
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("amverge_timeline_enabled_v1", String(timelineEnabled));
-  }, [timelineEnabled]);
 
   const handleResetGeneralSettings = async () => {
     try {
@@ -268,7 +255,7 @@ function App() {
   }, [activePage, sidebarEnabled]);
 
   return (
-    <AppLayout
+      <AppLayout
       windowWrapperRef={windowWrapperRef}
       isDragging={isDragging}
       loadingOverlay={
@@ -302,7 +289,6 @@ function App() {
         {activePage === "home" ? (
           <HomePage
             mainLayoutWrapperRef={mainLayoutWrapperRef}
-            timelineEnabled={timelineEnabled}
           />
         ) : activePage === "menu" ? (
           <Menu />
@@ -314,7 +300,7 @@ function App() {
           />
         )}
       </div>
-    </AppLayout>
+      </AppLayout>
   );
 }
 

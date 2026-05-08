@@ -155,6 +155,12 @@ export default function ExportSection() {
   const customProfileIcons = useGeneralSettingsStore((state) => state.customProfileIcons);
   const addCustomProfileIcon = useGeneralSettingsStore((state) => state.addCustomProfileIcon);
   const removeCustomProfileIcon = useGeneralSettingsStore((state) => state.removeCustomProfileIcon);
+  const openFileLocationAfterExport = useGeneralSettingsStore(
+    (state) => state.openFileLocationAfterExport
+  );
+  const setOpenFileLocationAfterExport = useGeneralSettingsStore(
+    (state) => state.setOpenFileLocationAfterExport
+  );
 
   const [nvidiaDetection, setNvidiaDetection] = useState<NvidiaDetectionResult>(DEFAULT_DETECTION);
   const [gpuCapabilities, setGpuCapabilities] = useState<GpuEncoderCapabilities>(
@@ -966,6 +972,22 @@ export default function ExportSection() {
             value={activeProfile.workflow}
             onChange={handleWorkflowChange}
           />
+        }
+      />
+
+      <ExportSetting
+        label="Open file location after export"
+        description="Automatically open File Explorer and highlight the exported file after export finishes."
+        control={
+          <label className="custom-checkbox" aria-label="Toggle opening exported file location">
+            <input
+              type="checkbox"
+              className="checkbox"
+              checked={openFileLocationAfterExport}
+              onChange={(event) => setOpenFileLocationAfterExport(event.target.checked)}
+            />
+            <span className="checkmark"></span>
+          </label>
         }
       />
 
