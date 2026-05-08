@@ -11,6 +11,8 @@
     padding: 15px;
     overflow-y: auto;
     overflow-x: hidden;
+    container-type: inline-size;
+    container-name: previewContainer;
 }
 
 .preview-container::-webkit-scrollbar {
@@ -31,63 +33,6 @@
 
 .preview-container::-webkit-scrollbar-thumb:hover {
     background: rgba(var(--accent-rgb), 0.5);
-}
-
-.preview-view-switcher {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    gap: 24px;
-    margin-bottom: 12px;
-    padding: 2px 0;
-    background: transparent;
-    border: none;
-}
-
-.switcher-btn {
-    position: relative;
-    padding: 4px 8px;
-    border: none;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.3);
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 2.5px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.switcher-btn::after {
-    content: "";
-    position: absolute;
-    bottom: -2px;
-    left: 50%;
-    width: 0;
-    height: 1px;
-    background: var(--accent);
-    transition: all 0.3s ease;
-    transform: translateX(-50%);
-    box-shadow: 0 0 8px var(--accent);
-}
-
-.switcher-btn:hover:not(.active):not(.disabled) {
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.switcher-btn.active {
-    color: var(--accent);
-}
-
-.switcher-btn.active::after {
-    width: 60%;
-}
-
-.switcher-btn.disabled {
-    opacity: 0.15;
-    cursor: not-allowed;
 }
 
 .preview-windows-layout {
@@ -128,28 +73,35 @@
 /* EXPORT PANEL */
 .export-panel {
     width: 100%;
-    max-width: 450px;
+    max-width: 650px;
     margin-top: 20px;
     background: rgba(0, 0, 0, 0.45);
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 12px;
     padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+        "header"
+        "profile"
+        "path"
+        "button";
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     position: relative;
     z-index: 20;
+    container-type: inline-size;
+    container-name: exportPanel;
 }
 
 .export-header {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding-bottom: 8px;
-    margin-bottom: 4px;
+    margin-bottom: 5px;
     display: flex;
     align-items: center;
     gap: 10px;
+    grid-area: header;
 }
 
 .header-icon {
@@ -167,21 +119,21 @@
 
 .export-settings-row {
     display: flex;
-    gap: 0;
     align-items: flex-start;
+    grid-area: profile;
 }
 
 .export-setting-group {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
     flex: 1;
     min-width: 0;
 }
 
 .export-profile-group {
-    flex: 0 1 auto;
-    width: min(320px, 100%);
+    flex: 1 1 auto;
+    width: 100%;
     min-width: 0;
 }
 
@@ -204,7 +156,6 @@
 .export-profile-select,
 .export-format-select {
     width: 100% !important;
-    max-width: 320px;
     background: transparent !important;
     border: none !important;
 }
@@ -215,9 +166,9 @@
 
 .export-profile-select .dropdown-trigger,
 .export-format-select .dropdown-trigger {
-    min-height: 44px !important;
+    min-height: 36px !important;
     height: auto !important;
-    padding: 8px 10px !important;
+    padding: 4px 10px !important;
     background: rgba(255, 255, 255, 0.05) !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
     border-radius: 8px !important;
@@ -241,9 +192,11 @@
     grid-template-areas:
         "icon label"
         "icon desc";
-    column-gap: 10px;
-    row-gap: 2px;
+    column-gap: 3px;
+    row-gap: 0;
     align-items: center;
+    margin-top: 5px;
+    margin-bottom: 5px;
 }
 
 .export-profile-select .dropdown-value.rich .dropdown-item-main {
@@ -269,7 +222,7 @@
         "icon label"
         "icon desc";
     column-gap: 6px;
-    row-gap: 2px;
+    row-gap: 0;
     align-items: center;
 }
 
@@ -281,17 +234,19 @@
     grid-area: label;
     font-size: 0.85rem;
     letter-spacing: 0.5px;
+    line-height: 1.1;
+    margin-bottom: -2px;
 }
 
 .export-profile-select .dropdown-item-description {
     grid-area: desc;
-    font-size: 0.74rem;
+    font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.58);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1.45;
     letter-spacing: 0.22px;
+    line-height: 1.1;
 }
 
 .export-profile-select .dropdown-item-icon {
@@ -344,14 +299,16 @@
 .export-path-section {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
+    grid-area: path;
 }
 
 .export-dir-row {
     display: flex;
     gap: 8px;
     width: 100%;
-    align-items: stretch;
+    align-items: center;
+    justify-content: center;
 }
 
 .export-dir-input {
@@ -396,20 +353,21 @@
 }
 
 .export-main-button {
-    width: 100% !important;
-    height: 42px !important;
-    margin-top: 4px !important;
-    background: transparent !important;
-    color: var(--accent) !important;
-    border: 1px solid var(--accent) !important;
-    font-size: 1.2rem !important;
-    font-weight: 600 !important;
+    width: 100%;
+    height: 42px;
+    margin-top: 4px;
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    font-size: 1.2rem;
+    font-weight: 600;
     letter-spacing: 1.5px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    transition: all 0.2s ease !important;
+    transition: all 0.2s ease;
+    grid-area: button;
+    border-radius: 8px;
 }
 
 .btn-icon {
@@ -417,15 +375,42 @@
 }
 
 .export-main-button:hover {
-    background: var(--accent) !important;
-    color: black !important;
+    background: var(--accent);
+    color: black;
     transform: translateY(-2px);
     box-shadow: 0 0 25px rgba(var(--accent-rgb), 0.4);
 }
 
 .export-main-button:active {
     transform: translateY(0);
-    background: rgba(var(--accent-rgb), 0.8) !important;
+    background: rgba(var(--accent-rgb), 0.8);
+}
+
+@container previewContainer (min-width: 500px) {
+    .export-panel {
+        grid-template-columns: 1fr 120px;
+        grid-template-areas:
+            "header header"
+            "profile button"
+            "path button";
+        gap: 12px 16px;
+    }
+
+    .export-main-button {
+        height: 100%;
+        margin-top: 0;
+        flex-direction: column;
+        justify-content: center;
+        gap: 8px;
+        font-size: 0.95rem;
+        text-align: center;
+        padding: 8px;
+    }
+
+    .export-main-button .btn-icon {
+        font-size: 1.6rem;
+        margin-bottom: 2px;
+    }
 }
 
 .export-panel .checkbox-row {
@@ -445,7 +430,7 @@
     height: 20px;
 }
 
-.export-panel .custom-checkbox > .checkmark {
+.export-panel .custom-checkbox>.checkmark {
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.05);
 }
@@ -471,14 +456,14 @@
     border: 1px solid var(--accent);
 }
 
-.video-frame > video {
+.video-frame>video {
     width: 100%;
     height: 100%;
     object-fit: contain;
     display: block;
 }
 
-.video-frame > .controls {
+.video-frame>.controls {
     position: absolute;
     inset: auto 0 0 0;
     height: 1.5rem;
@@ -517,8 +502,7 @@
 .controls button:hover {
     transform: scale(1.05);
     filter:
-        drop-shadow(0 0 4px var(--accent))
-        drop-shadow(0 0 12px rgb(var(--accent-rgb) / 0.6));
+        drop-shadow(0 0 4px var(--accent)) drop-shadow(0 0 12px rgb(var(--accent-rgb) / 0.6));
 }
 
 .progress {
@@ -536,7 +520,7 @@
 .progress progress::-webkit-progress-bar {
     height: 50%;
     transform: translateY(3px);
-    background-color: rgba(255,255,255,0.15);
+    background-color: rgba(255, 255, 255, 0.15);
     border-radius: 999px;
 }
 
@@ -548,7 +532,7 @@
 /* INFO PANEL */
 .info-panel {
     width: 100%;
-    max-width: 450px;
+    max-width: 650px;
     margin-top: 12px;
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(12px);
@@ -617,13 +601,21 @@
     animation: slideDown 0.3s ease-out;
     display: flex;
     flex-direction: column;
-    max-height: 250px; /* Limit height for readability on small windows */
+    max-height: 250px;
+    /* Limit height for readability on small windows */
     overflow: hidden;
 }
 
 @keyframes slideDown {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .platform-switcher {
@@ -721,7 +713,8 @@
     line-height: 1.4;
     display: flex;
     align-items: center;
-    justify-content: flex-start; /* Ensure everything is pushed to the left */
+    justify-content: flex-start;
+    /* Ensure everything is pushed to the left */
     gap: 10px;
     transition: color 0.2s ease;
     counter-increment: step-counter;
@@ -740,7 +733,8 @@
 .steps-list li::before {
     content: counter(step-counter);
     color: var(--accent);
-    font-weight: 400; /* Jersey 10 doesn't need heavy weight usually */
+    font-weight: 400;
+    /* Jersey 10 doesn't need heavy weight usually */
     opacity: 1;
     font-size: 1.1rem;
     font-family: 'Jersey 10', system-ui, sans-serif;
@@ -756,11 +750,6 @@
 @media (max-width: 980px) {
     .preview-container {
         padding: 12px;
-    }
-
-    .preview-view-switcher {
-        gap: 16px;
-        margin-bottom: 10px;
     }
 
     .export-panel,
@@ -779,11 +768,6 @@
 @media (max-width: 640px) {
     .preview-container {
         padding: 10px;
-    }
-
-    .switcher-btn {
-        font-size: 0.66rem;
-        letter-spacing: 1.6px;
     }
 
     .export-panel {
@@ -813,9 +797,9 @@
     }
 
     .export-profile-select .dropdown-item-icon {
-        width: 28px;
-        height: 28px;
-        flex: 0 0 28px;
+        width: 20px;
+        height: 20px;
+        flex: 0 0 35px;
     }
 
     .export-profile-select .dropdown-item-icon svg {
@@ -824,7 +808,7 @@
     }
 
     .export-profile-select .dropdown-item-label {
-        font-size: 0.84rem;
+        font-size: 0.80rem;
     }
 
     .export-profile-select .dropdown-item-description {

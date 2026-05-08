@@ -11,6 +11,7 @@ export type UIState = {
     isDragging: boolean;
     activePage: Page;
     activeMode: "selector" | "editor";
+    settingsTab: string;
 };
 
 export type UIStateStore = UIState & {
@@ -30,6 +31,7 @@ export type UIStateStore = UIState & {
     setIsDragging: (isDragging: boolean) => void;
     setActivePage: (activePage: Page | ((prev: Page) => Page)) => void;
     setActiveMode: (mode: "selector" | "editor" | ((prev: "selector" | "editor") => "selector" | "editor")) => void;
+    setSettingsTab: (tab: string) => void;
 };
 
 export const DEFAULT_UI_STATE: UIState = {
@@ -41,6 +43,7 @@ export const DEFAULT_UI_STATE: UIState = {
     isDragging: false,
     activePage: "home",
     activeMode: "selector",
+    settingsTab: "general",
 };
 
 export const useUIStateStore = create<UIStateStore>()(
@@ -90,6 +93,7 @@ export const useUIStateStore = create<UIStateStore>()(
                 set((state) => ({
                     activeMode: typeof mode === "function" ? mode(state.activeMode) : mode,
                 })),
+            setSettingsTab: (settingsTab) => set({ settingsTab }),
         }),
         {
             name: "amverge.ui.v1",

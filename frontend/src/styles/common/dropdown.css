@@ -22,8 +22,6 @@
   color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: 32px;
-  height: auto;
   box-sizing: border-box;
 }
 
@@ -72,7 +70,6 @@
 
 .dropdown-item-label {
   min-width: 0;
-  font-size: 0.85rem;
   font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -93,8 +90,8 @@
 }
 
 .dropdown-item-icon {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   border-radius: 5px;
   display: inline-flex;
   align-items: center;
@@ -160,6 +157,7 @@
     opacity: 0;
     transform: translateY(-8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -171,6 +169,7 @@
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

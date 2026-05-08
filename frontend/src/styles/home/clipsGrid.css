@@ -28,10 +28,8 @@
     --cell-size: 180px;
 
     display: grid;
-    grid-template-columns: repeat(
-        auto-fit,
-        minmax(min(100%, var(--cell-size)), min(100%, var(--cell-size)))
-    );
+    grid-template-columns: repeat(auto-fit,
+            minmax(min(100%, var(--cell-size)), min(100%, var(--cell-size))));
 
     justify-content: center;
     align-content: start;
@@ -62,9 +60,18 @@
 }
 
 .clip-wrapper.focused {
-    outline: 3px solid var(--accent);
-    outline-offset: -3px;
-    z-index: 5;
+    z-index: 15;
+    /* border: 3px solid var(--accent); */
+}
+
+.clip-wrapper.focused::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 3px solid var(--accent);
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 50;
 }
 
 .clip-wrapper.selected {
@@ -106,12 +113,14 @@
     font-size: 10px;
     cursor: pointer;
     transition: all 0.2s ease;
-    opacity: 0.6;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .clip-wrapper:hover .clip-timeline-toggle,
 .clip-timeline-toggle.active {
     opacity: 1;
+    pointer-events: auto;
 }
 
 .clip-timeline-toggle:hover {
@@ -172,7 +181,7 @@
     border-color: rgba(255, 255, 255, 0.4);
 }
 
-.clip-selection-checkbox:checked ~ .clip-selection-checkmark {
+.clip-selection-checkbox:checked~.clip-selection-checkmark {
     background-color: var(--accent);
     border-color: var(--accent);
 }
@@ -183,7 +192,7 @@
     display: none;
 }
 
-.clip-selection-checkbox:checked ~ .clip-selection-checkmark:after {
+.clip-selection-checkbox:checked~.clip-selection-checkmark:after {
     display: block;
 }
 
@@ -200,12 +209,10 @@
 .clip-skeleton {
     aspect-ratio: 1;
     border-radius: 12px;
-    background: linear-gradient(
-        90deg,
-        #161616 25%,
-        rgb(var(--accent-rgb) / 0.25) 37%,
-        #161616 63%
-    );
+    background: linear-gradient(90deg,
+            #161616 25%,
+            rgb(var(--accent-rgb) / 0.25) 37%,
+            #161616 63%);
     background-size: 400% 100%;
     animation: shimmer 1.2s infinite;
 }
@@ -260,15 +267,13 @@
 .clip-download-icon.download-tone-light {
     color: rgb(248 251 255 / 0.98);
     filter:
-        drop-shadow(0 0 1px rgb(0 0 0 / 0.88))
-        drop-shadow(0 1px 2px rgb(0 0 0 / 0.72));
+        drop-shadow(0 0 1px rgb(0 0 0 / 0.88)) drop-shadow(0 1px 2px rgb(0 0 0 / 0.72));
 }
 
 .clip-download-icon.download-tone-dark {
     color: rgb(9 13 24 / 0.95);
     filter:
-        drop-shadow(0 0 1px rgb(255 255 255 / 0.92))
-        drop-shadow(0 1px 2px rgb(255 255 255 / 0.65));
+        drop-shadow(0 0 1px rgb(255 255 255 / 0.92)) drop-shadow(0 1px 2px rgb(255 255 255 / 0.65));
 }
 
 .clip-wrapper:hover .clip-download-btn {
@@ -330,9 +335,20 @@
 }
 
 @keyframes pulse {
-    0% { opacity: 0.8; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.05); }
-    100% { opacity: 0.8; transform: scale(1); }
+    0% {
+        opacity: 0.8;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+
+    100% {
+        opacity: 0.8;
+        transform: scale(1);
+    }
 }
 
 .clip-original-timestamp {

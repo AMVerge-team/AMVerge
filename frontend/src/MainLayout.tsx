@@ -87,9 +87,6 @@ export default function MainLayout(props: LayoutProps) {
 
                 <div className="right-pane" style={{ width: `${100 - leftWidth}%` }}>
                     <PreviewContainer
-                        programClip={activeTimelineSource?.src ?? null}
-                        programClipThumbnail={activeTimelineSource?.thumbnail ?? null}
-                        programTime={activeTimelineSource?.time}
                         sourceClip={focusedClip}
                         sourceClipThumbnail={focusedClipThumbnail}
                         onTimeUpdate={(time) => {

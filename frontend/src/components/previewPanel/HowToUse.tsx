@@ -43,19 +43,19 @@ export default function HowToUse() {
       {isExpanded && (
         <div className="info-content">
           <div className="platform-switcher">
-            <button 
+            <button
               className={`platform-btn ${platform === "windows" ? "active" : ""}`}
               onClick={(e) => { e.stopPropagation(); setPlatform("windows"); }}
             >
               <FaWindows /> Windows
             </button>
-            <button 
+            <button
               className={`platform-btn ${platform === "mac" ? "active" : ""}`}
               onClick={(e) => { e.stopPropagation(); setPlatform("mac"); }}
             >
               <FaApple /> macOS
             </button>
-            <button 
+            <button
               className={`platform-btn ${platform === "linux" ? "active" : ""}`}
               onClick={(e) => { e.stopPropagation(); setPlatform("linux"); }}
             >

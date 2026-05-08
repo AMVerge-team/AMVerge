@@ -4,9 +4,7 @@ import React from "react";
 import {
   FaFolderOpen,
   FaFileExport,
-  FaFolder,
-  FaRocket,
-  FaTags,
+  FaPencilAlt,
 } from "react-icons/fa";
 import Dropdown from "../common/Dropdown";
 import { useAppStateStore } from "../../stores/appStore.ts";
@@ -21,12 +19,6 @@ import {
   supportsClipMerge,
 } from "../../features/export/profiles.ts";
 type PreviewContainerProps = {
-  // Program (Timeline)
-  programClip: string | null;
-  programClipThumbnail: string | null;
-  programTime?: number;
-
-  // Source (Grid)
   sourceClip: string | null;
   sourceClipThumbnail: string | null;
   onTimeUpdate?: (time: number) => void;
@@ -36,8 +28,6 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const [showMergeNameModal, setShowMergeNameModal] = React.useState(false);
   const mergeNameInputRef = React.useRef<HTMLInputElement | null>(null);
 
-  const [activeView, setActiveView] = React.useState<"source" | "program">("source");
-
   const clips = useAppStateStore(s => s.clips);
   const selectedClips = useAppStateStore(s => s.selectedClips);
 
@@ -46,7 +36,8 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const importToken = useAppStateStore(s => s.importToken);
   const exportDir = useAppPersistedStore(s => s.exportDir);
   const setExportDir = useAppPersistedStore(s => s.setExportDir);
-  const activeMode = useUIStateStore(s => s.activeMode);
+  const setActivePage = useUIStateStore(s => s.setActivePage);
+  const setSettingsTab = useUIStateStore(s => s.setSettingsTab);
   const generalSettings = useGeneralSettingsStore();
   const setActiveExportProfileId = useGeneralSettingsStore(s => s.setActiveExportProfileId);
   const { handleExport, handlePickExportDir } = useImportExport();
@@ -73,27 +64,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
 
   const sourceClipObj = props.sourceClip ? clips.find(c => c.src === props.sourceClip) : null;
   const mergedSrcs = sourceClipObj?.mergedSrcs;
-
-  const hasProgram = !!props.programClip;
   const hasSource = !!props.sourceClip;
-
-  // Auto-switch to program when timeline is scrubbed/active (Only on initial load/presence)
-  React.useEffect(() => {
-    if (activeMode === "editor") {
-      setActiveView("program");
-    } else if (activeMode === "selector" && hasSource) {
-      setActiveView("source");
-    }
-  }, [activeMode, hasSource, hasProgram]);
-
-  // Auto-switch to SOURCE when a new clip is focused in the grid
-  const lastSourceRef = React.useRef(props.sourceClip);
-  React.useEffect(() => {
-    if (props.sourceClip && props.sourceClip !== lastSourceRef.current) {
-      setActiveView("source");
-    }
-    lastSourceRef.current = props.sourceClip;
-  }, [props.sourceClip]);
 
   React.useEffect(() => {
     if (showMergeNameModal) {
@@ -123,23 +94,8 @@ export default function PreviewContainer(props: PreviewContainerProps) {
 
   return (
     <main className="preview-container" >
-      <div className="preview-view-switcher">
-        <button
-          className={`switcher-btn ${activeView === "source" ? "active" : ""} ${!hasSource ? "disabled" : ""}`}
-          onClick={() => hasSource && setActiveView("source")}
-        >
-          SOURCE
-        </button>
-        <button
-          className={`switcher-btn ${activeView === "program" ? "active" : ""} ${!hasProgram ? "disabled" : ""}`}
-          onClick={() => hasProgram && setActiveView("program")}
-        >
-          PROGRAM
-        </button>
-      </div>
-
       <div className="preview-windows-layout single">
-        {activeView === "source" && hasSource && (
+        {hasSource && (
           <div className="preview-window-wrapper source" key="source-wrapper">
             <div className="preview-window">
               <VideoPlayer
@@ -156,26 +112,9 @@ export default function PreviewContainer(props: PreviewContainerProps) {
           </div>
         )}
 
-        {activeView === "program" && hasProgram && (
-          <div className="preview-window-wrapper program" key="program-wrapper">
-            <div className="preview-window">
-              <VideoPlayer
-                key={`program-player-${props.programClip}`}
-                selectedClip={props.programClip!}
-                videoIsHEVC={videoIsHEVC}
-                userHasHEVC={userHasHEVC}
-                posterPath={props.programClipThumbnail}
-                importToken={importToken}
-                externalTime={props.programTime}
-                onTimeUpdate={props.onTimeUpdate}
-              />
-            </div>
-          </div>
-        )}
-
-        {((activeView === "source" && !hasSource) || (activeView === "program" && !hasProgram) || (!hasSource && !hasProgram)) && (
+        {!hasSource && (
           <div className="preview-window empty" key="empty-preview">
-            <p>{activeView === "program" ? "Timeline is empty" : "No clip selected"}</p>
+            <p>No clip selected</p>
           </div>
         )}
       </div>
@@ -188,21 +127,28 @@ export default function PreviewContainer(props: PreviewContainerProps) {
         <div className="export-settings-row">
           <div className="export-setting-group export-profile-group">
             <label className="export-label">
-              <FaTags className="label-icon" /> Export Profile
             </label>
-            <Dropdown
-              className="export-profile-select"
-              options={exportProfileOptions}
-              value={activeExportProfile.id}
-              onChange={setActiveExportProfileId}
-              preferredDirection="down"
-            />
+            <div className="export-dir-row">
+              <Dropdown
+                className="export-profile-select"
+                options={exportProfileOptions}
+                value={activeExportProfile.id}
+                onChange={setActiveExportProfileId}
+                preferredDirection="down"
+              />
+              <button
+                className="buttons export-dir-browse"
+                onClick={() => { setSettingsTab("export"); setActivePage("settings"); }}
+                title="Edit export settings"
+              >
+                <FaPencilAlt />
+              </button>
+            </div>
           </div>
         </div>
 
         <div className="export-path-section">
           <label className="export-label">
-            <FaFolder className="label-icon" /> Output Directory
           </label>
           <div className="export-dir-row">
             <input
@@ -227,7 +173,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
           id="file-button"
           onClick={onExportClick}
         >
-          <FaRocket className="btn-icon" /> Export Now
+          Export Now
         </button>
       </div>
 

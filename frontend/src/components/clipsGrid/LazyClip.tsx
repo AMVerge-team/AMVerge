@@ -448,15 +448,13 @@ export const LazyClip = memo(function LazyClip({
         setIsVideoReady(false);
       }}
     >
-      {enableEditor && (
-        <button
-          className={`clip-timeline-toggle ${isSelected ? "active" : ""}`}
-          onClick={(e) => onToggleTimeline(clip.id, e)}
-          title={isSelected ? "Remove from timeline" : "Add to timeline"}
-        >
-          {isSelected ? <FaCheck /> : <FaPlus />}
-        </button>
-      )}
+      <button
+        className={`clip-timeline-toggle ${isSelected ? "active" : ""}`}
+        onClick={(e) => onToggleTimeline(clip.id, e)}
+        title={isSelected ? (enableEditor ? "Remove from timeline" : "Deselect clip") : (enableEditor ? "Add to timeline" : "Select clip")}
+      >
+        {isSelected ? <FaCheck /> : <FaPlus />}
+      </button>
 
       {isVisible ? (
         <>

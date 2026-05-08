@@ -1,8 +1,8 @@
-import { useState } from "react";
 import GeneralSection from "../components/settings/GeneralSection";
 import AppearanceSection from "../components/settings/AppearanceSection";
 import DiscordRPCSection from "../components/settings/DiscordRPCSection";
 import ExportSection from "../components/settings/ExportSection";
+import { useUIStateStore } from "../stores/UIStore";
 
 
 const PAGES = [
@@ -23,7 +23,8 @@ export default function Settings({
   onEpisodesPathChanged,
   onThemeReset,
 }: SettingsProps) {
-  const [activeTab, setActiveTab] = useState("general");
+  const activeTab = useUIStateStore((s) => s.settingsTab);
+  const setActiveTab = useUIStateStore((s) => s.setSettingsTab);
 
   return (
     <div className="menu-page">
