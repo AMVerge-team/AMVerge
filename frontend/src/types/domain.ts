@@ -10,6 +10,8 @@ export type ClipItem = {
   endSec?: number | null;
   start?: number;
   end?: number;
+  thumbnailReady?: boolean;
+  mergedSrcs?: string[];
 };
 
 export type EpisodeFolder = {

@@ -8,6 +8,7 @@ import HomePage from "./pages/HomePage";
 import Menu from "./pages/Menu";
 import Settings from "./pages/Settings";
 import LoadingOverlay from "./components/LoadingOverlay";
+import BgProgressBar from "./components/BgProgressBar";
 
 import useDiscordRPC from "./hooks/useDiscordRPC";
 import useHEVCSupport from "./hooks/useHEVCSupport";
@@ -29,6 +30,7 @@ function App() {
   const batchTotal = useAppStateStore((s) => s.batchTotal);
   const batchDone = useAppStateStore((s) => s.batchDone);
   const batchCurrentFile = useAppStateStore((s) => s.batchCurrentFile);
+  const bgProgress = useAppStateStore((s) => s.bgProgress);
   const setProgress = useAppStateStore((s) => s.setProgress);
   const setProgressMsg = useAppStateStore((s) => s.setProgressMsg);
   const setVideoIsHEVC = useAppStateStore((s) => s.setVideoIsHEVC);
@@ -279,6 +281,8 @@ function App() {
             batchCurrentFile={batchCurrentFile || ""}
             onAbort={handleAbort}
           />
+        ) : bgProgress ? (
+          <BgProgressBar done={bgProgress.done} total={bgProgress.total} />
         ) : null
       }
       sidebarEnabled={sidebarEnabled}

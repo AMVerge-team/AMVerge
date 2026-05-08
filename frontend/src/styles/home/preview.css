@@ -498,6 +498,15 @@
     pointer-events: auto;
 }
 
+.controls .time-display {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    white-space: nowrap;
+    user-select: none;
+    pointer-events: none;
+}
+
 .controls button {
     background: transparent;
     border: none;

@@ -19,6 +19,17 @@ const DOWNLOAD_TONE_SOURCE_SIZE = 34;
 const DOWNLOAD_TONE_SAMPLE_MARGIN = 6;
 const DOWNLOAD_TONE_THRESHOLD = 158;
 
+function formatClipTime(seconds?: number | null): string | null {
+  if (typeof seconds !== 'number' || isNaN(seconds)) return null;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  }
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 export const LazyClip = memo(function LazyClip({
   clip,
   index,
@@ -42,6 +53,7 @@ export const LazyClip = memo(function LazyClip({
   const audioPlaybackHover = useGeneralSettingsStore(s => s.audioPlaybackHover);
   const playbackVolume = useGeneralSettingsStore(s => s.playbackVolume);
   const showDownloadButton = useThemeSettingsStore(s => s.showDownloadButton);
+  const showClipTimestamps = useThemeSettingsStore(s => s.showClipTimestamps);
   // state and refs for tile visibility, hover, video element, and proxy state
   const [isVisible, setIsVisible] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -52,6 +64,8 @@ export const LazyClip = memo(function LazyClip({
   const hasFirstFrameRef = useRef(false);
   const videoFrameCallbackIdRef = useRef<number | null>(null);
   const proxyInFlightRef = useRef(false);
+  const mergedPreviewInFlightRef = useRef(false);
+  const mergedPreviewFetchedKeyRef = useRef<string | null>(null);
 
   // staggered mount: only mount video when it's this tile's turn
   const [staggerReady, setStaggerReady] = useState(false);
@@ -63,6 +77,7 @@ export const LazyClip = memo(function LazyClip({
   const [isVideoReady, setIsVideoReady] = useState(false);
   // the actual video source (original or proxy)
   const [effectiveSrc, setEffectiveSrc] = useState(clip.src);
+  const mergedSrcsKey = clip.mergedSrcs ? clip.mergedSrcs.join("|") : null;
   const originalPath = clip.src;
 
   // Is this clip currently being merged or split on the backend?
@@ -109,6 +124,8 @@ export const LazyClip = memo(function LazyClip({
     hasReportedErrorRef.current = false;
     hasFirstFrameRef.current = false;
     proxyInFlightRef.current = false;
+    mergedPreviewInFlightRef.current = false;
+    mergedPreviewFetchedKeyRef.current = null;
 
     const v = videoRef.current;
     if (v && videoFrameCallbackIdRef.current && (v as any).cancelVideoFrameCallback) {
@@ -174,6 +191,30 @@ export const LazyClip = memo(function LazyClip({
 
     void run();
   }, [needsHevcProxy, isVisible, isHovered, gridPreview, originalPath, requestProxySequential]);
+
+  // Generate a stream-copy concat preview for merged clips (skipped for HEVC — proxy handles that).
+  useEffect(() => {
+    if (!mergedSrcsKey || !clip.mergedSrcs) return;
+    if (needsHevcProxy) return;
+    if (!isVisible) return;
+    if (mergedPreviewFetchedKeyRef.current === mergedSrcsKey) return;
+    if (mergedPreviewInFlightRef.current) return;
+
+    mergedPreviewFetchedKeyRef.current = mergedSrcsKey;
+    mergedPreviewInFlightRef.current = true;
+
+    invoke<string>("ensure_merged_preview", { srcs: clip.mergedSrcs })
+      .then((path) => {
+        setEffectiveSrc(path);
+      })
+      .catch((err) => {
+        console.warn("ensure_merged_preview failed", err);
+        mergedPreviewFetchedKeyRef.current = null; // allow retry
+      })
+      .finally(() => {
+        mergedPreviewInFlightRef.current = false;
+      });
+  }, [mergedSrcsKey, needsHevcProxy, isVisible, clip.mergedSrcs]);
 
   // Stagger queue: report demand when grid-preview is on and tile is visible.
   // same pattern as the proxy queue - register/unregister, central loop picks
@@ -301,16 +342,20 @@ export const LazyClip = memo(function LazyClip({
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
+      console.log(`[LazyClip click] id=${clip.id} thumbnailReady=${clip.thumbnailReady}`);
+      if (clip.thumbnailReady === false) return; // still generating — block
       onClipClick(clip.id, clip.src, index, e);
     },
-    [clip.id, clip.src, index, onClipClick]
+    [clip.id, clip.src, clip.thumbnailReady, index, onClipClick]
   );
 
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
+      console.log(`[LazyClip dblclick] id=${clip.id} thumbnailReady=${clip.thumbnailReady}`);
+      if (clip.thumbnailReady === false) return; // still generating — block
       onClipDoubleClick(clip.id, clip.src, index, e);
     },
-    [clip.id, clip.src, index, onClipDoubleClick]
+    [clip.id, clip.src, clip.thumbnailReady, index, onClipDoubleClick]
   );
 
 
@@ -416,20 +461,24 @@ export const LazyClip = memo(function LazyClip({
       {isVisible ? (
         <>
           {/* Thumbnail — always rendered when visible, hidden on hover */}
-          <img
-            ref={thumbnailRef}
-            className="clip"
-            src={`${convertFileSrc(clip.thumbnail)}?v=${importToken}`}
-            style={{ opacity: shouldShowThumbnail ? 1 : 0 }}
-            draggable={false}
-            onLoad={(e) => {
-              updateDownloadToneFromThumbnail(e.currentTarget);
-            }}
-            onDragStart={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-          />
+          {clip.thumbnailReady === false ? (
+            <div className="clip clip-skeleton" style={{ opacity: shouldShowThumbnail ? 1 : 0 }} />
+          ) : (
+            <img
+              ref={thumbnailRef}
+              className="clip"
+              src={`${convertFileSrc(clip.thumbnail)}?v=${importToken}`}
+              style={{ opacity: shouldShowThumbnail ? 1 : 0 }}
+              draggable={false}
+              onLoad={(e) => {
+                updateDownloadToneFromThumbnail(e.currentTarget);
+              }}
+              onDragStart={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            />
+          )}
           {/* Video - only mounted when hovered or gridPreview, otherwise skip the DOM node entirely */}
           {shouldMountVideo && (
             <video
@@ -532,6 +581,12 @@ export const LazyClip = memo(function LazyClip({
           {!isProcessing && forceThumbnail && needsHevcProxy && (
             <div className="clip-status-overlay">
               <span className="status-text">Processing...</span>
+            </div>
+          )}
+
+          {showClipTimestamps && (clip.startSec ?? clip.start) !== undefined && (
+            <div className="clip-original-timestamp">
+              {formatClipTime(clip.startSec ?? clip.start)}
             </div>
           )}
 

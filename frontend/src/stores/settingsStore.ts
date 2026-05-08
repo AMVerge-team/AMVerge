@@ -198,6 +198,7 @@ export type ThemeSettings = {
     backgroundOpacity: number; // 0 to 1
     backgroundBlur: number; // pixels
     showDownloadButton: boolean;
+    showClipTimestamps: boolean;
 };
 
 export type ThemeSettingsStore = ThemeSettings & {
@@ -207,6 +208,7 @@ export type ThemeSettingsStore = ThemeSettings & {
     setBackgroundOpacity: (opacity: number) => void;
     setBackgroundBlur: (blur: number) => void;
     setShowDownloadButton: (showDownloadButton: boolean) => void;
+    setShowClipTimestamps: (showClipTimestamps: boolean) => void;
     resetThemeSettings: () => void;
 };
 
@@ -217,6 +219,7 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
     backgroundOpacity: 1.0,
     backgroundBlur: 0,
     showDownloadButton: true,
+    showClipTimestamps: true,
 };
 
 export const useThemeSettingsStore = create<ThemeSettingsStore>()(
@@ -247,6 +250,10 @@ export const useThemeSettingsStore = create<ThemeSettingsStore>()(
             setShowDownloadButton: (showDownloadButton) => {
                 console.log("Toggling download button..")
                 set({ showDownloadButton: showDownloadButton })
+            },
+            setShowClipTimestamps: (showClipTimestamps) => {
+                console.log("Setting clip timestamps..")
+                set({ showClipTimestamps: showClipTimestamps })
             },
             resetThemeSettings: () => {
                 console.log("Resetting theme..")

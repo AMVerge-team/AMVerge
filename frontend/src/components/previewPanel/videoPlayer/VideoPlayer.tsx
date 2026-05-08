@@ -3,8 +3,20 @@ import { FaExpand, FaPause, FaPlay, FaVolumeMute, FaVolumeUp } from "react-icons
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useVideoPlayer } from "./useVideoPlayer";
 
+function formatTime(seconds: number): string {
+    if (!seconds || isNaN(seconds)) return "0:00";
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    if (h > 0) {
+        return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+    }
+    return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 type VideoPlayerProps = {
     selectedClip: string;
+    mergedSrcs?: string[];
     videoIsHEVC: boolean | null;
     userHasHEVC: boolean;
     posterPath: string | null;
@@ -15,6 +27,7 @@ type VideoPlayerProps = {
 
 export default function VideoPlayer({
     selectedClip,
+    mergedSrcs,
     videoIsHEVC,
     userHasHEVC,
     posterPath,
@@ -51,6 +64,7 @@ export default function VideoPlayer({
         handleProgressMouseDown,
     } = useVideoPlayer({
         selectedClip,
+        mergedSrcs,
         videoIsHEVC,
         userHasHEVC,
         externalTime,
@@ -89,6 +103,10 @@ export default function VideoPlayer({
                     <button type="button" onClick={togglePlay}>
                         {isPlaying ? <FaPause /> : <FaPlay />}
                     </button>
+
+                    <div className="time-display">
+                        {formatTime(currentTime)} / {formatTime(duration)}
+                    </div>
 
                     <div
                         ref={progressRef}

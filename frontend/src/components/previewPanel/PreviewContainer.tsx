@@ -32,7 +32,7 @@ type PreviewContainerProps = {
   onTimeUpdate?: (time: number) => void;
 };
 
-export default function PreviewContainer (props: PreviewContainerProps) {
+export default function PreviewContainer(props: PreviewContainerProps) {
   const [showMergeNameModal, setShowMergeNameModal] = React.useState(false);
   const mergeNameInputRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -70,6 +70,9 @@ export default function PreviewContainer (props: PreviewContainerProps) {
   );
 
   const canMergeWithActiveProfile = supportsClipMerge(activeExportProfile.workflow) && activeExportProfile.mergeEnabled;
+
+  const sourceClipObj = props.sourceClip ? clips.find(c => c.src === props.sourceClip) : null;
+  const mergedSrcs = sourceClipObj?.mergedSrcs;
 
   const hasProgram = !!props.programClip;
   const hasSource = !!props.sourceClip;
@@ -119,15 +122,15 @@ export default function PreviewContainer (props: PreviewContainerProps) {
   };
 
   return (
-    <main  className="preview-container" >
+    <main className="preview-container" >
       <div className="preview-view-switcher">
-        <button 
+        <button
           className={`switcher-btn ${activeView === "source" ? "active" : ""} ${!hasSource ? "disabled" : ""}`}
           onClick={() => hasSource && setActiveView("source")}
         >
           SOURCE
         </button>
-        <button 
+        <button
           className={`switcher-btn ${activeView === "program" ? "active" : ""} ${!hasProgram ? "disabled" : ""}`}
           onClick={() => hasProgram && setActiveView("program")}
         >
@@ -139,9 +142,10 @@ export default function PreviewContainer (props: PreviewContainerProps) {
         {activeView === "source" && hasSource && (
           <div className="preview-window-wrapper source" key="source-wrapper">
             <div className="preview-window">
-              <VideoPlayer 
+              <VideoPlayer
                 key={`source-player-${props.sourceClip}`}
                 selectedClip={props.sourceClip!}
+                mergedSrcs={mergedSrcs}
                 videoIsHEVC={videoIsHEVC}
                 userHasHEVC={userHasHEVC}
                 posterPath={props.sourceClipThumbnail}
@@ -155,7 +159,7 @@ export default function PreviewContainer (props: PreviewContainerProps) {
         {activeView === "program" && hasProgram && (
           <div className="preview-window-wrapper program" key="program-wrapper">
             <div className="preview-window">
-              <VideoPlayer 
+              <VideoPlayer
                 key={`program-player-${props.programClip}`}
                 selectedClip={props.programClip!}
                 videoIsHEVC={videoIsHEVC}
@@ -218,16 +222,16 @@ export default function PreviewContainer (props: PreviewContainerProps) {
           </div>
         </div>
 
-        <button 
-          className="buttons export-main-button" 
+        <button
+          className="buttons export-main-button"
           id="file-button"
           onClick={onExportClick}
         >
           <FaRocket className="btn-icon" /> Export Now
         </button>
       </div>
-      
-      <HowToUse/>
+
+      <HowToUse />
 
       {showMergeNameModal && (
         <div
@@ -239,7 +243,7 @@ export default function PreviewContainer (props: PreviewContainerProps) {
             onMouseDown={(e) => e.stopPropagation()}
           >
             <div className="episode-modal-title">Merged file name</div>
-              <input
+            <input
               ref={mergeNameInputRef}
               className="episode-modal-input"
               placeholder="Enter file name..."

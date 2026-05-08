@@ -220,6 +220,26 @@ export default function AppearanceSection({
         </div>
       </div>
 
+      <div className="settings-row">
+        <label className="settings-label">Show clip timestamps</label>
+        <div className="settings-control">
+          <label className="custom-checkbox">
+            <input
+              type="checkbox"
+              className="checkbox"
+              checked={themeSettings.showClipTimestamps}
+              onChange={(e) =>
+                setThemeSettings((prev) => ({
+                  ...prev,
+                  showClipTimestamps: e.target.checked,
+                }))
+              }
+            />
+            <span className="checkmark"></span>
+          </label>
+        </div>
+      </div>
+
       <div
         className="settings-row"
         style={{

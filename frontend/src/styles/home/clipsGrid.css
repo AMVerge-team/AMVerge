@@ -334,3 +334,19 @@
     50% { opacity: 1; transform: scale(1.05); }
     100% { opacity: 0.8; transform: scale(1); }
 }
+
+.clip-original-timestamp {
+    position: absolute;
+    bottom: var(--clip-overlay-inset);
+    right: var(--clip-overlay-inset);
+    z-index: 12;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-weight: 500;
+    pointer-events: none;
+    letter-spacing: 0.5px;
+}

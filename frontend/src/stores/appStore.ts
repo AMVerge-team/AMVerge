@@ -21,6 +21,7 @@ export type AppState = {
   loading: boolean;
   progress: number;
   progressMsg: string;
+  bgProgress: { done: number; total: number } | null;
   importToken: string;
   batchTotal: number;
   batchDone: number;
@@ -58,7 +59,8 @@ export const DEFAULT_APP_STATE: AppState = {
   
   loading: false,
   progress: 0,
-  progressMsg: "Starting...",
+  progressMsg: "",
+  bgProgress: null,
   importToken: "",
   batchTotal: 0,
   batchDone: 0,
