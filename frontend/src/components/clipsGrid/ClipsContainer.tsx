@@ -17,7 +17,6 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   const clips = useAppStateStore((state) => state.clips);
   const loading = useAppStateStore((state) => state.loading);
   const importToken = useAppStateStore((state) => state.importToken);
-  const focusedClip = useAppStateStore((state) => state.focusedClip);
   const setFocusedClip = useAppStateStore((state) => state.setFocusedClip);
   const setSelectedClips = useAppStateStore((state) => state.setSelectedClips);
 
@@ -56,16 +55,17 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     videoRefs.current[clipId] = el;
   }, []);
 
-  // Handles click on a clip tile (focus/select logic)
   const handleClipClick = useCallback(
     (clipId: string, clipSrc: string, index: number, e: React.MouseEvent<HTMLDivElement>) => {
       const isCtrlOrCmd = e.ctrlKey || e.metaKey;
       const isShift = e.shiftKey;
 
+      const state = useAppStateStore.getState();
+
       // Shift-click: select a range of clips for the timeline
       if (isShift) {
-        const anchorIndex = focusedClip
-          ? clips.findIndex((c) => c.src === focusedClip)
+        const anchorIndex = state.focusedClip
+          ? clips.findIndex((c) => c.src === state.focusedClip)
           : -1;
         const startIndex = anchorIndex !== -1 ? anchorIndex : index;
         const [start, end] = [startIndex, index].sort((a, b) => a - b);
@@ -92,7 +92,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
       // Single click: focus this clip for preview (NO timeline change)
       setFocusedClip(clipSrc);
     },
-    [clips, focusedClip, setFocusedClip, setSelectedClips]
+    [clips, setFocusedClip, setSelectedClips]
   );
 
   const handleToggleTimeline = useCallback(

@@ -38,8 +38,10 @@ export const LazyClip = memo(function LazyClip({
   const gridPreview = useUIStateStore(s => s.gridPreview);
   const videoIsHEVC = useAppStateStore(s => s.videoIsHEVC);
   const userHasHEVC = useAppStateStore(s => s.userHasHEVC);
-  const generalSettings = useGeneralSettingsStore();
-  const themeSettings = useThemeSettingsStore();
+  const enableEditor = useGeneralSettingsStore(s => s.enableEditor);
+  const audioPlaybackHover = useGeneralSettingsStore(s => s.audioPlaybackHover);
+  const playbackVolume = useGeneralSettingsStore(s => s.playbackVolume);
+  const showDownloadButton = useThemeSettingsStore(s => s.showDownloadButton);
   // state and refs for tile visibility, hover, video element, and proxy state
   const [isVisible, setIsVisible] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -277,9 +279,9 @@ export const LazyClip = memo(function LazyClip({
     if (shouldPlay) {
       // Audio logic: only play audio if hovered AND setting is enabled.
       // Grid preview (Preview-all) should remain muted unless specifically hovered.
-      const audioEnabled = isHovered && generalSettings.audioPlaybackHover;
+      const audioEnabled = isHovered && audioPlaybackHover;
       v.muted = !audioEnabled;
-      v.volume = generalSettings.playbackVolume;
+      v.volume = playbackVolume;
 
       v.autoplay = true;
       v.loop = true;
@@ -295,7 +297,7 @@ export const LazyClip = memo(function LazyClip({
         // ignore
       }
     }
-  }, [showVideo, shouldMountVideo, effectiveSrc, isHovered, generalSettings.audioPlaybackHover, generalSettings.playbackVolume]);
+  }, [showVideo, shouldMountVideo, effectiveSrc, isHovered, audioPlaybackHover, playbackVolume]);
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -401,7 +403,7 @@ export const LazyClip = memo(function LazyClip({
         setIsVideoReady(false);
       }}
     >
-      {generalSettings.enableEditor && (
+      {enableEditor && (
         <button
           className={`clip-timeline-toggle ${isSelected ? "active" : ""}`}
           onClick={(e) => onToggleTimeline(clip.id, e)}
@@ -433,7 +435,7 @@ export const LazyClip = memo(function LazyClip({
             <video
               className="clip"
               src={`${convertFileSrc(effectiveSrc)}?v=${importToken}#t=${clip.start || 0}${clip.end ? "," + clip.end : ""}`}
-              muted={!(isHovered && generalSettings.audioPlaybackHover)}
+              muted={!(isHovered && audioPlaybackHover)}
               loop
               autoPlay
               playsInline
@@ -447,9 +449,9 @@ export const LazyClip = memo(function LazyClip({
               }}
               onLoadedMetadata={(e) => {
                 if (gridPreview || isHovered) {
-                  const audioEnabled = isHovered && generalSettings.audioPlaybackHover;
+                  const audioEnabled = isHovered && audioPlaybackHover;
                   e.currentTarget.muted = !audioEnabled;
-                  e.currentTarget.volume = generalSettings.playbackVolume;
+                  e.currentTarget.volume = playbackVolume;
                   e.currentTarget.play().catch(() => { });
                 }
               }}
@@ -504,9 +506,9 @@ export const LazyClip = memo(function LazyClip({
                       const vid = videoRef.current;
                       if (!vid) return;
 
-                      const audioEnabled = isHovered && generalSettings.audioPlaybackHover;
+                      const audioEnabled = isHovered && audioPlaybackHover;
                       vid.muted = !audioEnabled;
-                      vid.volume = generalSettings.playbackVolume;
+                      vid.volume = playbackVolume;
 
                       vid.load();
                       vid.play().catch(() => { });
@@ -533,7 +535,7 @@ export const LazyClip = memo(function LazyClip({
             </div>
           )}
 
-          {themeSettings.showDownloadButton && (
+          {showDownloadButton && (
             <DownloadButton tone={downloadTone} onClick={() => onDownloadClip(clip)} />
           )}
         </>
