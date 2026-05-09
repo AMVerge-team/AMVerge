@@ -31,13 +31,14 @@ jobs:
         working-directory: frontend
         run: npm ci --include=optional
 
-      - name: Work around npm optional dependency issues (Tauri and Rollup)
+      - name: Work around npm optional dependency issue (Rollup)
         working-directory: frontend
         run: |
-          TAURI_CLI_VERSION=$(node -e "const v=require('./package.json').devDependencies['@tauri-apps/cli']; console.log(v.replace(/^[^0-9]*/,''));")
-          npm i --no-save "@tauri-apps/cli-darwin-arm64@${TAURI_CLI_VERSION}"
           ROLLUP_VERSION=$(node -e "console.log(require('rollup/package.json').version)")
           npm i --no-save "@rollup/rollup-darwin-arm64@${ROLLUP_VERSION}"
+
+      - name: Install Tauri CLI (Rust)
+        run: cargo install tauri-cli --version '^2.0'
 
       - name: Create backend venv and install dependencies
         run: |
@@ -62,8 +63,8 @@ jobs:
         run: ls -la frontend/src-tauri/bin/backend_script-aarch64-apple-darwin
 
       - name: Build macOS app bundle
-        working-directory: frontend
-        run: npm run tauri build -- --config src-tauri/tauri.macos.conf.json
+        working-directory: frontend/src-tauri
+        run: cargo tauri build --config tauri.macos.conf.json
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
