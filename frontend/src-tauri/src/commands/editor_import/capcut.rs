@@ -86,6 +86,7 @@ pub(super) async fn import_into_capcut(
     }
 }
 
+#[cfg(target_os = "windows")]
 pub(super) fn build_capcut_ui_import_ps(media_paths: &[String]) -> String {
     let files = media_paths
         .iter()
@@ -582,6 +583,7 @@ Write-Output 'CapCut media import complete.'
     template.replace("__FILES__", &files)
 }
 
+#[cfg(target_os = "windows")]
 fn is_capcut_app_process_running() -> bool {
     let mut cmd = Command::new("tasklist");
     apply_no_window(&mut cmd);
@@ -613,6 +615,7 @@ fn is_capcut_app_process_running() -> bool {
     })
 }
 
+#[cfg(target_os = "windows")]
 fn is_capcut_media_extension_supported(path: &str) -> bool {
     let extension = Path::new(path)
         .extension()
@@ -625,6 +628,7 @@ fn is_capcut_media_extension_supported(path: &str) -> bool {
     )
 }
 
+#[cfg(target_os = "windows")]
 fn resolve_capcut_executable() -> Option<PathBuf> {
     if let Ok(custom) = std::env::var("AMVERGE_CAPCUT_PATH") {
         let path = PathBuf::from(custom);

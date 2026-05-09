@@ -1,14 +1,20 @@
-#[cfg(target_os = "windows")]
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
+#[cfg(target_os = "windows")]
+use std::process::Stdio;
+#[cfg(target_os = "windows")]
 use std::time::Duration;
 
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, State};
+#[cfg(target_os = "windows")]
+use tauri::Emitter;
 
+#[cfg(target_os = "windows")]
 use crate::payloads::ProgressPayload;
 use crate::state::EditorImportAbortState;
+#[cfg(target_os = "windows")]
 use crate::utils::logging::console_log;
 use crate::utils::process::apply_no_window;
 
@@ -444,6 +450,7 @@ fn spawn_editor_process(
     Ok(())
 }
 
+#[cfg(target_os = "windows")]
 fn run_editor_ui_import_ps(script_path: &Path, editor_name: &str) -> Result<String, String> {
     let mut cmd = Command::new("powershell");
     apply_no_window(&mut cmd);
@@ -478,7 +485,6 @@ fn run_editor_ui_import_ps(script_path: &Path, editor_name: &str) -> Result<Stri
     }
 }
 
-#[cfg(target_os = "windows")]
 fn run_python_script(script_path: &Path) -> Result<String, String> {
     let mut launch_errors: Vec<String> = Vec::new();
 
@@ -1184,7 +1190,6 @@ Write-Output '__EDITOR_NAME__ import complete.'
         .replace("__DIALOG_REJECT_EXPRESSION__", dialog_reject_expression)
 }
 
-#[cfg(target_os = "windows")]
 fn escape_py_single_quoted(raw: &str) -> String {
     raw.replace('\\', "\\\\").replace('\'', "\\'")
 }
