@@ -29,7 +29,13 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: frontend
-        run: npm ci
+        run: npm ci --include=optional
+
+      - name: Work around npm optional dependency issue for Tauri CLI
+        working-directory: frontend
+        run: |
+          TAURI_CLI_VERSION=$(node -e "const v=require('./package.json').devDependencies['@tauri-apps/cli']; console.log(v.replace(/^[^0-9]*/,''));")
+          npm i --no-save "@tauri-apps/cli-darwin-arm64@${TAURI_CLI_VERSION}"
 
       - name: Create backend venv and install dependencies
         run: |
