@@ -89,7 +89,12 @@ jobs:
 
       - name: Build macOS app bundle
         working-directory: frontend/src-tauri
-        run: cargo tauri build --target ${{ matrix.rust_target }} --config ${{ matrix.tauri_config }}
+        run: cargo tauri build --target ${{ matrix.rust_target }} --bundles app --config ${{ matrix.tauri_config }}
+
+      - name: Debug bundled outputs
+        run: |
+          echo "Bundle directory tree for target ${{ matrix.rust_target }}:"
+          find frontend/src-tauri/target/${{ matrix.rust_target }}/release/bundle -maxdepth 3 -print || true
 
       - name: Archive app bundle
         run: |
