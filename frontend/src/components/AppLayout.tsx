@@ -1,6 +1,8 @@
 import React from "react";
 import Sidebar from "./sidebar/Sidebar";
 import Navbar from "./Navbar";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { isVideoBackgroundPath, useThemeSettingsStore } from "../stores/settingsStore";
 
 export interface AppLayoutProps {
   windowWrapperRef: React.RefObject<HTMLDivElement | null>;
@@ -25,8 +27,29 @@ export default function AppLayout({
   loadingOverlay,
   isDragging,
 }: AppLayoutProps) {
+  const backgroundMediaPath = useThemeSettingsStore((s) => s.backgroundImagePath);
+  const backgroundVideoSrc = React.useMemo(() => {
+    if (!backgroundMediaPath || !isVideoBackgroundPath(backgroundMediaPath)) {
+      return null;
+    }
+
+    const [cleanPath, query] = backgroundMediaPath.split("?");
+    const src = convertFileSrc(cleanPath);
+    return query ? `${src}?${query}` : src;
+  }, [backgroundMediaPath]);
+
   return (
     <main className="app-root">
+      {backgroundVideoSrc && (
+        <video
+          className="app-bg-video"
+          src={backgroundVideoSrc}
+          autoPlay
+          muted
+          loop
+          playsInline
+        />
+      )}
       {loadingOverlay}
       {isDragging && (
         <div className="dragging-overlay">

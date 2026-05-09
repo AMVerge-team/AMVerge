@@ -46,6 +46,23 @@ body::before {
     pointer-events: none;
 }
 
+.app-root {
+    position: relative;
+    z-index: 0;
+}
+
+.app-bg-video {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: var(--app-bg-opacity, 1);
+    filter: blur(var(--app-bg-blur, 0px));
+    z-index: -1;
+    pointer-events: none;
+}
+
 /* all buttons */
 .buttons {
     height: 30px;
