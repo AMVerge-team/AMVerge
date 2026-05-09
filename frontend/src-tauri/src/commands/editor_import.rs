@@ -595,7 +595,6 @@ fn run_python_script(script_path: &Path) -> Result<String, String> {
     ))
 }
 
-#[cfg(target_os = "windows")]
 fn resolve_local_venv_python() -> Option<PathBuf> {
     let current = std::env::current_dir().ok()?;
     let candidate_roots = if current.ends_with("src-tauri") {
