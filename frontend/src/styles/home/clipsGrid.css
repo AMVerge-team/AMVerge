@@ -1,0 +1,368 @@
+/* --------------------
+   CLIPS CONTAINER
+-------------------- */
+
+.clips-container {
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    overflow-y: auto;
+    margin-right: 10px;
+}
+
+.clips-container::-webkit-scrollbar {
+    width: 10px;
+    background: transparent;
+}
+
+.clips-container::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--accent-rgb) / 0.3);
+    border-radius: 999px;
+}
+
+.clips-container::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(var(--accent-rgb) / 0.6);
+}
+
+.clips-grid {
+    --cell-size: 180px;
+
+    display: grid;
+    grid-template-columns: repeat(auto-fit,
+            minmax(min(100%, var(--cell-size)), min(100%, var(--cell-size))));
+
+    justify-content: center;
+    align-content: start;
+    gap: 15px;
+    padding: 15px;
+}
+
+.clip-wrapper {
+    --clip-overlay-inset: 7px;
+    width: 100%;
+    max-width: var(--clip-max-width, 260px);
+    aspect-ratio: var(--clip-tile-aspect, 1 / 1);
+    border-radius: 15px;
+    position: relative;
+    overflow: hidden;
+    background: black;
+    margin-inline: auto;
+    cursor: pointer;
+    transition: transform 0.18s ease-out, box-shadow 0.18s ease-out;
+}
+
+.clip-wrapper:hover {
+    transform: translateY(-6px) scale(1.04);
+    z-index: 10;
+    box-shadow:
+        0 10px 30px rgb(var(--accent-rgb) / 0.15),
+        0 0 0 1px rgb(var(--accent-rgb) / 0.25);
+}
+
+.clip-wrapper.focused {
+    z-index: 15;
+    /* border: 3px solid var(--accent); */
+}
+
+.clip-wrapper.focused::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 3px solid var(--accent);
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 50;
+}
+
+.clip-wrapper.selected {
+    z-index: 4;
+}
+
+.clip {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.clip-checkbox {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 10;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+}
+
+.clip-selected {
+    position: absolute;
+    top: var(--clip-overlay-inset);
+    left: var(--clip-overlay-inset);
+    z-index: 12;
+    width: 25px;
+    height: 25px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(2px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.clip-wrapper:hover .clip-selected,
+.clip-selected.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.clip-selected:hover {
+    transform: scale(1.1);
+    background: rgba(0, 0, 0, 0.6);
+    border-color: var(--accent);
+}
+
+.clip-selected.active {
+    background: var(--accent);
+    color: black;
+    border-color: var(--accent);
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.3);
+}
+
+.clip-selected.active:hover {
+    background: white;
+    box-shadow: 0 0 15px white;
+}
+
+/* Selection Checkbox (Top-Right) */
+.clip-selection-wrapper {
+    position: absolute;
+    top: var(--clip-overlay-inset);
+    right: var(--clip-overlay-inset);
+    z-index: 15;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.clip-selection-checkbox {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.clip-selection-checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 20px;
+    width: 20px;
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.clip-selection-wrapper:hover .clip-selection-checkmark {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.clip-selection-checkbox:checked~.clip-selection-checkmark {
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
+
+.clip-selection-checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+.clip-selection-checkbox:checked~.clip-selection-checkmark:after {
+    display: block;
+}
+
+.clip-selection-wrapper .clip-selection-checkmark:after {
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid black;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.clip-skeleton {
+    aspect-ratio: var(--clip-tile-aspect, 1 / 1);
+    border-radius: 12px;
+    background: linear-gradient(90deg,
+            #161616 25%,
+            rgb(var(--accent-rgb) / 0.25) 37%,
+            #161616 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.2s infinite;
+}
+
+#empty-grid {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+}
+
+.clip-download-btn {
+    position: absolute;
+    top: calc(var(--clip-overlay-inset));
+    right: calc(var(--clip-overlay-inset));
+    z-index: 15;
+    width: 25px;
+    height: 25px;
+    border-radius: 8px;
+    border: 1px solid rgb(255 255 255 / 0.14);
+    background: rgb(8 12 22 / 0.2);
+    color: rgb(255 255 255 / 0.98);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease,
+        background-color 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
+    opacity: 0;
+    transform: translateY(-4px) scale(0.96);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+}
+
+.clip-download-icon {
+    font-size: 14px;
+    line-height: 1;
+    transform: translateY(0);
+    transition:
+        color 0.16s ease,
+        filter 0.16s ease,
+        transform 0.16s ease;
+    pointer-events: none;
+}
+
+.clip-download-icon.download-tone-light {
+    color: rgb(248 251 255 / 0.98);
+    filter:
+        drop-shadow(0 0 1px rgb(0 0 0 / 0.88)) drop-shadow(0 1px 2px rgb(0 0 0 / 0.72));
+}
+
+.clip-download-icon.download-tone-dark {
+    color: rgb(9 13 24 / 0.95);
+    filter:
+        drop-shadow(0 0 1px rgb(255 255 255 / 0.92)) drop-shadow(0 1px 2px rgb(255 255 255 / 0.65));
+}
+
+.clip-wrapper:hover .clip-download-btn {
+    opacity: 0.95;
+    transform: translateY(0) scale(1);
+}
+
+.clip-download-btn:hover,
+.clip-download-btn:focus-visible {
+    background-color: rgb(8 12 22 / 0.42);
+    border-color: rgb(255 255 255 / 0.34);
+    box-shadow:
+        0 6px 14px rgb(0 0 0 / 0.32),
+        inset 0 1px 0 rgb(255 255 255 / 0.08);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transform: translateY(0) scale(1.03) !important;
+}
+
+.clip-download-btn.loading {
+    cursor: wait;
+    opacity: 0.8;
+    transform: translateY(0) scale(1);
+}
+
+.clip-download-btn:focus-visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    outline: 2px solid rgb(var(--accent-rgb) / 0.48);
+    outline-offset: 1px;
+}
+
+.clip-download-btn:active {
+    transform: translateY(0) scale(0.95) !important;
+}
+
+.clip-status-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 20;
+    pointer-events: none;
+}
+
+.status-text {
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.6);
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.8;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+
+    100% {
+        opacity: 0.8;
+        transform: scale(1);
+    }
+}
+
+.clip-original-timestamp {
+    position: absolute;
+    bottom: var(--clip-overlay-inset);
+    right: var(--clip-overlay-inset);
+    z-index: 12;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-weight: 500;
+    pointer-events: none;
+    letter-spacing: 0.5px;
+}

@@ -1,17 +1,12 @@
 // Root sidebar container. Composes SidebarNav and EpisodePanel, then passes sidebar-related props down
 import SidebarNav from "./SidebarNav";
 import EpisodePanel from "./episodePanel/EpisodePanel";
-import type { SidebarProps } from "./types";
 
-export default function Sidebar({
-  activePage,
-  setActivePage,
-  ...episodePanelProps
-}: SidebarProps) {
+export default function Sidebar() {
   return (
     <div className="sidebar-container">
-      <SidebarNav activePage={activePage} setActivePage={setActivePage} />
-      <EpisodePanel {...episodePanelProps} />
+      <SidebarNav />
+      <EpisodePanel />
     </div>
   );
 }

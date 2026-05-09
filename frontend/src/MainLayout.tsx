@@ -1,49 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import ClipsContainer from "./components/clipsGrid/ClipsContainer.tsx";
-import PreviewContainer from "./components/previewPanel/PreviewContainer.tsx";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ClipsContainer from "./components/clipsGrid/ClipsContainer";
+import PreviewContainer from "./components/previewPanel/PreviewContainer";
+import { useAppStateStore } from "./stores/appStore";
 
-type LayoutProps = {
-    cols: number;
-    gridSize: number;
-    gridRef: React.RefObject<HTMLDivElement | null>;
-    gridPreview: boolean;
-    setGridPreview: React.Dispatch<React.SetStateAction<boolean>>;
-    selectedClips: Set<string>;
-    setSelectedClips: React.Dispatch<
-        React.SetStateAction<Set<string>>
-    >;
-    clips: { id: string; src: string; thumbnail: string }[];
-    importToken: string;
-    loading: boolean;
-    isEmpty: boolean;
-    handleExport: (
-        selectedClips: Set<string>,
-        mergeEnabled: boolean,
-        mergeFileName?: string
-    ) => Promise<void>;
-    sideBarEnabled: boolean;
-    videoIsHEVC: boolean | null;
-    userHasHEVC: React.RefObject<boolean>
-    focusedClip: string | null;
-    setFocusedClip: React.Dispatch<React.SetStateAction<string | null>>
-    exportDir: string | null;
-    onPickExportDir: () => void;
-    onExportDirChange: (dir: string) => void;
-    defaultMergedName: string;
-};
-
-export default function MainLayout(props: LayoutProps) {
+export default function MainLayout() {
     const [leftWidth, setLeftWidth] = useState(65);
+    const focusedClip = useAppStateStore(s => s.focusedClip);
+    const clips = useAppStateStore(s => s.clips);
 
     const focusedClipThumbnail = useMemo(
         () =>
-            props.focusedClip
-                ? props.clips.find((c) => c.src === props.focusedClip)?.thumbnail ?? null
+            focusedClip
+                ? clips.find((c) => c.src === focusedClip)?.thumbnail ?? null
                 : null,
-        [props.focusedClip, props.clips]
+        [focusedClip, clips]
     );
 
-    // track active resize listeners so we can clean up on unmount.
     const resizeCleanupRef = useRef<(() => void) | null>(null);
 
     useEffect(() => {
@@ -52,20 +24,16 @@ export default function MainLayout(props: LayoutProps) {
         };
     }, []);
 
-    const startResize = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const startHorizontalResize = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
         const startX = e.clientX;
         const container = e.currentTarget.parentElement as HTMLElement;
         const leftPane = container.children[0] as HTMLElement;
-
-
         const startLeftWidth = leftPane.offsetWidth;
         const totalWidth = container.offsetWidth;
 
         const onMouseMove = (ev: MouseEvent) => {
             const delta = ev.clientX - startX;
-            const newPercent =
-                ((startLeftWidth + delta) / totalWidth) * 100;
-            
+            const newPercent = ((startLeftWidth + delta) / totalWidth) * 100;
             setLeftWidth(Math.min(85, Math.max(15, newPercent)));
         };
 
@@ -75,59 +43,30 @@ export default function MainLayout(props: LayoutProps) {
             resizeCleanupRef.current = null;
         };
 
-        // remove any stale listeners before attaching new ones.
         resizeCleanupRef.current?.();
-
         window.addEventListener("mousemove", onMouseMove);
         window.addEventListener("mouseup", onMouseUp);
         resizeCleanupRef.current = onMouseUp;
-    }, []);
+    }, [setLeftWidth]);
+
     return (
-        <div className="split-layout">
-            <div className="left-pane" style={{ width: `${leftWidth}%`}}>
-                <ClipsContainer 
-                    gridSize={props.gridSize}
-                    gridRef={props.gridRef}
-                    cols={props.cols}
-                    gridPreview={props.gridPreview}
-                    selectedClips={props.selectedClips}
-                    setSelectedClips={props.setSelectedClips}
-                    clips={props.clips}
-                    importToken={props.importToken}
-                    loading={props.loading}
-                    isEmpty={props.isEmpty}
-                    videoIsHEVC={props.videoIsHEVC}
-                    userHasHEVC={props.userHasHEVC}
-                    setFocusedClip={props.setFocusedClip}
-                    focusedClip={props.focusedClip}
-                 />
-            </div>
-            
-    
-            <div
-                className="divider"
-                onMouseDown={(e) => startResize(e)}
-            >
-                <span className="subdivider"/>
+        <div className="main-layout-root" style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
+            <div className="split-layout" style={{ flex: 1, minHeight: 0 }}>
+                <div className="left-pane" style={{ width: `${leftWidth}%` }}>
+                    <ClipsContainer />
+                </div>
 
-                <span className="subdivider"/>
-            </div>
+                <div className="divider" onMouseDown={startHorizontalResize}>
+                    <span className="subdivider" />
+                    <span className="subdivider" />
+                </div>
 
-
-            <div className="right-pane" style={{ width: `${100 - leftWidth}%` }}>
-                <PreviewContainer 
-                    focusedClip={props.focusedClip}
-                    focusedClipThumbnail={focusedClipThumbnail}
-                    selectedClips={props.selectedClips}
-                    handleExport={props.handleExport}
-                    videoIsHEVC={props.videoIsHEVC}
-                    userHasHEVC={props.userHasHEVC}
-                    importToken={props.importToken}
-                    exportDir={props.exportDir}
-                    onPickExportDir={props.onPickExportDir}
-                    onExportDirChange={props.onExportDirChange}
-                    defaultMergedName={props.defaultMergedName}
-                />
+                <div className="right-pane" style={{ width: `${100 - leftWidth}%` }}>
+                    <PreviewContainer
+                        sourceClip={focusedClip}
+                        sourceClipThumbnail={focusedClipThumbnail}
+                    />
+                </div>
             </div>
         </div>
     )

@@ -1,0 +1,800 @@
+/* --------------------
+   SETTINGS
+-------------------- */
+
+.settings-window-status {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin: 0 6px 2px;
+    font-size: 14px;
+    color: rgb(255 255 255 / 0.7);
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    height: 40px;
+}
+
+.settings-label {
+    font-size: 22px;
+}
+
+.settings-label.compact {
+    font-size: 18px;
+    color: rgb(255 255 255 / 0.78);
+}
+
+.settings-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    /* background: green; */
+    height: 100%;
+}
+
+.settings-control > .image-input {
+    width: 200px;
+}
+
+.settings-control > button {
+    margin: 0;
+}
+.settings-value {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 70px;
+    font-size: 18px;
+    color: rgb(255 255 255 / 0.8);
+}
+
+.settings-control input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    width: 120px;
+}
+
+.settings-control input[type="range"]::-webkit-slider-runnable-track {
+    background: rgba(255, 255, 255, 0.1);
+    height: 6px;
+    border-radius: 3px;
+}
+
+.settings-control input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    margin-top: -5px; /* Centers thumb on the track */
+    background-color: var(--accent);
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--accent);
+}
+
+.settings-control input[type="range"]:focus::-webkit-slider-runnable-track {
+    background: rgba(255, 255, 255, 0.15);
+}
+.settings-path-value {
+    display: flex;
+    align-items: center;
+
+    min-width: 0;
+    max-width: 360px;
+    height: 84%;
+    padding: 0 8px;
+
+    font-size: 0.8rem;
+    font-family: inherit;
+    color: rgba(255, 255, 255, 0.75);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    box-sizing: border-box;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.settings-path-value:hover {
+    border-color: rgba(255,255,255,0.35);
+}
+
+.settings-select {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.85);
+    padding: 6px 12px;
+    font-size: 16px;
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.settings-select:hover {
+    border-color: rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.settings-select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 8px var(--accent-low-alpha, rgba(255, 255, 255, 0.1));
+}
+
+.settings-select option {
+    background: #1a1a1a;
+    color: white;
+}
+
+.settings-tab-content {
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    padding-right: 0;
+    padding-bottom: 6px;
+    margin-left: 6px;
+    margin-right: 6px;
+}
+
+.settings-tab-content > .panel.settings-panel {
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--accent-rgb) / 0.42) rgb(255 255 255 / 0.02);
+}
+
+.settings-tab-content > .panel.settings-panel::-webkit-scrollbar {
+    width: 8px;
+}
+
+.settings-tab-content > .panel.settings-panel::-webkit-scrollbar-track {
+    background: rgb(255 255 255 / 0.02);
+    border-radius: 10px;
+}
+
+.settings-tab-content > .panel.settings-panel::-webkit-scrollbar-thumb {
+    background: rgb(var(--accent-rgb) / 0.34);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+.settings-tab-content > .panel.settings-panel::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--accent-rgb) / 0.52);
+}
+
+.settings-tab-content > .panel {
+    margin-right: 0;
+    margin-left: 0;
+    margin-bottom: 0;
+}
+
+.export-settings-panel {
+    height: auto;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.export-setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+    height: 40px;
+}
+
+.export-setting-row .settings-label {
+    min-width: 0;
+}
+
+.export-setting-row .settings-control {
+    min-width: 0;
+    justify-content: flex-end;
+}
+
+.export-setting-row .settings-control.export-setting-control {
+    height: 100%;
+}
+
+.export-setting-row .settings-control.export-setting-control > .custom-dropdown,
+.export-setting-row .settings-control.export-setting-control > .settings-text-input,
+.export-setting-row .settings-control.export-setting-control > .settings-number-input {
+    width: min(560px, 100%);
+    min-width: 0;
+}
+
+.export-setting-row .settings-control.export-setting-control > .custom-checkbox {
+    width: 25px;
+    min-width: 25px;
+    margin-right: 0;
+}
+
+.setting-description {
+    margin-top: -4px;
+    margin-bottom: 16px;
+    margin-left: 0px;
+    font-size: 0.8rem;
+    line-height: 1;
+    letter-spacing: 0.5px;
+    color: rgb(255 255 255 / 0.6);
+}
+
+.export-setting-description a {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+.export-setting-control {
+    min-width: 0;
+    justify-content: flex-end;
+    height: auto;
+}
+
+.export-profile-actions-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-left: 24px;
+    margin-top: -2px;
+    margin-bottom: 16px;
+}
+
+.export-setting-block {
+    margin: 0;
+}
+
+.settings-text-input,
+.settings-number-input {
+    height: 32px;
+    width: 100%;
+    padding: 0 10px;
+    border: 1px solid rgb(255 255 255 / 0.16);
+    border-radius: 8px;
+    background: rgb(255 255 255 / 0.08);
+    color: white;
+    font-family: inherit;
+    font-size: 20px;
+    letter-spacing: 0.2px;
+    outline: none;
+}
+
+.settings-number-input {
+    width: 70px;
+    text-align: center;
+}
+
+.settings-text-input:focus,
+.settings-number-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 10px rgb(var(--accent-rgb) / 0.24);
+}
+
+.settings-wide-dropdown {
+    width: 100%;
+}
+
+.settings-wide-dropdown,
+.settings-wide-dropdown .dropdown-trigger,
+.settings-wide-dropdown .dropdown-value,
+.settings-wide-dropdown .dropdown-item-content {
+    min-width: 0;
+}
+
+.export-profile-dropdown {
+    width: min(450px, 100%);
+}
+
+.export-profile-dropdown .dropdown-trigger {
+    min-height: 58px;
+    height: auto;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: linear-gradient(94deg, rgb(255 255 255 / 0.07) 0%, rgb(255 255 255 / 0.03) 100%);
+    border: 1px solid rgb(255 255 255 / 0.2);
+}
+
+.export-profile-dropdown .dropdown-trigger:hover {
+    border-color: rgb(255 255 255 / 0.32);
+    background: linear-gradient(94deg, rgb(255 255 255 / 0.1) 0%, rgb(255 255 255 / 0.05) 100%);
+}
+
+.export-profile-dropdown .dropdown-value.rich {
+    display: flex;
+    align-items: center;
+}
+
+.export-profile-dropdown .dropdown-value.rich .dropdown-item-content {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    grid-template-areas:
+        "icon label"
+        "icon desc";
+    column-gap: 10px;
+    row-gap: 1px;
+    align-items: center;
+}
+
+.export-profile-dropdown .dropdown-value.rich .dropdown-item-main {
+    display: contents;
+}
+
+.export-profile-dropdown .dropdown-value.rich .dropdown-item-icon {
+    grid-area: icon;
+    align-self: center;
+    justify-self: center;
+}
+
+.export-profile-dropdown .dropdown-value.rich .dropdown-item-label {
+    grid-area: label;
+}
+
+.export-profile-dropdown .dropdown-value.rich .dropdown-item-description {
+    grid-area: desc;
+}
+
+.export-profile-dropdown .dropdown-item {
+    padding: 7px 10px;
+}
+
+.export-profile-dropdown .dropdown-item-main {
+    display: contents;
+}
+
+.export-profile-dropdown .dropdown-item-content {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr);
+    grid-template-areas:
+        "icon label"
+        "icon desc";
+    column-gap: 8px;
+    row-gap: 2px;
+    align-items: center;
+}
+
+.export-profile-dropdown .dropdown-item-label {
+    grid-area: label;
+    font-size: 0.85rem;
+    text-transform: none;
+    letter-spacing: 0.5px;
+}
+
+.export-profile-dropdown .dropdown-item-description {
+    grid-area: desc;
+    font-size: 0.68rem;
+    color: rgb(255 255 255 / 0.64);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.export-profile-dropdown .dropdown-item-icon {
+    grid-area: icon;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+    justify-self: center;
+    padding: 0;
+    border-radius: 9px;
+    font-size: 0.82rem;
+    color: rgb(212 187 255 / 0.95);
+    border: 1px solid rgb(206 176 255 / 0.35);
+    background: rgb(184 146 255 / 0.12);
+}
+
+.export-profile-dropdown .dropdown-item-icon svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+
+.export-profile-dropdown .dropdown-item.active .dropdown-item-icon {
+    color: rgb(212 187 255 / 0.95);
+    border-color: rgb(206 176 255 / 0.52);
+    background: rgb(184 146 255 / 0.2);
+}
+
+.settings-wide-dropdown .dropdown-menu {
+    max-height: none;
+    overflow-y: hidden;
+}
+
+.export-settings-panel .settings-wide-dropdown .dropdown-menu {
+    left: auto;
+    right: 0;
+    width: max-content;
+    min-width: 100%;
+    max-width: min(92vw, 560px);
+}
+
+.export-settings-panel .settings-wide-dropdown .dropdown-item-content:not(.has-description) .dropdown-item-label {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.2;
+}
+
+.export-settings-panel .settings-wide-dropdown .dropdown-value:not(.rich),
+.export-settings-panel .settings-wide-dropdown .dropdown-item-label {
+    text-transform: none;
+    letter-spacing: 0.35px;
+}
+
+.export-profile-action {
+    width: auto;
+    min-width: 120px;
+    height: 30px;
+    margin: 0;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 20px;
+    border-color: white;
+    background: black;
+    color: white;
+}
+
+.export-profile-action:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgb(var(--accent-rgb) / 0.16);
+    color: var(--accent);
+}
+
+.export-profile-action.danger {
+    border-color: white;
+    background: black;
+}
+
+.export-profile-action:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+}
+
+.profile-icon-control {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.profile-icon-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-start;
+}
+
+.profile-icon-control-inline {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.profile-icon-inline-list {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+    max-width: min(560px, 72vw);
+    min-width: 0;
+    overflow: visible;
+}
+
+.profile-icon-more-trigger {
+    font-size: 14px;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    color: rgb(255 255 255 / 0.74);
+    width: 28px;
+}
+
+.profile-icon-more-trigger:hover {
+    border: none;
+    background: transparent;
+    color: rgb(255 255 255 / 0.95);
+    transform: none;
+}
+
+.profile-icon-more-trigger:focus-visible {
+    outline: 1px solid rgb(255 255 255 / 0.3);
+    outline-offset: 2px;
+}
+
+.profile-icon-popover {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: min(520px, 78vw);
+    max-height: 320px;
+    overflow: auto;
+    z-index: 40;
+    border-radius: 12px;
+    border: 1px solid rgb(255 255 255 / 0.14);
+    background: linear-gradient(180deg, rgb(14 14 16 / 0.97), rgb(10 10 12 / 0.97));
+    box-shadow: 0 16px 42px rgb(0 0 0 / 0.52);
+    padding: 12px;
+}
+
+.profile-icon-modal-header h3 {
+    margin: 0 0 12px;
+    font-size: 0.95rem;
+    font-weight: 300;
+    color: rgb(255 255 255 / 0.72);
+    letter-spacing: 0.2px;
+}
+
+.profile-icon-popover .profile-icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+    gap: 8px;
+}
+
+.profile-icon-tile {
+    position: relative;
+    width: 38px;
+    height: 38px;
+}
+
+.profile-icon-pin {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: auto;
+    width: 18px;
+    height: 18px;
+    border: 1px solid rgb(255 255 255 / 0.22);
+    border-radius: 999px;
+    background: rgb(0 0 0 / 0.72);
+    color: rgb(255 255 255 / 0.78);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity 0.16s ease, transform 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+    z-index: 3;
+}
+
+.profile-icon-pin svg {
+    width: 8px;
+    height: 8px;
+}
+
+.profile-icon-tile:hover .profile-icon-pin,
+.profile-custom-icon-slot:hover .profile-icon-pin,
+.profile-icon-pin:hover,
+.profile-icon-pin:focus-visible,
+.profile-icon-pin.pinned {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.profile-icon-pin.pinned {
+    color: var(--accent);
+    border-color: rgb(var(--accent-rgb) / 0.55);
+    background: rgb(0 0 0 / 0.8);
+}
+
+.profile-icon-pin.profile-icon-pin-custom {
+    left: 2px;
+    top: 2px;
+}
+
+@media (max-width: 700px) {
+    .profile-icon-popover {
+        right: auto;
+        left: 0;
+        width: min(88vw, 420px);
+    }
+}
+
+.profile-custom-icon-slot {
+    position: relative;
+    width: 38px;
+    height: 38px;
+}
+
+.profile-icon-button {
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgb(255 255 255 / 0.25);
+    border-radius: 8px;
+    background: rgb(255 255 255 / 0.04);
+    color: rgb(255 255 255 / 0.72);
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.18s ease;
+}
+
+.profile-icon-button svg {
+    width: 22px;
+    height: 22px;
+}
+
+.profile-icon-button .profile-custom-icon {
+    width: 22px;
+    height: 22px;
+    object-fit: cover;
+    border-radius: 5px;
+    display: block;
+}
+
+.profile-icon-button:hover {
+    border-color: rgb(255 255 255 / 0.5);
+    background: rgb(255 255 255 / 0.1);
+    color: rgb(255 255 255 / 0.95);
+    transform: scale(1.08);
+}
+
+.profile-icon-button.active {
+    border-color: var(--accent);
+    background: rgb(var(--accent-rgb) / 0.2);
+    color: var(--accent);
+    box-shadow: 0 0 10px rgb(var(--accent-rgb) / 0.18);
+}
+
+/* Keep the "more" trigger as plain dots permanently (no icon-tile chrome). */
+.profile-icon-button.profile-icon-more-trigger,
+.profile-icon-button.profile-icon-more-trigger:hover,
+.profile-icon-button.profile-icon-more-trigger:active {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+    color: rgb(255 255 255 / 0.74);
+}
+
+.profile-upload-tile {
+    border-style: dashed;
+    border-color: rgb(255 255 255 / 0.45);
+    color: rgb(255 255 255 / 0.92);
+}
+
+.profile-upload-tile svg {
+    width: 16px;
+    height: 16px;
+}
+
+.profile-icon-delete {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 17px;
+    height: 17px;
+    border: 1px solid rgb(255 255 255 / 0.22);
+    border-radius: 999px;
+    background: rgb(255 61 61 / 0.95);
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.88);
+    transition: opacity 0.16s ease, transform 0.16s ease;
+    box-shadow: 0 3px 10px rgb(0 0 0 / 0.45);
+    z-index: 4;
+}
+
+.profile-custom-icon-slot:hover .profile-icon-delete,
+.profile-icon-delete:focus-visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.profile-icon-delete:hover {
+    background: rgb(255 92 92 / 0.98);
+}
+
+.export-profile-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgb(var(--accent-rgb) / 0.22);
+    border-radius: 8px;
+    background: rgb(var(--accent-rgb) / 0.08);
+    color: rgb(255 255 255 / 0.72);
+    font-size: 0.8rem;
+    line-height: 1.25;
+}
+
+.export-profile-note svg {
+    flex: 0 0 auto;
+    color: var(--accent);
+    margin-top: 2px;
+}
+
+@media (max-width: 820px) {
+    .export-setting-row {
+        flex-direction: column;
+        align-items: stretch;
+        height: auto;
+        gap: 10px;
+    }
+
+    .export-setting-row .settings-control {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .export-setting-description {
+        margin-left: 0;
+    }
+
+    .export-profile-actions-row {
+        margin-left: 0;
+        flex-wrap: wrap;
+    }
+
+    .export-setting-row .settings-control.export-setting-control > .custom-dropdown,
+    .export-setting-row .settings-control.export-setting-control > .settings-text-input,
+    .export-setting-row .settings-control.export-setting-control > .settings-number-input {
+        width: 100%;
+    }
+
+    .export-settings-panel .settings-wide-dropdown .dropdown-menu {
+        left: 0;
+        right: 0;
+        width: auto;
+        max-width: 100%;
+    }
+
+    .profile-icon-control-inline {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .profile-icon-inline-list {
+        width: 100%;
+        max-width: 100%;
+        justify-content: flex-start;
+    }
+
+    .profile-icon-popover {
+        right: auto;
+        left: 0;
+        width: min(100%, 520px);
+        max-width: min(520px, calc(100vw - 48px));
+    }
+
+    .export-profile-action {
+        min-width: 0;
+        font-size: 16px;
+    }
+}

@@ -1,0 +1,70 @@
+/* --------------------
+   NAVBAR
+-------------------- */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+}
+
+.navbar svg { 
+    width: 35px;
+    height: 35px;
+    color: white;
+    transition: filter 0.2s ease;
+}
+
+.navbar svg:hover {
+    cursor: pointer;
+    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.7));
+}
+
+.navbar h1 {
+    margin: 0;
+    font-size: 35px;
+    font-weight: 10;
+}
+
+.navbar > .left-nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0px;
+    gap: 10px;
+}
+
+.navbar span {
+    color: var(--accent);
+}
+
+.discord-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    text-decoration: none;
+    opacity: 1;
+    transition: opacity 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+.discord-link:hover {
+    opacity: 1;
+    filter: drop-shadow(0 0 0.01px rgb(var(--accent-rgb) / 0.2));
+}
+
+.discord-link svg {
+    width: 22px;
+    height: 22px;
+    color: rgba(255, 255, 255, 1);
+    transition: color 0.2s ease;
+}
+
+.discord-link:hover svg {
+    color: var(--accent);
+}
+
+.hevc-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}

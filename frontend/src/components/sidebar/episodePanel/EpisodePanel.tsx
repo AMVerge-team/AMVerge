@@ -1,6 +1,6 @@
 // Main Episode Panel coordinator. Wires together structure, menus, drag/drop, keyboard shortcuts, and UI sections.
 import type React from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import EpisodePanelContextMenus from "./EpisodePanelContextMenus";
 import EpisodePanelHeader from "./EpisodePanelHeader";
@@ -10,10 +10,12 @@ import EpisodePanelTree from "./EpisodePanelTree";
 import useEpisodePanelDragDrop from "../hooks/useEpisodePanelDragDrop";
 import useEpisodePanelMenus from "../hooks/useEpisodePanelMenus";
 import useEpisodePanelStructure from "../hooks/useEpisodePanelStructure";
+import useEpisodePanelState from "../../../hooks/useEpisodePanelState";
 
-import type { EpisodePanelProps } from "../types";
+import { useEpisodePanelMetadataStore, useEpisodePanelRuntimeStore } from "../../../stores/episodeStore";
+import { useAppStateStore } from "../../../stores/appStore";
 
-export default function EpisodePanel(props: EpisodePanelProps) {
+export default function EpisodePanel() {
   const panelListRef = useRef<HTMLDivElement | null>(null);
   const suppressClickRef = useRef(false);
   const clickGestureRef = useRef<{ key: string | null; ts: number }>({
@@ -25,6 +27,17 @@ export default function EpisodePanel(props: EpisodePanelProps) {
   const [nextSortDirection, setNextSortDirection] = useState<"asc" | "desc">("asc");
   const [multiSelectedIds, setMultiSelectedIds] = useState<Set<string>>(new Set());
 
+  const episodeRuntimeState = useEpisodePanelRuntimeStore();
+  const episodeMetadataState = useEpisodePanelMetadataStore();
+  const appState = useAppStateStore();
+
+  const episodes = episodeRuntimeState.episodes;
+  const episodeFolders = episodeMetadataState.episodeFolders;
+  const selectedEpisodeId = episodeRuntimeState.selectedEpisodeId;
+  const selectedFolderId = episodeRuntimeState.selectedFolderId;
+  const openedEpisodeId = episodeRuntimeState.openedEpisodeId;
+  const lastOpenedEpisodeId = episodeMetadataState.lastOpenedEpisodeId;
+
   const {
     folderById,
     foldersByParentId,
@@ -32,8 +45,8 @@ export default function EpisodePanel(props: EpisodePanelProps) {
     episodesByFolderId,
     flatEpisodeOrder,
   } = useEpisodePanelStructure({
-    episodes: props.episodes,
-    episodeFolders: props.episodeFolders,
+    episodes,
+    episodeFolders,
   });
 
   const clearClickGesture = () => {
@@ -104,6 +117,30 @@ export default function EpisodePanel(props: EpisodePanelProps) {
   };
 
   const {
+    handleSelectEpisode,
+    handleOpenEpisode,
+    handleSelectFolder,
+    handleCreateFolder,
+    handleRenameEpisode,
+    handleRenameFolder,
+    handleDeleteEpisode,
+    handleDeleteFolder,
+    handleSortEpisodePanel,
+    handleMoveEpisodeToFolder,
+    handleMoveEpisode,
+    handleMoveFolder,
+    handleToggleFolderExpanded,
+  } = useEpisodePanelState();
+
+  useEffect(() => {
+    if (openedEpisodeId) return;
+    if (!lastOpenedEpisodeId) return;
+    if (!episodes.some((episode) => episode.id === lastOpenedEpisodeId)) return;
+
+    handleOpenEpisode(lastOpenedEpisodeId);
+  }, [episodes, openedEpisodeId, lastOpenedEpisodeId, handleOpenEpisode]);
+
+  const {
     contextMenu,
     setContextMenu,
     folderContextMenu,
@@ -123,17 +160,37 @@ export default function EpisodePanel(props: EpisodePanelProps) {
     openRenameFolderModal,
     openClearConfirmModal,
   } = useEpisodePanelMenus({
-    episodes: props.episodes,
-    episodeFolders: props.episodeFolders,
+    episodes,
+    episodeFolders,
     multiSelectedIds,
     setMultiSelectedIds,
     clearClickGesture,
-    onSelectEpisode: props.onSelectEpisode,
-    onSelectFolder: props.onSelectFolder,
-    onCreateFolder: props.onCreateFolder,
-    onRenameEpisode: props.onRenameEpisode,
-    onRenameFolder: props.onRenameFolder,
-    onClearEpisodePanelCache: props.onClearEpisodePanelCache,
+    onSelectEpisode: handleSelectEpisode,
+    onSelectFolder: handleSelectFolder,
+    onCreateFolder: handleCreateFolder,
+    onRenameEpisode: handleRenameEpisode,
+    onRenameFolder: handleRenameFolder,
+    onClearEpisodePanelCache: async () => {
+       const invoke = (await import("@tauri-apps/api/core")).invoke;
+       episodeRuntimeState.setEpisodes([]);
+       episodeMetadataState.setEpisodeFolders([]);
+       episodeRuntimeState.setSelectedFolderId(null);
+       episodeRuntimeState.setSelectedEpisodeId(null);
+       episodeRuntimeState.setOpenedEpisodeId(null);
+       appState.setSelectedClips(new Set());
+       appState.setFocusedClip(null);
+       appState.setClips([]);
+       appState.setImportedVideoPath(null);
+       appState.setVideoIsHEVC(null);
+       try {
+           const generalSettings = (await import("../../../stores/settingsStore")).useGeneralSettingsStore.getState();
+           await invoke("clear_episode_panel_cache", {
+               customPath: generalSettings.episodesPath,
+           });
+       } catch (err) {
+           console.error("clear_episode_panel_cache failed:", err);
+       }
+    },
   });
 
   const menusOpen =
@@ -153,21 +210,21 @@ export default function EpisodePanel(props: EpisodePanelProps) {
     clearClickGesture,
     suppressNextClick,
     menusOpen,
-    onMoveEpisode: props.onMoveEpisode,
-    onMoveFolder: props.onMoveFolder,
+    onMoveEpisode: handleMoveEpisode,
+    onMoveFolder: handleMoveFolder,
   });
 
   const onPanelKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "F2") {
-      if (props.selectedEpisodeId) {
+      if (selectedEpisodeId) {
         e.preventDefault();
-        openRenameEpisodeModal(props.selectedEpisodeId);
+        openRenameEpisodeModal(selectedEpisodeId);
         return;
       }
 
-      if (props.selectedFolderId) {
+      if (selectedFolderId) {
         e.preventDefault();
-        openRenameFolderModal(props.selectedFolderId);
+        openRenameFolderModal(selectedFolderId);
       }
 
       return;
@@ -178,22 +235,22 @@ export default function EpisodePanel(props: EpisodePanelProps) {
         e.preventDefault();
 
         for (const id of multiSelectedIds) {
-          void props.onDeleteEpisode(id);
+          void handleDeleteEpisode(id);
         }
 
         setMultiSelectedIds(new Set());
         return;
       }
 
-      if (props.selectedEpisodeId) {
+      if (selectedEpisodeId) {
         e.preventDefault();
-        void props.onDeleteEpisode(props.selectedEpisodeId);
+        void handleDeleteEpisode(selectedEpisodeId);
         return;
       }
 
-      if (props.selectedFolderId) {
+      if (selectedFolderId) {
         e.preventDefault();
-        props.onDeleteFolder(props.selectedFolderId);
+        handleDeleteFolder(selectedFolderId);
       }
     }
   };
@@ -204,7 +261,7 @@ export default function EpisodePanel(props: EpisodePanelProps) {
         <EpisodePanelHeader
           nextSortDirection={nextSortDirection}
           setNextSortDirection={setNextSortDirection}
-          onSortEpisodePanel={props.onSortEpisodePanel}
+          onSortEpisodePanel={handleSortEpisodePanel}
           openNewFolderModal={openNewFolderModal}
           openClearConfirmModal={openClearConfirmModal}
         />
@@ -221,7 +278,7 @@ export default function EpisodePanel(props: EpisodePanelProps) {
           onMouseDown={() => panelListRef.current?.focus()}
           onClick={(e) => {
             if (e.target === e.currentTarget) {
-              props.onSelectFolder(null);
+              handleSelectFolder(null);
               setMultiSelectedIds(new Set());
             }
           }}
@@ -236,18 +293,18 @@ export default function EpisodePanel(props: EpisodePanelProps) {
             foldersByParentId={foldersByParentId}
             episodesByFolderId={episodesByFolderId}
             dropTarget={dropTarget}
-            openedEpisodeId={props.openedEpisodeId}
-            selectedEpisodeId={props.selectedEpisodeId}
-            selectedFolderId={props.selectedFolderId}
+            openedEpisodeId={openedEpisodeId}
+            selectedEpisodeId={selectedEpisodeId}
+            selectedFolderId={selectedFolderId}
             multiSelectedIds={multiSelectedIds}
             beginPointerDrag={beginPointerDrag}
             handleEpisodeClick={handleEpisodeClick}
             handleClickWithOptionalDouble={handleClickWithOptionalDouble}
             openContextMenu={openContextMenu}
             openFolderContextMenu={openFolderContextMenu}
-            onOpenEpisode={props.onOpenEpisode}
-            onSelectFolder={props.onSelectFolder}
-            onToggleFolderExpanded={props.onToggleFolderExpanded}
+            onOpenEpisode={handleOpenEpisode}
+            onSelectFolder={handleSelectFolder}
+            onToggleFolderExpanded={handleToggleFolderExpanded}
           />
         </div>
 
@@ -264,7 +321,7 @@ export default function EpisodePanel(props: EpisodePanelProps) {
           folderContextMenu={folderContextMenu}
           panelContextMenu={panelContextMenu}
           multiSelectedIds={multiSelectedIds}
-          episodeFolders={props.episodeFolders}
+          episodeFolders={episodeFolders}
           setContextMenu={setContextMenu}
           setFolderContextMenu={setFolderContextMenu}
           setPanelContextMenu={setPanelContextMenu}
@@ -272,9 +329,9 @@ export default function EpisodePanel(props: EpisodePanelProps) {
           openNewFolderModal={openNewFolderModal}
           openRenameEpisodeModal={openRenameEpisodeModal}
           openRenameFolderModal={openRenameFolderModal}
-          onDeleteEpisode={props.onDeleteEpisode}
-          onDeleteFolder={props.onDeleteFolder}
-          onMoveEpisodeToFolder={props.onMoveEpisodeToFolder}
+          onDeleteEpisode={handleDeleteEpisode}
+          onDeleteFolder={handleDeleteFolder}
+          onMoveEpisodeToFolder={handleMoveEpisodeToFolder}
         />
       </div>
     </div>

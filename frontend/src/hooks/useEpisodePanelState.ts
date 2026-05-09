@@ -1,59 +1,44 @@
 import { EpisodeEntry, EpisodeFolder } from "../types/domain";
-import { startTransition }  from "react";
-import { ClipItem } from "../types/domain"
+import { startTransition } from "react";
+import { useAppStateStore } from "../stores/appStore";
+import { useEpisodePanelRuntimeStore, useEpisodePanelMetadataStore } from "../stores/episodeStore";
 
-type episodePanelProps = {
-  episodes: EpisodeEntry[];
-  setEpisodes: React.Dispatch<React.SetStateAction<EpisodeEntry[]>>;
-  selectedEpisodeId: string | null;
-  setSelectedEpisodeId: React.Dispatch<React.SetStateAction<string | null>>;
-  episodeFolders: EpisodeFolder[];
-  setEpisodeFolders: React.Dispatch<React.SetStateAction<EpisodeFolder[]>>;
-  openedEpisodeId: string | null;
-  setOpenedEpisodeId: React.Dispatch<React.SetStateAction<string | null>>;
-  selectedFolderId: string | null;
-  setSelectedFolderId: React.Dispatch<React.SetStateAction<string | null>>;
-  setClips: React.Dispatch<React.SetStateAction<ClipItem[]>>;
-  setSelectedClips: React.Dispatch<React.SetStateAction<Set<string>>>;
-  setFocusedClip: React.Dispatch<React.SetStateAction<string | null>>;
-  setImportedVideoPath: React.Dispatch<React.SetStateAction<string | null>>;
-  setImportToken: React.Dispatch<React.SetStateAction<string>>;
-};
-
-export default function useEpisodePanelState(props: episodePanelProps) {
+export default function useEpisodePanelState() {
+	const appState = useAppStateStore();
+	const episodeRuntimeState = useEpisodePanelRuntimeStore();
+	const episodeMetadataState = useEpisodePanelMetadataStore();
 
 	// Handlers
 	const handleSelectEpisode = (episodeId: string) => {
-		props.setSelectedEpisodeId(episodeId);
-		props.setSelectedFolderId(null);
+		episodeRuntimeState.setSelectedEpisodeId(episodeId);
+		episodeRuntimeState.setSelectedFolderId(null);
 	};
 
-  const handleOpenEpisode = (episodeId: string) => {
-    const selectedEpisode = props.episodes.find((e) => e.id === episodeId);
-    if (!selectedEpisode) return;
+	const handleOpenEpisode = (episodeId: string) => {
+		const selectedEpisode = episodeRuntimeState.episodes.find((e) => e.id === episodeId);
+		if (!selectedEpisode) return;
 
+		appState.setSelectedClips(new Set());
+		appState.setFocusedClip(null);
+		episodeRuntimeState.setSelectedEpisodeId(episodeId);
+		episodeRuntimeState.setOpenedEpisodeId(episodeId);
+		episodeRuntimeState.setSelectedFolderId(null);
+		episodeMetadataState.setLastOpenedEpisodeId(episodeId);
+		appState.setImportedVideoPath(selectedEpisode.videoPath);
+		appState.setImportToken(Date.now().toString());
 
-    props.setSelectedClips(new Set());
-    props.setFocusedClip(null);
-    props.setSelectedEpisodeId(episodeId);
-    props.setOpenedEpisodeId(episodeId);
-    props.setSelectedFolderId(null);
-    props.setImportedVideoPath(selectedEpisode.videoPath);
-    props.setImportToken(Date.now().toString());
-
-    startTransition(() => {
-        props.setClips(selectedEpisode.clips);
-    });
-    console.log(selectedEpisode.clips);
-  };
+		startTransition(() => {
+			appState.setClips(selectedEpisode.clips);
+		});
+	};
 
 	const handleSelectFolder = (folderId: string | null) => {
-		props.setSelectedFolderId(folderId);
-		props.setSelectedEpisodeId(null);
+		episodeRuntimeState.setSelectedFolderId(folderId);
+		episodeRuntimeState.setSelectedEpisodeId(null);
 	};
 
 	const handleMoveEpisodeToFolder = (episodeId: string, folderId: string | null) => {
-		props.setEpisodes((prev) =>
+		episodeRuntimeState.setEpisodes((prev) =>
 			prev.map((e) => (e.id === episodeId ? { ...e, folderId } : e))
 		);
 	};
@@ -63,7 +48,7 @@ export default function useEpisodePanelState(props: episodePanelProps) {
 		folderId: string | null,
 		beforeEpisodeId?: string
 	) => {
-		props.setEpisodes((prev) => {
+		episodeRuntimeState.setEpisodes((prev) => {
 			const fromIndex = prev.findIndex((e) => e.id === episodeId);
 			if (fromIndex === -1) return prev;
 
@@ -84,7 +69,7 @@ export default function useEpisodePanelState(props: episodePanelProps) {
 	};
 
 	const handleMoveFolder = (folderId: string, parentFolderId: string | null, beforeFolderId?: string) => {
-		props.setEpisodeFolders((prev) => {
+		episodeMetadataState.setEpisodeFolders((prev) => {
 			const byId = new Map(prev.map((f) => [f.id, f] as const));
 			const moving = byId.get(folderId);
 			if (!moving) return prev;
@@ -132,8 +117,8 @@ export default function useEpisodePanelState(props: episodePanelProps) {
 		const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 		const mult = direction === "asc" ? 1 : -1;
 
-		const folders = props.episodeFolders;
-		const episodesSnapshot = props.episodes;
+		const folders = episodeMetadataState.episodeFolders;
+		const episodesSnapshot = episodeRuntimeState.episodes;
 
 		const foldersByParent = new Map<string | null, EpisodeFolder[]>();
 		for (const folder of folders) {
@@ -167,9 +152,9 @@ export default function useEpisodePanelState(props: episodePanelProps) {
 		};
 
 		for (const root of foldersByParent.get(null) ?? []) visit(root);
-		props.setEpisodeFolders(sortedFolders);
+		episodeMetadataState.setEpisodeFolders(sortedFolders);
 
-		props.setEpisodes(() => {
+		episodeRuntimeState.setEpisodes(() => {
 			const result: EpisodeEntry[] = [];
 
 			// Root episodes (shown after folders in the UI).
@@ -194,29 +179,32 @@ export default function useEpisodePanelState(props: episodePanelProps) {
 	const handleRenameEpisode = (episodeId: string, newName: string) => {
 		const trimmed = (newName ?? "").trim();
 		if (!trimmed) return;
-		props.setEpisodes((prev) => prev.map((e) => (e.id === episodeId ? { ...e, displayName: trimmed } : e)));
+		episodeRuntimeState.setEpisodes((prev) => prev.map((e) => (e.id === episodeId ? { ...e, displayName: trimmed } : e)));
 	};
 
 	const handleRenameFolder = (folderId: string, newName: string) => {
 		const trimmed = (newName ?? "").trim();
 		if (!trimmed) return;
-		props.setEpisodeFolders((prev) => prev.map((f) => (f.id === folderId ? { ...f, name: trimmed } : f)));
+		episodeMetadataState.setEpisodeFolders((prev) => prev.map((f) => (f.id === folderId ? { ...f, name: trimmed } : f)));
 	};
 
 	const handleDeleteFolder = (folderId: string) => {
-		props.setEpisodeFolders((prev) =>
+		episodeMetadataState.setEpisodeFolders((prev) =>
 			prev
 				.filter((f) => f.id !== folderId)
 				.map((f) => (f.parentId === folderId ? { ...f, parentId: null } : f))
 		);
-		props.setEpisodes((prev) => prev.map((e) => (e.folderId === folderId ? { ...e, folderId: null } : e)));
-		if (props.selectedFolderId === folderId) props.setSelectedFolderId(null);
+		episodeRuntimeState.setEpisodes((prev) => prev.map((e) => (e.folderId === folderId ? { ...e, folderId: null } : e)));
+		if (episodeRuntimeState.selectedFolderId === folderId) episodeRuntimeState.setSelectedFolderId(null);
 	};
 
 	const handleDeleteEpisode = (episodeId: string) => {
-		props.setEpisodes((prev) => prev.filter((e) => e.id !== episodeId));
-		if (props.selectedEpisodeId === episodeId) props.setSelectedEpisodeId(null);
-		if (props.openedEpisodeId === episodeId) props.setOpenedEpisodeId(null);
+		episodeRuntimeState.setEpisodes((prev) => prev.filter((e) => e.id !== episodeId));
+		if (episodeRuntimeState.selectedEpisodeId === episodeId) episodeRuntimeState.setSelectedEpisodeId(null);
+		if (episodeRuntimeState.openedEpisodeId === episodeId) episodeRuntimeState.setOpenedEpisodeId(null);
+		if (episodeMetadataState.lastOpenedEpisodeId === episodeId) {
+			episodeMetadataState.setLastOpenedEpisodeId(null);
+		}
 	};
 
 	const handleCreateFolder = (name: string, parentFolderId: string | null) => {
@@ -229,17 +217,16 @@ export default function useEpisodePanelState(props: episodePanelProps) {
 			parentId: parentFolderId,
 			isExpanded: true,
 		};
-		props.setEpisodeFolders((prev) => [folder, ...prev]);
-		props.setSelectedFolderId(folder.id);
+		episodeMetadataState.setEpisodeFolders((prev) => [folder, ...prev]);
+		episodeRuntimeState.setSelectedFolderId(folder.id);
 	};
 
 	const handleToggleFolderExpanded = (folderId: string) => {
-		props.setEpisodeFolders((prev) =>
+		episodeMetadataState.setEpisodeFolders((prev) =>
 			prev.map((f) => (f.id === folderId ? { ...f, isExpanded: !f.isExpanded } : f))
 		);
 	};
 
-    
 	return {
 		handleSelectEpisode,
 		handleOpenEpisode,

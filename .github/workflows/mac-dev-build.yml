@@ -1,0 +1,65 @@
+name: Mac Dev Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    name: Build macOS DMG
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Create backend venv and install dependencies
+        run: |
+          python -m venv backend/venv
+          backend/venv/bin/python -m pip install --upgrade pip
+          backend/venv/bin/pip install -r backend/requirements.txt
+          backend/venv/bin/pip install pyinstaller
+
+      - name: Install FFmpeg binaries
+        run: |
+          brew install ffmpeg
+          mkdir -p backend/bin
+          cp "$(which ffmpeg)" backend/bin/ffmpeg
+          cp "$(which ffprobe)" backend/bin/ffprobe
+          chmod +x backend/bin/ffmpeg backend/bin/ffprobe
+
+      - name: Build Python sidecar
+        working-directory: frontend
+        run: node scripts/build-sidecar.mjs
+
+      - name: Verify macOS sidecar exists
+        run: ls -la frontend/src-tauri/bin/backend_script-aarch64-apple-darwin
+
+      - name: Build macOS app bundle
+        working-directory: frontend
+        run: npm run tauri build -- --config src-tauri/tauri.macos.conf.json
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: amverge-macos-dmg
+          path: frontend/src-tauri/target/release/bundle/dmg/*.dmg
+          if-no-files-found: error

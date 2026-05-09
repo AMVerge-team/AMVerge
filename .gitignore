@@ -92,3 +92,4 @@ lerna-debug.log*
 *.wav
 *.aac
 *.opus
+*.tar

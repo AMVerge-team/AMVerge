@@ -1,29 +1,71 @@
 import VideoPlayer from "./videoPlayer/VideoPlayer.tsx"
-import InfoBox from "./InfoBox.tsx"
+import HowToUse from "./HowToUse.tsx"
 import React from "react";
-import { FaFolderOpen } from "react-icons/fa";
+import {
+  FaFolderOpen,
+  FaFileExport,
+  FaPencilAlt,
+} from "react-icons/fa";
+import Dropdown from "../common/Dropdown";
+import { useAppStateStore } from "../../stores/appStore.ts";
+import { useAppPersistedStore } from "../../stores/appStore.ts";
+import { useUIStateStore } from "../../stores/UIStore.ts";
+import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
+import useImportExport from "../../hooks/useImportExport";
+import { renderProfileIcon } from "../../features/export/profileIconUtils.tsx";
+import {
+  getActiveExportProfile,
+  getExportProfileSummary,
+  supportsClipMerge,
+} from "../../features/export/profiles.ts";
 type PreviewContainerProps = {
-  focusedClip: string | null;
-  focusedClipThumbnail: string | null;
-  selectedClips: Set<string>;
-  videoIsHEVC: boolean | null;
-  userHasHEVC: React.RefObject<boolean>;
-  importToken: string;
-  handleExport: (
-    selectedClips: Set<string>,
-    enableMerged: boolean,
-    mergeFileName?: string
-  ) => Promise<void>;
-  exportDir: string | null;
-  onPickExportDir: () => void;
-  onExportDirChange: (dir: string) => void;
-  defaultMergedName: string;
+  sourceClip: string | null;
+  sourceClipThumbnail: string | null;
+  onTimeUpdate?: (time: number) => void;
 };
 
-export default function PreviewContainer (props: PreviewContainerProps) {
-  const [mergeEnabled, setMergeEnabled] = React.useState(true);
+export default function PreviewContainer(props: PreviewContainerProps) {
   const [showMergeNameModal, setShowMergeNameModal] = React.useState(false);
   const mergeNameInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const clips = useAppStateStore(s => s.clips);
+  const selectedClips = useAppStateStore(s => s.selectedClips);
+
+  const videoIsHEVC = useAppStateStore(s => s.videoIsHEVC);
+  const userHasHEVC = useAppStateStore(s => s.userHasHEVC);
+  const importToken = useAppStateStore(s => s.importToken);
+  const exportDir = useAppPersistedStore(s => s.exportDir);
+  const setExportDir = useAppPersistedStore(s => s.setExportDir);
+  const setActivePage = useUIStateStore(s => s.setActivePage);
+  const setSettingsTab = useUIStateStore(s => s.setSettingsTab);
+  const generalSettings = useGeneralSettingsStore();
+  const setActiveExportProfileId = useGeneralSettingsStore(s => s.setActiveExportProfileId);
+  const { handleExport, handlePickExportDir } = useImportExport();
+
+  const defaultMergedName = (clips[0]?.originalName || "episode") + "_merged";
+  const activeExportProfile = React.useMemo(
+    () => getActiveExportProfile(generalSettings.exportProfiles, generalSettings.activeExportProfileId),
+    [generalSettings.exportProfiles, generalSettings.activeExportProfileId]
+  );
+  const exportProfileOptions = React.useMemo(
+    () =>
+      generalSettings.exportProfiles.map((profile) => ({
+        value: profile.id,
+        label: profile.name.trim() || "Untitled Profile",
+        description: supportsClipMerge(profile.workflow)
+          ? `${getExportProfileSummary(profile)} • ${profile.mergeEnabled ? "MERGE" : "CLIPS"}`
+          : getExportProfileSummary(profile),
+        icon: renderProfileIcon(profile),
+      })),
+    [generalSettings.exportProfiles]
+  );
+
+  const canMergeWithActiveProfile = supportsClipMerge(activeExportProfile.workflow) && activeExportProfile.mergeEnabled;
+  const hasSelectedClips = selectedClips.size > 0;
+
+  const sourceClipObj = props.sourceClip ? clips.find(c => c.src === props.sourceClip) : null;
+  const mergedSrcs = sourceClipObj?.mergedSrcs;
+  const hasSource = !!props.sourceClip;
 
   React.useEffect(() => {
     if (showMergeNameModal) {
@@ -35,73 +77,110 @@ export default function PreviewContainer (props: PreviewContainerProps) {
   }, [showMergeNameModal]);
 
   const onExportClick = () => {
-    if (mergeEnabled) {
+    if (!hasSelectedClips) return;
+    const targetClips = selectedClips;
+    if (canMergeWithActiveProfile) {
       setShowMergeNameModal(true);
     } else {
-      props.handleExport(props.selectedClips, false);
+      handleExport(targetClips, false);
     }
   };
 
   const confirmMergeExport = () => {
+    const targetClips = selectedClips;
     const value = (mergeNameInputRef.current?.value ?? "").trim();
     if (!value) return;
     setShowMergeNameModal(false);
-    props.handleExport(props.selectedClips, true, value);
+    handleExport(targetClips, true, value);
   };
+
   return (
-    <main  className="preview-container" >
-      <div className="preview-window">
-        {props.focusedClip ? (
-          <VideoPlayer 
-           selectedClip={props.focusedClip}
-           videoIsHEVC={props.videoIsHEVC}
-           userHasHEVC={props.userHasHEVC}
-           posterPath={props.focusedClipThumbnail}
-           importToken={props.importToken}
-          />
-          ) : (
+    <main className="preview-container" >
+      <div className="preview-windows-layout single">
+        {hasSource && (
+          <div className="preview-window-wrapper source" key="source-wrapper">
+            <div className="preview-window">
+              <VideoPlayer
+                key={`source-player-${props.sourceClip}`}
+                selectedClip={props.sourceClip!}
+                mergedSrcs={mergedSrcs}
+                videoIsHEVC={videoIsHEVC}
+                userHasHEVC={userHasHEVC}
+                posterPath={props.sourceClipThumbnail}
+                importToken={importToken}
+                onTimeUpdate={props.onTimeUpdate}
+              />
+            </div>
+          </div>
+        )}
+
+        {!hasSource && (
+          <div className="preview-window empty" key="empty-preview">
             <p>No clip selected</p>
+          </div>
         )}
       </div>
-      <div className="preview-export">
-        <div className="checkbox-row">
-          <label className="custom-checkbox">
-            <input 
-              type="checkbox"
-              className="checkbox"
-              checked={mergeEnabled}
-              onChange={(e) => setMergeEnabled(e.target.checked)}
-            />
-            <span className="checkmark"></span>
+      <div className="export-panel">
+        <div className="export-header">
+          <FaFileExport className="header-icon" />
+          <span className="export-title">EXPORT SETTINGS</span>
+        </div>
+
+        <div className="export-settings-row">
+          <div className="export-setting-group export-profile-group">
+            <label className="export-label">
+            </label>
+            <div className="export-dir-row">
+              <Dropdown
+                className="export-profile-select"
+                options={exportProfileOptions}
+                value={activeExportProfile.id}
+                onChange={setActiveExportProfileId}
+                preferredDirection="down"
+              />
+              <button
+                className="buttons export-dir-browse"
+                onClick={() => { setSettingsTab("export"); setActivePage("settings"); }}
+                title="Edit export settings"
+              >
+                <FaPencilAlt />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="export-path-section">
+          <label className="export-label">
           </label>
-          <p>Merge clips</p>
+          <div className="export-dir-row">
+            <input
+              type="text"
+              className="export-dir-input"
+              placeholder="Select destination..."
+              value={exportDir || ""}
+              onChange={(e) => setExportDir(e.target.value)}
+            />
+            <button
+              className="buttons export-dir-browse"
+              onClick={handlePickExportDir}
+              title="Browse for output folder"
+            >
+              <FaFolderOpen />
+            </button>
+          </div>
         </div>
-        <div className="export-dir-row">
-          <input
-            type="text"
-            className="export-dir-input"
-            placeholder="Output directory..."
-            value={props.exportDir || ""}
-            onChange={(e) => props.onExportDirChange(e.target.value)}
-          />
-          <button
-            className="buttons export-dir-browse"
-            onClick={props.onPickExportDir}
-            title="Browse for output folder"
-          >
-            <FaFolderOpen />
-          </button>
-        </div>
-        <button 
-          className="buttons" 
-          id="file-button"
+
+        <button
+          className="buttons export-main-button"
+          disabled={!hasSelectedClips}
           onClick={onExportClick}
+          title={!hasSelectedClips ? "Select at least one clip to export" : "Export selected clips"}
         >
-          Export
+          Export Now
         </button>
       </div>
-      
-      <InfoBox/>
+
+      <HowToUse />
 
       {showMergeNameModal && (
         <div
@@ -117,7 +196,7 @@ export default function PreviewContainer (props: PreviewContainerProps) {
               ref={mergeNameInputRef}
               className="episode-modal-input"
               placeholder="Enter file name..."
-              defaultValue={props.defaultMergedName}
+              defaultValue={defaultMergedName}
               onKeyDown={(e) => {
                 if (e.key === "Escape") setShowMergeNameModal(false);
                 if (e.key === "Enter") confirmMergeExport();

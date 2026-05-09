@@ -1,243 +1,612 @@
-import { useState, useRef, startTransition } from "react";
+import { useRef, startTransition, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
+import { listen } from "@tauri-apps/api/event";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import { ClipItem, EpisodeEntry } from "../types/domain"
 import { fileNameFromPath, truncateFileName, detectScenes } from "../utils/episodeUtils";
+
+import { useAppStateStore, useAppPersistedStore } from "../stores/appStore";
+import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
+import { useGeneralSettingsStore } from "../stores/settingsStore";
+
 type ImportExportProps = {
-  abortedRef: React.MutableRefObject<boolean>;
-  clips: ClipItem[];
-  setFocusedClip: React.Dispatch<React.SetStateAction<string | null>>;
-  setSelectedClips: React.Dispatch<React.SetStateAction<Set<string>>>;
-  setVideoIsHEVC: React.Dispatch<React.SetStateAction<boolean | null>>;
-  setImportedVideoPath: React.Dispatch<React.SetStateAction<string | null>>;
-  setClips: React.Dispatch<React.SetStateAction<ClipItem[]>>;
-  setEpisodes: React.Dispatch<React.SetStateAction<EpisodeEntry[]>>;
-  setSelectedEpisodeId: React.Dispatch<React.SetStateAction<string | null>>;
-  setOpenedEpisodeId: React.Dispatch<React.SetStateAction<string | null>>;
-  selectedFolderId: string | null;
-  EXPORT_DIR_STORAGE_KEY: string;
-  exportDir: string | null;
-  setExportDir: React.Dispatch<React.SetStateAction<string | null>>;
-  setProgress: React.Dispatch<React.SetStateAction<number>>;
-  setProgressMsg: React.Dispatch<React.SetStateAction<string>>;
+  abortedRef?: React.RefObject<boolean>;
+  onRPCUpdate?: (data: any) => void;
+};
+type ExportOptionsPayload = {
+  profileId: string;
+  workflow: string;
+  editorTarget: string;
+  codec: string;
+  audioMode: string;
+  hardwareMode: string;
+  parallelExports: number;
 };
 
-export default function useImportExport(props: ImportExportProps) {
-  const [loading, setLoading] = useState(false);
-  const [importToken, setImportToken] = useState(() => Date.now().toString());
+export default function useImportExport(props?: ImportExportProps) {
+  const appState = useAppStateStore();
+  const episodeState = useEpisodePanelRuntimeStore();
+  const generalSettings = useGeneralSettingsStore();
+  const persistedState = useAppPersistedStore();
+
+  const loading = appState.loading;
+  const setLoading = appState.setLoading;
+  const importToken = appState.importToken;
+  const setImportToken = appState.setImportToken;
+  const batchTotal = appState.batchTotal;
+  const setBatchTotal = appState.setBatchTotal;
+  const batchDone = appState.batchDone;
+  const setBatchDone = appState.setBatchDone;
+  const batchCurrentFile = appState.batchCurrentFile;
+  const setBatchCurrentFile = appState.setBatchCurrentFile;
   const importGenRef = useRef(0);
-  const [batchTotal, setBatchTotal] = useState(0);
-  const [batchDone, setBatchDone] = useState(0);
-  const [batchCurrentFile, setBatchCurrentFile] = useState("");
-  const onImportClick = async () => {
-    const files = await open({
-      multiple: true,
-      filters: [
-        {
-          name: "Video",
-          extensions: ["mp4", "mkv", "mov"]
-        }
-      ]
-    });
+  const positionToIdRef = useRef(new Map<number, string>());
+  const localAbortedRef = useRef(false);
+  const abortedRef = props?.abortedRef || localAbortedRef;
+  const buildExportOptionsPayload = useCallback((profileId: string): ExportOptionsPayload | undefined => {
+    const profile = generalSettings.exportProfiles.find((candidate) => candidate.id === profileId)
+      ?? generalSettings.exportProfiles[0];
+    if (!profile) return undefined;
 
-    if (!files) return;
-
-    // open() with multiple:true returns string[] | null
-    const fileList = Array.isArray(files) ? files : [files];
-    if (fileList.length === 0) return;
-
-    if (fileList.length === 1) {
-      handleImport(fileList[0]);
-    } else {
-      handleBatchImport(fileList);
+    let audioMode = profile.audioMode === "none" ? "copy" : profile.audioMode;
+    if (profile.container === "mov" && audioMode === "flac") {
+      // MOV + FLAC can fail on some muxing paths; ALAC keeps lossless audio in a MOV-friendly format.
+      audioMode = "alac";
     }
+
+    return {
+      profileId: profile.id,
+      workflow: profile.workflow,
+      editorTarget: profile.editorTarget,
+      codec: profile.codec,
+      audioMode,
+      hardwareMode: profile.hardwareMode,
+      parallelExports: profile.parallelExports,
+    };
+  }, [generalSettings.exportProfiles]);
+
+  function parseInitialClips(clipsJson: string): ClipItem[] {
+    const scenes: any[] = JSON.parse(clipsJson);
+
+    return scenes.map((s, pos) => {
+      const id = crypto.randomUUID();
+      positionToIdRef.current.set(pos, id);
+      return {
+        id,
+        src: s.path,
+        thumbnail: s.thumbnail,
+        originalName: s.original_file,
+        start: s.start,
+        end: s.end,
+        thumbnailReady: s.thumbnail_ready !== false,
+      };
+    });
   }
 
-  const handleImport = async (file: string | null) => {
-    // This opens the file dialog to select a video file
-    if (!file) return;
+  function finalizeClips(clips: ClipItem[]): ClipItem[] {
+    return clips.map(({ thumbnailReady: _, ...rest }) => rest as ClipItem);
+  }
 
+  const handleImport = useCallback(async (file: string | null) => {
+    if (!file) return;
     const episodeId = crypto.randomUUID();
     const gen = ++importGenRef.current;
+    positionToIdRef.current = new Map();
 
-    try {
-      props.setProgress(0);
-      props.setProgressMsg("Starting...");
-      setLoading(true);
-      props.setSelectedClips(new Set());
-      props.setFocusedClip(null);
-      props.setImportedVideoPath(file);
-      props.setVideoIsHEVC(null);
-      setImportToken(Date.now().toString());
+    // Tracks clip IDs whose thumbnail_ready arrived before clips were committed to the store.
+    const pendingThumbnailReadyIds = new Set<string>();
+    let thumbReadyCount = 0;
+    let thumbReadyBeforeStore = 0;
+    let pairResultCount = 0;
+    let pairResultBeforeStore = 0;
 
-      const formatted = await detectScenes(file, episodeId);
-
-      // A newer import started while we were waiting — discard stale results.
+    // Batched updates: instead of one Zustand setState per event (which triggers a
+    // synchronous React re-render via useSyncExternalStore each time), we accumulate
+    // all thumbnail_ready and pair_result changes and flush them once per animation frame.
+    const batchedThumbIds = new Set<string>();
+    const batchedMerges: Array<{ clipAId: string; clipBId: string }> = [];
+    let batchRafId: number | null = null;
+    const applyBatchedUpdates = (activeEpisodeId: string) => {
       if (importGenRef.current !== gen) return;
+      const thumbIds = new Set(batchedThumbIds);
+      batchedThumbIds.clear();
+      const merges = batchedMerges.splice(0);
+      if (thumbIds.size === 0 && merges.length === 0) return;
+      console.log(`[batch flush] thumbIds=${thumbIds.size} merges=${merges.length}`);
+      useAppStateStore.setState(s => {
+        let clips = s.clips;
+        let bgProgress = s.bgProgress;
+        let changed = false;
 
-      const inferredName = formatted[0]?.originalName || fileNameFromPath(file);
+        // Apply merges sequentially so chained merges (AG  B then BG  C) work correctly.
+        for (const { clipAId, clipBId } of merges) {
+          const removed = clips.find(c => c.id === clipAId);
+          if (!removed) continue;
+          const removedSrcs = removed.mergedSrcs ?? [removed.src];
+          const mergeInto = (c: ClipItem) =>
+            c.id !== clipBId ? c : { ...c, mergedSrcs: [...removedSrcs, ...(c.mergedSrcs ?? [c.src])] };
+          clips = clips.filter(c => c.id !== clipAId).map(mergeInto);
+          changed = true;
+        }
 
-      const episodeEntry: EpisodeEntry = {
-        id: episodeId,
-        displayName: inferredName,
+        // Apply thumbnail ready flags.
+        if (thumbIds.size > 0) {
+          let thumbsApplied = 0;
+          const newClips = clips.map(c => {
+            if (thumbIds.has(c.id) && !c.thumbnailReady) { thumbsApplied++; return { ...c, thumbnailReady: true }; }
+            return c;
+          });
+          
+          if (thumbsApplied > 0) {
+            clips = newClips;
+            changed = true;
+            if (bgProgress) {
+              bgProgress = { ...bgProgress, done: Math.min(bgProgress.done + thumbsApplied, bgProgress.total) };
+            }
+          }
+        }
+        return changed ? { ...s, clips, bgProgress } : s;
+      });
+
+      if (merges.length > 0) {
+        useEpisodePanelRuntimeStore.setState(s => ({
+          episodes: s.episodes.map(ep => {
+            if (ep.id !== activeEpisodeId) return ep;
+            let epClips = ep.clips;
+
+            for (const { clipAId, clipBId } of merges) {
+              const removed = epClips.find(c => c.id === clipAId);
+              if (!removed) continue;
+              const removedSrcs = removed.mergedSrcs ?? [removed.src];
+              const mergeInto = (c: ClipItem) =>
+                c.id !== clipBId ? c : { ...c, mergedSrcs: [...removedSrcs, ...(c.mergedSrcs ?? [c.src])] };
+              epClips = epClips.filter(c => c.id !== clipAId).map(mergeInto);
+            }
+            return epClips === ep.clips ? ep : { ...ep, clips: epClips };
+          }),
+        }));
+      }
+    };
+
+    const scheduleBatch = (activeEpisodeId: string) => {
+      if (batchRafId !== null) return;
+      batchRafId = requestAnimationFrame(() => {
+        batchRafId = null;
+        applyBatchedUpdates(activeEpisodeId);
+      });
+    };
+
+    // Flag set by processing_complete to detect the race where it fires before
+    // the initial_clips_ready setTimeout has committed clips to the store.
+    let processingCompleted = false;
+
+    // pair_result events that arrived before clips were in the store G   replayed after commit.
+    const pendingMerges: Array<{ clipAId: string; clipBId: string }> = [];
+    const unlisteners: Array<() => void> = [];
+    let uiUnblocked = false;
+    try {
+      appState.setProgress(0);
+      appState.setProgressMsg("Starting...");
+      setLoading(true);
+      appState.setSelectedClips(new Set());
+      appState.setFocusedClip(null);
+      appState.setImportedVideoPath(file);
+      appState.setVideoIsHEVC(null);
+      setImportToken(Date.now().toString());
+      props?.onRPCUpdate?.({
+        type: "update",
+        details: `Detecting: ${generalSettings.rpcShowFilename ? fileNameFromPath(file) : "Video"}`,
+        state: "Processing Video",
+        large_image: "amverge_logo",
+        small_image: generalSettings.rpcShowMiniIcons ? "loading_icon_new" : undefined,
+        small_text: generalSettings.rpcShowMiniIcons ? "Detecting..." : undefined,
+        buttons: generalSettings.rpcShowButtons,
+      });
+
+      const activeEpisodeId = episodeId;
+      // G  G   initial_clips_ready: first batch of clips ready, unblock UI G  G  G  G  G  G  G  G  G  
+      const ul1 = await listen<{ clips_json: string }>("initial_clips_ready", (event) => {
+        if (importGenRef.current !== gen) return;
+        const clips = parseInitialClips(event.payload.clips_json);
+        const inferredName = clips[0]?.originalName || fileNameFromPath(file);
+        const episodeEntry: EpisodeEntry = {
+          id: activeEpisodeId,
+          displayName: inferredName,
+          videoPath: file,
+          folderId: useEpisodePanelRuntimeStore.getState().selectedFolderId,
+          importedAt: Date.now(),
+          clips: finalizeClips(clips),
+        };
+        
+        const notReady = clips.filter(c => c.thumbnailReady === false).length;
+        
+        // Unblock the UI immediately before any expensive state updates.
+        if (!uiUnblocked) {
+          uiUnblocked = true;
+          setLoading(false);
+          if (notReady > 0) {
+            useAppStateStore.setState({ bgProgress: { done: clips.length - notReady, total: clips.length } });
+          }
+          console.log(`[initial_clips_ready] setLoading(false), bgProgress set to ${notReady > 0 ? `{done:${clips.length - notReady}, total:${clips.length}}` : 'null'}`);
+        }
+
+        // Add rAF probe to check if paint fires before or after the setTimeout
+        const t0 = performance.now();
+        requestAnimationFrame(() => {
+          console.log(`[rAF probe] first rAF fired at +${(performance.now() - t0).toFixed(1)}ms after setLoading(false)`);
+        });
+
+        // Defer expensive updates so React can paint the loading=false frame first.
+        setTimeout(() => {
+          console.log(`[initial_clips_ready:setTimeout] fired at +${(performance.now() - t0).toFixed(1)}ms after setLoading(false), processingCompleted=${processingCompleted}`);
+          if (importGenRef.current !== gen) return;
+          // Merge any thumbnail_ready events that fired before clips were in the store.
+          const clipsWithPendingThumbs = pendingThumbnailReadyIds.size > 0
+            ? clips.map(c => pendingThumbnailReadyIds.has(c.id) ? { ...c, thumbnailReady: true } : c)
+            : clips;
+
+          // If processing_complete already ran before this setTimeout, it stripped thumbnailReady
+          // from an empty store (race condition). Strip it here so clips are immediately clickable.
+          // Also queue any pre-store pair_result merges to be applied after commit.
+          const clipsToCommit = processingCompleted ? finalizeClips(clipsWithPendingThumbs) : clipsWithPendingThumbs;
+
+          if (processingCompleted && pendingMerges.length > 0) {
+            batchedMerges.push(...pendingMerges);
+            pendingMerges.length = 0;
+          }
+          console.log(`[initial_clips_ready:setTimeout] committing ${clipsToCommit.length} clips to store, pendingIds=${pendingThumbnailReadyIds.size}, pendingMerges=${batchedMerges.length}`);
+          const t1 = performance.now();
+          useEpisodePanelRuntimeStore.setState(s => ({
+            episodes: [episodeEntry, ...s.episodes],
+            selectedEpisodeId: activeEpisodeId,
+            openedEpisodeId: activeEpisodeId,
+          }));
+          useAppStateStore.setState({ clips: clipsToCommit });
+          console.log(`[initial_clips_ready:setTimeout] setState took ${(performance.now() - t1).toFixed(1)}ms G   store now has ${useAppStateStore.getState().clips.length} clips, bgProgress=${JSON.stringify(useAppStateStore.getState().bgProgress)}`);
+
+          // If processing_complete already ran, apply any pending merges now that clips are in the store.
+          if (processingCompleted && batchedMerges.length > 0) {
+            applyBatchedUpdates(activeEpisodeId);
+          }
+        }, 0);
+      });
+
+      unlisteners.push(ul1);
+      const ul2 = await listen<{ position: number }>("thumbnail_ready", (event) => {
+        if (importGenRef.current !== gen) return;
+        const clipId = positionToIdRef.current.get(event.payload.position);
+        if (!clipId) return;
+        thumbReadyCount++;
+        const inStore = useAppStateStore.getState().clips.some(c => c.id === clipId);
+        if (!inStore) {
+          // Clip not yet committed to store; track for later and update bgProgress immediately.
+          thumbReadyBeforeStore++;
+          if (thumbReadyCount <= 10) {
+            console.log(`[thumbnail_ready #${thumbReadyCount}] clip NOT in store (beforeStore=${thumbReadyBeforeStore})`);
+          }
+          pendingThumbnailReadyIds.add(clipId);
+
+          useAppStateStore.setState(s => {
+            if (!s.bgProgress) return s;
+            return { ...s, bgProgress: { ...s.bgProgress, done: Math.min(s.bgProgress.done + 1, s.bgProgress.total) } };
+          });
+          
+          return;
+        }
+
+        if (thumbReadyCount <= 10) {
+          console.log(`[thumbnail_ready #${thumbReadyCount}] clip in store, batching`);
+        }
+        batchedThumbIds.add(clipId);
+        scheduleBatch(activeEpisodeId);
+      });
+
+      unlisteners.push(ul2);
+
+      const ul3 = await listen<{ pos_a: number; pos_b: number; should_merge: boolean }>(
+        "pair_result",
+        (event) => {
+          if (importGenRef.current !== gen) return;
+          if (!event.payload.should_merge) return;
+          const clipAId = positionToIdRef.current.get(event.payload.pos_a);
+          const clipBId = positionToIdRef.current.get(event.payload.pos_b);
+
+          if (!clipAId || !clipBId) return;
+          pairResultCount++;
+          const clipAInStore = useAppStateStore.getState().clips.some(c => c.id === clipAId);
+          if (!clipAInStore) pairResultBeforeStore++;
+          if (pairResultCount <= 10) {
+            console.log(`[pair_result #${pairResultCount}] clipA in store: ${clipAInStore} (store=${useAppStateStore.getState().clips.length}, beforeStore=${pairResultBeforeStore})`);
+          }
+          if (!clipAInStore) {
+            pendingMerges.push({ clipAId, clipBId });
+            return;
+          }
+          batchedMerges.push({ clipAId, clipBId });
+          scheduleBatch(activeEpisodeId);
+        }
+      );
+      unlisteners.push(ul3);
+
+      const ul4 = await listen<void>("processing_complete", () => {
+        if (importGenRef.current !== gen) return;
+        processingCompleted = true;
+
+        // flush any events still waiting in the batch before finalizing
+        if (batchRafId !== null) {
+          cancelAnimationFrame(batchRafId);
+          batchRafId = null;
+        }
+        applyBatchedUpdates(activeEpisodeId);
+        console.log(`[processing_complete] thumbReady=${thumbReadyCount} (beforeStore=${thumbReadyBeforeStore}), pairResult=${pairResultCount} (beforeStore=${pairResultBeforeStore}), store=${useAppStateStore.getState().clips.length} clips`);
+        
+        const finalClips = useAppStateStore.getState().clips.map(c => {
+          const { thumbnailReady: _, ...rest } = c;
+          return rest as ClipItem;
+        });
+        useAppStateStore.setState({ clips: finalClips, bgProgress: null });
+        useEpisodePanelRuntimeStore.setState(s => ({
+          episodes: s.episodes.map(ep =>
+            ep.id === activeEpisodeId ? { ...ep, clips: finalClips } : ep
+          ),
+        }));
+      });
+
+      unlisteners.push(ul4);
+
+      // Fire the backend G   blocks until the sidecar exits.
+      await invoke("detect_scenes", {
         videoPath: file,
-        folderId: props.selectedFolderId,
-        importedAt: Date.now(),
-        clips: formatted,
-      };
-
-      props.setEpisodes((prev) => [episodeEntry, ...prev]);
-      props.setSelectedEpisodeId(episodeId);
-      props.setOpenedEpisodeId(episodeId);
-      startTransition(() => {
-        props.setClips(formatted);
+        episodeCacheId: episodeId,
+        customPath: generalSettings.episodesPath,
       });
     } catch (err) {
       if (importGenRef.current !== gen) return;
       console.error("Detection failed:", err);
+      useAppStateStore.setState({ bgProgress: null });
     } finally {
-      if (importGenRef.current === gen) setLoading(false);
+      if (batchRafId !== null) {
+        cancelAnimationFrame(batchRafId);
+        batchRafId = null;
+      }
+
+      unlisteners.forEach(ul => ul());
+      if (importGenRef.current === gen && !uiUnblocked) setLoading(false);
     }
-  };
+  }, [appState, episodeState, generalSettings, props?.onRPCUpdate]);
 
-  const handleBatchImport = async (files: string[]) => {
+  const handleBatchImport = useCallback(async (files: string[]) => {
     const gen = ++importGenRef.current;
-    props.abortedRef.current = false;
-
+    abortedRef.current = false;
     const completedEpisodes: EpisodeEntry[] = [];
-
     try {
-      props.setProgress(0);
-      props.setProgressMsg("Starting...");
+      appState.setProgress(0);
+      appState.setProgressMsg("Starting...");
       setLoading(true);
-      props.setSelectedClips(new Set());
-      props.setFocusedClip(null);
-      props.setVideoIsHEVC(null);
+      appState.setSelectedClips(new Set());
+      appState.setFocusedClip(null);
+      appState.setVideoIsHEVC(null);
       setBatchTotal(files.length);
       setBatchDone(0);
       setBatchCurrentFile("");
 
       for (let i = 0; i < files.length; i++) {
-        if (props.abortedRef.current) break;
+        if (abortedRef.current) break;
         if (importGenRef.current !== gen) return;
-
         const file = files[i];
         const episodeId = crypto.randomUUID();
         const fileName = fileNameFromPath(file);
-
         setBatchDone(i);
         setBatchCurrentFile(truncateFileName(fileName));
-        props.setProgress(0);
-        props.setProgressMsg("Starting...");
+        appState.setProgress(0);
+        appState.setProgressMsg("Starting...");
 
         try {
-          const formatted = await detectScenes(file, episodeId);
-
-          if (props.abortedRef.current || importGenRef.current !== gen) {
-            // Aborted or superseded mid-flight — clean up this episode's cache
-            invoke("delete_episode_cache", { episodeCacheId: episodeId }).catch(() => {});
+          const formatted = await detectScenes(file, episodeId, generalSettings.episodesPath);
+          if (abortedRef.current || importGenRef.current !== gen) {
+            invoke("delete_episode_cache", {
+              episodeCacheId: episodeId,
+              customPath: generalSettings.episodesPath,
+            }).catch(() => { });
             break;
           }
 
           const inferredName = formatted[0]?.originalName || fileNameFromPath(file);
-
           const episodeEntry: EpisodeEntry = {
             id: episodeId,
             displayName: inferredName,
             videoPath: file,
-            folderId: props.selectedFolderId,
+            folderId: episodeState.selectedFolderId,
             importedAt: Date.now(),
             clips: formatted,
           };
 
           completedEpisodes.push(episodeEntry);
-          props.setEpisodes((prev) => [episodeEntry, ...prev]);
+          episodeState.setEpisodes((prev) => [episodeEntry, ...prev]);
         } catch (err) {
-          if (props.abortedRef.current) {
-            invoke("delete_episode_cache", { episodeCacheId: episodeId }).catch(() => {});
+          if (abortedRef.current) {
+            invoke("delete_episode_cache", {
+              episodeCacheId: episodeId,
+              customPath: generalSettings.episodesPath,
+            }).catch(() => { });
             break;
           }
           console.error(`Detection failed for ${fileName}:`, err);
-          invoke("delete_episode_cache", { episodeCacheId: episodeId }).catch(() => {});
+          invoke("delete_episode_cache", {
+            episodeCacheId: episodeId,
+            customPath: generalSettings.episodesPath,
+          }).catch(() => { });
         }
       }
 
-      // Open the first completed episode
       if (completedEpisodes.length > 0 && importGenRef.current === gen) {
         const first = completedEpisodes[0];
-        props.setSelectedEpisodeId(first.id);
-        props.setOpenedEpisodeId(first.id);
-        props.setImportedVideoPath(first.videoPath);
+        episodeState.setSelectedEpisodeId(first.id);
+        episodeState.setOpenedEpisodeId(first.id);
+        appState.setImportedVideoPath(first.videoPath);
         setImportToken(Date.now().toString());
         startTransition(() => {
-          props.setClips(first.clips);
+          appState.setClips(first.clips);
         });
       }
     } finally {
+
       if (importGenRef.current === gen) {
         setLoading(false);
         setBatchTotal(0);
         setBatchDone(0);
-        setBatchCurrentFile("");
+        setBatchCurrentFile(null);
       }
     }
-  };
+  }, [appState, episodeState, generalSettings, abortedRef]);
 
-  const handleExport = async(selectedClips: Set<string>, mergeEnabled: boolean, mergeFileName?: string) => {
-    if (selectedClips.size === 0) return;
+  const onImportClick = useCallback(async () => {
+    const files = await open({
+      multiple: true,
+      filters: [{ name: "Video", extensions: ["mp4", "mkv", "mov", "avi"] }],
+    });
+    if (!files) return;
+    const fileList = Array.isArray(files) ? files : [files];
 
-    const selected = props.clips.filter((c: ClipItem) => selectedClips.has(c.id));
-    if (selected.length === 0) return;
-
-    // If no export directory is set, prompt the user to pick one first
-    let dir = props.exportDir;
-    if (!dir) {
-        const picked = await open({ directory: true, multiple: false });
-        if (!picked) return;
-        dir = picked as string;
-        props.setExportDir(dir);
+    if (fileList.length === 0) return;
+    if (fileList.length === 1) {
+      handleImport(fileList[0]);
+    } else {
+      handleBatchImport(fileList);
     }
+  }, [handleImport, handleBatchImport]);
 
+  const handleExport = useCallback(async (selectedClips: Set<string>, mergeEnabled: boolean, mergeFileName?: string) => {
+    console.log(`[handleExport] selectedClips.size=${selectedClips.size} appState.clips.length=${appState.clips.length} IDs=[${[...selectedClips].slice(0, 3).join(',')}]`);
+    if (selectedClips.size === 0) return;
+    const selected = appState.clips.filter((c: ClipItem) => selectedClips.has(c.id));
+    console.log(`[handleExport] matched ${selected.length} clips from store`);
+    if (selected.length === 0) return;
+    let dir = persistedState.exportDir;
+    if (!dir) {
+      const picked = await open({ directory: true, multiple: false });
+      if (!picked) return;
+      dir = picked as string;
+      persistedState.setExportDir(dir);
+    }
     try {
-        setLoading(true);
+      setLoading(true);
+      const sep = dir.includes('\\') ? '\\' : '/';
+      const clipArray = selected.flatMap((c: ClipItem) => c.mergedSrcs ?? [c.src]);
+      const exportOptions = buildExportOptionsPayload(generalSettings.activeExportProfileId);
+      const activeProfile = generalSettings.exportProfiles.find(
+        (candidate) => candidate.id === generalSettings.activeExportProfileId
+      ) ?? generalSettings.exportProfiles[0];
+      const format = activeProfile?.container || generalSettings.exportFormat || "mp4";
 
-        const clipArray = selected.map((c: ClipItem) => c.src);
+      props?.onRPCUpdate?.({
+        type: "update",
+        details: `Exporting ${selected.length} clips`,
+        state: "Saving Progress",
+        large_image: "amverge_logo",
+        small_image: generalSettings.rpcShowMiniIcons ? "save_icon_new" : undefined,
+        small_text: generalSettings.rpcShowMiniIcons ? "Exporting..." : undefined,
+        buttons: generalSettings.rpcShowButtons,
+      });
 
-        if (mergeEnabled) {
+      if (mergeEnabled) {
         const baseName = mergeFileName || ((selected[0]?.originalName || "episode") + "_merged");
-        const savePath = `${dir}\\${baseName}.mp4`;
-
-        await invoke("export_clips", {
-            clips: clipArray,
-            savePath: savePath,
-            mergeEnabled: mergeEnabled,
+        const savePath = `${dir}${sep}${baseName}.${format}`;
+        const exportedFiles = await invoke<string[]>("export_clips", {
+          clips: clipArray,
+          savePath,
+          mergeEnabled,
+          exportOptions,
         });
-        } else {
+        if (generalSettings.openFileLocationAfterExport && exportedFiles.length > 0) {
+          await invoke("reveal_in_file_manager", { filePath: exportedFiles[0] });
+        }
+
+      } else {
         const firstClipPath = selected[0]?.src || "";
-        const firstFile = firstClipPath.split(/[/\\]/).pop() || "episode_0000.mp4";
+        const firstFile = firstClipPath.split(/[/\\]/).pop() || `episode_0000.${format}`;
         const firstStem = firstFile.replace(/\.[^/.]+$/, "");
         const defaultBase = firstStem.replace(/_\d{4}$/, "");
-        const savePath = `${dir}\\${defaultBase}_####.mp4`;
-
-        await invoke("export_clips", {
-            clips: clipArray,
-            savePath: savePath,
-            mergeEnabled: false,
+        const savePath = `${dir}${sep}${defaultBase}_####.${format}`;
+        const exportedFiles = await invoke<string[]>("export_clips", {
+          clips: clipArray,
+          savePath,
+          mergeEnabled: false,
+          exportOptions,
         });
+        if (generalSettings.openFileLocationAfterExport && exportedFiles.length > 0) {
+          await invoke("reveal_in_file_manager", { filePath: exportedFiles[0] });
         }
-        
-        console.log("Export complete");
-    } catch (err) {
-        console.log("Export failed:", err)
-    } finally {
-        setLoading(false);
-    }
-  };
+      }
 
-  const handlePickExportDir = async () => {
+      props?.onRPCUpdate?.({
+        type: "update",
+        details: "Export Finished!",
+        state: "Success",
+        large_image: "amverge_logo",
+        small_image: generalSettings.rpcShowMiniIcons ? "check_icon_new" : undefined,
+        small_text: generalSettings.rpcShowMiniIcons ? "Done" : undefined,
+        buttons: generalSettings.rpcShowButtons,
+      });
+
+      setTimeout(() => {
+        props?.onRPCUpdate?.({
+          type: "update",
+          details: "Editing Episode",
+          state: "Ready",
+          large_image: "amverge_logo",
+          small_image: generalSettings.rpcShowMiniIcons ? "edit_icon_new" : undefined,
+          small_text: generalSettings.rpcShowMiniIcons ? "Editing" : undefined,
+          buttons: generalSettings.rpcShowButtons,
+        });
+      }, 10000);
+    } catch (err) {
+      console.log("Export failed:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [appState.clips, buildExportOptionsPayload, persistedState, generalSettings, props?.onRPCUpdate]);
+
+  const handlePickExportDir = useCallback(async () => {
     const dir = await open({ directory: true, multiple: false });
-    if (dir) props.setExportDir(dir as string);
-  };
+    if (dir) persistedState.setExportDir(dir as string);
+  }, [persistedState]);
+
+  const handleDownloadSingleClip = useCallback(async (clip: ClipItem) => {
+    try {
+      const activeProfile = generalSettings.exportProfiles.find(
+        (candidate) => candidate.id === generalSettings.activeExportProfileId
+      ) ?? generalSettings.exportProfiles[0];
+      const format = activeProfile?.container || generalSettings.exportFormat || "mp4";
+      const fileName = clip.originalName || fileNameFromPath(clip.src);
+      const defaultPath = `${fileName}.${format}`;
+      const savePath = await save({
+        defaultPath,
+        filters: [{ name: "Video", extensions: [format] }],
+      });
+
+      if (!savePath) return;
+
+      setLoading(true);
+
+      const srcs = clip.mergedSrcs ?? [clip.src];
+      const exportOptions = buildExportOptionsPayload(generalSettings.activeExportProfileId);
+      const exportedFiles = await invoke<string[]>("export_clips", {
+        clips: srcs,
+        savePath,
+        mergeEnabled: srcs.length > 1,
+        exportOptions,
+      });
+      if (generalSettings.openFileLocationAfterExport && exportedFiles.length > 0) {
+        await invoke("reveal_in_file_manager", { filePath: exportedFiles[0] });
+      }
+    } catch (err) {
+      console.error("Single clip download failed:", err);
+    } finally {
+      setLoading(false);
+    }
+
+  }, [buildExportOptionsPayload, generalSettings.exportFormat, generalSettings.exportProfiles, generalSettings.openFileLocationAfterExport, generalSettings.activeExportProfileId]);
 
   return {
     loading,
@@ -250,6 +619,8 @@ export default function useImportExport(props: ImportExportProps) {
     handleImport,
     handleExport,
     handlePickExportDir,
-    handleBatchImport
+    handleBatchImport,
+    handleDownloadSingleClip,
   };
 }
+

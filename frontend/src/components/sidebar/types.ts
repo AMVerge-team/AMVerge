@@ -1,7 +1,7 @@
 // Shared sidebar types. Defines props, menu state, modal state, drag/drop state, and page types.
 import type React from "react";
 
-export type Page = "home" | "menu";
+export type Page = "home" | "menu" | "settings";
 
 export type SidebarProps = {
   activePage: Page;
@@ -42,6 +42,26 @@ export type SidebarProps = {
   onSortEpisodePanel: (direction: "asc" | "desc") => void;
   onClearEpisodePanelCache: () => void | Promise<void>;
   sideBarEnabled: boolean;
+
+  // Clips grid props used by sidebar-managed views
+  clips: any[];
+  gridSize: number;
+  gridRef: React.RefObject<HTMLDivElement | null>;
+  cols: number;
+  gridPreview: boolean;
+  selectedClips: Set<string>;
+  setSelectedClips: (val: Set<string> | ((prev: Set<string>) => Set<string>)) => void;
+
+  importToken: string;
+  loading: boolean;
+  isEmpty: boolean;
+  videoIsHEVC: boolean | null;
+  userHasHEVC: React.RefObject<boolean>;
+  setFocusedClip: (val: string | null) => void;
+  focusedClip: string | null;
+  generalSettings: any;
+  onDownloadClip: (clip: any) => void;
+  themeSettings: any;
 };
 
 export type EpisodePanelProps = Omit<SidebarProps, "activePage" | "setActivePage">;
