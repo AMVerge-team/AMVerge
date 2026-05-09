@@ -99,14 +99,15 @@ jobs:
       - name: Archive app bundle
         run: |
           mkdir -p artifacts
-          BUNDLE_DIR="frontend/src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos"
-          APP_BUNDLE="$(find "$BUNDLE_DIR" -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          BUNDLE_ROOT="frontend/src-tauri/target/${{ matrix.rust_target }}/release/bundle"
+          APP_BUNDLE="$(find "$BUNDLE_ROOT" -type d -name '*.app' | head -n 1)"
           if [ -z "$APP_BUNDLE" ]; then
-            echo "No .app bundle found in $BUNDLE_DIR"
-            ls -la "$BUNDLE_DIR"
+            echo "No .app bundle found in $BUNDLE_ROOT"
+            find "$BUNDLE_ROOT" -maxdepth 4 -print || true
             exit 1
           fi
-          tar -C "$BUNDLE_DIR" -czf artifacts/${{ matrix.app_artifact_name }}.tar.gz "$(basename "$APP_BUNDLE")"
+          APP_BUNDLE_DIR="$(dirname "$APP_BUNDLE")"
+          tar -C "$APP_BUNDLE_DIR" -czf artifacts/${{ matrix.app_artifact_name }}.tar.gz "$(basename "$APP_BUNDLE")"
 
       - name: Upload app artifact
         uses: actions/upload-artifact@v4
