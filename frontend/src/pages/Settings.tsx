@@ -1,7 +1,7 @@
 import GeneralSection from "../components/settings/GeneralSection";
 import AppearanceSection from "../components/settings/AppearanceSection";
 import DiscordRPCSection from "../components/settings/DiscordRPCSection";
-import ExportSection from "../components/settings/ExportSection";
+import ExportSection from "../components/settings/exportSettings/ExportSection";
 import { useUIStateStore } from "../stores/UIStore";
 
 const PAGES = [

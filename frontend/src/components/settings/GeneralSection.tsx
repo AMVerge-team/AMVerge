@@ -1,25 +1,8 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { useGeneralSettingsStore } from "../../stores/settingsStore";
-import { useEffect, useState, type ReactNode } from "react";
-
-type SettingNameProps = {
-  label: string;
-  description: ReactNode;
-  control: ReactNode;
-};
-
-function SettingName({ label, description, control }: SettingNameProps) {
-  return (
-    <div className="export-setting-block">
-      <div className="settings-row export-setting-row">
-        <label className="settings-label">{label}</label>
-        <div className="settings-control export-setting-control">{control}</div>
-      </div>
-      <p className="setting-description">{description}</p>
-    </div>
-  );
-}
+import { useEffect, useState} from "react";
+import SettingRow from "../common/SettingRow";
 
 type GeneralSectionProps = {
   onGeneralSettingsReset: () => void;
@@ -90,7 +73,7 @@ export default function GeneralSection({
           </div>
         )}
 
-        <SettingName
+        <SettingRow
           label="Application Version"
           description=""
           control={
@@ -102,7 +85,7 @@ export default function GeneralSection({
           }
         />
       
-        <SettingName
+        <SettingRow
           label="Audio Playback Hover"
           description="Automatically play clip audio when hovering over items in the grid."
           control={
@@ -125,7 +108,7 @@ export default function GeneralSection({
           }
         />
 
-        <SettingName
+        <SettingRow
           label="Playback Volume"
           description="Adjust the master volume level for clip previews and audio playback."
           control={
@@ -150,7 +133,7 @@ export default function GeneralSection({
           }
         />
 
-        <SettingName
+        <SettingRow
           label="Episodes Storage Path"
           description="The location where your processed episodes and clips are stored."
           control={
@@ -173,7 +156,7 @@ export default function GeneralSection({
           }
         />
       
-        <SettingName
+        <SettingRow
           label="Factory Reset"
           description="Reset to Defaults"
           control={

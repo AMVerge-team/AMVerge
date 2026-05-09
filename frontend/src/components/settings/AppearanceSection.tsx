@@ -1,31 +1,14 @@
-import { useId, useRef, useState, type ReactNode } from "react";
+import { useId, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { getDarkerColor, useThemeSettingsStore } from "../../stores/settingsStore";
 import ColorPicker from "../common/ColorPicker";
-import CropModal from "./CropModal";
+import CropModal from "../common/CropModal";
+import SettingRow from "../common/SettingRow";
 
 type AppearanceSectionProps = {
   onThemeReset: () => void;
 };
-
-type SettingNameProps = {
-  label: string;
-  description: ReactNode;
-  control: ReactNode;
-};
-
-function SettingName({ label, description, control }: SettingNameProps) {
-  return (
-    <div className="export-setting-block">
-      <div className="settings-row export-setting-row">
-        <label className="settings-label">{label}</label>
-        <div className="settings-control export-setting-control">{control}</div>
-      </div>
-      <p className="setting-description">{description}</p>
-    </div>
-  );
-}
 
 export default function AppearanceSection({
   onThemeReset
@@ -112,7 +95,7 @@ export default function AppearanceSection({
       <h3>Appearance</h3>
       <div className="about-content">
 
-        <SettingName
+        <SettingRow
           label="Accent color"
           description="Customize the primary color used for buttons, highlights, and icons."
           control={
@@ -142,7 +125,7 @@ export default function AppearanceSection({
             </div>
           }
         />
-        <SettingName
+        <SettingRow
           label="Background Gradient"
           description="Choose the secondary color for the background gradient effect."
           control={
@@ -163,7 +146,7 @@ export default function AppearanceSection({
           }
         />
 
-        <SettingName
+        <SettingRow
           label="Background image"
           description="Upload a custom image to use as your application background."
           control={
@@ -185,7 +168,7 @@ export default function AppearanceSection({
           }
         />
         
-        <SettingName
+        <SettingRow
           label="Background opacity"
           description="Adjust the transparency of the background image."
           control={
@@ -211,7 +194,7 @@ export default function AppearanceSection({
           }
         />
 
-        <SettingName
+        <SettingRow
           label="Background blur"
           description="Adjust the blur of the background image."
           control={
@@ -235,7 +218,7 @@ export default function AppearanceSection({
           }
         />
 
-        <SettingName
+        <SettingRow
           label="Show download button"
           description="Toggle download button visibility on the clips."
           control={
@@ -258,7 +241,7 @@ export default function AppearanceSection({
           }
         />
 
-        <SettingName
+        <SettingRow
           label="Show clip timestamps"
           description="Toggle timestamp visibility on the clips."
           control={
@@ -281,7 +264,7 @@ export default function AppearanceSection({
           }
         />
 
-        <SettingName
+        <SettingRow
           label="Widescreen clip tiles"
           description="Switch clip tiles between square (1080x1080) and widescreen (1920x1080)."
           control={
@@ -303,7 +286,7 @@ export default function AppearanceSection({
             </div>
           }
         />
-        <SettingName
+        <SettingRow
           label="Factory Reset"
           description="Revert all appearance and theme settings back to their default values."
           control={

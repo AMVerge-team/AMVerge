@@ -5,6 +5,8 @@ export type ExportWorkflow =
 export type ExportCodecFamily =
   | "h264"
   | "h265"
+  | "av1"
+  | "cineform"
   | "prores"
   | "dnxhr"
   | "uncompressed";
@@ -391,6 +393,8 @@ const AUDIO_MODE_LABELS: Record<ExportAudioMode, string> = {
 const CODEC_FAMILY_LABELS: Record<ExportCodecFamily, string> = {
   h264: "H.264 / AVC",
   h265: "H.265 / HEVC",
+  av1: "AV1",
+  cineform: "CineForm",
   prores: "ProRes",
   dnxhr: "DNxHR",
   uncompressed: "Uncompressed",
@@ -399,6 +403,8 @@ const CODEC_FAMILY_LABELS: Record<ExportCodecFamily, string> = {
 const CODEC_FAMILY_TO_CODECS: Record<ExportCodecFamily, ExportCodec[]> = {
   h264: ["h264_main", "h264_high", "h264_high10", "h264_high422"],
   h265: ["h265_main", "h265_main10", "h265_main12", "h265_main422_10"],
+  av1: ["av1_main"],
+  cineform: ["cineform"],
   prores: ["prores_422_lt", "prores_422", "prores_422_hq", "prores_4444", "prores_4444_xq"],
   dnxhr: ["dnxhr_lb", "dnxhr_sq", "dnxhr_hq", "dnxhr_hqx", "dnxhr_444"],
   uncompressed: ["uncompressed_rgb8", "uncompressed_rgb10", "uncompressed_rgba8", "uncompressed_rgba16"],
@@ -459,6 +465,8 @@ export function getCodecFamily(codec: ExportCodec): ExportCodecFamily {
 
   if (normalized.startsWith("h264_")) return "h264";
   if (normalized.startsWith("h265_")) return "h265";
+  if (normalized === "av1_main") return "av1";
+  if (normalized === "cineform") return "cineform";
   if (normalized.startsWith("prores_")) return "prores";
   if (normalized.startsWith("dnxhr_")) return "dnxhr";
   if (normalized.startsWith("uncompressed_")) return "uncompressed";
