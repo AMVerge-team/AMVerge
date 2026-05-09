@@ -229,6 +229,7 @@ pub(super) async fn import_into_after_effects(
     }
 }
 
+#[cfg(target_os = "windows")]
 pub(super) fn build_after_effects_ui_import_ps(media_paths: &[String]) -> String {
     let project_ready_expr = "($titleLower -match '\\.aep') -and ($titleLower -notmatch 'untitled|sans titre') -and ($titleLower -notmatch 'home|accueil')";
     let window_title_match_expr = "($titleLower -match 'after effects')";

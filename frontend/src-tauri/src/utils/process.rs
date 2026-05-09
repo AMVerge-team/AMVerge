@@ -11,4 +11,9 @@ pub fn apply_no_window(cmd: &mut Command) {
     {
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
+
+    #[cfg(not(windows))]
+    {
+        let _ = cmd;
+    }
 }
