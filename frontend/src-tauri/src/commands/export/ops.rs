@@ -5,7 +5,9 @@ use tauri::{AppHandle, State};
 
 use crate::state::ExportAbortState;
 use crate::utils::ffmpeg::resolve_bundled_tool;
-use crate::utils::logging::{console_log, sanitize_for_console};
+use crate::utils::logging::console_log;
+#[cfg(target_os = "windows")]
+use crate::utils::logging::sanitize_for_console;
 use crate::utils::paths::file_name_only;
 use crate::utils::process::apply_no_window;
 
