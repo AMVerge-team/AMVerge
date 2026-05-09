@@ -9,17 +9,12 @@ export default function Credits() {
             </div>
             <div className="credits-content">
                 <div className="credits-row">
-                    <h4>Creator/Maintainer</h4>
-                    <div className="credits-row-inner">
-                        <p>Crptk</p>
-                    </div>
+                    <p>Crptk</p>
                 </div>
                 <div className="credits-row">
-                    <h4>Main Developers</h4>
-                    <div className="credits-row-inner">
-                        <p>Netsuma</p>
-                        <p>Moongetsu</p>
-                    </div>
+                    <p>Netsuma</p>
+                    <p>Moongetsu</p>
+                    <p>Lewis</p>
                 </div>
                 <div className="credits-row">
                     <h4>Contributors</h4>
