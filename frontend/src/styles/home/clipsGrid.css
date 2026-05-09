@@ -38,10 +38,10 @@
 }
 
 .clip-wrapper {
-    --clip-overlay-inset: 10px;
+    --clip-overlay-inset: 7px;
     width: 100%;
     max-width: var(--clip-max-width, 260px);
-    aspect-ratio: 1 / 1;
+    aspect-ratio: var(--clip-tile-aspect, 1 / 1);
     border-radius: 15px;
     position: relative;
     overflow: hidden;
@@ -100,11 +100,11 @@
     top: var(--clip-overlay-inset);
     left: var(--clip-overlay-inset);
     z-index: 12;
-    width: 26px;
-    height: 26px;
+    width: 25px;
+    height: 25px;
     border-radius: 8px;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(2px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: white;
     display: flex;
@@ -207,7 +207,7 @@
 }
 
 .clip-skeleton {
-    aspect-ratio: 1;
+    aspect-ratio: var(--clip-tile-aspect, 1 / 1);
     border-radius: 12px;
     background: linear-gradient(90deg,
             #161616 25%,
@@ -228,11 +228,11 @@
 
 .clip-download-btn {
     position: absolute;
-    top: calc(var(--clip-overlay-inset) - 4px);
-    right: calc(var(--clip-overlay-inset) - 2px);
+    top: calc(var(--clip-overlay-inset));
+    right: calc(var(--clip-overlay-inset));
     z-index: 15;
-    width: 23px;
-    height: 23px;
+    width: 25px;
+    height: 25px;
     border-radius: 8px;
     border: 1px solid rgb(255 255 255 / 0.14);
     background: rgb(8 12 22 / 0.2);

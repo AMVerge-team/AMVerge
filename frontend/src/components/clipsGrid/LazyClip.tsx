@@ -5,8 +5,7 @@
  * Optimized for performance and compatibility (HEVC/H.264 proxying).
  */
 import { memo, useState, useRef, useEffect, useCallback } from "react"
-import { invoke } from "@tauri-apps/api/core";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { LazyClipProps } from "./types.ts"
 import { DownloadButton } from "./DownloadButton.tsx";
 import { FaCheck, FaPlus } from "react-icons/fa";
@@ -38,7 +37,6 @@ export const LazyClip = memo(function LazyClip({
   onClipClick,
   onClipDoubleClick,
   onToggleSelection,
-  registerVideoRef,
   reportStaggerDemand,
   onDownloadClip,
 }: LazyClipProps) {
@@ -163,7 +161,7 @@ export const LazyClip = memo(function LazyClip({
 
         const proxyPath = gridPreview
           ? await requestProxySequential(clipPath, /* priority */ isHovered)
-          : await invoke<string>("ensure_preview_proxy", { originalPath: clipPath });
+          : await invoke<string>("ensure_preview_proxy", { clipPath });
 
         if (originalPath !== clipPath) return;
 
@@ -189,7 +187,7 @@ export const LazyClip = memo(function LazyClip({
     };
 
     void run();
-  }, [needsHevcProxy, isVisible, isHovered, gridPreview, originalPath, requestProxySequential]);
+  }, [needsHevcProxy, isVisible, isHovered, gridPreview, effectiveSrc, originalPath, requestProxySequential]);
 
   // Generate a stream-copy concat preview for merged clips (skipped for HEVC — proxy handles that).
   useEffect(() => {
@@ -326,7 +324,13 @@ export const LazyClip = memo(function LazyClip({
       v.autoplay = true;
       v.loop = true;
 
-      v.load();
+      if (v.readyState === 0) {
+        try {
+          v.load();
+        } catch {
+          // ignore
+        }
+      }
       v.play().catch(() => { });
     } else {
       v.pause();
@@ -341,7 +345,6 @@ export const LazyClip = memo(function LazyClip({
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      console.log(`[LazyClip click] id=${clip.id} thumbnailReady=${clip.thumbnailReady}`);
       if (clip.thumbnailReady === false) return; // still generating — block
       onClipClick(clip.id, clip.src, index, e);
     },
@@ -350,7 +353,6 @@ export const LazyClip = memo(function LazyClip({
 
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      console.log(`[LazyClip dblclick] id=${clip.id} thumbnailReady=${clip.thumbnailReady}`);
       if (clip.thumbnailReady === false) return; // still generating — block
       onClipDoubleClick(clip.id, clip.src, index, e);
     },
@@ -359,13 +361,9 @@ export const LazyClip = memo(function LazyClip({
 
 
   // Register video element ref for parent access
-  const setVideoRef = useCallback(
-    (el: HTMLVideoElement | null) => {
-      videoRef.current = el;
-      registerVideoRef(clip.id, el);
-    },
-    [clip.id, registerVideoRef]
-  );
+  const setVideoRef = useCallback((el: HTMLVideoElement | null) => {
+    videoRef.current = el;
+  }, []);
 
   const updateDownloadToneFromThumbnail = useCallback((img: HTMLImageElement | null) => {
     if (!img || img.naturalWidth === 0 || img.naturalHeight === 0) return;
@@ -421,11 +419,12 @@ export const LazyClip = memo(function LazyClip({
   }, []);
 
   useEffect(() => {
+    if (!showDownloadButton) return;
     const img = thumbnailRef.current;
     if (!img) return;
     if (!img.complete) return;
     updateDownloadToneFromThumbnail(img);
-  }, [clip.thumbnail, importToken, updateDownloadToneFromThumbnail]);
+  }, [clip.thumbnail, importToken, showDownloadButton, updateDownloadToneFromThumbnail]);
 
   return (
     <div
@@ -468,7 +467,9 @@ export const LazyClip = memo(function LazyClip({
               style={{ opacity: shouldShowThumbnail ? 1 : 0 }}
               draggable={false}
               onLoad={(e) => {
-                updateDownloadToneFromThumbnail(e.currentTarget);
+                if (showDownloadButton) {
+                  updateDownloadToneFromThumbnail(e.currentTarget);
+                }
               }}
               onDragStart={(e) => {
                 e.preventDefault();
@@ -480,7 +481,7 @@ export const LazyClip = memo(function LazyClip({
           {shouldMountVideo && (
             <video
               className="clip"
-              src={`${convertFileSrc(effectiveSrc)}?v=${importToken}#t=${clip.start || 0}${clip.end ? "," + clip.end : ""}`}
+              src={`${convertFileSrc(effectiveSrc)}?v=${importToken}`}
               muted={!(isHovered && audioPlaybackHover)}
               loop
               autoPlay

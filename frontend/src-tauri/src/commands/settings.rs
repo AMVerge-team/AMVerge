@@ -2,6 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use image::DynamicImage;
 use tauri::{AppHandle, Manager};
 
 #[tauri::command]
@@ -149,59 +150,72 @@ fn sanitize_icon_id(input: &str) -> String {
     }
 }
 
-fn run_python_crop(
+fn run_native_crop(
     source_path: &str,
     destination: &Path,
     crop: &CropData,
 ) -> Result<String, String> {
-    let crop_json = serde_json::to_string(crop).map_err(|e| e.to_string())?;
-    let current_dir = std::env::current_dir().unwrap_or_default();
+    let mut img = image::open(source_path).map_err(|e| format!("Failed to open image: {e}"))?;
 
-    // Detect project root (handle both root and src-tauri dirs)
-    let project_root = if current_dir.ends_with("src-tauri") {
-        current_dir
-            .parent()
-            .and_then(|p| p.parent())
-            .map(|p| p.to_path_buf())
-            .unwrap_or(current_dir)
-    } else {
-        current_dir
+    let rotation = crop.rotation.rem_euclid(360);
+    img = match rotation {
+        90 => img.rotate90(),
+        180 => img.rotate180(),
+        270 => img.rotate270(),
+        _ => img,
     };
 
-    // Find python path (prefer venv)
-    let python_path = if cfg!(windows) {
-        project_root
-            .join("backend")
-            .join("venv")
-            .join("Scripts")
-            .join("python.exe")
+    if crop.flip_h {
+        img = img.fliph();
+    }
+
+    if crop.flip_v {
+        img = img.flipv();
+    }
+
+    let img_width = img.width() as i64;
+    let img_height = img.height() as i64;
+    if img_width <= 0 || img_height <= 0 {
+        return Err("Invalid image dimensions".to_string());
+    }
+
+    let x = crop.x.round().max(0.0) as i64;
+    let y = crop.y.round().max(0.0) as i64;
+    let w = crop.width.round().max(1.0) as i64;
+    let h = crop.height.round().max(1.0) as i64;
+
+    let x = x.min(img_width - 1);
+    let y = y.min(img_height - 1);
+    let max_w = img_width - x;
+    let max_h = img_height - y;
+    let crop_w = w.min(max_w).max(1);
+    let crop_h = h.min(max_h).max(1);
+
+    let cropped = img.crop_imm(x as u32, y as u32, crop_w as u32, crop_h as u32);
+
+    let ext = destination
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    if ext == "jpg" || ext == "jpeg" {
+        let rgb: DynamicImage = if cropped.color().has_alpha() {
+            DynamicImage::ImageRgb8(cropped.to_rgb8())
+        } else {
+            cropped
+        };
+
+        let mut output_file = fs::File::create(destination)
+            .map_err(|e| format!("Failed to create output file: {e}"))?;
+        let mut encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut output_file, 95);
+        encoder
+            .encode_image(&rgb)
+            .map_err(|e| format!("Failed to write JPEG: {e}"))?;
     } else {
-        Path::new("python3").to_path_buf()
-    };
-
-    // Fallback to "python" if venv not found
-    let python_cmd = if python_path.exists() {
-        python_path.to_string_lossy().to_string()
-    } else {
-        "python".to_string()
-    };
-
-    let script_path = project_root
-        .join("backend")
-        .join("utils")
-        .join("image_processor.py");
-
-    let output = std::process::Command::new(python_cmd)
-        .arg(script_path)
-        .arg(source_path)
-        .arg(destination)
-        .arg(crop_json)
-        .output()
-        .map_err(|e| format!("Failed to execute python: {e}"))?;
-
-    if !output.status.success() {
-        let err = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("Python error: {err}"));
+        cropped
+            .save(destination)
+            .map_err(|e| format!("Failed to save image: {e}"))?;
     }
 
     Ok(destination.to_string_lossy().to_string())
@@ -253,7 +267,7 @@ pub async fn crop_and_save_image(
             return Ok::<String, String>(destination.to_string_lossy().to_string());
         }
 
-        run_python_crop(&source_path_for_worker, &destination, &crop)
+        run_native_crop(&source_path_for_worker, &destination, &crop)
     })
     .await
     .map_err(|e| e.to_string())?
@@ -306,7 +320,7 @@ pub async fn crop_and_save_profile_icon(
             return Ok::<String, String>(destination.to_string_lossy().to_string());
         }
 
-        run_python_crop(&source_path_for_worker, &destination, &crop)
+        run_native_crop(&source_path_for_worker, &destination, &crop)
     })
     .await
     .map_err(|e| e.to_string())?

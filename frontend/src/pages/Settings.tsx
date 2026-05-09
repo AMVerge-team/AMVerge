@@ -3,8 +3,6 @@ import AppearanceSection from "../components/settings/AppearanceSection";
 import DiscordRPCSection from "../components/settings/DiscordRPCSection";
 import ExportSection from "../components/settings/ExportSection";
 import { useUIStateStore } from "../stores/UIStore";
-import { useAppStateStore } from "../stores/appStore";
-
 
 const PAGES = [
   { key: "general", label: "General" },

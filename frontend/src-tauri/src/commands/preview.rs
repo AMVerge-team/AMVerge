@@ -280,10 +280,6 @@ pub async fn ensure_merged_preview(
     }
 
     let ffmpeg = resolve_bundled_tool(&app, "ffmpeg")?;
-    console_log(
-        "MERGED_PREVIEW|start",
-        &format!("clips={} first={}", srcs.len(), file_name_only(&srcs[0])),
-    );
 
     let content: String = srcs
         .iter()
@@ -366,9 +362,5 @@ pub async fn ensure_merged_preview(
     }
 
     let final_path = preview_path.to_string_lossy().to_string();
-    console_log(
-        "MERGED_PREVIEW|end",
-        &format!("ok file={}", file_name_only(&final_path)),
-    );
     Ok(final_path)
 }

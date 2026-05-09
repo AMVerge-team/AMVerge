@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { getDarkerColor, useThemeSettingsStore } from "../../stores/settingsStore";
@@ -9,18 +9,35 @@ type AppearanceSectionProps = {
   onThemeReset: () => void;
 };
 
+type SettingNameProps = {
+  label: string;
+  description: ReactNode;
+  control: ReactNode;
+};
+
+function SettingName({ label, description, control }: SettingNameProps) {
+  return (
+    <div className="export-setting-block">
+      <div className="settings-row export-setting-row">
+        <label className="settings-label">{label}</label>
+        <div className="settings-control export-setting-control">{control}</div>
+      </div>
+      <p className="setting-description">{description}</p>
+    </div>
+  );
+}
+
 export default function AppearanceSection({
   onThemeReset
 }: AppearanceSectionProps) {
   const themeSettings = useThemeSettingsStore();
   const setThemeSettings = useThemeSettingsStore.setState;
-  const accentId = useId();
-  const bgGradientId = useId();
   const bgOpacityId = useId();
   const bgBlurId = useId();
 
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [originalPath, setOriginalPath] = useState<string | null>(null);
+  const cropRequestVersionRef = useRef(0);
 
   const handlePickImage = async () => {
     const selected = await open({
@@ -39,22 +56,43 @@ export default function AppearanceSection({
     setImageToCrop(convertFileSrc(selected));
   };
 
+  const handleCloseCropModal = () => {
+    cropRequestVersionRef.current += 1;
+    setImageToCrop(null);
+    setOriginalPath(null);
+  };
+
   const handleCropComplete = async (cropData: any) => {
     if (!originalPath) return;
 
+    const requestVersion = cropRequestVersionRef.current + 1;
+    cropRequestVersionRef.current = requestVersion;
+
     try {
-      const storedPath = await invoke<string>("crop_and_save_image", {
-        sourcePath: originalPath,
-        crop: {
-          x: cropData.x,
-          y: cropData.y,
-          width: cropData.width,
-          height: cropData.height,
-          rotation: cropData.rotation,
-          flip_h: cropData.flip.horizontal,
-          flip_v: cropData.flip.vertical,
-        }
-      });
+      const timeoutMs = 30000;
+      const storedPath = await Promise.race([
+        invoke<string>("crop_and_save_image", {
+          sourcePath: originalPath,
+          crop: {
+            x: cropData.x,
+            y: cropData.y,
+            width: cropData.width,
+            height: cropData.height,
+            rotation: cropData.rotation,
+            flip_h: cropData.flip.horizontal,
+            flip_v: cropData.flip.vertical,
+          }
+        }),
+        new Promise<string>((_, reject) => {
+          setTimeout(() => {
+            reject(new Error("Image apply timed out. Please try a smaller image."));
+          }, timeoutMs);
+        }),
+      ]);
+
+      if (cropRequestVersionRef.current !== requestVersion) {
+        return;
+      }
 
       setThemeSettings((prev) => ({
         ...prev,
@@ -64,6 +102,8 @@ export default function AppearanceSection({
       setOriginalPath(null);
     } catch (error) {
       console.error("Failed to crop and save image:", error);
+      const message = error instanceof Error ? error.message : String(error);
+      window.alert(`Failed to apply background image: ${message}`);
     }
   };
 
@@ -71,62 +111,62 @@ export default function AppearanceSection({
     <section className="panel menu-panel settings-panel">
       <h3>Appearance</h3>
       <div className="about-content">
-        <div className="settings-row">
-          <label className="settings-label" htmlFor={accentId}>
-            Accent color
-          </label>
-          <div className="settings-control">
-            <ColorPicker
-              color={themeSettings.accentColor}
-              onChange={(newColor) => {
-                setThemeSettings((prev) => {
-                  const currentDark = getDarkerColor(prev.accentColor);
-                  const isDefaultGradient =
-                    prev.backgroundGradientColor === "#001a00" ||
-                    prev.backgroundGradientColor === currentDark;
 
-                  return {
+        <SettingName
+          label="Accent color"
+          description="Customize the primary color used for buttons, highlights, and icons."
+          control={
+            <div className="settings-control">
+              <ColorPicker
+                color={themeSettings.accentColor}
+                onChange={(newColor) => {
+                  setThemeSettings((prev) => {
+                    const currentDark = getDarkerColor(prev.accentColor);
+                    const isDefaultGradient =
+                      prev.backgroundGradientColor === "#001a00" ||
+                      prev.backgroundGradientColor === currentDark;
+
+                    return {
+                      ...prev,
+                      accentColor: newColor,
+                      backgroundGradientColor: isDefaultGradient
+                        ? getDarkerColor(newColor)
+                        : prev.backgroundGradientColor,
+                    };
+                  });
+                }}
+              />
+              <span className="settings-value">
+                {themeSettings.accentColor.toUpperCase()}
+              </span>
+            </div>
+          }
+        />
+        <SettingName
+          label="Background Gradient"
+          description="Choose the secondary color for the background gradient effect."
+          control={
+            <div className="settings-control">
+              <ColorPicker
+                color={themeSettings.backgroundGradientColor}
+                onChange={(newColor) =>
+                  setThemeSettings((prev) => ({
                     ...prev,
-                    accentColor: newColor,
-                    backgroundGradientColor: isDefaultGradient
-                      ? getDarkerColor(newColor)
-                      : prev.backgroundGradientColor,
-                  };
-                });
-              }}
-            />
-            <span className="settings-value">{themeSettings.accentColor.toUpperCase()}</span>
-          </div>
-        </div>
-        <p style={{ fontSize: "0.8rem", opacity: 0.6, marginLeft: "24px", marginBottom: "16px", marginTop: "-4px" }}>
-          Customize the primary color used for buttons, highlights, and icons.
-        </p>
+                    backgroundGradientColor: newColor,
+                  }))
+                }
+              />
+              <span className="settings-value">
+                {themeSettings.backgroundGradientColor.toUpperCase()}
+              </span>
+            </div>
+          }
+        />
 
-        <div className="settings-row">
-          <label className="settings-label" htmlFor={bgGradientId}>
-            Background gradient
-          </label>
-          <div className="settings-control">
-            <ColorPicker
-              color={themeSettings.backgroundGradientColor}
-              onChange={(newColor) =>
-                setThemeSettings((prev) => ({
-                  ...prev,
-                  backgroundGradientColor: newColor,
-                }))
-              }
-            />
-            <span className="settings-value">
-              {themeSettings.backgroundGradientColor.toUpperCase()}
-            </span>
-          </div>
-        </div>
-        <p style={{ fontSize: "0.8rem", opacity: 0.6, marginLeft: "24px", marginBottom: "16px", marginTop: "-4px" }}>
-          Choose the secondary color for the background gradient effect.
-        </p>
-
-        <div className="settings-row">
-          <label className="settings-label">Background image</label>
+        <SettingName
+          label="Background image"
+          description="Upload a custom image to use as your application background."
+          control={
           <div className="settings-control">
             <button className="buttons" type="button" onClick={handlePickImage}>
               {themeSettings.backgroundImagePath ? "Change" : "Upload"}
@@ -142,15 +182,13 @@ export default function AppearanceSection({
               Clear
             </button>
           </div>
-        </div>
-        <p style={{ fontSize: "0.8rem", opacity: 0.6, marginLeft: "24px", marginBottom: "16px", marginTop: "-4px" }}>
-          Upload a custom image to use as your application background.
-        </p>
-
-        <div className="settings-row">
-          <label className="settings-label" htmlFor={bgOpacityId}>
-            Background opacity
-          </label>
+          }
+        />
+        
+        <SettingName
+          label="Background opacity"
+          description="Adjust the transparency of the background image."
+          control={
           <div className="settings-control">
             <input
               id={bgOpacityId}
@@ -170,104 +208,121 @@ export default function AppearanceSection({
               {Math.round(themeSettings.backgroundOpacity * 100)}%
             </span>
           </div>
-        </div>
-        <p style={{ fontSize: "0.8rem", opacity: 0.6, marginLeft: "24px", marginBottom: "16px", marginTop: "-4px" }}>
-          Adjust the transparency of the background image.
-        </p>
+          }
+        />
 
-        <div className="settings-row">
-          <label className="settings-label" htmlFor={bgBlurId}>
-            Background blur
-          </label>
-          <div className="settings-control">
-            <input
-              id={bgBlurId}
-              type="range"
-              min="0"
-              max="100"
-              step="1"
-              value={themeSettings.backgroundBlur}
-              onChange={(e) =>
-                setThemeSettings((prev) => ({
-                  ...prev,
-                  backgroundBlur: parseInt(e.target.value),
-                }))
-              }
-            />
-            <span className="settings-value">{themeSettings.backgroundBlur}px</span>
-          </div>
-        </div>
-        <p style={{ fontSize: "0.8rem", opacity: 0.6, marginLeft: "24px", marginBottom: "16px", marginTop: "-4px" }}>
-          Apply a blur effect to the background image for better readability.
-        </p>
-
-        <div className="settings-row">
-          <label className="settings-label">Show download button</label>
-          <div className="settings-control">
-            <label className="custom-checkbox">
+        <SettingName
+          label="Background blur"
+          description="Adjust the blur of the background image."
+          control={
+            <div className="settings-control">
               <input
-                type="checkbox"
-                className="checkbox"
-                checked={themeSettings.showDownloadButton}
+                id={bgBlurId}
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={themeSettings.backgroundBlur}
                 onChange={(e) =>
                   setThemeSettings((prev) => ({
                     ...prev,
-                    showDownloadButton: e.target.checked,
+                    backgroundBlur: parseInt(e.target.value),
                   }))
                 }
               />
-              <span className="checkmark"></span>
-            </label>
-          </div>
-        </div>
+              <span className="settings-value">{themeSettings.backgroundBlur}px</span>
+            </div>
+          }
+        />
 
-        <div className="settings-row">
-          <label className="settings-label">Show clip timestamps</label>
-          <div className="settings-control">
-            <label className="custom-checkbox">
-              <input
-                type="checkbox"
-                className="checkbox"
-                checked={themeSettings.showClipTimestamps}
-                onChange={(e) =>
-                  setThemeSettings((prev) => ({
-                    ...prev,
-                    showClipTimestamps: e.target.checked,
-                  }))
-                }
-              />
-              <span className="checkmark"></span>
-            </label>
-          </div>
-        </div>
+        <SettingName
+          label="Show download button"
+          description="Toggle download button visibility on the clips."
+          control={
+            <div className="settings-control">
+              <label className="custom-checkbox">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={themeSettings.showDownloadButton}
+                  onChange={(e) =>
+                    setThemeSettings((prev) => ({
+                      ...prev,
+                      showDownloadButton: e.target.checked,
+                    }))
+                  }
+                />
+                <span className="checkmark"></span>
+              </label>
+            </div>
+          }
+        />
 
-        <div
-          className="settings-row"
-          style={{
-            marginTop: "12px",
-            paddingTop: "12px",
-            borderTop: "1px solid rgb(255 255 255 / 0.1)",
-          }}
-        >
-          <label className="settings-label">Factory Reset</label>
-          <div className="settings-control">
-            <button
-              className="buttons"
-              onClick={onThemeReset}
-              style={{ width: "auto", padding: "0 16px", marginBottom: 0 }}
-            >
-              Reset to Defaults
-            </button>
-          </div>
-        </div>
-        <p style={{ fontSize: "0.8rem", opacity: 0.6, marginLeft: "24px", marginBottom: "16px", marginTop: "0" }}>
-          Revert all appearance and theme settings back to their default values.
-        </p>
+        <SettingName
+          label="Show clip timestamps"
+          description="Toggle timestamp visibility on the clips."
+          control={
+            <div className="settings-control">
+              <label className="custom-checkbox">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={themeSettings.showClipTimestamps}
+                  onChange={(e) =>
+                    setThemeSettings((prev) => ({
+                      ...prev,
+                      showClipTimestamps: e.target.checked,
+                    }))
+                  }
+                />
+                <span className="checkmark"></span>
+              </label>
+            </div>
+          }
+        />
+
+        <SettingName
+          label="Widescreen clip tiles"
+          description="Switch clip tiles between square (1080x1080) and widescreen (1920x1080)."
+          control={
+            <div className="settings-control">
+              <label className="custom-checkbox">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={themeSettings.widescreenClipTiles ?? false}
+                  onChange={(e) =>
+                    setThemeSettings((prev) => ({
+                      ...prev,
+                      widescreenClipTiles: e.target.checked,
+                    }))
+                  }
+                />
+                <span className="checkmark"></span>
+              </label>
+            </div>
+          }
+        />
+        <SettingName
+          label="Factory Reset"
+          description="Revert all appearance and theme settings back to their default values."
+          control={
+            <div className="settings-control">
+              <button
+                className="buttons"
+                onClick={onThemeReset}
+                style={{ width: "auto", padding: "0 16px", marginBottom: 0, color: "red"}}
+              >
+                Reset to Defaults
+              </button>
+            </div>
+          }
+        />
 
         {imageToCrop && (
           <CropModal
             image={imageToCrop}
-            onClose={() => setImageToCrop(null)}
+            onClose={handleCloseCropModal}
             onCropComplete={handleCropComplete}
           />
         )}

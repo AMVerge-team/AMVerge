@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { FaExpand, FaPause, FaPlay, FaVolumeMute, FaVolumeUp } from "react-icons/fa";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useVideoPlayer } from "./useVideoPlayer";

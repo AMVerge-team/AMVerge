@@ -183,6 +183,7 @@ export type ThemeSettings = {
     backgroundBlur: number; // pixels
     showDownloadButton: boolean;
     showClipTimestamps: boolean;
+    widescreenClipTiles: boolean;
 };
 
 export type ThemeSettingsStore = ThemeSettings & {
@@ -193,6 +194,7 @@ export type ThemeSettingsStore = ThemeSettings & {
     setBackgroundBlur: (blur: number) => void;
     setShowDownloadButton: (showDownloadButton: boolean) => void;
     setShowClipTimestamps: (showClipTimestamps: boolean) => void;
+    setWidescreenClipTiles: (widescreenClipTiles: boolean) => void;
     resetThemeSettings: () => void;
 };
 
@@ -204,6 +206,7 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
     backgroundBlur: 0,
     showDownloadButton: true,
     showClipTimestamps: true,
+    widescreenClipTiles: false,
 };
 
 export const useThemeSettingsStore = create<ThemeSettingsStore>()(
@@ -238,6 +241,9 @@ export const useThemeSettingsStore = create<ThemeSettingsStore>()(
             setShowClipTimestamps: (showClipTimestamps) => {
                 console.log("Setting clip timestamps..")
                 set({ showClipTimestamps: showClipTimestamps })
+            },
+            setWidescreenClipTiles: (widescreenClipTiles) => {
+                set({ widescreenClipTiles })
             },
             resetThemeSettings: () => {
                 console.log("Resetting theme..")
@@ -297,6 +303,10 @@ export function applyThemeSettings(settings: ThemeSettings) {
 
     root.style.setProperty("--app-bg-blur", `${settings.backgroundBlur}px`);
     body.style.setProperty("--app-bg-blur", `${settings.backgroundBlur}px`);
+
+    const clipTileAspect = settings.widescreenClipTiles ? "16 / 9" : "1 / 1";
+    root.style.setProperty("--clip-tile-aspect", clipTileAspect);
+    body.style.setProperty("--clip-tile-aspect", clipTileAspect);
 }
 
 export function getDarkerColor(hex: string, factor = 0.5): string {

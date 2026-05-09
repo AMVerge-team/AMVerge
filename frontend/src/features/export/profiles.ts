@@ -388,10 +388,6 @@ const AUDIO_MODE_LABELS: Record<ExportAudioMode, string> = {
   none: "No audio",
 };
 
-const EDITOR_TARGET_LABELS: Record<ExportEditorTarget, string> = {
-  none: "No editor",
-};
-
 const CODEC_FAMILY_LABELS: Record<ExportCodecFamily, string> = {
   h264: "H.264 / AVC",
   h265: "H.265 / HEVC",
@@ -489,23 +485,53 @@ export function usesEncoding(workflow: ExportWorkflow): boolean {
 }
 
 export function usesEditorTarget(workflow: ExportWorkflow): boolean {
-  return false;
+  switch (workflow) {
+    case "video_encode":
+    case "video_remux":
+      return false;
+    default:
+      return false;
+  }
 }
 
 export function supportsClipMerge(workflow: ExportWorkflow): boolean {
-  return true;
+  switch (workflow) {
+    case "video_encode":
+    case "video_remux":
+      return true;
+    default:
+      return false;
+  }
 }
 
 export function supportsAudioMode(workflow: ExportWorkflow): boolean {
-  return true;
+  switch (workflow) {
+    case "video_encode":
+    case "video_remux":
+      return true;
+    default:
+      return false;
+  }
 }
 
 export function supportsContainerSelection(workflow: ExportWorkflow): boolean {
-  return true;
+  switch (workflow) {
+    case "video_encode":
+    case "video_remux":
+      return true;
+    default:
+      return false;
+  }
 }
 
 export function isQuickDownloadCompatibleWorkflow(workflow: ExportWorkflow): boolean {
-  return true;
+  switch (workflow) {
+    case "video_encode":
+    case "video_remux":
+      return true;
+    default:
+      return false;
+  }
 }
 
 export function coerceExportWorkflow(workflow: string | undefined | null): ExportWorkflow {

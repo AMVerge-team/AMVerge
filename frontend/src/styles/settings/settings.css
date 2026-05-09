@@ -226,12 +226,13 @@
     margin-right: 0;
 }
 
-.export-setting-description {
+.setting-description {
     margin-top: -4px;
     margin-bottom: 16px;
-    margin-left: 24px;
+    margin-left: 0px;
     font-size: 0.8rem;
-    line-height: 1.2;
+    line-height: 1;
+    letter-spacing: 0.5px;
     color: rgb(255 255 255 / 0.6);
 }
 

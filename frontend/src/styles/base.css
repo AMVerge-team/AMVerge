@@ -60,6 +60,10 @@ body::before {
     cursor: pointer;
 }
 
+:focus-visible {
+    outline: none;
+}
+
 .status-dot {
     width: 10px;
     height: 10px;

@@ -40,20 +40,20 @@ import {
 } from "../../features/export/profiles";
 import { renderProfileIcon } from "../../features/export/profileIconUtils";
 
-type ExportSettingProps = {
+type SettingNameProps = {
   label: string;
   description: ReactNode;
   control: ReactNode;
 };
 
-function ExportSetting({ label, description, control }: ExportSettingProps) {
+function SettingName({ label, description, control }: SettingNameProps) {
   return (
     <div className="export-setting-block">
       <div className="settings-row export-setting-row">
         <label className="settings-label">{label}</label>
         <div className="settings-control export-setting-control">{control}</div>
       </div>
-      <p className="export-setting-description">{description}</p>
+      <p className="setting-description">{description}</p>
     </div>
   );
 }
@@ -679,7 +679,7 @@ export default function ExportSection() {
     <section className="panel menu-panel settings-panel">
       <h3>Export</h3>
       <div className="about-content">
-        <ExportSetting
+        <SettingName
           label="Active Profile"
           description="Export Now uses this active profile (including newly created profiles)."
           control={
@@ -708,7 +708,7 @@ export default function ExportSection() {
           </button>
         </div>
 
-        <ExportSetting
+        <SettingName
           label="Profile Name"
           description="Display name shown in the export profile selector."
           control={
@@ -721,7 +721,7 @@ export default function ExportSection() {
           }
         />
 
-        <ExportSetting
+        <SettingName
           label="Profile Icon"
           description="Visual icon used in the profile selector."
           control={
@@ -904,7 +904,7 @@ export default function ExportSection() {
           }
         />
 
-        <ExportSetting
+        <SettingName
           label="Workflow"
           description="Select export behavior: files only, or files + editor import."
           control={
@@ -917,7 +917,7 @@ export default function ExportSection() {
           }
         />
 
-        <ExportSetting
+        <SettingName
           label="Open file location after export"
           description="Automatically open File Explorer and highlight the exported file after export finishes."
           control={
@@ -934,7 +934,7 @@ export default function ExportSection() {
         />
 
         {showMergeSetting && (
-          <ExportSetting
+          <SettingName
             label="Merge Clips"
             description="When enabled, selected clips are merged into a single output file."
             control={
@@ -953,7 +953,7 @@ export default function ExportSection() {
 
         {encodingWorkflow && (
           <>
-            <ExportSetting
+            <SettingName
               label="Codec"
               description="Video codec family used when exporting files."
               control={
@@ -966,7 +966,7 @@ export default function ExportSection() {
               }
             />
 
-            <ExportSetting
+            <SettingName
               label="Codec Profile"
               description="Quality/compression profile for the selected codec."
               control={
@@ -987,7 +987,7 @@ export default function ExportSection() {
         )}
 
         {showAudioSetting && (
-          <ExportSetting
+          <SettingName
             label="Audio Codec"
             description="Choose encoded audio, source audio copy, or no audio. Audio copy keeps original codec/channels/layout exactly."
             control={
@@ -1003,7 +1003,7 @@ export default function ExportSection() {
 
         {encodingWorkflow && (
           <>
-            <ExportSetting
+            <SettingName
               label="Video Encoder"
               description={
                 encoderLockedToCpu ? (
@@ -1036,7 +1036,7 @@ export default function ExportSection() {
               }
             />
 
-            <ExportSetting
+            <SettingName
               label="Parallel Encodes"
               description={
                 parallelLocked
@@ -1057,7 +1057,7 @@ export default function ExportSection() {
         )}
 
         {showContainerSetting && (
-          <ExportSetting
+          <SettingName
             label="Container"
             description="File format wrapper: MP4, MKV, or MOV."
             control={

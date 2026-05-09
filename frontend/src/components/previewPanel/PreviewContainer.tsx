@@ -61,6 +61,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   );
 
   const canMergeWithActiveProfile = supportsClipMerge(activeExportProfile.workflow) && activeExportProfile.mergeEnabled;
+  const hasSelectedClips = selectedClips.size > 0;
 
   const sourceClipObj = props.sourceClip ? clips.find(c => c.src === props.sourceClip) : null;
   const mergedSrcs = sourceClipObj?.mergedSrcs;
@@ -76,6 +77,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   }, [showMergeNameModal]);
 
   const onExportClick = () => {
+    if (!hasSelectedClips) return;
     const targetClips = selectedClips;
     if (canMergeWithActiveProfile) {
       setShowMergeNameModal(true);
@@ -170,8 +172,9 @@ export default function PreviewContainer(props: PreviewContainerProps) {
 
         <button
           className="buttons export-main-button"
-          id="file-button"
+          disabled={!hasSelectedClips}
           onClick={onExportClick}
+          title={!hasSelectedClips ? "Select at least one clip to export" : "Export selected clips"}
         >
           Export Now
         </button>

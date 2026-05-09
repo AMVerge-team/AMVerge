@@ -16,7 +16,7 @@ type CropModalProps = {
     height: number;
     rotation: number;
     flip: { horizontal: boolean; vertical: boolean };
-  }) => void;
+  }) => void | Promise<void>;
 };
 
 const ASPECT_RATIOS = [
@@ -117,14 +117,20 @@ export default function CropModal({
     const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
     const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
 
-    onCropComplete({
-      x: activeCrop.x * scaleX,
-      y: activeCrop.y * scaleY,
-      width: activeCrop.width * scaleX,
-      height: activeCrop.height * scaleY,
-      rotation,
-      flip,
-    });
+    try {
+      await Promise.resolve(
+        onCropComplete({
+          x: activeCrop.x * scaleX,
+          y: activeCrop.y * scaleY,
+          width: activeCrop.width * scaleX,
+          height: activeCrop.height * scaleY,
+          rotation,
+          flip,
+        })
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -250,7 +256,7 @@ export default function CropModal({
         <div className="crop-modal-footer">
           <p className="crop-hint">{hint}</p>
           <div className="footer-actions">
-            <button className="footer-btn cancel" onClick={onClose} disabled={loading}>Cancel</button>
+            <button className="footer-btn cancel" onClick={onClose}>Cancel</button>
             <button className="footer-btn primary" onClick={handleSave} disabled={loading}>
               {loading ? <div className="spinner"></div> : "Save & Apply"}
             </button>

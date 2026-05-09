@@ -34,7 +34,6 @@ export type LazyClipProps = {
     e: React.MouseEvent<HTMLDivElement>
   ) => void;
   onToggleSelection: (clipId: string, e: React.MouseEvent) => void;
-  registerVideoRef: (clipId: string, el: HTMLVideoElement | null) => void;
   reportStaggerDemand: (key: string, demand: { order: number; onReady: () => void } | null) => void;
   onDownloadClip: (clip: ClipItem) => void;
 };

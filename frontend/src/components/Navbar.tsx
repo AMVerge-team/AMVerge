@@ -6,7 +6,7 @@ type NavbarProps = {
     userHasHEVC: boolean
     videoIsHEVC: boolean | null
 }
-export default function Navbar({ setSidebarEnabled, sidebarEnabled, userHasHEVC, videoIsHEVC }: NavbarProps ) {
+export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProps ) {
     const cols = useUIStateStore((s: any) => s.cols);
     const setCols = useUIStateStore((s: any) => s.setCols);
 

@@ -1,7 +1,25 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { useGeneralSettingsStore } from "../../stores/settingsStore";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+
+type SettingNameProps = {
+  label: string;
+  description: ReactNode;
+  control: ReactNode;
+};
+
+function SettingName({ label, description, control }: SettingNameProps) {
+  return (
+    <div className="export-setting-block">
+      <div className="settings-row export-setting-row">
+        <label className="settings-label">{label}</label>
+        <div className="settings-control export-setting-control">{control}</div>
+      </div>
+      <p className="setting-description">{description}</p>
+    </div>
+  );
+}
 
 type GeneralSectionProps = {
   onGeneralSettingsReset: () => void;
@@ -72,111 +90,107 @@ export default function GeneralSection({
           </div>
         )}
 
-        <div className="settings-row">
-          <label className="settings-label">Application Version</label>
+        <SettingName
+          label="Application Version"
+          description=""
+          control={
           <div className="settings-control">
             <span className="settings-value" style={{ width: "auto" }}>
               v1.0.0
             </span>
           </div>
-        </div>
-        <p style={{ fontSize: "0.8rem", opacity: 0.6, marginLeft: "24px", marginBottom: "16px", marginTop: "-4px" }}>
-          The current version of the AMVerge application.
-        </p>
+          }
+        />
+      
+        <SettingName
+          label="Audio Playback Hover"
+          description="Automatically play clip audio when hovering over items in the grid."
+          control={
+            <div className="settings-control">
+              <label className="custom-checkbox">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={generalSettings.audioPlaybackHover}
+                  onChange={(e) =>
+                    setGeneralSettings((prev) => ({
+                      ...prev,
+                      audioPlaybackHover: e.target.checked,
+                    }))
+                  }
+                />
+                <span className="checkmark"></span>
+              </label>
+            </div>
+          }
+        />
 
-        <div className="settings-row">
-          <label className="settings-label">Audio Playback Hover</label>
-          <div className="settings-control">
-            <label className="custom-checkbox">
+        <SettingName
+          label="Playback Volume"
+          description="Adjust the master volume level for clip previews and audio playback."
+          control={
+            <div className="settings-control">
               <input
-                type="checkbox"
-                className="checkbox"
-                checked={generalSettings.audioPlaybackHover}
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={generalSettings.playbackVolume}
                 onChange={(e) =>
                   setGeneralSettings((prev) => ({
                     ...prev,
-                    audioPlaybackHover: e.target.checked,
+                    playbackVolume: parseFloat(e.target.value),
                   }))
                 }
               />
-              <span className="checkmark"></span>
-            </label>
-          </div>
-        </div>
-        <p style={{ fontSize: "0.8rem", opacity: 0.6, marginLeft: "24px", marginBottom: "16px", marginTop: "-4px" }}>
-          Automatically play clip audio when hovering over items in the grid.
-        </p>
+              <span className="settings-value">
+                {Math.round(generalSettings.playbackVolume * 100)}%
+              </span>
+            </div>
+          }
+        />
 
-        <div className="settings-row">
-          <label className="settings-label">Playback Volume</label>
-          <div className="settings-control">
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={generalSettings.playbackVolume}
-              onChange={(e) =>
-                setGeneralSettings((prev) => ({
-                  ...prev,
-                  playbackVolume: parseFloat(e.target.value),
-                }))
-              }
-            />
-            <span className="settings-value">
-              {Math.round(generalSettings.playbackVolume * 100)}%
-            </span>
-          </div>
-        </div>
-        <p style={{ fontSize: "0.8rem", opacity: 0.6, marginLeft: "24px", marginBottom: "16px", marginTop: "-4px" }}>
-          Adjust the master volume level for clip previews and audio playback.
-        </p>
-
-        <div className="settings-row">
-          <label className="settings-label">Episodes storage path</label>
-          <div className="settings-control">
-            <button
-              className="buttons"
-              type="button"
-              onClick={handlePickDir}
-              disabled={loading}
-            >
-              {generalSettings.episodesPath ? "Change" : "Select Path"}
-            </button>
-            <span
-              className="settings-path-value"
-              title={generalSettings.episodesPath || "Default (App Data)"}
-            >
-              {generalSettings.episodesPath || "Default (App Data)"}
-            </span>
-          </div>
-        </div>
-        <p style={{ fontSize: "0.8rem", opacity: 0.6, marginLeft: "24px", marginBottom: "16px", marginTop: "-4px" }}>
-          The location where your processed episodes and clips are stored.
-        </p>
-
-        <div
-          className="settings-row"
-          style={{
-            marginTop: "12px",
-            paddingTop: "12px",
-            borderTop: "1px solid rgb(255 255 255 / 0.1)",
-          }}
-        >
-          <label className="settings-label">Factory Reset</label>
-          <div className="settings-control">
-            <button
-              className="buttons"
-              onClick={() => {
-                setShowFactoryResetConfirm(true);
-              }}
-              style={{ width: "auto", padding: "0 16px", marginBottom: 0 }}
-              disabled={loading}
-            >
-              Reset to Defaults
-            </button>
-          </div>
-        </div>
+        <SettingName
+          label="Episodes Storage Path"
+          description="The location where your processed episodes and clips are stored."
+          control={
+            <div className="settings-control">
+              <button
+                className="buttons"
+                type="button"
+                onClick={handlePickDir}
+                disabled={loading}
+              >
+                {generalSettings.episodesPath ? "Change" : "Select Path"}
+              </button>
+              <span
+                className="settings-path-value"
+                title={generalSettings.episodesPath || "Default (App Data)"}
+              >
+                {generalSettings.episodesPath || "Default (App Data)"}
+              </span>
+            </div>
+          }
+        />
+      
+        <SettingName
+          label="Factory Reset"
+          description="Reset to Defaults"
+          control={
+            <div className="settings-control">
+              <button
+                className="buttons"
+                onClick={() => {
+                  setShowFactoryResetConfirm(true);
+                }}
+                style={{ width: "auto", padding: "0 16px", marginBottom: 0, color: "red" }}
+                disabled={loading}
+              >
+                Reset to Defaults
+              </button>
+            </div>
+          }
+        />
 
         {showFactoryResetConfirm && (
           <div
