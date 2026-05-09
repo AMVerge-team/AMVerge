@@ -142,7 +142,7 @@ export default function About() {
         <p>
           For bug reports, updates, feature requests, or support, feel free to join the 
         {" "}
-        <a
+        <a  
         href="#"
         onClick={e => {
             e.preventDefault();

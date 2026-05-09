@@ -1,8 +1,11 @@
 ## v1.0.0
+- Now supports mac
 
-- Added Export Settings
-  - You can now export to: MP4, MKV, MOV, AVI, and XML
-  - XML especially deserves a highlight. It lets you import raw episode data directly into editors, preserving clip structure with minimal quality loss
+- Backend now merges clips that have similar thumbnails together. This should help with videos that cut weirdly
+
+- Added export settings
+  - You can now select profiles to adjust various export settings
+  - Profiles have customizable icons (more customizability!)
 
 - Added quick download buttons to clips
   - Download individual clips directly from the grid
@@ -26,11 +29,21 @@
     - Now supports GIFs and more file formats
     - Includes a built-in cropper/editor for better control
     - Adjustable opacity and blur
-    - Fixed issue where 4K+ images could turn white on import
   - Color system updates:
     - Accent color slider now automatically adjusts background color
     - Updated color slider UI to match the rest of the app
+  - Can now toggle "Widescreen clip tiles" to have clips grid in 1920x1080 aspect ratio
+  - Can now toggle "Show clip timestamps" to have the clip timestamps on the grid
 
 - UI updates
   - Redesigned export interface
   - Sidebar buttons are now icon-based instead of text
+
+- QOL
+  - Added video length the video in the preview panel (next to the time bar)
+  - Automatically opens location where video was exported after export (toggleable in export settings)
+  - Export Now button is now disabled/faded when no clips are selected.
+  - Now loads the last selected episode on startup
+- Patches
+  - Fixed issue where large video files wouldn't import
+  - Fixed issue where 4K+ images could turn white on import

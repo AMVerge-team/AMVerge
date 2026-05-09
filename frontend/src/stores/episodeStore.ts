@@ -85,6 +85,7 @@ export type EpisodePanelMetadataState = {
     episodeNamesById: Record<string, string>;
     episodeFolderById: Record<string, string | null>;
     lastOpenedEpisodeId: string | null;
+    lastSelectedEpisodeId: string | null;
 };
 
 export type EpisodePanelMetadataStore = EpisodePanelMetadataState & {
@@ -104,6 +105,7 @@ export type EpisodePanelMetadataStore = EpisodePanelMetadataState & {
     resetEpisodePanelMetadata: () => void;
 
     setLastOpenedEpisodeId: (episodeId: string | null) => void;
+    setLastSelectedEpisodeId: (episodeId: string | null) => void;
 };
 
 export const DEFAULT_EPISODE_PANEL_METADATA_STATE: EpisodePanelMetadataState = {
@@ -111,6 +113,7 @@ export const DEFAULT_EPISODE_PANEL_METADATA_STATE: EpisodePanelMetadataState = {
     episodeNamesById: {},
     episodeFolderById: {},
     lastOpenedEpisodeId: null,
+    lastSelectedEpisodeId: null,
 };
 
 export const useEpisodePanelMetadataStore = create<EpisodePanelMetadataStore>()(
@@ -171,6 +174,7 @@ export const useEpisodePanelMetadataStore = create<EpisodePanelMetadataStore>()(
                 }),
 
             setLastOpenedEpisodeId: (episodeId) => set({ lastOpenedEpisodeId: episodeId }),
+            setLastSelectedEpisodeId: (episodeId) => set({ lastSelectedEpisodeId: episodeId }),
 
             resetEpisodePanelMetadata: () =>
                 set({ ...DEFAULT_EPISODE_PANEL_METADATA_STATE }),

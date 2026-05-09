@@ -1,6 +1,6 @@
 // Main Episode Panel coordinator. Wires together structure, menus, drag/drop, keyboard shortcuts, and UI sections.
 import type React from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import EpisodePanelContextMenus from "./EpisodePanelContextMenus";
 import EpisodePanelHeader from "./EpisodePanelHeader";
@@ -36,6 +36,7 @@ export default function EpisodePanel() {
   const selectedEpisodeId = episodeRuntimeState.selectedEpisodeId;
   const selectedFolderId = episodeRuntimeState.selectedFolderId;
   const openedEpisodeId = episodeRuntimeState.openedEpisodeId;
+  const lastSelectedEpisodeId = episodeMetadataState.lastSelectedEpisodeId;
 
   const {
     folderById,
@@ -130,6 +131,14 @@ export default function EpisodePanel() {
     handleMoveFolder,
     handleToggleFolderExpanded,
   } = useEpisodePanelState();
+
+  useEffect(() => {
+    if (openedEpisodeId) return;
+    if (!lastSelectedEpisodeId) return;
+    if (!episodes.some((episode) => episode.id === lastSelectedEpisodeId)) return;
+
+    handleOpenEpisode(lastSelectedEpisodeId);
+  }, [episodes, openedEpisodeId, lastSelectedEpisodeId, handleOpenEpisode]);
 
   const {
     contextMenu,
