@@ -1,7 +1,11 @@
 import { useId, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
-import { getDarkerColor, useThemeSettingsStore } from "../../stores/settingsStore";
+import {
+  getDarkerColor,
+  isVideoBackgroundPath,
+  useThemeSettingsStore,
+} from "../../stores/settingsStore";
 import ColorPicker from "../common/ColorPicker";
 import CropModal from "../common/CropModal";
 import SettingRow from "../common/SettingRow";
@@ -22,18 +26,52 @@ export default function AppearanceSection({
   const [originalPath, setOriginalPath] = useState<string | null>(null);
   const cropRequestVersionRef = useRef(0);
 
-  const handlePickImage = async () => {
+  const handlePickBackgroundMedia = async () => {
     const selected = await open({
       multiple: false,
       filters: [
         {
-          name: "Image",
-          extensions: ["png", "jpg", "jpeg", "webp", "gif", "bmp", "tif", "tiff"],
+          name: "Media",
+          extensions: [
+            "png",
+            "jpg",
+            "jpeg",
+            "webp",
+            "gif",
+            "bmp",
+            "tif",
+            "tiff",
+            "mp4",
+            "webm",
+            "mov",
+            "mkv",
+            "avi",
+            "m4v",
+          ],
         },
       ],
     });
 
     if (!selected || typeof selected !== "string") return;
+
+    if (isVideoBackgroundPath(selected)) {
+      try {
+        const storedPath = await invoke<string>("save_background_image", {
+          sourcePath: selected,
+        });
+
+        setThemeSettings((prev) => ({
+          ...prev,
+          backgroundImagePath: `${storedPath}?t=${Date.now()}`,
+        }));
+      } catch (error) {
+        console.error("Failed to save background video:", error);
+        const message = error instanceof Error ? error.message : String(error);
+        window.alert(`Failed to apply background video: ${message}`);
+      }
+
+      return;
+    }
     
     setOriginalPath(selected);
     setImageToCrop(convertFileSrc(selected));
@@ -147,11 +185,11 @@ export default function AppearanceSection({
         />
 
         <SettingRow
-          label="Background image"
-          description="Upload a custom image to use as your application background."
+          label="Background media"
+          description="Upload a custom image, GIF, or video to use as your application background."
           control={
           <div className="settings-control">
-            <button className="buttons" type="button" onClick={handlePickImage}>
+            <button className="buttons" type="button" onClick={handlePickBackgroundMedia}>
               {themeSettings.backgroundImagePath ? "Change" : "Upload"}
             </button>
             <button

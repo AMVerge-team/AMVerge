@@ -94,7 +94,14 @@ jobs:
       - name: Archive app bundle
         run: |
           mkdir -p artifacts
-          tar -C frontend/src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos -czf artifacts/${{ matrix.app_artifact_name }}.tar.gz AMVerge.app
+          BUNDLE_DIR="frontend/src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos"
+          APP_BUNDLE="$(find "$BUNDLE_DIR" -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          if [ -z "$APP_BUNDLE" ]; then
+            echo "No .app bundle found in $BUNDLE_DIR"
+            ls -la "$BUNDLE_DIR"
+            exit 1
+          fi
+          tar -C "$BUNDLE_DIR" -czf artifacts/${{ matrix.app_artifact_name }}.tar.gz "$(basename "$APP_BUNDLE")"
 
       - name: Upload app artifact
         uses: actions/upload-artifact@v4
@@ -134,21 +141,37 @@ jobs:
           mkdir -p build-input/arm64 build-input/x64 build-output
           tar -xzf artifacts/arm64/amverge-macos-arm64-app.tar.gz -C build-input/arm64
           tar -xzf artifacts/x64/amverge-macos-x64-app.tar.gz -C build-input/x64
+          ARM_APP_PATH="$(find build-input/arm64 -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          X64_APP_PATH="$(find build-input/x64 -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          if [ -z "$ARM_APP_PATH" ] || [ -z "$X64_APP_PATH" ]; then
+            echo "Missing extracted .app bundle(s)"
+            echo "arm64 contents:"
+            ls -la build-input/arm64
+            echo "x64 contents:"
+            ls -la build-input/x64
+            exit 1
+          fi
+          APP_BUNDLE_NAME="$(basename "$ARM_APP_PATH")"
+          UNIVERSAL_APP_PATH="build-output/$APP_BUNDLE_NAME"
+          echo "ARM_APP_PATH=$ARM_APP_PATH" >> "$GITHUB_ENV"
+          echo "X64_APP_PATH=$X64_APP_PATH" >> "$GITHUB_ENV"
+          echo "UNIVERSAL_APP_PATH=$UNIVERSAL_APP_PATH" >> "$GITHUB_ENV"
+          echo "APP_VOLNAME=${APP_BUNDLE_NAME%.app}" >> "$GITHUB_ENV"
 
       - name: Merge universal app bundle
         run: |
           node frontend/scripts/merge-universal-macos-app.mjs \
-            --armApp build-input/arm64/AMVerge.app \
-            --x64App build-input/x64/AMVerge.app \
-            --outApp build-output/AMVerge.app \
+            --armApp "$ARM_APP_PATH" \
+            --x64App "$X64_APP_PATH" \
+            --outApp "$UNIVERSAL_APP_PATH" \
             --config frontend/src-tauri/tauri.macos.universal.conf.json
 
       - name: Create universal DMG
         run: |
           mkdir -p frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg
           hdiutil create \
-            -volname "AMVerge" \
-            -srcfolder build-output/AMVerge.app \
+            -volname "$APP_VOLNAME" \
+            -srcfolder "$UNIVERSAL_APP_PATH" \
             -ov \
             -format UDZO \
             frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/AMVerge-macos-universal.dmg

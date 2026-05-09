@@ -256,6 +256,20 @@ export const useThemeSettingsStore = create<ThemeSettingsStore>()(
     )
 );
 
+const VIDEO_EXTENSIONS = new Set(["mp4", "webm", "mov", "mkv", "avi", "m4v"]);
+
+function getPathExtension(path: string): string {
+    const cleanPath = path.split("?")[0];
+    const dotIndex = cleanPath.lastIndexOf(".");
+    if (dotIndex < 0) return "";
+    return cleanPath.slice(dotIndex + 1).toLowerCase();
+}
+
+export function isVideoBackgroundPath(path: string | null | undefined): boolean {
+    if (!path) return false;
+    return VIDEO_EXTENSIONS.has(getPathExtension(path));
+}
+
 function clampByte(value: number) {
     return Math.max(0, Math.min(255, Math.round(value)));
 }
@@ -289,7 +303,7 @@ export function applyThemeSettings(settings: ThemeSettings) {
     }
 
     let bgValue = "none";
-    if (settings.backgroundImagePath) {
+    if (settings.backgroundImagePath && !isVideoBackgroundPath(settings.backgroundImagePath)) {
         const [cleanPath, query] = settings.backgroundImagePath.split("?");
         const src = convertFileSrc(cleanPath);
         bgValue = query ? `url("${src}?${query}")` : `url("${src}")`;

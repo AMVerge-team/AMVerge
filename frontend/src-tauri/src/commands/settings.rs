@@ -5,6 +5,9 @@ use std::process::Command;
 use image::DynamicImage;
 use tauri::{AppHandle, Manager};
 
+use crate::utils::ffmpeg::resolve_bundled_tool;
+use crate::utils::process::apply_no_window;
+
 #[tauri::command]
 pub fn get_default_episodes_dir(app: AppHandle) -> Result<String, String> {
     let path = app
@@ -131,6 +134,102 @@ fn is_no_transform(crop: &CropData) -> bool {
     crop.x == 0.0 && crop.y == 0.0 && crop.rotation == 0 && !crop.flip_h && !crop.flip_v
 }
 
+fn is_video_extension(ext: &str) -> bool {
+    matches!(
+        ext,
+        "mp4" | "webm" | "mov" | "mkv" | "avi" | "m4v"
+    )
+}
+
+fn build_ffmpeg_filter(crop: &CropData) -> String {
+    let mut steps: Vec<String> = Vec::new();
+
+    match crop.rotation.rem_euclid(360) {
+        90 => steps.push("transpose=1".to_string()),
+        180 => {
+            steps.push("transpose=1".to_string());
+            steps.push("transpose=1".to_string());
+        }
+        270 => steps.push("transpose=2".to_string()),
+        _ => {}
+    }
+
+    if crop.flip_h {
+        steps.push("hflip".to_string());
+    }
+
+    if crop.flip_v {
+        steps.push("vflip".to_string());
+    }
+
+    let x = crop.x.round().max(0.0) as i64;
+    let y = crop.y.round().max(0.0) as i64;
+    let w = crop.width.round().max(1.0) as i64;
+    let h = crop.height.round().max(1.0) as i64;
+    steps.push(format!("crop={w}:{h}:{x}:{y}"));
+
+    steps.join(",")
+}
+
+fn run_ffmpeg_transform(
+    app: &AppHandle,
+    source_path: &str,
+    destination: &Path,
+    crop: &CropData,
+    preserve_gif_animation: bool,
+) -> Result<String, String> {
+    let ffmpeg = resolve_bundled_tool(app, "ffmpeg")?;
+    let mut cmd = Command::new(&ffmpeg);
+    apply_no_window(&mut cmd);
+
+    let base_filter = build_ffmpeg_filter(crop);
+
+    cmd.arg("-y").arg("-i").arg(source_path);
+
+    if preserve_gif_animation {
+        let gif_filter = format!(
+            "{base_filter},split[s0][s1];[s0]palettegen=reserve_transparent=on[p];[s1][p]paletteuse=dither=sierra2_4a"
+        );
+        cmd.arg("-vf")
+            .arg(gif_filter)
+            .arg("-loop")
+            .arg("0")
+            .arg(destination);
+    } else {
+        cmd.arg("-vf")
+            .arg(base_filter)
+            .args([
+                "-an",
+                "-c:v",
+                "libx264",
+                "-preset",
+                "veryfast",
+                "-crf",
+                "20",
+                "-pix_fmt",
+                "yuv420p",
+                "-movflags",
+                "+faststart",
+            ])
+            .arg(destination);
+    }
+
+    let output = cmd
+        .output()
+        .map_err(|e| format!("Failed to run ffmpeg ({}): {e}", ffmpeg.display()))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        return Err(if stderr.is_empty() {
+            "ffmpeg failed to transform background".to_string()
+        } else {
+            format!("ffmpeg failed to transform background: {stderr}")
+        });
+    }
+
+    Ok(destination.to_string_lossy().to_string())
+}
+
 fn sanitize_icon_id(input: &str) -> String {
     let sanitized: String = input
         .chars()
@@ -244,11 +343,14 @@ pub async fn crop_and_save_image(
 
     let destination = if ext == "gif" {
         backgrounds_dir.join("background.gif")
+    } else if is_video_extension(&ext) {
+        backgrounds_dir.join("background.mp4")
     } else {
         backgrounds_dir.join("background.jpg")
     };
 
     let source_path_for_worker = source_path.clone();
+    let app_for_worker = app.clone();
     tokio::task::spawn_blocking(move || {
         let source_ext = Path::new(&source_path_for_worker)
             .extension()
@@ -265,6 +367,26 @@ pub async fn crop_and_save_image(
         if can_direct_copy {
             fs::copy(&source_path_for_worker, &destination).map_err(|e| e.to_string())?;
             return Ok::<String, String>(destination.to_string_lossy().to_string());
+        }
+
+        if source_ext == "gif" {
+            return run_ffmpeg_transform(
+                &app_for_worker,
+                &source_path_for_worker,
+                &destination,
+                &crop,
+                true,
+            );
+        }
+
+        if is_video_extension(&source_ext) {
+            return run_ffmpeg_transform(
+                &app_for_worker,
+                &source_path_for_worker,
+                &destination,
+                &crop,
+                false,
+            );
         }
 
         run_native_crop(&source_path_for_worker, &destination, &crop)
