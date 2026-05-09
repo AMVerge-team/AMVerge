@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-macos:
-    name: Build macOS DMG (${{ matrix.arch_label }})
+  build-macos-arch:
+    name: Build macOS App (${{ matrix.arch_label }})
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -16,13 +16,13 @@ jobs:
             rust_target: aarch64-apple-darwin
             tauri_config: tauri.macos.conf.json
             sidecar_dir: backend_script-aarch64-apple-darwin
-            artifact_name: amverge-macos-arm64-dmg
+            app_artifact_name: amverge-macos-arm64-app
           - runner: macos-13
             arch_label: intel
             rust_target: x86_64-apple-darwin
             tauri_config: tauri.macos.intel.conf.json
             sidecar_dir: backend_script-x86_64-apple-darwin
-            artifact_name: amverge-macos-x64-dmg
+            app_artifact_name: amverge-macos-x64-app
 
     steps:
       - name: Checkout repo
@@ -88,9 +88,71 @@ jobs:
         working-directory: frontend/src-tauri
         run: cargo tauri build --target ${{ matrix.rust_target }} --config ${{ matrix.tauri_config }}
 
-      - name: Upload DMG artifact
+      - name: Archive app bundle
+        run: |
+          mkdir -p artifacts
+          tar -C frontend/src-tauri/target/${{ matrix.rust_target }}/release/bundle/macos -czf artifacts/${{ matrix.app_artifact_name }}.tar.gz AMVerge.app
+
+      - name: Upload app artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: frontend/src-tauri/target/${{ matrix.rust_target }}/release/bundle/dmg/*.dmg
+          name: ${{ matrix.app_artifact_name }}
+          path: artifacts/${{ matrix.app_artifact_name }}.tar.gz
+          if-no-files-found: error
+
+  package-universal-macos:
+    name: Package Universal macOS DMG
+    needs: build-macos-arch
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Download arm64 app artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: amverge-macos-arm64-app
+          path: artifacts/arm64
+
+      - name: Download x64 app artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: amverge-macos-x64-app
+          path: artifacts/x64
+
+      - name: Extract app bundles
+        run: |
+          mkdir -p build-input/arm64 build-input/x64 build-output
+          tar -xzf artifacts/arm64/amverge-macos-arm64-app.tar.gz -C build-input/arm64
+          tar -xzf artifacts/x64/amverge-macos-x64-app.tar.gz -C build-input/x64
+
+      - name: Merge universal app bundle
+        run: |
+          node frontend/scripts/merge-universal-macos-app.mjs \
+            --armApp build-input/arm64/AMVerge.app \
+            --x64App build-input/x64/AMVerge.app \
+            --outApp build-output/AMVerge.app \
+            --config frontend/src-tauri/tauri.macos.universal.conf.json
+
+      - name: Create universal DMG
+        run: |
+          mkdir -p frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg
+          hdiutil create \
+            -volname "AMVerge" \
+            -srcfolder build-output/AMVerge.app \
+            -ov \
+            -format UDZO \
+            frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/AMVerge-macos-universal.dmg
+
+      - name: Upload universal DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: amverge-macos-universal-dmg
+          path: frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/AMVerge-macos-universal.dmg
           if-no-files-found: error
