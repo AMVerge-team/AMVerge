@@ -31,11 +31,13 @@ jobs:
         working-directory: frontend
         run: npm ci --include=optional
 
-      - name: Work around npm optional dependency issue for Tauri CLI
+      - name: Work around npm optional dependency issues (Tauri and Rollup)
         working-directory: frontend
         run: |
           TAURI_CLI_VERSION=$(node -e "const v=require('./package.json').devDependencies['@tauri-apps/cli']; console.log(v.replace(/^[^0-9]*/,''));")
           npm i --no-save "@tauri-apps/cli-darwin-arm64@${TAURI_CLI_VERSION}"
+          ROLLUP_VERSION=$(node -e "console.log(require('rollup/package.json').version)")
+          npm i --no-save "@rollup/rollup-darwin-arm64@${ROLLUP_VERSION}"
 
       - name: Create backend venv and install dependencies
         run: |
