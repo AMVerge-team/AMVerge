@@ -2,6 +2,15 @@
    SETTINGS
 -------------------- */
 
+.settings-window-status {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin: 0 6px 2px;
+    font-size: 14px;
+    color: rgb(255 255 255 / 0.7);
+}
 
 .settings-row {
     display: flex;
@@ -133,7 +142,7 @@
     min-height: 0;
     overflow: hidden;
     padding-right: 0;
-    padding-bottom: 8px;
+    padding-bottom: 6px;
     margin-left: 6px;
     margin-right: 6px;
 }
@@ -172,10 +181,6 @@
     margin-right: 0;
     margin-left: 0;
     margin-bottom: 0;
-}
-
-.settings-panel > h3 {
-    margin-bottom: 12px;
 }
 
 .export-settings-panel {

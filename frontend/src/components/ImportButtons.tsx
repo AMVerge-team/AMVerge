@@ -8,14 +8,9 @@ export default function ImportButtons() {
   const loading = useAppStateStore((s: any) => s.loading);
   const gridPreview = useUIStateStore((s: any) => s.gridPreview);
   const setGridPreview = useUIStateStore((s: any) => s.setGridPreview);
-  const cols = useUIStateStore((s: any) => s.cols);
-  const setCols = useUIStateStore((s: any) => s.setCols);
   const { onImportClick } = useImportExport();
 
   const hasSelection = selectedClips.size > 0;
-
-  const handleBigger = () => setCols(Math.max(1, cols - 1));
-  const handleSmaller = () => setCols(Math.min(12, cols + 1));
     
   return (
       <main className="clips-import">
@@ -39,7 +34,7 @@ export default function ImportButtons() {
                 />
                 <span className="checkmark"></span>
               </label>
-              <span>Grid preview</span>    
+              <span>Preview All</span>    
             </div>
             <div className="checkbox-row">
               <label className="custom-checkbox">
@@ -58,13 +53,6 @@ export default function ImportButtons() {
               </label>
               <span>{selectedClips.size} selected</span>    
             </div>
-          </div>
-          <div className="zoomWrapper">
-            <span>Grid: {cols} columns</span>
-            <form>
-              <button type="button" onClick={handleSmaller}>-</button>
-              <button type="button" onClick={handleBigger}>+</button>  
-            </form>
           </div>
         </div>
       </main>

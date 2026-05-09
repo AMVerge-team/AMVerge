@@ -14,7 +14,6 @@ import {
   EXPORT_AUDIO_OPTIONS,
   EXPORT_CODEC_FAMILY_OPTIONS,
   EXPORT_CONTAINER_OPTIONS,
-  EXPORT_EDITOR_TARGET_OPTIONS,
   EXPORT_HARDWARE_OPTIONS,
   EXPORT_PROFILE_ICON_OPTIONS,
   EXPORT_WORKFLOW_OPTIONS,
@@ -29,7 +28,6 @@ import {
   supportsAudioMode,
   supportsClipMerge,
   supportsContainerSelection,
-  usesEditorTarget,
   usesEncoding,
   NVIDIA_ENCODER_SUPPORT_MATRIX_URL,
   type ExportCodecFamily,
@@ -81,10 +79,10 @@ const MAX_FEATURED_ICONS = 8;
 const INLINE_DEFAULT_ICONS: ExportProfileIcon[] = [
   "video",
   "remux",
-  "premiere",
-  "after_effects",
-  "resolve",
-  "capcut",
+  "h264",
+  "h265",
+  "prores",
+  "dnxhr",
 ];
 const ICON_FILE_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "gif", "bmp", "tif", "tiff"];
 type PersistedFeaturedIcons = {
@@ -196,7 +194,6 @@ export default function ExportSection() {
   );
 
   const encodingWorkflow = usesEncoding(activeProfile.workflow);
-  const editorWorkflow = usesEditorTarget(activeProfile.workflow);
   const showMergeSetting = supportsClipMerge(activeProfile.workflow);
   const showAudioSetting = supportsAudioMode(activeProfile.workflow);
   const showContainerSetting = supportsContainerSelection(activeProfile.workflow);
@@ -591,11 +588,6 @@ export default function ExportSection() {
   const handleWorkflowChange = (workflow: ExportWorkflow) => {
     updateActiveProfile({
       workflow,
-      editorTarget: usesEditorTarget(workflow)
-        ? activeProfile.editorTarget === "none"
-          ? "premiere_pro"
-          : activeProfile.editorTarget
-        : "none",
       hardwareMode: usesEncoding(workflow) ? activeProfile.hardwareMode : "cpu",
       parallelExports: usesEncoding(workflow) ? activeProfile.parallelExports : 1,
     });
@@ -686,429 +678,415 @@ export default function ExportSection() {
   return (
     <section className="panel menu-panel settings-panel">
       <h3>Export</h3>
+      <div className="about-content">
+        <ExportSetting
+          label="Active Profile"
+          description="Export Now uses this active profile (including newly created profiles)."
+          control={
+            <Dropdown
+              className="settings-wide-dropdown export-profile-dropdown"
+              options={profileOptions}
+              value={activeProfile.id}
+              onChange={setActiveExportProfileId}
+            />
+          }
+        />
 
-      <ExportSetting
-        label="Active Profile"
-        description="Export Now uses this active profile (including newly created profiles)."
-        control={
-          <Dropdown
-            className="settings-wide-dropdown export-profile-dropdown"
-            options={profileOptions}
-            value={activeProfile.id}
-            onChange={setActiveExportProfileId}
-          />
-        }
-      />
+        <div className="export-profile-actions-row">
+          <button type="button" className="buttons export-profile-action" onClick={addExportProfile}>
+            <FaPlus />
+            <span>New Profile</span>
+          </button>
+          <button
+            type="button"
+            className="buttons export-profile-action danger"
+            onClick={() => deleteExportProfile(activeProfile.id)}
+            disabled={exportProfiles.length <= 1}
+          >
+            <FaTrash />
+            <span>Delete Profile</span>
+          </button>
+        </div>
 
-      <div className="export-profile-actions-row">
-        <button type="button" className="buttons export-profile-action" onClick={addExportProfile}>
-          <FaPlus />
-          <span>New Profile</span>
-        </button>
-        <button
-          type="button"
-          className="buttons export-profile-action danger"
-          onClick={() => deleteExportProfile(activeProfile.id)}
-          disabled={exportProfiles.length <= 1}
-        >
-          <FaTrash />
-          <span>Delete Profile</span>
-        </button>
-      </div>
+        <ExportSetting
+          label="Profile Name"
+          description="Display name shown in the export profile selector."
+          control={
+            <input
+              id="export-profile-name"
+              className="settings-text-input"
+              value={activeProfile.name}
+              onChange={(event) => updateActiveProfile({ name: event.target.value })}
+            />
+          }
+        />
 
-      <ExportSetting
-        label="Profile Name"
-        description="Display name shown in the export profile selector."
-        control={
-          <input
-            id="export-profile-name"
-            className="settings-text-input"
-            value={activeProfile.name}
-            onChange={(event) => updateActiveProfile({ name: event.target.value })}
-          />
-        }
-      />
+        <ExportSetting
+          label="Profile Icon"
+          description="Visual icon used in the profile selector."
+          control={
+            <div className="profile-icon-control-inline" ref={iconPickerRef}>
+              <div className="profile-icon-inline-list">
+                {inlineVisibleIconItems.map((item) => {
+                  if (item.type === "builtin") {
+                    return (
+                      <button
+                        key={`builtin-${item.value}`}
+                        type="button"
+                        className={`profile-icon-button${activeProfile.icon === item.value ? " active" : ""}`}
+                        title={item.value}
+                        onClick={() => updateActiveProfile({ icon: item.value })}
+                      >
+                        <ProfileIconGlyph
+                          icon={item.value}
+                          customIconPath={item.value === "custom" ? activeProfile.customIconPath : null}
+                        />
+                      </button>
+                    );
+                  }
 
-      <ExportSetting
-        label="Profile Icon"
-        description="Visual icon used in the profile selector."
-        control={
-          <div className="profile-icon-control-inline" ref={iconPickerRef}>
-            <div className="profile-icon-inline-list">
-              {inlineVisibleIconItems.map((item) => {
-                if (item.type === "builtin") {
+                  const isActiveCustom =
+                    activeProfile.icon === "custom" && normalizedActiveCustomIconPath === item.path;
                   return (
-                    <button
-                      key={`builtin-${item.value}`}
-                      type="button"
-                      className={`profile-icon-button${activeProfile.icon === item.value ? " active" : ""}`}
-                      title={item.value}
-                      onClick={() => updateActiveProfile({ icon: item.value })}
-                    >
-                      <ProfileIconGlyph
-                        icon={item.value}
-                        customIconPath={item.value === "custom" ? activeProfile.customIconPath : null}
-                      />
-                    </button>
+                    <div key={`custom-${item.path}`} className="profile-custom-icon-slot">
+                      <button
+                        type="button"
+                        className={`profile-icon-button${isActiveCustom ? " active" : ""}`}
+                        title="Use custom icon"
+                        onClick={() => applyCustomIconSelection(item.path, false)}
+                      >
+                        <img
+                          className="profile-custom-icon"
+                          src={convertFileSrc(item.path)}
+                          alt="Custom profile icon"
+                        />
+                      </button>
+                      <button
+                        type="button"
+                        className="profile-icon-delete"
+                        title="Delete custom icon"
+                        aria-label="Delete custom icon"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleDeleteCustomIcon(item.path);
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
                   );
-                }
-
-                const isActiveCustom =
-                  activeProfile.icon === "custom" && normalizedActiveCustomIconPath === item.path;
-                return (
-                  <div key={`custom-${item.path}`} className="profile-custom-icon-slot">
+                })}
+              </div>
+              <button
+                type="button"
+                className={`profile-icon-button profile-upload-tile${activeProfile.icon === "custom" ? " active" : ""}`}
+                title="Add custom icon"
+                aria-label="Add custom icon"
+                onClick={() => {
+                  void handlePickCustomIcon();
+                }}
+              >
+                <FaPlus />
+              </button>
+              <button
+                type="button"
+                className="profile-icon-button profile-icon-more-trigger"
+                title="Choose icon"
+                aria-label="Choose icon"
+                aria-expanded={showIconPicker}
+                onClick={() => setShowIconPicker((current) => !current)}
+              >
+                <FaEllipsisH />
+              </button>
+              {showIconPicker && (
+                <div className="profile-icon-popover" role="dialog" aria-label="Choose Profile Icon">
+                  <div className="profile-icon-modal-header">
+                    <h3>Choose Profile Icon</h3>
+                  </div>
+                  <div className="profile-icon-grid">
+                    {pickerIconOptions.map((option) => {
+                      const pinned = featuredIcons.includes(option.value);
+                      return (
+                        <div key={option.value} className="profile-icon-tile">
+                          <button
+                            type="button"
+                            className={`profile-icon-button${activeProfile.icon === option.value ? " active" : ""}`}
+                            title={option.label}
+                            onClick={() => {
+                              updateActiveProfile({ icon: option.value });
+                              setShowIconPicker(false);
+                            }}
+                          >
+                            <ProfileIconGlyph icon={option.value} customIconPath={null} />
+                          </button>
+                          <button
+                            type="button"
+                            className={`profile-icon-pin${pinned ? " pinned" : ""}`}
+                            title={pinned ? "Unpin from quick icons" : "Pin to quick icons"}
+                            aria-label={pinned ? "Unpin from quick icons" : "Pin to quick icons"}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              toggleFeaturedIcon(option.value);
+                            }}
+                          >
+                            <FaThumbtack />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="profile-icon-modal-header">
+                    <h3>Custom Icons</h3>
+                  </div>
+                  <div className="profile-icon-grid">
                     <button
                       type="button"
-                      className={`profile-icon-button${isActiveCustom ? " active" : ""}`}
-                      title="Use custom icon"
-                      onClick={() => applyCustomIconSelection(item.path, false)}
-                    >
-                      <img
-                        className="profile-custom-icon"
-                        src={convertFileSrc(item.path)}
-                        alt="Custom profile icon"
-                      />
-                    </button>
-                    <button
-                      type="button"
-                      className="profile-icon-delete"
-                      title="Delete custom icon"
-                      aria-label="Delete custom icon"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void handleDeleteCustomIcon(item.path);
+                      className="profile-icon-button profile-upload-tile"
+                      title="Add custom icon"
+                      aria-label="Add custom icon"
+                      onClick={() => {
+                        void handlePickCustomIcon();
                       }}
                     >
-                      ×
+                      <FaPlus />
                     </button>
+                    {normalizedCustomProfileIcons.map((iconPath) => {
+                      const isActiveCustom =
+                        activeProfile.icon === "custom" && normalizedActiveCustomIconPath === iconPath;
+                      const pinnedCustom = featuredCustomIcons.includes(iconPath);
+                      return (
+                        <div key={`popover-${iconPath}`} className="profile-custom-icon-slot">
+                          <button
+                            type="button"
+                            className={`profile-icon-button${isActiveCustom ? " active" : ""}`}
+                            title="Use custom icon"
+                            onClick={() => {
+                              applyCustomIconSelection(iconPath, true);
+                            }}
+                          >
+                            <img
+                              className="profile-custom-icon"
+                              src={convertFileSrc(iconPath)}
+                              alt="Custom profile icon"
+                            />
+                          </button>
+                          <button
+                            type="button"
+                            className={`profile-icon-pin profile-icon-pin-custom${pinnedCustom ? " pinned" : ""}`}
+                            title={pinnedCustom ? "Unpin from quick icons" : "Pin to quick icons"}
+                            aria-label={pinnedCustom ? "Unpin from quick icons" : "Pin to quick icons"}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              toggleFeaturedCustomIcon(iconPath);
+                            }}
+                          >
+                            <FaThumbtack />
+                          </button>
+                          <button
+                            type="button"
+                            className="profile-icon-delete"
+                            title="Delete custom icon"
+                            aria-label="Delete custom icon"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void handleDeleteCustomIcon(iconPath);
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </div>
+              )}
             </div>
-            <button
-              type="button"
-              className={`profile-icon-button profile-upload-tile${activeProfile.icon === "custom" ? " active" : ""}`}
-              title="Add custom icon"
-              aria-label="Add custom icon"
-              onClick={() => {
-                void handlePickCustomIcon();
-              }}
-            >
-              <FaPlus />
-            </button>
-            <button
-              type="button"
-              className="profile-icon-button profile-icon-more-trigger"
-              title="Choose icon"
-              aria-label="Choose icon"
-              aria-expanded={showIconPicker}
-              onClick={() => setShowIconPicker((current) => !current)}
-            >
-              <FaEllipsisH />
-            </button>
-            {showIconPicker && (
-              <div className="profile-icon-popover" role="dialog" aria-label="Choose Profile Icon">
-                <div className="profile-icon-modal-header">
-                  <h3>Choose Profile Icon</h3>
-                </div>
-                <div className="profile-icon-grid">
-                  {pickerIconOptions.map((option) => {
-                    const pinned = featuredIcons.includes(option.value);
-                    return (
-                      <div key={option.value} className="profile-icon-tile">
-                        <button
-                          type="button"
-                          className={`profile-icon-button${activeProfile.icon === option.value ? " active" : ""}`}
-                          title={option.label}
-                          onClick={() => {
-                            updateActiveProfile({ icon: option.value });
-                            setShowIconPicker(false);
-                          }}
-                        >
-                          <ProfileIconGlyph icon={option.value} customIconPath={null} />
-                        </button>
-                        <button
-                          type="button"
-                          className={`profile-icon-pin${pinned ? " pinned" : ""}`}
-                          title={pinned ? "Unpin from quick icons" : "Pin to quick icons"}
-                          aria-label={pinned ? "Unpin from quick icons" : "Pin to quick icons"}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            toggleFeaturedIcon(option.value);
-                          }}
-                        >
-                          <FaThumbtack />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="profile-icon-modal-header">
-                  <h3>Custom Icons</h3>
-                </div>
-                <div className="profile-icon-grid">
-                  <button
-                    type="button"
-                    className="profile-icon-button profile-upload-tile"
-                    title="Add custom icon"
-                    aria-label="Add custom icon"
-                    onClick={() => {
-                      void handlePickCustomIcon();
-                    }}
-                  >
-                    <FaPlus />
-                  </button>
-                  {normalizedCustomProfileIcons.map((iconPath) => {
-                    const isActiveCustom =
-                      activeProfile.icon === "custom" && normalizedActiveCustomIconPath === iconPath;
-                    const pinnedCustom = featuredCustomIcons.includes(iconPath);
-                    return (
-                      <div key={`popover-${iconPath}`} className="profile-custom-icon-slot">
-                        <button
-                          type="button"
-                          className={`profile-icon-button${isActiveCustom ? " active" : ""}`}
-                          title="Use custom icon"
-                          onClick={() => {
-                            applyCustomIconSelection(iconPath, true);
-                          }}
-                        >
-                          <img
-                            className="profile-custom-icon"
-                            src={convertFileSrc(iconPath)}
-                            alt="Custom profile icon"
-                          />
-                        </button>
-                        <button
-                          type="button"
-                          className={`profile-icon-pin profile-icon-pin-custom${pinnedCustom ? " pinned" : ""}`}
-                          title={pinnedCustom ? "Unpin from quick icons" : "Pin to quick icons"}
-                          aria-label={pinnedCustom ? "Unpin from quick icons" : "Pin to quick icons"}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            toggleFeaturedCustomIcon(iconPath);
-                          }}
-                        >
-                          <FaThumbtack />
-                        </button>
-                        <button
-                          type="button"
-                          className="profile-icon-delete"
-                          title="Delete custom icon"
-                          aria-label="Delete custom icon"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void handleDeleteCustomIcon(iconPath);
-                          }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        }
-      />
+          }
+        />
 
-      <ExportSetting
-        label="Workflow"
-        description="Select export behavior: files only, or files + editor import."
-        control={
-          <Dropdown
-            className="settings-wide-dropdown"
-            options={EXPORT_WORKFLOW_OPTIONS}
-            value={activeProfile.workflow}
-            onChange={handleWorkflowChange}
-          />
-        }
-      />
-
-      <ExportSetting
-        label="Open file location after export"
-        description="Automatically open File Explorer and highlight the exported file after export finishes."
-        control={
-          <label className="custom-checkbox" aria-label="Toggle opening exported file location">
-            <input
-              type="checkbox"
-              className="checkbox"
-              checked={openFileLocationAfterExport}
-              onChange={(event) => setOpenFileLocationAfterExport(event.target.checked)}
-            />
-            <span className="checkmark"></span>
-          </label>
-        }
-      />
-
-      {showMergeSetting && (
         <ExportSetting
-          label="Merge Clips"
-          description="When enabled, selected clips are merged into a single output file."
+          label="Workflow"
+          description="Select export behavior: files only, or files + editor import."
           control={
-            <label className="custom-checkbox" aria-label="Merge clips">
+            <Dropdown
+              className="settings-wide-dropdown"
+              options={EXPORT_WORKFLOW_OPTIONS}
+              value={activeProfile.workflow}
+              onChange={handleWorkflowChange}
+            />
+          }
+        />
+
+        <ExportSetting
+          label="Open file location after export"
+          description="Automatically open File Explorer and highlight the exported file after export finishes."
+          control={
+            <label className="custom-checkbox" aria-label="Toggle opening exported file location">
               <input
                 type="checkbox"
                 className="checkbox"
-                checked={activeProfile.mergeEnabled}
-                onChange={(event) => updateActiveProfile({ mergeEnabled: event.target.checked })}
+                checked={openFileLocationAfterExport}
+                onChange={(event) => setOpenFileLocationAfterExport(event.target.checked)}
               />
               <span className="checkmark"></span>
             </label>
           }
         />
-      )}
 
-      {editorWorkflow && (
-        <ExportSetting
-          label="Editor Target"
-          description="Choose target editor integration profile."
-          control={
-            <Dropdown
-              className="settings-wide-dropdown"
-              options={EXPORT_EDITOR_TARGET_OPTIONS}
-              value={activeProfile.editorTarget}
-              onChange={(editorTarget) => updateActiveProfile({ editorTarget })}
+        {showMergeSetting && (
+          <ExportSetting
+            label="Merge Clips"
+            description="When enabled, selected clips are merged into a single output file."
+            control={
+              <label className="custom-checkbox" aria-label="Merge clips">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={activeProfile.mergeEnabled}
+                  onChange={(event) => updateActiveProfile({ mergeEnabled: event.target.checked })}
+                />
+                <span className="checkmark"></span>
+              </label>
+            }
+          />
+        )}
+
+        {encodingWorkflow && (
+          <>
+            <ExportSetting
+              label="Codec"
+              description="Video codec family used when exporting files."
+              control={
+                <Dropdown
+                  className="settings-wide-dropdown"
+                  options={EXPORT_CODEC_FAMILY_OPTIONS}
+                  value={codecFamily}
+                  onChange={handleCodecFamilyChange}
+                />
+              }
             />
-          }
-        />
-      )}
 
-      {encodingWorkflow && (
-        <>
-          <ExportSetting
-            label="Codec"
-            description="Video codec family used when exporting files."
-            control={
-              <Dropdown
-                className="settings-wide-dropdown"
-                options={EXPORT_CODEC_FAMILY_OPTIONS}
-                value={codecFamily}
-                onChange={handleCodecFamilyChange}
-              />
-            }
-          />
-
-          <ExportSetting
-            label="Codec Profile"
-            description="Quality/compression profile for the selected codec."
-            control={
-              <Dropdown
-                className="settings-wide-dropdown"
-                options={codecProfileOptions}
-                value={activeProfile.codec}
-                onChange={(codec) =>
-                  updateActiveProfile({
-                    codec,
-                    ...forceAutoHardwareForH26x(codec, activeProfile.hardwareMode),
-                  })
-                }
-              />
-            }
-          />
-        </>
-      )}
-
-      {showAudioSetting && (
-        <ExportSetting
-          label="Audio Codec"
-          description="Choose encoded audio, source audio copy, or no audio. Audio copy keeps original codec/channels/layout exactly."
-          control={
-            <Dropdown
-              className="settings-wide-dropdown"
-              options={EXPORT_AUDIO_OPTIONS}
-              value={activeProfile.audioMode}
-              onChange={(audioMode) => updateActiveProfile({ audioMode })}
+            <ExportSetting
+              label="Codec Profile"
+              description="Quality/compression profile for the selected codec."
+              control={
+                <Dropdown
+                  className="settings-wide-dropdown"
+                  options={codecProfileOptions}
+                  value={activeProfile.codec}
+                  onChange={(codec) =>
+                    updateActiveProfile({
+                      codec,
+                      ...forceAutoHardwareForH26x(codec, activeProfile.hardwareMode),
+                    })
+                  }
+                />
+              }
             />
-          }
-        />
-      )}
+          </>
+        )}
 
-      {encodingWorkflow && (
-        <>
+        {showAudioSetting && (
           <ExportSetting
-            label="Video Encoder"
-            description={
-              encoderLockedToCpu ? (
-                "Selected codec is CPU-only (no GPU encoder path)."
-              ) : (
-                <>
-                  {!gpuProbeComplete
-                    ? "Detecting hardware encoders..."
-                    : gpuReadyForCodec
-                      ? `Detected GPU backend: ${gpuCapabilities.preferredBackend}${selectedGpuEncoder ? ` (${selectedGpuEncoder})` : ""}. Auto mode uses GPU and falls back to CPU on failure.`
-                      : gpuCapabilities.hasGpuEncoder
-                        ? "No compatible GPU encoder for selected codec on this machine. Auto mode falls back to CPU."
-                        : "No compatible GPU encoder detected. Auto mode falls back to CPU."}{" "}
-                  {nvidiaDetection.hasNvidiaGpu ? (
-                    <a href={NVIDIA_ENCODER_SUPPORT_MATRIX_URL} target="_blank" rel="noreferrer">
-                      NVIDIA matrix
-                    </a>
-                  ) : null}
-                </>
-              )
-            }
+            label="Audio Codec"
+            description="Choose encoded audio, source audio copy, or no audio. Audio copy keeps original codec/channels/layout exactly."
             control={
               <Dropdown
                 className="settings-wide-dropdown"
-                options={EXPORT_HARDWARE_OPTIONS}
-                value={encoderLockedToCpu ? "cpu" : activeProfile.hardwareMode}
-                onChange={(hardwareMode) => updateActiveProfile({ hardwareMode })}
-                disabled={encoderLockedToCpu}
+                options={EXPORT_AUDIO_OPTIONS}
+                value={activeProfile.audioMode}
+                onChange={(audioMode) => updateActiveProfile({ audioMode })}
               />
             }
           />
+        )}
 
-          <ExportSetting
-            label="Parallel Encodes"
-            description={
-              parallelLocked
-                ? "Enabled only when selected GPU backend supports parallel sessions (non-NVIDIA backends stay single-worker)."
-                : `Detected limit: up to ${parallelLimit} parallel exports for this codec. This option sets how many exports run at the same time.`
-            }
-            control={
-              <Dropdown
-                className="settings-wide-dropdown"
-                options={parallelExportOptions}
-                value={effectiveParallelExports}
-                onChange={(parallelExports) => updateActiveProfile({ parallelExports })}
-                disabled={parallelLocked}
-              />
-            }
-          />
-        </>
-      )}
-
-      {showContainerSetting && (
-        <ExportSetting
-          label="Container"
-          description="File format wrapper: MP4, MKV, or MOV."
-          control={
-            <Dropdown
-              className="settings-wide-dropdown"
-              options={EXPORT_CONTAINER_OPTIONS}
-              value={activeProfile.container}
-              onChange={(container) => updateActiveProfile({ container })}
+        {encodingWorkflow && (
+          <>
+            <ExportSetting
+              label="Video Encoder"
+              description={
+                encoderLockedToCpu ? (
+                  "Selected codec is CPU-only (no GPU encoder path)."
+                ) : (
+                  <>
+                    {!gpuProbeComplete
+                      ? "Detecting hardware encoders..."
+                      : gpuReadyForCodec
+                        ? `Detected GPU backend: ${gpuCapabilities.preferredBackend}${selectedGpuEncoder ? ` (${selectedGpuEncoder})` : ""}. Auto mode uses GPU and falls back to CPU on failure.`
+                        : gpuCapabilities.hasGpuEncoder
+                          ? "No compatible GPU encoder for selected codec on this machine. Auto mode falls back to CPU."
+                          : "No compatible GPU encoder detected. Auto mode falls back to CPU."}{" "}
+                    {nvidiaDetection.hasNvidiaGpu ? (
+                      <a href={NVIDIA_ENCODER_SUPPORT_MATRIX_URL} target="_blank" rel="noreferrer">
+                        NVIDIA matrix
+                      </a>
+                    ) : null}
+                  </>
+                )
+              }
+              control={
+                <Dropdown
+                  className="settings-wide-dropdown"
+                  options={EXPORT_HARDWARE_OPTIONS}
+                  value={encoderLockedToCpu ? "cpu" : activeProfile.hardwareMode}
+                  onChange={(hardwareMode) => updateActiveProfile({ hardwareMode })}
+                  disabled={encoderLockedToCpu}
+                />
+              }
             />
-          }
-        />
-      )}
 
-      {iconToCrop && (
-        <CropModal
-          image={iconToCrop}
-          title="Crop Profile Icon"
-          initialAspect={1}
-          hint="Use a square crop for best icon quality"
-          onClose={() => {
-            setIconToCrop(null);
-            setSourceIconPath(null);
-          }}
-          onCropComplete={(data) => {
-            void handleCustomIconCropComplete(data);
-          }}
-        />
-      )}
+            <ExportSetting
+              label="Parallel Encodes"
+              description={
+                parallelLocked
+                  ? "Enabled only when selected GPU backend supports parallel sessions (non-NVIDIA backends stay single-worker)."
+                  : `Detected limit: up to ${parallelLimit} parallel exports for this codec. This option sets how many exports run at the same time.`
+              }
+              control={
+                <Dropdown
+                  className="settings-wide-dropdown"
+                  options={parallelExportOptions}
+                  value={effectiveParallelExports}
+                  onChange={(parallelExports) => updateActiveProfile({ parallelExports })}
+                  disabled={parallelLocked}
+                />
+              }
+            />
+          </>
+        )}
+
+        {showContainerSetting && (
+          <ExportSetting
+            label="Container"
+            description="File format wrapper: MP4, MKV, or MOV."
+            control={
+              <Dropdown
+                className="settings-wide-dropdown"
+                options={EXPORT_CONTAINER_OPTIONS}
+                value={activeProfile.container}
+                onChange={(container) => updateActiveProfile({ container })}
+              />
+            }
+          />
+        )}
+
+        {iconToCrop && (
+          <CropModal
+            image={iconToCrop}
+            title="Crop Profile Icon"
+            initialAspect={1}
+            hint="Use a square crop for best icon quality"
+            onClose={() => {
+              setIconToCrop(null);
+              setSourceIconPath(null);
+            }}
+            onCropComplete={(data) => {
+              void handleCustomIconCropComplete(data);
+            }}
+          />
+        )}
+      </div>
     </section>
   );
 }

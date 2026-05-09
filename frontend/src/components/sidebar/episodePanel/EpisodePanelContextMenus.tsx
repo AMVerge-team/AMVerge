@@ -90,22 +90,6 @@ export default function EpisodePanelContextMenus({
               </button>
 
               <div className="episode-context-menu-separator" />
-              <div className="episode-context-menu-label">Move to</div>
-
-              <button
-                type="button"
-                className="episode-context-menu-item"
-                onClick={() => {
-                  for (const id of multiSelectedIds) {
-                    onMoveEpisodeToFolder(id, null);
-                  }
-
-                  setMultiSelectedIds(new Set());
-                  setContextMenu(null);
-                }}
-              >
-                Root
-              </button>
 
               {episodeFolders.map((folder) => (
                 <button

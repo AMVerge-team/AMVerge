@@ -219,7 +219,6 @@ export default function useImportExport(props?: ImportExportProps) {
         };
         
         const notReady = clips.filter(c => c.thumbnailReady === false).length;
-        console.log(`[initial_clips_ready] clips=${clips.length} notReady=${notReady} pendingThumbIds=${pendingThumbnailReadyIds.size} uiUnblocked=${uiUnblocked}`);
         
         // Unblock the UI immediately before any expensive state updates.
         if (!uiUnblocked) {

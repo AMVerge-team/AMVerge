@@ -1,8 +1,6 @@
 export type ExportWorkflow =
   | "video_encode"
-  | "video_remux"
-  | "editor_encode"
-  | "editor_remux";
+  | "video_remux";
 
 export type ExportCodecFamily =
   | "h264"
@@ -55,18 +53,10 @@ export type ExportAudioMode =
 export type ExportContainer = "mp4" | "mkv" | "mov" | "avi" | "mxf";
 export type ExportHardwareMode = "auto" | "gpu" | "cpu";
 export type ExportEditorTarget =
-  | "none"
-  | "premiere_pro"
-  | "after_effects"
-  | "davinci_resolve"
-  | "capcut";
+  | "none";
 export type ExportProfileIcon =
   | "video"
   | "remux"
-  | "premiere"
-  | "after_effects"
-  | "resolve"
-  | "capcut"
   | "h264"
   | "h265"
   | "prores"
@@ -124,8 +114,6 @@ export const NVIDIA_ENCODER_SUPPORT_MATRIX_URL =
 export const EXPORT_WORKFLOW_OPTIONS: { value: ExportWorkflow; label: string }[] = [
   { value: "video_encode", label: "Export video (re-encode)" },
   { value: "video_remux", label: "Export video (stream copy / remux)" },
-  { value: "editor_encode", label: "Export + editor auto-import (re-encode)" },
-  { value: "editor_remux", label: "Export + editor auto-import (remux)" },
 ];
 
 export const EXPORT_CODEC_OPTIONS: { value: ExportCodec; label: string }[] = [
@@ -178,13 +166,6 @@ export const EXPORT_HARDWARE_OPTIONS: { value: ExportHardwareMode; label: string
   { value: "cpu", label: "CPU" },
 ];
 
-export const EXPORT_EDITOR_TARGET_OPTIONS: { value: ExportEditorTarget; label: string }[] = [
-  { value: "premiere_pro", label: "Premiere Pro" },
-  { value: "after_effects", label: "After Effects" },
-  { value: "davinci_resolve", label: "DaVinci Resolve" },
-  { value: "capcut", label: "CapCut" },
-];
-
 export const EXPORT_PROFILE_ICON_OPTIONS: { value: ExportProfileIcon; label: string }[] = [
   { value: "video", label: "Video" },
   { value: "remux", label: "Remux" },
@@ -193,20 +174,12 @@ export const EXPORT_PROFILE_ICON_OPTIONS: { value: ExportProfileIcon; label: str
   { value: "prores", label: "ProRes" },
   { value: "dnxhr", label: "DNxHR" },
   { value: "uncompressed", label: "Uncompressed" },
-  { value: "premiere", label: "Premiere" },
-  { value: "after_effects", label: "After Effects" },
-  { value: "resolve", label: "Resolve" },
-  { value: "capcut", label: "CapCut" },
   { value: "custom", label: "Custom" },
 ];
 
 const EXPORT_PROFILE_ICON_VALUES: ExportProfileIcon[] = [
   "video",
   "remux",
-  "premiere",
-  "after_effects",
-  "resolve",
-  "capcut",
   "h264",
   "h265",
   "prores",
@@ -218,6 +191,15 @@ const EXPORT_PROFILE_ICON_VALUES: ExportProfileIcon[] = [
 const LEGACY_PROFILE_ICON_MAP: Record<string, ExportProfileIcon> = {
   av1: "h265",
   cineform: "uncompressed",
+  premiere: "video",
+  after_effects: "video",
+  resolve: "video",
+  capcut: "video",
+};
+
+const LEGACY_WORKFLOW_MAP: Record<string, ExportWorkflow> = {
+  editor_encode: "video_encode",
+  editor_remux: "video_remux",
 };
 
 export const NVIDIA_ENCODER_PROFILE_OPTIONS: {
@@ -408,10 +390,6 @@ const AUDIO_MODE_LABELS: Record<ExportAudioMode, string> = {
 
 const EDITOR_TARGET_LABELS: Record<ExportEditorTarget, string> = {
   none: "No editor",
-  premiere_pro: "Premiere Pro",
-  after_effects: "After Effects",
-  davinci_resolve: "DaVinci Resolve",
-  capcut: "CapCut",
 };
 
 const CODEC_FAMILY_LABELS: Record<ExportCodecFamily, string> = {
@@ -507,11 +485,11 @@ export function coerceExportContainer(container: string | undefined | null): Exp
 }
 
 export function usesEncoding(workflow: ExportWorkflow): boolean {
-  return workflow === "video_encode" || workflow === "editor_encode";
+  return workflow === "video_encode";
 }
 
 export function usesEditorTarget(workflow: ExportWorkflow): boolean {
-  return workflow === "editor_encode" || workflow === "editor_remux";
+  return false;
 }
 
 export function supportsClipMerge(workflow: ExportWorkflow): boolean {
@@ -528,6 +506,14 @@ export function supportsContainerSelection(workflow: ExportWorkflow): boolean {
 
 export function isQuickDownloadCompatibleWorkflow(workflow: ExportWorkflow): boolean {
   return true;
+}
+
+export function coerceExportWorkflow(workflow: string | undefined | null): ExportWorkflow {
+  if (!workflow) return "video_encode";
+  if (workflow === "video_encode" || workflow === "video_remux") {
+    return workflow;
+  }
+  return LEGACY_WORKFLOW_MAP[workflow] ?? "video_encode";
 }
 
 export function getNvidiaEncoderProfile(profile: NvidiaEncoderProfile) {
@@ -636,11 +622,6 @@ export function getExportProfileSummary(profile: ExportProfile): string {
   const audioLabel = AUDIO_MODE_LABELS[profile.audioMode] || "Audio copy";
   const containerLabel = profile.container.toUpperCase();
 
-  if (usesEditorTarget(profile.workflow)) {
-    const editor = EDITOR_TARGET_LABELS[profile.editorTarget] || "No editor";
-    return `${editor} • ${codecLabel} • ${audioLabel} • ${containerLabel}`;
-  }
-
   return `${codecLabel} • ${audioLabel} • ${containerLabel}`;
 }
 
@@ -652,18 +633,14 @@ export function getActiveExportProfile(
 }
 
 export function normalizeExportProfile(profile: ExportProfile): ExportProfile {
-  const workflow: ExportWorkflow = profile.workflow || "video_encode";
+  const workflow: ExportWorkflow = coerceExportWorkflow(profile.workflow as string | undefined);
   const codec = coerceExportCodec(profile.codec);
   const icon = coerceExportProfileIcon((profile.icon as string | undefined) ?? null);
   const customIconPath =
     typeof profile.customIconPath === "string" && profile.customIconPath.trim() !== ""
       ? profile.customIconPath
       : null;
-  let editorTarget: ExportEditorTarget = usesEditorTarget(workflow)
-    ? profile.editorTarget && profile.editorTarget !== "none"
-      ? profile.editorTarget
-      : "premiere_pro"
-    : "none";
+  const editorTarget: ExportEditorTarget = "none";
 
   const nvidiaEncoderProfile = profile.nvidiaEncoderProfile || "unknown";
 

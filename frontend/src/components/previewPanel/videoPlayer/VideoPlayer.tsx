@@ -35,11 +35,6 @@ export default function VideoPlayer({
     externalTime,
     onTimeUpdate,
 }: VideoPlayerProps) {
-    useEffect(() => {
-        console.log("[VideoPlayer] Mounted with clip:", selectedClip);
-        return () => console.log("[VideoPlayer] Unmounted clip:", selectedClip);
-    }, [selectedClip]);
-
     const {
         videoRef,
         progressRef,

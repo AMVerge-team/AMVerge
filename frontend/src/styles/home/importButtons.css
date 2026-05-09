@@ -142,7 +142,8 @@
     align-items: center;
     justify-content: center;
     gap: 5px;
-    padding-right: 10px;
+    padding-right: 4px;
+    margin-top:
 }
 
 .zoomWrapper > form {

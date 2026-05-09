@@ -19,7 +19,7 @@ import { remapPathRoot } from "./utils/episodeUtils";
 
 import { useAppStateStore } from "./stores/appStore";
 import { useUIStateStore } from "./stores/UIStore";
-import { useGeneralSettingsStore, useThemeSettingsStore } from "./stores/settingsStore";
+import { applyThemeSettings, useGeneralSettingsStore, useThemeSettingsStore } from "./stores/settingsStore";
 import { useEpisodePanelRuntimeStore } from "./stores/episodeStore";
 
 
@@ -46,6 +46,7 @@ function App() {
 
   // UI state
   const generalSettings = useGeneralSettingsStore();
+  const themeSettings = useThemeSettingsStore();
 
 
   const sidebarEnabled = useUIStateStore(s => s.sidebarEnabled);
@@ -166,6 +167,10 @@ function App() {
   }
 
   // Effects
+  useEffect(() => {
+    applyThemeSettings(themeSettings);
+  }, [themeSettings]);
+
   useEffect(() => {
     let unlisten: (() => void) | null = null;
 

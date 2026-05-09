@@ -3,6 +3,7 @@ import AppearanceSection from "../components/settings/AppearanceSection";
 import DiscordRPCSection from "../components/settings/DiscordRPCSection";
 import ExportSection from "../components/settings/ExportSection";
 import { useUIStateStore } from "../stores/UIStore";
+import { useAppStateStore } from "../stores/appStore";
 
 
 const PAGES = [
@@ -23,14 +24,12 @@ export default function Settings({
   onEpisodesPathChanged,
   onThemeReset,
 }: SettingsProps) {
-  const activeTab = useUIStateStore((s) => s.settingsTab);
-  const setActiveTab = useUIStateStore((s) => s.setSettingsTab);
-
+  const activeTab = useUIStateStore(s => s.settingsTab);
+  const setActiveTab = useUIStateStore(s => s.setSettingsTab);
   return (
     <div className="menu-page">
       <div className="menu-header">
         <h2 className="menu-title">Settings</h2>
-
         <div className="menu-nav">
           {PAGES.map((page) => (
             <button

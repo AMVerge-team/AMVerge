@@ -1,4 +1,4 @@
-
+import { useUIStateStore } from "../stores/UIStore";
 
 type NavbarProps = {
     setSidebarEnabled: (val: boolean | ((prev: boolean) => boolean)) => void
@@ -7,6 +7,11 @@ type NavbarProps = {
     videoIsHEVC: boolean | null
 }
 export default function Navbar({ setSidebarEnabled, sidebarEnabled, userHasHEVC, videoIsHEVC }: NavbarProps ) {
+    const cols = useUIStateStore((s: any) => s.cols);
+    const setCols = useUIStateStore((s: any) => s.setCols);
+
+    const handleBigger = () => setCols(Math.max(1, cols - 1));
+    const handleSmaller = () => setCols(Math.min(12, cols + 1));
     return (
         <div className="navbar">
             <div className="left-nav">
@@ -21,22 +26,12 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled, userHasHEVC,
                 <h1><span>AMV</span>erge</h1>
             </div>
 
-            <div className="hevc-check">
-            <div className="hevc-row">
-                <span>user has hevc?</span>
-                <span className={`status-dot ${userHasHEVC ? "ok" : "bad"}`} />
-            </div>
-
-            {!userHasHEVC && (
-                <div className="hevc-row">
-                <span>video is HEVC encoded?</span>
-                <span
-                    className={`status-dot ${
-                    videoIsHEVC === true ? "ok" : videoIsHEVC === false ? "bad" : "unknown"
-                    }`}
-                />
-                </div>
-            )}
+            <div className="zoomWrapper">
+                <span>Grid: {cols} columns</span>
+                <form>
+                <button type="button" onClick={handleBigger}>-</button>
+                <button type="button" onClick={handleSmaller}>+</button>  
+                </form>
             </div>
         </div>
     )
