@@ -5,8 +5,24 @@ on:
 
 jobs:
   build-macos:
-    name: Build macOS DMG
-    runs-on: macos-14
+    name: Build macOS DMG (${{ matrix.arch_label }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-14
+            arch_label: apple-silicon
+            rust_target: aarch64-apple-darwin
+            tauri_config: tauri.macos.conf.json
+            sidecar_dir: backend_script-aarch64-apple-darwin
+            artifact_name: amverge-macos-arm64-dmg
+          - runner: macos-13
+            arch_label: intel
+            rust_target: x86_64-apple-darwin
+            tauri_config: tauri.macos.intel.conf.json
+            sidecar_dir: backend_script-x86_64-apple-darwin
+            artifact_name: amverge-macos-x64-dmg
 
     steps:
       - name: Checkout repo
@@ -35,7 +51,13 @@ jobs:
         working-directory: frontend
         run: |
           ROLLUP_VERSION=$(node -e "console.log(require('rollup/package.json').version)")
-          npm i --no-save "@rollup/rollup-darwin-arm64@${ROLLUP_VERSION}"
+          ROLLUP_ARCH=$(node -p "process.arch")
+          if [ "$ROLLUP_ARCH" = "arm64" ]; then
+            ROLLUP_PKG="@rollup/rollup-darwin-arm64"
+          else
+            ROLLUP_PKG="@rollup/rollup-darwin-x64"
+          fi
+          npm i --no-save "${ROLLUP_PKG}@${ROLLUP_VERSION}"
 
       - name: Install Tauri CLI (Rust)
         run: cargo install tauri-cli --version '^2.0'
@@ -60,15 +82,15 @@ jobs:
         run: node scripts/build-sidecar.mjs
 
       - name: Verify macOS sidecar exists
-        run: ls -la frontend/src-tauri/bin/backend_script-aarch64-apple-darwin
+        run: ls -la frontend/src-tauri/bin/${{ matrix.sidecar_dir }}
 
       - name: Build macOS app bundle
         working-directory: frontend/src-tauri
-        run: cargo tauri build --config tauri.macos.conf.json
+        run: cargo tauri build --target ${{ matrix.rust_target }} --config ${{ matrix.tauri_config }}
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
-          name: amverge-macos-dmg
-          path: frontend/src-tauri/target/release/bundle/dmg/*.dmg
+          name: ${{ matrix.artifact_name }}
+          path: frontend/src-tauri/target/${{ matrix.rust_target }}/release/bundle/dmg/*.dmg
           if-no-files-found: error
