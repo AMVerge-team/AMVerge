@@ -17,7 +17,7 @@ jobs:
             tauri_config: tauri.macos.conf.json
             sidecar_dir: backend_script-aarch64-apple-darwin
             app_artifact_name: amverge-macos-arm64-app
-          - runner: macos-13
+          - runner: macos-14
             arch_label: intel
             rust_target: x86_64-apple-darwin
             tauri_config: tauri.macos.intel.conf.json
@@ -42,6 +42,9 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Add Rust target
+        run: rustup target add ${{ matrix.rust_target }}
 
       - name: Install frontend dependencies
         working-directory: frontend
@@ -79,7 +82,7 @@ jobs:
 
       - name: Build Python sidecar
         working-directory: frontend
-        run: node scripts/build-sidecar.mjs
+        run: node scripts/build-sidecar.mjs --target ${{ matrix.rust_target }}
 
       - name: Verify macOS sidecar exists
         run: ls -la frontend/src-tauri/bin/${{ matrix.sidecar_dir }}
