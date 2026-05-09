@@ -2,7 +2,7 @@
   "bundle": {
     "targets": ["dmg"],
     "macOS": {
-      "minimumSystemVersion": "11.0"
+      "minimumSystemVersion": "10.15"
     },
     "resources": [
       "bin/backend_script-aarch64-apple-darwin/backend_script",
