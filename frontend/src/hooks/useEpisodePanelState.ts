@@ -12,7 +12,6 @@ export default function useEpisodePanelState() {
 	const handleSelectEpisode = (episodeId: string) => {
 		episodeRuntimeState.setSelectedEpisodeId(episodeId);
 		episodeRuntimeState.setSelectedFolderId(null);
-		episodeMetadataState.setLastSelectedEpisodeId(episodeId);
 	};
 
 	const handleOpenEpisode = (episodeId: string) => {
@@ -24,7 +23,6 @@ export default function useEpisodePanelState() {
 		episodeRuntimeState.setSelectedEpisodeId(episodeId);
 		episodeRuntimeState.setOpenedEpisodeId(episodeId);
 		episodeRuntimeState.setSelectedFolderId(null);
-		episodeMetadataState.setLastSelectedEpisodeId(episodeId);
 		episodeMetadataState.setLastOpenedEpisodeId(episodeId);
 		appState.setImportedVideoPath(selectedEpisode.videoPath);
 		appState.setImportToken(Date.now().toString());
@@ -204,9 +202,6 @@ export default function useEpisodePanelState() {
 		episodeRuntimeState.setEpisodes((prev) => prev.filter((e) => e.id !== episodeId));
 		if (episodeRuntimeState.selectedEpisodeId === episodeId) episodeRuntimeState.setSelectedEpisodeId(null);
 		if (episodeRuntimeState.openedEpisodeId === episodeId) episodeRuntimeState.setOpenedEpisodeId(null);
-		if (episodeMetadataState.lastSelectedEpisodeId === episodeId) {
-			episodeMetadataState.setLastSelectedEpisodeId(null);
-		}
 		if (episodeMetadataState.lastOpenedEpisodeId === episodeId) {
 			episodeMetadataState.setLastOpenedEpisodeId(null);
 		}

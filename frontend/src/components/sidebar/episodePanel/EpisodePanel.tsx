@@ -36,7 +36,7 @@ export default function EpisodePanel() {
   const selectedEpisodeId = episodeRuntimeState.selectedEpisodeId;
   const selectedFolderId = episodeRuntimeState.selectedFolderId;
   const openedEpisodeId = episodeRuntimeState.openedEpisodeId;
-  const lastSelectedEpisodeId = episodeMetadataState.lastSelectedEpisodeId;
+  const lastOpenedEpisodeId = episodeMetadataState.lastOpenedEpisodeId;
 
   const {
     folderById,
@@ -134,11 +134,11 @@ export default function EpisodePanel() {
 
   useEffect(() => {
     if (openedEpisodeId) return;
-    if (!lastSelectedEpisodeId) return;
-    if (!episodes.some((episode) => episode.id === lastSelectedEpisodeId)) return;
+    if (!lastOpenedEpisodeId) return;
+    if (!episodes.some((episode) => episode.id === lastOpenedEpisodeId)) return;
 
-    handleOpenEpisode(lastSelectedEpisodeId);
-  }, [episodes, openedEpisodeId, lastSelectedEpisodeId, handleOpenEpisode]);
+    handleOpenEpisode(lastOpenedEpisodeId);
+  }, [episodes, openedEpisodeId, lastOpenedEpisodeId, handleOpenEpisode]);
 
   const {
     contextMenu,
