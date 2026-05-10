@@ -8,6 +8,12 @@ use tauri::AppHandle;
 
 type HmacSha256 = Hmac<Sha256>;
 
+const BUILD_BUG_REPORT_API_URL: Option<&str> = option_env!("AMVERGE_BUG_REPORT_API_URL");
+const BUILD_BUG_REPORT_API_KEY: Option<&str> = option_env!("AMVERGE_BUG_REPORT_API_KEY");
+const BUILD_BUG_REPORT_KEY_ID: Option<&str> = option_env!("AMVERGE_BUG_REPORT_KEY_ID");
+const BUILD_BUG_REPORT_SIGNING_SECRET: Option<&str> =
+    option_env!("AMVERGE_BUG_REPORT_SIGNING_SECRET");
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BugReportRequest {
@@ -67,16 +73,39 @@ fn normalize_optional_string(value: Option<String>) -> Option<String> {
     })
 }
 
+fn read_config_var(runtime_key: &str, build_fallback: Option<&str>) -> Option<String> {
+    std::env::var(runtime_key)
+        .ok()
+        .and_then(|value| {
+            let trimmed = value.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_string())
+            }
+        })
+        .or_else(|| {
+            build_fallback.and_then(|value| {
+                let trimmed = value.trim();
+                if trimmed.is_empty() {
+                    None
+                } else {
+                    Some(trimmed.to_string())
+                }
+            })
+        })
+}
+
 #[tauri::command]
 pub async fn submit_bug_report(
     app: AppHandle,
     request: BugReportRequest,
 ) -> Result<BugReportResponse, String> {
-    let endpoint = std::env::var("AMVERGE_BUG_REPORT_API_URL")
-        .map_err(|_| "Bug report endpoint is not configured on this build.".to_string())?;
+    let endpoint = read_config_var("AMVERGE_BUG_REPORT_API_URL", BUILD_BUG_REPORT_API_URL)
+        .ok_or_else(|| "Bug report endpoint is not configured on this build.".to_string())?;
 
-    let api_key = std::env::var("AMVERGE_BUG_REPORT_API_KEY")
-        .map_err(|_| "Bug report API key is not configured on this build.".to_string())?;
+    let api_key = read_config_var("AMVERGE_BUG_REPORT_API_KEY", BUILD_BUG_REPORT_API_KEY)
+        .ok_or_else(|| "Bug report API key is not configured on this build.".to_string())?;
 
     let bug_type = request.bug_type.trim().to_string();
     let issue_text = request.issue_text.trim().to_string();
@@ -129,8 +158,11 @@ pub async fn submit_bug_report(
         .header("x-amverge-api-key", api_key)
         .body(raw_body.clone());
 
-    let key_id = std::env::var("AMVERGE_BUG_REPORT_KEY_ID").ok();
-    let signing_secret = std::env::var("AMVERGE_BUG_REPORT_SIGNING_SECRET").ok();
+    let key_id = read_config_var("AMVERGE_BUG_REPORT_KEY_ID", BUILD_BUG_REPORT_KEY_ID);
+    let signing_secret = read_config_var(
+        "AMVERGE_BUG_REPORT_SIGNING_SECRET",
+        BUILD_BUG_REPORT_SIGNING_SECRET,
+    );
 
     if let (Some(key_id), Some(signing_secret)) = (key_id, signing_secret) {
         let timestamp = SystemTime::now()

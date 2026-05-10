@@ -22,7 +22,12 @@ export default function useDiscordRPC() {
         state: "Idle",
       });
     } catch (err) {
-      console.error("Failed to start Discord RPC:", err);
+      const text = String(err);
+      if (text.toLowerCase().includes("discord rpc script not found")) {
+        console.warn("Discord RPC unavailable in this build.");
+      } else {
+        console.error("Failed to start Discord RPC:", err);
+      }
     }
   }, []);
 

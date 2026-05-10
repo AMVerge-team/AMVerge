@@ -7,6 +7,31 @@ import {
     type ConsoleEntry,
 } from "../../utils/appConsole"
 
+// Dev toggle: set to false to disable submit cooldown locally.
+const ENABLE_SUBMIT_COOLDOWN = true
+const BUG_REPORT_COOLDOWN_MS = 60 * 60 * 1000
+const BUG_REPORT_COOLDOWN_STORAGE_KEY = "amverge_bug_report_last_submitted_at"
+
+function readLastSubmittedAt(): number | null {
+    if (typeof window === "undefined") return null
+
+    try {
+        const raw = window.localStorage.getItem(BUG_REPORT_COOLDOWN_STORAGE_KEY)
+        if (!raw) return null
+        const parsed = Number.parseInt(raw, 10)
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+    } catch {
+        return null
+    }
+}
+
+function formatCooldown(remainingMs: number): string {
+    const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000))
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+}
+
 type BugReportRequest = {
     bugType: string;
     issueText: string;
@@ -36,10 +61,24 @@ export default function BugReport() {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [submitError, setSubmitError] = useState<string | null>(null)
     const [submitSuccess, setSubmitSuccess] = useState<string | null>(null)
+    const [lastSubmittedAt, setLastSubmittedAt] = useState<number | null>(() => readLastSubmittedAt())
+    const [nowTs, setNowTs] = useState(() => Date.now())
 
     useEffect(() => {
         return subscribeToConsoleLogs(setLogs)
     }, [])
+
+    useEffect(() => {
+        if (!ENABLE_SUBMIT_COOLDOWN || !lastSubmittedAt) return
+
+        const interval = window.setInterval(() => {
+            setNowTs(Date.now())
+        }, 1000)
+
+        return () => {
+            window.clearInterval(interval)
+        }
+    }, [lastSubmittedAt])
 
     const redactedConsoleLogs = useMemo(() => {
         const serialized = serializeConsoleLogs(logs)
@@ -50,6 +89,13 @@ export default function BugReport() {
             .replace(/\/(Users|home)\/[^/\s]+\/[^\r\n]*/g, "[REDACTED_PATH]")
     }, [logs])
 
+    const cooldownRemainingMs = useMemo(() => {
+        if (!ENABLE_SUBMIT_COOLDOWN || !lastSubmittedAt) return 0
+        return Math.max(0, (lastSubmittedAt + BUG_REPORT_COOLDOWN_MS) - nowTs)
+    }, [lastSubmittedAt, nowTs])
+
+    const isCooldownActive = cooldownRemainingMs > 0
+
 
     async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
         e.preventDefault()
@@ -58,6 +104,11 @@ export default function BugReport() {
 
         if (!issueText.trim()) {
             setSubmitError("Please describe the issue before submitting.")
+            return;
+        }
+
+        if (isCooldownActive) {
+            setSubmitError(`Please wait ${formatCooldown(cooldownRemainingMs)} before submitting another report.`)
             return;
         }
 
@@ -87,6 +138,16 @@ export default function BugReport() {
             setContact("")
             setScreenshots(null)
             setVideoReference("")
+            if (ENABLE_SUBMIT_COOLDOWN) {
+                const submittedAt = Date.now()
+                setLastSubmittedAt(submittedAt)
+                setNowTs(submittedAt)
+                try {
+                    window.localStorage.setItem(BUG_REPORT_COOLDOWN_STORAGE_KEY, submittedAt.toString())
+                } catch {
+                    // Ignore storage errors; cooldown still applies for this session.
+                }
+            }
         } catch (err) {
             console.error(err);
             setSubmitError("Could not submit bug report. Please try again.")
@@ -171,20 +232,24 @@ export default function BugReport() {
                             Local paths and usernames are redacted before sending.
                         </small>
                     </div>
-                    {submitError && (
-                        <div className="bugreport-row">
-                            <p role="alert">{submitError}</p>
-                        </div>
-                    )}
-                    {submitSuccess && (
-                        <div className="bugreport-row">
-                            <p>{submitSuccess}</p>
-                        </div>
-                    )}
                     <div className="bugreport-row">
-                        <button type="submit" disabled={isSubmitting}>
-                            {isSubmitting ? "Submitting..." : "Submit Report"}
+                        <button type="submit" disabled={isSubmitting || isCooldownActive}>
+                            {isSubmitting
+                                ? "Submitting..."
+                                : isCooldownActive
+                                    ? `Submit available in ${formatCooldown(cooldownRemainingMs)}`
+                                    : "Submit Report"}
                         </button>
+                        {submitError && (
+                            <div className="bugreport-row">
+                                <p role="alert">{submitError}</p>
+                            </div>
+                        )}
+                        {submitSuccess && (
+                            <div className="bugreport-row">
+                                <p>{submitSuccess}</p>
+                            </div>
+                        )}
                     </div>
                 </form>
             </div>
