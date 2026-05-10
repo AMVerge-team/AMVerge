@@ -1,7 +1,12 @@
 use std::time::Duration;
+use std::time::{SystemTime, UNIX_EPOCH};
 
+use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 use tauri::AppHandle;
+
+type HmacSha256 = Hmac<Sha256>;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -10,7 +15,7 @@ pub struct BugReportRequest {
     pub issue_text: String,
     pub pc_specs: Option<String>,
     pub contact: Option<String>,
-    pub video_url: Option<String>,
+    pub video_reference: Option<String>,
     pub screenshot_names: Vec<String>,
     pub console_logs: Option<String>,
     pub console_log_count: Option<usize>,
@@ -32,6 +37,7 @@ struct DashboardBugReportPayload {
     issue_text: String,
     pc_specs: Option<String>,
     contact: Option<String>,
+    video_reference: Option<String>,
     video_url: Option<String>,
     screenshot_names: Vec<String>,
     console_logs: Option<String>,
@@ -82,22 +88,23 @@ pub async fn submit_bug_report(
         });
     }
 
-    let video_url = normalize_optional_string(request.video_url);
-    if bug_type.eq_ignore_ascii_case("Issue with video") && video_url.is_none() {
+    let video_reference = normalize_optional_string(request.video_reference);
+    let console_logs = normalize_optional_string(request.console_logs);
+    if console_logs.is_none() {
         return Ok(BugReportResponse {
             ok: false,
-            message: "A public video download URL is required for video-related issues.".to_string(),
+            message: "Console logs are required for bug reports.".to_string(),
             report_id: None,
         });
     }
 
-    let console_logs = normalize_optional_string(request.console_logs);
     let payload = DashboardBugReportPayload {
         bug_type,
         issue_text,
         pc_specs: normalize_optional_string(request.pc_specs),
         contact: normalize_optional_string(request.contact),
-        video_url,
+        video_reference: video_reference.clone(),
+        video_url: video_reference,
         screenshot_names: request.screenshot_names,
         console_logs,
         console_log_count: request.console_log_count,
@@ -113,11 +120,37 @@ pub async fn submit_bug_report(
         .build()
         .map_err(|e| format!("Failed to initialize HTTP client: {e}"))?;
 
-    let response = client
+    let raw_body = serde_json::to_string(&payload)
+        .map_err(|e| format!("Failed to serialize bug report payload: {e}"))?;
+
+    let mut request_builder = client
         .post(endpoint)
         .header("content-type", "application/json")
         .header("x-amverge-api-key", api_key)
-        .json(&payload)
+        .body(raw_body.clone());
+
+    let key_id = std::env::var("AMVERGE_BUG_REPORT_KEY_ID").ok();
+    let signing_secret = std::env::var("AMVERGE_BUG_REPORT_SIGNING_SECRET").ok();
+
+    if let (Some(key_id), Some(signing_secret)) = (key_id, signing_secret) {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|e| format!("System clock is invalid: {e}"))?
+            .as_secs();
+        let signed_payload = format!("{timestamp}.{raw_body}");
+
+        let mut mac = HmacSha256::new_from_slice(signing_secret.as_bytes())
+            .map_err(|e| format!("Invalid signing secret: {e}"))?;
+        mac.update(signed_payload.as_bytes());
+        let signature = hex::encode(mac.finalize().into_bytes());
+
+        request_builder = request_builder
+            .header("x-amverge-key-id", key_id)
+            .header("x-amverge-timestamp", timestamp.to_string())
+            .header("x-amverge-signature", signature);
+    }
+
+    let response = request_builder
         .send()
         .await
         .map_err(|e| format!("Failed to submit bug report: {e}"))?;

@@ -12,11 +12,11 @@ type BugReportRequest = {
     issueText: string;
     pcSpecs?: string | null;
     contact?: string | null;
-    videoUrl?: string | null;
+    videoReference?: string | null;
     screenshotNames: string[];
-    consoleLogs?: string;
-    consoleLogCount?: number;
-    redactionApplied?: boolean;
+    consoleLogs: string;
+    consoleLogCount: number;
+    redactionApplied: boolean;
 };
 
 type BugReportResponse = {
@@ -31,9 +31,8 @@ export default function BugReport() {
     const [PCSpecs, setPCSpecs] = useState("")
     const [contact, setContact] = useState("")
     const [screenShots, setScreenshots] = useState<FileList | null>(null)
-    const [video, setVideo] = useState("")
+    const [videoReference, setVideoReference] = useState("")
     const [logs, setLogs] = useState<ConsoleEntry[]>(() => getConsoleLogsSnapshot())
-    const [includeConsoleLogs, setIncludeConsoleLogs] = useState(true)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [submitError, setSubmitError] = useState<string | null>(null)
     const [submitSuccess, setSubmitSuccess] = useState<string | null>(null)
@@ -46,7 +45,6 @@ export default function BugReport() {
         const serialized = serializeConsoleLogs(logs)
         if (!serialized) return ""
 
-        // Redact common local path shapes that can expose usernames and directories.
         return serialized
             .replace(/[A-Za-z]:\\[^\r\n\t]*/g, "[REDACTED_PATH]")
             .replace(/\/(Users|home)\/[^/\s]+\/[^\r\n]*/g, "[REDACTED_PATH]")
@@ -62,26 +60,18 @@ export default function BugReport() {
             setSubmitError("Please describe the issue before submitting.")
             return;
         }
-        
-        if (bugType === "Issue with video" && !video.trim()) {
-            setSubmitError("Please provide a public video download link for video-related issues.")
-            return;
-        }
 
         const request: BugReportRequest = {
             bugType,
             issueText: issueText.trim(),
             pcSpecs: PCSpecs.trim() || null,
             contact: contact.trim() || null,
-            videoUrl: video.trim() || null,
+            videoReference: videoReference.trim() || null,
             screenshotNames: screenShots ? Array.from(screenShots).map((f) => f.name) : [],
+            consoleLogs: redactedConsoleLogs,
+            consoleLogCount: logs.length,
+            redactionApplied: true,
         };
-
-        if (includeConsoleLogs && redactedConsoleLogs.trim()) {
-            request.consoleLogs = redactedConsoleLogs
-            request.consoleLogCount = logs.length
-            request.redactionApplied = true
-        }
 
         try { 
             setIsSubmitting(true)
@@ -96,7 +86,7 @@ export default function BugReport() {
             setPCSpecs("")
             setContact("")
             setScreenshots(null)
-            setVideo("")
+            setVideoReference("")
         } catch (err) {
             console.error(err);
             setSubmitError("Could not submit bug report. Please try again.")
@@ -130,19 +120,25 @@ export default function BugReport() {
                          onChange={(e) => setIssueText(e.target.value)}
                         />
                     </div>
-                    { bugType === "Issue with video" && 
                     <div className="bugreport-row">
-                        <label htmlFor="video-link">Please paste a link where we can download video that 
-                            has the issue<br/>This can be in a Google Drive, Mega, any file sharing link. Ensure the link is public, and feel free to delete it after 2 days to free up space.
+                        <label htmlFor="video-reference">
+                             Video source details (OPTIONAL, highly encouraged)
                         </label>
-                        <input
-                         type="url"
-                         onChange={(e) => setVideo(e.target.value)}
-                         />
+                        <small>
+                            Sharing a downloadable link helps us reproduce and fix issues much more accurately.
+                            You can delete the link after 2 days. If you do not want to share a link, provide
+                            directions for where to find the source or torrent (site, anime title, and episode).
+                        </small>
+                        <textarea
+                         id="video-reference"
+                         value={videoReference}
+                         rows={4}
+                         placeholder="Example: Kayoanime > anime title > Season 2 > Episode 07, or open a download link to the video for 2 days for us to download"
+                         onChange={(e) => setVideoReference(e.target.value)}
+                        />
                     </div>
-                    }
                     <div className="bugreport-row">
-                        <label htmlFor="pc-specs">(OPTIONAL) Please provide your PC specifications</label>
+                        <label htmlFor="pc-specs">Please provide your PC specifications (OPTIONAL)</label>
                         <input
                          type="text"
                          value={PCSpecs}
@@ -151,7 +147,7 @@ export default function BugReport() {
                         />
                     </div>
                     <div className="bugreport-row">
-                        <label htmlFor="contact-info">(OPTIONAL) Please type in your discord in case we need more details</label>
+                        <label htmlFor="contact-info">Please type in your discord in case we need more details (OPTIONAL)</label>
                         <input
                          type="text"
                          value={contact}
@@ -160,7 +156,7 @@ export default function BugReport() {
                          />
                     </div>
                     <div className="bugreport-row">
-                        <label htmlFor="screenshots">(OPTIONAL) Please attach any screenshots if relevant</label>
+                        <label htmlFor="screenshots">Please attach any screenshots if relevant (OPTIONAL)</label>
                         <input
                          id="screenshots"
                          type="file"
@@ -170,17 +166,9 @@ export default function BugReport() {
                         />
                     </div>
                     <div className="bugreport-row">
-                        <label htmlFor="include-console-logs">
-                            Include current console logs with this report ({logs.length} log entries)
-                        </label>
-                        <input
-                         id="include-console-logs"
-                         type="checkbox"
-                         checked={includeConsoleLogs}
-                         onChange={(e) => setIncludeConsoleLogs(e.target.checked)}
-                        />
+                        <label>Console logs attached automatically ({logs.length} log entries)</label>
                         <small>
-                            Console logs may include local file paths and usernames. Paths are redacted before sending.
+                            Local paths and usernames are redacted before sending.
                         </small>
                     </div>
                     {submitError && (

@@ -8,12 +8,15 @@
     width: 100%;
     height: 100%;
     min-height: 0;
+    /* background: rgb(0 0 0 / 0.42); */
+    /* border: 1px solid rgb(255 255 255 / 0.12);
+    border-radius: 10px; */
 }
 
 .bugreport-wrapper form {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 5px;
     width: min(860px, 100%);
     margin: 0 auto;
     padding: 8px 10px 14px;
@@ -34,17 +37,23 @@
 .bugreport-row {
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 4px;
     padding: 12px;
-    background: rgb(0 0 0 / 0.42);
-    border: 1px solid rgb(255 255 255 / 0.12);
-    border-radius: 10px;
 }
 
 .bugreport-row label {
     font-size: 0.95rem;
     color: rgb(255 255 255 / 0.92);
-    line-height: 1.35;
+    letter-spacing: 0.7px;
+    margin-left: 5px;
+}
+
+.bugreport-row small {
+    color: rgb(255 255 255 / 0.6);
+    font-size: 0.82rem;
+    line-height: 1;
+    letter-spacing: 0.7px;
+    margin-left: 5px;
 }
 
 .bugreport-row input[type="text"],
@@ -61,6 +70,7 @@
     font-size: 0.95rem;
     font-family: inherit;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    letter-spacing: 0.7px;
 }
 
 .bugreport-row input::placeholder,
@@ -104,12 +114,6 @@
     accent-color: var(--accent);
 }
 
-.bugreport-row small {
-    color: rgb(255 255 255 / 0.6);
-    font-size: 0.82rem;
-    line-height: 1.35;
-}
-
 .bugreport-row p {
     margin: 0;
     color: rgb(255 255 255 / 0.9);
@@ -128,9 +132,11 @@
     background: #000;
     color: #fff;
     font-size: 0.96rem;
-    font-weight: 600;
+    font-weight: 1;
+    letter-spacing: 0.7px;
     cursor: pointer;
     transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    font-family: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .bugreport-row button[type="submit"]:hover:not(:disabled) {
