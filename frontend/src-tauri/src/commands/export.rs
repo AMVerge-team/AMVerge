@@ -5,7 +5,7 @@ use std::sync::Mutex;
 
 use tauri::{AppHandle, State};
 
-use crate::state::ExportAbortState;
+use crate::state::{ActiveFfmpegPids, ExportAbortState};
 use crate::utils::ffmpeg::resolve_bundled_tool;
 use crate::utils::logging::console_log;
 use crate::utils::paths::file_name_only;
@@ -182,15 +182,17 @@ pub async fn detect_gpu_encoder_capabilities(
 #[tauri::command]
 pub async fn fast_merge(
     app: AppHandle,
+    ffmpeg_pids: State<'_, ActiveFfmpegPids>,
     clips: Vec<String>,
     output_path: String,
 ) -> Result<String, String> {
-    ops::fast_merge_inner(app, clips, output_path).await
+    ops::fast_merge_inner(app, ffmpeg_pids.pids.clone(), clips, output_path).await
 }
 
 #[tauri::command]
 pub async fn fast_split(
     app: AppHandle,
+    ffmpeg_pids: State<'_, ActiveFfmpegPids>,
     input_path: String,
     split_time: f64,
     output_path1: String,
@@ -199,6 +201,7 @@ pub async fn fast_split(
 ) -> Result<(), String> {
     ops::fast_split_inner(
         app,
+        ffmpeg_pids.pids.clone(),
         input_path,
         split_time,
         output_path1,

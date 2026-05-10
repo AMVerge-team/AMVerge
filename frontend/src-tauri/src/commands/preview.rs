@@ -1,10 +1,13 @@
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::sync::Arc;
+
+#[cfg(not(windows))]
+use std::os::unix::process::CommandExt;
 
 use tauri::{AppHandle, State};
 
-use crate::state::PreviewProxyLocks;
+use crate::state::{ActiveFfmpegPids, PreviewProxyLocks};
 use crate::utils::ffmpeg::resolve_bundled_tool;
 use crate::utils::logging::console_log;
 use crate::utils::paths::file_name_only;
@@ -96,6 +99,7 @@ pub async fn hover_preview_error(
 pub async fn ensure_preview_proxy(
     app: AppHandle,
     proxy_locks: State<'_, PreviewProxyLocks>,
+    ffmpeg_pids: State<'_, ActiveFfmpegPids>,
     clip_path: String,
 ) -> Result<String, String> {
     let clip_key = clip_path.clone();
@@ -146,10 +150,13 @@ pub async fn ensure_preview_proxy(
     let ffmpeg_clone = ffmpeg.clone();
     let input = input_path.clone();
     let output = proxy_tmp_path.clone();
+    let pids = ffmpeg_pids.pids.clone();
 
     let ffmpeg_output = tokio::task::spawn_blocking(move || {
         let mut cmd = Command::new(&ffmpeg_clone);
         apply_no_window(&mut cmd);
+        #[cfg(not(windows))]
+        cmd.process_group(0);
         cmd.args(["-y", "-i"]);
         cmd.arg(&input);
         cmd.args([
@@ -165,14 +172,22 @@ pub async fn ensure_preview_proxy(
             "32",
             "-pix_fmt",
             "yuv420p",
-            "-an", // No audio for preview proxy to speed up extraction
+            "-an",
             "-movflags",
             "+faststart",
         ]);
         cmd.arg(&output);
 
-        cmd.output()
-            .map_err(|e| format!("Failed to run ffmpeg: {e}"))
+        let child = cmd
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| format!("Failed to run ffmpeg: {e}"))?;
+        let pid = child.id();
+        if let Ok(mut l) = pids.lock() { l.push(pid); }
+        let result = child.wait_with_output().map_err(|e| format!("Failed waiting for ffmpeg: {e}"))?;
+        if let Ok(mut l) = pids.lock() { l.retain(|p| *p != pid); }
+        Ok::<std::process::Output, String>(result)
     })
     .await
     .map_err(|e| format!("ffmpeg task panicked: {e}"))??;
@@ -235,6 +250,7 @@ pub async fn ensure_preview_proxy(
 pub async fn ensure_merged_preview(
     app: AppHandle,
     proxy_locks: State<'_, PreviewProxyLocks>,
+    ffmpeg_pids: State<'_, ActiveFfmpegPids>,
     srcs: Vec<String>,
 ) -> Result<String, String> {
     if srcs.is_empty() {
@@ -293,28 +309,26 @@ pub async fn ensure_merged_preview(
     let ffmpeg_clone = ffmpeg.clone();
     let list_clone = list_path.clone();
     let output_clone = preview_tmp_path.clone();
+    let pids = ffmpeg_pids.pids.clone();
 
     let ffmpeg_result = tokio::task::spawn_blocking(move || {
         let mut cmd = Command::new(&ffmpeg_clone);
         apply_no_window(&mut cmd);
-        cmd.args([
-            "-y",
-            "-f",
-            "concat",
-            "-safe",
-            "0",
-            "-i",
-            list_clone
-                .to_str()
-                .ok_or_else(|| "Invalid list path".to_string())?,
-            "-c",
-            "copy",
-            output_clone
-                .to_str()
-                .ok_or_else(|| "Invalid output path".to_string())?,
-        ])
-        .output()
-        .map_err(|e| format!("Failed to run ffmpeg: {e}"))
+        #[cfg(not(windows))]
+        cmd.process_group(0);
+        let list_str = list_clone.to_str().ok_or_else(|| "Invalid list path".to_string())?;
+        let out_str = output_clone.to_str().ok_or_else(|| "Invalid output path".to_string())?;
+        let child = cmd
+            .args(["-y", "-f", "concat", "-safe", "0", "-i", list_str, "-c", "copy", out_str])
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| format!("Failed to run ffmpeg: {e}"))?;
+        let pid = child.id();
+        if let Ok(mut l) = pids.lock() { l.push(pid); }
+        let result = child.wait_with_output().map_err(|e| format!("Failed waiting for ffmpeg: {e}"))?;
+        if let Ok(mut l) = pids.lock() { l.retain(|p| *p != pid); }
+        Ok::<std::process::Output, String>(result)
     })
     .await
     .map_err(|e| format!("ffmpeg task panicked: {e}"))?;

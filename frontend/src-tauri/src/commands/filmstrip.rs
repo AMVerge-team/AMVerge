@@ -1,8 +1,12 @@
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
-use tauri::AppHandle;
+#[cfg(not(windows))]
+use std::os::unix::process::CommandExt;
 
+use tauri::{AppHandle, State};
+
+use crate::state::ActiveFfmpegPids;
 use crate::utils::ffmpeg::resolve_bundled_tool;
 use crate::utils::logging::console_log;
 use crate::utils::process::apply_no_window;
@@ -21,6 +25,7 @@ use crate::utils::process::apply_no_window;
 #[tauri::command]
 pub async fn generate_filmstrip(
     app: AppHandle,
+    ffmpeg_pids: State<'_, ActiveFfmpegPids>,
     video_path: String,
     output_dir: String,
     duration: f64,
@@ -115,14 +120,23 @@ pub async fn generate_filmstrip(
 
     let ffmpeg_clone = ffmpeg.clone();
     let args_owned: Vec<String> = args.iter().map(|s| s.to_string()).collect();
+    let pids = ffmpeg_pids.pids.clone();
 
     tokio::task::spawn_blocking(move || {
         let mut cmd = Command::new(&ffmpeg_clone);
         apply_no_window(&mut cmd);
-        let output = cmd
+        #[cfg(not(windows))]
+        cmd.process_group(0);
+        let child = cmd
             .args(&args_owned)
-            .output()
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped())
+            .spawn()
             .map_err(|e| format!("Failed to run ffmpeg: {e}"))?;
+        let pid = child.id();
+        if let Ok(mut l) = pids.lock() { l.push(pid); }
+        let output = child.wait_with_output().map_err(|e| format!("Failed waiting for ffmpeg: {e}"))?;
+        if let Ok(mut l) = pids.lock() { l.retain(|p| *p != pid); }
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);

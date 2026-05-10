@@ -95,8 +95,8 @@ def format_timestamp(seconds: float) -> str:
 
 
 def make_thumbnail(clip_path: str, thumb_path: str) -> None:
-    thumb_width = 360
-    thumb_quality = 80
+    thumb_width = 960
+    thumb_quality = 95
 
     try:
         with av.open(clip_path) as container:
@@ -117,10 +117,17 @@ def make_thumbnail(clip_path: str, thumb_path: str) -> None:
 
                 image = image.resize(
                     (new_width, new_height),
-                    resample=Image.Resampling.BICUBIC,
+                    resample=Image.Resampling.LANCZOS,
                 )
 
-                image.save(thumb_path, "JPEG", quality=thumb_quality)
+                image.save(
+                    thumb_path,
+                    "JPEG",
+                    quality=thumb_quality,
+                    optimize=True,
+                    progressive=True,
+                    subsampling=0,
+                )
                 return
 
             log(f"Thumbnail skipped, no decodable frame: {clip_path}")

@@ -4,9 +4,18 @@ use std::sync::{Arc, Mutex};
 
 use tokio::sync::Mutex as AsyncMutex;
 
-#[derive(Default)]
 pub struct ActiveSidecar {
     pub pid: Mutex<Option<u32>>,
+    pub child: Mutex<Option<std::process::Child>>,
+}
+
+impl Default for ActiveSidecar {
+    fn default() -> Self {
+        Self {
+            pid: Mutex::new(None),
+            child: Mutex::new(None),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -27,5 +36,10 @@ pub struct EditorImportAbortState {
 #[derive(Default)]
 pub struct ExportAbortState {
     pub abort_requested: Arc<AtomicBool>,
+    pub pids: Arc<Mutex<Vec<u32>>>,
+}
+
+#[derive(Default)]
+pub struct ActiveFfmpegPids {
     pub pids: Arc<Mutex<Vec<u32>>>,
 }

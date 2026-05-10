@@ -19,7 +19,7 @@
       }
     ],
     "security": {
-      "csp": null,
+      "csp": "connect-src ipc: http://ipc.localhost",
       "assetProtocol": {
         "enable": true,
         "scope": ["**"]
