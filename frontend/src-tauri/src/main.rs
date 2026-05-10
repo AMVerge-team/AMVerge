@@ -14,6 +14,8 @@ use std::sync::atomic::Ordering;
 use tauri::Manager;
 
 fn main() {
+    let _ = dotenvy::dotenv();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
@@ -25,6 +27,7 @@ fn main() {
         .manage(ExportAbortState::default())
         .manage(ActiveFfmpegPids::default())
         .invoke_handler(tauri::generate_handler![
+            commands::bug_report::submit_bug_report,
             commands::scenes::detect_scenes,
             commands::scenes::abort_detect_scenes,
             commands::export::export_clips,

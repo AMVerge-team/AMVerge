@@ -76,6 +76,17 @@ function App() {
 
   const [dividerOffsetPx, setDividerOffsetPx] = useState(0);
 
+  const parseThumbnailProgress = (message: string): { done: number; total: number } | null => {
+    const match = message.match(/generating thumbnails\.\.\.\s*(\d+)\s*\/\s*(\d+)/i);
+    if (!match) return null;
+
+    const done = Number.parseInt(match[1], 10);
+    const total = Number.parseInt(match[2], 10);
+    if (!Number.isFinite(done) || !Number.isFinite(total) || total <= 0) return null;
+
+    return { done: Math.max(0, done), total };
+  };
+
   // Persisted UI state
   const sidebarWidthPx = useUIStateStore(s => s.sidebarWidthPx);
   const setSidebarWidthPx = useUIStateStore(s => s.setSidebarWidthPx);
@@ -180,6 +191,23 @@ function App() {
         (event: Event<{ percent: number; message: string }>) => {
           setProgress(event.payload.percent);
           setProgressMsg(event.payload.message);
+
+          const parsed = parseThumbnailProgress(event.payload.message);
+          if (!parsed) return;
+
+          useAppStateStore.setState((s) => {
+            const nextTotal = parsed.total;
+            const nextDone = Math.min(
+              nextTotal,
+              Math.max(s.bgProgress?.done ?? 0, parsed.done)
+            );
+
+            if (s.bgProgress?.done === nextDone && s.bgProgress?.total === nextTotal) {
+              return s;
+            }
+
+            return { ...s, bgProgress: { done: nextDone, total: nextTotal } };
+          });
         }
       );
 

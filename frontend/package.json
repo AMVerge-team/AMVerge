@@ -9,7 +9,9 @@
     "build:sidecar": "node ./scripts/build-sidecar.mjs",
     "build:all": "npm run build:sidecar && npm run build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "tauri:dev": "dotenv -e ../.env -- tauri dev",
+    "tauri:build": "dotenv -e ../.env -- tauri build"
   },
   "dependencies": {
     "@tanstack/react-virtual": "^3.13.18",
@@ -19,19 +21,20 @@
     "@tauri-apps/plugin-shell": "^2.3.5",
     "@tauri-apps/plugin-updater": "^2.10.1",
     "react": "^19.1.0",
-    "zustand": "^5.0.12",
     "react-colorful": "^5.6.1",
     "react-dom": "^19.1.0",
     "react-easy-crop": "^5.5.7",
     "react-icons": "^5.5.0",
     "react-image-crop": "^11.0.10",
-    "react-markdown": "^10.1.0"
+    "react-markdown": "^10.1.0",
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.10.1",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
+    "dotenv-cli": "^11.0.0",
     "typescript": "~5.8.3",
     "vite": "^7.0.4"
   }

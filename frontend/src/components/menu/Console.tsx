@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { FaCopy, FaTrashAlt } from "react-icons/fa";
 import {
   clearConsoleLogs,
+  serializeConsoleLogs,
   subscribeToConsoleLogs,
   type ConsoleEntry,
 } from "../../utils/appConsole";
@@ -16,9 +17,7 @@ export default function Console() {
   }, []);
 
   const consoleText = useMemo(() => {
-    return logs
-      .map((log) => `[${log.time}] [${log.source}] [${log.level}] ${log.message}`)
-      .join("\n");
+    return serializeConsoleLogs(logs);
   }, [logs]);
 
 

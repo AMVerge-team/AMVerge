@@ -1,3 +1,4 @@
+pub mod bug_report;
 pub mod cache;
 pub mod discord;
 pub mod editor_import;
