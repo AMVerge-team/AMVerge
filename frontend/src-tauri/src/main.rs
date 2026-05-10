@@ -51,10 +51,28 @@ fn main() {
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
+                // Kill Python sidecar (and its entire process group) if scene detection
+                // is still running so the backend doesn't outlive the app.
+                let sidecar = window.state::<ActiveSidecar>();
+                let sidecar_pid = sidecar.pid.lock().ok().and_then(|mut l| l.take());
+                if let Ok(mut lock) = sidecar.child.lock() {
+                    *lock = None;
+                }
+                if let Some(pid) = sidecar_pid {
+                    #[cfg(not(target_os = "windows"))]
+                    let _ = std::process::Command::new("kill")
+                        .args(["-9", &format!("-{pid}")])
+                        .output();
+                    #[cfg(target_os = "windows")]
+                    let _ = std::process::Command::new("taskkill")
+                        .args(["/F", "/T", "/PID", &pid.to_string()])
+                        .output();
+                }
+
+                // Gracefully shut down Discord RPC.
                 let state = window.state::<DiscordRPCState>();
                 let mut child_guard = state.child.lock().unwrap();
                 if let Some(mut child) = child_guard.take() {
-                    // Try graceful logout
                     use std::io::Write;
                     if let Some(stdin) = child.stdin.as_mut() {
                         let _ = writeln!(stdin, "{{\"type\": \"shutdown\"}}");
