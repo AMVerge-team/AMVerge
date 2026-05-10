@@ -6,6 +6,9 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+#[cfg(not(windows))]
+use std::os::unix::process::CommandExt;
+
 use tauri::{AppHandle, Emitter};
 
 use crate::payloads::ProgressPayload;
@@ -55,6 +58,8 @@ pub(super) fn run_ffmpeg_with_progress(
 
     let mut cmd = Command::new(&ffmpeg);
     apply_no_window(&mut cmd);
+    #[cfg(not(windows))]
+    cmd.process_group(0);
     let mut child = cmd
         .args(&args)
         .stdout(Stdio::null())

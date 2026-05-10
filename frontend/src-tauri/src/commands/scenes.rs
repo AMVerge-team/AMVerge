@@ -3,6 +3,9 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 
+#[cfg(not(windows))]
+use std::os::unix::process::CommandExt;
+
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::payloads::{
@@ -90,6 +93,8 @@ pub async fn detect_scenes(
 
         let mut cmd = Command::new(python_path);
         apply_no_window(&mut cmd);
+        #[cfg(not(windows))]
+        cmd.process_group(0);
         cmd.arg(script_path)
             .arg(&video_path)
             .arg(&output_dir_str)
@@ -135,6 +140,8 @@ pub async fn detect_scenes(
 
         let mut cmd = Command::new(backend);
         apply_no_window(&mut cmd);
+        #[cfg(not(windows))]
+        cmd.process_group(0);
         cmd.current_dir(&exe_dir)
             .arg(&video_path)
             .arg(&output_dir_str)
@@ -147,12 +154,15 @@ pub async fn detect_scenes(
     let child_pid = child.id();
     console_log("SCENE|pid", &format!("pid={}", child_pid));
 
+    let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
+    let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
+
     if let Ok(mut lock) = sidecar_state.pid.lock() {
         *lock = Some(child_pid);
     }
-
-    let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
-    let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
+    if let Ok(mut lock) = sidecar_state.child.lock() {
+        *lock = Some(child);
+    }
 
     let stderr_accum = Arc::new(Mutex::new(String::new()));
     let app_for_stderr = app.clone();
@@ -233,7 +243,20 @@ pub async fn detect_scenes(
 
     let _ = stderr_handle.await;
 
-    let status = tokio::task::spawn_blocking(move || child.wait())
+    let child_for_wait = sidecar_state
+        .child
+        .lock()
+        .map_err(|e| e.to_string())?
+        .take();
+
+    let Some(mut child_for_wait) = child_for_wait else {
+        if let Ok(mut lock) = sidecar_state.pid.lock() {
+            *lock = None;
+        }
+        return Err("Scene detection was canceled.".to_string());
+    };
+
+    let status = tokio::task::spawn_blocking(move || child_for_wait.wait())
         .await
         .map_err(|e| format!("wait thread panicked: {e}"))?
         .map_err(|e| format!("Failed waiting for python: {e}"))?;
@@ -285,17 +308,25 @@ pub async fn detect_scenes(
 
 #[tauri::command]
 pub async fn abort_detect_scenes(sidecar_state: State<'_, ActiveSidecar>) -> Result<(), String> {
-    let pid = {
-        let mut lock = sidecar_state.pid.lock().map_err(|e| e.to_string())?;
-        lock.take()
-    };
+    let pid = sidecar_state
+        .pid
+        .lock()
+        .map_err(|e| e.to_string())?
+        .take();
+
+    // Drop the child handle so detect_scenes' wait path sees None and exits cleanly.
+    // Dropping closes the pipes but does not kill the process — the kill below does that.
+    {
+        let mut lock = sidecar_state.child.lock().map_err(|e| e.to_string())?;
+        *lock = None;
+    }
 
     let Some(pid) = pid else {
         console_log("ABORT", "no active sidecar to kill");
         return Ok(());
     };
 
-    console_log("ABORT", &format!("killing process tree pid={pid}"));
+    console_log("ABORT", &format!("killing process group pid={pid}"));
 
     #[cfg(windows)]
     let result = tokio::task::spawn_blocking(move || {
@@ -308,10 +339,12 @@ pub async fn abort_detect_scenes(sidecar_state: State<'_, ActiveSidecar>) -> Res
     .await
     .map_err(|e| format!("taskkill task panicked: {e}"))??;
 
+    // Use negative PID to kill the entire process group, which includes any
+    // ffmpeg child processes spawned by the Python backend.
     #[cfg(not(windows))]
     let result = tokio::task::spawn_blocking(move || {
         Command::new("kill")
-            .args(["-9", &pid.to_string()])
+            .args(["-9", &format!("-{pid}")])
             .output()
             .map_err(|e| format!("Failed to run kill: {e}"))
     })
@@ -319,10 +352,10 @@ pub async fn abort_detect_scenes(sidecar_state: State<'_, ActiveSidecar>) -> Res
     .map_err(|e| format!("kill task panicked: {e}"))??;
 
     if result.status.success() {
-        console_log("ABORT", &format!("killed pid={pid} ok"));
+        console_log("ABORT", &format!("killed process group pid={pid} ok"));
     } else {
         let stderr = String::from_utf8_lossy(&result.stderr).trim().to_string();
-        console_log("ABORT", &format!("kill pid={pid} failed: {stderr}"));
+        console_log("ABORT", &format!("kill process group pid={pid} failed: {stderr}"));
     }
 
     Ok(())

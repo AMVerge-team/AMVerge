@@ -488,7 +488,8 @@ fn run_editor_ui_import_ps(script_path: &Path, editor_name: &str) -> Result<Stri
 fn run_python_script(script_path: &Path) -> Result<String, String> {
     let mut launch_errors: Vec<String> = Vec::new();
 
-    let candidates: Vec<(String, Vec<String>)> = if cfg!(target_os = "windows") {
+    #[cfg(target_os = "windows")]
+    let candidates: Vec<(String, Vec<String>)> = {
         let mut c: Vec<(String, Vec<String>)> = Vec::new();
         if let Some(p) = resolve_local_venv_python() {
             c.push((p.to_string_lossy().to_string(), vec![]));
@@ -496,12 +497,13 @@ fn run_python_script(script_path: &Path) -> Result<String, String> {
         c.push(("python".to_string(), vec![]));
         c.push(("py".to_string(), vec!["-3".to_string()]));
         c
-    } else {
-        vec![
-            ("python3".to_string(), vec![]),
-            ("python".to_string(), vec![]),
-        ]
     };
+
+    #[cfg(not(target_os = "windows"))]
+    let candidates: Vec<(String, Vec<String>)> = vec![
+        ("python3".to_string(), vec![]),
+        ("python".to_string(), vec![]),
+    ];
 
     for (exe, extra_args) in candidates {
         let mut cmd = Command::new(&exe);

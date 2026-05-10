@@ -1,10 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import sys
+
+if sys.platform == 'win32':
+    ff_binaries = [('bin/ffmpeg.exe', '.'), ('bin/ffprobe.exe', '.')]
+else:
+    ff_binaries = [('bin/ffmpeg', '.'), ('bin/ffprobe', '.')]
 
 a = Analysis(
     ['app.py'],
     pathex=[],
-    binaries=[('bin/ffmpeg.exe', '.'), ('bin/ffprobe.exe', '.')],
+    binaries=ff_binaries,
     datas=[],
     hiddenimports=[],
     hookspath=[],
@@ -26,7 +32,7 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False,
+    console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

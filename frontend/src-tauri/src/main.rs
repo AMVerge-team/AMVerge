@@ -6,8 +6,11 @@ mod state;
 mod utils;
 
 use state::{
-    ActiveSidecar, DiscordRPCState, EditorImportAbortState, ExportAbortState, PreviewProxyLocks,
+    ActiveFfmpegPids, ActiveSidecar, DiscordRPCState, EditorImportAbortState, ExportAbortState,
+    PreviewProxyLocks,
 };
+use std::process::Command as StdCommand;
+use std::sync::atomic::Ordering;
 use tauri::Manager;
 
 fn main() {
@@ -20,6 +23,7 @@ fn main() {
         .manage(DiscordRPCState::default())
         .manage(EditorImportAbortState::default())
         .manage(ExportAbortState::default())
+        .manage(ActiveFfmpegPids::default())
         .invoke_handler(tauri::generate_handler![
             commands::scenes::detect_scenes,
             commands::scenes::abort_detect_scenes,
@@ -51,20 +55,87 @@ fn main() {
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
-                let state = window.state::<DiscordRPCState>();
-                let mut child_guard = state.child.lock().unwrap();
-                if let Some(mut child) = child_guard.take() {
-                    // Try graceful logout
-                    use std::io::Write;
-                    if let Some(stdin) = child.stdin.as_mut() {
-                        let _ = writeln!(stdin, "{{\"type\": \"shutdown\"}}");
-                        let _ = stdin.flush();
-                        std::thread::sleep(std::time::Duration::from_millis(100));
-                    }
-                    let _ = child.kill();
-                }
+                kill_all_child_processes(&window.app_handle().clone());
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error running app");
+        .build(tauri::generate_context!())
+        .expect("error building app")
+        .run(|app, event| {
+            if let tauri::RunEvent::Exit = event {
+                kill_all_child_processes(app);
+            }
+        });
+}
+
+fn kill_all_child_processes(app: &tauri::AppHandle) {
+    // Kill active export ffmpeg processes.
+    let export_state = app.state::<ExportAbortState>();
+    export_state.abort_requested.store(true, Ordering::SeqCst);
+    let export_pids: Vec<u32> = export_state
+        .pids
+        .lock()
+        .map(|mut l| l.drain(..).collect())
+        .unwrap_or_default();
+    for pid in export_pids {
+        #[cfg(not(target_os = "windows"))]
+        let _ = StdCommand::new("kill")
+            .args(["-9", &format!("-{pid}")])
+            .output();
+        #[cfg(target_os = "windows")]
+        let _ = StdCommand::new("taskkill")
+            .args(["/F", "/T", "/PID", &pid.to_string()])
+            .output();
+    }
+
+    // Kill untracked ffmpeg processes (merge, split, proxy, filmstrip).
+    let misc_pids: Vec<u32> = app
+        .state::<ActiveFfmpegPids>()
+        .pids
+        .lock()
+        .map(|mut l| l.drain(..).collect())
+        .unwrap_or_default();
+    for pid in misc_pids {
+        #[cfg(not(target_os = "windows"))]
+        let _ = StdCommand::new("kill")
+            .args(["-9", &format!("-{pid}")])
+            .output();
+        #[cfg(target_os = "windows")]
+        let _ = StdCommand::new("taskkill")
+            .args(["/F", "/T", "/PID", &pid.to_string()])
+            .output();
+    }
+
+    // Kill Python sidecar (scene detection) process group.
+    let sidecar = app.state::<ActiveSidecar>();
+    if let Ok(mut lock) = sidecar.child.lock() {
+        *lock = None;
+    }
+    let sidecar_pid = sidecar.pid.lock().ok().and_then(|mut l| l.take());
+    if let Some(pid) = sidecar_pid {
+        #[cfg(not(target_os = "windows"))]
+        let _ = StdCommand::new("kill")
+            .args(["-9", &format!("-{pid}")])
+            .output();
+        #[cfg(target_os = "windows")]
+        let _ = StdCommand::new("taskkill")
+            .args(["/F", "/T", "/PID", &pid.to_string()])
+            .output();
+    }
+
+    // Gracefully shut down Discord RPC.
+    let discord_child = app
+        .state::<DiscordRPCState>()
+        .child
+        .lock()
+        .ok()
+        .and_then(|mut g| g.take());
+    if let Some(mut child) = discord_child {
+        use std::io::Write;
+        if let Some(stdin) = child.stdin.as_mut() {
+            let _ = writeln!(stdin, "{{\"type\": \"shutdown\"}}");
+            let _ = stdin.flush();
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+        let _ = child.kill();
+    }
 }
