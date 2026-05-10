@@ -1,5 +1,9 @@
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::sync::atomic::Ordering;
+use std::sync::{Arc, Mutex};
+
+#[cfg(not(windows))]
+use std::os::unix::process::CommandExt;
 
 use tauri::{AppHandle, State};
 
@@ -13,6 +17,7 @@ use crate::utils::process::apply_no_window;
 
 pub(super) async fn fast_merge_inner(
     app: AppHandle,
+    active_pids: Arc<Mutex<Vec<u32>>>,
     clips: Vec<String>,
     output_path: String,
 ) -> Result<String, String> {
@@ -72,10 +77,24 @@ pub(super) async fn fast_merge_inner(
         output_path.clone(),
     ]);
 
-    let result = cmd
+    #[cfg(not(windows))]
+    cmd.process_group(0);
+    let child = cmd
         .args(&args)
-        .output()
-        .map_err(|e| format!("Failed to run ffmpeg: {e}"))?;
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to spawn ffmpeg: {e}"))?;
+    let pid = child.id();
+    if let Ok(mut l) = active_pids.lock() {
+        l.push(pid);
+    }
+    let result = child
+        .wait_with_output()
+        .map_err(|e| format!("Failed waiting for ffmpeg: {e}"))?;
+    if let Ok(mut l) = active_pids.lock() {
+        l.retain(|p| *p != pid);
+    }
 
     if !result.status.success() {
         let stderr = String::from_utf8_lossy(&result.stderr);
@@ -87,6 +106,7 @@ pub(super) async fn fast_merge_inner(
 
 pub(super) async fn fast_split_inner(
     app: AppHandle,
+    active_pids: Arc<Mutex<Vec<u32>>>,
     input_path: String,
     split_time: f64,
     output_path1: String,
@@ -106,7 +126,9 @@ pub(super) async fn fast_split_inner(
 
     let mut cmd1 = Command::new(&ffmpeg);
     apply_no_window(&mut cmd1);
-    let out1 = cmd1
+    #[cfg(not(windows))]
+    cmd1.process_group(0);
+    let child1 = cmd1
         .args([
             "-y",
             "-i",
@@ -139,8 +161,14 @@ pub(super) async fn fast_split_inner(
             "+faststart",
             &output_path1,
         ])
-        .output()
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
         .map_err(|e| format!("Part 1 failed: {e}"))?;
+    let pid1 = child1.id();
+    if let Ok(mut l) = active_pids.lock() { l.push(pid1); }
+    let out1 = child1.wait_with_output().map_err(|e| format!("Part 1 failed: {e}"))?;
+    if let Ok(mut l) = active_pids.lock() { l.retain(|p| *p != pid1); }
 
     if !out1.status.success() {
         return Err(format!(
@@ -151,7 +179,9 @@ pub(super) async fn fast_split_inner(
 
     let mut cmd2 = Command::new(&ffmpeg);
     apply_no_window(&mut cmd2);
-    let out2 = cmd2
+    #[cfg(not(windows))]
+    cmd2.process_group(0);
+    let child2 = cmd2
         .args([
             "-y",
             "-i",
@@ -184,8 +214,14 @@ pub(super) async fn fast_split_inner(
             "+faststart",
             &output_path2,
         ])
-        .output()
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
         .map_err(|e| format!("Part 2 failed: {e}"))?;
+    let pid2 = child2.id();
+    if let Ok(mut l) = active_pids.lock() { l.push(pid2); }
+    let out2 = child2.wait_with_output().map_err(|e| format!("Part 2 failed: {e}"))?;
+    if let Ok(mut l) = active_pids.lock() { l.retain(|p| *p != pid2); }
 
     if !out2.status.success() {
         return Err(format!(
@@ -196,7 +232,9 @@ pub(super) async fn fast_split_inner(
 
     let mut cmd3 = Command::new(&ffmpeg);
     apply_no_window(&mut cmd3);
-    let _ = cmd3
+    #[cfg(not(windows))]
+    cmd3.process_group(0);
+    if let Ok(mut child3) = cmd3
         .args([
             "-y",
             "-ss",
@@ -211,7 +249,15 @@ pub(super) async fn fast_split_inner(
             "360x202",
             &thumb_path2,
         ])
-        .output();
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+    {
+        let pid3 = child3.id();
+        if let Ok(mut l) = active_pids.lock() { l.push(pid3); }
+        let _ = child3.wait();
+        if let Ok(mut l) = active_pids.lock() { l.retain(|p| *p != pid3); }
+    }
 
     Ok(())
 }
@@ -264,8 +310,9 @@ pub(super) async fn abort_export_inner(
     {
         let _ = tokio::task::spawn_blocking(move || {
             for pid in pids {
+                // Negative PID kills the entire process group (ffmpeg + any children).
                 let _ = Command::new("kill")
-                    .args(["-TERM", &pid.to_string()])
+                    .args(["-9", &format!("-{pid}")])
                     .output();
             }
         })

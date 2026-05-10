@@ -38,3 +38,8 @@ pub struct ExportAbortState {
     pub abort_requested: Arc<AtomicBool>,
     pub pids: Arc<Mutex<Vec<u32>>>,
 }
+
+#[derive(Default)]
+pub struct ActiveFfmpegPids {
+    pub pids: Arc<Mutex<Vec<u32>>>,
+}
