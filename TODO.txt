@@ -1,0 +1,5 @@
+- Verify the apple certificates work by building app stuff, verify with Lewis
+- Fix the OPUS audio, it's currently wired into app, remove the logic for it and make it on proxy hover conversion
+- Cleanups
+- Once all is good, plan out release
+- Make video about the ap

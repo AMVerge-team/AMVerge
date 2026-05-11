@@ -33,6 +33,42 @@ else:
 
 _ff_ext = ".exe" if sys.platform == "win32" else ""
 FFMPEG = get_binary(f"ffmpeg{_ff_ext}")
+FFPROBE = get_binary(f"ffprobe{_ff_ext}")
+
+
+def source_has_opus_audio(video_path: str) -> bool:
+    """Return True when any audio stream codec is Opus."""
+    try:
+        result = subprocess.run(
+            [
+                FFPROBE,
+                "-v",
+                "error",
+                "-select_streams",
+                "a",
+                "-show_entries",
+                "stream=codec_name",
+                "-of",
+                "csv=p=0",
+                video_path,
+            ],
+            capture_output=True,
+            text=True,
+            creationflags=CREATE_NO_WINDOW,
+        )
+
+        if result.returncode != 0:
+            return False
+
+        codecs = {
+            line.strip().lower()
+            for line in result.stdout.splitlines()
+            if line.strip()
+        }
+        return "opus" in codecs
+    except Exception as error:
+        log(f"Audio codec probe failed for {video_path}: {error}")
+        return False
 
 def run_stage(percent: int, message: str, fn):
     emit_progress(percent, message)
@@ -231,7 +267,15 @@ def generate_thumbnails_streaming(output_dir: str, scenes: list[dict[str, Any]],
     emit_event("PROCESSING_COMPLETE")
 
 
-def _run_ffmpeg_segment_chunk(video_path: str, output_pattern: str, cut_points: list[float], start_num: int, start_time: float, end_time: float | None) -> None:
+def _run_ffmpeg_segment_chunk(
+    video_path: str,
+    output_pattern: str,
+    cut_points: list[float],
+    start_num: int,
+    start_time: float,
+    end_time: float | None,
+    transcode_audio_for_compat: bool,
+) -> None:
     cmd = [
         FFMPEG,
         "-y"
@@ -248,7 +292,18 @@ def _run_ffmpeg_segment_chunk(video_path: str, output_pattern: str, cut_points: 
         "-map", "0:v:0",
         "-map", "0:a?",
         "-map_metadata", "-1",
-        "-c", "copy",
+    ])
+
+    if transcode_audio_for_compat:
+        cmd.extend([
+            "-c:v", "copy",
+            "-c:a", "aac",
+            "-b:a", "192k",
+        ])
+    else:
+        cmd.extend(["-c", "copy"])
+
+    cmd.extend([
         "-f", "segment",
         "-segment_times", ",".join(format_timestamp(pt) for pt in cut_points),
         "-segment_start_number", str(start_num),
@@ -270,12 +325,25 @@ def _run_ffmpeg_segment_chunk(video_path: str, output_pattern: str, cut_points: 
         tail = result.stderr[-2000:] if result.stderr else "No stderr output."
         raise RuntimeError(f"ffmpeg failed with code {result.returncode}: {tail}")
 
-def run_ffmpeg_segment(video_path: str, output_pattern: str, cut_points: list[float]) -> None:
+def run_ffmpeg_segment(
+    video_path: str,
+    output_pattern: str,
+    cut_points: list[float],
+    transcode_audio_for_compat: bool,
+) -> None:
     # 1500 cuts = ~15000 chars, well below the 32,767 Windows command line limit.
     CHUNK_SIZE = 1500
     
     if len(cut_points) <= CHUNK_SIZE:
-        _run_ffmpeg_segment_chunk(video_path, output_pattern, cut_points, 0, 0.0, None)
+        _run_ffmpeg_segment_chunk(
+            video_path,
+            output_pattern,
+            cut_points,
+            0,
+            0.0,
+            None,
+            transcode_audio_for_compat,
+        )
         return
         
     for i in range(0, len(cut_points), CHUNK_SIZE):
@@ -286,7 +354,15 @@ def run_ffmpeg_segment(video_path: str, output_pattern: str, cut_points: list[fl
         
         relative_cuts = [pt - start_time for pt in chunk]
         
-        _run_ffmpeg_segment_chunk(video_path, output_pattern, relative_cuts, i, start_time, end_time)
+        _run_ffmpeg_segment_chunk(
+            video_path,
+            output_pattern,
+            relative_cuts,
+            i,
+            start_time,
+            end_time,
+            transcode_audio_for_compat,
+        )
 
 
 def collect_scenes(
@@ -354,11 +430,19 @@ def trim_scenes_at_keyframes(video_path: str, output_dir: str) -> list[dict[str,
     cut_points = merge_short_scenes([0.0] + cut_points, min_duration=0.25)[1:]
 
     output_pattern = os.path.join(output_dir, f"{file_name}_%04d.mp4")
+    transcode_audio_for_compat = source_has_opus_audio(video_path)
+    if transcode_audio_for_compat:
+        log("Detected Opus audio in source; enabling AAC audio transcode for generated MP4 scene clips.")
 
     run_stage(
         50,
         f"Cutting {len(cut_points)} scenes...",
-        lambda: run_ffmpeg_segment(video_path, output_pattern, cut_points)         
+        lambda: run_ffmpeg_segment(
+            video_path,
+            output_pattern,
+            cut_points,
+            transcode_audio_for_compat,
+        )
     )
 
     emit_progress(75, "Building scenes...")

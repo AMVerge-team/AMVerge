@@ -70,7 +70,6 @@ export function useVideoPlayer({
 
         if (proxyInFlightRef.current) return;
         if (!selectedClip) return;
-        if (hasHevcSupport) return;
         if (videoIsHEVC !== true) return;
         if (!effectiveClip || effectiveClip !== selectedClip) return;
         if (proxyAttemptedForClipRef.current === selectedClip) return;
@@ -334,6 +333,29 @@ export function useVideoPlayer({
                 setEffectiveClip(selectedClip);
             });
     }, [selectedClip, mergedPreviewClip, videoIsHEVC, hasHevcSupport]);
+
+    // HEVC can report as supported but still fail to decode certain profiles (e.g. yuv444p10).
+    // If we don't get a usable frame quickly on the original source, force proxy fallback.
+    useEffect(() => {
+        if (!selectedClip) return;
+        if (videoIsHEVC !== true) return;
+        if (!effectiveClip || effectiveClip !== selectedClip) return;
+        if (isVideoReady) return;
+
+        const timeout = window.setTimeout(() => {
+            const v = videoRef.current;
+            if (!v) return;
+
+            const stalled = !hasFirstFrameRef.current && v.readyState < 2;
+            if (stalled) {
+                triggerProxyFallback("ready_timeout");
+            }
+        }, 1400);
+
+        return () => {
+            window.clearTimeout(timeout);
+        };
+    }, [selectedClip, effectiveClip, videoIsHEVC, isVideoReady]);
 
     // Keyboard shortcuts — use stable callbacks
     useEffect(() => {
