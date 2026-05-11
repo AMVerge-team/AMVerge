@@ -3,12 +3,13 @@ import About from "../components/menu/About";
 import Console from "../components/menu/Console";
 import PatchNotes from "../components/menu/PatchNotes";
 import Credits from "../components/menu/Credits";
-
+import BugReport from "../components/menu/BugReport";
 const PAGES = [
   { key: "about", label: "About" },
   { key: "console", label: "Console" },
   { key: "logs", label: "Update logs" },
   { key: "credits", label: "Credits" },
+  { key: "bugreport", label: "Report Bug" }
 ];
 
 export default function Menu() {
@@ -36,6 +37,7 @@ export default function Menu() {
           {activePage === "console" && <Console />}
           {activePage === "logs" && <PatchNotes />}
           {activePage === "credits" && <Credits />}
+          {activePage === "bugreport" && <BugReport />}
         </div>
       </div>
     </div>

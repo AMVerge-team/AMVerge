@@ -18,6 +18,16 @@ function notify() {
   listeners.forEach((listener) => listener([...logs]));
 }
 
+export function getConsoleLogsSnapshot(): ConsoleEntry[] {
+  return [...logs];
+}
+
+export function serializeConsoleLogs(entries: ConsoleEntry[]): string {
+  return entries
+    .map((log) => `[${log.time}] [${log.source}] [${log.level}] ${log.message}`)
+    .join("\n");
+}
+
 export function addConsoleLog(
   source: ConsoleEntry["source"],
   level: ConsoleEntry["level"],

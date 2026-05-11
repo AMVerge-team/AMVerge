@@ -181,6 +181,7 @@ export type ThemeSettings = {
     backgroundImagePath: string | null;
     backgroundOpacity: number; // 0 to 1
     backgroundBlur: number; // pixels
+    gridPreviewSpeed: number;
     showDownloadButton: boolean;
     showClipTimestamps: boolean;
     widescreenClipTiles: boolean;
@@ -192,6 +193,7 @@ export type ThemeSettingsStore = ThemeSettings & {
     setBackgroundImagePath: (imagePath: string | null) => void;
     setBackgroundOpacity: (opacity: number) => void;
     setBackgroundBlur: (blur: number) => void;
+    setGridPreviewSpeed: (speed: number) => void;
     setShowDownloadButton: (showDownloadButton: boolean) => void;
     setShowClipTimestamps: (showClipTimestamps: boolean) => void;
     setWidescreenClipTiles: (widescreenClipTiles: boolean) => void;
@@ -204,6 +206,7 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
     backgroundImagePath: null,
     backgroundOpacity: 1.0,
     backgroundBlur: 0,
+    gridPreviewSpeed: 1,
     showDownloadButton: true,
     showClipTimestamps: true,
     widescreenClipTiles: false,
@@ -233,6 +236,10 @@ export const useThemeSettingsStore = create<ThemeSettingsStore>()(
             setBackgroundBlur: (blur) => {
                 console.log("Setting background blur..")
                 set({ backgroundBlur: blur })
+            },
+            setGridPreviewSpeed: (speed) => {
+                const clamped = Math.max(0.25, Math.min(3, speed));
+                set({ gridPreviewSpeed: clamped });
             },
             setShowDownloadButton: (showDownloadButton) => {
                 console.log("Toggling download button..")

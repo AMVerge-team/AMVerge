@@ -5,6 +5,7 @@
 @import "./common/colorPicker.css";
 @import "./common/dropdown.css";
 @import "./common/overlays.css";
+@import "./common/startupNotification.css";
 @import "./home/clipsGrid.css";
 @import "./home/importButtons.css";
 @import "./home/layout.css";
@@ -13,6 +14,7 @@
 @import "./menu/about.css";
 @import "./menu/console.css";
 @import "./menu/patchnotes.css";
+@import "./menu/bugreport.css";
 @import "./menu/menu.css";
 @import "./settings/settings.css";
 @import "./settings/cropModal.css";

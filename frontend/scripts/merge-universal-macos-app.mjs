@@ -16,7 +16,7 @@ function parseArgs() {
   }
   if (!parsed.armApp || !parsed.x64App || !parsed.outApp) {
     throw new Error(
-      "Usage: node merge-universal-macos-app.mjs --armApp <path> --x64App <path> --outApp <path>"
+      "Usage: node merge-universal-macos-app.mjs --armApp <path> --x64App <path> --outApp <path> [--signIdentity <identity>]"
     );
   }
   return parsed;
@@ -89,18 +89,29 @@ async function copyIfMissing(sourcePath, destinationPath) {
   await fs.cp(sourcePath, destinationPath, { recursive: true });
 }
 
-function adHocCodesign(appPath) {
+function codesignApp(appPath, signIdentity) {
+  const identity = signIdentity?.trim();
+
+  // Use ad-hoc signing when no identity is supplied (local/dev fallback).
+  const signValue = identity && identity.length > 0 ? identity : "-";
+
   try {
-    execFileSync("codesign", ["--force", "--deep", "--sign", "-", appPath], {
-      stdio: "inherit",
-    });
+    const args = ["--force", "--deep", "--sign", signValue];
+
+    if (signValue !== "-") {
+      args.push("--timestamp", "--options", "runtime");
+    }
+
+    args.push(appPath);
+
+    execFileSync("codesign", args, { stdio: "inherit" });
   } catch (error) {
     throw new Error(`codesign failed: ${error.message}`);
   }
 }
 
 async function main() {
-  const { armApp, x64App, outApp, config } = parseArgs();
+  const { armApp, x64App, outApp, config, signIdentity } = parseArgs();
 
   if (!(await pathExists(armApp))) {
     throw new Error(`arm app not found: ${armApp}`);
@@ -153,7 +164,7 @@ async function main() {
     }
   }
 
-  adHocCodesign(outApp);
+  codesignApp(outApp, signIdentity);
   console.log(`Universal app created at: ${outApp}`);
 }
 

@@ -1,0 +1,170 @@
+/* ---------------------
+        BUG REPORTS
+------------------------ */
+.bugreport-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    /* background: rgb(0 0 0 / 0.42); */
+    /* border: 1px solid rgb(255 255 255 / 0.12);
+    border-radius: 10px; */
+}
+
+.bugreport-wrapper form {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: min(860px, 100%);
+    margin: 0 auto;
+    padding: 8px 10px 14px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent) transparent;
+}
+
+.bugreport-wrapper form::-webkit-scrollbar {
+    width: 10px;
+}
+
+.bugreport-wrapper form::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 8px;
+}
+
+.bugreport-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+}
+
+.bugreport-row label {
+    font-size: 0.95rem;
+    color: rgb(255 255 255 / 0.92);
+    letter-spacing: 0.7px;
+    margin-left: 5px;
+}
+
+.bugreport-row small {
+    color: rgb(255 255 255 / 0.6);
+    font-size: 0.82rem;
+    line-height: 1;
+    letter-spacing: 0.7px;
+    margin-left: 5px;
+}
+
+.bugreport-row input[type="text"],
+.bugreport-row input[type="url"],
+.bugreport-row select,
+.bugreport-row textarea {
+    width: 100%;
+    min-height: 40px;
+    padding: 9px 11px;
+    border-radius: 8px;
+    border: 1px solid rgb(255 255 255 / 0.2);
+    background: rgb(0 0 0 / 0.65);
+    color: #fff;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    letter-spacing: 0.7px;
+}
+
+.bugreport-row input::placeholder,
+.bugreport-row textarea::placeholder {
+    color: rgb(255 255 255 / 0.42);
+}
+
+.bugreport-row input[type="text"]:focus,
+.bugreport-row input[type="url"]:focus,
+.bugreport-row select:focus,
+.bugreport-row textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / 0.2);
+}
+
+.bugreport-row input[type="file"] {
+    width: 100%;
+    color: rgb(255 255 255 / 0.8);
+    font-family: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.bugreport-row input[type="file"]::file-selector-button {
+    margin-right: 10px;
+    border: 1px solid rgb(255 255 255 / 0.2);
+    background: #000;
+    color: #fff;
+    border-radius: 8px;
+    padding: 7px 11px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+    letter-spacing: 0.7px;
+    font-family: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.bugreport-row input[type="file"]::file-selector-button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.bugreport-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+}
+
+.bugreport-row p {
+    margin: 0;
+    color: rgb(255 255 255 / 0.9);
+}
+
+.bugreport-row p[role="alert"] {
+    color: #ff8787;
+}
+
+.bugreport-row button[type="submit"] {
+    align-self: flex-start;
+    min-width: 170px;
+    min-height: 40px;
+    border-radius: 9px;
+    border: 1px solid rgb(var(--accent-rgb) / 0.88);
+    background: #000;
+    color: #fff;
+    font-size: 0.96rem;
+    font-weight: 1;
+    letter-spacing: 0.7px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    font-family: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.bugreport-row button[type="submit"]:hover:not(:disabled) {
+    background: var(--accent);
+    color: #000;
+    border-color: #000;
+}
+
+.bugreport-row button[type="submit"]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+    .bugreport-wrapper form {
+        width: 100%;
+        padding-inline: 4px;
+    }
+
+    .bugreport-row {
+        padding: 10px;
+    }
+
+    .bugreport-row button[type="submit"] {
+        width: 100%;
+        align-self: stretch;
+    }
+}

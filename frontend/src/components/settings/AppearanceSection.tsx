@@ -21,6 +21,7 @@ export default function AppearanceSection({
   const setThemeSettings = useThemeSettingsStore.setState;
   const bgOpacityId = useId();
   const bgBlurId = useId();
+  const gridPreviewSpeedId = useId();
 
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [originalPath, setOriginalPath] = useState<string | null>(null);
@@ -252,6 +253,30 @@ export default function AppearanceSection({
                 }
               />
               <span className="settings-value">{themeSettings.backgroundBlur}px</span>
+            </div>
+          }
+        />
+
+        <SettingRow
+          label="Grid preview speed"
+          description="Adjust how fast video previews play in the clips grid."
+          control={
+            <div className="settings-control">
+              <input
+                id={gridPreviewSpeedId}
+                type="range"
+                min="0.25"
+                max="3"
+                step="0.05"
+                value={themeSettings.gridPreviewSpeed ?? 1}
+                onChange={(e) =>
+                  setThemeSettings((prev) => ({
+                    ...prev,
+                    gridPreviewSpeed: parseFloat(e.target.value),
+                  }))
+                }
+              />
+              <span className="settings-value">{(themeSettings.gridPreviewSpeed ?? 1).toFixed(2)}x</span>
             </div>
           }
         />

@@ -93,3 +93,9 @@ lerna-debug.log*
 *.aac
 *.opus
 *.tar
+
+*.csr
+*.pem
+*.p12
+*.cer
+*.key

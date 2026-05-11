@@ -49,6 +49,7 @@ export const LazyClip = memo(function LazyClip({
   const userHasHEVC = useAppStateStore(s => s.userHasHEVC);
   const audioPlaybackHover = useGeneralSettingsStore(s => s.audioPlaybackHover);
   const playbackVolume = useGeneralSettingsStore(s => s.playbackVolume);
+  const gridPreviewSpeed = useThemeSettingsStore(s => s.gridPreviewSpeed ?? 1);
   const showDownloadButton = useThemeSettingsStore(s => s.showDownloadButton);
   const showClipTimestamps = useThemeSettingsStore(s => s.showClipTimestamps);
   // state and refs for tile visibility, hover, video element, and proxy state
@@ -323,6 +324,7 @@ export const LazyClip = memo(function LazyClip({
 
       v.autoplay = true;
       v.loop = true;
+      v.playbackRate = Math.max(0.25, Math.min(3, gridPreviewSpeed));
 
       if (v.readyState === 0) {
         try {
@@ -341,7 +343,64 @@ export const LazyClip = memo(function LazyClip({
         // ignore
       }
     }
-  }, [showVideo, shouldMountVideo, effectiveSrc, isHovered, audioPlaybackHover, playbackVolume]);
+  }, [showVideo, shouldMountVideo, effectiveSrc, isHovered, audioPlaybackHover, playbackVolume, gridPreviewSpeed]);
+
+  // Some HEVC variants (e.g. yuv444p10) can appear "supported" but stall/black-screen in HTML video.
+  // If no frame becomes ready shortly after playback starts, force a proxy fallback.
+  useEffect(() => {
+    if (!showVideo || !shouldMountVideo) return;
+    if (videoIsHEVC !== true) return;
+    if (effectiveSrc !== originalPath) return;
+
+    const timeout = window.setTimeout(async () => {
+      const v = videoRef.current;
+      if (!v) return;
+      if (proxyInFlightRef.current) return;
+      if (effectiveSrc !== originalPath) return;
+
+      if (hasFirstFrameRef.current || v.readyState >= 2) {
+        return;
+      }
+
+      try {
+        proxyInFlightRef.current = true;
+        setForceThumbnail(true);
+
+        const proxyPath = gridPreview
+          ? await requestProxySequential(originalPath, isHovered)
+          : await invoke<string>("ensure_preview_proxy", { clipPath: originalPath });
+
+        if (!proxyPath) return;
+
+        setEffectiveSrc(proxyPath);
+        setForceThumbnail(false);
+
+        setTimeout(() => {
+          const vid = videoRef.current;
+          if (!vid) return;
+          vid.load();
+          vid.play().catch(() => { });
+        }, 0);
+      } catch {
+        setForceThumbnail(true);
+      } finally {
+        proxyInFlightRef.current = false;
+      }
+    }, 1200);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [
+    showVideo,
+    shouldMountVideo,
+    videoIsHEVC,
+    effectiveSrc,
+    originalPath,
+    gridPreview,
+    isHovered,
+    requestProxySequential,
+  ]);
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
