@@ -126,6 +126,7 @@ jobs:
       APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
     steps:
@@ -273,10 +274,21 @@ jobs:
       - name: Notarize and staple universal DMG
         run: |
           DMG_PATH="frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/AMVerge-macos-universal.dmg"
-          xcrun notarytool submit "$DMG_PATH" \
+          NOTARY_PASSWORD="${APPLE_APP_SPECIFIC_PASSWORD:-$APPLE_PASSWORD}"
+
+          if [ -z "$NOTARY_PASSWORD" ]; then
+            echo "Missing notarization password. Set APPLE_APP_SPECIFIC_PASSWORD (preferred) or APPLE_PASSWORD to an Apple app-specific password."
+            exit 1
+          fi
+
+          # Validate credentials before submit to surface auth issues clearly.
+          xcrun notarytool store-credentials "amverge-notary" \
             --apple-id "$APPLE_ID" \
-            --password "$APPLE_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" \
+            --password "$NOTARY_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID"
+
+          xcrun notarytool submit "$DMG_PATH" \
+            --keychain-profile "amverge-notary" \
             --wait
           xcrun stapler staple "$DMG_PATH"
           xcrun stapler validate "$DMG_PATH"
