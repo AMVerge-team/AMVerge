@@ -233,12 +233,37 @@ jobs:
       - name: Create universal DMG
         run: |
           mkdir -p frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg
-          hdiutil create \
-            -volname "$APP_VOLNAME" \
-            -srcfolder "$UNIVERSAL_APP_PATH" \
-            -ov \
-            -format UDZO \
-            frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/AMVerge-macos-universal.dmg
+          DMG_PATH="frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/AMVerge-macos-universal.dmg"
+
+          # Clear stale mounts from previous attempts on the same runner image.
+          hdiutil info | awk '/\/Volumes\/'"$APP_VOLNAME"'$/ {print $1}' | while read -r dev; do
+            [ -n "$dev" ] && hdiutil detach "$dev" -force || true
+          done
+
+          # Ensure old artifact does not hold an open handle.
+          rm -f "$DMG_PATH"
+
+          # Retry to tolerate transient hdiutil "Resource busy" flakiness.
+          for attempt in 1 2 3; do
+            if hdiutil create \
+              -volname "$APP_VOLNAME" \
+              -srcfolder "$UNIVERSAL_APP_PATH" \
+              -ov \
+              -format UDZO \
+              "$DMG_PATH"; then
+              break
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              echo "hdiutil create failed after 3 attempts"
+              exit 1
+            fi
+
+            echo "hdiutil create failed (attempt $attempt), retrying..."
+            hdiutil info | awk '/\/Volumes\/'"$APP_VOLNAME"'$/ {print $1}' | while read -r dev; do
+              [ -n "$dev" ] && hdiutil detach "$dev" -force || true
+            done
+          done
 
       - name: Sign universal DMG
         run: |
