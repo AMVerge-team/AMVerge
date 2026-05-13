@@ -128,6 +128,7 @@ jobs:
       APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_NOTARY_TEAM_ID: ${{ secrets.APPLE_NOTARY_TEAM_ID }}
 
     steps:
       - name: Checkout repo
@@ -275,17 +276,31 @@ jobs:
         run: |
           DMG_PATH="frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/AMVerge-macos-universal.dmg"
           NOTARY_PASSWORD="${APPLE_APP_SPECIFIC_PASSWORD:-$APPLE_PASSWORD}"
+          SIGNING_TEAM_ID="$(printf '%s' "$EFFECTIVE_SIGNING_IDENTITY" | sed -n 's/.*(\([A-Z0-9]\{10\}\)).*/\1/p')"
+          NOTARY_TEAM_ID="${APPLE_NOTARY_TEAM_ID:-${APPLE_TEAM_ID:-$SIGNING_TEAM_ID}}"
 
           if [ -z "$NOTARY_PASSWORD" ]; then
             echo "Missing notarization password. Set APPLE_APP_SPECIFIC_PASSWORD (preferred) or APPLE_PASSWORD to an Apple app-specific password."
             exit 1
           fi
 
+          if [ -z "$APPLE_ID" ]; then
+            echo "Missing APPLE_ID secret."
+            exit 1
+          fi
+
+          if [ -z "$NOTARY_TEAM_ID" ]; then
+            echo "Missing Team ID for notarization. Set APPLE_NOTARY_TEAM_ID or APPLE_TEAM_ID."
+            exit 1
+          fi
+
+          echo "Using notarization Team ID: ${NOTARY_TEAM_ID}"
+
           # Validate credentials before submit to surface auth issues clearly.
           xcrun notarytool store-credentials "amverge-notary" \
             --apple-id "$APPLE_ID" \
             --password "$NOTARY_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID"
+            --team-id "$NOTARY_TEAM_ID"
 
           xcrun notarytool submit "$DMG_PATH" \
             --keychain-profile "amverge-notary" \
