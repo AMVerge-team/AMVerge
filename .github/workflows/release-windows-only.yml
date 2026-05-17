@@ -1,0 +1,141 @@
+name: Release Windows Only
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-windows-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-windows:
+    name: Build Windows Release Artifacts
+    runs-on: windows-latest
+    env:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      AMVERGE_NOTIFICATIONS_API_URL: ${{ secrets.AMVERGE_NOTIFICATIONS_API_URL }}
+      VITE_ADMIN_API_URL: ${{ secrets.VITE_ADMIN_API_URL }}
+      AMVERGE_NOTIFICATIONS_API_KEY: ${{ secrets.AMVERGE_NOTIFICATIONS_API_KEY }}
+      AMVERGE_BUG_REPORT_API_URL: ${{ secrets.AMVERGE_BUG_REPORT_API_URL }}
+      AMVERGE_BUG_REPORT_API_KEY: ${{ secrets.AMVERGE_BUG_REPORT_API_KEY }}
+      AMVERGE_BUG_REPORT_KEY_ID: ${{ secrets.AMVERGE_BUG_REPORT_KEY_ID }}
+      AMVERGE_BUG_REPORT_SIGNING_SECRET: ${{ secrets.AMVERGE_BUG_REPORT_SIGNING_SECRET }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Tauri CLI (Rust)
+        run: cargo install tauri-cli --version '^2.0'
+
+      - name: Create backend venv and install dependencies
+        shell: pwsh
+        run: |
+          python -m venv backend/venv
+          backend/venv/Scripts/python -m pip install --upgrade pip
+          backend/venv/Scripts/pip install -r backend/requirements.txt
+          backend/venv/Scripts/pip install pyinstaller
+
+      - name: Install FFmpeg binaries
+        shell: pwsh
+        run: |
+          choco install ffmpeg -y
+          New-Item -ItemType Directory -Force backend/bin | Out-Null
+          $ffmpegReal = "C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin\ffmpeg.exe"
+          $ffprobeReal = "C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin\ffprobe.exe"
+
+          if (-not (Test-Path $ffmpegReal) -or -not (Test-Path $ffprobeReal)) {
+            Write-Host "Real ffmpeg binaries not found at expected Chocolatey path."
+            Get-ChildItem "C:\ProgramData\chocolatey\lib\ffmpeg" -Recurse -File -Filter ffmpeg.exe | Format-Table -AutoSize
+            Get-ChildItem "C:\ProgramData\chocolatey\lib\ffmpeg" -Recurse -File -Filter ffprobe.exe | Format-Table -AutoSize
+            exit 1
+          }
+
+          Copy-Item $ffmpegReal backend/bin/ffmpeg.exe -Force
+          Copy-Item $ffprobeReal backend/bin/ffprobe.exe -Force
+          & backend/bin/ffmpeg.exe -version | Select-Object -First 1
+          & backend/bin/ffprobe.exe -version | Select-Object -First 1
+
+      - name: Build Python sidecar
+        working-directory: frontend
+        run: node scripts/build-sidecar.mjs --target x86_64-pc-windows-msvc
+
+      - name: Build Windows installer
+        working-directory: frontend/src-tauri
+        run: cargo tauri build --target x86_64-pc-windows-msvc --config tauri.windows.conf.json
+
+      - name: Collect Windows release assets
+        shell: pwsh
+        run: |
+          $bundleRoot = "frontend/src-tauri/target/x86_64-pc-windows-msvc/release/bundle"
+          New-Item -ItemType Directory -Force artifacts/windows-installer | Out-Null
+          New-Item -ItemType Directory -Force artifacts/windows-updater | Out-Null
+
+          $exe = Get-ChildItem -Path $bundleRoot -Recurse -File -Filter *.exe |
+            Where-Object { $_.FullName -match "bundle\\nsis\\" } |
+            Select-Object -First 1
+
+          if (-not $exe) {
+            Write-Host "No NSIS .exe found under $bundleRoot"
+            Get-ChildItem -Path $bundleRoot -Recurse | Format-Table -AutoSize
+            exit 1
+          }
+
+          Copy-Item $exe.FullName artifacts/windows-installer/ -Force
+
+          $sigFiles = Get-ChildItem -Path $bundleRoot -Recurse -File -Filter *.sig
+          if (-not $sigFiles) {
+            Write-Host "No updater signature files found under $bundleRoot"
+            exit 1
+          }
+
+          foreach ($sig in $sigFiles) {
+            $targetFile = $sig.FullName.Substring(0, $sig.FullName.Length - 4)
+            if (Test-Path $targetFile) {
+              Copy-Item $targetFile artifacts/windows-updater/ -Force
+              Copy-Item $sig.FullName artifacts/windows-updater/ -Force
+            }
+          }
+
+          $copiedSig = Get-ChildItem artifacts/windows-updater -File -Filter *.sig | Select-Object -First 1
+          if (-not $copiedSig) {
+            Write-Host "No paired updater artifact+sig copied for Windows"
+            exit 1
+          }
+
+      - name: Upload Windows installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: artifacts/windows-installer/*
+          if-no-files-found: error
+
+      - name: Upload Windows updater artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-updater
+          path: artifacts/windows-updater/*
+          if-no-files-found: error
