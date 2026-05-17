@@ -185,25 +185,6 @@ export default function GeneralSettings({
             </div>
           }
         />
-      
-        <SettingRow
-          label="Factory Reset"
-          description="Reset to Defaults"
-          control={
-            <div className="settings-control">
-              <button
-                className="buttons emergency"
-                onClick={() => {
-                  setShowFactoryResetConfirm(true);
-                }}
-                style={{ width: "auto", padding: "0 16px", marginBottom: 0, color: "red" }}
-                disabled={loading}
-              >
-                Reset to Defaults
-              </button>
-            </div>
-          }
-        />
 
         <SettingRow
           label="Clear Episode Panel"
@@ -218,6 +199,25 @@ export default function GeneralSettings({
                 disabled={loading || clearingPanel}
               >
                 {clearingPanel ? "Clearing..." : "Clear Episode Panel"}
+              </button>
+            </div>
+          }
+        />
+
+        <SettingRow
+          label="Factory Reset"
+          description="Reset to Defaults"
+          control={
+            <div className="settings-control">
+              <button
+                className="buttons emergency"
+                onClick={() => {
+                  setShowFactoryResetConfirm(true);
+                }}
+                style={{ width: "auto", padding: "0 16px", marginBottom: 0, color: "red" }}
+                disabled={loading}
+              >
+                Reset to Defaults
               </button>
             </div>
           }
