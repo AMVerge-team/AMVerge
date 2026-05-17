@@ -13,7 +13,6 @@ import useEpisodePanelStructure from "../hooks/useEpisodePanelStructure";
 import useEpisodePanelState from "../../../hooks/useEpisodePanelState";
 
 import { useEpisodePanelMetadataStore, useEpisodePanelRuntimeStore } from "../../../stores/episodeStore";
-import { useAppStateStore } from "../../../stores/appStore";
 
 export default function EpisodePanel() {
   const panelListRef = useRef<HTMLDivElement | null>(null);
@@ -29,7 +28,6 @@ export default function EpisodePanel() {
 
   const episodeRuntimeState = useEpisodePanelRuntimeStore();
   const episodeMetadataState = useEpisodePanelMetadataStore();
-  const appState = useAppStateStore();
 
   const episodes = episodeRuntimeState.episodes;
   const episodeFolders = episodeMetadataState.episodeFolders;
@@ -112,6 +110,7 @@ export default function EpisodePanel() {
       return;
     }
 
+    handleSelectEpisode(episodeId);
     setMultiSelectedIds(new Set());
     lastClickedEpisodeRef.current = episodeId;
   };
@@ -158,7 +157,6 @@ export default function EpisodePanel() {
     openNewFolderModal,
     openRenameEpisodeModal,
     openRenameFolderModal,
-    openClearConfirmModal,
   } = useEpisodePanelMenus({
     episodes,
     episodeFolders,
@@ -170,27 +168,6 @@ export default function EpisodePanel() {
     onCreateFolder: handleCreateFolder,
     onRenameEpisode: handleRenameEpisode,
     onRenameFolder: handleRenameFolder,
-    onClearEpisodePanelCache: async () => {
-       const invoke = (await import("@tauri-apps/api/core")).invoke;
-       episodeRuntimeState.setEpisodes([]);
-       episodeMetadataState.setEpisodeFolders([]);
-       episodeRuntimeState.setSelectedFolderId(null);
-       episodeRuntimeState.setSelectedEpisodeId(null);
-       episodeRuntimeState.setOpenedEpisodeId(null);
-       appState.setSelectedClips(new Set());
-       appState.setFocusedClip(null);
-       appState.setClips([]);
-       appState.setImportedVideoPath(null);
-       appState.setVideoIsHEVC(null);
-       try {
-           const generalSettings = (await import("../../../stores/settingsStore")).useGeneralSettingsStore.getState();
-           await invoke("clear_episode_panel_cache", {
-               customPath: generalSettings.episodesPath,
-           });
-       } catch (err) {
-           console.error("clear_episode_panel_cache failed:", err);
-       }
-    },
   });
 
   const menusOpen =
@@ -263,7 +240,25 @@ export default function EpisodePanel() {
           setNextSortDirection={setNextSortDirection}
           onSortEpisodePanel={handleSortEpisodePanel}
           openNewFolderModal={openNewFolderModal}
-          openClearConfirmModal={openClearConfirmModal}
+          selectedEpisodeId={selectedEpisodeId}
+          selectedFolderId={selectedFolderId}
+          multiSelectedCount={multiSelectedIds.size}
+          onDeleteSelectedEpisode={() => {
+            if (multiSelectedIds.size > 0) {
+              for (const id of multiSelectedIds) {
+                void handleDeleteEpisode(id);
+              }
+              setMultiSelectedIds(new Set());
+              return;
+            }
+            if (selectedEpisodeId) {
+              void handleDeleteEpisode(selectedEpisodeId);
+              return;
+            }
+            if (selectedFolderId) {
+              handleDeleteFolder(selectedFolderId);
+            }
+          }}
         />
 
         <div
@@ -333,6 +328,15 @@ export default function EpisodePanel() {
           onDeleteFolder={handleDeleteFolder}
           onMoveEpisodeToFolder={handleMoveEpisodeToFolder}
         />
+        <div className="episode-panel-notice">
+          <div className="episode-panel-notice-text">
+            <h4>WARNING</h4>
+            <p>AMVerge V2 will revamp how episodes are stored, and all data 
+              will be wiped. Please treat this episode panel as a temporary storage
+              until then.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

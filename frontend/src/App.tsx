@@ -32,6 +32,7 @@ function App() {
   const batchDone = useAppStateStore((s) => s.batchDone);
   const batchCurrentFile = useAppStateStore((s) => s.batchCurrentFile);
   const bgProgress = useAppStateStore((s) => s.bgProgress);
+  const clearBgProgress = () => useAppStateStore.setState((s) => ({ ...s, bgProgress: null }));
   const setProgress = useAppStateStore((s) => s.setProgress);
   const setProgressMsg = useAppStateStore((s) => s.setProgressMsg);
   const setVideoIsHEVC = useAppStateStore((s) => s.setVideoIsHEVC);
@@ -278,15 +279,13 @@ function App() {
 
     (async () => {
       try {
-        const hevc = await invoke<boolean>("check_hevc", {
-          videoPath: importedVideoPath,
-        });
+        const hevc = await invoke<boolean>("check_hevc", { videoPath: importedVideoPath });
 
         if (!cancelled) {
           setVideoIsHEVC(hevc);
         }
       } catch (err) {
-        console.error("check_hevc failed:", err);
+        console.error("codec probe failed:", err);
 
         if (!cancelled) {
           setVideoIsHEVC(false);
@@ -349,7 +348,7 @@ function App() {
             onAbort={handleAbort}
           />
         ) : bgProgress ? (
-          <BgProgressBar done={bgProgress.done} total={bgProgress.total} />
+          <BgProgressBar done={bgProgress.done} total={bgProgress.total} onClose={clearBgProgress} />
         ) : null
       }
       sidebarEnabled={sidebarEnabled}
