@@ -17,6 +17,7 @@ export type GeneralSettings = {
     episodesPath: string | null;
     exportFormat: "mp4" | "mkv" | "mov" | "xml";
     exportPath: string | null;
+    mergeClipsEnabled: boolean;
     openFileLocationAfterExport: boolean;
     exportProfiles: ExportProfile[];
     customProfileIcons: string[];
@@ -33,6 +34,7 @@ export type GeneralSettingsStore = GeneralSettings & {
     setEpisodesPath: (path: string | null) => void;
     setExportFormat: (format: ExportFormat) => void;
     setExportPath: (path: string | null) => void;
+    setMergeClipsEnabled: (enabled: boolean) => void;
     setOpenFileLocationAfterExport: (enabled: boolean) => void;
     setActiveExportProfileId: (profileId: string) => void;
     addExportProfile: () => void;
@@ -53,6 +55,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     episodesPath: null,
     exportFormat: "mp4",
     exportPath: null,
+    mergeClipsEnabled: true,
     openFileLocationAfterExport: true,
     exportProfiles: DEFAULT_EXPORT_PROFILES.map((profile) => ({ ...profile })),
     customProfileIcons: [],
@@ -73,6 +76,7 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
             setEpisodesPath: (path) => set({ episodesPath: path }),
             setExportFormat: (format) => set({ exportFormat: format }),
             setExportPath: (path) => set({ exportPath: path }),
+            setMergeClipsEnabled: (enabled) => set({ mergeClipsEnabled: enabled }),
             setOpenFileLocationAfterExport: (enabled) => set({ openFileLocationAfterExport: enabled }),
             setActiveExportProfileId: (profileId) =>
                 set((state) => {
