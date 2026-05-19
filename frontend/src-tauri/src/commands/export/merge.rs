@@ -211,8 +211,6 @@ pub(super) async fn run_merge_export(
         "0:v:0".into(),
         "-map".into(),
         "0:a?".into(),
-        "-map_metadata".into(),
-        "-1".into(),
     ];
 
     if use_stream_copy {
@@ -341,8 +339,6 @@ pub(super) async fn run_merge_export(
                 "0:v:0".to_string(),
                 "-map".to_string(),
                 "0:a?".to_string(),
-                "-map_metadata".to_string(),
-                "-1".to_string(),
                 "-vf".to_string(),
                 "setpts=PTS-STARTPTS".to_string(),
             ];
@@ -429,8 +425,6 @@ pub(super) async fn run_merge_export(
                         "0:v:0".to_string(),
                         "-map".to_string(),
                         "0:a?".to_string(),
-                        "-map_metadata".to_string(),
-                        "-1".to_string(),
                         "-vf".to_string(),
                         "setpts=PTS-STARTPTS".to_string(),
                     ];
@@ -536,8 +530,6 @@ pub(super) async fn run_merge_export(
                 "0:v:0".to_string(),
                 "-map".to_string(),
                 "0:a?".to_string(),
-                "-map_metadata".to_string(),
-                "-1".to_string(),
                 "-vf".to_string(),
                 "setpts=PTS-STARTPTS".to_string(),
             ];
@@ -649,8 +641,6 @@ fn build_merge_segment_args(
         "0:v:0".to_string(),
         "-map".to_string(),
         "0:a?".to_string(),
-        "-map_metadata".to_string(),
-        "-1".to_string(),
     ];
 
     if stream_copy {
@@ -1008,8 +998,6 @@ async fn run_segmented_merge(
         "0:v:0".to_string(),
         "-map".to_string(),
         "0:a?".to_string(),
-        "-map_metadata".to_string(),
-        "-1".to_string(),
         "-c".to_string(),
         "copy".to_string(),
     ];
