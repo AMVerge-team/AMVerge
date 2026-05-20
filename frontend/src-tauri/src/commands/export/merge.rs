@@ -55,6 +55,10 @@ fn is_gpu_session_open_error(error_text: &str) -> bool {
         || text.contains("invalid argument")
 }
 
+fn append_reencode_timing_args(args: &mut Vec<String>) {
+    args.extend(["-fps_mode:v:0".to_string(), "cfr".to_string()]);
+}
+
 pub(super) async fn run_merge_export(
     runtime: &ExportRuntime,
     clips: &[String],
@@ -122,7 +126,7 @@ pub(super) async fn run_merge_export(
 
     emit_export_progress(&runtime.app, 50, "Merging...", runtime.export_start_time);
 
-    let mut remux_merge_fallback_reason: Option<String> = None;
+    let mut remux_precheck_note: Option<String> = None;
     if runtime.remux_workflow {
         for clip in clips {
             if is_export_cancel_requested(&runtime.abort_requested) {
@@ -134,8 +138,8 @@ pub(super) async fn run_merge_export(
                 .ok()
                 .flatten();
             if let Some(ms) = leading_gap_ms.filter(|ms| *ms >= 1) {
-                remux_merge_fallback_reason = Some(format!(
-                    "leading gap={}ms detected on {}; using merge re-encode",
+                remux_precheck_note = Some(format!(
+                    "leading gap={}ms detected on {}; will still try stream-copy merge first",
                     ms,
                     file_name_only(clip)
                 ));
@@ -150,8 +154,8 @@ pub(super) async fn run_merge_export(
                     Ok(None) | Err(_) => false,
                 };
             if !starts_with_presentable_key {
-                remux_merge_fallback_reason = Some(format!(
-                    "first displayed frame is not key/I on {}; using merge re-encode",
+                remux_precheck_note = Some(format!(
+                    "first displayed frame is not key/I on {}; will still try stream-copy merge first",
                     file_name_only(clip)
                 ));
                 break;
@@ -165,8 +169,8 @@ pub(super) async fn run_merge_export(
                     Ok(None) | Err(_) => false,
                 };
             if !first_packet_copy_safe {
-                remux_merge_fallback_reason = Some(format!(
-                    "first video packet not copy-safe (needs sync/preroll) on {}; using merge re-encode",
+                remux_precheck_note = Some(format!(
+                    "first video packet not copy-safe (needs sync/preroll) on {}; will still try stream-copy merge first",
                     file_name_only(clip)
                 ));
                 break;
@@ -174,13 +178,18 @@ pub(super) async fn run_merge_export(
         }
     }
 
-    let use_stream_copy = runtime.remux_workflow && remux_merge_fallback_reason.is_none();
+    // Remux workflow should always attempt stream-copy first.
+    // If ffmpeg copy fails, existing retry paths fallback to re-encode.
+    let use_stream_copy = runtime.remux_workflow;
 
-    if let Some(reason) = &remux_merge_fallback_reason {
-        console_log("EXPORT|merge", reason);
+    if let Some(note) = &remux_precheck_note {
+        console_log("EXPORT|merge", note);
     }
 
-    if clips.len() > 1 {
+    // Segmented mode is reserved for re-encode merges.
+    // For remux/stream-copy merges, use direct concat copy first (with existing fallback),
+    // which provides steadier progress and avoids per-segment stall behavior.
+    if clips.len() > 1 && !use_stream_copy {
         let parallel_workers = runtime
             .export_options
             .as_ref()
@@ -261,9 +270,8 @@ pub(super) async fn run_merge_export(
             .map(|o| o.codec.as_str())
             .unwrap_or("h264_high");
         append_container_codec_tag(&mut args, codec_for_tag, &ext_for_tag);
-        args.extend(["-enc_time_base:v".into(), "demux".into()]);
+        append_reencode_timing_args(&mut args);
         append_audio_encode_args(&mut args, runtime.export_options.as_ref());
-        args.extend(["-fps_mode".into(), "passthrough".into()]);
     }
 
     let ext = save_path
@@ -359,9 +367,8 @@ pub(super) async fn run_merge_export(
                     .unwrap_or("h264_high");
                 append_container_codec_tag(&mut retry_args, codec_for_tag, &ext);
             }
-            retry_args.extend(["-enc_time_base:v".to_string(), "demux".to_string()]);
+            append_reencode_timing_args(&mut retry_args);
             append_audio_encode_args(&mut retry_args, runtime.export_options.as_ref());
-            retry_args.extend(["-fps_mode".to_string(), "passthrough".to_string()]);
 
             if ext == "mp4" || ext == "mov" {
                 retry_args.extend(["-movflags".to_string(), "+faststart".to_string()]);
@@ -444,9 +451,8 @@ pub(super) async fn run_merge_export(
                             .unwrap_or("h264_high");
                         append_container_codec_tag(&mut cpu_args, codec_for_tag, &ext);
                     }
-                    cpu_args.extend(["-enc_time_base:v".to_string(), "demux".to_string()]);
+                    append_reencode_timing_args(&mut cpu_args);
                     append_audio_encode_args(&mut cpu_args, cpu_options.as_ref());
-                    cpu_args.extend(["-fps_mode".to_string(), "passthrough".to_string()]);
 
                     if ext == "mp4" || ext == "mov" {
                         cpu_args.extend(["-movflags".to_string(), "+faststart".to_string()]);
@@ -549,9 +555,8 @@ pub(super) async fn run_merge_export(
                     .unwrap_or("h264_high");
                 append_container_codec_tag(&mut cpu_args, codec_for_tag, &ext);
             }
-            cpu_args.extend(["-enc_time_base:v".to_string(), "demux".to_string()]);
+            append_reencode_timing_args(&mut cpu_args);
             append_audio_encode_args(&mut cpu_args, cpu_options.as_ref());
-            cpu_args.extend(["-fps_mode".to_string(), "passthrough".to_string()]);
 
             if ext == "mp4" || ext == "mov" {
                 cpu_args.extend(["-movflags".to_string(), "+faststart".to_string()]);
@@ -660,9 +665,8 @@ fn build_merge_segment_args(
         }
         append_video_encode_args(&mut args, options, gpu_encoder);
         append_container_codec_tag(&mut args, codec_for_tag, ext);
-        args.extend(["-enc_time_base:v".to_string(), "demux".to_string()]);
+        append_reencode_timing_args(&mut args);
         append_audio_encode_args(&mut args, options);
-        args.extend(["-fps_mode".to_string(), "passthrough".to_string()]);
     }
 
     args.extend([
