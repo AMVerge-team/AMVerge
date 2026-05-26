@@ -2,6 +2,34 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { EpisodeEntry, EpisodeFolder } from "../types/domain";
 
+const MAX_PERSISTED_EPISODE_BYTES = 3_500_000;
+
+function estimateUtf8Bytes(text: string): number {
+    // TextEncoder gives a consistent UTF-8 byte estimate for localStorage payload sizing.
+    return new TextEncoder().encode(text).length;
+}
+
+function trimEpisodesForPersistence(episodes: EpisodeEntry[]): EpisodeEntry[] {
+    if (episodes.length === 0) return episodes;
+
+    const kept: EpisodeEntry[] = [];
+    let usedBytes = 2; // Array brackets: []
+
+    for (const episode of episodes) {
+        const serializedEpisode = JSON.stringify(episode);
+        const episodeBytes = estimateUtf8Bytes(serializedEpisode) + 1;
+
+        if (usedBytes + episodeBytes > MAX_PERSISTED_EPISODE_BYTES) {
+            continue;
+        }
+
+        kept.push(episode);
+        usedBytes += episodeBytes;
+    }
+
+    return kept;
+}
+
 /* =========================
     EPISODE PANEL RUNTIME
    ========================= */
@@ -72,7 +100,7 @@ export const useEpisodePanelRuntimeStore = create<EpisodePanelRuntimeStore>()(
         }),
         {
             name: "amverge_episode_panel_v1",
-            partialize: (state) => ({ episodes: state.episodes }),
+            partialize: (state) => ({ episodes: trimEpisodesForPersistence(state.episodes) }),
         }
     )
 );

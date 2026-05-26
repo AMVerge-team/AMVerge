@@ -8,6 +8,7 @@ export type StartupNotification = {
   bodyMarkdown: string;
   bannerImageUrl?: string | null;
   createdAt?: string | null;
+  mode?: "default" | "update";
 };
 
 type StartupNotificationModalProps = {
@@ -111,6 +112,7 @@ export default function StartupNotificationModal({
   notification,
   onClose,
 }: StartupNotificationModalProps) {
+  const isUpdateMode = notification.mode === "update";
   const [doNotShowAgain, setDoNotShowAgain] = useState(false);
   const [bannerCandidates, setBannerCandidates] = useState<string[]>([]);
   const [bannerIndex, setBannerIndex] = useState(0);
@@ -148,7 +150,7 @@ export default function StartupNotificationModal({
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onClose(doNotShowAgain);
+        onClose(isUpdateMode ? false : doNotShowAgain);
       }
     };
 
@@ -156,13 +158,23 @@ export default function StartupNotificationModal({
     return () => {
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [doNotShowAgain, onClose]);
+  }, [doNotShowAgain, isUpdateMode, onClose]);
 
   const bannerSrc = bannerCandidates[bannerIndex];
 
   return (
     <div className="startup-notification-overlay" role="dialog" aria-modal="true" aria-labelledby="startup-notification-title">
-      <div className="startup-notification-modal">
+      <div className={`startup-notification-modal ${isUpdateMode ? "startup-notification-modal--update" : ""}`.trim()}>
+        {isUpdateMode ? (
+          <button
+            type="button"
+            className="startup-notification-icon-close"
+            aria-label="Close notification"
+            onClick={() => onClose(false)}
+          >
+            x
+          </button>
+        ) : null}
         {bannerSrc ? (
           <img
             className="startup-notification-banner"
@@ -181,28 +193,30 @@ export default function StartupNotificationModal({
           {notification.title}
         </h2>
         
-        <div className="startup-notification-body">
+        <div className={`startup-notification-body ${isUpdateMode ? "startup-notification-body--update" : ""}`.trim()}>
           <ReactMarkdown>{notification.bodyMarkdown}</ReactMarkdown>
         </div>
 
-        <div className="startup-notification-actions">
-          <label className="startup-notification-checkbox">
-            <input
-              type="checkbox"
-              checked={doNotShowAgain}
-              onChange={(event) => setDoNotShowAgain(event.target.checked)}
-            />
-            <span>Do not show again</span>
-          </label>
+        {!isUpdateMode ? (
+          <div className="startup-notification-actions">
+            <label className="startup-notification-checkbox">
+              <input
+                type="checkbox"
+                checked={doNotShowAgain}
+                onChange={(event) => setDoNotShowAgain(event.target.checked)}
+              />
+              <span>Do not show again</span>
+            </label>
 
-          <button
-            type="button"
-            className="startup-notification-close"
-            onClick={() => onClose(doNotShowAgain)}
-          >
-            Close
-          </button>
-        </div>
+            <button
+              type="button"
+              className="startup-notification-close"
+              onClick={() => onClose(doNotShowAgain)}
+            >
+              Close
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

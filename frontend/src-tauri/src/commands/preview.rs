@@ -6,12 +6,135 @@ use std::sync::Arc;
 use std::os::unix::process::CommandExt;
 
 use tauri::{AppHandle, State};
+use serde::Serialize;
 
 use crate::state::{ActiveFfmpegPids, PreviewProxyLocks};
 use crate::utils::ffmpeg::resolve_bundled_tool;
 use crate::utils::logging::console_log;
 use crate::utils::paths::file_name_only;
 use crate::utils::process::apply_no_window;
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PreviewAudioStream {
+    pub audio_stream_index: u32,
+    pub label: String,
+}
+
+fn normalize_language_label(raw: &str) -> String {
+    match raw.trim().to_ascii_lowercase().as_str() {
+        "jpn" | "ja" => "Japanese".to_string(),
+        "eng" | "en" => "English".to_string(),
+        "spa" | "es" => "Spanish".to_string(),
+        "fra" | "fre" | "fr" => "French".to_string(),
+        "deu" | "ger" | "de" => "German".to_string(),
+        "ita" | "it" => "Italian".to_string(),
+        "por" | "pt" => "Portuguese".to_string(),
+        "rus" | "ru" => "Russian".to_string(),
+        "kor" | "ko" => "Korean".to_string(),
+        "zho" | "chi" | "zh" => "Chinese".to_string(),
+        "ara" | "ar" => "Arabic".to_string(),
+        "hin" | "hi" => "Hindi".to_string(),
+        "tha" | "th" => "Thai".to_string(),
+        "vie" | "vi" => "Vietnamese".to_string(),
+        "ind" | "id" => "Indonesian".to_string(),
+        "tur" | "tr" => "Turkish".to_string(),
+        "pol" | "pl" => "Polish".to_string(),
+        "nld" | "dut" | "nl" => "Dutch".to_string(),
+        "swe" | "sv" => "Swedish".to_string(),
+        "nor" | "no" => "Norwegian".to_string(),
+        "dan" | "da" => "Danish".to_string(),
+        "fin" | "fi" => "Finnish".to_string(),
+        "ukr" | "uk" => "Ukrainian".to_string(),
+        "ces" | "cze" | "cs" => "Czech".to_string(),
+        "ron" | "rum" | "ro" => "Romanian".to_string(),
+        "hun" | "hu" => "Hungarian".to_string(),
+        _ => {
+            let trimmed = raw.trim();
+            if trimmed.is_empty() {
+                "Unknown".to_string()
+            } else {
+                trimmed.to_string()
+            }
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn get_audio_streams(app: AppHandle, video_path: String) -> Result<Vec<PreviewAudioStream>, String> {
+    if video_path.trim().is_empty() {
+        return Err("video_path is empty".to_string());
+    }
+
+    let ffprobe = resolve_bundled_tool(&app, "ffprobe")?;
+
+    let ffprobe_output = tokio::task::spawn_blocking(move || {
+        let mut cmd = Command::new(&ffprobe);
+        apply_no_window(&mut cmd);
+        cmd.args([
+            "-v",
+            "error",
+            "-select_streams",
+            "a",
+            "-show_entries",
+            "stream=index:stream_tags=language,title",
+            "-of",
+            "json",
+            &video_path,
+        ])
+        .output()
+        .map_err(|e| format!("Failed to run ffprobe ({}): {e}", ffprobe.display()))
+    })
+    .await
+    .map_err(|e| format!("ffprobe task panicked: {e}"))??;
+
+    if !ffprobe_output.status.success() {
+        let stderr = String::from_utf8_lossy(&ffprobe_output.stderr).trim().to_string();
+        return Err(if stderr.is_empty() {
+            "ffprobe failed while reading audio streams".to_string()
+        } else {
+            format!("ffprobe failed while reading audio streams: {stderr}")
+        });
+    }
+
+    let parsed: serde_json::Value = serde_json::from_slice(&ffprobe_output.stdout)
+        .map_err(|e| format!("Failed to parse ffprobe json: {e}"))?;
+
+    let streams = parsed
+        .get("streams")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
+
+    let mut out: Vec<PreviewAudioStream> = Vec::with_capacity(streams.len());
+    for (audio_order_index, stream) in streams.into_iter().enumerate() {
+        let tags = stream.get("tags").and_then(|v| v.as_object());
+        let language_raw = tags
+            .and_then(|t| t.get("language"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        let title = tags
+            .and_then(|t| t.get("title"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .trim()
+            .to_string();
+
+        let language = normalize_language_label(language_raw);
+        let label = if title.is_empty() {
+            format!("{} ({})", language, audio_order_index + 1)
+        } else {
+            format!("{} - {} ({})", language, title, audio_order_index + 1)
+        };
+
+        out.push(PreviewAudioStream {
+            audio_stream_index: audio_order_index as u32,
+            label,
+        });
+    }
+
+    Ok(out)
+}
 
 #[tauri::command]
 pub async fn check_hevc(app: AppHandle, video_path: String) -> Result<bool, String> {
@@ -101,8 +224,15 @@ pub async fn ensure_preview_proxy(
     proxy_locks: State<'_, PreviewProxyLocks>,
     ffmpeg_pids: State<'_, ActiveFfmpegPids>,
     clip_path: String,
+    audio_stream_index: Option<u32>,
+    transcode_video: Option<bool>,
 ) -> Result<String, String> {
-    let clip_key = clip_path.clone();
+    let transcode_video = transcode_video.unwrap_or(true);
+    let audio_suffix = audio_stream_index
+        .map(|idx| format!("a{idx}"))
+        .unwrap_or_else(|| "na".to_string());
+    let mode_suffix = if transcode_video { "x264" } else { "copy" };
+    let clip_key = format!("{}::{audio_suffix}::{mode_suffix}", clip_path);
     let clip_lock = {
         let mut map = proxy_locks.inner.lock().await;
         map.retain(|_, v| Arc::strong_count(v) > 1);
@@ -136,8 +266,8 @@ pub async fn ensure_preview_proxy(
         .map(|s| s.to_string_lossy().to_string())
         .ok_or("Invalid clip filename")?;
 
-    let proxy_path = parent.join(format!("{stem}.preview.mp4"));
-    let proxy_tmp_path = parent.join(format!("{stem}.preview.tmp.mp4"));
+    let proxy_path = parent.join(format!("{stem}.{audio_suffix}.{mode_suffix}.preview.mp4"));
+    let proxy_tmp_path = parent.join(format!("{stem}.{audio_suffix}.{mode_suffix}.preview.tmp.mp4"));
 
     if let Ok(meta) = std::fs::metadata(&proxy_path) {
         if meta.is_file() && meta.len() > 0 {
@@ -159,23 +289,43 @@ pub async fn ensure_preview_proxy(
         cmd.process_group(0);
         cmd.args(["-y", "-i"]);
         cmd.arg(&input);
-        cmd.args([
-            "-c:v",
-            "libx264",
-            "-vf",
-            "scale=-2:480",
-            "-g",
-            "1",
-            "-preset",
-            "veryfast",
-            "-crf",
-            "32",
-            "-pix_fmt",
-            "yuv420p",
-            "-an",
-            "-movflags",
-            "+faststart",
-        ]);
+        cmd.args(["-map", "0:v:0"]);
+
+        if let Some(audio_index) = audio_stream_index {
+            cmd.args(["-map", &format!("0:a:{audio_index}?")]);
+        }
+
+        if transcode_video {
+            cmd.args([
+                "-c:v",
+                "libx264",
+                "-vf",
+                "scale=-2:480",
+                "-g",
+                "1",
+                "-preset",
+                "veryfast",
+                "-crf",
+                "32",
+                "-pix_fmt",
+                "yuv420p",
+            ]);
+
+            if audio_stream_index.is_some() {
+                cmd.args(["-c:a", "aac", "-b:a", "160k", "-ac", "2", "-ar", "48000"]);
+            } else {
+                cmd.args(["-an"]);
+            }
+        } else {
+            cmd.args(["-c:v", "copy"]);
+            if audio_stream_index.is_some() {
+                cmd.args(["-c:a", "copy"]);
+            } else {
+                cmd.args(["-an"]);
+            }
+        }
+
+        cmd.args(["-movflags", "+faststart"]);
         cmd.arg(&output);
 
         let child = cmd
@@ -252,6 +402,7 @@ pub async fn ensure_merged_preview(
     proxy_locks: State<'_, PreviewProxyLocks>,
     ffmpeg_pids: State<'_, ActiveFfmpegPids>,
     srcs: Vec<String>,
+    audio_stream_index: Option<u32>,
 ) -> Result<String, String> {
     if srcs.is_empty() {
         return Err("srcs is empty".to_string());
@@ -264,6 +415,7 @@ pub async fn ensure_merged_preview(
     use std::hash::{Hash, Hasher};
     let mut hasher = DefaultHasher::new();
     srcs.hash(&mut hasher);
+    audio_stream_index.hash(&mut hasher);
     let hash = hasher.finish();
 
     let first_path = PathBuf::from(&srcs[0]);
@@ -318,8 +470,16 @@ pub async fn ensure_merged_preview(
         cmd.process_group(0);
         let list_str = list_clone.to_str().ok_or_else(|| "Invalid list path".to_string())?;
         let out_str = output_clone.to_str().ok_or_else(|| "Invalid output path".to_string())?;
+        cmd.args(["-y", "-f", "concat", "-safe", "0", "-i", list_str, "-map", "0:v:0"]);
+        if let Some(audio_index) = audio_stream_index {
+            cmd.args(["-map", &format!("0:a:{audio_index}?")]);
+            cmd.args(["-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-ac", "2", "-ar", "48000"]);
+        } else {
+            cmd.args(["-c", "copy"]);
+        }
+        cmd.arg(out_str);
+
         let child = cmd
-            .args(["-y", "-f", "concat", "-safe", "0", "-i", list_str, "-c", "copy", out_str])
             .stdout(Stdio::null())
             .stderr(Stdio::piped())
             .spawn()

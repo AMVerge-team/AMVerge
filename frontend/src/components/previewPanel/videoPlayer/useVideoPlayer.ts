@@ -24,6 +24,7 @@ export function useVideoPlayer({
     const progressRef = useRef<HTMLDivElement | null>(null);
 
     const selectedClipRef = useRef<string>(selectedClip);
+    const selectedClipAudioKeyRef = useRef<string>("");
     const proxyInFlightRef = useRef(false);
     const proxyAttemptedForClipRef = useRef<string | null>(null);
     const mergedPreviewInFlightRef = useRef(false);
@@ -39,19 +40,38 @@ export function useVideoPlayer({
     const seekGenerationRef = useRef(0);
 
     const [effectiveClip, setEffectiveClip] = useState<string | null>(selectedClip);
-    const mergedSrcsKey = mergedSrcs ? mergedSrcs.join("|") : null;
     const [mergedPreviewClip, setMergedPreviewClip] = useState<string | null>(null);
     const [isVideoReady, setIsVideoReady] = useState(false);
     const [isPlaying, setIsPlaying] = useState(true);
     const previewAudioEnabled = useGeneralSettingsStore((s) => s.previewAudioEnabled);
+    const previewAudioStreamIndex = useGeneralSettingsStore((s) => s.previewAudioStreamIndex);
     const playbackVolume = useGeneralSettingsStore((s) => s.playbackVolume);
     const setPreviewAudioEnabled = useGeneralSettingsStore((s) => s.setPreviewAudioEnabled);
     const isMuted = !previewAudioEnabled;
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [isScrubbing, setIsScrubbing] = useState(false);
+    const needsAudioMappedPreview = previewAudioStreamIndex !== null && previewAudioStreamIndex > 0;
+    const selectedMappedAudioStreamIndex = needsAudioMappedPreview ? previewAudioStreamIndex : null;
+    const selectedClipAudioKey = `${selectedClip}::audio:${previewAudioStreamIndex ?? "default"}`;
 
     const hasHevcSupport = userHasHEVC === true;
+
+    const buildEnsurePreviewProxyArgs = useCallback(
+        (clipPath: string, transcodeVideo: boolean) =>
+            selectedMappedAudioStreamIndex === null
+                ? { clipPath, transcodeVideo }
+                : { clipPath, transcodeVideo, audioStreamIndex: selectedMappedAudioStreamIndex },
+        [selectedMappedAudioStreamIndex]
+    );
+
+    const buildEnsureMergedPreviewArgs = useCallback(
+        (srcs: string[]) =>
+            previewAudioStreamIndex === null
+                ? { srcs }
+                : { srcs, audioStreamIndex: previewAudioStreamIndex },
+        [previewAudioStreamIndex]
+    );
 
     const requestFirstFrame = (video: HTMLVideoElement) => {
         if (hasFirstFrameRef.current) return;
@@ -68,6 +88,11 @@ export function useVideoPlayer({
         }
     };
 
+    const applyPreviewAudioSettings = useCallback((video: HTMLVideoElement) => {
+        video.muted = !previewAudioEnabled;
+        video.volume = playbackVolume;
+    }, [previewAudioEnabled, playbackVolume]);
+
     const triggerProxyFallback = (reason: string) => {
         const video = videoRef.current;
         if (!video) return;
@@ -76,10 +101,11 @@ export function useVideoPlayer({
         if (!selectedClip) return;
         if (videoIsHEVC !== true) return;
         if (!effectiveClip || effectiveClip !== selectedClip) return;
-        if (proxyAttemptedForClipRef.current === selectedClip) return;
+        if (proxyAttemptedForClipRef.current === selectedClipAudioKey) return;
 
-        proxyAttemptedForClipRef.current = selectedClip;
+        proxyAttemptedForClipRef.current = selectedClipAudioKey;
         proxyInFlightRef.current = true;
+        const requestKey = selectedClipAudioKey;
 
         if (import.meta.env.DEV) {
             console.warn("[VideoPlayer] triggering proxy fallback", {
@@ -91,11 +117,11 @@ export function useVideoPlayer({
             });
         }
 
-        invoke<string>("ensure_preview_proxy", { clipPath: selectedClip })
+        invoke<string>("ensure_preview_proxy", buildEnsurePreviewProxyArgs(selectedClip, true))
             .then((proxyPath) => {
                 proxyInFlightRef.current = false;
                 if (!proxyPath) return;
-
+                if (selectedClipAudioKeyRef.current !== requestKey) return;
                 setEffectiveClip(proxyPath);
 
                 setTimeout(() => {
@@ -134,11 +160,6 @@ export function useVideoPlayer({
             }
         });
     };
-
-    const applyPreviewAudioSettings = useCallback((video: HTMLVideoElement) => {
-        video.muted = !previewAudioEnabled;
-        video.volume = playbackVolume;
-    }, [previewAudioEnabled, playbackVolume]);
 
     const seekFromMouseEvent = (e: MouseEvent | React.MouseEvent, target: HTMLDivElement) => {
         const video = videoRef.current;
@@ -239,6 +260,34 @@ export function useVideoPlayer({
         selectedClipRef.current = selectedClip;
     }, [selectedClip]);
 
+    useEffect(() => {
+        selectedClipAudioKeyRef.current = selectedClipAudioKey;
+    }, [selectedClipAudioKey]);
+
+    useEffect(() => {
+        const video = videoRef.current;
+        if (video) {
+            video.pause();
+            video.muted = true;
+            try {
+                video.currentTime = 0;
+            } catch {
+                // ignore
+            }
+        }
+
+        proxyInFlightRef.current = false;
+        proxyAttemptedForClipRef.current = null;
+        mergedPreviewInFlightRef.current = false;
+        mergedPreviewFetchedKeyRef.current = null;
+        setMergedPreviewClip(null);
+
+        if (selectedClip) {
+            setEffectiveClip(selectedClip);
+            setIsVideoReady(false);
+        }
+    }, [previewAudioStreamIndex, selectedClip]);
+
     // Merged preview: stream-copy concat for clips with mergedSrcs
     useEffect(() => {
         if (!mergedSrcs || mergedSrcs.length <= 1) {
@@ -247,16 +296,19 @@ export function useVideoPlayer({
             setMergedPreviewClip(null);
             return;
         }
-        if (videoIsHEVC === true && !hasHevcSupport) return;
 
-        const key = mergedSrcs.join("|");
+        if (videoIsHEVC === true && !hasHevcSupport && !needsAudioMappedPreview) {
+            return;
+        }
+
+        const key = `${mergedSrcs.join("|")}::audio:${previewAudioStreamIndex ?? "default"}`;
         if (mergedPreviewFetchedKeyRef.current === key) return;
         if (mergedPreviewInFlightRef.current) return;
 
         mergedPreviewFetchedKeyRef.current = key;
         mergedPreviewInFlightRef.current = true;
 
-        invoke<string>("ensure_merged_preview", { srcs: mergedSrcs })
+        invoke<string>("ensure_merged_preview", buildEnsureMergedPreviewArgs(mergedSrcs))
             .then((path) => {
                 mergedPreviewInFlightRef.current = false;
                 if (mergedPreviewFetchedKeyRef.current !== key) return;
@@ -268,7 +320,14 @@ export function useVideoPlayer({
                 setMergedPreviewClip(null);
                 if (import.meta.env.DEV) console.warn("ensure_merged_preview failed", err);
             });
-    }, [mergedSrcsKey, videoIsHEVC, hasHevcSupport]);
+    }, [
+        mergedSrcs,
+        videoIsHEVC,
+        hasHevcSupport,
+        needsAudioMappedPreview,
+        previewAudioStreamIndex,
+        buildEnsureMergedPreviewArgs,
+    ]);
 
     useEffect(() => {
         const video = videoRef.current;
@@ -300,16 +359,26 @@ export function useVideoPlayer({
         videoFrameCallbackIdRef.current = null;
 
         // 3. Determine if we can use the source directly or need a proxy
-        if (hasHevcSupport || videoIsHEVC === false) {
-            const nextClip = mergedPreviewClip ?? selectedClip;
-            if (effectiveClip !== nextClip) {
-                setEffectiveClip(nextClip);
+        if (mergedPreviewClip) {
+            if (effectiveClip !== mergedPreviewClip) {
+                setEffectiveClip(mergedPreviewClip);
                 setIsVideoReady(false);
             }
             return;
         }
 
-        if (videoIsHEVC === null) {
+        const shouldTranscodeVideo = videoIsHEVC === true && !hasHevcSupport;
+        const shouldUseProxy = needsAudioMappedPreview || shouldTranscodeVideo;
+
+        if (!shouldUseProxy) {
+            if (effectiveClip !== selectedClip) {
+                setEffectiveClip(selectedClip);
+                setIsVideoReady(false);
+            }
+            return;
+        }
+
+        if (videoIsHEVC === null && !needsAudioMappedPreview) {
             setIsVideoReady(false);
             return;
         }
@@ -320,15 +389,17 @@ export function useVideoPlayer({
             setIsVideoReady(false);
         }
 
-        if (proxyInFlightRef.current || proxyAttemptedForClipRef.current === selectedClip) return;
+        if (proxyInFlightRef.current || proxyAttemptedForClipRef.current === selectedClipAudioKey) return;
 
-        proxyAttemptedForClipRef.current = selectedClip;
+        proxyAttemptedForClipRef.current = selectedClipAudioKey;
         proxyInFlightRef.current = true;
+        const requestKey = selectedClipAudioKey;
 
-        invoke<string>("ensure_preview_proxy", { clipPath: selectedClip })
+        invoke<string>("ensure_preview_proxy", buildEnsurePreviewProxyArgs(selectedClip, shouldTranscodeVideo))
             .then((proxyPath) => {
                 proxyInFlightRef.current = false;
                 if (!proxyPath || selectedClipRef.current !== selectedClip) return;
+                if (selectedClipAudioKeyRef.current !== requestKey) return;
 
                 setEffectiveClip(proxyPath);
                 setIsVideoReady(false);
@@ -346,7 +417,17 @@ export function useVideoPlayer({
                 // Fallback to original even if proxy failed
                 setEffectiveClip(selectedClip);
             });
-    }, [selectedClip, mergedPreviewClip, videoIsHEVC, hasHevcSupport]);
+    }, [
+        selectedClip,
+        mergedPreviewClip,
+        videoIsHEVC,
+        hasHevcSupport,
+        needsAudioMappedPreview,
+        selectedClipAudioKey,
+        buildEnsurePreviewProxyArgs,
+        effectiveClip,
+        isPlaying,
+    ]);
 
     // HEVC can report as supported but still fail to decode certain profiles (e.g. yuv444p10).
     // If we don't get a usable frame quickly on the original source, force proxy fallback.
@@ -447,6 +528,7 @@ export function useVideoPlayer({
         };
     }, [isScrubbing, duration]);
 
+    // Only reload media when the clip source itself changes.
     useEffect(() => {
         const video = videoRef.current;
         if (!video || !effectiveClip) return;
@@ -458,7 +540,21 @@ export function useVideoPlayer({
         if (isPlaying) {
             safePlay(video);
         }
-    }, [effectiveClip, isPlaying, applyPreviewAudioSettings]);
+    }, [effectiveClip]);
+
+    // Play/pause transitions should not reload the media element.
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video || !effectiveClip) return;
+
+        if (isPlaying) {
+            applyPreviewAudioSettings(video);
+            safePlay(video);
+            return;
+        }
+
+        video.pause();
+    }, [isPlaying, effectiveClip, applyPreviewAudioSettings]);
 
     useEffect(() => {
         const video = videoRef.current;

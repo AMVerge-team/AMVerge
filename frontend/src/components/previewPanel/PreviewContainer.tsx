@@ -1,6 +1,7 @@
 import VideoPlayer from "./videoPlayer/VideoPlayer.tsx"
 import HowToUse from "./HowToUse.tsx"
 import React from "react";
+import { invoke } from "@tauri-apps/api/core";
 import {
   FaFolderOpen,
   FaFileExport,
@@ -17,6 +18,12 @@ import {
   getActiveExportProfile,
   getExportProfileSummary,
 } from "../../features/export/profiles.ts";
+
+type PreviewAudioStream = {
+  audioStreamIndex: number;
+  label: string;
+};
+
 type PreviewContainerProps = {
   sourceClip: string | null;
   sourceClipThumbnail: string | null;
@@ -29,6 +36,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
 
   const clips = useAppStateStore(s => s.clips);
   const selectedClips = useAppStateStore(s => s.selectedClips);
+  const importedVideoPath = useAppStateStore(s => s.importedVideoPath);
 
   const videoIsHEVC = useAppStateStore(s => s.videoIsHEVC);
   const userHasHEVC = useAppStateStore(s => s.userHasHEVC);
@@ -41,7 +49,10 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const setActiveExportProfileId = useGeneralSettingsStore(s => s.setActiveExportProfileId);
   const mergeClipsEnabled = useGeneralSettingsStore(s => s.mergeClipsEnabled);
   const setMergeClipsEnabled = useGeneralSettingsStore(s => s.setMergeClipsEnabled);
+  const previewAudioStreamIndex = useGeneralSettingsStore(s => s.previewAudioStreamIndex);
+  const setPreviewAudioStreamIndex = useGeneralSettingsStore(s => s.setPreviewAudioStreamIndex);
   const { handleExport, handlePickExportDir } = useImportExport();
+  const [audioStreams, setAudioStreams] = React.useState<PreviewAudioStream[]>([]);
 
   const defaultMergedName = (clips[0]?.originalName || "episode") + "_merged";
   const activeExportProfile = React.useMemo(
@@ -59,6 +70,15 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     [generalSettings.exportProfiles]
   );
 
+  const audioStreamOptions = React.useMemo(
+    () =>
+      audioStreams.map((stream) => ({
+        value: stream.audioStreamIndex,
+        label: stream.label,
+      })),
+    [audioStreams]
+  );
+
   const hasSelectedClips = selectedClips.size > 0;
 
   const sourceClipObj = props.sourceClip ? clips.find(c => c.src === props.sourceClip) : null;
@@ -73,6 +93,48 @@ export default function PreviewContainer(props: PreviewContainerProps) {
       });
     }
   }, [showMergeNameModal]);
+
+  React.useEffect(() => {
+    if (!importedVideoPath) {
+      setAudioStreams([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    invoke<PreviewAudioStream[]>("get_audio_streams", { videoPath: importedVideoPath })
+      .then((streams) => {
+        if (cancelled) return;
+        setAudioStreams(streams ?? []);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.warn("get_audio_streams failed", err);
+        setAudioStreams([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [importedVideoPath]);
+
+  React.useEffect(() => {
+    if (audioStreams.length === 0) {
+      if (previewAudioStreamIndex !== null) {
+        setPreviewAudioStreamIndex(null);
+      }
+      return;
+    }
+
+    if (previewAudioStreamIndex === null) {
+      setPreviewAudioStreamIndex(audioStreams[0].audioStreamIndex);
+      return;
+    }
+
+    if (!audioStreams.some((stream) => stream.audioStreamIndex === previewAudioStreamIndex)) {
+      setPreviewAudioStreamIndex(audioStreams[0].audioStreamIndex);
+    }
+  }, [audioStreams, previewAudioStreamIndex, setPreviewAudioStreamIndex]);
 
   const onExportClick = () => {
     if (!hasSelectedClips) return;
@@ -170,18 +232,38 @@ export default function PreviewContainer(props: PreviewContainerProps) {
 
         <div>
           <div className="export-dir-row">
-            <span className="merge-clips-input" style={{ display: "flex", alignItems: "center" }}>
-              Merge Clips
-            </span>
-            <label className="custom-checkbox" aria-label="Merge clips">
-              <input
-                type="checkbox"
-                className="checkbox"
-                checked={mergeClipsEnabled}
-                onChange={(event) => setMergeClipsEnabled(event.target.checked)}
-              />
-              <span className="checkmark" />
-            </label>
+            <div className="export-dir-item">
+              <span className="audio-stream-label" aria-hidden="true">
+                <span>MERGE</span>
+                <span>CLIPS</span>
+              </span>
+              <label className="custom-checkbox" aria-label="Merge clips">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={mergeClipsEnabled}
+                  onChange={(event) => setMergeClipsEnabled(event.target.checked)}
+                />
+                <span className="checkmark" />
+              </label>
+            </div>
+            <div className="export-dir-item">
+              <div className="audio-stream-field" aria-label="Preview language selector">
+                <span className="audio-stream-label" aria-hidden="true">
+                  <span>PREVIEW</span>
+                  <span>LANGUAGE</span>
+                </span>
+
+                <Dropdown
+                  className="export-profile-select audio-stream-select"
+                  options={audioStreamOptions}
+                  value={previewAudioStreamIndex ?? (audioStreams[0]?.audioStreamIndex ?? 0)}
+                  onChange={setPreviewAudioStreamIndex}
+                  preferredDirection="up"
+                  disabled={audioStreamOptions.length === 0}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
