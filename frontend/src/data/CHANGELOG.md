@@ -1,4 +1,4 @@
-## v1.1.2
+## v1.2.0
 - Added audio stream change for previewing
 - Added an "Update Available!" notification in case the download button doesn't work on update notification
 - Potentially fixed major issue with the app having a soft limit on its storage (if this is still an issue, please let me know)
