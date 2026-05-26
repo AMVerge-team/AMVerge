@@ -7,6 +7,7 @@ export default function Credits() {
         { name: 'Moongetsu', role: 'Tons of new settings, Discord RPC, Menu revamp'},
         { name: 'Lewis', role: 'Mac Developer, Background import processing, Heavy optimization' },
         { name: '0xkhaosoccured', role: 'Grid UI Fixes' },
+        { name: 'TOSINIRL', role: 'Mac Video Import Fixes'}
     ];
 
     return (

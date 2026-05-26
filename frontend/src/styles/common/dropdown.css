@@ -1,7 +1,7 @@
 .custom-dropdown {
   position: relative;
   display: inline-block;
-  min-width: 80px;
+  min-width: 50px;
   user-select: none;
   font-family: inherit;
   z-index: 1;

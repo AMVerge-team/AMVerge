@@ -40,6 +40,7 @@ fn main() {
             commands::editor_import::import_media_to_editor,
             commands::editor_import::abort_editor_import,
             commands::preview::check_hevc,
+            commands::preview::get_audio_streams,
             commands::preview::hover_preview_error,
             commands::preview::ensure_preview_proxy,
             commands::preview::ensure_merged_preview,

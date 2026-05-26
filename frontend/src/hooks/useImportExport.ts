@@ -48,6 +48,16 @@ export default function useImportExport(props?: ImportExportProps) {
   const positionToIdRef = useRef(new Map<number, string>());
   const localAbortedRef = useRef(false);
   const abortedRef = props?.abortedRef || localAbortedRef;
+
+  const logImportError = useCallback((phase: string, error: unknown, context?: Record<string, unknown>) => {
+    const details = {
+      phase,
+      context: context ?? {},
+      message: error instanceof Error ? error.message : String(error),
+      error,
+    };
+    console.error("[import] failure", details);
+  }, []);
   const buildExportOptionsPayload = useCallback((profileId: string): ExportOptionsPayload | undefined => {
     const profile = generalSettings.exportProfiles.find((candidate) => candidate.id === profileId)
       ?? generalSettings.exportProfiles[0];
@@ -100,6 +110,8 @@ export default function useImportExport(props?: ImportExportProps) {
     if (!file) return;
     const currentState = useAppStateStore.getState();
     if (currentState.loading || currentState.bgProgress || currentState.bgImportProgress) return;
+
+    console.info("[import] start", { mode: "single", file, episodePath: generalSettings.episodesPath });
 
     const episodeId = crypto.randomUUID();
     const gen = ++importGenRef.current;
@@ -377,9 +389,15 @@ export default function useImportExport(props?: ImportExportProps) {
         episodeCacheId: episodeId,
         customPath: generalSettings.episodesPath,
       });
+      console.info("[import] detect_scenes completed", { mode: "single", file, episodeId });
     } catch (err) {
       if (importGenRef.current !== gen) return;
-      console.error("Detection failed:", err);
+      logImportError("single.detect_scenes", err, {
+        file,
+        episodeId,
+        episodePath: generalSettings.episodesPath,
+        importGeneration: gen,
+      });
       useAppStateStore.setState({ bgProgress: null });
     } finally {
       if (batchRafId !== null) {
@@ -389,8 +407,9 @@ export default function useImportExport(props?: ImportExportProps) {
 
       unlisteners.forEach(ul => ul());
       if (importGenRef.current === gen && !uiUnblocked) setLoading(false);
+      console.info("[import] finished", { mode: "single", file, episodeId, importGeneration: gen });
     }
-  }, [appState, episodeState, generalSettings, props?.onRPCUpdate]);
+  }, [appState, episodeState, generalSettings, props?.onRPCUpdate, logImportError]);
 
   const handleBatchImport = useCallback(async (files: string[]) => {
     if (files.length === 0) return;
@@ -400,6 +419,11 @@ export default function useImportExport(props?: ImportExportProps) {
     const gen = ++importGenRef.current;
     abortedRef.current = false;
     const completedEpisodes: EpisodeEntry[] = [];
+    console.info("[import] start", {
+      mode: "batch",
+      files: files.length,
+      episodePath: generalSettings.episodesPath,
+    });
     try {
       appState.setProgress(0);
       appState.setProgressMsg("Starting...");
@@ -424,6 +448,13 @@ export default function useImportExport(props?: ImportExportProps) {
         setBatchCurrentFile(truncateFileName(fileName));
         appState.setProgress(0);
         appState.setProgressMsg("Starting...");
+        useAppStateStore.setState({ bgProgress: null });
+        console.info("[import] batch file begin", {
+          index: i + 1,
+          total: files.length,
+          file,
+          episodeId,
+        });
 
         try {
           const formatted = await detectScenes(file, episodeId, generalSettings.episodesPath);
@@ -448,6 +479,13 @@ export default function useImportExport(props?: ImportExportProps) {
           completedEpisodes.push(episodeEntry);
           episodeState.setEpisodes((prev) => [episodeEntry, ...prev]);
           setBgImportProgress({ done: i + 1, total: files.length });
+          console.info("[import] batch file success", {
+            index: i + 1,
+            total: files.length,
+            file,
+            episodeId,
+            clips: formatted.length,
+          });
         } catch (err) {
           if (abortedRef.current) {
             invoke("delete_episode_cache", {
@@ -456,7 +494,14 @@ export default function useImportExport(props?: ImportExportProps) {
             }).catch(() => { });
             break;
           }
-          console.error(`Detection failed for ${fileName}:`, err);
+          logImportError("batch.detect_scenes", err, {
+            index: i + 1,
+            total: files.length,
+            file,
+            fileName,
+            episodeId,
+            episodePath: generalSettings.episodesPath,
+          });
           invoke("delete_episode_cache", {
             episodeCacheId: episodeId,
             customPath: generalSettings.episodesPath,
@@ -485,27 +530,44 @@ export default function useImportExport(props?: ImportExportProps) {
         setBatchDone(0);
         setBatchCurrentFile(null);
       }
+      console.info("[import] finished", {
+        mode: "batch",
+        requested: files.length,
+        completed: completedEpisodes.length,
+        importGeneration: gen,
+      });
     }
-  }, [appState, episodeState, generalSettings, abortedRef, setBgImportProgress]);
+  }, [appState, episodeState, generalSettings, abortedRef, setBgImportProgress, logImportError]);
 
   const onImportClick = useCallback(async () => {
     const currentState = useAppStateStore.getState();
     if (currentState.loading || currentState.bgProgress || currentState.bgImportProgress) return;
 
-    const files = await open({
-      multiple: true,
-      filters: [{ name: "Video", extensions: ["mp4", "mkv", "mov", "avi"] }],
-    });
-    if (!files) return;
-    const fileList = Array.isArray(files) ? files : [files];
+    try {
+      const files = await open({
+        multiple: true,
+        filters: [{ name: "Video", extensions: ["mp4", "mkv", "mov", "avi"] }],
+      });
+      if (!files) {
+        console.info("[import] picker canceled");
+        return;
+      }
 
-    if (fileList.length === 0) return;
-    if (fileList.length === 1) {
-      handleImport(fileList[0]);
-    } else {
-      handleBatchImport(fileList);
+      const fileList = Array.isArray(files) ? files : [files];
+      if (fileList.length === 0) {
+        console.warn("[import] picker returned no files");
+        return;
+      }
+
+      if (fileList.length === 1) {
+        await handleImport(fileList[0]);
+      } else {
+        await handleBatchImport(fileList);
+      }
+    } catch (err) {
+      logImportError("picker.open", err);
     }
-  }, [handleImport, handleBatchImport]);
+  }, [handleImport, handleBatchImport, logImportError]);
 
   const handleExport = useCallback(async (selectedClips: Set<string>, mergeEnabled: boolean, mergeFileName?: string) => {
     console.log(`[handleExport] selectedClips.size=${selectedClips.size} appState.clips.length=${appState.clips.length} IDs=[${[...selectedClips].slice(0, 3).join(',')}]`);

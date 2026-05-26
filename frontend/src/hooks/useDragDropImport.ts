@@ -65,9 +65,22 @@ export default function useDragDropImport({
         if (videoFiles.length === 0) return;
 
         if (videoFiles.length === 1) {
-          void handlersRef.current.handleImport(videoFiles[0]);
+          void Promise.resolve(handlersRef.current.handleImport(videoFiles[0])).catch((error) => {
+            console.error("[import][drag-drop] single import failed", {
+              file: videoFiles[0],
+              error,
+              message: error instanceof Error ? error.message : String(error),
+            });
+          });
         } else {
-          void handlersRef.current.handleBatchImport(videoFiles);
+          void Promise.resolve(handlersRef.current.handleBatchImport(videoFiles)).catch((error) => {
+            console.error("[import][drag-drop] batch import failed", {
+              files: videoFiles.length,
+              firstFile: videoFiles[0],
+              error,
+              message: error instanceof Error ? error.message : String(error),
+            });
+          });
         }
 
         return;

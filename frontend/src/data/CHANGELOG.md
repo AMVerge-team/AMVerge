@@ -1,3 +1,11 @@
+## v1.1.15
+- Added audio stream change for previewing
+- Added an "Update Available!" notification in case the download button doesn't work on update notification
+- Potentially fixed major issue with the app having a soft limit on its storage (if this is still an issue, please let me know)
+- Fixed timeline click not working
+- Fixed audio toggle resetting video
+- Fixed intel macs not importing episodes properly
+
 ## v1.0.0
 - Now supports mac
 

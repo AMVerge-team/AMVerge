@@ -48,6 +48,11 @@ export const LazyClip = memo(function LazyClip({
   const videoIsHEVC = useAppStateStore(s => s.videoIsHEVC);
   const userHasHEVC = useAppStateStore(s => s.userHasHEVC);
   const audioPlaybackHover = useGeneralSettingsStore(s => s.audioPlaybackHover);
+  const previewAudioStreamIndex = useGeneralSettingsStore(s => s.previewAudioStreamIndex);
+  const selectedMappedAudioStreamIndex =
+    previewAudioStreamIndex !== null && previewAudioStreamIndex > 0
+      ? previewAudioStreamIndex
+      : null;
   const playbackVolume = useGeneralSettingsStore(s => s.playbackVolume);
   const gridPreviewSpeed = useThemeSettingsStore(s => s.gridPreviewSpeed ?? 1);
   const showDownloadButton = useThemeSettingsStore(s => s.showDownloadButton);
@@ -75,7 +80,9 @@ export const LazyClip = memo(function LazyClip({
   const [isVideoReady, setIsVideoReady] = useState(false);
   // the actual video source (original or proxy)
   const [effectiveSrc, setEffectiveSrc] = useState(clip.src);
-  const mergedSrcsKey = clip.mergedSrcs ? clip.mergedSrcs.join("|") : null;
+  const mergedSrcsKey = clip.mergedSrcs
+    ? `${clip.mergedSrcs.join("|")}::audio:${previewAudioStreamIndex ?? "default"}`
+    : null;
   const originalPath = clip.src;
 
   // Is this clip currently being merged or split on the backend?
@@ -117,18 +124,34 @@ export const LazyClip = memo(function LazyClip({
   }, [gridPreview, needsHevcProxy, isVisible, effectiveSrc, originalPath, index, isHovered, reportProxyDemand]);
 
 
-  // reset state when clip or import changes
+  // reset state when clip/import/audio-stream changes
   useEffect(() => {
+    const needsMappedNow =
+      previewAudioStreamIndex !== null &&
+      isHovered &&
+      audioPlaybackHover;
+
+    const v = videoRef.current;
+    if (v) {
+      v.pause();
+      v.muted = true;
+      try {
+        v.currentTime = 0;
+      } catch {
+        // ignore
+      }
+    }
+
     hasReportedErrorRef.current = false;
     hasFirstFrameRef.current = false;
     proxyInFlightRef.current = false;
     mergedPreviewInFlightRef.current = false;
     mergedPreviewFetchedKeyRef.current = null;
 
-    const v = videoRef.current;
-    if (v && videoFrameCallbackIdRef.current && (v as any).cancelVideoFrameCallback) {
+    const callbackVideo = videoRef.current;
+    if (callbackVideo && videoFrameCallbackIdRef.current && (callbackVideo as any).cancelVideoFrameCallback) {
       try {
-        (v as any).cancelVideoFrameCallback(videoFrameCallbackIdRef.current);
+        (callbackVideo as any).cancelVideoFrameCallback(videoFrameCallbackIdRef.current);
       } catch {
         // ignore
       }
@@ -136,16 +159,40 @@ export const LazyClip = memo(function LazyClip({
     videoFrameCallbackIdRef.current = null;
     staggerDoneRef.current = false;
     setStaggerReady(false);
-    setForceThumbnail(false);
+    setForceThumbnail(needsMappedNow);
     setIsVideoReady(false);
     setEffectiveSrc(clip.src);
-  }, [clip.src, importToken]);
+  }, [clip.src, importToken, previewAudioStreamIndex, isHovered, audioPlaybackHover]);
 
-  // Proactive HEVC gating:
-  // if HEVC isn't supported, request the proxy as soon as the user hovers (or gridPreview is on),
-  // and keep the thumbnail visible until we can swap to the proxy.
+  const ensurePreviewProxyPath = useCallback(
+    async (clipPath: string, priority: boolean, transcodeVideo: boolean): Promise<string> => {
+      if (selectedMappedAudioStreamIndex === null) {
+        return gridPreview
+          ? requestProxySequential(clipPath, priority)
+          : invoke<string>("ensure_preview_proxy", { clipPath, transcodeVideo });
+      }
+
+      return invoke<string>("ensure_preview_proxy", {
+        clipPath,
+        transcodeVideo,
+        audioStreamIndex: selectedMappedAudioStreamIndex,
+      });
+    },
+    [gridPreview, requestProxySequential, selectedMappedAudioStreamIndex]
+  );
+
+  // Proactive HEVC/audio-stream proxy gating:
+  // - HEVC without support always needs proxy.
+  // - Hover audio with a non-default stream needs a mapped proxy.
   useEffect(() => {
-    if (!needsHevcProxy) return;
+    const needsAudioMappedProxy =
+      selectedMappedAudioStreamIndex !== null &&
+      isHovered &&
+      audioPlaybackHover;
+    const shouldTranscodeVideo = needsHevcProxy;
+    const needsPreviewProxy = shouldTranscodeVideo || needsAudioMappedProxy;
+
+    if (!needsPreviewProxy) return;
     if (!isVisible) return;
     if (!showVideo) return;
 
@@ -160,9 +207,7 @@ export const LazyClip = memo(function LazyClip({
         proxyInFlightRef.current = true;
         setForceThumbnail(true);
 
-        const proxyPath = gridPreview
-          ? await requestProxySequential(clipPath, /* priority */ isHovered)
-          : await invoke<string>("ensure_preview_proxy", { clipPath });
+        const proxyPath = await ensurePreviewProxyPath(clipPath, /* priority */ isHovered, shouldTranscodeVideo);
 
         if (originalPath !== clipPath) return;
 
@@ -188,7 +233,18 @@ export const LazyClip = memo(function LazyClip({
     };
 
     void run();
-  }, [needsHevcProxy, isVisible, isHovered, gridPreview, effectiveSrc, originalPath, requestProxySequential]);
+  }, [
+    needsHevcProxy,
+    selectedMappedAudioStreamIndex,
+    audioPlaybackHover,
+    isVisible,
+    isHovered,
+    showVideo,
+    effectiveSrc,
+    originalPath,
+    ensurePreviewProxyPath,
+    needsHevcProxy,
+  ]);
 
   // Generate a stream-copy concat preview for merged clips (skipped for HEVC — proxy handles that).
   useEffect(() => {
@@ -201,7 +257,10 @@ export const LazyClip = memo(function LazyClip({
     mergedPreviewFetchedKeyRef.current = mergedSrcsKey;
     mergedPreviewInFlightRef.current = true;
 
-    invoke<string>("ensure_merged_preview", { srcs: clip.mergedSrcs })
+    invoke<string>("ensure_merged_preview", {
+      srcs: clip.mergedSrcs,
+      audioStreamIndex: previewAudioStreamIndex ?? undefined,
+    })
       .then((path) => {
         setEffectiveSrc(path);
       })
@@ -212,7 +271,7 @@ export const LazyClip = memo(function LazyClip({
       .finally(() => {
         mergedPreviewInFlightRef.current = false;
       });
-  }, [mergedSrcsKey, needsHevcProxy, isVisible, clip.mergedSrcs]);
+  }, [mergedSrcsKey, needsHevcProxy, isVisible, clip.mergedSrcs, previewAudioStreamIndex]);
 
   // Stagger queue: report demand when grid-preview is on and tile is visible.
   // same pattern as the proxy queue - register/unregister, central loop picks
@@ -366,9 +425,7 @@ export const LazyClip = memo(function LazyClip({
         proxyInFlightRef.current = true;
         setForceThumbnail(true);
 
-        const proxyPath = gridPreview
-          ? await requestProxySequential(originalPath, isHovered)
-          : await invoke<string>("ensure_preview_proxy", { clipPath: originalPath });
+        const proxyPath = await ensurePreviewProxyPath(originalPath, isHovered);
 
         if (!proxyPath) return;
 
@@ -400,6 +457,7 @@ export const LazyClip = memo(function LazyClip({
     gridPreview,
     isHovered,
     requestProxySequential,
+    ensurePreviewProxyPath,
   ]);
 
   const handleClick = useCallback(
@@ -595,9 +653,7 @@ export const LazyClip = memo(function LazyClip({
                 const clipPath = originalPath;
                 (async () => {
                   try {
-                    const proxyPath = gridPreview
-                      ? await requestProxySequential(clipPath, true)
-                      : await invoke<string>("ensure_preview_proxy", { clipPath });
+                    const proxyPath = await ensurePreviewProxyPath(clipPath, true);
 
                     if (originalPath !== clipPath) return;
                     if (!proxyPath) {
