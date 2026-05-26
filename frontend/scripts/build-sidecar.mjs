@@ -24,6 +24,16 @@ function getArgValue(name) {
   return index === -1 ? null : process.argv[index + 1];
 }
 
+function getBuildTargetTriple() {
+  return (
+    getArgValue("--target") ||
+    process.env.SIDECAR_TARGET_TRIPLE ||
+    process.env.TAURI_ENV_TARGET_TRIPLE ||
+    process.env.CARGO_BUILD_TARGET ||
+    getRustTargetTriple()
+  );
+}
+
 function getRustTargetTriple() {
   if (process.platform === "win32") return "x86_64-pc-windows-msvc";
 
@@ -38,7 +48,7 @@ function getRustTargetTriple() {
 
 async function main() {
   const isWindows = process.platform === "win32";
-  const triple = getArgValue("--target") || getRustTargetTriple();
+  const triple = getBuildTargetTriple();
 
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
   const frontendDir = path.resolve(scriptDir, "..");
@@ -78,6 +88,14 @@ async function main() {
     "--add-binary",
     `${ffprobeBin}${sep}.`,
   ];
+
+  if (process.platform === "darwin") {
+    if (triple === "x86_64-apple-darwin") {
+      pyinstallerArgs.push("--target-arch", "x86_64");
+    } else if (triple === "aarch64-apple-darwin") {
+      pyinstallerArgs.push("--target-arch", "arm64");
+    }
+  }
 
   if (isWindows) {
     pyinstallerArgs.push("--noconsole");
