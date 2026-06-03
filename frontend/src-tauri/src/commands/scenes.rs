@@ -20,6 +20,40 @@ use crate::utils::paths::{
 };
 use crate::utils::process::apply_no_window;
 
+fn find_existing_backend_path(candidates: Vec<PathBuf>) -> Result<PathBuf, String> {
+    let mut checked: Vec<String> = Vec::new();
+
+    for candidate in candidates {
+        checked.push(candidate.to_string_lossy().to_string());
+        if candidate.is_file() {
+            return Ok(candidate);
+        }
+    }
+
+    Err(format!(
+        "Backend sidecar executable not found. Checked: {}",
+        checked.join(" | ")
+    ))
+}
+
+#[cfg(windows)]
+fn prepend_windows_path(cmd: &mut Command, mut dirs: Vec<PathBuf>) {
+    // Keep only existing directories and preserve order (first = highest priority).
+    dirs.retain(|d| d.is_dir());
+
+    let mut path_values = dirs;
+    if let Some(existing) = std::env::var_os("PATH") {
+        path_values.extend(std::env::split_paths(&existing));
+    }
+
+    if let Ok(joined) = std::env::join_paths(path_values) {
+        cmd.env("PATH", joined);
+    }
+}
+
+#[cfg(not(windows))]
+fn prepend_windows_path(_cmd: &mut Command, _dirs: Vec<PathBuf>) {}
+
 #[tauri::command]
 pub async fn detect_scenes(
     app: AppHandle,
@@ -124,6 +158,22 @@ pub async fn detect_scenes(
             .resolve(sidecar_rel, tauri::path::BaseDirectory::Resource)
             .map_err(|e| e.to_string())?;
 
+        let backend = {
+            let resource_dir = app
+                .path()
+                .resource_dir()
+                .map_err(|e| e.to_string())?;
+
+            let mut candidates = vec![backend.clone()];
+
+            // Fallback layouts seen in unpacked/local runs and some updater installs.
+            candidates.push(resource_dir.join(sidecar_rel));
+            candidates.push(exe_dir.join(sidecar_rel));
+            candidates.push(exe_dir.join("resources").join(sidecar_rel));
+
+            find_existing_backend_path(candidates)?
+        };
+
         let backend_name =
             backend
                 .file_name()
@@ -142,6 +192,20 @@ pub async fn detect_scenes(
         apply_no_window(&mut cmd);
         #[cfg(not(windows))]
         cmd.process_group(0);
+
+        let backend_dir = cmd
+            .get_program()
+            .to_owned();
+        let backend_path = PathBuf::from(backend_dir);
+        if let Some(parent) = backend_path.parent() {
+            let internal = parent.join("_internal");
+            let numpy_libs = internal.join("numpy.libs");
+            prepend_windows_path(
+                &mut cmd,
+                vec![parent.to_path_buf(), internal, numpy_libs],
+            );
+        }
+
         cmd.current_dir(&exe_dir)
             .arg(&video_path)
             .arg(&output_dir_str)
