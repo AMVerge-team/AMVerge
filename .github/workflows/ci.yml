@@ -14,6 +14,11 @@ jobs:
   check:
     name: Build checks
     runs-on: windows-latest
+    env:
+      # Build the sidecar from the published CLI wheel (dev extra pulls
+      # PyInstaller). CPU torch keeps the PR check light (no 2.5GB CUDA wheel).
+      AMVERGE_CLI_INSTALL_SPEC: "amverge[ml,dev]"
+      AMVERGE_TORCH_INDEX_URL: ""
 
     steps:
       - name: Checkout repo
@@ -38,18 +43,12 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Create backend venv + install Python dependencies
-        shell: pwsh
-        run: |
-          python -m venv backend/venv
-          backend/venv/Scripts/python -m pip install --upgrade pip
-          backend/venv/Scripts/python -m pip install pyinstaller av pillow numpy
-
-      - name: Install FFmpeg
+      - name: Stage FFmpeg binaries for the sidecar
         shell: pwsh
         run: |
           choco install ffmpeg -y
-          New-Item -ItemType Directory -Force backend/bin | Out-Null
+          $ffmpegDir = Join-Path (Get-Location) "frontend/.ffmpeg-bin"
+          New-Item -ItemType Directory -Force $ffmpegDir | Out-Null
 
           $ffmpegReal = "C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin\ffmpeg.exe"
           $ffprobeReal = "C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin\ffprobe.exe"
@@ -61,11 +60,12 @@ jobs:
             exit 1
           }
 
-          Copy-Item $ffmpegReal backend/bin/ffmpeg.exe -Force
-          Copy-Item $ffprobeReal backend/bin/ffprobe.exe -Force
-          & backend/bin/ffmpeg.exe -version | Select-Object -First 1
-          & backend/bin/ffprobe.exe -version | Select-Object -First 1
-          
+          Copy-Item $ffmpegReal (Join-Path $ffmpegDir "ffmpeg.exe") -Force
+          Copy-Item $ffprobeReal (Join-Path $ffmpegDir "ffprobe.exe") -Force
+          & (Join-Path $ffmpegDir "ffmpeg.exe") -version | Select-Object -First 1
+          & (Join-Path $ffmpegDir "ffprobe.exe") -version | Select-Object -First 1
+          "FFMPEG_BIN_DIR=$ffmpegDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
       - name: Build Python sidecar
         working-directory: frontend
         run: node scripts/build-sidecar.mjs
@@ -73,7 +73,7 @@ jobs:
       - name: Verify sidecar exists
         shell: pwsh
         run: |
-          dir frontend/src-tauri/bin/backend_script-x86_64-pc-windows-msvc
+          dir frontend/src-tauri/bin/amverge-x86_64-pc-windows-msvc
 
       - name: Check frontend build
         working-directory: frontend

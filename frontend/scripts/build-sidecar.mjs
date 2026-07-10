@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs/promises";
+import { existsSync } from "node:fs";
 
 function run(cmd, args, options = {}) {
   const result = spawnSync(cmd, args, {
@@ -46,6 +47,34 @@ function getRustTargetTriple() {
   throw new Error(`Unsupported platform: ${process.platform}`);
 }
 
+// Resolve an ffmpeg-family tool: prefer the explicit bin dir (CI stages the
+// binaries there and sets FFMPEG_BIN_DIR), else fall back to PATH so a local
+// dev with ffmpeg installed can build the sidecar without staging anything.
+function resolveTool(binDir, toolName, isWindows) {
+  const exeName =
+    isWindows && !toolName.toLowerCase().endsWith(".exe")
+      ? `${toolName}.exe`
+      : toolName;
+
+  const staged = path.join(binDir, exeName);
+  if (existsSync(staged)) return staged;
+
+  const whichCmd = isWindows ? "where" : "which";
+  const result = spawnSync(whichCmd, [exeName], { encoding: "utf8" });
+  if (result.status === 0 && result.stdout) {
+    const first = result.stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find(Boolean);
+    if (first && existsSync(first)) return first;
+  }
+
+  throw new Error(
+    `Could not find ${exeName}. Set FFMPEG_BIN_DIR to a directory containing ` +
+      `ffmpeg and ffprobe, or install them on PATH. Looked in "${binDir}" and PATH.`
+  );
+}
+
 async function main() {
   const isWindows = process.platform === "win32";
   const triple = getBuildTargetTriple();
@@ -54,14 +83,22 @@ async function main() {
   const frontendDir = path.resolve(scriptDir, "..");
   const repoRoot = path.resolve(frontendDir, "..");
 
-  // CLI checkout: AMVERGE_CLI_DIR override, else the in-repo ./AMVerge-CLI clone.
+  // Local CLI checkout: used ONLY to build the default (dev) install spec, so
+  // local CLI edits flow into the app. CI installs the published wheel via
+  // AMVERGE_CLI_INSTALL_SPEC and never touches this path.
   const cliDir = process.env.AMVERGE_CLI_DIR || path.join(repoRoot, "AMVerge-CLI");
 
-  // Production builds install the CLI into an isolated build venv (not the
-  // editable dev venv), so the bundle is a clean, reproducible pip install.
-  // AMVERGE_BUILD_VENV can point at an existing venv to reuse it.
+  // Neutral working dir for the packaging step (build venv + PyInstaller output),
+  // independent of the CLI source so PyPI installs need no CLI checkout in CI.
+  const buildRoot =
+    process.env.AMVERGE_SIDECAR_BUILD_DIR ||
+    path.join(frontendDir, ".sidecar-build");
+
+  // The CLI is installed into an isolated build venv (not the editable dev venv)
+  // so the bundle is a clean, reproducible install. AMVERGE_BUILD_VENV can point
+  // at an existing venv to reuse it.
   const buildVenvDir =
-    process.env.AMVERGE_BUILD_VENV || path.join(cliDir, ".venv-build");
+    process.env.AMVERGE_BUILD_VENV || path.join(buildRoot, ".venv-build");
   const venvBin = isWindows ? "Scripts" : "bin";
   const buildPython = isWindows
     ? path.join(buildVenvDir, venvBin, "python.exe")
@@ -71,12 +108,13 @@ async function main() {
   // never modified just to be packaged. It imports amverge from the CLI venv.
   const entryScript = path.join(scriptDir, "amverge_entry.py");
 
-  // ffmpeg/ffprobe still ship inside the sidecar _internal (both the CLI and Rust
-  // resolve them there). FFMPEG_BIN_DIR overrides; default is the legacy
-  // backend/bin — relocate these out of backend/ before deleting that folder.
-  const ffmpegBinDir = process.env.FFMPEG_BIN_DIR || path.join(repoRoot, "backend", "bin");
+  // ffmpeg/ffprobe ship inside the sidecar _internal (both the CLI and Rust
+  // resolve them there). CI stages them and sets FFMPEG_BIN_DIR; a local dev
+  // falls back to whatever ffmpeg/ffprobe are on PATH.
+  const ffmpegBinDir =
+    process.env.FFMPEG_BIN_DIR || path.join(frontendDir, ".ffmpeg-bin");
 
-  const distDir = path.join(cliDir, "dist", "amverge");
+  const distDir = path.join(buildRoot, "dist", "amverge");
 
   const tauriSidecarDir = path.join(
     frontendDir,
@@ -86,14 +124,16 @@ async function main() {
   );
 
   const sep = isWindows ? ";" : ":";
-  const ffmpegBin = path.join(ffmpegBinDir, isWindows ? "ffmpeg.exe" : "ffmpeg");
-  const ffprobeBin = path.join(ffmpegBinDir, isWindows ? "ffprobe.exe" : "ffprobe");
+  // Fail fast (before the expensive pip install) if the binaries are missing.
+  const ffmpegBin = resolveTool(ffmpegBinDir, "ffmpeg", isWindows);
+  const ffprobeBin = resolveTool(ffmpegBinDir, "ffprobe", isWindows);
 
   // --- Provision the build venv and install the CLI via pip ------------------
   const basePython = process.env.PYTHON || (isWindows ? "python" : "python3");
   const extras = process.env.AMVERGE_CLI_EXTRAS || "ml,dev";
-  // Default install source: the local CLI checkout (so prod ships current code).
-  // Override with AMVERGE_CLI_INSTALL_SPEC (e.g. "amverge[ml]" for the PyPI release).
+  // Default install source: the local CLI checkout, so a dev's local CLI edits
+  // flow into the app. CI sets AMVERGE_CLI_INSTALL_SPEC to the published wheel
+  // (e.g. "amverge[ml,dev]") — [dev] is required because it pulls PyInstaller.
   const installSpec =
     process.env.AMVERGE_CLI_INSTALL_SPEC || `${cliDir}[${extras}]`;
   // CUDA torch wheel index (Windows GPU). Empty string skips the explicit torch
@@ -105,6 +145,21 @@ async function main() {
     process.env.AMVERGE_NELUX_SPEC ||
     "git+https://github.com/NevermindNilas/Nelux.git";
 
+  // Intel-mac cross build: an Apple-silicon runner targeting x86_64 must run the
+  // x86_64 slice for venv creation, pip installs (so x86_64 wheels land) AND
+  // PyInstaller. Wrap every Python invocation in `arch -x86_64` for that leg.
+  const isX64Mac =
+    process.platform === "darwin" && triple === "x86_64-apple-darwin";
+  const runPython = (pythonExe, pythonArgs, options = {}) => {
+    if (isX64Mac) {
+      run("arch", ["-x86_64", pythonExe, ...pythonArgs], options);
+    } else {
+      run(pythonExe, pythonArgs, options);
+    }
+  };
+
+  await fs.mkdir(buildRoot, { recursive: true });
+
   let buildPythonExists = false;
   try {
     buildPythonExists = (await fs.stat(buildPython)).isFile();
@@ -114,17 +169,17 @@ async function main() {
   if (!buildPythonExists) {
     // A venv's python can bootstrap another venv, so basePython may be the dev
     // interpreter or a system one on PATH (override with PYTHON).
-    run(basePython, ["-m", "venv", buildVenvDir]);
+    runPython(basePython, ["-m", "venv", buildVenvDir]);
   }
 
-  run(buildPython, ["-m", "pip", "install", "--upgrade", "pip"]);
+  runPython(buildPython, ["-m", "pip", "install", "--upgrade", "pip"]);
   // CLI itself (regular, non-editable) + extras: ml pulls torch/transnetv2,
   // dev pulls pyinstaller. --upgrade so each build picks up the latest CLI code.
-  run(buildPython, ["-m", "pip", "install", "--upgrade", installSpec]);
+  runPython(buildPython, ["-m", "pip", "install", "--upgrade", installSpec]);
   // GPU torch: the [ml] extra resolves a CPU wheel on Windows, so override it
   // with the CUDA build for prod. Skipped when torchIndexUrl is empty.
   if (torchIndexUrl) {
-    run(buildPython, [
+    runPython(buildPython, [
       "-m", "pip", "install", "--upgrade",
       "torch", "--index-url", torchIndexUrl,
     ]);
@@ -132,7 +187,7 @@ async function main() {
   // nelux is Windows-only (NVDEC GPU decode); other platforms fall back to the
   // CLI's FFmpeg parallel decode and don't need it.
   if (isWindows) {
-    run(buildPython, ["-m", "pip", "install", "--upgrade", neluxSpec]);
+    runPython(buildPython, ["-m", "pip", "install", "--upgrade", neluxSpec]);
   }
   // ---------------------------------------------------------------------------
 
@@ -151,10 +206,6 @@ async function main() {
     `${ffmpegBin}${sep}.`,
     "--add-binary",
     `${ffprobeBin}${sep}.`,
-    // nelux ships a native extension plus its own FFmpeg DLLs (nelux.libs via
-    // delvewheel); collect-all grabs the package, binaries, and data together.
-    "--collect-all",
-    "nelux",
     // transnetv2-pytorch ships model weights as package data files.
     "--collect-data",
     "transnetv2_pytorch",
@@ -170,17 +221,15 @@ async function main() {
 
   if (isWindows) {
     pyinstallerArgs.push("--noconsole");
+    // nelux (installed on Windows only) ships a native extension plus its own
+    // FFmpeg DLLs (nelux.libs via delvewheel); collect-all grabs the package,
+    // binaries, and data together. Skipped elsewhere since nelux isn't installed.
+    pyinstallerArgs.push("--collect-all", "nelux");
   }
 
-  let cmd = buildPython;
-  let args = pyinstallerArgs;
-
-  if (process.platform === "darwin" && triple === "x86_64-apple-darwin") {
-    cmd = "arch";
-    args = ["-x86_64", buildPython, ...pyinstallerArgs];
-  }
-
-  run(cmd, args, { cwd: cliDir });
+  // Build from the neutral build root (its ./dist and ./build live under
+  // buildRoot). runPython adds `arch -x86_64` on the Intel-mac leg.
+  runPython(buildPython, pyinstallerArgs, { cwd: buildRoot });
 
   await fs.rm(tauriSidecarDir, { recursive: true, force: true });
   await fs.mkdir(tauriSidecarDir, { recursive: true });

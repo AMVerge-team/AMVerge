@@ -28,6 +28,11 @@ backend/clips_output/
 backend/keyframe_clips/
 backend/output_test/
 frontend/src-tauri/bin/
+# Sidecar packaging: staged ffmpeg/ffprobe + PyInstaller build venv/output.
+frontend/.ffmpeg-bin/
+frontend/.sidecar-build/
+.ffmpeg-bin/
+.sidecar-build/
 *.log
 
 # ---- Tauri signing keys ----

@@ -1,0 +1,486 @@
+name: Release macOS Only
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-macos-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-macos-arch:
+    name: Build macOS App (${{ matrix.arch_label }})
+    runs-on: ${{ matrix.runner }}
+    env:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      AMVERGE_NOTIFICATIONS_API_URL: ${{ secrets.AMVERGE_NOTIFICATIONS_API_URL }}
+      VITE_ADMIN_API_URL: ${{ secrets.VITE_ADMIN_API_URL }}
+      AMVERGE_NOTIFICATIONS_API_KEY: ${{ secrets.AMVERGE_NOTIFICATIONS_API_KEY }}
+      AMVERGE_BUG_REPORT_API_URL: ${{ secrets.AMVERGE_BUG_REPORT_API_URL }}
+      AMVERGE_BUG_REPORT_API_KEY: ${{ secrets.AMVERGE_BUG_REPORT_API_KEY }}
+      AMVERGE_BUG_REPORT_KEY_ID: ${{ secrets.AMVERGE_BUG_REPORT_KEY_ID }}
+      AMVERGE_BUG_REPORT_SIGNING_SECRET: ${{ secrets.AMVERGE_BUG_REPORT_SIGNING_SECRET }}
+      # Bundle the published CLI wheel (dev extra pulls PyInstaller). macOS uses
+      # the CPU torch wheel from [ml] (no CUDA override).
+      AMVERGE_CLI_INSTALL_SPEC: "amverge[ml,dev]"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-14
+            arch_label: apple-silicon
+            rust_target: aarch64-apple-darwin
+            tauri_config: tauri.macos.conf.json
+            sidecar_dir: amverge-aarch64-apple-darwin
+            app_artifact_name: amverge-macos-arm64-app
+            updater_artifact_name: amverge-macos-arm64-updater
+          - runner: macos-14
+            arch_label: intel
+            rust_target: x86_64-apple-darwin
+            tauri_config: tauri.macos.intel.conf.json
+            sidecar_dir: amverge-x86_64-apple-darwin
+            app_artifact_name: amverge-macos-x64-app
+            updater_artifact_name: amverge-macos-x64-updater
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add Rust target
+        run: rustup target add ${{ matrix.rust_target }}
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --include=optional
+
+      - name: Work around npm optional dependency issue (Rollup)
+        working-directory: frontend
+        run: |
+          ROLLUP_VERSION=$(node -e "console.log(require('rollup/package.json').version)")
+          ROLLUP_ARCH=$(node -p "process.arch")
+          if [ "$ROLLUP_ARCH" = "arm64" ]; then
+            ROLLUP_PKG="@rollup/rollup-darwin-arm64"
+          else
+            ROLLUP_PKG="@rollup/rollup-darwin-x64"
+          fi
+          npm i --no-save "${ROLLUP_PKG}@${ROLLUP_VERSION}"
+
+      - name: Install Tauri CLI (Rust)
+        run: cargo install tauri-cli --version '^2.0'
+
+      - name: Install Rosetta 2 (Intel Mac emulation)
+        if: matrix.rust_target == 'x86_64-apple-darwin'
+        run: sudo softwareupdate --install-rosetta --agree-to-license
+
+      - name: Stage FFmpeg binaries for the sidecar
+        run: |
+          FFMPEG_DIR="$GITHUB_WORKSPACE/frontend/.ffmpeg-bin"
+          mkdir -p "$FFMPEG_DIR"
+
+          if [ "${{ matrix.rust_target }}" = "x86_64-apple-darwin" ]; then
+            echo "Installing x86_64 ffmpeg/ffprobe from Evermeet for Intel target"
+            curl -fL --retry 3 "https://evermeet.cx/ffmpeg/getrelease/zip" -o "$FFMPEG_DIR/ffmpeg.zip"
+            curl -fL --retry 3 "https://evermeet.cx/ffmpeg/getrelease/ffprobe/zip" -o "$FFMPEG_DIR/ffprobe.zip"
+            unzip -j -o "$FFMPEG_DIR/ffmpeg.zip" -d "$FFMPEG_DIR"
+            unzip -j -o "$FFMPEG_DIR/ffprobe.zip" -d "$FFMPEG_DIR"
+            rm -f "$FFMPEG_DIR/ffmpeg.zip" "$FFMPEG_DIR/ffprobe.zip"
+          else
+            echo "Installing arm64 ffmpeg/ffprobe from Homebrew for Apple Silicon target"
+            brew install ffmpeg
+            cp "$(which ffmpeg)" "$FFMPEG_DIR/ffmpeg"
+            cp "$(which ffprobe)" "$FFMPEG_DIR/ffprobe"
+          fi
+
+          chmod +x "$FFMPEG_DIR/ffmpeg" "$FFMPEG_DIR/ffprobe"
+
+          echo "Validating FFmpeg architecture for target ${{ matrix.rust_target }}"
+          FFMPEG_INFO="$(file "$FFMPEG_DIR/ffmpeg")"
+          FFPROBE_INFO="$(file "$FFMPEG_DIR/ffprobe")"
+          echo "$FFMPEG_INFO"
+          echo "$FFPROBE_INFO"
+
+          if [ "${{ matrix.rust_target }}" = "x86_64-apple-darwin" ]; then
+            echo "$FFMPEG_INFO" | grep -q "x86_64" || { echo "ffmpeg arch mismatch: expected x86_64"; exit 1; }
+            echo "$FFPROBE_INFO" | grep -q "x86_64" || { echo "ffprobe arch mismatch: expected x86_64"; exit 1; }
+          else
+            echo "$FFMPEG_INFO" | grep -q "arm64" || { echo "ffmpeg arch mismatch: expected arm64"; exit 1; }
+            echo "$FFPROBE_INFO" | grep -q "arm64" || { echo "ffprobe arch mismatch: expected arm64"; exit 1; }
+          fi
+
+          echo "FFMPEG_BIN_DIR=$FFMPEG_DIR" >> "$GITHUB_ENV"
+
+      - name: Build Python sidecar
+        working-directory: frontend
+        run: node scripts/build-sidecar.mjs --target ${{ matrix.rust_target }}
+
+      - name: Verify macOS sidecar exists
+        run: |
+          ls -la frontend/src-tauri/bin/${{ matrix.sidecar_dir }}
+
+          SIDECAR_EXE="frontend/src-tauri/bin/${{ matrix.sidecar_dir }}/amverge"
+          SIDECAR_FFMPEG="frontend/src-tauri/bin/${{ matrix.sidecar_dir }}/_internal/ffmpeg"
+          SIDECAR_FFPROBE="frontend/src-tauri/bin/${{ matrix.sidecar_dir }}/_internal/ffprobe"
+
+          [ -f "$SIDECAR_EXE" ] || { echo "Missing sidecar amverge at $SIDECAR_EXE"; exit 1; }
+          [ -f "$SIDECAR_FFMPEG" ] || { echo "Missing sidecar ffmpeg at $SIDECAR_FFMPEG"; exit 1; }
+          [ -f "$SIDECAR_FFPROBE" ] || { echo "Missing sidecar ffprobe at $SIDECAR_FFPROBE"; exit 1; }
+
+          echo "Validating sidecar executable architecture for target ${{ matrix.rust_target }}"
+          SIDECAR_EXE_INFO="$(file "$SIDECAR_EXE")"
+          SIDECAR_FFMPEG_INFO="$(file "$SIDECAR_FFMPEG")"
+          SIDECAR_FFPROBE_INFO="$(file "$SIDECAR_FFPROBE")"
+          echo "$SIDECAR_EXE_INFO"
+          echo "$SIDECAR_FFMPEG_INFO"
+          echo "$SIDECAR_FFPROBE_INFO"
+
+          if [ "${{ matrix.rust_target }}" = "x86_64-apple-darwin" ]; then
+            echo "$SIDECAR_EXE_INFO" | grep -q "x86_64" || { echo "sidecar amverge arch mismatch: expected x86_64"; exit 1; }
+            echo "$SIDECAR_FFMPEG_INFO" | grep -q "x86_64" || { echo "sidecar ffmpeg arch mismatch: expected x86_64"; exit 1; }
+            echo "$SIDECAR_FFPROBE_INFO" | grep -q "x86_64" || { echo "sidecar ffprobe arch mismatch: expected x86_64"; exit 1; }
+          else
+            echo "$SIDECAR_EXE_INFO" | grep -q "arm64" || { echo "sidecar amverge arch mismatch: expected arm64"; exit 1; }
+            echo "$SIDECAR_FFMPEG_INFO" | grep -q "arm64" || { echo "sidecar ffmpeg arch mismatch: expected arm64"; exit 1; }
+            echo "$SIDECAR_FFPROBE_INFO" | grep -q "arm64" || { echo "sidecar ffprobe arch mismatch: expected arm64"; exit 1; }
+          fi
+
+      - name: Build macOS app bundle
+        working-directory: frontend/src-tauri
+        run: cargo tauri build --target ${{ matrix.rust_target }} --bundles app --config ${{ matrix.tauri_config }}
+
+      - name: Archive app bundle
+        run: |
+          mkdir -p artifacts
+          BUNDLE_ROOT="frontend/src-tauri/target/${{ matrix.rust_target }}/release/bundle"
+          APP_BUNDLE="$(find "$BUNDLE_ROOT" -type d -name '*.app' | head -n 1)"
+          if [ -z "$APP_BUNDLE" ]; then
+            echo "No .app bundle found in $BUNDLE_ROOT"
+            find "$BUNDLE_ROOT" -maxdepth 4 -print || true
+            exit 1
+          fi
+          APP_BUNDLE_DIR="$(dirname "$APP_BUNDLE")"
+          tar -C "$APP_BUNDLE_DIR" -czf artifacts/${{ matrix.app_artifact_name }}.tar.gz "$(basename "$APP_BUNDLE")"
+
+      - name: Collect mac updater artifacts
+        run: |
+          mkdir -p artifacts/updater
+          BUNDLE_ROOT="frontend/src-tauri/target/${{ matrix.rust_target }}/release/bundle"
+          FOUND=0
+          while IFS= read -r -d '' sig; do
+            target="${sig%.sig}"
+            if [ -f "$target" ]; then
+              cp "$target" artifacts/updater/
+              cp "$sig" artifacts/updater/
+              FOUND=1
+            fi
+          done < <(find "$BUNDLE_ROOT" -type f -name '*.sig' -print0)
+
+          if [ "$FOUND" -ne 1 ]; then
+            echo "No updater artifact/signature pair found under $BUNDLE_ROOT"
+            find "$BUNDLE_ROOT" -maxdepth 4 -print || true
+            exit 1
+          fi
+
+      - name: Upload app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app_artifact_name }}
+          path: artifacts/${{ matrix.app_artifact_name }}.tar.gz
+          if-no-files-found: error
+
+      - name: Upload updater artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.updater_artifact_name }}
+          path: artifacts/updater/*
+          if-no-files-found: error
+
+  package-universal-macos:
+    name: Package Universal macOS DMG
+    needs: build-macos-arch
+    runs-on: macos-14
+    env:
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_NOTARY_TEAM_ID: ${{ secrets.APPLE_NOTARY_TEAM_ID }}
+      APPLE_ASC_KEY_ID: ${{ secrets.APPLE_ASC_KEY_ID }}
+      APPLE_ASC_ISSUER_ID: ${{ secrets.APPLE_ASC_ISSUER_ID }}
+      APPLE_ASC_API_KEY: ${{ secrets.APPLE_ASC_API_KEY }}
+      APPLE_ASC_API_KEY_BASE64: ${{ secrets.APPLE_ASC_API_KEY_BASE64 }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Import Apple signing certificate
+        run: |
+          if [ -z "$APPLE_CERTIFICATE" ]; then
+            echo "APPLE_CERTIFICATE is empty"
+            exit 1
+          fi
+          printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12 2>/dev/null || printf '%s' "$APPLE_CERTIFICATE" | base64 -D > certificate.p12
+
+          KEYCHAIN_PATH="$RUNNER_TEMP/universal-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 24)"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          openssl pkcs12 -in certificate.p12 -clcerts -nokeys -passin "pass:$APPLE_CERTIFICATE_PASSWORD" -out extracted-cert.pem
+          openssl pkcs12 -in certificate.p12 -nocerts -nodes -passin "pass:$APPLE_CERTIFICATE_PASSWORD" -out extracted-key.pem
+
+          security import extracted-cert.pem -k "$KEYCHAIN_PATH" -T /usr/bin/codesign -T /usr/bin/security
+          security import extracted-key.pem -k "$KEYCHAIN_PATH" -T /usr/bin/codesign -T /usr/bin/security
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security default-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          if [ -n "$APPLE_SIGNING_IDENTITY" ] && security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep -Fq "$APPLE_SIGNING_IDENTITY"; then
+            EFFECTIVE_SIGNING_IDENTITY="$APPLE_SIGNING_IDENTITY"
+          else
+            EFFECTIVE_SIGNING_IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | sed -n 's/.*"\(Developer ID Application:.*\)"/\1/p' | head -n 1)"
+            if [ -z "$EFFECTIVE_SIGNING_IDENTITY" ]; then
+              echo "No Developer ID Application identity found in keychain"
+              exit 1
+            fi
+          fi
+
+          echo "EFFECTIVE_SIGNING_IDENTITY=$EFFECTIVE_SIGNING_IDENTITY" >> "$GITHUB_ENV"
+
+      - name: Download arm64 app artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: amverge-macos-arm64-app
+          path: artifacts/arm64
+
+      - name: Download x64 app artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: amverge-macos-x64-app
+          path: artifacts/x64
+
+      - name: Extract app bundles
+        run: |
+          mkdir -p build-input/arm64 build-input/x64 build-output
+          tar -xzf artifacts/arm64/amverge-macos-arm64-app.tar.gz -C build-input/arm64
+          tar -xzf artifacts/x64/amverge-macos-x64-app.tar.gz -C build-input/x64
+          ARM_APP_PATH="$(find build-input/arm64 -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          X64_APP_PATH="$(find build-input/x64 -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          if [ -z "$ARM_APP_PATH" ] || [ -z "$X64_APP_PATH" ]; then
+            echo "Missing extracted .app bundle(s)"
+            exit 1
+          fi
+          APP_BUNDLE_NAME="$(basename "$ARM_APP_PATH")"
+          UNIVERSAL_APP_PATH="build-output/$APP_BUNDLE_NAME"
+          echo "ARM_APP_PATH=$ARM_APP_PATH" >> "$GITHUB_ENV"
+          echo "X64_APP_PATH=$X64_APP_PATH" >> "$GITHUB_ENV"
+          echo "UNIVERSAL_APP_PATH=$UNIVERSAL_APP_PATH" >> "$GITHUB_ENV"
+          echo "APP_VOLNAME=${APP_BUNDLE_NAME%.app}" >> "$GITHUB_ENV"
+
+      - name: Merge universal app bundle
+        run: |
+          node frontend/scripts/merge-universal-macos-app.mjs \
+            --armApp "$ARM_APP_PATH" \
+            --x64App "$X64_APP_PATH" \
+            --outApp "$UNIVERSAL_APP_PATH" \
+            --signIdentity "$EFFECTIVE_SIGNING_IDENTITY" \
+            --config frontend/src-tauri/tauri.macos.universal.conf.json
+
+      - name: Diagnose and repair Python.framework structure
+        run: |
+          set -e
+          SIDECAR_ROOT="$UNIVERSAL_APP_PATH/Contents/Resources/bin"
+          if [ ! -d "$SIDECAR_ROOT" ]; then
+            echo "Sidecar bin directory not found at $SIDECAR_ROOT"
+            exit 1
+          fi
+
+          # Repair flattened PyInstaller framework layout before signing.
+          find "$SIDECAR_ROOT" -type d -name 'Python.framework' -print0 | while IFS= read -r -d '' framework; do
+            VERSION_DIR="$(find "$framework/Versions" -mindepth 1 -maxdepth 1 -type d ! -name 'Current' -print -quit | xargs -I{} basename {} 2>/dev/null || true)"
+            if [ -z "$VERSION_DIR" ]; then
+              echo "No concrete version directory found inside $framework/Versions"
+              exit 1
+            fi
+
+            REAL_BIN="$framework/Versions/$VERSION_DIR/Python"
+            if [ ! -f "$REAL_BIN" ]; then
+              echo "Expected real Python binary not found at $REAL_BIN"
+              exit 1
+            fi
+
+            if [ ! -L "$framework/Versions/Current" ]; then
+              rm -rf "$framework/Versions/Current"
+              ln -s "$VERSION_DIR" "$framework/Versions/Current"
+            fi
+
+            if [ ! -L "$framework/Python" ]; then
+              rm -rf "$framework/Python"
+              ln -s "Versions/Current/Python" "$framework/Python"
+            fi
+
+            if [ -d "$framework/Versions/$VERSION_DIR/Resources" ] && [ ! -L "$framework/Resources" ]; then
+              rm -rf "$framework/Resources"
+              ln -s "Versions/Current/Resources" "$framework/Resources"
+            fi
+          done
+
+      - name: Re-sign embedded Python sidecar binaries
+        run: |
+          SIDECAR_ROOT="$UNIVERSAL_APP_PATH/Contents/Resources/bin"
+
+          find "$SIDECAR_ROOT" -type f -print0 | while IFS= read -r -d '' f; do
+            case "$f" in
+              */Python.framework/*) continue ;;
+            esac
+            if file -b "$f" | grep -q 'Mach-O'; then
+              codesign --force --sign "$EFFECTIVE_SIGNING_IDENTITY" --timestamp --options runtime "$f"
+            fi
+          done
+
+          find "$SIDECAR_ROOT" -type d -name 'Python.framework' -print0 | while IFS= read -r -d '' framework; do
+            find "$framework" -type f \( -name '*.so' -o -name '*.dylib' \) -print0 | while IFS= read -r -d '' inner; do
+              if file -b "$inner" | grep -q 'Mach-O'; then
+                codesign --force --sign "$EFFECTIVE_SIGNING_IDENTITY" --timestamp --options runtime "$inner"
+              fi
+            done
+
+            VERSION_DIR="$(readlink "$framework/Versions/Current")"
+            if [ -n "$VERSION_DIR" ] && [ -d "$framework/Versions/$VERSION_DIR" ]; then
+              codesign --force --sign "$EFFECTIVE_SIGNING_IDENTITY" --timestamp --options runtime "$framework/Versions/$VERSION_DIR"
+            fi
+            codesign --force --sign "$EFFECTIVE_SIGNING_IDENTITY" --timestamp --options runtime "$framework"
+            codesign --verify --strict --verbose=2 "$framework"
+          done
+
+      - name: Re-sign universal app bundle (final)
+        run: |
+          codesign --force --sign "$EFFECTIVE_SIGNING_IDENTITY" --timestamp --options runtime "$UNIVERSAL_APP_PATH"
+          codesign --verify --strict --deep --verbose=2 "$UNIVERSAL_APP_PATH"
+
+      - name: Create universal DMG
+        run: |
+          mkdir -p frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg
+          DMG_PATH="frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/AMVerge-macos-universal.dmg"
+
+          hdiutil info | awk '/\/Volumes\/'"$APP_VOLNAME"'$/ {print $1}' | while read -r dev; do
+            [ -n "$dev" ] && hdiutil detach "$dev" -force || true
+          done
+
+          rm -f "$DMG_PATH"
+          for attempt in 1 2 3; do
+            if hdiutil create -volname "$APP_VOLNAME" -srcfolder "$UNIVERSAL_APP_PATH" -ov -format UDZO "$DMG_PATH"; then
+              break
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              echo "hdiutil create failed after 3 attempts"
+              exit 1
+            fi
+
+            echo "hdiutil create failed (attempt $attempt), retrying..."
+            hdiutil info | awk '/\/Volumes\/'"$APP_VOLNAME"'$/ {print $1}' | while read -r dev; do
+              [ -n "$dev" ] && hdiutil detach "$dev" -force || true
+            done
+          done
+
+      - name: Sign universal DMG
+        run: |
+          DMG_PATH="frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/AMVerge-macos-universal.dmg"
+          codesign --force --sign "$EFFECTIVE_SIGNING_IDENTITY" --timestamp "$DMG_PATH"
+
+      - name: Notarize and staple universal DMG
+        run: |
+          DMG_PATH="frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/AMVerge-macos-universal.dmg"
+          NOTARY_SUBMIT_JSON="$RUNNER_TEMP/notary-submit.json"
+          NOTARY_PASSWORD="$(printf '%s' "${APPLE_APP_SPECIFIC_PASSWORD:-$APPLE_PASSWORD}" | tr -d '[:space:]')"
+          APPLE_ID_CLEAN="$(printf '%s' "$APPLE_ID" | tr -d '[:space:]')"
+          SIGNING_TEAM_ID="$(printf '%s' "$EFFECTIVE_SIGNING_IDENTITY" | sed -n 's/.*(\([A-Z0-9]\{10\}\)).*/\1/p')"
+          NOTARY_TEAM_ID="$(printf '%s' "${APPLE_NOTARY_TEAM_ID:-${APPLE_TEAM_ID:-$SIGNING_TEAM_ID}}" | tr -d '[:space:]')"
+
+          if [ -n "$APPLE_ASC_KEY_ID" ] && [ -n "$APPLE_ASC_ISSUER_ID" ] && { [ -n "$APPLE_ASC_API_KEY" ] || [ -n "$APPLE_ASC_API_KEY_BASE64" ]; }; then
+            KEY_DIR="$RUNNER_TEMP/private_keys"
+            KEY_PATH="$KEY_DIR/AuthKey_${APPLE_ASC_KEY_ID}.p8"
+            mkdir -p "$KEY_DIR"
+
+            if [ -n "$APPLE_ASC_API_KEY_BASE64" ]; then
+              printf '%s' "$APPLE_ASC_API_KEY_BASE64" | base64 --decode > "$KEY_PATH" 2>/dev/null || printf '%s' "$APPLE_ASC_API_KEY_BASE64" | base64 -D > "$KEY_PATH"
+            else
+              printf '%s' "$APPLE_ASC_API_KEY" > "$KEY_PATH"
+            fi
+
+            chmod 600 "$KEY_PATH"
+            xcrun notarytool submit "$DMG_PATH" --key "$KEY_PATH" --key-id "$APPLE_ASC_KEY_ID" --issuer "$APPLE_ASC_ISSUER_ID" --output-format json --wait > "$NOTARY_SUBMIT_JSON"
+          else
+            if [ -z "$NOTARY_PASSWORD" ] || [ -z "$APPLE_ID_CLEAN" ] || [ -z "$NOTARY_TEAM_ID" ]; then
+              echo "Missing Apple notarization credentials"
+              exit 1
+            fi
+            xcrun notarytool submit "$DMG_PATH" --apple-id "$APPLE_ID_CLEAN" --password "$NOTARY_PASSWORD" --team-id "$NOTARY_TEAM_ID" --output-format json --wait > "$NOTARY_SUBMIT_JSON"
+          fi
+
+          if [ ! -s "$NOTARY_SUBMIT_JSON" ]; then
+            echo "Notary submission did not produce JSON output."
+            exit 1
+          fi
+
+          cat "$NOTARY_SUBMIT_JSON"
+
+          NOTARY_ID="$(sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$NOTARY_SUBMIT_JSON" | head -n 1)"
+          NOTARY_STATUS="$(sed -n 's/.*"status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$NOTARY_SUBMIT_JSON" | head -n 1)"
+
+          if [ -z "$NOTARY_ID" ] || [ -z "$NOTARY_STATUS" ]; then
+            echo "Unable to parse notary id/status from JSON output."
+            exit 1
+          fi
+
+          if [ "$NOTARY_STATUS" != "Accepted" ]; then
+            echo "Notarization status is '$NOTARY_STATUS' (expected Accepted)."
+            echo "Fetching detailed notary log for submission id: $NOTARY_ID"
+
+            if [ -n "$APPLE_ASC_KEY_ID" ] && [ -n "$APPLE_ASC_ISSUER_ID" ] && { [ -n "$APPLE_ASC_API_KEY" ] || [ -n "$APPLE_ASC_API_KEY_BASE64" ]; }; then
+              xcrun notarytool log "$NOTARY_ID" --key "$KEY_PATH" --key-id "$APPLE_ASC_KEY_ID" --issuer "$APPLE_ASC_ISSUER_ID" || true
+            else
+              xcrun notarytool log "$NOTARY_ID" --apple-id "$APPLE_ID_CLEAN" --password "$NOTARY_PASSWORD" --team-id "$NOTARY_TEAM_ID" || true
+            fi
+
+            exit 1
+          fi
+
+          xcrun stapler staple "$DMG_PATH"
+          xcrun stapler validate "$DMG_PATH"
+
+      - name: Upload universal DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: amverge-macos-universal-dmg
+          path: frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/AMVerge-macos-universal.dmg
+          if-no-files-found: error

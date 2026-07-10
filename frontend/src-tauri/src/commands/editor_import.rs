@@ -488,16 +488,13 @@ fn run_editor_ui_import_ps(script_path: &Path, editor_name: &str) -> Result<Stri
 fn run_python_script(script_path: &Path) -> Result<String, String> {
     let mut launch_errors: Vec<String> = Vec::new();
 
+    // Resolve script runs against the user's system Python (the backend/venv
+    // interpreter lookup was removed with the backend folder).
     #[cfg(target_os = "windows")]
-    let candidates: Vec<(String, Vec<String>)> = {
-        let mut c: Vec<(String, Vec<String>)> = Vec::new();
-        if let Some(p) = resolve_local_venv_python() {
-            c.push((p.to_string_lossy().to_string(), vec![]));
-        }
-        c.push(("python".to_string(), vec![]));
-        c.push(("py".to_string(), vec!["-3".to_string()]));
-        c
-    };
+    let candidates: Vec<(String, Vec<String>)> = vec![
+        ("python".to_string(), vec![]),
+        ("py".to_string(), vec!["-3".to_string()]),
+    ];
 
     #[cfg(not(target_os = "windows"))]
     let candidates: Vec<(String, Vec<String>)> = vec![
@@ -595,34 +592,6 @@ fn run_python_script(script_path: &Path) -> Result<String, String> {
         "{}\nFailed to run DaVinci scripting bridge.",
         launch_errors.join("\n")
     ))
-}
-
-fn resolve_local_venv_python() -> Option<PathBuf> {
-    let current = std::env::current_dir().ok()?;
-    let candidate_roots = if current.ends_with("src-tauri") {
-        vec![
-            current
-                .parent()
-                .and_then(|p| p.parent())
-                .map(|p| p.to_path_buf()),
-            Some(current.clone()),
-        ]
-    } else {
-        vec![Some(current)]
-    };
-
-    for root in candidate_roots.into_iter().flatten() {
-        let python = root
-            .join("backend")
-            .join("venv")
-            .join("Scripts")
-            .join("python.exe");
-        if python.exists() {
-            return Some(python);
-        }
-    }
-
-    None
 }
 
 fn runtime_temp_path(prefix: &str, extension: &str) -> Result<PathBuf, String> {
