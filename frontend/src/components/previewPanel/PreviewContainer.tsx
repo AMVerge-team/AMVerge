@@ -64,7 +64,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const previewMethod = openedEpisode?.importMethod ?? importMethod;
   const webpPreviewMode = previewMethod === "webp_files";
 
-  const defaultMergedName = (clips[0]?.originalName || "episode") + "_merged";
+  const defaultMergedName = (clips[0]?.originalName || "episode").replace(/\.[^./\\]+$/, "") + "_merged";
   const activeExportProfile = React.useMemo(
     () => getActiveExportProfile(generalSettings.exportProfiles, generalSettings.activeExportProfileId),
     [generalSettings.exportProfiles, generalSettings.activeExportProfileId]

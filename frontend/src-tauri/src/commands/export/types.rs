@@ -1,15 +1,11 @@
-use std::path::PathBuf;
-use std::sync::atomic::AtomicBool;
-use std::sync::{Arc, Mutex};
-use std::time::Instant;
-
-use tauri::AppHandle;
-
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExportOptionsPayload {
+    // Part of the frontend payload contract; not consumed on the Rust side.
+    #[allow(dead_code)]
     pub(super) profile_id: String,
     pub(super) workflow: String,
+    #[allow(dead_code)]
     pub(super) editor_target: String,
     pub(super) codec: String,
     pub(super) audio_mode: String,
@@ -61,30 +57,4 @@ impl Default for GpuEncoderCapabilitiesPayload {
             max_parallel_exports: 1,
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub(super) struct ClipExportJob {
-    pub index: usize,
-    pub total: usize,
-    pub input: String,
-    pub output: String,
-    pub copy_ok: bool,
-    pub input_seek_ms: Option<u64>,
-    pub clip_total: Option<u64>,
-}
-
-#[derive(Clone)]
-pub(super) struct ExportRuntime {
-    pub app: AppHandle,
-    pub ffmpeg: PathBuf,
-    pub ffprobe: PathBuf,
-    pub abort_requested: Arc<AtomicBool>,
-    pub active_pids: Arc<Mutex<Vec<u32>>>,
-    pub export_options: Option<ExportOptionsPayload>,
-    pub gpu_capabilities: GpuEncoderCapabilitiesPayload,
-    pub export_start_time: Instant,
-    pub remux_workflow: bool,
-    pub force_encode_workflow: bool,
-    pub source_video_codec: Option<String>,
 }

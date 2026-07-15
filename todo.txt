@@ -1,2 +1,2 @@
-- Fix video import taking forever, figure out and describe exact pipeline/workflow for how
-video file workflows should work cuz claude is just shooting in the dark rn
+- fix thumbnail duplication, black thumbnails, thumbnails doing the last frame instead of the first frame sometimes? It happened on toradora clips
+- compare definitively the experience between current AMVerge V1 vs AMVerge V2.

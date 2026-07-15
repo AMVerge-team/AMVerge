@@ -27,6 +27,18 @@ type ExportOptionsPayload = {
   parallelExports: number;
 };
 
+/**
+ * Resolve the on-disk video file(s) to export for a clip. Video-mode clips have
+ * a pre-cut scene file (`clipPath`); merged clips carry the cut files of their
+ * parts (`mergedSrcs`). Only webp/legacy clips with no cut file fall back to the
+ * source path — those need the source-range cut path (handled by the CLI export).
+ */
+function clipExportSources(c: ClipItem): string[] {
+  if (c.mergedSrcs && c.mergedSrcs.length > 0) return c.mergedSrcs;
+  if (c.clipPath) return [c.clipPath];
+  return [c.src];
+}
+
 export default function useImportExport(props?: ImportExportProps) {
   const appState = useAppStateStore();
   const episodeState = useEpisodePanelRuntimeStore();
@@ -626,7 +638,7 @@ export default function useImportExport(props?: ImportExportProps) {
     try {
       setLoading(true);
       const sep = dir.includes('\\') ? '\\' : '/';
-      const clipArray = selected.flatMap((c: ClipItem) => c.mergedSrcs ?? [c.src]);
+      const clipArray = selected.flatMap(clipExportSources);
       const exportOptions = buildExportOptionsPayload(generalSettings.activeExportProfileId);
       const activeProfile = generalSettings.exportProfiles.find(
         (candidate) => candidate.id === generalSettings.activeExportProfileId
@@ -650,7 +662,8 @@ export default function useImportExport(props?: ImportExportProps) {
       });
 
       if (mergeEnabled) {
-        const rawBase = mergeFileName || ((selected[0]?.originalName || "episode") + "_merged");
+        const mergeBase = (selected[0]?.originalName || "episode").replace(/\.[^./\\]+$/, "");
+        const rawBase = mergeFileName || (mergeBase + "_merged");
         // Sanitize: strip path separators, control chars, and reserved characters;
         // collapse to a safe filename. Prevents traversal injection (e.g. "../foo").
         const baseName = (rawBase
@@ -665,6 +678,7 @@ export default function useImportExport(props?: ImportExportProps) {
           savePath,
           mergeEnabled,
           exportOptions,
+          audioTrack: generalSettings.previewAudioStreamIndex,
         });
         if (generalSettings.openFileLocationAfterExport && exportedFiles.length > 0) {
           await invoke("reveal_in_file_manager", { filePath: exportedFiles[0] });
@@ -681,6 +695,7 @@ export default function useImportExport(props?: ImportExportProps) {
           savePath,
           mergeEnabled: false,
           exportOptions,
+          audioTrack: generalSettings.previewAudioStreamIndex,
         });
         if (generalSettings.openFileLocationAfterExport && exportedFiles.length > 0) {
           await invoke("reveal_in_file_manager", { filePath: exportedFiles[0] });
@@ -748,7 +763,7 @@ export default function useImportExport(props?: ImportExportProps) {
         !isExportCodecContainerCompatible(activeProfile.codec, preferredFormat)
           ? getRecommendedContainerForCodec(activeProfile.codec)
           : preferredFormat;
-      const fileName = clip.originalName || fileNameFromPath(clip.src);
+      const fileName = (clip.originalName || fileNameFromPath(clip.src)).replace(/\.[^./\\]+$/, "");
       const defaultPath = `${fileName}.${format}`;
       const savePath = await save({
         defaultPath,
@@ -759,13 +774,14 @@ export default function useImportExport(props?: ImportExportProps) {
 
       setLoading(true);
 
-      const srcs = clip.mergedSrcs ?? [clip.src];
+      const srcs = clipExportSources(clip);
       const exportOptions = buildExportOptionsPayload(generalSettings.activeExportProfileId);
       const exportedFiles = await invoke<string[]>("export_clips", {
         clips: srcs,
         savePath,
         mergeEnabled: srcs.length > 1,
         exportOptions,
+        audioTrack: generalSettings.previewAudioStreamIndex,
       });
       if (generalSettings.openFileLocationAfterExport && exportedFiles.length > 0) {
         await invoke("reveal_in_file_manager", { filePath: exportedFiles[0] });
