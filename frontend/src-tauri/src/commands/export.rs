@@ -22,6 +22,19 @@ pub use types::{
     ExportOptionsPayload, GpuEncoderCapabilitiesPayload, NvidiaEncoderDetectionPayload,
 };
 
+/// One clip to export. `input` is a pre-cut clip file exported whole (video
+/// mode); when `start_sec`/`end_sec` are present, `input` is a source episode
+/// and that range is cut from it (webp mode). Serialized as-is into the CLI's
+/// `--inputs-json`.
+#[derive(serde::Deserialize, serde::Serialize)]
+pub(crate) struct ClipSpec {
+    input: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    start_sec: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    end_sec: Option<f64>,
+}
+
 struct ExportAbortGuard {
     abort_requested: Arc<std::sync::atomic::AtomicBool>,
     active_pids: Arc<Mutex<Vec<u32>>>,
@@ -82,7 +95,7 @@ fn codec_for(options: Option<&ExportOptionsPayload>) -> String {
 pub async fn export_clips(
     app: AppHandle,
     abort_state: State<'_, ExportAbortState>,
-    clips: Vec<String>,
+    clips: Vec<ClipSpec>,
     save_path: String,
     merge_enabled: bool,
     export_options: Option<ExportOptionsPayload>,
@@ -108,8 +121,8 @@ pub async fn export_clips(
     {
         let mut missing: Vec<String> = Vec::new();
         for clip in &clips {
-            if !std::path::Path::new(clip).exists() {
-                missing.push(file_name_only(clip));
+            if !std::path::Path::new(&clip.input).exists() {
+                missing.push(file_name_only(&clip.input));
                 if missing.len() >= 3 {
                     break;
                 }

@@ -27,16 +27,21 @@ type ExportOptionsPayload = {
   parallelExports: number;
 };
 
+/** One clip input for export. A bare `input` is a pre-cut clip file exported
+ * whole (video mode); with `start_sec`/`end_sec` it's a source episode and that
+ * range is cut from it (webp mode — no clip file on disk). */
+type ClipExportSpec = { input: string; start_sec?: number; end_sec?: number };
+
 /**
- * Resolve the on-disk video file(s) to export for a clip. Video-mode clips have
- * a pre-cut scene file (`clipPath`); merged clips carry the cut files of their
- * parts (`mergedSrcs`). Only webp/legacy clips with no cut file fall back to the
- * source path — those need the source-range cut path (handled by the CLI export).
+ * Resolve a clip to its export input(s). Video-mode clips have a pre-cut scene
+ * file (`clipPath`); merged clips carry the cut files of their parts
+ * (`mergedSrcs`). Webp clips have no file on disk, so they carry their
+ * `[start, end]` range for the CLI to cut from the source episode (`src`).
  */
-function clipExportSources(c: ClipItem): string[] {
-  if (c.mergedSrcs && c.mergedSrcs.length > 0) return c.mergedSrcs;
-  if (c.clipPath) return [c.clipPath];
-  return [c.src];
+function clipExportSpecs(c: ClipItem): ClipExportSpec[] {
+  if (c.mergedSrcs && c.mergedSrcs.length > 0) return c.mergedSrcs.map((input) => ({ input }));
+  if (c.clipPath) return [{ input: c.clipPath }];
+  return [{ input: c.src, start_sec: c.startSec, end_sec: c.endSec }];
 }
 
 export default function useImportExport(props?: ImportExportProps) {
@@ -638,7 +643,7 @@ export default function useImportExport(props?: ImportExportProps) {
     try {
       setLoading(true);
       const sep = dir.includes('\\') ? '\\' : '/';
-      const clipArray = selected.flatMap(clipExportSources);
+      const clipArray = selected.flatMap(clipExportSpecs);
       const exportOptions = buildExportOptionsPayload(generalSettings.activeExportProfileId);
       const activeProfile = generalSettings.exportProfiles.find(
         (candidate) => candidate.id === generalSettings.activeExportProfileId
@@ -774,7 +779,7 @@ export default function useImportExport(props?: ImportExportProps) {
 
       setLoading(true);
 
-      const srcs = clipExportSources(clip);
+      const srcs = clipExportSpecs(clip);
       const exportOptions = buildExportOptionsPayload(generalSettings.activeExportProfileId);
       const exportedFiles = await invoke<string[]>("export_clips", {
         clips: srcs,
