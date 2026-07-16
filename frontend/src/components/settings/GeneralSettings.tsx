@@ -16,7 +16,7 @@ const SCENE_DETECTION_OPTIONS: DropdownOption<SceneDetectionMethod>[] = [
   {
     value: "keyframe_detection",
     label: "Keyframe Detection",
-    description: "Not implemented yet.",
+    description: "Fast CPU cuts at I-frame boundaries (no GPU needed)",
   },
   {
     value: "pyscenedetect_cpu",
