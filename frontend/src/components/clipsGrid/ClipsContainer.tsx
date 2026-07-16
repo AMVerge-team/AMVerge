@@ -62,11 +62,13 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     ? activeCols
     : Math.max(1, Math.min(activeCols, clips.length));
 
-  const clipMaxWidth = gridColumns <= 1
-    ? "min(100%, 920px)"
-    : gridColumns === 2
-      ? "520px"
-      : "260px";
+  // Cap + center the grid (not each tile) so tiles fill their columns
+  // edge-to-edge instead of shrinking to a fixed max and leaving gaps. Width
+  // scales with the column count; a single-column view keeps a tighter cap for
+  // one big preview. The grid only centers once the window exceeds this width.
+  const gridMaxWidth = gridColumns <= 1
+    ? "920px"
+    : `${gridColumns * 640 + (gridColumns - 1) * 15}px`;
 
   const handleDownloadSingleClip = useCallback(async (clip: (typeof clips)[number]) => {
     try {
@@ -359,7 +361,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
           className="clips-grid"
           style={{
             gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
-            ["--clip-max-width" as any]: clipMaxWidth,
+            ["--grid-max-width" as any]: gridMaxWidth,
           }}
         >
           {Array.from({ length: 12 }).map((_, i) => (
@@ -379,7 +381,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
           className="clips-grid"
           style={{
             gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
-            ["--clip-max-width" as any]: clipMaxWidth,
+            ["--grid-max-width" as any]: gridMaxWidth,
           }}
         >
           {clips.map((clip, index) => (

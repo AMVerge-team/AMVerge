@@ -25,13 +25,12 @@
 }
 
 .clips-grid {
-    --cell-size: 180px;
-
     display: grid;
-    grid-template-columns: repeat(auto-fit,
-            minmax(min(100%, var(--cell-size)), min(100%, var(--cell-size))));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    max-width: var(--grid-max-width, none);
+    margin-inline: auto;
 
-    justify-content: center;
     align-content: start;
     gap: 15px;
     padding: 15px;
@@ -40,19 +39,13 @@
 .clip-wrapper {
     --clip-overlay-inset: 7px;
     width: 100%;
-    max-width: var(--clip-max-width, 260px);
     aspect-ratio: var(--clip-tile-aspect, 1 / 1);
     border-radius: 15px;
     position: relative;
     overflow: hidden;
     background: black;
-    margin-inline: auto;
     cursor: pointer;
     transition: transform 0.18s ease-out, box-shadow 0.18s ease-out;
-    /* Isolate each tile's layout + paint so a hover/state change on one tile can't
-       trigger reflow/repaint of siblings during scroll. Safe: the tile already has
-       a fixed aspect-ratio box + overflow:hidden, so containment changes nothing
-       visible. */
     contain: layout paint;
 }
 
