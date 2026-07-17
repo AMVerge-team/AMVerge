@@ -1,4 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type PointerEventHandler,
+} from "react";
 import { listen, type Event, type UnlistenFn } from "@tauri-apps/api/event";
 
 interface ImportTerminalProps {
@@ -8,8 +15,22 @@ interface ImportTerminalProps {
   batchDone: number;
   batchCurrentFile: string;
   onAbort: () => void;
+  /** Which CLI operation this overlay is showing (drives the command header). */
+  operation?: "import" | "export";
   /** Video file name for the synthesized command header line. */
   commandLabel?: string;
+  /** Scene detection method for the synthesized command line (e.g. keyframe_detection). */
+  detectionMethod?: string;
+  /** Import method for the synthesized command line (video_files / webp_files). */
+  importMethod?: string;
+  /** Collapsed into a small draggable card with the progress bar attached. */
+  minimized?: boolean;
+  /** Toggle between the centered terminal and the minimized card. */
+  onToggleMinimize?: () => void;
+  /** Dismiss the minimized card (abort + clear background progress). */
+  onClose?: () => void;
+  /** BgProgressBar (in `attached` mode) rendered below the minimized card. */
+  bgBar?: ReactNode;
 }
 
 type LineKind = "cmd" | "log" | "warn" | "error" | "event";
@@ -60,15 +81,75 @@ export default function ImportTerminal({
   batchDone,
   batchCurrentFile,
   onAbort,
+  operation = "import",
   commandLabel,
+  detectionMethod = "transnetv2_gpu",
+  importMethod = "video_files",
+  minimized = false,
+  onToggleMinimize,
+  onClose,
+  bgBar,
 }: ImportTerminalProps) {
   const [lines, setLines] = useState<TerminalLine[]>([]);
   const [spinnerFrame, setSpinnerFrame] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const bodyRef = useRef<HTMLDivElement | null>(null);
+  const miniBodyRef = useRef<HTMLDivElement | null>(null);
   const idRef = useRef(0);
   const startedRef = useRef<number>(Date.now());
   const headerPushedRef = useRef(false);
+
+  // Minimized-card drag state. The card floats free of the dark backdrop so the
+  // grid stays visible while thumbnails/reencodes stream in behind it.
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const [cardPos, setCardPos] = useState<{ x: number; y: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const dragOffsetRef = useRef<{ x: number; y: number } | null>(null);
+
+  const clampCardPos = (x: number, y: number) => {
+    const el = cardRef.current;
+    if (!el) return { x, y };
+    const rect = el.getBoundingClientRect();
+    const maxX = Math.max(8, window.innerWidth - rect.width - 8);
+    const maxY = Math.max(8, window.innerHeight - rect.height - 8);
+    return { x: Math.min(maxX, Math.max(8, x)), y: Math.min(maxY, Math.max(8, y)) };
+  };
+
+  useEffect(() => {
+    if (!cardPos) return;
+    const onResize = () => setCardPos((p) => (p ? clampCardPos(p.x, p.y) : p));
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [cardPos]);
+
+  const handleCardPointerDown: PointerEventHandler<HTMLDivElement> = (event) => {
+    if (event.button !== 0) return;
+    // Don't start a drag when a control (expand/close) is pressed.
+    if ((event.target as HTMLElement).closest("button")) return;
+    const el = cardRef.current;
+    if (!el) return;
+
+    const rect = el.getBoundingClientRect();
+    dragOffsetRef.current = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    setDragging(true);
+    event.preventDefault();
+
+    const onMove = (moveEvent: PointerEvent) => {
+      const offset = dragOffsetRef.current;
+      if (!offset) return;
+      setCardPos(clampCardPos(moveEvent.clientX - offset.x, moveEvent.clientY - offset.y));
+    };
+    const onUp = () => {
+      dragOffsetRef.current = null;
+      setDragging(false);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  };
 
   const pushLine = (kind: LineKind, text: string) => {
     setLines((prev) => {
@@ -82,8 +163,13 @@ export default function ImportTerminal({
   useEffect(() => {
     if (headerPushedRef.current) return;
     headerPushedRef.current = true;
-    const target = commandLabel ? `"${commandLabel}"` : "<video>";
-    pushLine("cmd", `amverge backend ${target} transnetv2_gpu video_files`);
+    if (operation === "export") {
+      const target = commandLabel ? `"${commandLabel}"` : "<clips>";
+      pushLine("cmd", `amverge export ${target} --merge`);
+    } else {
+      const target = commandLabel ? `"${commandLabel}"` : "<video>";
+      pushLine("cmd", `amverge backend ${target} ${detectionMethod} ${importMethod}`);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -141,11 +227,12 @@ export default function ImportTerminal({
     };
   }, []);
 
-  // Keep the newest line in view.
+  // Keep the newest line in view (whichever body — full or mini — is mounted).
   useLayoutEffect(() => {
-    const body = bodyRef.current;
-    if (body) body.scrollTop = body.scrollHeight;
-  }, [lines]);
+    for (const body of [bodyRef.current, miniBodyRef.current]) {
+      if (body) body.scrollTop = body.scrollHeight;
+    }
+  }, [lines, minimized]);
 
   const clamped = Math.max(0, Math.min(100, progress));
   const filled = Math.round((clamped / 100) * BAR_WIDTH);
@@ -153,9 +240,80 @@ export default function ImportTerminal({
   const barEmpty = "─".repeat(BAR_WIDTH - filled);
   const done = clamped >= 100;
 
+  if (minimized) {
+    const cardStyle = cardPos
+      ? { left: `${cardPos.x}px`, top: `${cardPos.y}px`, right: "auto", bottom: "auto" }
+      : undefined;
+    return (
+      <div
+        ref={cardRef}
+        className={`loading-minimized${dragging ? " dragging" : ""}`}
+        style={cardStyle}
+        role="status"
+        aria-label="Import progress (minimized)"
+      >
+        <div className="lm-head" onPointerDown={handleCardPointerDown}>
+          <span className="lm-spinner">{done ? "✓" : SPINNER[spinnerFrame]}</span>
+          <span className="lm-title">{progressMsg || "Finishing import…"}</span>
+          <div className="lm-actions">
+            <button
+              type="button"
+              className="lm-btn"
+              onClick={onToggleMinimize}
+              aria-label="Expand"
+              title="Expand"
+            >
+              ▢
+            </button>
+            {onClose ? (
+              <button
+                type="button"
+                className="lm-btn lm-close"
+                onClick={onClose}
+                aria-label="Dismiss"
+                title="Dismiss"
+              >
+                ✕
+              </button>
+            ) : null}
+          </div>
+        </div>
+        <div className="lm-progress">
+          <div className="progress-bar lm-progress-bar">
+            <div className="progress-fill" style={{ width: `${clamped}%` }} />
+          </div>
+          <span className="lm-pct">{clamped}%</span>
+        </div>
+        <div className="lm-body" ref={miniBodyRef}>
+          {lines.map((line) => (
+            <div key={line.id} className={`it-line it-line-${line.kind}`}>
+              {line.kind === "cmd" && <span className="it-prompt">$ </span>}
+              {line.text}
+            </div>
+          ))}
+        </div>
+        {bgBar}
+      </div>
+    );
+  }
+
   return (
     <div className="loading-overlay">
       <div className="import-terminal" role="log" aria-label="AMVerge CLI output">
+        <div className="it-header">
+          <span className="it-title">AMVerge CLI</span>
+          {onToggleMinimize ? (
+            <button
+              type="button"
+              className="it-min"
+              onClick={onToggleMinimize}
+              aria-label="Minimize"
+              title="Minimize"
+            >
+              ─
+            </button>
+          ) : null}
+        </div>
         <div className="it-body" ref={bodyRef}>
           {lines.map((line) => (
             <div key={line.id} className={`it-line it-line-${line.kind}`}>

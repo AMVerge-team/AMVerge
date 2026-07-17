@@ -23,6 +23,9 @@ export type AppState = {
   
   // App loading and progress state
   loading: boolean;
+  // Which CLI operation the loading overlay is showing (drives its header/command
+  // line). null when idle.
+  activeOperation: "import" | "export" | null;
   progress: number;
   progressMsg: string;
   bgProgress: { done: number; total: number } | null;
@@ -49,6 +52,7 @@ export type AppStateStore = AppState & {
   setImportedVideoPath: (path: SetterValue<string | null>) => void;
   
   setLoading: (loading: boolean) => void;
+  setActiveOperation: (op: "import" | "export" | null) => void;
   setProgress: (progress: number) => void;
   setProgressMsg: (msg: string) => void;
   setBgImportProgress: (progress: SetterValue<{ done: number; total: number } | null>) => void;
@@ -71,6 +75,7 @@ export const DEFAULT_APP_STATE: AppState = {
   importedVideoPath: null,
   
   loading: false,
+  activeOperation: null,
   progress: 0,
   progressMsg: "",
   bgProgress: null,
@@ -96,6 +101,7 @@ export const useAppStateStore = create<AppStateStore>()((set) => ({
   setImportedVideoPath: (val) => set((s) => ({ importedVideoPath: resolveSetterValue(s.importedVideoPath, val) })),
   
   setLoading: (loading) => set({ loading }),
+  setActiveOperation: (op) => set({ activeOperation: op }),
   setProgress: (progress) => set({ progress }),
   setProgressMsg: (progressMsg) => set({ progressMsg }),
   setBgImportProgress: (val) => set((s) => ({ bgImportProgress: resolveSetterValue(s.bgImportProgress, val) })),

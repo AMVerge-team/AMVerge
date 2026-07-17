@@ -38,6 +38,9 @@ function App() {
   const reencodeProgress = useAppStateStore((s) => s.reencodeProgress);
   const webpLoadDone = useWebpLoadingStore((s) => s.done);
   const webpLoadTotal = useWebpLoadingStore((s) => s.total);
+  const sceneDetectionMethod = useGeneralSettingsStore((s) => s.sceneDetectionMethod);
+  const importMethodSetting = useGeneralSettingsStore((s) => s.importMethod);
+  const activeOperation = useAppStateStore((s) => s.activeOperation);
   const clearBgProgress = () => {
     useAppStateStore.setState((s) => ({ ...s, bgProgress: null, bgImportProgress: null, reencodeProgress: null }));
     useWebpLoadingStore.getState().reset();
@@ -191,6 +194,31 @@ function App() {
     }
   }
 
+  // The import overlay (ImportTerminal) stays mounted from the moment loading
+  // starts until every background task finishes, so it can minimize/expand
+  // without losing its terminal log. `bgActive` covers the post-detection
+  // phase (clip cuts, thumbnails, webp previews).
+  const bgActive =
+    !!(bgProgress || bgImportProgress || reencodeProgress) || webpLoadTotal > 0;
+  const [importUiActive, setImportUiActive] = useState(false);
+  // null = follow auto behaviour; true/false = user's explicit minimize choice.
+  const [minimizeOverride, setMinimizeOverride] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (loading) setImportUiActive(true);
+  }, [loading]);
+  useEffect(() => {
+    if (!loading && !bgActive) {
+      setImportUiActive(false);
+      setMinimizeOverride(null);
+    }
+  }, [loading, bgActive]);
+
+  // Auto-minimize once the heavy phase (scene detect + first clip cuts) is done
+  // and only background thumbnail/reencode/preview work remains.
+  const autoMinimized = !loading && bgActive;
+  const overlayMinimized = minimizeOverride !== null ? minimizeOverride : autoMinimized;
+
   async function handleAbortAndCloseBgProgress() {
     // When only the WebP "Loading previews" indicator is up there's no backend
     // task to abort — just hide it. Firing the abort invokes would needlessly
@@ -329,7 +357,7 @@ function App() {
       windowWrapperRef={windowWrapperRef}
       isDragging={isDragging}
       loadingOverlay={
-        loading ? (
+        importUiActive ? (
           <ImportTerminal
             progress={progress}
             progressMsg={progressMsg}
@@ -338,6 +366,27 @@ function App() {
             batchCurrentFile={batchCurrentFile || ""}
             onAbort={handleAbort}
             commandLabel={batchCurrentFile || undefined}
+            operation={activeOperation ?? "import"}
+            detectionMethod={sceneDetectionMethod}
+            importMethod={importMethodSetting}
+            minimized={overlayMinimized}
+            onToggleMinimize={() =>
+              setMinimizeOverride((prev) => !(prev ?? autoMinimized))
+            }
+            onClose={handleAbortAndCloseBgProgress}
+            bgBar={
+              <BgProgressBar
+                clipDone={(reencodeProgress ?? bgProgress)?.done ?? 0}
+                clipTotal={(reencodeProgress ?? bgProgress)?.total ?? 0}
+                clipLabel={reencodeProgress ? "Reencoding" : "Processing clips"}
+                importDone={bgImportProgress?.done ?? 0}
+                importTotal={bgImportProgress?.total ?? 0}
+                webpDone={webpLoadDone}
+                webpTotal={webpLoadTotal}
+                onClose={handleAbortAndCloseBgProgress}
+                attached
+              />
+            }
           />
         ) : (bgProgress || bgImportProgress || reencodeProgress || webpLoadTotal > 0) ? (
           <BgProgressBar

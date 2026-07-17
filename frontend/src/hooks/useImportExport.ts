@@ -52,6 +52,7 @@ export default function useImportExport(props?: ImportExportProps) {
 
   const loading = appState.loading;
   const setLoading = appState.setLoading;
+  const setActiveOperation = appState.setActiveOperation;
   const setBgImportProgress = appState.setBgImportProgress;
   const importToken = appState.importToken;
   const setImportToken = appState.setImportToken;
@@ -426,6 +427,7 @@ export default function useImportExport(props?: ImportExportProps) {
     try {
       appState.setProgress(0);
       appState.setProgressMsg("Starting...");
+      setActiveOperation("import");
       setLoading(true);
       appState.setSelectedClips(new Set());
       appState.setFocusedClip(null);
@@ -468,7 +470,10 @@ export default function useImportExport(props?: ImportExportProps) {
       });
       useAppStateStore.setState({ bgProgress: null });
     } finally {
-      if (importGenRef.current === gen) setLoading(false);
+      if (importGenRef.current === gen) {
+        setLoading(false);
+        setActiveOperation(null);
+      }
       console.info("[import] finished", { mode: "single", file, episodeId, importGeneration: gen });
     }
   }, [appState, episodeState, generalSettings, props?.onRPCUpdate, logImportError, runImportPipeline]);
@@ -489,6 +494,7 @@ export default function useImportExport(props?: ImportExportProps) {
     try {
       appState.setProgress(0);
       appState.setProgressMsg("Starting...");
+      setActiveOperation("import");
       setLoading(false);
       appState.setSelectedClips(new Set());
       appState.setFocusedClip(null);
@@ -582,6 +588,7 @@ export default function useImportExport(props?: ImportExportProps) {
 
       if (importGenRef.current === gen) {
         setLoading(false);
+        setActiveOperation(null);
         setBgImportProgress(null);
         useAppStateStore.setState({ bgProgress: null });
         setBatchTotal(0);
@@ -641,6 +648,7 @@ export default function useImportExport(props?: ImportExportProps) {
       persistedState.setExportDir(dir);
     }
     try {
+      setActiveOperation("export");
       setLoading(true);
       const sep = dir.includes('\\') ? '\\' : '/';
       const clipArray = selected.flatMap(clipExportSpecs);
@@ -748,6 +756,7 @@ export default function useImportExport(props?: ImportExportProps) {
       }, 8000);
     } finally {
       setLoading(false);
+      setActiveOperation(null);
     }
   }, [appState, buildExportOptionsPayload, persistedState, generalSettings, props?.onRPCUpdate]);
 
@@ -777,6 +786,7 @@ export default function useImportExport(props?: ImportExportProps) {
 
       if (!savePath) return;
 
+      setActiveOperation("export");
       setLoading(true);
 
       const srcs = clipExportSpecs(clip);
@@ -802,6 +812,7 @@ export default function useImportExport(props?: ImportExportProps) {
       }, 8000);
     } finally {
       setLoading(false);
+      setActiveOperation(null);
     }
 
   }, [appState, buildExportOptionsPayload, generalSettings.exportFormat, generalSettings.exportProfiles, generalSettings.openFileLocationAfterExport, generalSettings.activeExportProfileId]);

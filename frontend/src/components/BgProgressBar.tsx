@@ -10,6 +10,9 @@ type BgProgress = {
   webpTotal?: number;
   webpLabel?: string;
   onClose: () => void;
+  /** Render inline (no fixed positioning, drag, or header) so a parent can
+   * attach it below the minimized loading card. */
+  attached?: boolean;
 };
 
 export default function BgProgressBar({
@@ -22,6 +25,7 @@ export default function BgProgressBar({
   webpTotal = 0,
   webpLabel = "Loading previews",
   onClose,
+  attached = false,
 }: BgProgress) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -104,24 +108,34 @@ export default function BgProgressBar({
     window.addEventListener("pointercancel", onUp);
   };
 
-  const anchoredStyle = position
-    ? { left: `${position.x}px`, top: `${position.y}px`, right: "auto", bottom: "auto" }
-    : undefined;
+  // Attached mode flows inside a parent card: no fixed positioning, no drag,
+  // and no header (the parent card owns the title + controls).
+  const anchoredStyle = attached
+    ? undefined
+    : position
+      ? { left: `${position.x}px`, top: `${position.y}px`, right: "auto", bottom: "auto" }
+      : undefined;
 
   return (
-    <div ref={containerRef} className="bg-progress-bar" style={anchoredStyle}>
-      <div className={`bg-progress-head${dragging ? " dragging" : ""}`} onPointerDown={handlePointerDown}>
-        <span className="bg-progress-label header">Background tasks</span>
-        <button
-          type="button"
-          className="bg-progress-close"
-          onClick={onClose}
-          aria-label="Close processing indicator"
-          title="Close"
-        >
-          x
-        </button>
-      </div>
+    <div
+      ref={containerRef}
+      className={`bg-progress-bar${attached ? " bg-progress-bar--attached" : ""}`}
+      style={anchoredStyle}
+    >
+      {!attached ? (
+        <div className={`bg-progress-head${dragging ? " dragging" : ""}`} onPointerDown={handlePointerDown}>
+          <span className="bg-progress-label header">Background tasks</span>
+          <button
+            type="button"
+            className="bg-progress-close"
+            onClick={onClose}
+            aria-label="Close processing indicator"
+            title="Close"
+          >
+            x
+          </button>
+        </div>
+      ) : null}
       {showClipProgress ? (
         <>
           <p className="bg-progress-label">{clipLabel} {clipDone}/{clipTotal}</p>
