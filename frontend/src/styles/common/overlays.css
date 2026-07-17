@@ -454,6 +454,37 @@
     margin: 0;
 }
 
+/* Batch-import rows in the minimized card. */
+.lm-batch-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+}
+
+.lm-batch-count {
+    flex: 0 0 auto;
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.lm-batch-file {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lm-bar-label {
+    flex: 0 0 auto;
+    width: 4.5em;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 11px;
+}
+
 .lm-pct {
     flex: 0 0 auto;
     min-width: 4ch;

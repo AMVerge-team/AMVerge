@@ -495,7 +495,9 @@ export default function useImportExport(props?: ImportExportProps) {
       appState.setProgress(0);
       appState.setProgressMsg("Starting...");
       setActiveOperation("import");
-      setLoading(false);
+      // Batch shows the full loading screen (minimizable). bgImportProgress is
+      // still tracked so closing the minimized card aborts remaining episodes.
+      setLoading(true);
       appState.setSelectedClips(new Set());
       appState.setFocusedClip(null);
       appState.setFocusedClipId(null);
@@ -543,6 +545,22 @@ export default function useImportExport(props?: ImportExportProps) {
           completedEpisodes.push(episodeEntry);
           episodeState.setEpisodes((prev) => [episodeEntry, ...prev]);
           setBgImportProgress({ done: i + 1, total: files.length });
+
+          // First finished episode: open it in the grid and drop the full-screen
+          // loader (it auto-minimizes to the batch card since bgImportProgress is
+          // still active) so completed episodes are browsable while the rest keep
+          // processing. Later episodes only stream into the sidebar above — we
+          // don't yank the user's current view by auto-switching to each one.
+          if (completedEpisodes.length === 1) {
+            episodeState.setSelectedEpisodeId(episodeEntry.id);
+            episodeState.setOpenedEpisodeId(episodeEntry.id);
+            appState.setImportedVideoPath(episodeEntry.videoPath);
+            setImportToken(Date.now().toString());
+            startTransition(() => {
+              appState.setClips(episodeEntry.clips);
+            });
+            setLoading(false);
+          }
           console.info("[import] batch file success", {
             index: i + 1,
             total: files.length,
@@ -574,16 +592,10 @@ export default function useImportExport(props?: ImportExportProps) {
         }
       }
 
-      if (completedEpisodes.length > 0 && importGenRef.current === gen) {
-        const first = completedEpisodes[0];
-        episodeState.setSelectedEpisodeId(first.id);
-        episodeState.setOpenedEpisodeId(first.id);
-        appState.setImportedVideoPath(first.videoPath);
-        setImportToken(Date.now().toString());
-        startTransition(() => {
-          appState.setClips(first.clips);
-        });
-      }
+      // The first finished episode is already opened mid-loop (see above), and
+      // every completed episode streams into the sidebar as it finishes, so
+      // there's nothing to reveal here at the end — re-opening would yank the
+      // user off whichever episode they're currently viewing.
     } finally {
 
       if (importGenRef.current === gen) {

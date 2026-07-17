@@ -240,6 +240,15 @@ export default function ImportTerminal({
   const barEmpty = "─".repeat(BAR_WIDTH - filled);
   const done = clamped >= 100;
 
+  // Batch import (multiple videos). batchDone is the 0-based index of the video
+  // being processed, so it's also the count already finished.
+  const isBatch = batchTotal > 1;
+  const currentVideoNum = Math.min(batchDone + 1, batchTotal);
+  // Smooth overall progress: finished videos + the current one's fraction.
+  const overallPct = isBatch
+    ? Math.round(((batchDone + clamped / 100) / batchTotal) * 100)
+    : clamped;
+
   if (minimized) {
     const cardStyle = cardPos
       ? { left: `${cardPos.x}px`, top: `${cardPos.y}px`, right: "auto", bottom: "auto" }
@@ -254,7 +263,9 @@ export default function ImportTerminal({
       >
         <div className="lm-head" onPointerDown={handleCardPointerDown}>
           <span className="lm-spinner">{done ? "✓" : SPINNER[spinnerFrame]}</span>
-          <span className="lm-title">{progressMsg || "Finishing import…"}</span>
+          <span className="lm-title">
+            {isBatch ? "Importing videos" : progressMsg || "Finishing import…"}
+          </span>
           <div className="lm-actions">
             <button
               type="button"
@@ -278,12 +289,41 @@ export default function ImportTerminal({
             ) : null}
           </div>
         </div>
-        <div className="lm-progress">
-          <div className="progress-bar lm-progress-bar">
-            <div className="progress-fill" style={{ width: `${clamped}%` }} />
+
+        {isBatch ? (
+          <>
+            <div className="lm-batch-row">
+              <span className="lm-batch-count">
+                Video {currentVideoNum}/{batchTotal}
+              </span>
+              {batchCurrentFile ? (
+                <span className="lm-batch-file">{batchCurrentFile}</span>
+              ) : null}
+            </div>
+            <div className="lm-progress">
+              <span className="lm-bar-label">Overall</span>
+              <div className="progress-bar lm-progress-bar">
+                <div className="progress-fill" style={{ width: `${overallPct}%` }} />
+              </div>
+              <span className="lm-pct">{overallPct}%</span>
+            </div>
+            <div className="lm-progress">
+              <span className="lm-bar-label">Current</span>
+              <div className="progress-bar lm-progress-bar">
+                <div className="progress-fill" style={{ width: `${clamped}%` }} />
+              </div>
+              <span className="lm-pct">{clamped}%</span>
+            </div>
+          </>
+        ) : (
+          <div className="lm-progress">
+            <div className="progress-bar lm-progress-bar">
+              <div className="progress-fill" style={{ width: `${clamped}%` }} />
+            </div>
+            <span className="lm-pct">{clamped}%</span>
           </div>
-          <span className="lm-pct">{clamped}%</span>
-        </div>
+        )}
+
         <div className="lm-body" ref={miniBodyRef}>
           {lines.map((line) => (
             <div key={line.id} className={`it-line it-line-${line.kind}`}>
@@ -292,7 +332,9 @@ export default function ImportTerminal({
             </div>
           ))}
         </div>
-        {bgBar}
+        {/* In batch mode the batch rows above are the progress; the per-clip
+            bgBar would be redundant/misleading, so only show it for single import. */}
+        {isBatch ? null : bgBar}
       </div>
     );
   }
