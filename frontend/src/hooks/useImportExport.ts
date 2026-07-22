@@ -9,6 +9,8 @@ import {
   isExportCodecContainerCompatible,
 } from "../features/export/profiles";
 
+import { runPostExportPasses } from "../features/export/runPostExportPasses";
+import { anyPassEnabled } from "../features/export/postPasses";
 import { useAppStateStore, useAppPersistedStore } from "../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
 import { useGeneralSettingsStore } from "../stores/settingsStore";
@@ -659,6 +661,10 @@ export default function useImportExport(props?: ImportExportProps) {
       dir = picked as string;
       persistedState.setExportDir(dir);
     }
+    // Files produced by the export, fed to the post-export passes after the
+    // export loader closes. Stays empty on failure so no passes run.
+    let producedFiles: string[] = [];
+    const passesSnapshot = generalSettings.postExportPasses;
     try {
       setActiveOperation("export");
       setLoading(true);
@@ -705,6 +711,7 @@ export default function useImportExport(props?: ImportExportProps) {
           exportOptions,
           audioTrack: generalSettings.previewAudioStreamIndex,
         });
+        producedFiles = exportedFiles;
         if (generalSettings.openFileLocationAfterExport && exportedFiles.length > 0) {
           await invoke("reveal_in_file_manager", { filePath: exportedFiles[0] });
         }
@@ -722,6 +729,7 @@ export default function useImportExport(props?: ImportExportProps) {
           exportOptions,
           audioTrack: generalSettings.previewAudioStreamIndex,
         });
+        producedFiles = exportedFiles;
         if (generalSettings.openFileLocationAfterExport && exportedFiles.length > 0) {
           await invoke("reveal_in_file_manager", { filePath: exportedFiles[0] });
         }
@@ -769,6 +777,12 @@ export default function useImportExport(props?: ImportExportProps) {
     } finally {
       setLoading(false);
       setActiveOperation(null);
+    }
+
+    // Export loader is now closed. Run any enabled post-export passes on the
+    // produced files; the passes modal drives itself from here.
+    if (producedFiles.length > 0 && anyPassEnabled(passesSnapshot)) {
+      void runPostExportPasses(producedFiles, passesSnapshot);
     }
   }, [appState, buildExportOptionsPayload, persistedState, generalSettings, props?.onRPCUpdate]);
 

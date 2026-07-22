@@ -8,7 +8,7 @@ use std::sync::Mutex;
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, State};
 
-use crate::payloads::ProgressPayload;
+use crate::payloads::{PassLogPayload, PassPreviewPayload, PassProgressPayload, ProgressPayload};
 use crate::state::{ActiveFfmpegPids, ExportAbortState};
 use crate::utils::logging::{console_log, sanitize_for_console};
 use crate::utils::paths::file_name_only;
@@ -309,6 +309,155 @@ pub async fn export_clips(
     } else {
         err
     })
+}
+
+/// Map a pass id to its CLI subcommand.
+fn pass_cli_command(pass: &str) -> Result<&'static str, String> {
+    match pass {
+        "depth" => Ok("depth-map"),
+        "deadframes" => Ok("deadframes"),
+        "interpolate" => Ok("interpolate"),
+        other => Err(format!("Unknown export pass: {other}")),
+    }
+}
+
+/// Run one post-export pass (`depth`/`deadframes`/`interpolate`) on `input_path`
+/// via `amverge <cmd> <input> -o <output> --ipc [args]`. Streams `PROGRESS|` and
+/// `PREVIEW_FRAME|` as `pass_progress`/`pass_preview` events, other lines as
+/// `pass_log`. Reuses the export abort state so `abort_export` stops it. Returns
+/// the output path on success.
+#[tauri::command]
+pub async fn run_export_pass(
+    app: AppHandle,
+    abort_state: State<'_, ExportAbortState>,
+    pass: String,
+    input_path: String,
+    output_path: String,
+    args: Vec<String>,
+    delete_input: Option<bool>,
+) -> Result<String, String> {
+    let cli_cmd = pass_cli_command(&pass)?;
+
+    if !std::path::Path::new(&input_path).exists() {
+        return Err(format!("Pass input no longer exists: {}", file_name_only(&input_path)));
+    }
+    if let Some(parent) = std::path::Path::new(&output_path).parent() {
+        if !parent.exists() {
+            std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+    }
+
+    abort_state.abort_requested.store(false, Ordering::SeqCst);
+    let abort_requested = abort_state.abort_requested.clone();
+    let active_pids = abort_state.pids.clone();
+
+    let mut cmd = amverge_command(&app)?;
+    cmd.arg(cli_cmd)
+        .arg(&input_path)
+        .arg("--output")
+        .arg(&output_path)
+        .arg("--ipc");
+    for a in &args {
+        cmd.arg(a);
+    }
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+
+    console_log(
+        "PASS|spawn",
+        &format!("pass={pass} in={} out={}", file_name_only(&input_path), file_name_only(&output_path)),
+    );
+
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| format!("Failed to spawn amverge {cli_cmd}: {e}"))?;
+    let child_pid = child.id();
+    if let Ok(mut lock) = active_pids.lock() {
+        lock.push(child_pid);
+    }
+
+    let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
+    let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
+
+    let app_for_err = app.clone();
+    let pass_for_err = pass.clone();
+    let stderr_accum = Arc::new(Mutex::new(String::new()));
+    let stderr_accum_thread = Arc::clone(&stderr_accum);
+    let stderr_handle = tokio::task::spawn_blocking(move || {
+        for line in BufReader::new(stderr).lines().flatten() {
+            if let Some(rest) = line.strip_prefix("PROGRESS|") {
+                let mut parts = rest.splitn(2, '|');
+                let pct = parts.next().unwrap_or("");
+                let msg = parts.next().unwrap_or("").to_string();
+                if let Ok(p) = pct.parse::<u8>() {
+                    let _ = app_for_err.emit(
+                        "pass_progress",
+                        PassProgressPayload { pass: pass_for_err.clone(), percent: p, message: msg },
+                    );
+                }
+            } else if let Some(rest) = line.strip_prefix("PREVIEW_FRAME|") {
+                let parts: Vec<&str> = rest.splitn(3, '|').collect();
+                if parts.len() == 3 {
+                    if let Ok(seq) = parts[2].trim().parse::<u64>() {
+                        let _ = app_for_err.emit(
+                            "pass_preview",
+                            PassPreviewPayload {
+                                pass: pass_for_err.clone(),
+                                path: parts[1].to_string(),
+                                seq,
+                            },
+                        );
+                    }
+                }
+            } else if !line.trim().is_empty() {
+                if let Ok(mut acc) = stderr_accum_thread.lock() {
+                    acc.push_str(&line);
+                    acc.push('\n');
+                }
+                let sanitized = sanitize_for_console(&line);
+                let _ = app_for_err.emit(
+                    "pass_log",
+                    PassLogPayload { pass: pass_for_err.clone(), line: sanitized.clone() },
+                );
+                console_log("PASS|cli", &sanitized);
+            }
+        }
+    });
+
+    let stdout_string = tokio::task::spawn_blocking(move || {
+        let mut buf = String::new();
+        BufReader::new(stdout).read_to_string(&mut buf).map(|_| buf)
+    })
+    .await
+    .map_err(|e| format!("stdout thread panicked: {e}"))?
+    .map_err(|e| format!("Failed reading stdout: {e}"))?;
+    let _ = stdout_string;
+
+    let _ = stderr_handle.await;
+    let status = tokio::task::spawn_blocking(move || child.wait())
+        .await
+        .map_err(|e| format!("wait thread panicked: {e}"))?
+        .map_err(|e| format!("Failed waiting for amverge {cli_cmd}: {e}"))?;
+
+    if let Ok(mut lock) = active_pids.lock() {
+        lock.retain(|p| *p != child_pid);
+    }
+
+    if abort_requested.load(Ordering::SeqCst) {
+        let _ = std::fs::remove_file(&output_path);
+        return Err("Pass canceled.".to_string());
+    }
+
+    if status.success() && std::path::Path::new(&output_path).exists() {
+        if delete_input.unwrap_or(false) {
+            let _ = std::fs::remove_file(&input_path);
+        }
+        console_log("PASS|end", &format!("pass={pass} ok"));
+        return Ok(output_path);
+    }
+
+    let err = stderr_accum.lock().map(|s| s.trim().to_string()).unwrap_or_default();
+    console_log("ERROR|run_export_pass", &format!("pass={pass} exit={status}"));
+    Err(if err.is_empty() { format!("{pass} pass failed ({status})") } else { err })
 }
 
 #[tauri::command]

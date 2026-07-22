@@ -14,6 +14,26 @@ pub struct ConsoleLogPayload {
 }
 
 #[derive(Serialize, Clone)]
+pub struct PassProgressPayload {
+    pub pass: String,
+    pub percent: u8,
+    pub message: String,
+}
+
+#[derive(Serialize, Clone)]
+pub struct PassPreviewPayload {
+    pub pass: String,
+    pub path: String,
+    pub seq: u64,
+}
+
+#[derive(Serialize, Clone)]
+pub struct PassLogPayload {
+    pub pass: String,
+    pub line: String,
+}
+
+#[derive(Serialize, Clone)]
 pub struct InitialClipsPayload {
     pub clips_json: String,
 }

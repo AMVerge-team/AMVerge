@@ -33,6 +33,7 @@ fn main() {
             commands::scenes::load_episode_manifest,
             commands::scenes::abort_detect_scenes,
             commands::export::export_clips,
+            commands::export::run_export_pass,
             commands::export::abort_export,
             commands::export::detect_nvidia_encoder_profile,
             commands::export::detect_gpu_encoder_capabilities,

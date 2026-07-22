@@ -7,6 +7,12 @@ import {
     normalizeExportProfile,
     type ExportProfile,
 } from "../features/export/profiles";
+import {
+    DEFAULT_POST_EXPORT_PASSES,
+    normalizePostExportPasses,
+    type PostExportPasses,
+    type PostExportPassKind,
+} from "../features/export/postPasses";
 
 /*====================
     GENERAL SETTINGS 
@@ -34,6 +40,7 @@ export type GeneralSettings = {
     rpcShowMiniIcons: boolean;
     sceneDetectionMethod: SceneDetectionMethod;
     importMethod: importMethod;
+    postExportPasses: PostExportPasses;
 };
 
 export type GeneralSettingsStore = GeneralSettings & {
@@ -59,6 +66,10 @@ export type GeneralSettingsStore = GeneralSettings & {
     resetGeneralSettings: () => void;
     setSceneDetectionMethod: (method: SceneDetectionMethod) => void;
     setImportMethod: (method: importMethod) => void;
+    updatePostExportPasses: <K extends PostExportPassKind>(
+        pass: K,
+        changes: Partial<PostExportPasses[K]>,
+    ) => void;
 };
 
 export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
@@ -80,6 +91,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     rpcShowMiniIcons: true,
     sceneDetectionMethod: "transnetv2_gpu",
     importMethod: "video_files",
+    postExportPasses: DEFAULT_POST_EXPORT_PASSES,
 };
 
 export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
@@ -189,6 +201,13 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                 set({ rpcShowMiniIcons: enabled }),
             
             resetGeneralSettings: () => set(DEFAULT_GENERAL_SETTINGS),
+            updatePostExportPasses: (pass, changes) =>
+                set((state) => ({
+                    postExportPasses: {
+                        ...state.postExportPasses,
+                        [pass]: { ...state.postExportPasses[pass], ...changes },
+                    },
+                })),
         }),
         {
             name: "amverge.generalSettings.v2",
@@ -230,6 +249,7 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                         persisted.importMethod === "video_files"
                             ? persisted.importMethod
                             : currentState.importMethod,
+                    postExportPasses: normalizePostExportPasses(persisted.postExportPasses),
                 };
             },
         }
