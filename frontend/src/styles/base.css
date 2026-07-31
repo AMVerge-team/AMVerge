@@ -26,7 +26,10 @@ body {
     color: white;
     margin: 0;
     overflow: hidden;
-    font-family: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--app-font);
+    /* Normalizes a custom UI font's apparent size (set by the font picker);
+       "none" by default so Jersey 10 renders as designed. */
+    font-size-adjust: var(--app-font-adjust, none);
 }
 
 body::before {
@@ -63,11 +66,20 @@ body::before {
     pointer-events: none;
 }
 
+/* Form controls don't inherit font metrics from the body, so apply the custom
+   font size-adjust to them directly (Import button, inputs, dropdowns, etc.). */
+button,
+input,
+select,
+textarea {
+    font-size-adjust: var(--app-font-adjust, none);
+}
+
 /* all buttons */
 .buttons {
     height: 30px;
     width: 100px;
-    font-family: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--app-font);
     font-size: 20px;
     border: 1px solid white;
     margin-bottom: 5px;
@@ -92,7 +104,7 @@ body::before {
 .buttons.emergency {
     height: 30px;
     width: 100px;
-    font-family: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--app-font);
     font-size: 20px;
     border: 1px solid white;
     margin-bottom: 5px;

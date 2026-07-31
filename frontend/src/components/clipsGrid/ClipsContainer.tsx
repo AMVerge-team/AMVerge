@@ -17,6 +17,7 @@ import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
 export default function ClipsContainer({ cols }: { cols?: number }) {
   const clips = useAppStateStore((state) => state.clips);
   const loading = useAppStateStore((state) => state.loading);
+  const isExporting = useAppStateStore((state) => state.isExporting);
   const importToken = useAppStateStore((state) => state.importToken);
   const setFocusedClip = useAppStateStore((state) => state.setFocusedClip);
   const setSelectedClips = useAppStateStore((state) => state.setSelectedClips);
@@ -240,7 +241,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
             ["--clip-max-width" as any]: clipMaxWidth,
           }}
         >
-          {loading
+          {loading && !isExporting
             ? Array.from({ length: 12 }).map((_, i) => (
                 <div key={i} className="clip-skeleton" />
               ))

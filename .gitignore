@@ -99,3 +99,5 @@ lerna-debug.log*
 *.p12
 *.cer
 *.key
+
+.vscode

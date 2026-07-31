@@ -11,4 +11,7 @@
     --app-bg-opacity: 1;
     --app-bg-blur: 0px;
     --bg-accent: #001a00;
+    /* Base UI font stack. Overridden at runtime by the Appearance font picker
+       (applyThemeSettings sets --app-font). Monospace/code stacks stay literal. */
+    --app-font: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }

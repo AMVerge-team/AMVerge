@@ -1,3 +1,9 @@
+## v1.3.0
+- Added font change feature in "Appearance" settings
+- Added "Force 480p previews on HEVC" for users who are having issues with HEVC videos not previewing
+- Added option "Unselect all after exports", on by default
+- Fixed clips grid resetting to the top on export
+
 ## v1.2.6 - v1.2.8
 - Fixed update(s) not applying correctly (bumping version)
 

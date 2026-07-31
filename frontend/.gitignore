@@ -28,6 +28,8 @@ backend/clips_output/
 backend/keyframe_clips/
 backend/output_test/
 frontend/src-tauri/bin/
+.sidecar-build/
+.ffmpeg-bin/
 *.log
 
 # ---- Tauri signing keys ----

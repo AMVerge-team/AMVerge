@@ -22,6 +22,9 @@
     margin: 0;
     font-size: 35px;
     font-weight: 10;
+    /* Logo/wordmark stays the Jersey 10 brand font + native size, ignoring the app font/size pickers. */
+    font-family: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size-adjust: none;
 }
 
 .navbar > .left-nav {
