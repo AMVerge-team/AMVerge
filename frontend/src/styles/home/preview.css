@@ -71,6 +71,14 @@
     border: 1px solid var(--accent);
 }
 
+.preview-broken-hint {
+    width: 100%;
+    margin: 8px 0 0;
+    font-size: 12px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.45);
+}
+
 /* EXPORT PANEL */
 .export-panel {
     width: 100%;

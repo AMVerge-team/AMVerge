@@ -180,6 +180,11 @@ export default function PreviewContainer(props: PreviewContainerProps) {
           </div>
         )}
       </div>
+
+      <p className="preview-broken-hint">
+        If preview is broken, try enabling 480p previews in General Settings
+      </p>
+
       <div className="export-panel">
         <div className="export-header">
           <FaFileExport className="header-icon" />

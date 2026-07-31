@@ -38,11 +38,9 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     ? activeCols
     : Math.max(1, Math.min(activeCols, clips.length));
 
-  const clipMaxWidth = gridColumns <= 1
-    ? "min(100%, 920px)"
-    : gridColumns === 2
-      ? "520px"
-      : "260px";
+  const gridMaxWidth = gridColumns <= 1
+    ? "920px"
+    : `${gridColumns * 640 + (gridColumns - 1) * 15}px`;
 
   const handleDownloadSingleClip = useCallback(async (clip: (typeof clips)[number]) => {
     try {
@@ -238,7 +236,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
           className="clips-grid"
           style={{
             gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
-            ["--clip-max-width" as any]: clipMaxWidth,
+            ["--grid-max-width" as any]: gridMaxWidth,
           }}
         >
           {loading && !isExporting
