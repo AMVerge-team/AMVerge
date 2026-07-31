@@ -61,7 +61,7 @@
 
 .picker-label {
     display: block;
-    font-family: 'Jersey 10', sans-serif;
+    font-family: var(--app-font);
     font-size: 0.9rem;
     color: rgba(255, 255, 255, 0.4);
     text-transform: uppercase;

@@ -586,6 +586,7 @@ export default function useImportExport(props?: ImportExportProps) {
     }
     try {
       setLoading(true);
+      appState.setIsExporting(true);
       const sep = dir.includes('\\') ? '\\' : '/';
       const clipArray = selected.flatMap((c: ClipItem) => c.mergedSrcs ?? [c.src]);
       const exportOptions = buildExportOptionsPayload(generalSettings.activeExportProfileId);
@@ -648,6 +649,10 @@ export default function useImportExport(props?: ImportExportProps) {
         }
       }
 
+      if (generalSettings.unselectAllAfterExport) {
+        appState.setSelectedClips(new Set());
+      }
+
       props?.onRPCUpdate?.({
         type: "update",
         details: "Export Finished!",
@@ -689,6 +694,7 @@ export default function useImportExport(props?: ImportExportProps) {
       }, 8000);
     } finally {
       setLoading(false);
+      appState.setIsExporting(false);
     }
   }, [appState, buildExportOptionsPayload, persistedState, generalSettings, props?.onRPCUpdate]);
 

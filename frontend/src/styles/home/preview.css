@@ -799,7 +799,7 @@
     /* Jersey 10 doesn't need heavy weight usually */
     opacity: 1;
     font-size: 1.1rem;
-    font-family: 'Jersey 10', system-ui, sans-serif;
+    font-family: var(--app-font);
     min-width: 14px;
     text-align: center;
 }

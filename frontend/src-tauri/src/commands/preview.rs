@@ -233,9 +233,9 @@ pub async fn ensure_preview_proxy(
         .unwrap_or_else(|| "na".to_string());
     // "aac" = copy video + transcode audio to AAC (stream-copying audio into MP4 breaks
     // duration for codecs like FLAC, DTS, EAC3 — browser reports Infinity, seeks fail).
-    // "x264" = transcode both. "copy" = copy video, no audio (audio_stream_index = None).
+    // "x264a" = transcode video + default audio to AAC. "copy" = copy video, no audio.
     let mode_suffix = if transcode_video {
-        "x264"
+        "x264a"
     } else if audio_stream_index.is_some() {
         "aac"
     } else {
@@ -323,7 +323,11 @@ pub async fn ensure_preview_proxy(
             if audio_stream_index.is_some() {
                 cmd.args(["-c:a", "aac", "-b:a", "160k", "-ac", "2", "-ar", "48000"]);
             } else {
-                cmd.args(["-an"]);
+                // Preserve the default audio track so 480p previews aren't silent.
+                cmd.args([
+                    "-map", "0:a:0?",
+                    "-c:a", "aac", "-b:a", "160k", "-ac", "2", "-ar", "48000",
+                ]);
             }
         } else {
             cmd.args(["-c:v", "copy"]);

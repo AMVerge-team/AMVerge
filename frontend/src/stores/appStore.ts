@@ -22,6 +22,7 @@ export type AppState = {
   
   // App loading and progress state
   loading: boolean;
+  isExporting: boolean; // export in progress — keeps the grid mounted (no skeletons)
   progress: number;
   progressMsg: string;
   bgProgress: { done: number; total: number } | null;
@@ -43,6 +44,7 @@ export type AppStateStore = AppState & {
   setImportedVideoPath: (path: SetterValue<string | null>) => void;
   
   setLoading: (loading: boolean) => void;
+  setIsExporting: (isExporting: boolean) => void;
   setProgress: (progress: number) => void;
   setProgressMsg: (msg: string) => void;
   setBgImportProgress: (progress: SetterValue<{ done: number; total: number } | null>) => void;
@@ -63,6 +65,7 @@ export const DEFAULT_APP_STATE: AppState = {
   importedVideoPath: null,
   
   loading: false,
+  isExporting: false,
   progress: 0,
   progressMsg: "",
   bgProgress: null,
@@ -86,6 +89,7 @@ export const useAppStateStore = create<AppStateStore>()((set) => ({
   setImportedVideoPath: (val) => set((s) => ({ importedVideoPath: resolveSetterValue(s.importedVideoPath, val) })),
   
   setLoading: (loading) => set({ loading }),
+  setIsExporting: (isExporting) => set({ isExporting }),
   setProgress: (progress) => set({ progress }),
   setProgressMsg: (progressMsg) => set({ progressMsg }),
   setBgImportProgress: (val) => set((s) => ({ bgImportProgress: resolveSetterValue(s.bgImportProgress, val) })),

@@ -9,6 +9,7 @@ import {
 import ColorPicker from "../common/ColorPicker";
 import CropModal from "../common/CropModal";
 import SettingRow from "../common/SettingRow";
+import FontPicker from "./FontPicker";
 
 type AppearanceSectionProps = {
   onThemeReset: () => void;
@@ -280,6 +281,42 @@ export default function AppearanceSection({
             </div>
           }
         />
+
+        <div className="export-setting-block">
+          <div className="settings-row export-setting-row">
+            <label className="settings-label">App Font</label>
+          </div>
+          <p className="setting-description">
+            Pick any installed font for the app interface — each option previews in its own font, and you can search. The logo is unaffected. Default is Jersey 10.
+          </p>
+          <FontPicker />
+
+          <div className="settings-row export-setting-row" style={{ marginTop: 12 }}>
+            <label className="settings-label">Text size</label>
+            <div className="settings-control export-setting-control">
+              <input
+                type="range"
+                min="0.35"
+                max="0.6"
+                step="0.01"
+                value={themeSettings.appFontAdjust ?? 0.47}
+                disabled={themeSettings.appFontFamily === null}
+                onChange={(e) =>
+                  setThemeSettings((prev) => ({
+                    ...prev,
+                    appFontAdjust: parseFloat(e.target.value),
+                  }))
+                }
+              />
+              <span className="settings-value">
+                {Math.round(((themeSettings.appFontAdjust ?? 0.47) / 0.47) * 100)}%
+              </span>
+            </div>
+          </div>
+          <p className="setting-description">
+            Adjusts how large the selected font renders so it matches the app's default sizing. Only applies when a custom font is picked.
+          </p>
+        </div>
 
         <SettingRow
           label="Show download button"

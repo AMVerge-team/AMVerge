@@ -90,7 +90,7 @@
 .bugreport-row input[type="file"] {
     width: 100%;
     color: rgb(255 255 255 / 0.8);
-    font-family: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--app-font);
 }
 
 .bugreport-row input[type="file"]::file-selector-button {
@@ -103,7 +103,7 @@
     cursor: pointer;
     transition: border-color 0.15s ease, color 0.15s ease;
     letter-spacing: 0.7px;
-    font-family: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--app-font);
 }
 
 .bugreport-row input[type="file"]::file-selector-button:hover {
@@ -139,7 +139,7 @@
     letter-spacing: 0.7px;
     cursor: pointer;
     transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-    font-family: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--app-font);
 }
 
 .bugreport-row button[type="submit"]:hover:not(:disabled) {
