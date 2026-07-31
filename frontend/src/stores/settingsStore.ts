@@ -12,6 +12,10 @@ import {
     GENERAL SETTINGS 
 =====================*/
 export type ExportFormat = "mp4" | "mkv" | "mov" | "xml";
+// "auto"  = play native HEVC previews when the system reports support (sharper),
+//           fall back to a 480p h264 proxy when it doesn't.
+// "proxy" = always transcode HEVC previews to a 480p proxy (reliable everywhere).
+export type HevcPreviewMode = "auto" | "proxy";
 
 export type GeneralSettings = {
     episodesPath: string | null;
@@ -26,6 +30,8 @@ export type GeneralSettings = {
     previewAudioEnabled: boolean;
     previewAudioStreamIndex: number | null;
     playbackVolume: number;
+    hevcPreviewMode: HevcPreviewMode;
+    unselectAllAfterExport: boolean;
     discordRPCEnabled: boolean;
     rpcShowFilename: boolean;
     rpcShowButtons: boolean;
@@ -48,6 +54,8 @@ export type GeneralSettingsStore = GeneralSettings & {
     setPreviewAudioEnabled: (enabled: boolean) => void;
     setPreviewAudioStreamIndex: (index: number | null) => void;
     setPlaybackVolume: (volume: number) => void;
+    setHevcPreviewMode: (mode: HevcPreviewMode) => void;
+    setUnselectAllAfterExport: (enabled: boolean) => void;
     setDiscordRPCEnabled: (enabled: boolean) => void;
     setRpcShowFilename: (enabled: boolean) => void;
     setRpcShowButtons: (enabled: boolean) => void;
@@ -68,6 +76,8 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     previewAudioEnabled: false,
     previewAudioStreamIndex: null,
     playbackVolume: 0.2,
+    hevcPreviewMode: "auto",
+    unselectAllAfterExport: true,
     discordRPCEnabled: true,
     rpcShowFilename: true,
     rpcShowButtons: true,
@@ -167,6 +177,8 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
             setPreviewAudioStreamIndex: (index) =>
                 set({ previewAudioStreamIndex: index }),
             setPlaybackVolume: (volume) => set({ playbackVolume: volume }),
+            setHevcPreviewMode: (mode) => set({ hevcPreviewMode: mode }),
+            setUnselectAllAfterExport: (enabled) => set({ unselectAllAfterExport: enabled }),
             setDiscordRPCEnabled: (enabled) =>
                 set({ discordRPCEnabled: enabled }),
             setRpcShowFilename: (enabled) =>
@@ -228,6 +240,8 @@ export type ThemeSettings = {
     showDownloadButton: boolean;
     showClipTimestamps: boolean;
     widescreenClipTiles: boolean;
+    appFontFamily: string | null; // null = default (Jersey 10 stack)
+    appFontAdjust: number; // font-size-adjust for the custom UI font (apparent size)
 };
 
 export type ThemeSettingsStore = ThemeSettings & {
@@ -240,6 +254,8 @@ export type ThemeSettingsStore = ThemeSettings & {
     setShowDownloadButton: (showDownloadButton: boolean) => void;
     setShowClipTimestamps: (showClipTimestamps: boolean) => void;
     setWidescreenClipTiles: (widescreenClipTiles: boolean) => void;
+    setAppFontFamily: (font: string | null) => void;
+    setAppFontAdjust: (adjust: number) => void;
     resetThemeSettings: () => void;
 };
 
@@ -253,6 +269,8 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
     showDownloadButton: true,
     showClipTimestamps: true,
     widescreenClipTiles: false,
+    appFontFamily: null,
+    appFontAdjust: 0.47,
 };
 
 export const useThemeSettingsStore = create<ThemeSettingsStore>()(
@@ -294,6 +312,12 @@ export const useThemeSettingsStore = create<ThemeSettingsStore>()(
             },
             setWidescreenClipTiles: (widescreenClipTiles) => {
                 set({ widescreenClipTiles })
+            },
+            setAppFontFamily: (font) => {
+                set({ appFontFamily: font })
+            },
+            setAppFontAdjust: (adjust) => {
+                set({ appFontAdjust: Math.max(0.3, Math.min(0.7, adjust)) })
             },
             resetThemeSettings: () => {
                 console.log("Resetting theme..")
@@ -371,6 +395,22 @@ export function applyThemeSettings(settings: ThemeSettings) {
     const clipTileAspect = settings.widescreenClipTiles ? "16 / 9" : "1 / 1";
     root.style.setProperty("--clip-tile-aspect", clipTileAspect);
     body.style.setProperty("--clip-tile-aspect", clipTileAspect);
+
+    // Custom UI font (Appearance picker). Falls back to the default Jersey 10 stack.
+    const appFont = settings.appFontFamily
+        ? `"${settings.appFontFamily}", 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif`
+        : "'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+    root.style.setProperty("--app-font", appFont);
+    body.style.setProperty("--app-font", appFont);
+
+    // font-size-adjust normalizes a custom font's apparent size (x-height) so it
+    // doesn't render much bigger than the pixel-font default. "none" for the
+    // default font leaves Jersey 10 untouched.
+    const fontAdjust = settings.appFontFamily
+        ? String(settings.appFontAdjust ?? 0.47)
+        : "none";
+    root.style.setProperty("--app-font-adjust", fontAdjust);
+    body.style.setProperty("--app-font-adjust", fontAdjust);
 }
 
 export function getDarkerColor(hex: string, factor = 0.5): string {

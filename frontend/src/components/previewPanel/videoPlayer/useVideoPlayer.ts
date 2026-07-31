@@ -46,6 +46,7 @@ export function useVideoPlayer({
     const previewAudioEnabled = useGeneralSettingsStore((s) => s.previewAudioEnabled);
     const previewAudioStreamIndex = useGeneralSettingsStore((s) => s.previewAudioStreamIndex);
     const playbackVolume = useGeneralSettingsStore((s) => s.playbackVolume);
+    const hevcPreviewMode = useGeneralSettingsStore((s) => s.hevcPreviewMode);
     const setPreviewAudioEnabled = useGeneralSettingsStore((s) => s.setPreviewAudioEnabled);
     const isMuted = !previewAudioEnabled;
     const [currentTime, setCurrentTime] = useState(0);
@@ -54,8 +55,6 @@ export function useVideoPlayer({
     const needsAudioMappedPreview = previewAudioStreamIndex !== null && previewAudioStreamIndex > 0;
     const selectedMappedAudioStreamIndex = needsAudioMappedPreview ? previewAudioStreamIndex : null;
     const selectedClipAudioKey = `${selectedClip}::audio:${previewAudioStreamIndex ?? "default"}`;
-
-    const hasHevcSupport = userHasHEVC === true;
 
     const buildEnsurePreviewProxyArgs = useCallback(
         (clipPath: string, transcodeVideo: boolean) =>
@@ -303,7 +302,7 @@ export function useVideoPlayer({
             return;
         }
 
-        if (videoIsHEVC === true && !hasHevcSupport && !needsAudioMappedPreview) {
+        if (videoIsHEVC === true && (hevcPreviewMode === "proxy" || !userHasHEVC) && !needsAudioMappedPreview) {
             return;
         }
 
@@ -329,7 +328,8 @@ export function useVideoPlayer({
     }, [
         mergedSrcs,
         videoIsHEVC,
-        hasHevcSupport,
+        userHasHEVC,
+        hevcPreviewMode,
         needsAudioMappedPreview,
         previewAudioStreamIndex,
         buildEnsureMergedPreviewArgs,
@@ -378,7 +378,10 @@ export function useVideoPlayer({
             return;
         }
 
-        const shouldTranscodeVideo = videoIsHEVC === true && !hasHevcSupport;
+        // "proxy" mode always transcodes HEVC; "auto" plays native HEVC when the
+        // system reports support and only proxies otherwise (setting in General).
+        const shouldTranscodeVideo =
+            videoIsHEVC === true && (hevcPreviewMode === "proxy" || !userHasHEVC);
         const shouldUseProxy = needsAudioMappedPreview || shouldTranscodeVideo;
 
         if (!shouldUseProxy) {
@@ -432,7 +435,8 @@ export function useVideoPlayer({
         selectedClip,
         mergedPreviewClip,
         videoIsHEVC,
-        hasHevcSupport,
+        userHasHEVC,
+        hevcPreviewMode,
         needsAudioMappedPreview,
         selectedClipAudioKey,
         buildEnsurePreviewProxyArgs,

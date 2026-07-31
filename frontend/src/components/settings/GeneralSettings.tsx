@@ -1,6 +1,7 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { useGeneralSettingsStore } from "../../stores/settingsStore";
+import { useAppStateStore } from "../../stores/appStore";
 import { useEffect, useState} from "react";
 import SettingRow from "../common/SettingRow";
 import { clearEpisodePanelCache } from "../../utils/episodeUtils";
@@ -16,6 +17,10 @@ export default function GeneralSettings({
 }: GeneralSettingsProps) {
   const generalSettings = useGeneralSettingsStore();
   const setGeneralSettings = useGeneralSettingsStore.setState;
+  const userHasHEVC = useAppStateStore((s) => s.userHasHEVC);
+  // No HEVC codec => native HEVC previews can't play, so the proxy is mandatory:
+  // lock the toggle on and disabled.
+  const hevcForced = !userHasHEVC;
   const [loading, setLoading] = useState(false);
   const [showFactoryResetConfirm, setShowFactoryResetConfirm] = useState(false);
   const [showClearPanelConfirm, setShowClearPanelConfirm] = useState(false);
@@ -104,7 +109,7 @@ export default function GeneralSettings({
           control={
           <div className="settings-control">
             <span className="settings-value" style={{ width: "auto" }}>
-              v1.2.8
+              v1.3.0
             </span>
           </div>
           }
@@ -154,6 +159,57 @@ export default function GeneralSettings({
               <span className="settings-value">
                 {Math.round(generalSettings.playbackVolume * 100)}%
               </span>
+            </div>
+          }
+        />
+
+        <SettingRow
+          label="Force 480p HEVC Previews"
+          description="Always transcode HEVC clip previews to compatible 480p proxy."
+          control={
+            <div className="settings-control">
+              <label
+                className="custom-checkbox"
+                title={hevcForced ? "You don't have HEVC installed" : undefined}
+                style={hevcForced ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
+              >
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={hevcForced || generalSettings.hevcPreviewMode === "proxy"}
+                  disabled={hevcForced}
+                  onChange={(e) =>
+                    setGeneralSettings((prev) => ({
+                      ...prev,
+                      hevcPreviewMode: e.target.checked ? "proxy" : "auto",
+                    }))
+                  }
+                />
+                <span className="checkmark"></span>
+              </label>
+            </div>
+          }
+        />
+
+        <SettingRow
+          label="Unselect clips after export"
+          description="Automatically clear your clip selection once an export finishes."
+          control={
+            <div className="settings-control">
+              <label className="custom-checkbox">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={generalSettings.unselectAllAfterExport}
+                  onChange={(e) =>
+                    setGeneralSettings((prev) => ({
+                      ...prev,
+                      unselectAllAfterExport: e.target.checked,
+                    }))
+                  }
+                />
+                <span className="checkmark"></span>
+              </label>
             </div>
           }
         />

@@ -47,6 +47,7 @@ export const LazyClip = memo(function LazyClip({
   const gridPreview = useUIStateStore(s => s.gridPreview);
   const videoIsHEVC = useAppStateStore(s => s.videoIsHEVC);
   const userHasHEVC = useAppStateStore(s => s.userHasHEVC);
+  const hevcPreviewMode = useGeneralSettingsStore(s => s.hevcPreviewMode);
   const audioPlaybackHover = useGeneralSettingsStore(s => s.audioPlaybackHover);
   const previewAudioStreamIndex = useGeneralSettingsStore(s => s.previewAudioStreamIndex);
   const selectedMappedAudioStreamIndex =
@@ -89,7 +90,7 @@ export const LazyClip = memo(function LazyClip({
   const needsAudioMappedPreview = selectedMappedAudioStreamIndex !== null;
   const shouldUseMergedPreview =
     hasMergedSources &&
-    !(videoIsHEVC === true && userHasHEVC === false && !needsAudioMappedPreview);
+    !(videoIsHEVC === true && (hevcPreviewMode === "proxy" || !userHasHEVC) && !needsAudioMappedPreview);
   const waitingForMergedPreview =
     shouldUseMergedPreview &&
     mergedPreviewSrc === null &&
@@ -102,8 +103,16 @@ export const LazyClip = memo(function LazyClip({
   const [downloadTone, setDownloadTone] = useState<"light" | "dark">("light");
 
   // determine if we need a proxy:
-  const needsHevcProxy = videoIsHEVC === true && userHasHEVC === false;
-  const waitingForCodecInfo = videoIsHEVC === null && userHasHEVC === false;
+  // "proxy" mode always transcodes HEVC to a 480p proxy (reliable everywhere).
+  // "auto" plays native HEVC when the system reports support (sharper) and only
+  // proxies otherwise - detection can be optimistic (GPU/WebKit), so "auto" may
+  // still stall; the stall/onError fallbacks below recover, and users can force
+  // "proxy" in General settings.
+  const needsHevcProxy =
+    videoIsHEVC === true && (hevcPreviewMode === "proxy" || !userHasHEVC);
+  // Codec still unknown: hold the thumbnail until check_hevc resolves so we never
+  // briefly mount an HEVC original (the thing that caused the startup stall).
+  const waitingForCodecInfo = videoIsHEVC === null;
 
   // only show video if hovered or grid preview is on
   const showVideo = isHovered || gridPreview;
