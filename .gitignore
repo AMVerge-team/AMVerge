@@ -32,6 +32,7 @@ venv/
 **/target/
 frontend/src-tauri/bin/
 frontend/src-tauri/gen/schemas/
+frontend/.ffmpeg-bin/
 
 #############################################
 # Editors / OS
@@ -101,6 +102,7 @@ lerna-debug.log*
 *.cer
 *.key
 
+*.code-workspace
 #############################################
 # AI stuff
 #############################################

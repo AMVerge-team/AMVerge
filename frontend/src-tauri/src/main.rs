@@ -7,7 +7,7 @@ mod utils;
 
 use state::{
     ActiveFfmpegPids, ActiveSidecar, DiscordRPCState, EditorImportAbortState, ExportAbortState,
-    PreviewProxyLocks,
+    PreviewProxyLocks, PreviewTranscodeSlots,
 };
 use std::process::Command as StdCommand;
 use std::sync::atomic::Ordering;
@@ -21,6 +21,7 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(PreviewProxyLocks::default())
+        .manage(PreviewTranscodeSlots::default())
         .manage(ActiveSidecar::default())
         .manage(DiscordRPCState::default())
         .manage(EditorImportAbortState::default())
@@ -96,7 +97,7 @@ fn kill_all_child_processes(app: &tauri::AppHandle) {
             .output();
     }
 
-    // Kill untracked ffmpeg processes (merge, split, proxy).
+    // Kill untracked ffmpeg processes (merge, split, proxy)
     let misc_pids: Vec<u32> = app
         .state::<ActiveFfmpegPids>()
         .pids
@@ -114,7 +115,7 @@ fn kill_all_child_processes(app: &tauri::AppHandle) {
             .output();
     }
 
-    // Kill Python sidecar (scene detection) process group.
+    // Kill Python sidecar (scene detection) process group
     let sidecar = app.state::<ActiveSidecar>();
     if let Ok(mut lock) = sidecar.child.lock() {
         *lock = None;
@@ -131,7 +132,7 @@ fn kill_all_child_processes(app: &tauri::AppHandle) {
             .output();
     }
 
-    // Gracefully shut down Discord RPC.
+    // Gracefully shut down Discord RPC
     let discord_child = app
         .state::<DiscordRPCState>()
         .child

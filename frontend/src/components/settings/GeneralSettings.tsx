@@ -1,6 +1,13 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
-import { importMethod, SceneDetectionMethod, useGeneralSettingsStore } from "../../stores/settingsStore";
+import {
+  importMethod,
+  PreviewTranscodeMode,
+  PreviewTranscodeQuality,
+  SceneDetectionMethod,
+  useGeneralSettingsStore,
+} from "../../stores/settingsStore";
+import { useAppStateStore } from "../../stores/appStore";
 import { useUIStateStore } from "../../stores/UIStore";
 import { useEffect, useState} from "react";
 import SettingRow from "../common/SettingRow";
@@ -38,6 +45,31 @@ const PREVIEW_METHOD_OPTIONS: DropdownOption<importMethod>[] = [
   },
 ];
 
+const PREVIEW_TRANSCODE_MODE_OPTIONS: DropdownOption<PreviewTranscodeMode>[] = [
+  {
+    value: "off",
+    label: "Off",
+    description: "Play clips as-is. Requires HEVC support on this PC.",
+  },
+  {
+    value: "hevc",
+    label: "HEVC Only",
+    description: "Re-encode previews only when the source is HEVC/H.265.",
+  },
+  {
+    value: "always",
+    label: "Always",
+    description: "Re-encode every preview, whatever the source codec is.",
+  },
+];
+
+const PREVIEW_TRANSCODE_QUALITY_OPTIONS: DropdownOption<PreviewTranscodeQuality>[] = [
+  { value: "360p", label: "360p", description: "Smallest and fastest to generate." },
+  { value: "480p", label: "480p", description: "Balanced — recommended." },
+  { value: "720p", label: "720p", description: "Sharper previews, slower to generate." },
+  { value: "1080p", label: "1080p", description: "Full detail. Slowest, largest cache." },
+];
+
 type GeneralSettingsProps = {
   onGeneralSettingsReset: () => void;
   onEpisodesPathChanged: (oldPath: string, newPath: string) => void;
@@ -51,6 +83,14 @@ export default function GeneralSettings({
   const setGeneralSettings = useGeneralSettingsStore.setState;
   const setSceneDetectionMethod = useGeneralSettingsStore((s) => s.setSceneDetectionMethod);
   const setImportMethod = useGeneralSettingsStore((s) => s.setImportMethod);
+  const setPreviewTranscodeMode = useGeneralSettingsStore((s) => s.setPreviewTranscodeMode);
+  const setPreviewTranscodeQuality = useGeneralSettingsStore((s) => s.setPreviewTranscodeQuality);
+  const userHasHEVC = useAppStateStore((s) => s.userHasHEVC);
+  const hevcForced = !userHasHEVC;
+  const effectivePreviewTranscodeMode: PreviewTranscodeMode =
+    hevcForced && generalSettings.previewTranscodeMode === "off"
+      ? "hevc"
+      : generalSettings.previewTranscodeMode;
   const setGridPreview = useUIStateStore((s) => s.setGridPreview);
   const [loading, setLoading] = useState(false);
   const [showFactoryResetConfirm, setShowFactoryResetConfirm] = useState(false);
@@ -169,6 +209,42 @@ export default function GeneralSettings({
             />
           }
         />
+
+        <SettingRow
+          label="Re-encode Previews"
+          description={
+            hevcForced
+              ? "This PC can't decode HEVC, so HEVC previews must be re-encoded to play."
+              : "Clips are cut without re-encoding, so an HEVC source produces HEVC previews. Re-encode them to a playable H.264 proxy."
+          }
+          control={
+            <Dropdown
+              className="settings-wide-dropdown"
+              options={
+                hevcForced
+                  ? PREVIEW_TRANSCODE_MODE_OPTIONS.filter((option) => option.value !== "off")
+                  : PREVIEW_TRANSCODE_MODE_OPTIONS
+              }
+              value={effectivePreviewTranscodeMode}
+              onChange={(mode) => setPreviewTranscodeMode(mode)}
+            />
+          }
+        />
+
+        {effectivePreviewTranscodeMode !== "off" && (
+          <SettingRow
+            label="Preview Quality"
+            description="Resolution re-encoded previews are generated at. Audio tracks and timing are always preserved."
+            control={
+              <Dropdown
+                className="settings-wide-dropdown"
+                options={PREVIEW_TRANSCODE_QUALITY_OPTIONS}
+                value={generalSettings.previewTranscodeQuality}
+                onChange={(quality) => setPreviewTranscodeQuality(quality)}
+              />
+            }
+          />
+        )}
 
         <SettingRow
           label="Application Version"

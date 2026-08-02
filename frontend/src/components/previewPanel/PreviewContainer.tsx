@@ -11,7 +11,7 @@ import Dropdown from "../common/Dropdown";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { useAppPersistedStore } from "../../stores/appStore.ts";
 import { useUIStateStore } from "../../stores/UIStore.ts";
-import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
+import { PREVIEW_TRANSCODE_PRESETS, useGeneralSettingsStore } from "../../stores/settingsStore.ts";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
 import useImportExport from "../../hooks/useImportExport";
@@ -53,6 +53,10 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const previewAudioStreamIndex = useGeneralSettingsStore(s => s.previewAudioStreamIndex);
   const setPreviewAudioStreamIndex = useGeneralSettingsStore(s => s.setPreviewAudioStreamIndex);
   const importMethod = useGeneralSettingsStore(s => s.importMethod);
+  const previewTranscodeMode = useGeneralSettingsStore(s => s.previewTranscodeMode);
+  const previewTranscodeQuality = useGeneralSettingsStore(s => s.previewTranscodeQuality);
+  const videoIsHEVC = useAppStateStore(s => s.videoIsHEVC);
+  const userHasHEVC = useAppStateStore(s => s.userHasHEVC);
   const { handleExport, handlePickExportDir } = useImportExport();
   const [audioStreams, setAudioStreams] = React.useState<PreviewAudioStream[]>([]);
   const openedEpisodeId = useEpisodePanelRuntimeStore(s => s.openedEpisodeId);
@@ -110,25 +114,47 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     previewAudioStreamIndex !== null && previewAudioStreamIndex > 0 ? previewAudioStreamIndex : null;
   const [languageProxySrc, setLanguageProxySrc] = React.useState<string | null>(null);
 
-  // Remux the focused clip to the selected audio track (video copied — fast) and
-  // play that instead. WebP previews are image-only, so this is video-mode only.
+  // Cutting stream-copies, so an HEVC episode yields HEVC clips this WebView may
+  // not decode (black video, audio still plays). Mirror the grid's rule: proxy
+  // when the setting asks for it, and always when the codec is unplayable here.
+  const needsPreviewTranscode =
+    previewTranscodeMode === "always" ||
+    (previewTranscodeMode === "hevc" && videoIsHEVC === true) ||
+    (videoIsHEVC === true && userHasHEVC === false);
+  const transcodePreset = PREVIEW_TRANSCODE_PRESETS[previewTranscodeQuality];
+
+  // Build the proxy the focused clip needs: transcoded to a playable codec and/or
+  // remuxed to the selected audio track. WebP previews are image-only, so this is
+  // video-mode only.
   React.useEffect(() => {
     setLanguageProxySrc(null);
     if (webpPreviewMode) return;
     if (!previewVideoSrc) return;
-    if (selectedMappedAudioStreamIndex === null) return;
+    if (selectedMappedAudioStreamIndex === null && !needsPreviewTranscode) return;
     let cancelled = false;
     invoke<string>("ensure_preview_proxy", {
       clipPath: previewVideoSrc,
       audioStreamIndex: selectedMappedAudioStreamIndex,
-      transcodeVideo: false,
+      transcodeVideo: needsPreviewTranscode,
+      previewHeight: transcodePreset.height,
+      previewCrf: transcodePreset.crf,
     })
       .then((path) => { if (!cancelled && path) setLanguageProxySrc(path); })
-      .catch((err) => { console.warn("preview language proxy failed", err); });
+      .catch((err) => { console.warn("preview proxy failed", err); });
     return () => { cancelled = true; };
-  }, [previewVideoSrc, selectedMappedAudioStreamIndex, webpPreviewMode]);
+  }, [
+    previewVideoSrc,
+    selectedMappedAudioStreamIndex,
+    webpPreviewMode,
+    needsPreviewTranscode,
+    transcodePreset,
+  ]);
 
-  const playableVideoSrc = languageProxySrc ?? previewVideoSrc;
+  // While a transcode is pending the raw clip would render black, so hold the
+  // player on the proxy path and let it mount once ffmpeg finishes.
+  const playableVideoSrc = needsPreviewTranscode
+    ? languageProxySrc
+    : (languageProxySrc ?? previewVideoSrc);
 
   // Source-anchored time window for the focused scene (mirrors the grid's WebP window).
   const sourcePath = sourceClipObj ? (sourceClipObj.originalPath || sourceClipObj.src) : null;

@@ -141,8 +141,11 @@ async function main() {
   const torchIndexUrl =
     process.env.AMVERGE_TORCH_INDEX_URL ??
     (isWindows ? "https://download.pytorch.org/whl/cu128" : "");
+  // Empty string skips nelux entirely (the CLI falls back to FFmpeg parallel
+  // decode) — useful where the wheel must build from source and the native
+  // toolchain (CMake + spdlog etc.) isn't available.
   const neluxSpec =
-    process.env.AMVERGE_NELUX_SPEC ||
+    process.env.AMVERGE_NELUX_SPEC ??
     "git+https://github.com/NevermindNilas/Nelux.git";
 
   // Intel-mac cross build: an Apple-silicon runner targeting x86_64 must run the
@@ -186,7 +189,7 @@ async function main() {
   }
   // nelux is Windows-only (NVDEC GPU decode); other platforms fall back to the
   // CLI's FFmpeg parallel decode and don't need it.
-  if (isWindows) {
+  if (isWindows && neluxSpec) {
     runPython(buildPython, ["-m", "pip", "install", "--upgrade", neluxSpec]);
   }
   // ---------------------------------------------------------------------------
@@ -209,6 +212,10 @@ async function main() {
     // transnetv2-pytorch ships model weights as package data files.
     "--collect-data",
     "transnetv2_pytorch",
+    // The CLI itself ships package data (e.g. core/upscaling/registry.json,
+    // loaded at import time) — collect it or the frozen app crashes on start.
+    "--collect-data",
+    "amverge",
   ];
 
   if (process.platform === "darwin") {
@@ -221,6 +228,8 @@ async function main() {
 
   if (isWindows) {
     pyinstallerArgs.push("--noconsole");
+  }
+  if (isWindows && neluxSpec) {
     // nelux (installed on Windows only) ships a native extension plus its own
     // FFmpeg DLLs (nelux.libs via delvewheel); collect-all grabs the package,
     // binaries, and data together. Skipped elsewhere since nelux isn't installed.

@@ -29,17 +29,8 @@ type ExportOptionsPayload = {
   parallelExports: number;
 };
 
-/** One clip input for export. A bare `input` is a pre-cut clip file exported
- * whole (video mode); with `start_sec`/`end_sec` it's a source episode and that
- * range is cut from it (webp mode — no clip file on disk). */
 type ClipExportSpec = { input: string; start_sec?: number; end_sec?: number };
 
-/**
- * Resolve a clip to its export input(s). Video-mode clips have a pre-cut scene
- * file (`clipPath`); merged clips carry the cut files of their parts
- * (`mergedSrcs`). Webp clips have no file on disk, so they carry their
- * `[start, end]` range for the CLI to cut from the source episode (`src`).
- */
 function clipExportSpecs(c: ClipItem): ClipExportSpec[] {
   if (c.mergedSrcs && c.mergedSrcs.length > 0) return c.mergedSrcs.map((input) => ({ input }));
   if (c.clipPath) return [{ input: c.clipPath }];
@@ -67,16 +58,7 @@ export default function useImportExport(props?: ImportExportProps) {
   const importGenRef = useRef(0);
   const localAbortedRef = useRef(false);
   const abortedRef = props?.abortedRef || localAbortedRef;
-  // Teardown for the currently active video-streaming listener set. A new import
-  // stops the previous one first so background phase-2 events from an earlier
-  // import can't cross-patch the new episode's grid.
   const streamCleanupRef = useRef<(() => void) | null>(null);
-
-  // Import timeline by mode:
-  // 1) video_files: wire streaming listeners -> run detect_scenes -> stream clip updates
-  //    -> load final manifest -> hydrate final episode state.
-  // 2) webp_files: run detect_scenes -> load final manifest -> hydrate final episode state.
-  //    (WebP previews are generated later by the preview queue, not during detect_scenes.)
 
   const logImportError = useCallback((phase: string, error: unknown, context?: Record<string, unknown>) => {
     const details = {
@@ -92,13 +74,8 @@ export default function useImportExport(props?: ImportExportProps) {
       ?? generalSettings.exportProfiles[0];
     if (!profile) return undefined;
 
-    // Pass audioMode through as-is. The Rust backend now handles "copy" fallback
-    // safely (probes source audio codec and switches to AAC/etc. when copy would
-    // fail the muxer) and recognizes "none" as `-an`. Silently rewriting here
-    // was hiding muxer-incompat failures and producing 0 KB outputs.
     let audioMode = profile.audioMode;
     if (profile.container === "mov" && audioMode === "flac") {
-      // MOV + FLAC isn't natively supported; ALAC keeps lossless audio in a MOV-friendly format.
       audioMode = "alac";
     }
 
@@ -184,6 +161,9 @@ export default function useImportExport(props?: ImportExportProps) {
       resolvePhase1 = resolve;
     });
 
+    let clipDone = 0;
+    let clipTotal = 0;
+
     unlistenInitial = await listen<{ clips_json: string }>("initial_clips_ready", (event) => {
       let parsed: unknown;
       try {
@@ -207,11 +187,22 @@ export default function useImportExport(props?: ImportExportProps) {
       episodeState.setEpisodes((prev) => [entry, ...prev.filter((ep) => ep.id !== episodeId)]);
       episodeState.setSelectedEpisodeId(episodeId);
       episodeState.setOpenedEpisodeId(episodeId);
-      // Keep `loading` true: the full-screen skeleton stays up until phase-1
-      // (keyframe) clips are cut, so the grid appears already populated rather
-      // than flashing per-tile skeletons. clip_ready patches fill these clips in
-      // while still hidden under the loading screen.
-      useAppStateStore.setState({ clips });
+      // Reveal the grid here — the backend has only *detected* at this point, the
+      // cut hasn't started. Each tile renders its own pending skeleton
+      // (LazyClip's `videoClipPending`) and swaps to video as clip_ready streams
+      // in, so the user browses the episode while cutting continues instead of
+      // staring at a full-screen skeleton for the whole cut.
+      //
+      // bgProgress carries the cut count. It drives the minimized progress card
+      // and doubles as the "import busy" flag that `loading` used to provide, so
+      // a second import still can't start mid-cut.
+      clipDone = 0;
+      clipTotal = clips.length;
+      useAppStateStore.setState({
+        clips,
+        loading: false,
+        bgProgress: { done: 0, total: clips.length },
+      });
     });
 
     // Coalesce clip_ready patches. Keyframe copies finish in bursts — applying
@@ -235,7 +226,15 @@ export default function useImportExport(props?: ImportExportProps) {
         const p = snapshot.get(c.id);
         return p ? { ...c, ...p } : c;
       };
-      useAppStateStore.setState((s) => ({ clips: s.clips.map(applyPatch) }));
+      useAppStateStore.setState((s) => ({
+        clips: s.clips.map(applyPatch),
+        // Advance the cut counter on the same frame as the clip patches. Left
+        // untouched once every clip is in — phase1_complete clears it.
+        bgProgress:
+          clipTotal > 0 && clipDone < clipTotal
+            ? { done: clipDone, total: clipTotal }
+            : s.bgProgress,
+      }));
       episodeState.setEpisodes((prev) =>
         prev.map((ep) => (ep.id === episodeId ? { ...ep, clips: ep.clips.map(applyPatch) } : ep))
       );
@@ -260,6 +259,7 @@ export default function useImportExport(props?: ImportExportProps) {
           clipPath: clip_path ?? undefined,
           clipMode: clip_mode || undefined,
         });
+        clipDone += 1;
         scheduleFlush();
       }
     );
@@ -272,15 +272,17 @@ export default function useImportExport(props?: ImportExportProps) {
       scheduleFlush();
     });
 
-    // Phase 1 (keyframe copies) done: drop the loading screen now. Phase-2
-    // re-encodes keep streaming via clip_ready and fill their tiles in the
-    // background while the user already sees the keyframe grid.
+    // Phase 1 (keyframe copies) done. The grid is already visible from
+    // initial_clips_ready; this just clears the cut progress card so the import
+    // stops counting as busy. Phase-2 re-encodes keep streaming via clip_ready
+    // and fill their tiles in the background (tracked by reencodeProgress,
+    // which deliberately does NOT block a new import).
     unlistenPhase1 = await listen("phase1_complete", () => {
       // Flush synchronously so every keyframe clip path is in the store before
-      // the import resolves and the grid is revealed.
+      // the import resolves.
       cancelFlush();
       flushPatches();
-      useAppStateStore.setState({ loading: false });
+      useAppStateStore.setState({ loading: false, bgProgress: null });
       resolvePhase1();
     });
 
@@ -302,8 +304,10 @@ export default function useImportExport(props?: ImportExportProps) {
       if (unlistenThumb) unlistenThumb();
       if (unlistenPhase1) unlistenPhase1();
       if (unlistenReencode) unlistenReencode();
-      // Clear any lingering re-encode indicator for this session.
-      useAppStateStore.setState({ reencodeProgress: null });
+      // Clear any lingering progress indicators for this session. bgProgress is
+      // normally cleared at phase1_complete; this covers the process dying
+      // mid-cut, which would otherwise leave the import permanently "busy".
+      useAppStateStore.setState({ reencodeProgress: null, bgProgress: null });
     };
 
     return { stop, phase1Done };
