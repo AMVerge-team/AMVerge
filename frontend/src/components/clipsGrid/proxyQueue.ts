@@ -6,6 +6,10 @@
  * This only actually runs if the user does not have HEVC and the episode is encoded in HEVC.
  */
 import { useRef, useCallback } from "react";
+import {
+  PREVIEW_TRANSCODE_PRESETS,
+  useGeneralSettingsStore,
+} from "../../stores/settingsStore.ts";
 import { invoke } from "@tauri-apps/api/core";
 import { DeferredProxy, ProxyDemand } from "./types.ts"
 
@@ -88,7 +92,17 @@ export default function useViewportAwareProxyQueue() {
 
         try {
           proxyInFlightClipRef.current = clipPath;
-          const proxyPath = await invoke<string>("ensure_preview_proxy", { clipPath });
+          // Read the quality at dispatch time so a settings change applies to
+          // everything still queued without re-subscribing this long-lived loop.
+          const preset =
+            PREVIEW_TRANSCODE_PRESETS[
+              useGeneralSettingsStore.getState().previewTranscodeQuality
+            ];
+          const proxyPath = await invoke<string>("ensure_preview_proxy", {
+            clipPath,
+            previewHeight: preset.height,
+            previewCrf: preset.crf,
+          });
           if (!proxyPath) throw new Error("ensure_preview_proxy returned empty path");
 
           proxyCacheRef.current.set(clipPath, proxyPath);

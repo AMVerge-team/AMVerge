@@ -15,7 +15,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::state::{ActiveFfmpegPids, PreviewProxyLocks, ProxyLockMap};
+use crate::state::{ActiveFfmpegPids, PreviewProxyLocks, PreviewTranscodeSlots, ProxyLockMap};
 use crate::utils::ffmpeg::resolve_bundled_tool;
 use crate::utils::logging::console_log;
 use crate::utils::paths::{file_name_only, sanitize_episode_cache_id};
@@ -38,7 +38,6 @@ pub struct SceneWebpJob {
     pub fps: Option<u32>,
     pub episode_cache_id: Option<String>,
     pub custom_path: Option<String>,
-    /// "poster" for a static first-frame image, "animated" (default) for the looping WebP.
     pub kind: Option<String>,
 }
 
@@ -67,9 +66,6 @@ pub struct SceneWebpBatchResult {
     pub items: Vec<SceneWebpBatchItem>,
 }
 
-/// Emitted as each scene in a batch finishes so the grid can paint that tile
-/// immediately instead of waiting for the whole batch (which is gated by its
-/// slowest encode) to return.
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct SceneWebpReadyPayload {
@@ -83,7 +79,6 @@ fn sanitize_scene_time_window(start: f64, end: f64) -> (f64, f64, f64) {
     if safe_end - safe_start < 0.10 {
         safe_end = safe_start + 0.10;
     }
-    // Keep grid previews short for fast first paint; long scenes are expensive to encode.
     let max_preview_secs = 2.5;
     if safe_end - safe_start > max_preview_secs {
         safe_end = safe_start + max_preview_secs;
@@ -136,15 +131,9 @@ fn content_fingerprint(path: &Path) -> Result<String, String> {
     Ok(hex::encode(hasher.finalize()))
 }
 
-/// Shared cache of `source_path -> content fingerprint` so a batch of scenes
-/// from the same episode fingerprints the source once instead of per-scene.
 type FingerprintCache = Arc<Mutex<HashMap<String, String>>>;
 
-/// Upper bound on concurrent WebP encodes. Now that decode is software (no GPU
-/// contention), the limiter is CPU: `available_parallelism()/2` encodes each
-/// running with `-threads 2` keeps total ffmpeg threads ~= logical cores. The
-/// old ceiling of 4 left high-core machines idle while the grid waited; 8 lets
-/// them fan out, while low-core machines stay bounded by the `/2` heuristic.
+
 const SCENE_WEBP_MAX_CONCURRENCY: usize = 8;
 
 fn scene_webp_concurrency() -> usize {
@@ -154,7 +143,6 @@ fn scene_webp_concurrency() -> usize {
         .min(SCENE_WEBP_MAX_CONCURRENCY)
 }
 
-/// Fingerprint `source`, reusing a previously computed value for the same path.
 fn cached_fingerprint(cache: &FingerprintCache, source: &Path) -> Result<String, String> {
     let key = source.to_string_lossy().to_string();
     if let Ok(map) = cache.lock() {
@@ -235,7 +223,6 @@ async fn generate_scene_webp_inner(
     let frame_rate = fps.unwrap_or(8).clamp(1, 24);
     let (safe_start, safe_end, duration) = sanitize_scene_time_window(start, end);
 
-    // Resolve the cache path without re-fingerprinting the source per scene.
     let fingerprint = cached_fingerprint(&fingerprint_cache, &input_path)?;
     let key = preview_cache_key_with_fingerprint(
         &fingerprint,
@@ -293,21 +280,11 @@ async fn generate_scene_webp_inner(
         apply_no_window(&mut cmd);
         #[cfg(not(windows))]
         cmd.process_group(0);
-        // Two-stage seek: a fast keyframe pre-seek to just before the target,
-        // then a frame-accurate post-input seek for the remainder. The output
-        // `-ss` is always exact, so the pre-seek offset only controls how much
-        // pre-roll we decode — keep it small (0.5s) so we don't needlessly decode
-        // a couple of extra seconds of source per scene, which dominated the
-        // initial encode time. Accuracy is unchanged.
         const PRE_SEEK_OFFSET: f64 = 0.5;
         let pre_seek = (safe_start - PRE_SEEK_OFFSET).max(0.0);
         let post_seek = safe_start - pre_seek;
 
         cmd.args(["-y"]);
-        // No `-hwaccel`: these are short clips decoded straight into a CPU
-        // (libwebp) encoder, so GPU decode would only add per-process device
-        // init plus a frame-by-frame GPU->CPU readback — net slower here. The
-        // preview proxy path decodes the same sources in software without issue.
         if pre_seek > 0.0 {
             cmd.args(["-ss", &format!("{pre_seek:.3}")]);
         }
@@ -440,11 +417,6 @@ async fn run_scene_webp_job(
     .await
 }
 
-/// Enumerate a cache directory once, mapping `file name -> byte length`. Reading
-/// the directory in a single pass is dramatically cheaper than stat-ing each
-/// expected file individually when the cache lives on a slow or networked drive —
-/// the prime checks hundreds of scene files from the same folder at once. On
-/// Windows the per-entry size comes free from the directory enumeration.
 fn list_dir_file_sizes(dir: &Path) -> HashMap<String, u64> {
     let mut map = HashMap::new();
     if let Ok(entries) = std::fs::read_dir(dir) {
@@ -532,9 +504,6 @@ fn lookup_scene_webp_cache_item(
     let file_name = format!("{prefix}_{key}.webp");
     let cache_path = base.join(&file_name);
 
-    // Check existence against a one-shot listing of the cache directory rather
-    // than a per-file stat — same `is_file && len > 1024` semantics, far fewer
-    // syscalls across a whole-episode prime.
     let base_key = base.to_string_lossy().to_string();
     let dir_entries = dir_cache
         .entry(base_key)
@@ -645,8 +614,6 @@ pub async fn generate_scene_webp_batch(
     let mut set: JoinSet<(String, Result<SceneWebpResult, String>)> = JoinSet::new();
     let mut iter = jobs.into_iter();
 
-    // Keep up to `concurrency` encodes running at once: seed the pool, then spawn
-    // a replacement each time one finishes.
     macro_rules! spawn_next {
         () => {{
             if let Some(job) = iter.next() {
@@ -672,9 +639,6 @@ pub async fn generate_scene_webp_batch(
     while let Some(joined) = set.join_next().await {
         match joined {
             Ok((scene_id, result)) => {
-                // Stream this scene to the grid the moment it lands, so tiles
-                // pop in progressively rather than in batch-gated chunks. The
-                // batched return value below remains the source of truth.
                 if let Ok(ok) = &result {
                     let _ = app.emit(
                         "scene_webp_ready",
@@ -706,9 +670,6 @@ pub async fn lookup_scene_webp_cache_batch(
         .and_then(|job| job.episode_cache_id.clone())
         .unwrap_or_else(|| "none".to_string());
 
-    // Fingerprinting reads several MB off disk and SHA-256s it per unique source.
-    // Run the whole lookup loop on a blocking thread so it never ties up an async
-    // runtime worker — the frontend primes this for a full episode at a time.
     let app_for_lookup = app.clone();
     let (items, unique_sources): (Vec<SceneWebpBatchItem>, usize) =
         tokio::task::spawn_blocking(move || {
@@ -962,16 +923,25 @@ pub async fn hover_preview_error(
 pub async fn ensure_preview_proxy(
     app: AppHandle,
     proxy_locks: State<'_, PreviewProxyLocks>,
+    transcode_slots: State<'_, PreviewTranscodeSlots>,
     ffmpeg_pids: State<'_, ActiveFfmpegPids>,
     clip_path: String,
     audio_stream_index: Option<u32>,
     transcode_video: Option<bool>,
+    preview_height: Option<u32>,
+    preview_crf: Option<u32>,
 ) -> Result<String, String> {
     let transcode_video = transcode_video.unwrap_or(true);
+    let preview_height = preview_height.unwrap_or(480).clamp(144, 2160);
+    let preview_crf = preview_crf.unwrap_or(32).clamp(0, 51);
     let audio_suffix = audio_stream_index
         .map(|idx| format!("a{idx}"))
         .unwrap_or_else(|| "na".to_string());
-    let mode_suffix = if transcode_video { "x264" } else { "copy" };
+    let mode_suffix = if transcode_video {
+        format!("x264_{preview_height}p{preview_crf}")
+    } else {
+        "copy".to_string()
+    };
     let clip_key = format!("{}::{audio_suffix}::{mode_suffix}", clip_path);
     let clip_lock = {
         let mut map = proxy_locks.inner.lock().await;
@@ -981,6 +951,20 @@ pub async fn ensure_preview_proxy(
             .clone()
     };
     let _guard = clip_lock.lock().await;
+
+    let encode_threads = transcode_slots.threads_per_encode;
+    let _transcode_slot = if transcode_video {
+        Some(
+            transcode_slots
+                .semaphore
+                .clone()
+                .acquire_owned()
+                .await
+                .map_err(|e| format!("Preview transcode queue closed: {e}"))?,
+        )
+    } else {
+        None
+    };
 
     let ffmpeg = resolve_bundled_tool(&app, "ffmpeg")?;
     console_log(
@@ -1036,30 +1020,25 @@ pub async fn ensure_preview_proxy(
         }
 
         if transcode_video {
+            cmd.args(["-c:v", "libx264"]);
             cmd.args([
-                "-c:v",
-                "libx264",
                 "-vf",
-                "scale=-2:480",
-                "-g",
-                "1",
-                "-preset",
-                "veryfast",
-                "-crf",
-                "32",
-                "-pix_fmt",
-                "yuv420p",
+                &format!("scale=-2:'min({preview_height},ih)'"),
             ]);
+            cmd.args(["-g", "1"]);
+            cmd.args(["-preset", "veryfast"]);
+            cmd.args(["-threads", &encode_threads.to_string()]);
+            cmd.args(["-crf", &preview_crf.to_string()]);
+            cmd.args(["-pix_fmt", "yuv420p"]);
 
-            if audio_stream_index.is_some() {
-                cmd.args(["-c:a", "aac", "-b:a", "160k", "-ac", "2", "-ar", "48000"]);
-            } else {
-                cmd.args(["-an"]);
+            if audio_stream_index.is_none() {
+                cmd.args(["-map", "0:a?"]);
             }
+            cmd.args(["-c:a", "aac", "-b:a", "160k", "-ac", "2", "-ar", "48000"]);
         } else {
             cmd.args(["-c:v", "copy"]);
             if audio_stream_index.is_some() {
-                cmd.args(["-c:a", "copy"]);
+                cmd.args(["-c:a", "aac", "-b:a", "160k", "-ac", "2", "-ar", "48000"]);
             } else {
                 cmd.args(["-an"]);
             }

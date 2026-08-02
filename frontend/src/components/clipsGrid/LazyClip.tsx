@@ -12,7 +12,11 @@ import { useWebpPreview } from "./useWebpPreview.ts";
 import { FaCheck, FaPlus } from "react-icons/fa";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { useUIStateStore } from "../../stores/UIStore.ts";
-import { useGeneralSettingsStore, useThemeSettingsStore } from "../../stores/settingsStore.ts";
+import {
+  PREVIEW_TRANSCODE_PRESETS,
+  useGeneralSettingsStore,
+  useThemeSettingsStore,
+} from "../../stores/settingsStore.ts";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
 import { cancelIdle, scheduleIdle } from "../../utils/idle.ts";
 
@@ -64,6 +68,8 @@ export const LazyClip = memo(function LazyClip({
     previewAudioStreamIndex !== null && previewAudioStreamIndex > 0
       ? previewAudioStreamIndex
       : null;
+  const previewTranscodeMode = useGeneralSettingsStore(s => s.previewTranscodeMode);
+  const previewTranscodeQuality = useGeneralSettingsStore(s => s.previewTranscodeQuality);
   const playbackVolume = useGeneralSettingsStore(s => s.playbackVolume);
   const gridPreviewSpeed = useThemeSettingsStore(s => s.gridPreviewSpeed ?? 1);
   const showDownloadButton = useThemeSettingsStore(s => s.showDownloadButton);
@@ -111,9 +117,11 @@ export const LazyClip = memo(function LazyClip({
   const VIDEO_THUMB_MAX_RETRIES = 2;
   // the actual video source (original or proxy)
   const [effectiveSrc, setEffectiveSrc] = useState(clip.src);
-  // video mode: cut clip remuxed to the selected audio track, used on hover so
-  // hover audio plays the chosen Preview Language (null = play the default track).
-  const [videoAudioProxySrc, setVideoAudioProxySrc] = useState<string | null>(null);
+  // video mode: proxy built from the cut clip — transcoded to a playable codec
+  // and/or remuxed to the selected audio track. Stored with the key it was built
+  // for so a settings change (quality, language) rebuilds instead of serving a
+  // stale file. null = play the cut clip directly.
+  const [videoProxy, setVideoProxy] = useState<{ key: string; path: string } | null>(null);
   const [, setMergedPreviewSrc] = useState<string | null>(null);
   const [, setMergedPreviewFailed] = useState(false);
   const mergedSrcsKey = clip.mergedSrcs
@@ -121,6 +129,33 @@ export const LazyClip = memo(function LazyClip({
     : null;
   // determine if we need a proxy:
   const needsHevcProxy = videoIsHEVC === true && userHasHEVC === false;
+  // Clips are stream-copied, so an HEVC episode produces HEVC clips. Decide
+  // whether previews must come from a transcoded H.264 proxy. The last term is a
+  // safety net independent of the setting: without a decoder the tile is black,
+  // so transcode regardless of what the user picked.
+  const needsPreviewTranscode =
+    previewTranscodeMode === "always" ||
+    (previewTranscodeMode === "hevc" && videoIsHEVC === true) ||
+    needsHevcProxy;
+  const transcodePreset = PREVIEW_TRANSCODE_PRESETS[previewTranscodeQuality];
+  // Audio track the proxy should carry. Deliberately excludes isHovered so the
+  // key stays stable across hovers and we don't rebuild the proxy every time the
+  // pointer enters the tile.
+  const proxyAudioStreamIndex =
+    selectedMappedAudioStreamIndex !== null && audioPlaybackHover
+      ? selectedMappedAudioStreamIndex
+      : null;
+  // Identifies exactly which proxy this tile wants right now.
+  const videoProxyKey =
+    isVideoMode && clip.clipPath
+      ? `${clip.clipPath}::${proxyAudioStreamIndex ?? "na"}::${
+          needsPreviewTranscode
+            ? `x264_${transcodePreset.height}p${transcodePreset.crf}`
+            : "copy"
+        }`
+      : null;
+  const videoProxySrc =
+    videoProxy && videoProxy.key === videoProxyKey ? videoProxy.path : null;
 
   // In video mode, clip files are pre-cut H.264 — mount video element when visible/hovered.
   // In WebP mode, video playback is disabled; hover/preview-all use animated WebP instead.
@@ -128,11 +163,17 @@ export const LazyClip = memo(function LazyClip({
   // Production parity: in video mode the <video> mounts ONLY on hover or preview-all
   // (staggered) — never per-visible tile. That keeps concurrent decoders bounded
   // and removes the scroll-reload; a static jpg poster covers the tile at rest.
-  const shouldMountVideo = isVideoMode && (isHovered || (gridPreview && staggerReady));
+  // When a transcode is required the raw clip is undecodable here, so hold the
+  // mount until the proxy exists — otherwise the tile flashes black behind the
+  // poster while ffmpeg is still working.
+  const shouldMountVideo =
+    isVideoMode &&
+    (isHovered || (gridPreview && staggerReady)) &&
+    (!needsPreviewTranscode || Boolean(videoProxySrc));
   // Single source of truth for the <video> src — the JSX and the media-release
   // effect below must agree on it so a stripped attribute can be restored.
   const videoSrcUrl = shouldMountVideo
-    ? `${convertFileSrc(isVideoMode ? (videoAudioProxySrc ?? clip.clipPath!) : effectiveSrc)}?v=${importToken}`
+    ? `${convertFileSrc(isVideoMode ? (videoProxySrc ?? clip.clipPath!) : effectiveSrc)}?v=${importToken}`
     : null;
   const shouldShowThumbnail = isVideoMode
     ? (!shouldMountVideo || !isVideoReady)
@@ -170,6 +211,9 @@ export const LazyClip = memo(function LazyClip({
       return;
     }
 
+    // Gated on decodability, not on the transcode preference: this queue exists
+    // so an unplayable source can be previewed at all. Using the preference here
+    // would queue source-video encodes in WebP mode, which never plays video.
     const wantsProxyNow =
       needsHevcProxy &&
       isVisible &&
@@ -217,59 +261,94 @@ export const LazyClip = memo(function LazyClip({
     setForceThumbnail(false);
     setIsVideoReady(false);
     setEffectiveSrc(clip.src);
-    setVideoAudioProxySrc(null);
+    setVideoProxy(null);
     setVideoThumbFailed(false);
     setVideoThumbRetry(0);
   }, [clip.src, importToken, previewAudioStreamIndex]);
 
-  // Video mode: when a non-default Preview Language is selected and the user
-  // hovers with audio enabled, remux the cut clip to that audio track (video
-  // copied — fast) and play it so hover audio is in the chosen language.
+  // Video-mode proxy. Two independent reasons a tile needs one:
+  //  - the cut clip's codec can't be decoded here (HEVC clips, since cutting
+  //    stream-copies), or the user asked for transcoded previews outright;
+  //  - a non-default Preview Language is selected and hover audio is on, so the
+  //    clip must be remuxed to that track.
+  // One ensure_preview_proxy call covers both, so a tile never builds two files.
   useEffect(() => {
-    if (!isVideoMode || !clip.clipPath) return;
-    if (selectedMappedAudioStreamIndex === null) return;
-    if (!isHovered || !audioPlaybackHover) return;
-    if (videoAudioProxySrc) return;
+    if (!isVideoMode || !clip.clipPath || !videoProxyKey) return;
+    if (videoProxySrc) return;
 
+    const wantsAudioMapped = proxyAudioStreamIndex !== null && isHovered;
+    if (!needsPreviewTranscode && !wantsAudioMapped) return;
+    // Only build a proxy for a tile that is about to *play*. Keying this off
+    // visibility instead meant scrolling queued an encode for every tile on
+    // screen at once — dozens of ffmpeg processes competing for the CPU, which
+    // froze the app and starved the one tile the user actually hovered. This
+    // mirrors shouldMountVideo, so a proxy is requested exactly when it's needed.
+    if (!isHovered && !(gridPreview && staggerReady)) return;
+
+    const requestedKey = videoProxyKey;
     let cancelled = false;
     invoke<string>("ensure_preview_proxy", {
       clipPath: clip.clipPath,
-      audioStreamIndex: selectedMappedAudioStreamIndex,
-      transcodeVideo: false,
+      audioStreamIndex: proxyAudioStreamIndex,
+      transcodeVideo: needsPreviewTranscode,
+      previewHeight: transcodePreset.height,
+      previewCrf: transcodePreset.crf,
     })
-      .then((path) => { if (!cancelled && path) setVideoAudioProxySrc(path); })
-      .catch((err) => { console.warn("video language proxy failed", err); });
+      .then((path) => {
+        if (!cancelled && path) setVideoProxy({ key: requestedKey, path });
+      })
+      .catch((err) => { console.warn("video preview proxy failed", err); });
     return () => { cancelled = true; };
-  }, [isVideoMode, clip.clipPath, selectedMappedAudioStreamIndex, isHovered, audioPlaybackHover, videoAudioProxySrc]);
+  }, [
+    isVideoMode,
+    clip.clipPath,
+    videoProxyKey,
+    videoProxySrc,
+    proxyAudioStreamIndex,
+    needsPreviewTranscode,
+    transcodePreset,
+    isHovered,
+    gridPreview,
+    staggerReady,
+  ]);
 
   const ensurePreviewProxyPath = useCallback(
     async (clipPath: string, priority: boolean, transcodeVideo: boolean): Promise<string> => {
       if (selectedMappedAudioStreamIndex === null) {
         return gridPreview
           ? requestProxySequential(clipPath, priority)
-          : invoke<string>("ensure_preview_proxy", { clipPath, transcodeVideo });
+          : invoke<string>("ensure_preview_proxy", {
+              clipPath,
+              transcodeVideo,
+              previewHeight: transcodePreset.height,
+              previewCrf: transcodePreset.crf,
+            });
       }
 
       return invoke<string>("ensure_preview_proxy", {
         clipPath,
         transcodeVideo,
         audioStreamIndex: selectedMappedAudioStreamIndex,
+        previewHeight: transcodePreset.height,
+        previewCrf: transcodePreset.crf,
       });
     },
-    [gridPreview, requestProxySequential, selectedMappedAudioStreamIndex]
+    [gridPreview, requestProxySequential, selectedMappedAudioStreamIndex, transcodePreset]
   );
 
   // Proactive HEVC/audio-stream proxy gating:
   // - HEVC without support always needs proxy.
   // - Hover audio with a non-default stream needs a mapped proxy.
   useEffect(() => {
-    if (isVideoMode) return; // clip files are pre-cut H.264, never need proxy
+    // Video mode has its own proxy effect above (it proxies the cut clip, not
+    // the source video), so this path is WebP mode only.
+    if (isVideoMode) return;
 
     const needsAudioMappedProxy =
       selectedMappedAudioStreamIndex !== null &&
       isHovered &&
       audioPlaybackHover;
-    const shouldTranscodeVideo = needsHevcProxy;
+    const shouldTranscodeVideo = needsPreviewTranscode;
     const needsPreviewProxy = shouldTranscodeVideo || needsAudioMappedProxy;
 
     if (!needsPreviewProxy) return;
@@ -315,7 +394,7 @@ export const LazyClip = memo(function LazyClip({
     void run();
   }, [
     isVideoMode,
-    needsHevcProxy,
+    needsPreviewTranscode,
     selectedMappedAudioStreamIndex,
     audioPlaybackHover,
     isVisible,

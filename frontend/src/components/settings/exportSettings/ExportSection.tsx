@@ -25,6 +25,7 @@ import ProfileActions from "./ProfileActions";
 import ProfileIconPicker from "./ProfileIconPicker";
 import ExportCodecSettings from "./ExportCodecSettings";
 import ExportHardwareSettings from "./ExportHardwareSettings";
+import PostExportPassesSection from "./PostExportPassesSection";
 
 function resolveGpuEncoderForCodec(
   codec: ExportProfile["codec"],
@@ -332,6 +333,13 @@ export default function ExportSection() {
             }
           />
         )}
+
+        <div className="settings-section-divider" />
+        <h3 className="settings-subheading">Post-export passes</h3>
+        <p className="settings-subheading-desc">
+          Extra CLI steps run on each exported file after export. A live modal shows progress and a preview.
+        </p>
+        <PostExportPassesSection />
       </div>
     </section>
   );

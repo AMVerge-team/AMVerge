@@ -7,6 +7,12 @@ import {
     normalizeExportProfile,
     type ExportProfile,
 } from "../features/export/profiles";
+import {
+    DEFAULT_POST_EXPORT_PASSES,
+    normalizePostExportPasses,
+    type PostExportPasses,
+    type PostExportPassKind,
+} from "../features/export/postPasses";
 
 /*====================
     GENERAL SETTINGS 
@@ -14,6 +20,19 @@ import {
 export type ExportFormat = "mp4" | "mkv" | "mov" | "xml";
 export type SceneDetectionMethod = "transnetv2_gpu" | "pyscenedetect_cpu" | "keyframe_detection";
 export type importMethod = "video_files" | "webp_files";
+
+export type PreviewTranscodeMode = "off" | "hevc" | "always";
+export type PreviewTranscodeQuality = "360p" | "480p" | "720p" | "1080p";
+
+export const PREVIEW_TRANSCODE_PRESETS: Record<
+    PreviewTranscodeQuality,
+    { height: number; crf: number }
+> = {
+    "360p": { height: 360, crf: 32 },
+    "480p": { height: 480, crf: 30 },
+    "720p": { height: 720, crf: 28 },
+    "1080p": { height: 1080, crf: 26 },
+};
 
 export type GeneralSettings = {
     episodesPath: string | null;
@@ -34,6 +53,9 @@ export type GeneralSettings = {
     rpcShowMiniIcons: boolean;
     sceneDetectionMethod: SceneDetectionMethod;
     importMethod: importMethod;
+    previewTranscodeMode: PreviewTranscodeMode;
+    previewTranscodeQuality: PreviewTranscodeQuality;
+    postExportPasses: PostExportPasses;
 };
 
 export type GeneralSettingsStore = GeneralSettings & {
@@ -59,6 +81,12 @@ export type GeneralSettingsStore = GeneralSettings & {
     resetGeneralSettings: () => void;
     setSceneDetectionMethod: (method: SceneDetectionMethod) => void;
     setImportMethod: (method: importMethod) => void;
+    setPreviewTranscodeMode: (mode: PreviewTranscodeMode) => void;
+    setPreviewTranscodeQuality: (quality: PreviewTranscodeQuality) => void;
+    updatePostExportPasses: <K extends PostExportPassKind>(
+        pass: K,
+        changes: Partial<PostExportPasses[K]>,
+    ) => void;
 };
 
 export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
@@ -80,6 +108,9 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     rpcShowMiniIcons: true,
     sceneDetectionMethod: "transnetv2_gpu",
     importMethod: "video_files",
+    previewTranscodeMode: "hevc",
+    previewTranscodeQuality: "480p",
+    postExportPasses: DEFAULT_POST_EXPORT_PASSES,
 };
 
 export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
@@ -172,6 +203,10 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                 set({ sceneDetectionMethod: method }),
             setImportMethod: (method) =>
                 set({ importMethod: method }),
+            setPreviewTranscodeMode: (mode) =>
+                set({ previewTranscodeMode: mode }),
+            setPreviewTranscodeQuality: (quality) =>
+                set({ previewTranscodeQuality: quality }),
             setAudioPlaybackHover: (enabled) =>
                 set({ audioPlaybackHover: enabled }),
             setPreviewAudioEnabled: (enabled) =>
@@ -189,6 +224,13 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                 set({ rpcShowMiniIcons: enabled }),
             
             resetGeneralSettings: () => set(DEFAULT_GENERAL_SETTINGS),
+            updatePostExportPasses: (pass, changes) =>
+                set((state) => ({
+                    postExportPasses: {
+                        ...state.postExportPasses,
+                        [pass]: { ...state.postExportPasses[pass], ...changes },
+                    },
+                })),
         }),
         {
             name: "amverge.generalSettings.v2",
@@ -230,6 +272,18 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                         persisted.importMethod === "video_files"
                             ? persisted.importMethod
                             : currentState.importMethod,
+                    previewTranscodeMode:
+                        persisted.previewTranscodeMode === "off" ||
+                        persisted.previewTranscodeMode === "hevc" ||
+                        persisted.previewTranscodeMode === "always"
+                            ? persisted.previewTranscodeMode
+                            : currentState.previewTranscodeMode,
+                    previewTranscodeQuality:
+                        persisted.previewTranscodeQuality !== undefined &&
+                        persisted.previewTranscodeQuality in PREVIEW_TRANSCODE_PRESETS
+                            ? persisted.previewTranscodeQuality
+                            : currentState.previewTranscodeQuality,
+                    postExportPasses: normalizePostExportPasses(persisted.postExportPasses),
                 };
             },
         }

@@ -10,6 +10,7 @@ import Settings from "./pages/Settings";
 import ImportTerminal from "./components/ImportTerminal";
 import BgProgressBar from "./components/BgProgressBar";
 import StartupNotificationModal, { type StartupNotification } from "./components/StartupNotificationModal";
+import PostExportPassesModal from "./components/PostExportPassesModal";
 
 import useDiscordRPC from "./hooks/useDiscordRPC";
 import useHEVCSupport from "./hooks/useHEVCSupport";
@@ -441,6 +442,7 @@ function App() {
           onClose={handleCloseStartupNotification}
         />
       ) : null}
+      <PostExportPassesModal />
       </AppLayout>
   );
 }

@@ -185,11 +185,13 @@
 }
 
 .export-settings-panel {
-    height: auto;
-    overflow: visible;
     display: flex;
     flex-direction: column;
     gap: 0;
+    /* Force a stable compositor layer. Without it, WebView2 leaves a black
+       repaint artifact below the panel when the scroll content height changes
+       (e.g. toggling a post-export pass open/closed). */
+    transform: translateZ(0);
 }
 
 .export-setting-row {
@@ -259,6 +261,35 @@
 
 .export-setting-block {
     margin: 0;
+}
+
+/* Post-export passes section */
+.settings-section-divider {
+    height: 1px;
+    margin: 18px 0 10px;
+    background: rgb(255 255 255 / 0.08);
+}
+
+.settings-subheading {
+    margin: 0 0 2px;
+    color: var(--accent);
+    font-size: 1rem;
+}
+
+.settings-subheading-desc {
+    margin: 0 0 8px;
+    color: rgb(255 255 255 / 0.5);
+    font-size: 0.82rem;
+}
+
+.pass-config {
+    margin: 0 0 6px 14px;
+    padding-left: 12px;
+    border-left: 2px solid rgb(var(--accent-rgb) / 0.3);
+}
+
+.pass-number-input {
+    width: 90px;
 }
 
 .settings-text-input,
@@ -454,9 +485,7 @@
     gap: 6px;
     font-size: 15px;
     border-color: white;
-    background: rgba(15, 0, 0, 0.1);
-    -webkit-backdrop-filter: blur(4px);
-    backdrop-filter: blur(4px);
+    background: rgba(15, 0, 0, 0.35);
     color: white;
 }
 
