@@ -1,7 +1,9 @@
 import { EpisodeEntry, EpisodeFolder } from "../types/domain";
 import { startTransition } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { useAppStateStore } from "../stores/appStore";
 import { useEpisodePanelRuntimeStore, useEpisodePanelMetadataStore } from "../stores/episodeStore";
+import { useGeneralSettingsStore } from "../stores/settingsStore";
 
 /**
  * Opens an episode by id. Store-level (reads via getState) so lightweight
@@ -212,7 +214,7 @@ export default function useEpisodePanelState() {
 		if (episodeRuntimeState.selectedFolderId === folderId) episodeRuntimeState.setSelectedFolderId(null);
 	};
 
-	const handleDeleteEpisode = (episodeId: string) => {
+	const handleDeleteEpisode = async (episodeId: string) => {
 		const wasOpenedEpisode = episodeRuntimeState.openedEpisodeId === episodeId;
 		episodeRuntimeState.setEpisodes((prev) => prev.filter((e) => e.id !== episodeId));
 		if (episodeRuntimeState.selectedEpisodeId === episodeId) episodeRuntimeState.setSelectedEpisodeId(null);
@@ -220,6 +222,9 @@ export default function useEpisodePanelState() {
 		if (episodeMetadataState.lastOpenedEpisodeId === episodeId) {
 			episodeMetadataState.setLastOpenedEpisodeId(null);
 		}
+		// Drop the persisted display name / folder assignment too, otherwise they
+		// linger in local storage keyed to an episode that no longer exists.
+		episodeMetadataState.removeEpisodeMetadata(episodeId);
 
 		if (wasOpenedEpisode) {
 			appState.setClips([]);
@@ -227,6 +232,21 @@ export default function useEpisodePanelState() {
 			appState.setFocusedClip(null);
 			appState.setFocusedClipId(null);
 			appState.setImportedVideoPath(null);
+		}
+
+		// The episode id IS its cache folder name (see buildEpisodeCacheId), so
+		// removing the entry from the panel without this left the cut clips,
+		// posters and proxies on disk forever. Read the path at call time rather
+		// than subscribing — this hook is used by the whole episode panel.
+		try {
+			await invoke("delete_episode_cache", {
+				episodeCacheId: episodeId,
+				customPath: useGeneralSettingsStore.getState().episodesPath,
+			});
+		} catch (err) {
+			// The panel entry is already gone; surface the disk failure without
+			// putting the episode back, since the user asked for it to be removed.
+			console.error("[episode] failed to delete cache folder", { episodeId, err });
 		}
 	};
 

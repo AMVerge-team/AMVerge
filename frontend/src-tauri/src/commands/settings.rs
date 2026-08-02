@@ -6,6 +6,7 @@ use image::DynamicImage;
 use tauri::{AppHandle, Manager};
 
 use crate::utils::ffmpeg::resolve_bundled_tool;
+use crate::utils::paths::is_episode_cache_dir;
 use crate::utils::process::apply_no_window;
 
 #[tauri::command]
@@ -60,6 +61,14 @@ pub fn move_episodes_to_new_dir(
         let entry = entry.map_err(|e| format!("Failed to read entry: {e}"))?;
 
         let src = entry.path();
+
+        // Move only folders we created. The old directory may be a location the
+        // user picked themselves and filled with unrelated files; relocating
+        // those along with the cache would move data that isn't ours.
+        if !is_episode_cache_dir(&src) {
+            continue;
+        }
+
         let dest = new_path.join(entry.file_name());
 
         fs::rename(&src, &dest).or_else(|_| {
