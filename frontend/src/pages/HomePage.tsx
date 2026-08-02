@@ -15,7 +15,7 @@ export default function HomePage({
   const openedEpisodeId = useEpisodePanelRuntimeStore(s => s.openedEpisodeId);
   const importedVideoPath = useAppStateStore(s => s.importedVideoPath);
 
-  // App-startup entrance: runs once on mount, then the classes are removed.
+  // app-startup entrance: runs once on mount, then the classes are removed.
   // HomePage stays mounted across page switches behind a display:none wrapper,
   // and CSS animations replay when display is restored — dropping the classes
   // after the intro finishes keeps it a launch-only effect.

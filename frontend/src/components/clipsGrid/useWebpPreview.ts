@@ -1,7 +1,7 @@
 /**
  * useWebpPreview.ts
  *
- * All WebP-preview-mode logic for a clip tile, kept separate from the video
+ * all WebP-preview-mode logic for a clip tile, kept separate from the video
  * playback logic in LazyClip. Owns the static thumbnail state, the animated
  * WebP source, and the viewport/hover demand reporting that drives WebP
  * generation. Returns only what the tile needs to render its WebP layers.
@@ -13,7 +13,7 @@ import { SceneWebpJob } from "./types";
 import { cancelIdle, scheduleIdle, type IdleHandle } from "../../utils/idle";
 
 const WEBP_THUMBNAIL_CACHE = new Map<string, string>();
-// Cache keys include the importToken, so every episode (re)open adds a fresh set
+// cache keys include the importToken, so every episode (re)open adds a fresh set
 // of entries and the old ones would otherwise live for the whole session. Cap it
 // and evict oldest-inserted first so memory stays bounded over long sessions.
 const WEBP_THUMBNAIL_CACHE_MAX = 400;
@@ -47,7 +47,7 @@ function useWebpThumbnail(webpSrc: string | undefined): string | null {
     img.crossOrigin = "anonymous";
     img.onload = () => {
       if (cancelled) return;
-      // Defer the synchronous decode + JPEG encode out of the current frame: a
+      // defer the synchronous decode + JPEG encode out of the current frame: a
       // batch of WebPs can resolve near-simultaneously mid-scroll, and running
       // toDataURL inline for each would stall input handling.
       idleHandle = scheduleIdle(() => {
@@ -63,7 +63,7 @@ function useWebpThumbnail(webpSrc: string | undefined): string | null {
           cacheWebpThumbnail(webpSrc, dataUrl);
           setThumbnail(dataUrl);
         } catch {
-          // Canvas tainted or decode failed — no thumbnail extracted
+          // canvas tainted or decode failed — no thumbnail extracted
         }
       });
     };
@@ -126,9 +126,9 @@ export function useWebpPreview({
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
 
-  // Request scene preview assets using viewport and hover priority.
+  // request scene preview assets using viewport and hover priority.
   useEffect(() => {
-    // Video-preview mode never generates WebPs — scenes are shown as video clips.
+    // video-preview mode never generates WebPs — scenes are shown as video clips.
     if (videoPreviewMode || isVideoMode) {
       reportWebpDemand(clip.id, null);
       return;
@@ -170,14 +170,14 @@ export function useWebpPreview({
     webpStart,
   ]);
 
-  // Keep thumbnail rendering resilient: reset load state when source changes.
+  // keep thumbnail rendering resilient: reset load state when source changes.
   useEffect(() => {
     setThumbnailSrc(displayThumbnailPath);
     setThumbnailLoaded(false);
     setThumbnailFailed(false);
   }, [displayThumbnailPath, importToken]);
 
-  // When a WebP becomes available, clear a prior thumbnailFailed so the img
+  // when a WebP becomes available, clear a prior thumbnailFailed so the img
   // can retry using the WebP path instead of the original clip thumbnail.
   useEffect(() => {
     if (previewWebpPath) setThumbnailFailed(false);

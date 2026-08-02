@@ -1,4 +1,4 @@
-// Post-export passes: extra CLI steps run on each exported file after export
+// post-export passes: extra CLI steps run on each exported file after export
 // completes. Global (not per-profile) config lives in general settings.
 
 export type DepthEncoder = "vits" | "vitb" | "vitl";
@@ -83,7 +83,7 @@ export const INTERPOLATION_FACTOR_OPTIONS: { value: number; label: string }[] = 
   { value: 8, label: "8x" },
 ];
 
-// Filename suffix each pass appends to the exported stem.
+// filename suffix each pass appends to the exported stem.
 export const PASS_SUFFIX: Record<PostExportPassKind, string> = {
   depth: "_depth",
   deadframes: "_deadframes",
@@ -97,7 +97,7 @@ export const PASS_LABEL: Record<PostExportPassKind, string> = {
 };
 
 export function depthArgs(c: DepthPassConfig): string[] {
-  // Always depth-only output (no side-by-side comparison).
+  // always depth-only output (no side-by-side comparison).
   const args = ["--encoder", c.encoder, "--colormap", c.colormap, "--pred-only"];
   if (c.grayscale) args.push("--grayscale");
   return args;
@@ -120,7 +120,7 @@ export function anyPassEnabled(passes: PostExportPasses): boolean {
   return passes.depth.enabled || passes.deadframes.enabled || passes.interpolation.enabled;
 }
 
-// Deep-merge persisted (possibly partial/old) config over the defaults so a
+// deep-merge persisted (possibly partial/old) config over the defaults so a
 // missing or corrupt sub-field never breaks the settings UI or orchestration.
 export function normalizePostExportPasses(raw: unknown): PostExportPasses {
   const r = (raw ?? {}) as Partial<PostExportPasses>;

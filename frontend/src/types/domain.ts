@@ -28,7 +28,7 @@ export type EpisodeEntry = {
   folderId: string | null;
   importedAt: number;
   clips: ClipItem[];
-  // How this episode was imported. Fixed at import time — the global
+  // how this episode was imported. Fixed at import time — the global
   // import-method setting only affects new imports, not existing episodes.
   importMethod?: "video_files" | "webp_files";
 };

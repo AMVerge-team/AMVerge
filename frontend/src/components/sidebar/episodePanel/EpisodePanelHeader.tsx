@@ -1,4 +1,4 @@
-// Episode Panel toolbar. Renders Sort, New Folder, and Delete-selected-episode actions.
+// episode Panel toolbar. Renders Sort, New Folder, and Delete-selected-episode actions.
 import { FaFolderPlus, FaSortAlphaDown, FaSortAlphaUp, FaTrashAlt } from "react-icons/fa";
 
 type EpisodePanelHeaderProps = {

@@ -1,4 +1,4 @@
-// Derived structure hook for the Episode Panel. Builds lookup maps and ordered episode lists from folders and episodes.
+// derived structure hook for the Episode Panel. Builds lookup maps and ordered episode lists from folders and episodes.
 import { useMemo } from "react";
 import type { EpisodePanelProps } from "../types";
 

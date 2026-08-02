@@ -34,7 +34,7 @@ pub struct PreviewTranscodeSlots {
 
 impl Default for PreviewTranscodeSlots {
     fn default() -> Self {
-        // Leave headroom for the UI and any running import: at most a quarter of
+        // leave headroom for the UI and any running import: at most a quarter of
         // the machine's threads, clamped to 1..=3
         let parallelism = std::thread::available_parallelism()
             .map(|n| n.get())

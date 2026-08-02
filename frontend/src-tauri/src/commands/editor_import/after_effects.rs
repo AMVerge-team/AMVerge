@@ -137,7 +137,7 @@ pub(super) async fn import_into_after_effects(
             }
         };
 
-        // Use UI automation instead of AfterFX -r scripting because some AE
+        // use UI automation instead of AfterFX -r scripting because some AE
         // installations intermittently report "scripting plugin is not installed"
         // for command-line script execution.
         let script_path = write_temp_script(

@@ -252,6 +252,26 @@ body.is-resizing-sidebar {
     white-space: nowrap;
 }
 
+/* Import-method badge, pinned right of the name (the name is flex:1, so it
+   takes the remaining space and pushes this to the edge). Sits at reduced
+   opacity so it reads as metadata, and brightens with the row states. */
+.episode-panel-import-icon {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    color: var(--accent);
+    opacity: 0.65;
+    font-size: 12px;
+    pointer-events: none;
+}
+
+.episode-panel-row:hover .episode-panel-import-icon,
+.episode-panel-row.is-open .episode-panel-import-icon,
+.episode-panel-row.is-focused .episode-panel-import-icon,
+.episode-panel-row.is-multi-selected .episode-panel-import-icon {
+    opacity: 1;
+}
+
 .episode-panel-count {
     opacity: 0.75;
     font-size: 15px;

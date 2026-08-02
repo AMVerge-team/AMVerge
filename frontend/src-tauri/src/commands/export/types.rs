@@ -1,7 +1,7 @@
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExportOptionsPayload {
-    // Part of the frontend payload contract; not consumed on the Rust side.
+    // part of the frontend payload contract; not consumed on the Rust side.
     #[allow(dead_code)]
     pub(super) profile_id: String,
     pub(super) workflow: String,

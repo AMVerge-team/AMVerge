@@ -1,4 +1,4 @@
-// Sidebar navigation buttons. Handles switching between top-level pages like Home and Menu
+// sidebar navigation buttons. Handles switching between top-level pages like Home and Menu
 import type { IconType } from "react-icons";
 import { FaBars, FaCog, FaHome } from "react-icons/fa";
 import type { Page } from "./types";

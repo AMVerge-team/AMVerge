@@ -62,7 +62,7 @@ pub fn move_episodes_to_new_dir(
 
         let src = entry.path();
 
-        // Move only folders we created. The old directory may be a location the
+        // move only folders we created. The old directory may be a location the
         // user picked themselves and filled with unrelated files; relocating
         // those along with the cache would move data that isn't ours.
         if !is_episode_cache_dir(&src) {
