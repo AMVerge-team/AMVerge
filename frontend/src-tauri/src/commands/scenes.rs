@@ -66,7 +66,7 @@ fn build_manifest_from_backend_payload(
 
     let scene_count = scenes.len();
 
-    // Always derive the persisted clip list from the final scenes so the
+    // always derive the persisted clip list from the final scenes so the
     // manifest captures each scene's cut clip_path/clip_mode (the streamed
     // INITIAL_CLIPS_READY event intentionally carries null paths for first paint).
     let source_name = Path::new(video_path)
@@ -100,7 +100,7 @@ fn build_manifest_from_backend_payload(
                 .unwrap_or("")
                 .to_string();
 
-            // Static jpg poster path from the backend (video-mode). Falls back to
+            // static jpg poster path from the backend (video-mode). Falls back to
             // the source video for webp/legacy payloads that don't emit one.
             let thumbnail = scene
                 .get("thumbnail")
@@ -357,7 +357,7 @@ pub async fn detect_scenes(
     let app_for_stdout = app.clone();
     let stderr_accum_for_thread = Arc::clone(&stderr_accum);
 
-    // Cloned so the stderr thread can write a preliminary manifest as soon as
+    // cloned so the stderr thread can write a preliminary manifest as soon as
     // scenes are streamed (INITIAL_CLIPS_READY), independent of the final write.
     let output_dir_for_thread = output_dir.clone();
     let video_path_for_thread = video_path.clone();
@@ -382,9 +382,9 @@ pub async fn detect_scenes(
                 let msg = parts.next().unwrap_or("").to_string();
 
                 if let Ok(p) = p_str.parse::<u8>() {
-                    // Drive the progress bar only. The PROGRESS lines are NOT echoed
+                    // drive the progress bar only. The PROGRESS lines are NOT echoed
                     // to the console stream — at ~hundreds per import they swamped the
-                    // Console tab (and log store) with no tracking value; percent is
+                    // console tab (and log store) with no tracking value; percent is
                     // carried by this event, not the text line.
                     let _ = app_for_stderr.emit(
                         "scene_progress",
@@ -399,7 +399,7 @@ pub async fn detect_scenes(
                     "initial_clips_ready",
                     InitialClipsPayload { clips_json: clips_json.to_string() },
                 );
-                // Persist a preliminary manifest the moment scenes are known, so
+                // persist a preliminary manifest the moment scenes are known, so
                 // the episode has a lookup on disk before any clip is cut.
                 match build_preliminary_manifest(
                     clips_json,
@@ -588,7 +588,7 @@ pub async fn load_episode_manifest(
     let content = fs::read_to_string(&manifest_path)
         .map_err(|e| format!("Failed to read manifest '{}': {e}", manifest_path.to_string_lossy()))?;
 
-    // Validate JSON shape at read time so frontend always receives parseable content.
+    // validate JSON shape at read time so frontend always receives parseable content.
     let _: Value = serde_json::from_str(&content)
         .map_err(|e| format!("Manifest is not valid JSON: {e}"))?;
 
@@ -603,8 +603,8 @@ pub async fn abort_detect_scenes(sidecar_state: State<'_, ActiveSidecar>) -> Res
         .map_err(|e| e.to_string())?
         .take();
 
-    // Drop the child handle so detect_scenes' wait path sees None and exits cleanly.
-    // Dropping closes the pipes but does not kill the process — the kill below does that.
+    // drop the child handle so detect_scenes' wait path sees None and exits cleanly.
+    // dropping closes the pipes but does not kill the process — the kill below does that.
     {
         let mut lock = sidecar_state.child.lock().map_err(|e| e.to_string())?;
         *lock = None;
@@ -628,7 +628,7 @@ pub async fn abort_detect_scenes(sidecar_state: State<'_, ActiveSidecar>) -> Res
     .await
     .map_err(|e| format!("taskkill task panicked: {e}"))??;
 
-    // Use negative PID to kill the entire process group, which includes any
+    // use negative PID to kill the entire process group, which includes any
     // ffmpeg child processes spawned by the Python backend.
     #[cfg(not(windows))]
     let result = tokio::task::spawn_blocking(move || {

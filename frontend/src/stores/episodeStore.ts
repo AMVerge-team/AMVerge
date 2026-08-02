@@ -62,7 +62,7 @@ export const DEFAULT_EPISODE_PANEL_RUNTIME_STATE: EpisodePanelRuntimeState = {
     isHydratingEpisodes: false,
 };
 
-// Migrate old raw-format data to Zustand persist format
+// migrate old raw-format data to Zustand persist format
 try {
     const _raw = localStorage.getItem("amverge_episode_panel_v1");
     if (_raw) {

@@ -24,7 +24,7 @@ pub async fn update_discord_rpc(
     _state: State<'_, DiscordRPCState>,
     _data: serde_json::Value,
 ) -> Result<(), String> {
-    // No-op while Discord RPC is disabled (see start_discord_rpc).
+    // no-op while Discord RPC is disabled (see start_discord_rpc).
     Ok(())
 }
 
@@ -32,13 +32,13 @@ pub async fn update_discord_rpc(
 pub async fn stop_discord_rpc(state: State<'_, DiscordRPCState>) -> Result<(), String> {
     let mut child_guard = state.child.lock().unwrap();
     if let Some(mut child) = child_guard.take() {
-        // Try to send a graceful shutdown command first
+        // try to send a graceful shutdown command first
         if let Some(stdin) = child.stdin.as_mut() {
             let _ = writeln!(stdin, "{{\"type\": \"shutdown\"}}");
             let _ = stdin.flush();
         }
 
-        // Give it a tiny bit of time to clear the presence and exit
+        // give it a tiny bit of time to clear the presence and exit
         let mut count = 0;
         while count < 5 {
             match child.try_wait() {
@@ -50,7 +50,7 @@ pub async fn stop_discord_rpc(state: State<'_, DiscordRPCState>) -> Result<(), S
             }
         }
 
-        // If it's still alive, kill it forcefully
+        // if it's still alive, kill it forcefully
         let _ = child.kill();
         println!("[Discord RPC] Forcefully killed ghost process");
     }

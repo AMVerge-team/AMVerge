@@ -6,7 +6,7 @@ import { useEpisodePanelRuntimeStore, useEpisodePanelMetadataStore } from "../st
 import { useGeneralSettingsStore } from "../stores/settingsStore";
 
 /**
- * Opens an episode by id. Store-level (reads via getState) so lightweight
+ * opens an episode by id. Store-level (reads via getState) so lightweight
  * components — e.g. the grid refresh button — can trigger an open/re-open
  * without subscribing to the full stores through useEpisodePanelState.
  */
@@ -38,7 +38,7 @@ export default function useEpisodePanelState() {
 	const episodeRuntimeState = useEpisodePanelRuntimeStore();
 	const episodeMetadataState = useEpisodePanelMetadataStore();
 
-	// Handlers
+	// handlers
 	const handleSelectEpisode = (episodeId: string) => {
 		episodeRuntimeState.setSelectedEpisodeId(episodeId);
 		episodeRuntimeState.setSelectedFolderId(null);
@@ -90,7 +90,7 @@ export default function useEpisodePanelState() {
 			const moving = byId.get(folderId);
 			if (!moving) return prev;
 
-			// Prevent cycles: cannot move a folder into itself or any of its descendants.
+			// prevent cycles: cannot move a folder into itself or any of its descendants.
 			if (parentFolderId) {
 				let cursor: string | null = parentFolderId;
 				while (cursor) {
@@ -112,11 +112,11 @@ export default function useEpisodePanelState() {
 
 			if (insertIndex === -1) {
 				if (parentFolderId === null) {
-					// Insert at the start of root folders.
+					// insert at the start of root folders.
 					insertIndex = remaining.findIndex((f) => (f.parentId ?? null) === null);
 					if (insertIndex === -1) insertIndex = 0;
 				} else {
-					// Insert at the start of the parent's children if present, else right after the parent.
+					// insert at the start of the parent's children if present, else right after the parent.
 					insertIndex = remaining.findIndex((f) => (f.parentId ?? null) === parentFolderId);
 					if (insertIndex === -1) {
 						const parentIndex = indexOf(parentFolderId);
@@ -173,15 +173,15 @@ export default function useEpisodePanelState() {
 		episodeRuntimeState.setEpisodes(() => {
 			const result: EpisodeEntry[] = [];
 
-			// Root episodes (shown after folders in the UI).
+			// root episodes (shown after folders in the UI).
 			result.push(...(episodesByFolder.get(null) ?? []));
 
-			// Episodes for every folder in depth-first order.
+			// episodes for every folder in depth-first order.
 			for (const folder of sortedFolders) {
 				result.push(...(episodesByFolder.get(folder.id) ?? []));
 			}
 
-			// Any stray episodes with unknown folderId (shouldn't happen) keep at end.
+			// any stray episodes with unknown folderId (shouldn't happen) keep at end.
 			for (const [key, list] of episodesByFolder) {
 				if (key === null) continue;
 				if (sortedFolders.some((f) => f.id === key)) continue;
@@ -222,7 +222,7 @@ export default function useEpisodePanelState() {
 		if (episodeMetadataState.lastOpenedEpisodeId === episodeId) {
 			episodeMetadataState.setLastOpenedEpisodeId(null);
 		}
-		// Drop the persisted display name / folder assignment too, otherwise they
+		// drop the persisted display name / folder assignment too, otherwise they
 		// linger in local storage keyed to an episode that no longer exists.
 		episodeMetadataState.removeEpisodeMetadata(episodeId);
 
@@ -234,7 +234,7 @@ export default function useEpisodePanelState() {
 			appState.setImportedVideoPath(null);
 		}
 
-		// The episode id IS its cache folder name (see buildEpisodeCacheId), so
+		// the episode id IS its cache folder name (see buildEpisodeCacheId), so
 		// removing the entry from the panel without this left the cut clips,
 		// posters and proxies on disk forever. Read the path at call time rather
 		// than subscribing — this hook is used by the whole episode panel.
@@ -244,7 +244,7 @@ export default function useEpisodePanelState() {
 				customPath: useGeneralSettingsStore.getState().episodesPath,
 			});
 		} catch (err) {
-			// The panel entry is already gone; surface the disk failure without
+			// the panel entry is already gone; surface the disk failure without
 			// putting the episode back, since the user asked for it to be removed.
 			console.error("[episode] failed to delete cache folder", { episodeId, err });
 		}

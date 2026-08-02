@@ -13,10 +13,10 @@ import {
   WebpQueueContext,
 } from "./webpQueueTypes";
 
-// Two-lane scheduler:
+// two-lane scheduler:
 // - visible tiles: quick batches
 // - offscreen tiles: slow background trickle
-// Kept at ~2x the backend's max encode concurrency (8) so the encoder pool stays
+// kept at ~2x the backend's max encode concurrency (8) so the encoder pool stays
 // continuously fed across the IPC roundtrip between batches instead of draining
 // to idle. Per-scene results stream back individually, so a larger batch doesn't
 // delay first paint.
@@ -24,7 +24,7 @@ const VISIBLE_BATCH_SIZE = 16;
 const OFFSCREEN_BATCH_SIZE = 1;
 const OFFSCREEN_BATCH_DELAY_MS = 250;
 
-// When an episode opens, the disk-cache prime can resolve a few hundred WebPs at
+// when an episode opens, the disk-cache prime can resolve a few hundred WebPs at
 // once. Publishing them all in one commit makes every mounted tile mount its WebP
 // <img> in the same frame — a synchronous decode storm that freezes the grid for
 // a beat. Publishing in index-ordered chunks across animation frames spreads that
@@ -71,11 +71,11 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
   const inFlightRef = useRef<Set<string>>(new Set());
   const seqRef = useRef(0);
   const processingRef = useRef(false);
-  // Bumped on every reset (episode switch). A batch dispatched before the bump is
+  // bumped on every reset (episode switch). A batch dispatched before the bump is
   // recognised as belonging to the previous episode and its results are kept out
   // of the now-reset store, so switching episodes never paints stale previews.
   const epochRef = useRef(0);
-  // Hold the latest context in a ref so the returned callbacks can stay
+  // hold the latest context in a ref so the returned callbacks can stay
   // referentially stable. The caller passes a fresh `context` object literal on
   // every render; depending on it directly made `primeFromDiskCache` change
   // identity each render, which re-fired the full-episode disk-cache prime on
@@ -83,7 +83,7 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
   const contextRef = useRef(context);
   contextRef.current = context;
 
-  // Progress tracking for the background "Loading previews" bar. `pendingLoadRef`
+  // progress tracking for the background "Loading previews" bar. `pendingLoadRef`
   // holds the demand keys that need backend work and haven't resolved yet;
   // `loadTotalRef`/`loadDoneRef` are the cumulative counters for the current
   // burst. Disk-cache prime hits are intentionally NOT counted — they republish
@@ -209,7 +209,7 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
             jobs: batch.map((demand) => demand.job),
           });
 
-          // If the episode changed while this batch was encoding, the results are
+          // if the episode changed while this batch was encoding, the results are
           // for the previous episode: still cache them (keys are per-clip and
           // unique, so a switch-back is instant) but don't publish into the store.
           const fresh = epoch === epochRef.current;
@@ -240,7 +240,7 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
           }
         }
 
-        // Keep background preloading gentle so scrolling stays responsive.
+        // keep background preloading gentle so scrolling stays responsive.
         if (offscreenOnly && !hasVisiblePending()) {
           webpLog("offscreen cooldown", { delayMs: OFFSCREEN_BATCH_DELAY_MS });
           await sleep(OFFSCREEN_BATCH_DELAY_MS);
@@ -254,10 +254,10 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
   const reportWebpDemand = useCallback(
     (clipId: string, demand: WebpDemandInput | null) => {
       if (!demand) {
-        // Clearing demand for a clip removes both kinds (tile left viewport).
+        // clearing demand for a clip removes both kinds (tile left viewport).
         const animatedKey = makeDemandKey(clipId, "animated");
         demandRef.current.delete(animatedKey);
-        // Drop it from the loading count unless it's still in flight — an
+        // drop it from the loading count unless it's still in flight — an
         // in-flight encode will resolve on its own and shouldn't be cancelled.
         if (!inFlightRef.current.has(animatedKey)) {
           finishLoading(animatedKey, false);
@@ -274,7 +274,7 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
         return;
       }
 
-      // Genuinely needs backend work — count it toward the loading bar.
+      // genuinely needs backend work — count it toward the loading bar.
       markLoading(demandKey);
 
       const seq = ++seqRef.current;
@@ -313,9 +313,9 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
       return;
     }
 
-    // Skip clips already resolved this session; republish their cached path so a
+    // skip clips already resolved this session; republish their cached path so a
     // freshly mounted tile still picks it up without another disk round-trip.
-    // This keeps re-primes during streaming import (clips array grows) cheap —
+    // this keeps re-primes during streaming import (clips array grows) cheap —
     // only genuinely new clips hit the backend.
     const pending: WebpPrimeJob[] = [];
     const alreadyCached: Array<[string, string]> = [];
@@ -327,7 +327,7 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
       }
       pending.push(job);
     }
-    // Republish session-cached results in one commit. On a switch back to a
+    // republish session-cached results in one commit. On a switch back to a
     // recently viewed episode this is the whole grid, so a single batched update
     // avoids the O(n) per-call store copies that made re-opening feel sluggish.
     if (alreadyCached.length > 0) {
@@ -367,7 +367,7 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
         jobs: lookupJobs,
       });
 
-      // Collect hits in request order (which mirrors clip/grid order) so the
+      // collect hits in request order (which mirrors clip/grid order) so the
       // progressive publish below fills the grid top-first.
       const hits: Array<[string, string]> = [];
       for (const item of result.items ?? []) {
@@ -380,7 +380,7 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
 
       const setMany = useScenePreviewStore.getState().setAnimatedMany;
       for (let i = 0; i < hits.length; i += PRIME_PUBLISH_CHUNK) {
-        // Bail if the user switched episodes mid-publish — those tiles are gone
+        // bail if the user switched episodes mid-publish — those tiles are gone
         // and resetWebpQueue() has already cleared the store.
         if (contextRef.current.episodeCacheId !== episodeAtStart) break;
         setMany(hits.slice(i, i + PRIME_PUBLISH_CHUNK));
@@ -402,7 +402,7 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
   }, [publishResult]);
 
   const resetWebpQueue = useCallback(() => {
-    // Abandon the previous episode's pending work without touching cacheRef:
+    // abandon the previous episode's pending work without touching cacheRef:
     // resolved WebP paths are keyed by globally-unique clip ids, so keeping them
     // lets a switch back to a recently viewed episode republish instantly with no
     // backend round-trip. The epoch bump keeps any in-flight batch's results out
@@ -414,9 +414,9 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
     useScenePreviewStore.getState().reset();
   }, [resetLoadProgress]);
 
-  // Paint each scene the instant its encode finishes, rather than waiting for the
+  // paint each scene the instant its encode finishes, rather than waiting for the
   // whole backend batch (which only returns once its slowest encode completes).
-  // The batch result still publishes as the source of truth; this just lets the
+  // the batch result still publishes as the source of truth; this just lets the
   // grid fill in progressively. Only results for in-flight work are accepted, so
   // an episode switch (which clears inFlightRef) drops stale previous-episode events.
   useEffect(() => {

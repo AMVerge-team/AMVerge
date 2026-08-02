@@ -55,7 +55,7 @@ function buildJobs(outputs: string[], passes: PostExportPasses): Job[] {
       });
     }
     if (passes.interpolation.enabled) {
-      // Interpolation = dead frames first, then interpolate on top. The dead
+      // interpolation = dead frames first, then interpolate on top. The dead
       // frames intermediate is temporary and deleted after interpolation.
       const tmp = path("_df_tmp");
       const output = path(PASS_SUFFIX.interpolation);
@@ -72,7 +72,7 @@ function buildJobs(outputs: string[], passes: PostExportPasses): Job[] {
 }
 
 /**
- * Run all enabled post-export passes on the given export output files. Drives
+ * run all enabled post-export passes on the given export output files. Drives
  * the pass-run modal store and forwards CLI progress/preview/log events. Passes
  * run sequentially; stop is honored between and within jobs.
  */

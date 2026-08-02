@@ -17,13 +17,13 @@ export default function ImportButtons() {
   const openedEpisodeId = useEpisodePanelRuntimeStore((s) => s.openedEpisodeId);
   const { onImportClick } = useImportExport();
 
-  // Drives the one-shot spin animation on the refresh icon.
+  // drives the one-shot spin animation on the refresh icon.
   const [refreshSpinning, setRefreshSpinning] = useState(false);
 
   const hasSelection = selectedClips.size > 0;
   const importBusy = loading || Boolean(bgProgress) || Boolean(bgImportProgress);
 
-  // Re-opens the current episode: fresh import token, cleared selection/focus,
+  // re-opens the current episode: fresh import token, cleared selection/focus,
   // remounted tiles — same reset as switching away and back, without leaving.
   const handleRefreshEpisode = () => {
     if (!openedEpisodeId || importBusy) return;

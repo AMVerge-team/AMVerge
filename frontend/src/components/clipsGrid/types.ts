@@ -54,12 +54,12 @@ export type LazyClipProps = {
   onToggleSelection: (clipId: string, e: React.MouseEvent) => void;
   reportStaggerDemand: (key: string, demand: { order: number; onReady: () => void } | null) => void;
   onDownloadClip: (clip: ClipItem) => void;
-  // Entrance animation delay (ms) for the episode-open fade-in, or null once the
+  // entrance animation delay (ms) for the episode-open fade-in, or null once the
   // entrance window has passed (class removed so a display:none page switch
   // doesn't replay the animation).
   appearDelayMs: number | null;
-  // Whether the opened episode was imported as video clips (vs WebP previews).
-  // Fixed per-episode at import time; controls whether this tile ever generates
+  // whether the opened episode was imported as video clips (vs WebP previews).
+  // fixed per-episode at import time; controls whether this tile ever generates
   // a WebP or instead waits for / shows its cut video clip.
   videoPreviewMode: boolean;
   reportWebpDemand: (

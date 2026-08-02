@@ -202,7 +202,7 @@ export default function ProfileIconPicker({
         JSON.stringify(payload)
       );
     } catch {
-      // Ignore storage failures and keep in-memory state.
+      // ignore storage failures and keep in-memory state.
     }
   };
 
@@ -344,7 +344,7 @@ export default function ProfileIconPicker({
       setFeaturedIcons(validBuiltIn);
       setFeaturedCustomIcons(validCustom);
     } catch {
-      // Ignore invalid persisted values.
+      // ignore invalid persisted values.
     }
   }, [availableIconSet, normalizedCustomProfileIconSet]);
 

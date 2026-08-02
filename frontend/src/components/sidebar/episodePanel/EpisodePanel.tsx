@@ -1,4 +1,4 @@
-// Main Episode Panel coordinator. Wires together structure, menus, drag/drop, keyboard shortcuts, and UI sections.
+// main Episode Panel coordinator. Wires together structure, menus, drag/drop, keyboard shortcuts, and UI sections.
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 

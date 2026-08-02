@@ -375,7 +375,7 @@ fn should_retry_windows_import_error(
             let max_attempts = if launched_this_call { 12 } else { 4 };
             attempt_index + 1 < max_attempts
         }
-        // Resolve can take a bit of time to expose scripting after launch.
+        // resolve can take a bit of time to expose scripting after launch.
         WindowsImportErrorKind::ResolveBridgeUnavailable => launched_this_call && attempt_index < 8,
         WindowsImportErrorKind::Canceled
         | WindowsImportErrorKind::InvalidFilename
@@ -488,7 +488,7 @@ fn run_editor_ui_import_ps(script_path: &Path, editor_name: &str) -> Result<Stri
 fn run_python_script(script_path: &Path) -> Result<String, String> {
     let mut launch_errors: Vec<String> = Vec::new();
 
-    // Resolve script runs against the user's system Python (the backend/venv
+    // resolve script runs against the user's system Python (the backend/venv
     // interpreter lookup was removed with the backend folder).
     #[cfg(target_os = "windows")]
     let candidates: Vec<(String, Vec<String>)> = vec![
@@ -526,7 +526,7 @@ fn run_python_script(script_path: &Path) -> Result<String, String> {
                     let modules_dir = script_api_dir.join("Modules");
                     let resolve_script_lib = resolve_dir.join("fusionscript.dll");
 
-                    // Official Resolve scripting env.
+                    // official Resolve scripting env.
                     cmd.env(
                         "RESOLVE_SCRIPT_API",
                         script_api_dir.to_string_lossy().to_string(),
@@ -536,7 +536,7 @@ fn run_python_script(script_path: &Path) -> Result<String, String> {
                         resolve_script_lib.to_string_lossy().to_string(),
                     );
 
-                    // Ensure Python can import Resolve modules.
+                    // ensure Python can import Resolve modules.
                     let mut pythonpath_parts: Vec<String> = Vec::new();
                     if let Ok(existing) = std::env::var("PYTHONPATH") {
                         if !existing.trim().is_empty() {
@@ -546,7 +546,7 @@ fn run_python_script(script_path: &Path) -> Result<String, String> {
                     pythonpath_parts.push(modules_dir.to_string_lossy().to_string());
                     cmd.env("PYTHONPATH", pythonpath_parts.join(";"));
 
-                    // Ensure fusionscript.dll deps resolve.
+                    // ensure fusionscript.dll deps resolve.
                     let mut path_parts: Vec<String> = vec![resolve_dir_str];
                     if let Ok(existing_path) = std::env::var("PATH") {
                         if !existing_path.trim().is_empty() {

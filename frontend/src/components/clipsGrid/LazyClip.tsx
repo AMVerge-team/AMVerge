@@ -1,8 +1,8 @@
 /**
  * LazyClip.tsx
  *
- * Represents a single video tile in the grid. Handles lazy loading, hover preview, proxy logic, and staggered mounting.
- * Optimized for performance and compatibility (HEVC/H.264 proxying).
+ * represents a single video tile in the grid. Handles lazy loading, hover preview, proxy logic, and staggered mounting.
+ * optimized for performance and compatibility (HEVC/H.264 proxying).
  */
 import { memo, useState, useRef, useEffect, useCallback } from "react"
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
@@ -12,11 +12,8 @@ import { useWebpPreview } from "./useWebpPreview.ts";
 import { FaCheck, FaPlus } from "react-icons/fa";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { useUIStateStore } from "../../stores/UIStore.ts";
-import {
-  PREVIEW_TRANSCODE_PRESETS,
-  useGeneralSettingsStore,
-  useThemeSettingsStore,
-} from "../../stores/settingsStore.ts";
+import { useGeneralSettingsStore, useThemeSettingsStore } from "../../stores/settingsStore.ts";
+import { usePreviewTranscode } from "../../features/preview/usePreviewTranscode.ts";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
 import { cancelIdle, scheduleIdle } from "../../utils/idle.ts";
 
@@ -52,7 +49,7 @@ export const LazyClip = memo(function LazyClip({
 }: LazyClipProps) {
   const importToken = useAppStateStore(s => s.importToken);
 
-  // Each tile reads only its own animated-WebP path. Subscribing per-tile (rather
+  // each tile reads only its own animated-WebP path. Subscribing per-tile (rather
   // than threading it down from ClipsContainer) means a new WebP result re-renders
   // just this tile, not the whole grid — critical for smooth scrolling.
   const previewWebpPath = useScenePreviewStore(s => s.animatedByClipId[clip.id]);
@@ -68,8 +65,6 @@ export const LazyClip = memo(function LazyClip({
     previewAudioStreamIndex !== null && previewAudioStreamIndex > 0
       ? previewAudioStreamIndex
       : null;
-  const previewTranscodeMode = useGeneralSettingsStore(s => s.previewTranscodeMode);
-  const previewTranscodeQuality = useGeneralSettingsStore(s => s.previewTranscodeQuality);
   const playbackVolume = useGeneralSettingsStore(s => s.playbackVolume);
   const gridPreviewSpeed = useThemeSettingsStore(s => s.gridPreviewSpeed ?? 1);
   const showDownloadButton = useThemeSettingsStore(s => s.showDownloadButton);
@@ -81,13 +76,13 @@ export const LazyClip = memo(function LazyClip({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const thumbnailRef = useRef<HTMLImageElement | null>(null);
   const [downloadTone, setDownloadTone] = useState<"light" | "dark">("light");
-  // Tracks a pending idle-scheduled tone sample so we can coalesce/cancel it.
+  // tracks a pending idle-scheduled tone sample so we can coalesce/cancel it.
   const downloadToneIdleRef = useRef<number | null>(null);
 
   const originalPath = clip.src;
-  // Video-file import mode: clip has a pre-cut video file on disk.
+  // video-file import mode: clip has a pre-cut video file on disk.
   const isVideoMode = Boolean(clip.clipPath) && clip.clipMode !== "failed";
-  // Is this clip currently being merged or split on the backend?
+  // is this clip currently being merged or split on the backend?
   const isProcessing = clip.originalName === "Merging..." || clip.originalName === "Splitting...";
 
   // ========================= VIDEO playback state/refs =======================
@@ -108,44 +103,30 @@ export const LazyClip = memo(function LazyClip({
   const [, setForceThumbnail] = useState(false);
   // keep thumbnail visible until video is ready to avoid black screen replacing it
   const [isVideoReady, setIsVideoReady] = useState(false);
-  // Video-mode poster failed to load (missing/corrupt jpg) → fall back to skeleton
-  // instead of a broken-image icon. Transient failures (IO contention when a few
-  // hundred posters reload at once on episode open) get a couple of cache-busted
-  // retries before the tile gives up, and hovering a given-up tile re-arms it.
+  // poster missing or corrupt → skeleton instead of a broken-image icon. retried
+  // a couple of times first, since opening an episode reloads hundreds at once.
   const [videoThumbFailed, setVideoThumbFailed] = useState(false);
   const [videoThumbRetry, setVideoThumbRetry] = useState(0);
   const VIDEO_THUMB_MAX_RETRIES = 2;
   // the actual video source (original or proxy)
   const [effectiveSrc, setEffectiveSrc] = useState(clip.src);
-  // video mode: proxy built from the cut clip — transcoded to a playable codec
-  // and/or remuxed to the selected audio track. Stored with the key it was built
-  // for so a settings change (quality, language) rebuilds instead of serving a
-  // stale file. null = play the cut clip directly.
+  // proxy of the cut clip, keyed by what it was built for so a quality or
+  // language change rebuilds it. null = play the cut clip directly.
   const [videoProxy, setVideoProxy] = useState<{ key: string; path: string } | null>(null);
   const [, setMergedPreviewSrc] = useState<string | null>(null);
   const [, setMergedPreviewFailed] = useState(false);
   const mergedSrcsKey = clip.mergedSrcs
     ? `${clip.mergedSrcs.join("|")}::audio:${previewAudioStreamIndex ?? "default"}`
     : null;
-  // determine if we need a proxy:
+  // source itself can't be decoded here, so webp mode needs a proxy to play it
   const needsHevcProxy = videoIsHEVC === true && userHasHEVC === false;
-  // Clips are stream-copied, so an HEVC episode produces HEVC clips. Decide
-  // whether previews must come from a transcoded H.264 proxy. The last term is a
-  // safety net independent of the setting: without a decoder the tile is black,
-  // so transcode regardless of what the user picked.
-  const needsPreviewTranscode =
-    previewTranscodeMode === "always" ||
-    (previewTranscodeMode === "hevc" && videoIsHEVC === true) ||
-    needsHevcProxy;
-  const transcodePreset = PREVIEW_TRANSCODE_PRESETS[previewTranscodeQuality];
-  // Audio track the proxy should carry. Deliberately excludes isHovered so the
-  // key stays stable across hovers and we don't rebuild the proxy every time the
-  // pointer enters the tile.
+  const { needed: needsPreviewTranscode, preset: transcodePreset } = usePreviewTranscode();
+  // excludes isHovered so the key stays stable and hovering doesn't rebuild the proxy
   const proxyAudioStreamIndex =
     selectedMappedAudioStreamIndex !== null && audioPlaybackHover
       ? selectedMappedAudioStreamIndex
       : null;
-  // Identifies exactly which proxy this tile wants right now.
+  // identifies exactly which proxy this tile wants right now.
   const videoProxyKey =
     isVideoMode && clip.clipPath
       ? `${clip.clipPath}::${proxyAudioStreamIndex ?? "na"}::${
@@ -157,20 +138,17 @@ export const LazyClip = memo(function LazyClip({
   const videoProxySrc =
     videoProxy && videoProxy.key === videoProxyKey ? videoProxy.path : null;
 
-  // In video mode, clip files are pre-cut H.264 — mount video element when visible/hovered.
-  // In WebP mode, video playback is disabled; hover/preview-all use animated WebP instead.
+  // in video mode, clip files are pre-cut H.264 — mount video element when visible/hovered.
+  // in WebP mode, video playback is disabled; hover/preview-all use animated WebP instead.
   const showVideo = isVideoMode;
-  // Production parity: in video mode the <video> mounts ONLY on hover or preview-all
-  // (staggered) — never per-visible tile. That keeps concurrent decoders bounded
-  // and removes the scroll-reload; a static jpg poster covers the tile at rest.
-  // When a transcode is required the raw clip is undecodable here, so hold the
-  // mount until the proxy exists — otherwise the tile flashes black behind the
-  // poster while ffmpeg is still working.
+  // mount on hover or preview-all only, never per visible tile, so the number of
+  // live decoders stays bounded. when a transcode is needed, wait for the proxy
+  // too — the raw clip would render black until ffmpeg finishes.
   const shouldMountVideo =
     isVideoMode &&
     (isHovered || (gridPreview && staggerReady)) &&
     (!needsPreviewTranscode || Boolean(videoProxySrc));
-  // Single source of truth for the <video> src — the JSX and the media-release
+  // single source of truth for the <video> src — the JSX and the media-release
   // effect below must agree on it so a stripped attribute can be restored.
   const videoSrcUrl = shouldMountVideo
     ? `${convertFileSrc(isVideoMode ? (videoProxySrc ?? clip.clipPath!) : effectiveSrc)}?v=${importToken}`
@@ -179,12 +157,12 @@ export const LazyClip = memo(function LazyClip({
     ? (!shouldMountVideo || !isVideoReady)
     : (!showVideo || !shouldMountVideo || !isVideoReady);
 
-  // In video-preview mode, a tile whose clip hasn't been cut yet (and hasn't
+  // in video-preview mode, a tile whose clip hasn't been cut yet (and hasn't
   // failed) shows a skeleton until its video arrives via the clip_ready stream.
   const videoClipPending = videoPreviewMode && !isVideoMode && clip.clipMode !== "failed";
 
   // ============================ WEBP preview state ===========================
-  // All thumbnail/animated-WebP state and demand reporting lives in this hook.
+  // all thumbnail/animated-WebP state and demand reporting lives in this hook.
   const webp = useWebpPreview({
     clip,
     index,
@@ -196,7 +174,7 @@ export const LazyClip = memo(function LazyClip({
     previewWebpPath,
     reportWebpDemand,
   });
-  // Show animated WebP on hover, or always when preview-all is enabled.
+  // show animated WebP on hover, or always when preview-all is enabled.
   const shouldShowWebpOverlay = webp.hasAnimatedWebp && (isHovered || gridPreview);
 
   // when Preview-all is enabled and we need an HEVC proxy, register demand only while visible.
@@ -211,7 +189,7 @@ export const LazyClip = memo(function LazyClip({
       return;
     }
 
-    // Gated on decodability, not on the transcode preference: this queue exists
+    // gated on decodability, not on the transcode preference: this queue exists
     // so an unplayable source can be previewed at all. Using the preference here
     // would queue source-video encodes in WebP mode, which never plays video.
     const wantsProxyNow =
@@ -266,23 +244,17 @@ export const LazyClip = memo(function LazyClip({
     setVideoThumbRetry(0);
   }, [clip.src, importToken, previewAudioStreamIndex]);
 
-  // Video-mode proxy. Two independent reasons a tile needs one:
-  //  - the cut clip's codec can't be decoded here (HEVC clips, since cutting
-  //    stream-copies), or the user asked for transcoded previews outright;
-  //  - a non-default Preview Language is selected and hover audio is on, so the
-  //    clip must be remuxed to that track.
-  // One ensure_preview_proxy call covers both, so a tile never builds two files.
+  // a tile needs a proxy when its codec can't be decoded here, or when a
+  // non-default preview language has to be remuxed in. one call covers both so
+  // a tile never builds two files.
   useEffect(() => {
     if (!isVideoMode || !clip.clipPath || !videoProxyKey) return;
     if (videoProxySrc) return;
 
     const wantsAudioMapped = proxyAudioStreamIndex !== null && isHovered;
     if (!needsPreviewTranscode && !wantsAudioMapped) return;
-    // Only build a proxy for a tile that is about to *play*. Keying this off
-    // visibility instead meant scrolling queued an encode for every tile on
-    // screen at once — dozens of ffmpeg processes competing for the CPU, which
-    // froze the app and starved the one tile the user actually hovered. This
-    // mirrors shouldMountVideo, so a proxy is requested exactly when it's needed.
+    // mirrors shouldMountVideo: only encode for a tile about to play. keying this
+    // off visibility queued an encode per on-screen tile and froze the app.
     if (!isHovered && !(gridPreview && staggerReady)) return;
 
     const requestedKey = videoProxyKey;
@@ -336,11 +308,11 @@ export const LazyClip = memo(function LazyClip({
     [gridPreview, requestProxySequential, selectedMappedAudioStreamIndex, transcodePreset]
   );
 
-  // Proactive HEVC/audio-stream proxy gating:
+  // proactive HEVC/audio-stream proxy gating:
   // - HEVC without support always needs proxy.
   // - Hover audio with a non-default stream needs a mapped proxy.
   useEffect(() => {
-    // Video mode has its own proxy effect above (it proxies the cut clip, not
+    // video mode has its own proxy effect above (it proxies the cut clip, not
     // the source video), so this path is WebP mode only.
     if (isVideoMode) return;
 
@@ -405,7 +377,7 @@ export const LazyClip = memo(function LazyClip({
     ensurePreviewProxyPath,
   ]);
 
-  // Generate a stream-copy concat preview for merged clips (skipped for HEVC — proxy handles that).
+  // generate a stream-copy concat preview for merged clips (skipped for HEVC — proxy handles that).
   useEffect(() => {
     if (!mergedSrcsKey || !clip.mergedSrcs) return;
     if (needsHevcProxy) return;
@@ -439,7 +411,7 @@ export const LazyClip = memo(function LazyClip({
       });
   }, [mergedSrcsKey, needsHevcProxy, isVisible, clip.mergedSrcs, previewAudioStreamIndex]);
 
-  // Stagger queue: report demand when grid-preview is on and tile is visible.
+  // stagger queue: report demand when grid-preview is on and tile is visible.
   // same pattern as the proxy queue - register/unregister, central loop picks
   // the best candidate and calls onReady.  Hover bypasses the queue.
   useEffect(() => {
@@ -508,7 +480,7 @@ export const LazyClip = memo(function LazyClip({
     }
   }, []);
 
-  // If we swap sources (e.g., original -> proxy), allow the next onError to run
+  // if we swap sources (e.g., original -> proxy), allow the next onError to run
   // and re-arm thumbnail gating.
   useEffect(() => {
     hasReportedErrorRef.current = false;
@@ -516,7 +488,7 @@ export const LazyClip = memo(function LazyClip({
     setIsVideoReady(false);
   }, [effectiveSrc]);
 
-  // Refine visibility for demand-prioritization / video playback. The grid is
+  // refine visibility for demand-prioritization / video playback. The grid is
   // already virtualized (only near-viewport rows are mounted), so this no longer
   // gates whether the tile renders its thumbnail — it only distinguishes truly
   // on-screen tiles from the overscan rows. Scoped to the scroll container (not
@@ -540,21 +512,21 @@ export const LazyClip = memo(function LazyClip({
     return () => observer.disconnect();
   }, []);
 
-  // Media player release. React removing a <video> from the DOM does NOT free
-  // Chromium's decoder/demuxer until GC. Hover + scroll churn (each mounts a
+  // media player release. React removing a <video> from the DOM does NOT free
+  // chromium's decoder/demuxer until GC. Hover + scroll churn (each mounts a
   // fresh <video>) accumulates zombie players until the per-renderer cap, after
   // which every new video fails with MEDIA_ERR_SRC_NOT_SUPPORTED (code 4) and
   // the whole app lags. Clearing src + load() in the cleanup releases the player
   // synchronously. The setup phase restores a stripped src attribute: StrictMode
   // re-runs cleanup+setup on the SAME element, and React won't re-apply a src
   // prop it considers unchanged — without the restore, dev hover playback dies.
-  // Declared BEFORE the playback effect so on re-runs the src is back in place
+  // declared BEFORE the playback effect so on re-runs the src is back in place
   // by the time playback calls load()/play().
   useEffect(() => {
     if (!shouldMountVideo) return;
-    // Capture the element now: by the time the cleanup runs on unmount, React
+    // capture the element now: by the time the cleanup runs on unmount, React
     // has already nulled videoRef.current (refs detach before passive cleanup).
-    // Releasing a detached element still frees its media player.
+    // releasing a detached element still frees its media player.
     const v = videoRef.current;
     if (!v) return;
     if (videoSrcUrl && v.getAttribute("src") !== videoSrcUrl) {
@@ -584,25 +556,25 @@ export const LazyClip = memo(function LazyClip({
     };
   }, [shouldMountVideo, videoSrcUrl]);
 
-  // Playback control:
+  // playback control:
   // - When hovered (or grid preview mode) AND the video is mounted, ensure it loads and plays.
   // - When not hovered, pause and rewind to 0 so hover-preview always starts at the beginning.
-  // We intentionally keep this separate from the proxy queue; it applies to all non-proxy playback too.
+  // we intentionally keep this separate from the proxy queue; it applies to all non-proxy playback too.
 
-  // Control playback: play when hovered/preview, pause and rewind otherwise
+  // control playback: play when hovered/preview, pause and rewind otherwise
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
 
-    // Video mode: always mounted when visible (for the first-frame poster), but
+    // video mode: always mounted when visible (for the first-frame poster), but
     // only plays on hover, or in preview-all once the stagger queue reaches this
     // tile — so preview-all lights up top-left → bottom-right, not all at once.
     const shouldPlay = isVideoMode
       ? (isHovered || (gridPreview && staggerReady))
       : (showVideo && shouldMountVideo);
     if (shouldPlay) {
-      // Audio logic: only play audio if hovered AND setting is enabled.
-      // Grid preview (Preview-all) should remain muted unless specifically hovered.
+      // audio logic: only play audio if hovered AND setting is enabled.
+      // grid preview (Preview-all) should remain muted unless specifically hovered.
       const audioEnabled = isHovered && audioPlaybackHover;
       v.muted = !audioEnabled;
       v.volume = playbackVolume;
@@ -630,8 +602,8 @@ export const LazyClip = memo(function LazyClip({
     }
   }, [isVideoMode, gridPreview, staggerReady, showVideo, shouldMountVideo, effectiveSrc, isHovered, audioPlaybackHover, playbackVolume, gridPreviewSpeed]);
 
-  // Some HEVC variants (e.g. yuv444p10) can appear "supported" but stall/black-screen in HTML video.
-  // If no frame becomes ready shortly after playback starts, force a proxy fallback.
+  // some HEVC variants (e.g. yuv444p10) can appear "supported" but stall/black-screen in HTML video.
+  // if no frame becomes ready shortly after playback starts, force a proxy fallback.
   useEffect(() => {
     if (isVideoMode) return; // clip files are pre-cut H.264, never need HEVC fallback
     if (!showVideo || !shouldMountVideo) return;
@@ -705,7 +677,7 @@ export const LazyClip = memo(function LazyClip({
   );
 
 
-  // Register video element ref for parent access
+  // register video element ref for parent access
   const setVideoRef = useCallback((el: HTMLVideoElement | null) => {
     videoRef.current = el;
   }, []);
@@ -727,7 +699,7 @@ export const LazyClip = memo(function LazyClip({
         const ctx = canvas.getContext("2d", { willReadFrequently: true });
         if (!ctx) return;
 
-        // Sample the icon zone (top-right) to choose dark/light icon color.
+        // sample the icon zone (top-right) to choose dark/light icon color.
         const targetSize = DOWNLOAD_TONE_SAMPLE_SIZE;
         const sourceW = Math.min(DOWNLOAD_TONE_SOURCE_SIZE, img.naturalWidth);
         const sourceH = Math.min(DOWNLOAD_TONE_SOURCE_SIZE, img.naturalHeight);
@@ -768,12 +740,12 @@ export const LazyClip = memo(function LazyClip({
         const avgLuminance = alphaSum > 0 ? luminanceSum / alphaSum : 128;
         setDownloadTone(avgLuminance >= DOWNLOAD_TONE_THRESHOLD ? "dark" : "light");
       } catch {
-        // Keep previous tone if sampling fails.
+        // keep previous tone if sampling fails.
       }
     });
   }, []);
 
-  // Cancel any pending tone sample when the tile unmounts.
+  // cancel any pending tone sample when the tile unmounts.
   useEffect(() => {
     return () => {
       if (downloadToneIdleRef.current !== null) cancelIdle(downloadToneIdleRef.current);
@@ -826,7 +798,7 @@ export const LazyClip = memo(function LazyClip({
       }}
       onMouseLeave={() => {
         setIsHovered(false);
-        // Clear transient error/thumbnail flags so a later hover can try again.
+        // clear transient error/thumbnail flags so a later hover can try again.
         hasReportedErrorRef.current = false;
         setForceThumbnail(false);
         setIsVideoReady(false);
@@ -885,7 +857,7 @@ export const LazyClip = memo(function LazyClip({
               style={{ opacity: shouldShowThumbnail ? 1 : 0 }}
               draggable={false}
               onError={() => {
-                // Retry with a fresh cache-buster before giving up — poster jpgs
+                // retry with a fresh cache-buster before giving up — poster jpgs
                 // occasionally fail transiently when the whole grid (re)loads.
                 setVideoThumbRetry((attempt) => {
                   if (attempt >= VIDEO_THUMB_MAX_RETRIES) {
@@ -961,7 +933,7 @@ export const LazyClip = memo(function LazyClip({
                   errorCode,
                 }).catch(() => { });
 
-                // Video mode plays the pre-cut H.264 clip file directly; the HEVC
+                // video mode plays the pre-cut H.264 clip file directly; the HEVC
                 // source-proxy fallback below would transcode the WRONG file (the
                 // full source episode) and set effectiveSrc, which video-mode src
                 // ignores — pure wasted ffmpeg work. Retry the clip itself once

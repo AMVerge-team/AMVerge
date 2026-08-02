@@ -116,7 +116,7 @@ pub async fn export_clips(
         return Ok(Vec::new());
     }
 
-    // Preflight: every input clip must still exist (the working folder can be
+    // preflight: every input clip must still exist (the working folder can be
     // wiped between import and export).
     {
         let mut missing: Vec<String> = Vec::new();
@@ -180,7 +180,7 @@ pub async fn export_clips(
         ),
     );
 
-    // The CLI reads the input clip list from a temp JSON file.
+    // the CLI reads the input clip list from a temp JSON file.
     let inputs_path = std::env::temp_dir().join(format!("amverge_export_{}.json", std::process::id()));
     std::fs::write(
         &inputs_path,
@@ -251,7 +251,7 @@ pub async fn export_clips(
                     let _ = app_for_err.emit("scene_progress", ProgressPayload { percent: p, message: msg });
                 }
             } else if line.starts_with("CLIP_READY|") {
-                // Per-clip completion; the export UI tracks the aggregate bar only.
+                // per-clip completion; the export UI tracks the aggregate bar only.
             } else if !line.trim().is_empty() {
                 console_log("EXPORT|cli", &sanitize_for_console(&line));
             }
@@ -281,7 +281,7 @@ pub async fn export_clips(
         return Err("Export canceled.".to_string());
     }
 
-    // The CLI prints a final JSON summary to stdout in --ipc mode.
+    // the CLI prints a final JSON summary to stdout in --ipc mode.
     if let Ok(payload) = serde_json::from_str::<Value>(stdout_string.trim()) {
         if let Some(err) = payload.get("error").and_then(|e| e.as_object()) {
             let msg = err.get("message").and_then(|m| m.as_str()).unwrap_or("export failed");

@@ -46,7 +46,7 @@ pub async fn clear_episode_panel_cache(
         return Ok(());
     }
 
-    // Delete episode folders individually rather than the directory itself. The
+    // delete episode folders individually rather than the directory itself. The
     // episodes directory is user-chosen, so wiping it whole would destroy any of
     // their own files stored alongside the cache.
     let entries = std::fs::read_dir(&episodes_dir)

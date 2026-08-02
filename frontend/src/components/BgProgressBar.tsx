@@ -108,7 +108,7 @@ export default function BgProgressBar({
     window.addEventListener("pointercancel", onUp);
   };
 
-  // Attached mode flows inside a parent card: no fixed positioning, no drag,
+  // attached mode flows inside a parent card: no fixed positioning, no drag,
   // and no header (the parent card owns the title + controls).
   const anchoredStyle = attached
     ? undefined
