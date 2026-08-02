@@ -15,6 +15,20 @@ pub fn dir_name_only(p: &Path) -> String {
     p.to_string_lossy().to_string()
 }
 
+/// True when `path` is a directory AMVerge created for an episode.
+///
+/// The episodes directory is user-chosen, so it is routinely a folder that also
+/// holds files AMVerge did not create. Moving or clearing the cache must touch
+/// only our own folders — everything else in there belongs to the user.
+///
+/// `manifest.json` is the ownership marker: every episode gets one written into
+/// its folder once detection finishes, for both the video-file and WebP import
+/// methods. Matching on the folder *name* would not work, since episode ids are
+/// ordinary `[A-Za-z0-9_-]` strings that any user folder could match.
+pub fn is_episode_cache_dir(path: &Path) -> bool {
+    path.is_dir() && path.join("manifest.json").is_file()
+}
+
 pub fn sanitize_episode_cache_id(raw: &str) -> Result<String, String> {
     let id = raw.trim();
     if id.is_empty() {

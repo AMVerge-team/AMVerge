@@ -18,7 +18,8 @@ import useDragDropImport from "./hooks/useDragDropImport";
 import useImportExport from "./hooks/useImportExport";
 import useStartupUpdateNotification from "./hooks/useStartupUpdateNotification";
 
-import { remapPathRoot } from "./utils/episodeUtils";
+import { remapClipPaths, remapPathRoot } from "./utils/episodeUtils";
+import { useScenePreviewStore } from "./stores/scenePreviewStore";
 
 import { useAppStateStore } from "./stores/appStore";
 import { useWebpLoadingStore } from "./stores/webpLoadingStore";
@@ -148,21 +149,35 @@ function App() {
     useEpisodePanelRuntimeStore.setState((s) => ({
       episodes: s.episodes.map((episode) => ({
         ...episode,
-        clips: episode.clips.map((clip) => ({
-          ...clip,
-          src: remapPathRoot(clip.src, oldRoot, newRoot),
-          thumbnail: remapPathRoot(clip.thumbnail, oldRoot, newRoot),
-        })),
+        videoPath: remapPathRoot(episode.videoPath, oldRoot, newRoot),
+        clips: episode.clips.map((clip) => remapClipPaths(clip, oldRoot, newRoot)),
       }))
     }));
 
     useAppStateStore.setState((s) => ({
-      clips: s.clips.map((clip) => ({
-        ...clip,
-        src: remapPathRoot(clip.src, oldRoot, newRoot),
-        thumbnail: remapPathRoot(clip.thumbnail, oldRoot, newRoot),
-      }))
+      clips: s.clips.map((clip) => remapClipPaths(clip, oldRoot, newRoot)),
+      importedVideoPath: s.importedVideoPath
+        ? remapPathRoot(s.importedVideoPath, oldRoot, newRoot)
+        : s.importedVideoPath,
     }));
+
+    // Animated WebP previews are cached by clip id as absolute paths under the
+    // episodes folder. They aren't persisted, but within this session they'd
+    // still point at the old location and render as black tiles in WebP mode.
+    useScenePreviewStore.setState((s) => {
+      const next: Record<string, string> = {};
+      for (const [clipId, path] of Object.entries(s.animatedByClipId)) {
+        next[clipId] = remapPathRoot(path, oldRoot, newRoot);
+      }
+      return { animatedByClipId: next };
+    });
+
+    // Rewriting the store isn't enough on its own: the grid is keyed by
+    // importToken and each tile seeds its poster path into local state at mount,
+    // so already-mounted tiles keep rendering the old location. Bumping the
+    // token remounts them against the new paths and, since it's the `?v=` cache
+    // buster on every asset URL, stops the WebView serving the failed old fetch.
+    useAppStateStore.getState().setImportToken(Date.now().toString());
   };
 
   // Import/export

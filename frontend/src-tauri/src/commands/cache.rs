@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use tauri::{AppHandle, Manager};
 
-use crate::utils::paths::sanitize_episode_cache_id;
+use crate::utils::paths::{is_episode_cache_dir, sanitize_episode_cache_id};
 
 #[tauri::command]
 pub async fn delete_episode_cache(
@@ -42,8 +42,34 @@ pub async fn clear_episode_panel_cache(
             .join("episodes")
     };
 
-    if episodes_dir.exists() {
-        std::fs::remove_dir_all(&episodes_dir).map_err(|e| e.to_string())?;
+    if !episodes_dir.exists() {
+        return Ok(());
     }
+
+    // Delete episode folders individually rather than the directory itself. The
+    // episodes directory is user-chosen, so wiping it whole would destroy any of
+    // their own files stored alongside the cache.
+    let entries = std::fs::read_dir(&episodes_dir)
+        .map_err(|e| format!("Failed to read episodes directory: {e}"))?;
+
+    let mut failures: Vec<String> = Vec::new();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !is_episode_cache_dir(&path) {
+            continue;
+        }
+        if let Err(e) = std::fs::remove_dir_all(&path) {
+            failures.push(format!("{}: {e}", entry.file_name().to_string_lossy()));
+        }
+    }
+
+    if !failures.is_empty() {
+        return Err(format!(
+            "Failed to delete {} episode folder(s): {}",
+            failures.len(),
+            failures.join("; ")
+        ));
+    }
+
     Ok(())
 }

@@ -84,3 +84,34 @@ export function remapPathRoot(path: string, oldRoot: string, newRoot: string): s
 
   return cleanNewRoot + relativePath;
 }
+
+/**
+ * Re-root every stored path on a clip after the episodes folder moves.
+ *
+ * Clips carry absolute paths, so a move leaves each of these pointing at the old
+ * location. Missing one shows up as a black tile rather than an error: video
+ * mode plays `clipPath`, WebP mode reads `src`, and merged clips play the
+ * `mergedSrcs`/`srcList` entries — so all of them have to move together.
+ * `remapPathRoot` returns non-matching paths untouched, so passing a source
+ * video that lives outside the cache is a no-op.
+ */
+export function remapClipPaths<T extends {
+  src: string;
+  thumbnail: string;
+  srcList?: string[];
+  originalPath?: string;
+  mergedSrcs?: string[];
+  clipPath?: string;
+}>(clip: T, oldRoot: string, newRoot: string): T {
+  const remap = (p: string) => remapPathRoot(p, oldRoot, newRoot);
+
+  return {
+    ...clip,
+    src: remap(clip.src),
+    thumbnail: remap(clip.thumbnail),
+    srcList: clip.srcList?.map(remap),
+    originalPath: clip.originalPath ? remap(clip.originalPath) : clip.originalPath,
+    mergedSrcs: clip.mergedSrcs?.map(remap),
+    clipPath: clip.clipPath ? remap(clip.clipPath) : clip.clipPath,
+  };
+}
