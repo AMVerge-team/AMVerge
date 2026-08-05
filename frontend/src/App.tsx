@@ -343,6 +343,11 @@ function App() {
       const wwRect = ww.getBoundingClientRect();
       const mlRect = ml.getBoundingClientRect();
 
+      // home is hidden with display:none on the other pages, and a hidden element
+      // measures as all zeros — recomputing from that would slam the divider to
+      // the top. keep the last good offset until home is on screen again.
+      if (mlRect.height === 0) return;
+
       const wwCenterY = wwRect.top + wwRect.height / 2;
       const mlCenterY = mlRect.top + mlRect.height / 2;
       const offsetPx = mlCenterY - wwCenterY;
@@ -431,11 +436,6 @@ function App() {
       }}
     >
       <div className="main-content">
-        {/* HomePage stays mounted across navigation (hidden, not unmounted) so
-            returning to an opened episode doesn't tear down and regenerate the
-            whole grid — WebP queue, per-tile proxies, scroll position and all.
-            `display: contents` keeps its children laid out exactly as before when
-            active; `display: none` hides the subtree when another page is open. */}
         <div style={{ display: activePage === "home" ? "contents" : "none" }}>
           <HomePage
             mainLayoutWrapperRef={mainLayoutWrapperRef}

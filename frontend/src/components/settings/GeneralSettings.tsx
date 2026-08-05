@@ -18,7 +18,7 @@ const SCENE_DETECTION_OPTIONS: DropdownOption<SceneDetectionMethod>[] = [
   {
     value: "transnetv2_gpu",
     label: "TransNetV2 (GPU)",
-    description: "AI shot detection — most accurate scene boundaries.",
+    description: "AI scene detection, more accurate.",
   },
   {
     value: "keyframe_detection",
@@ -36,12 +36,12 @@ const PREVIEW_METHOD_OPTIONS: DropdownOption<importMethod>[] = [
   {
     value: "video_files",
     label: "Video Files",
-    description: "Cut clips per scene — hover plays real video.",
+    description: "Cut clips per scene, and display the videos.",
   },
   {
     value: "webp_files",
     label: "WebP Files",
-    description: "Animated WebP previews generated from the source.",
+    description: "Animated WebP previews generated from the source (faster).",
   },
 ];
 
@@ -65,7 +65,7 @@ const PREVIEW_TRANSCODE_MODE_OPTIONS: DropdownOption<PreviewTranscodeMode>[] = [
 
 const PREVIEW_TRANSCODE_QUALITY_OPTIONS: DropdownOption<PreviewTranscodeQuality>[] = [
   { value: "360p", label: "360p", description: "Smallest and fastest to generate." },
-  { value: "480p", label: "480p", description: "Balanced — recommended." },
+  { value: "480p", label: "480p", description: "Balanced." },
   { value: "720p", label: "720p", description: "Sharper previews, slower to generate." },
   { value: "1080p", label: "1080p", description: "Full detail. Slowest, largest cache." },
 ];
@@ -178,7 +178,19 @@ export default function GeneralSettings({
             </span>
           </div>
         )}
-        
+
+        <SettingRow
+          label="Application Version"
+          description=""
+          control={
+          <div className="settings-control">
+            <span className="settings-value" style={{ width: "auto" }}>
+              v2.0.0
+            </span>
+          </div>
+          }
+        />
+
         <SettingRow
           label="Scene Detection Method"
           description="How scene boundaries are found during import."
@@ -215,7 +227,7 @@ export default function GeneralSettings({
           description={
             hevcForced
               ? "This PC can't decode HEVC, so HEVC previews must be re-encoded to play."
-              : "Clips are cut without re-encoding, so an HEVC source produces HEVC previews. Re-encode them to a playable H.264 proxy."
+              : "Choose whether to re-encode video previews on demand or not."
           }
           control={
             <Dropdown
@@ -234,7 +246,7 @@ export default function GeneralSettings({
         {effectivePreviewTranscodeMode !== "off" && (
           <SettingRow
             label="Preview Quality"
-            description="Resolution re-encoded previews are generated at. Audio tracks and timing are always preserved."
+            description="Resolution re-encoded previews are generated at."
             control={
               <Dropdown
                 className="settings-wide-dropdown"
@@ -245,18 +257,6 @@ export default function GeneralSettings({
             }
           />
         )}
-
-        <SettingRow
-          label="Application Version"
-          description=""
-          control={
-          <div className="settings-control">
-            <span className="settings-value" style={{ width: "auto" }}>
-              v1.2.1
-            </span>
-          </div>
-          }
-        />
       
         <SettingRow
           label="Audio Playback Hover"
