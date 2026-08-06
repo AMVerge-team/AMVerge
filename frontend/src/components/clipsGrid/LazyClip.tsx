@@ -9,7 +9,7 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { LazyClipProps } from "./types.ts"
 import { DownloadButton } from "./DownloadButton.tsx";
 import { useWebpPreview } from "./useWebpPreview.ts";
-import { FaCheck, FaPlus, FaLayerGroup } from "react-icons/fa";
+import { FaCheck, FaPlus, FaLayerGroup, FaTrashAlt } from "react-icons/fa";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore, useThemeSettingsStore } from "../../stores/settingsStore.ts";
@@ -18,6 +18,7 @@ import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
 import { cancelIdle, scheduleIdle } from "../../utils/idle.ts";
 import { AddToScenepackModal } from "./AddToScenepackModal.tsx";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
+import { useScenepacksStore } from "../../stores/scenepackStore.ts";
 
 const DOWNLOAD_TONE_SAMPLE_SIZE = 24;
 const DOWNLOAD_TONE_SOURCE_SIZE = 34;
@@ -1036,6 +1037,23 @@ export const LazyClip = memo(function LazyClip({
               title="Add to Scenepack"
             >
               <FaLayerGroup />
+            </button>
+          )}
+
+          {activePage === "scenepacks" && (
+            <button
+              className="clip-remove-from-scenepack"
+              onClick={(e) => {
+                e.stopPropagation();
+                const spId = useScenepacksStore.getState().openedScenepackId;
+                const idx = clip.sceneIndex ?? 0;
+                if (spId) {
+                  useScenepacksStore.getState().removeClipFromScenepackByIndex(spId, idx);
+                }
+              }}
+              title="Remove from Scenepack"
+            >
+              <FaTrashAlt />
             </button>
           )}
 

@@ -13,7 +13,7 @@ function scenepackClipToClipItem(
     id: `${spId}_${index}`,
     src: clip.input,
     thumbnail: clip.thumbnail,
-    sceneIndex: clip.sceneIndex,
+    sceneIndex: index,
     startSec: clip.startSec,
     endSec: clip.endSec,
     clipPath: clip.clipPath,

@@ -16,6 +16,7 @@ export type ScenepacksStore = ScenepacksState & {
   renameScenepack: (id: string, name: string) => void;
   addClipToScenepack: (scenepackId: string, clip: ScenepackClip) => void;
   removeClipFromScenepack: (scenepackId: string, episodeId: string, sceneIndex: number) => void;
+  removeClipFromScenepackByIndex: (scenepackId: string, index: number) => void;
   moveScenepackToFolder: (scenepackId: string, folderId: string | null) => void;
 
   setScenepackFolders: (folders: ScenepackFolder[] | ((prev: ScenepackFolder[]) => ScenepackFolder[])) => void;
@@ -93,6 +94,16 @@ export const useScenepacksStore = create<ScenepacksStore>()(
                 (c) => !(c.episodeId === episodeId && c.sceneIndex === sceneIndex)
               ),
             };
+          }),
+        })),
+
+      removeClipFromScenepackByIndex: (scenepackId, index) =>
+        set((s) => ({
+          scenepacks: s.scenepacks.map((sp) => {
+            if (sp.id !== scenepackId) return sp;
+            const clips = [...sp.clips];
+            clips.splice(index, 1);
+            return { ...sp, clips };
           }),
         })),
 

@@ -32,6 +32,37 @@
   color: var(--accent);
 }
 
+/* Remove from Scenepack button (Scenepacks tab only, hover-visible) */
+.clip-remove-from-scenepack {
+  position: absolute;
+  top: 8px;
+  right: 44px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 100, 100, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  font-size: 11px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.clip-tile:hover .clip-remove-from-scenepack,
+.clip-remove-from-scenepack:focus-visible {
+  opacity: 1;
+}
+
+.clip-remove-from-scenepack:hover {
+  background: rgba(180, 40, 40, 0.75);
+  color: rgb(255, 120, 120);
+}
+
 /* Page-level empty state */
 .scenepacks-empty-state {
   display: flex;
