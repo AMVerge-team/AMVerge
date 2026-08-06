@@ -2,13 +2,15 @@ import type React from "react";
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import {
   FaLayerGroup, FaFolderPlus, FaSortAlphaDown, FaSortAlphaUp,
-  FaTrashAlt, FaFileExport, FaPlay, FaPencilAlt, FaCopy,
+  FaTrashAlt, FaFileExport, FaPlay, FaPencilAlt, FaCopy, FaSpinner,
 } from "react-icons/fa";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { save } from "@tauri-apps/plugin-dialog";
 import { useScenepacksStore } from "../../../stores/scenepackStore";
 import { useGeneralSettingsStore } from "../../../stores/settingsStore";
 import { useUIStateStore } from "../../../stores/UIStore";
+import { useAppStateStore } from "../../../stores/appStore";
 import type { ScenepackEntry, ScenepackFolder } from "../../../types/domain";
 
 function useScenepackStructure(scenepacks: ScenepackEntry[], folders: ScenepackFolder[]) {
@@ -81,6 +83,7 @@ export function ScenepacksPanel() {
   const [modalFolderId, setModalFolderId] = useState<string | null>(null);
   const [renameModal, setRenameModal] = useState<{ id: string; kind: "scenepack" | "folder"; currentName: string } | null>(null);
   const [contextMenu, setContextMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (!contextMenu) return;
@@ -153,7 +156,7 @@ export function ScenepacksPanel() {
 
   const handleExport = async (merge: boolean) => {
     const sp = scenepacks.find((s) => s.id === selectedScenepackId);
-    if (!sp || sp.clips.length === 0) return;
+    if (!sp || sp.clips.length === 0 || exporting) return;
 
     const settings = useGeneralSettingsStore.getState();
     const exportProfiles = settings.exportProfiles ?? [];
@@ -174,6 +177,13 @@ export function ScenepacksPanel() {
       });
       if (!savePath) return;
 
+      setExporting(true);
+      const appStore = useAppStateStore.getState();
+      appStore.setLoading(true);
+      appStore.setActiveOperation("export");
+      appStore.setProgress(0);
+      appStore.setProgressMsg(merge ? "Merging Scenepack clips..." : "Exporting Scenepack clips...");
+
       const exportSpecs = sp.clips.map((c) => ({
         input: c.clipPath ?? c.input,
         start_sec: c.clipPath ? undefined : c.startSec,
@@ -190,6 +200,14 @@ export function ScenepacksPanel() {
         parallelExports: activeProfile?.parallelExports ?? 4,
       };
 
+      const unlisten = await listen<{ percent: number; message: string }>(
+        "scene_progress",
+        (event) => {
+          appStore.setProgress(event.payload.percent);
+          appStore.setProgressMsg(event.payload.message);
+        }
+      );
+
       const exportedFiles = await invoke<string[]>("export_clips", {
         clips: exportSpecs,
         savePath,
@@ -197,11 +215,20 @@ export function ScenepacksPanel() {
         exportOptions,
       });
 
+      unlisten();
+
       if (exportedFiles.length > 0) {
         await invoke("reveal_in_file_manager", { filePath: exportedFiles[0] });
       }
     } catch (err) {
       console.error("Scenepack export failed:", err);
+    } finally {
+      setExporting(false);
+      const appStore = useAppStateStore.getState();
+      appStore.setLoading(false);
+      appStore.setActiveOperation(null);
+      appStore.setProgress(0);
+      appStore.setProgressMsg("");
     }
   };
 
@@ -359,19 +386,28 @@ export function ScenepacksPanel() {
             <span className="scenepack-action-bar-title">{selectedSp.name}</span>
             <span className="scenepack-action-bar-count">{selectedSp.clips.length} clip{selectedSp.clips.length !== 1 ? "s" : ""}</span>
             <div className="scenepack-action-bar-buttons">
-              <button className="episode-panel-action" style={{ fontSize: 11, padding: "4px 10px" }}
-                onClick={() => handleExport(true)}
-                disabled={selectedSp.clips.length === 0}
-                title="Merge all clips into one video" aria-label="Export merged">
-                <FaFileExport aria-hidden="true" style={{ marginRight: 4 }} />
-                Merge
-              </button>
-              <button className="episode-panel-action" style={{ fontSize: 11, padding: "4px 10px" }}
-                onClick={() => handleExport(false)}
-                disabled={selectedSp.clips.length === 0}
-                title="Export each clip as separate files" aria-label="Export split">
-                Split
-              </button>
+              {exporting ? (
+                <span className="scenepack-exporting-status">
+                  <FaSpinner className="scenepack-spinner" aria-hidden="true" />
+                  Exporting...
+                </span>
+              ) : (
+                <>
+                  <button className="episode-panel-action" style={{ fontSize: 11, padding: "4px 10px" }}
+                    onClick={() => handleExport(true)}
+                    disabled={selectedSp.clips.length === 0}
+                    title="Merge all clips into one video" aria-label="Export merged">
+                    <FaFileExport aria-hidden="true" style={{ marginRight: 4 }} />
+                    Merge
+                  </button>
+                  <button className="episode-panel-action" style={{ fontSize: 11, padding: "4px 10px" }}
+                    onClick={() => handleExport(false)}
+                    disabled={selectedSp.clips.length === 0}
+                    title="Export each clip as separate files" aria-label="Export split">
+                    Split
+                  </button>
+                </>
+              )}
               <button className="episode-panel-action icon-only" onClick={handleCopyClipList}
                 disabled={selectedSp.clips.length === 0}
                 title="Copy clip list" aria-label="Copy clip list">

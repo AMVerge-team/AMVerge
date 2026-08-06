@@ -126,3 +126,22 @@
   gap: 4px;
   flex-shrink: 0;
 }
+
+/* Exporting status */
+.scenepack-exporting-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--accent);
+  font-family: 'Jersey 10', system-ui, sans-serif;
+}
+
+.scenepack-spinner {
+  animation: scenepack-spin 0.8s linear infinite;
+}
+
+@keyframes scenepack-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
