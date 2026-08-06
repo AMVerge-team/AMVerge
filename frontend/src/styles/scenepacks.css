@@ -63,6 +63,12 @@
   color: rgb(255, 120, 120);
 }
 
+/* Drag-over indicator for Scenepack clip reordering */
+.clip-wrapper.scenepack-drag-over {
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+}
+
 /* Page-level empty state */
 .scenepacks-empty-state {
   display: flex;

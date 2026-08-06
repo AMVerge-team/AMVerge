@@ -81,6 +81,7 @@ export const LazyClip = memo(function LazyClip({
   const [isVisible, setIsVisible] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [showScenepackModal, setShowScenepackModal] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const thumbnailRef = useRef<HTMLImageElement | null>(null);
   const [downloadTone, setDownloadTone] = useState<"light" | "dark">("light");
@@ -789,10 +790,36 @@ export const LazyClip = memo(function LazyClip({
   return (
     <div
       ref={wrapperRef}
-      className={`clip-wrapper ${isFocused ? "focused" : ""} ${isSelected ? "selected" : ""} ${appearDelayMs !== null ? "clip-appear" : ""}`}
+      className={`clip-wrapper ${isFocused ? "focused" : ""} ${isSelected ? "selected" : ""} ${dragOver ? "scenepack-drag-over" : ""} ${appearDelayMs !== null ? "clip-appear" : ""}`}
       style={appearDelayMs !== null ? { ["--appear-delay" as any]: `${appearDelayMs}ms` } : undefined}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
+      draggable={activePage === "scenepacks"}
+      onDragStart={(e) => {
+        if (activePage !== "scenepacks") return;
+        e.dataTransfer.setData("text/plain", String(clip.sceneIndex ?? index));
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      onDragOver={(e) => {
+        if (activePage !== "scenepacks") return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        if (activePage !== "scenepacks") return;
+        e.preventDefault();
+        setDragOver(false);
+        const fromIdx = Number(e.dataTransfer.getData("text/plain"));
+        const toIdx = clip.sceneIndex ?? index;
+        if (Number.isNaN(fromIdx) || fromIdx === toIdx) return;
+        const spId = useScenepacksStore.getState().openedScenepackId;
+        if (spId) {
+          useScenepacksStore.getState().reorderScenepackClips(spId, fromIdx, toIdx);
+        }
+      }}
+      onDragEnd={() => setDragOver(false)}
       // hover toggles isHovered, which controls whether the <video> mounts and whether playback starts.
       onMouseEnter={() => {
         // IntersectionObserver can lag by a tick; hovering should always mount/play immediately.
