@@ -2,7 +2,7 @@ import type React from "react";
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import {
   FaLayerGroup, FaFolderPlus, FaSortAlphaDown, FaSortAlphaUp,
-  FaTrashAlt, FaFileExport, FaPlay, FaPencilAlt, FaCopy, FaSpinner,
+  FaTrashAlt, FaFileExport, FaPlay, FaPencilAlt, FaCopy, FaSpinner, FaSearch, FaTimes,
 } from "react-icons/fa";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -84,6 +84,7 @@ export function ScenepacksPanel() {
   const [renameModal, setRenameModal] = useState<{ id: string; kind: "scenepack" | "folder"; currentName: string } | null>(null);
   const [contextMenu, setContextMenu] = useState<{ id: string; kind: "scenepack" | "folder"; x: number; y: number } | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<{ kind: "scenepack" | "folder"; id: string; name: string } | null>(null);
 
   useEffect(() => {
@@ -277,6 +278,22 @@ export function ScenepacksPanel() {
 
   const rootFolders = foldersByParentId.get(null) ?? [];
 
+  const q = searchQuery.trim().toLowerCase();
+  const filteredScenepacks = useMemo(() => {
+    if (!q) return scenepacks;
+    return scenepacks.filter((sp) => sp.name.toLowerCase().includes(q));
+  }, [scenepacks, q]);
+  const filteredFolders = useMemo(() => {
+    if (!q) return scenepackFolders;
+    return scenepackFolders.filter((f) => f.name.toLowerCase().includes(q));
+  }, [scenepackFolders, q]);
+  const filteredStructure = useScenepackStructure(filteredScenepacks, filteredFolders);
+
+  const displayFolders = q ? filteredStructure.foldersByParentId : foldersByParentId;
+  const displayScenepacksByFolder = q ? filteredStructure.scenepacksByFolderId : scenepacksByFolderId;
+  const displayRootScenepacks = q ? filteredStructure.rootScenepacks : rootScenepacks;
+  const displayRootFolders = displayFolders.get(null) ?? [];
+
   const renderScenepackRow = (sp: ScenepackEntry, depth: number, inFolder: boolean) => {
     const isSel = selectedScenepackId === sp.id;
     const isOpen = openedScenepackId === sp.id;
@@ -312,21 +329,25 @@ export function ScenepacksPanel() {
   };
 
   const renderFolder = (folder: ScenepackFolder, depth: number): React.ReactNode => {
-    const children = foldersByParentId.get(folder.id) ?? [];
-    const items = scenepacksByFolderId.get(folder.id) ?? [];
+    const children = displayFolders.get(folder.id) ?? [];
+    const items = displayScenepacksByFolder.get(folder.id) ?? [];
     const isSel = selectedScenepackFolderId === folder.id;
     const paddingLeft = 8 + depth * 12;
+    const isExpanded = q ? true : folder.isExpanded;
 
     return (
       <div key={folder.id} className="episode-panel-folder">
         <div
           className={`episode-panel-row folder-row${isSel ? " is-selected" : ""}`}
           style={{ paddingLeft }}
-          onClick={DoubleClick(
-            `folder_${folder.id}`,
-            () => handleSelectFolder(folder.id),
-            () => handleToggleFolder(folder.id)
-          )}
+          onClick={q
+            ? () => handleSelectFolder(folder.id)
+            : DoubleClick(
+              `folder_${folder.id}`,
+              () => handleSelectFolder(folder.id),
+              () => handleToggleFolder(folder.id)
+            )
+          }
           onContextMenu={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -336,7 +357,7 @@ export function ScenepacksPanel() {
         >
           <button
             type="button"
-            className={`episode-panel-caret${folder.isExpanded ? " is-expanded" : ""}`}
+            className={`episode-panel-caret${isExpanded ? " is-expanded" : ""}`}
             onClick={(e) => { e.stopPropagation(); handleToggleFolder(folder.id); }}
             tabIndex={-1}
           >
@@ -344,7 +365,7 @@ export function ScenepacksPanel() {
           </button>
           <span className="episode-panel-folder-name">{folder.name}</span>
         </div>
-        {folder.isExpanded && (children.length > 0 || items.length > 0) && (
+        {isExpanded && (children.length > 0 || items.length > 0) && (
           <div className="episode-panel-folder-children">
             {children.map((child) => renderFolder(child, depth + 1))}
             {items.map((sp) => renderScenepackRow(sp, depth + 1, true))}
@@ -385,6 +406,22 @@ export function ScenepacksPanel() {
           </div>
         </div>
 
+        <div className="scenepack-search">
+          <FaSearch className="scenepack-search-icon" />
+          <input
+            type="text"
+            className="scenepack-search-input"
+            placeholder="Search Scenepacks..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button className="scenepack-search-clear" onClick={() => setSearchQuery("")}>
+              <FaTimes />
+            </button>
+          )}
+        </div>
+
         <div
           className="episode-panel-list"
           tabIndex={0}
@@ -398,9 +435,9 @@ export function ScenepacksPanel() {
             }
           }}
         >
-          {rootFolders.map((folder) => renderFolder(folder, 0))}
-          {rootScenepacks.map((sp) => renderScenepackRow(sp, 0, false))}
-          {rootFolders.length === 0 && rootScenepacks.length === 0 && (
+          {displayRootFolders.map((folder) => renderFolder(folder, 0))}
+          {displayRootScenepacks.map((sp) => renderScenepackRow(sp, 0, false))}
+          {displayRootFolders.length === 0 && displayRootScenepacks.length === 0 && (
             <div className="scenepacks-empty-cta">
               <FaLayerGroup style={{ fontSize: 28, opacity: 0.3 }} />
               <span style={{ fontSize: 15, opacity: 0.6 }}>No Scenepacks yet</span>

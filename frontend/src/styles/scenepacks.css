@@ -74,6 +74,53 @@
   flex-shrink: 0;
 }
 
+/* Search bar */
+.scenepack-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.scenepack-search-icon {
+  opacity: 0.4;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.scenepack-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 13px;
+  font-family: 'Jersey 10', system-ui, sans-serif;
+  outline: none;
+  min-width: 0;
+}
+
+.scenepack-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.scenepack-search-clear {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  padding: 2px;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.scenepack-search-clear:hover {
+  color: white;
+}
+
 /* Toast notification */
 .scenepack-toast {
   position: absolute;
