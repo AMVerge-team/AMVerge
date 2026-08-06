@@ -84,6 +84,7 @@ export function ScenepacksPanel() {
   const [renameModal, setRenameModal] = useState<{ id: string; kind: "scenepack" | "folder"; currentName: string } | null>(null);
   const [contextMenu, setContextMenu] = useState<{ id: string; kind: "scenepack" | "folder"; x: number; y: number } | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ kind: "scenepack" | "folder"; id: string; name: string } | null>(null);
 
   useEffect(() => {
     if (!contextMenu) return;
@@ -146,11 +147,24 @@ export function ScenepacksPanel() {
     setRenameModal(null);
   };
 
+  const handleDeleteConfirmed = () => {
+    if (!confirmDelete) return;
+    if (confirmDelete.kind === "scenepack") {
+      removeScenepack(confirmDelete.id);
+    } else {
+      removeScenepackFolder(confirmDelete.id);
+    }
+    setConfirmDelete(null);
+  };
+
   const handleDeleteSelected = () => {
     if (selectedScenepackId) {
-      removeScenepack(selectedScenepackId);
-    } else if (selectedScenepackFolderId) {
-      removeScenepackFolder(selectedScenepackFolderId);
+      const sp = scenepacks.find((s) => s.id === selectedScenepackId);
+      if (sp) { setConfirmDelete({ kind: "scenepack", id: sp.id, name: sp.name }); return; }
+    }
+    if (selectedScenepackFolderId) {
+      const f = scenepackFolders.find((f) => f.id === selectedScenepackFolderId);
+      if (f) { setConfirmDelete({ kind: "folder", id: f.id, name: f.name }); }
     }
   };
 
@@ -430,7 +444,7 @@ export function ScenepacksPanel() {
                 title="Rename" aria-label="Rename">
                 <FaPencilAlt aria-hidden="true" />
               </button>
-              <button className="episode-panel-action icon-only" onClick={() => removeScenepack(selectedSp.id)}
+              <button className="episode-panel-action icon-only" onClick={() => setConfirmDelete({ kind: "scenepack", id: selectedSp.id, name: selectedSp.name })}
                 title="Delete Scenepack" aria-label="Delete">
                 <FaTrashAlt aria-hidden="true" />
               </button>
@@ -499,6 +513,26 @@ export function ScenepacksPanel() {
           </div>
         )}
 
+        {confirmDelete && (
+          <div className="episode-modal-overlay" onClick={() => setConfirmDelete(null)}>
+            <div className="episode-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="episode-modal-title">Delete {confirmDelete.kind === "scenepack" ? "Scenepack" : "Folder"}</div>
+              <div className="episode-modal-message">
+                Are you sure you want to delete "{confirmDelete.name}"?
+              </div>
+              {confirmDelete.kind === "folder" && (
+                <div className="episode-modal-note">
+                  All Scenepacks inside this folder will be moved to root.
+                </div>
+              )}
+              <div className="episode-modal-actions">
+                <button className="episode-modal-btn" onClick={() => setConfirmDelete(null)}>Cancel</button>
+                <button className="episode-modal-btn danger" onClick={handleDeleteConfirmed}>Delete</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {contextMenu && (
           <div className="episode-context-menu" style={{ left: contextMenu.x, top: contextMenu.y }}>
             {contextMenu.kind === "scenepack" && (
@@ -522,11 +556,10 @@ export function ScenepacksPanel() {
             </button>
             <div className="episode-context-menu-separator" />
             <button className="episode-context-menu-item" onClick={() => {
-              if (contextMenu.kind === "scenepack") {
-                removeScenepack(contextMenu.id);
-              } else {
-                removeScenepackFolder(contextMenu.id);
-              }
+              const name = contextMenu.kind === "scenepack"
+                ? scenepacks.find((s) => s.id === contextMenu.id)?.name ?? ""
+                : scenepackFolders.find((f) => f.id === contextMenu.id)?.name ?? "";
+              setConfirmDelete({ kind: contextMenu.kind, id: contextMenu.id, name });
               setContextMenu(null);
             }}>
               Delete
