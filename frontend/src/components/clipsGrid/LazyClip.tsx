@@ -9,13 +9,15 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { LazyClipProps } from "./types.ts"
 import { DownloadButton } from "./DownloadButton.tsx";
 import { useWebpPreview } from "./useWebpPreview.ts";
-import { FaCheck, FaPlus } from "react-icons/fa";
+import { FaCheck, FaPlus, FaLayerGroup } from "react-icons/fa";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore, useThemeSettingsStore } from "../../stores/settingsStore.ts";
 import { usePreviewTranscode } from "../../features/preview/usePreviewTranscode.ts";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
 import { cancelIdle, scheduleIdle } from "../../utils/idle.ts";
+import { AddToScenepackModal } from "./AddToScenepackModal.tsx";
+import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
 
 const DOWNLOAD_TONE_SAMPLE_SIZE = 24;
 const DOWNLOAD_TONE_SOURCE_SIZE = 34;
@@ -57,6 +59,7 @@ export const LazyClip = memo(function LazyClip({
   const isSelected = useAppStateStore(s => s.selectedClips.has(clip.id));
   const isFocused = useAppStateStore(s => s.focusedClipId === clip.id);
   const gridPreview = useUIStateStore(s => s.gridPreview);
+  const activePage = useUIStateStore(s => s.activePage);
   const videoIsHEVC = useAppStateStore(s => s.videoIsHEVC);
   const userHasHEVC = useAppStateStore(s => s.userHasHEVC);
   const audioPlaybackHover = useGeneralSettingsStore(s => s.audioPlaybackHover);
@@ -70,9 +73,13 @@ export const LazyClip = memo(function LazyClip({
   const showDownloadButton = useThemeSettingsStore(s => s.showDownloadButton);
   const showClipTimestamps = useThemeSettingsStore(s => s.showClipTimestamps);
 
+  const openedEpisodeId = useEpisodePanelRuntimeStore(s => s.openedEpisodeId);
+  const episodeId = openedEpisodeId ?? clip.id.split("_").slice(0, -1).join("_");
+
   // ============================ SHARED tile state ============================
   const [isVisible, setIsVisible] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [showScenepackModal, setShowScenepackModal] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const thumbnailRef = useRef<HTMLImageElement | null>(null);
   const [downloadTone, setDownloadTone] = useState<"light" | "dark">("light");
@@ -1017,6 +1024,27 @@ export const LazyClip = memo(function LazyClip({
 
           {showDownloadButton && (
             <DownloadButton tone={downloadTone} onClick={() => onDownloadClip(clip)} />
+          )}
+
+          {activePage === "home" && (
+            <button
+              className="clip-add-to-scenepack"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowScenepackModal(true);
+              }}
+              title="Add to Scenepack"
+            >
+              <FaLayerGroup />
+            </button>
+          )}
+
+          {showScenepackModal && (
+            <AddToScenepackModal
+              clip={clip}
+              episodeId={episodeId}
+              onClose={() => setShowScenepackModal(false)}
+            />
           )}
         </>
       )}

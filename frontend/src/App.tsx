@@ -7,6 +7,7 @@ import AppLayout from "./components/AppLayout";
 import HomePage from "./pages/HomePage";
 import Menu from "./pages/Menu";
 import Settings from "./pages/Settings";
+import ScenepacksPage from "./pages/ScenepacksPage";
 import ImportTerminal from "./components/ImportTerminal";
 import BgProgressBar from "./components/BgProgressBar";
 import StartupNotificationModal, { type StartupNotification } from "./components/StartupNotificationModal";
@@ -441,9 +442,10 @@ function App() {
             mainLayoutWrapperRef={mainLayoutWrapperRef}
           />
         </div>
+        {activePage === "scenepacks" && <ScenepacksPage />}
         {activePage === "menu" ? (
           <Menu />
-        ) : activePage !== "home" ? (
+        ) : activePage !== "home" && activePage !== "scenepacks" ? (
           <Settings
             onGeneralSettingsReset={handleResetGeneralSettings}
             onEpisodesPathChanged={remapEpisodePaths}

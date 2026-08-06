@@ -8,6 +8,7 @@ import { startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useR
 import { save } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { LazyClip } from "./LazyClip.tsx"
+import { SelectionActionBar } from "./SelectionActionBar.tsx";
 import { useStaggeredMountQueue } from "./staggeredMountQueue.ts";
 import useViewportAwareProxyQueue from "./proxyQueue.ts";
 import useViewportAwareWebpQueue from "./webpQueue.ts";
@@ -369,39 +370,35 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
           ))}
         </div>
       ) : (
-        // non-virtualized: every clip tile is mounted so nothing pops in when you
-        // scroll back up. The expensive work (video playback, WebP encode) is still
-        // viewport-gated inside each tile via its IntersectionObserver, so only the
-        // DOM mount + static thumbnail become eager.
-        // keyed by importToken: every episode open / import / refresh remounts the
-        // tiles from scratch, so cells fully reload (thumbnails, videos, entrance
-        // animation) and any lingering per-tile state is dropped.
-        <div
-          key={importToken}
-          className="clips-grid"
-          style={{
-            gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
-            ["--grid-max-width" as any]: gridMaxWidth,
-          }}
-        >
-          {clips.map((clip, index) => (
-            <LazyClip
-              key={clip.id}
-              clip={clip}
-              index={index}
-              videoPreviewMode={episodeVideoPreview}
-              requestProxySequential={requestProxySequential}
-              reportProxyDemand={reportProxyDemand}
-              reportWebpDemand={reportWebpDemand}
-              reportStaggerDemand={reportStaggerDemand}
-              onClipClick={handleClipClick}
-              onClipDoubleClick={handleClipDoubleClick}
-              onToggleSelection={handleToggleSelection}
-              onDownloadClip={handleDownloadSingleClip}
-              appearDelayMs={appearDelayFor(index)}
-            />
-          ))}
-        </div>
+        <>
+          <SelectionActionBar />
+          <div
+            key={importToken}
+            className="clips-grid"
+            style={{
+              gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
+              ["--grid-max-width" as any]: gridMaxWidth,
+            }}
+          >
+            {clips.map((clip, index) => (
+              <LazyClip
+                key={clip.id}
+                clip={clip}
+                index={index}
+                videoPreviewMode={episodeVideoPreview}
+                requestProxySequential={requestProxySequential}
+                reportProxyDemand={reportProxyDemand}
+                reportWebpDemand={reportWebpDemand}
+                reportStaggerDemand={reportStaggerDemand}
+                onClipClick={handleClipClick}
+                onClipDoubleClick={handleClipDoubleClick}
+                onToggleSelection={handleToggleSelection}
+                onDownloadClip={handleDownloadSingleClip}
+                appearDelayMs={appearDelayFor(index)}
+              />
+            ))}
+          </div>
+        </>
       )}
     </main>
   );

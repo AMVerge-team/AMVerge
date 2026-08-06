@@ -1,0 +1,56 @@
+/* Scenepacks — panel rows/folders/modals reuse episode-panel classes.
+   Only clip-tile button and page-level empty state are custom. */
+
+/* Clip tile: Add to Scenepack button (hover-visible, top-right) */
+.clip-add-to-scenepack {
+  position: absolute;
+  top: 8px;
+  right: 44px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.clip-tile:hover .clip-add-to-scenepack,
+.clip-add-to-scenepack:focus-visible {
+  opacity: 1;
+}
+
+.clip-add-to-scenepack:hover {
+  background: rgba(0, 0, 0, 0.75);
+  color: var(--accent);
+}
+
+/* Page-level empty state (shown when no scenepack is opened) */
+.scenepacks-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.55));
+  gap: 8px;
+}
+
+.scenepacks-empty-state h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+}
+
+.scenepacks-empty-state p {
+  margin: 0;
+  font-size: 14px;
+}

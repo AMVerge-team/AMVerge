@@ -1,11 +1,12 @@
 // sidebar navigation buttons. Handles switching between top-level pages like Home and Menu
 import type { IconType } from "react-icons";
-import { FaBars, FaCog, FaHome } from "react-icons/fa";
+import { FaBars, FaCog, FaHome, FaLayerGroup } from "react-icons/fa";
 import type { Page } from "./types";
 import { useUIStateStore } from "../../stores/UIStore";
 
 const buttons: { name: string; page: Page; icon: IconType }[] = [
   { name: "Home", page: "home", icon: FaHome },
+  { name: "Scenepacks", page: "scenepacks", icon: FaLayerGroup },
   { name: "Menu", page: "menu", icon: FaBars },
   { name: "Settings", page: "settings", icon: FaCog },
 ];
