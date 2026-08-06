@@ -82,7 +82,7 @@ export function ScenepacksPanel() {
   const [newItemName, setNewItemName] = useState("");
   const [modalFolderId, setModalFolderId] = useState<string | null>(null);
   const [renameModal, setRenameModal] = useState<{ id: string; kind: "scenepack" | "folder"; currentName: string } | null>(null);
-  const [contextMenu, setContextMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ id: string; kind: "scenepack" | "folder"; x: number; y: number } | null>(null);
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
@@ -277,7 +277,7 @@ export function ScenepacksPanel() {
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          setContextMenu({ id: sp.id, x: e.clientX, y: e.clientY });
+          setContextMenu({ id: sp.id, kind: "scenepack", x: e.clientX, y: e.clientY });
         }}
       >
         <FaLayerGroup className="episode-panel-import-icon" aria-hidden="true" />
@@ -304,7 +304,12 @@ export function ScenepacksPanel() {
             () => handleSelectFolder(folder.id),
             () => handleToggleFolder(folder.id)
           )}
-          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleSelectFolder(folder.id);
+            setContextMenu({ id: folder.id, kind: "folder", x: e.clientX, y: e.clientY });
+          }}
         >
           <button
             type="button"
@@ -346,6 +351,13 @@ export function ScenepacksPanel() {
               onClick={() => { setNewItemModal({ kind: "scenepack", parentId: selectedScenepackFolderId }); setNewItemName(""); setModalFolderId(selectedScenepackFolderId); }}
               title="New Scenepack" aria-label="New Scenepack">
               <FaLayerGroup aria-hidden="true" />
+            </button>
+
+            <button type="button" className="episode-panel-action icon-only"
+              onClick={handleDeleteSelected}
+              disabled={!selectedScenepackId && !selectedScenepackFolderId}
+              title="Delete selected item" aria-label="Delete selected">
+              <FaTrashAlt aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -489,23 +501,32 @@ export function ScenepacksPanel() {
 
         {contextMenu && (
           <div className="episode-context-menu" style={{ left: contextMenu.x, top: contextMenu.y }}>
+            {contextMenu.kind === "scenepack" && (
+              <button className="episode-context-menu-item" onClick={() => {
+                const sp = scenepacks.find((s) => s.id === contextMenu.id);
+                if (sp) handleOpenScenepack(sp.id);
+                setContextMenu(null);
+              }}>
+                Open
+              </button>
+            )}
             <button className="episode-context-menu-item" onClick={() => {
-              const sp = scenepacks.find((s) => s.id === contextMenu.id);
-              if (sp) handleOpenScenepack(sp.id);
-              setContextMenu(null);
-            }}>
-              Open
-            </button>
-            <button className="episode-context-menu-item" onClick={() => {
-              const sp = scenepacks.find((s) => s.id === contextMenu.id);
-              if (sp) { setRenameModal({ id: sp.id, kind: "scenepack", currentName: sp.name }); setNewItemName(sp.name); }
+              const currentName = contextMenu.kind === "scenepack"
+                ? scenepacks.find((s) => s.id === contextMenu.id)?.name ?? ""
+                : scenepackFolders.find((f) => f.id === contextMenu.id)?.name ?? "";
+              setRenameModal({ id: contextMenu.id, kind: contextMenu.kind, currentName });
+              setNewItemName(currentName);
               setContextMenu(null);
             }}>
               Rename
             </button>
             <div className="episode-context-menu-separator" />
             <button className="episode-context-menu-item" onClick={() => {
-              removeScenepack(contextMenu.id);
+              if (contextMenu.kind === "scenepack") {
+                removeScenepack(contextMenu.id);
+              } else {
+                removeScenepackFolder(contextMenu.id);
+              }
               setContextMenu(null);
             }}>
               Delete
