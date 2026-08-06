@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useScenepacksStore } from "../../stores/scenepackStore";
+import { useUIStateStore } from "../../stores/UIStore";
 import type { ClipItem, ScenepackClip } from "../../types/domain";
 
 type AddToScenepackModalProps = {
@@ -12,6 +13,7 @@ export function AddToScenepackModal({ clip, episodeId, onClose }: AddToScenepack
   const scenepacks = useScenepacksStore((s) => s.scenepacks);
   const addClipToScenepack = useScenepacksStore((s) => s.addClipToScenepack);
   const addScenepack = useScenepacksStore((s) => s.addScenepack);
+  const setActivePage = useUIStateStore((s) => s.setActivePage);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
@@ -45,6 +47,7 @@ export function AddToScenepackModal({ clip, episodeId, onClose }: AddToScenepack
     } else if (selectedId) {
       addClipToScenepack(selectedId, clipData);
     }
+    setActivePage("scenepacks");
     onClose();
   };
 

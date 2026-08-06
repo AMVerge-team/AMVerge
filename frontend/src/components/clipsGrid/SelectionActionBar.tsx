@@ -90,6 +90,8 @@ function BatchAddToScenepackModal({
       };
       addClipToScenepack(targetId, data);
     }
+    const { setActivePage } = useUIStateStore.getState();
+    setActivePage("scenepacks");
     onClose();
   };
 
