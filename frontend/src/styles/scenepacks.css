@@ -65,6 +65,15 @@
   color: white;
 }
 
+/* Scenepack row thumbnail */
+.scenepack-thumbnail {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 /* Toast notification */
 .scenepack-toast {
   position: absolute;

@@ -4,7 +4,7 @@ import {
   FaLayerGroup, FaFolderPlus, FaSortAlphaDown, FaSortAlphaUp,
   FaTrashAlt, FaFileExport, FaPlay, FaPencilAlt, FaCopy, FaSpinner,
 } from "react-icons/fa";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { save } from "@tauri-apps/plugin-dialog";
 import { useScenepacksStore } from "../../../stores/scenepackStore";
@@ -294,7 +294,16 @@ export function ScenepacksPanel() {
           setContextMenu({ id: sp.id, kind: "scenepack", x: e.clientX, y: e.clientY });
         }}
       >
-        <FaLayerGroup className="episode-panel-import-icon" aria-hidden="true" />
+        {sp.clips.length > 0 && sp.clips[0].thumbnail ? (
+          <img
+            className="scenepack-thumbnail"
+            src={convertFileSrc(sp.clips[0].thumbnail)}
+            draggable={false}
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+        ) : (
+          <FaLayerGroup className="episode-panel-import-icon" aria-hidden="true" />
+        )}
         <span className="episode-panel-episode-name">{sp.name}</span>
         <span className="episode-panel-count">{sp.clips.length}</span>
         {isOpen && <FaPlay className="episode-panel-import-icon" style={{ marginLeft: 4 }} />}
