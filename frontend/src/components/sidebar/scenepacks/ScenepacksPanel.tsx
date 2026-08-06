@@ -147,7 +147,7 @@ export function ScenepacksPanel() {
     }
   };
 
-  const handleBatchExport = async () => {
+  const handleExport = async (merge: boolean) => {
     const sp = scenepacks.find((s) => s.id === selectedScenepackId);
     if (!sp || sp.clips.length === 0) return;
 
@@ -157,12 +157,16 @@ export function ScenepacksPanel() {
       (p) => p.id === settings.activeExportProfileId
     ) ?? exportProfiles[0];
     const format = activeProfile?.container ?? "mp4";
-    const defaultPath = `${sp.name}.${format}`;
+
+    const defaultPath = merge ? `${sp.name}.${format}` : `${sp.name}_scenes`;
+    const filters = merge
+      ? [{ name: "Video", extensions: [format] }]
+      : undefined;
 
     try {
       const savePath = await save({
         defaultPath,
-        filters: [{ name: "Video", extensions: [format] }],
+        filters,
       });
       if (!savePath) return;
 
@@ -185,7 +189,7 @@ export function ScenepacksPanel() {
       const exportedFiles = await invoke<string[]>("export_clips", {
         clips: exportSpecs,
         savePath,
-        mergeEnabled: true,
+        mergeEnabled: merge,
         exportOptions,
       });
 
@@ -193,7 +197,7 @@ export function ScenepacksPanel() {
         await invoke("reveal_in_file_manager", { filePath: exportedFiles[0] });
       }
     } catch (err) {
-      console.error("Scenepack batch export failed:", err);
+      console.error("Scenepack export failed:", err);
     }
   };
 
@@ -351,10 +355,18 @@ export function ScenepacksPanel() {
             <span className="scenepack-action-bar-title">{selectedSp.name}</span>
             <span className="scenepack-action-bar-count">{selectedSp.clips.length} clip{selectedSp.clips.length !== 1 ? "s" : ""}</span>
             <div className="scenepack-action-bar-buttons">
-              <button className="episode-panel-action icon-only" onClick={handleBatchExport}
+              <button className="episode-panel-action" style={{ fontSize: 11, padding: "4px 10px" }}
+                onClick={() => handleExport(true)}
                 disabled={selectedSp.clips.length === 0}
-                title="Export all clips as one video" aria-label="Export all">
-                <FaFileExport aria-hidden="true" />
+                title="Merge all clips into one video" aria-label="Export merged">
+                <FaFileExport aria-hidden="true" style={{ marginRight: 4 }} />
+                Merge
+              </button>
+              <button className="episode-panel-action" style={{ fontSize: 11, padding: "4px 10px" }}
+                onClick={() => handleExport(false)}
+                disabled={selectedSp.clips.length === 0}
+                title="Export each clip as separate files" aria-label="Export split">
+                Split
               </button>
               <button className="episode-panel-action icon-only" onClick={handleCopyClipList}
                 disabled={selectedSp.clips.length === 0}
