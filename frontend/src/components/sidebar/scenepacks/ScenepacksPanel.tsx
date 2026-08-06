@@ -430,6 +430,7 @@ export function ScenepacksPanel() {
                     onClick={() => handleExport(false)}
                     disabled={selectedSp.clips.length === 0}
                     title="Export each clip as separate files" aria-label="Export split">
+                    <FaFileExport aria-hidden="true" style={{ marginRight: 4 }} />
                     Split
                   </button>
                 </>
