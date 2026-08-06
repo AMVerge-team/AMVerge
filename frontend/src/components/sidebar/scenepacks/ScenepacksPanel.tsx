@@ -78,6 +78,7 @@ export function ScenepacksPanel() {
 
   const [newItemModal, setNewItemModal] = useState<{ kind: "scenepack"; parentId: string | null } | { kind: "folder"; parentId: string | null } | null>(null);
   const [newItemName, setNewItemName] = useState("");
+  const [modalFolderId, setModalFolderId] = useState<string | null>(null);
   const [renameModal, setRenameModal] = useState<{ id: string; kind: "scenepack" | "folder"; currentName: string } | null>(null);
   const [contextMenu, setContextMenu] = useState<{ id: string; x: number; y: number } | null>(null);
 
@@ -118,13 +119,16 @@ export function ScenepacksPanel() {
     const name = newItemName.trim();
     if (!name || !newItemModal) return;
     if (newItemModal.kind === "scenepack") {
-      const id = addScenepack(name, newItemModal.parentId);
+      const parentId = modalFolderId ?? newItemModal.parentId;
+      const id = addScenepack(name, parentId);
       handleOpenScenepack(id);
     } else {
-      addScenepackFolder(name, newItemModal.parentId);
+      const parentId = modalFolderId ?? newItemModal.parentId;
+      addScenepackFolder(name, parentId);
     }
     setNewItemName("");
     setNewItemModal(null);
+    setModalFolderId(null);
   };
 
   const handleRename = () => {
@@ -306,13 +310,13 @@ export function ScenepacksPanel() {
             </button>
 
             <button type="button" className="episode-panel-action icon-only"
-              onClick={() => { setNewItemModal({ kind: "folder", parentId: null }); setNewItemName(""); }}
+              onClick={() => { setNewItemModal({ kind: "folder", parentId: null }); setNewItemName(""); setModalFolderId(null); }}
               title="New folder" aria-label="New folder">
               <FaFolderPlus aria-hidden="true" />
             </button>
 
             <button type="button" className="episode-panel-action icon-only"
-              onClick={() => { setNewItemModal({ kind: "scenepack", parentId: selectedScenepackFolderId }); setNewItemName(""); }}
+              onClick={() => { setNewItemModal({ kind: "scenepack", parentId: selectedScenepackFolderId }); setNewItemName(""); setModalFolderId(selectedScenepackFolderId); }}
               title="New Scenepack" aria-label="New Scenepack">
               <FaLayerGroup aria-hidden="true" />
             </button>
@@ -341,7 +345,7 @@ export function ScenepacksPanel() {
               <span style={{ fontSize: 12, opacity: 0.4 }}>Group clips by character, fight, or event</span>
               <button
                 className="episode-modal-btn primary"
-                onClick={() => { setNewItemModal({ kind: "scenepack", parentId: null }); setNewItemName(""); }}
+                onClick={() => { setNewItemModal({ kind: "scenepack", parentId: null }); setNewItemName(""); setModalFolderId(null); }}
                 style={{ marginTop: 8, fontSize: 14 }}
               >
                 Create your first Scenepack
@@ -387,7 +391,7 @@ export function ScenepacksPanel() {
         )}
 
         {newItemModal && (
-          <div className="episode-modal-overlay" onClick={() => setNewItemModal(null)}>
+          <div className="episode-modal-overlay" onClick={() => { setNewItemModal(null); setModalFolderId(null); }}>
             <div className="episode-modal" onClick={(e) => e.stopPropagation()}>
               <div className="episode-modal-title">
                 {newItemModal.kind === "scenepack" ? "New Scenepack" : "New Folder"}
@@ -398,8 +402,31 @@ export function ScenepacksPanel() {
                 onKeyDown={(e) => { if (e.key === "Enter") handleCreateItem(); }}
                 autoFocus
               />
+              {newItemModal.kind === "scenepack" && rootFolders.length > 0 && (
+                <div style={{ marginTop: 4 }}>
+                  <div className="episode-context-menu-label">Category</div>
+                  <div style={{ maxHeight: 140, overflowY: "auto" }}>
+                    <div
+                      className={`episode-panel-row folder-row${modalFolderId === null ? " is-selected" : ""}`}
+                      onClick={() => setModalFolderId(null)}
+                      style={{ padding: "6px 8px", cursor: "pointer", marginBottom: 1 }}
+                    >
+                      <span className="episode-panel-folder-name">None (root)</span>
+                    </div>
+                    {scenepackFolders.map((f) => (
+                      <div key={f.id}
+                        className={`episode-panel-row folder-row${modalFolderId === f.id ? " is-selected" : ""}`}
+                        onClick={() => setModalFolderId(f.id)}
+                        style={{ padding: "6px 8px", cursor: "pointer", marginBottom: 1 }}
+                      >
+                        <span className="episode-panel-folder-name">{f.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="episode-modal-actions">
-                <button className="episode-modal-btn" onClick={() => setNewItemModal(null)}>Cancel</button>
+                <button className="episode-modal-btn" onClick={() => { setNewItemModal(null); setModalFolderId(null); }}>Cancel</button>
                 <button className="episode-modal-btn primary" onClick={handleCreateItem} disabled={!newItemName.trim()}>Create</button>
               </div>
             </div>
