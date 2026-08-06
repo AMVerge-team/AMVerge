@@ -307,6 +307,29 @@ export default function GeneralSettings({
         />
 
         <SettingRow
+          label="Scenepacks"
+          description="Enable the Scenepacks feature for grouping clips into themed collections."
+          control={
+            <div className="settings-control">
+              <label className="custom-checkbox">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={generalSettings.scenepacksEnabled}
+                  onChange={(e) =>
+                    setGeneralSettings((prev) => ({
+                      ...prev,
+                      scenepacksEnabled: e.target.checked,
+                    }))
+                  }
+                />
+                <span className="checkmark"></span>
+              </label>
+            </div>
+          }
+        />
+
+        <SettingRow
           label="Episodes Storage Path"
           description="The location where your processed episodes and clips are stored."
           control={

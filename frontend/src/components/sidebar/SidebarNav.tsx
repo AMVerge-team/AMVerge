@@ -3,10 +3,11 @@ import type { IconType } from "react-icons";
 import { FaBars, FaCog, FaHome, FaLayerGroup } from "react-icons/fa";
 import type { Page } from "./types";
 import { useUIStateStore } from "../../stores/UIStore";
+import { useGeneralSettingsStore } from "../../stores/settingsStore";
 
-const buttons: { name: string; page: Page; icon: IconType }[] = [
+const allButtons: { name: string; page: Page; icon: IconType; featureKey?: string }[] = [
   { name: "Home", page: "home", icon: FaHome },
-  { name: "Scenepacks", page: "scenepacks", icon: FaLayerGroup },
+  { name: "Scenepacks", page: "scenepacks", icon: FaLayerGroup, featureKey: "scenepacks" },
   { name: "Menu", page: "menu", icon: FaBars },
   { name: "Settings", page: "settings", icon: FaCog },
 ];
@@ -14,9 +15,17 @@ const buttons: { name: string; page: Page; icon: IconType }[] = [
 export default function SidebarNav() {
   const activePage = useUIStateStore(s => s.activePage);
   const setActivePage = useUIStateStore(s => s.setActivePage);
+  const scenepacksEnabled = useGeneralSettingsStore(s => s.scenepacksEnabled);
+
+  const buttons = allButtons.filter((b) => {
+    if (b.featureKey === "scenepacks") return scenepacksEnabled;
+    return true;
+  });
+
+  const colCount = buttons.length;
 
   return (
-    <div className="menu-buttons">
+    <div className="menu-buttons" style={{ gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))` }}>
       {buttons.map((button) => {
         const Icon = button.icon;
         const isActive = activePage === button.page;

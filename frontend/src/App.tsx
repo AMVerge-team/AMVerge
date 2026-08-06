@@ -442,7 +442,11 @@ function App() {
             mainLayoutWrapperRef={mainLayoutWrapperRef}
           />
         </div>
-        {activePage === "scenepacks" && <ScenepacksPage />}
+        {activePage === "scenepacks" && generalSettings.scenepacksEnabled && <ScenepacksPage />}
+        {activePage === "scenepacks" && !generalSettings.scenepacksEnabled && (() => {
+          useUIStateStore.getState().setActivePage("home");
+          return null;
+        })()}
         {activePage === "menu" ? (
           <Menu />
         ) : activePage !== "home" && activePage !== "scenepacks" ? (
