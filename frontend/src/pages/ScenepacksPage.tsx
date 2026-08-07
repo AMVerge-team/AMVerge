@@ -1,23 +1,27 @@
 import { useEffect, useMemo, useRef } from "react";
 import MainLayout from "../MainLayout";
+import ImportButtons from "../components/ImportButtons";
 import { useAppStateStore } from "../stores/appStore";
 import { useScenepacksStore } from "../stores/scenepackStore";
 import type { ClipItem } from "../types/domain";
 
 function scenepackClipToClipItem(
   spId: string,
-  clip: { episodeId: string; sceneIndex: number; input: string; startSec?: number; endSec?: number; clipPath?: string; thumbnail: string },
+  clip: { episodeId: string; sceneIndex: number; input: string; originalPath?: string; startSec?: number; endSec?: number; clipPath?: string; thumbnail: string; sourceKind?: "video" | "webp" },
   index: number
 ): ClipItem {
   return {
     id: `${spId}_${index}`,
     src: clip.input,
+    originalPath: clip.originalPath,
     thumbnail: clip.thumbnail,
     sceneIndex: index,
     startSec: clip.startSec,
     endSec: clip.endSec,
     clipPath: clip.clipPath,
     originalName: `Scene ${clip.sceneIndex}`,
+    episodeId: clip.episodeId,
+    sourceKind: clip.sourceKind,
   };
 }
 
@@ -41,31 +45,29 @@ export default function ScenepacksPage() {
       mountedRef.current = true;
     }
 
-    const store = useAppStateStore.getState();
-    if (openedScenepack) {
-      const clips = openedScenepack.clips.map((c, i) =>
-        scenepackClipToClipItem(openedScenepack.id, c, i)
-      );
-      store.setClips(clips);
-      store.setImportedVideoPath(openedScenepack.name);
-      store.setImportToken(Date.now().toString());
-    } else {
-      store.setClips([]);
-      store.setImportedVideoPath(null);
-      store.setImportToken(Date.now().toString());
-    }
-
     return () => {
       const s = useAppStateStore.getState();
-      if (prevClipsRef.current) {
-        s.setClips(prevClipsRef.current);
-      } else {
-        s.setClips([]);
-      }
+      s.setClips(prevClipsRef.current ?? []);
       s.setImportedVideoPath(prevVideoPathRef.current);
       s.setImportToken(Date.now().toString());
       s.setFocusedClip(null);
     };
+  }, []);
+
+  useEffect(() => {
+    const store = useAppStateStore.getState();
+    const sp = useScenepacksStore.getState().scenepacks.find((s) => s.id === openedScenepackId);
+    store.setClips(sp ? sp.clips.map((c, i) => scenepackClipToClipItem(sp.id, c, i)) : []);
+    store.setImportedVideoPath(null);
+    store.setImportToken(Date.now().toString());
+  }, [openedScenepackId]);
+
+  useEffect(() => {
+    if (!openedScenepack) return;
+    const clips = openedScenepack.clips.map((c, i) =>
+      scenepackClipToClipItem(openedScenepack.id, c, i)
+    );
+    useAppStateStore.getState().setClips(clips);
   }, [openedScenepack]);
 
   if (!openedScenepack) {
@@ -77,5 +79,12 @@ export default function ScenepacksPage() {
     );
   }
 
-  return <MainLayout intro={false} />;
+  return (
+    <>
+      <ImportButtons showImportControls={false} />
+      <div className="main-layout-wrapper">
+        <MainLayout intro={false} />
+      </div>
+    </>
+  );
 }

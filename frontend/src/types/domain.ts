@@ -12,6 +12,12 @@ export type ClipItem = {
   mergedSrcs?: string[];
   clipPath?: string;
   clipMode?: string;
+  episodeId?: string;
+  // Scenepack clips only: the ORIGINAL source type before materialization —
+  // every Scenepack clip gets its own clipPath (a materialized copy) once
+  // added, so clipPath presence alone can no longer tell video-mode and
+  // webp-mode clips apart the way it does for Home-page clips.
+  sourceKind?: "video" | "webp";
 };
 
 export type EpisodeFolder = {
@@ -35,10 +41,12 @@ export type ScenepackClip = {
   episodeId: string;
   sceneIndex: number;
   input: string;
+  originalPath?: string;
   startSec?: number;
   endSec?: number;
   clipPath?: string;
   thumbnail: string;
+  sourceKind?: "video" | "webp";
 };
 
 export type ScenepackFolder = {

@@ -1,6 +1,24 @@
 /* Scenepacks — panel rows/folders/modals reuse episode-panel classes.
    Only clip-tile button, page-level UI, toast, and action bar are custom. */
 
+/* Clip tile: source-type badge (bottom-left) — marks whether a Scenepack clip
+   came from a video-file or WebP-preview episode, since a pack can mix both. */
+.clip-source-type-badge {
+  position: absolute;
+  bottom: var(--clip-overlay-inset);
+  left: var(--clip-overlay-inset);
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 11px;
+  padding: 4px 5px;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
 /* Clip tile: Add to Scenepack button (hover-visible, top-right) */
 .clip-add-to-scenepack {
   position: absolute;

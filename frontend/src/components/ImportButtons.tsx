@@ -6,7 +6,7 @@ import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
 import { openEpisodeById } from "../hooks/useEpisodePanelState";
 import useImportExport from "../hooks/useImportExport";
 
-export default function ImportButtons() {
+export default function ImportButtons({ showImportControls = true }: { showImportControls?: boolean }) {
   const selectedClips = useAppStateStore((s: any) => s.selectedClips);
   const setSelectedClips = useAppStateStore((s: any) => s.setSelectedClips);
   const loading = useAppStateStore((s: any) => s.loading);
@@ -33,27 +33,29 @@ export default function ImportButtons() {
 
   return (
       <main className="clips-import">
-        <div className="import-buttons-container">
-          <button onClick={onImportClick}
-                  className="import-button"
-                  disabled={importBusy}
-                  id="file-button"
-          >
-            {importBusy ? "Processing...": "Import Episode"}
-          </button>
-          <button
-            onClick={handleRefreshEpisode}
-            className="import-button refresh-button"
-            disabled={importBusy || !openedEpisodeId}
-            title="Refresh episode"
-            aria-label="Refresh episode"
-          >
-            <FaSyncAlt
-              className={refreshSpinning ? "refresh-icon spinning" : "refresh-icon"}
-              onAnimationEnd={() => setRefreshSpinning(false)}
-            />
-          </button>
-        </div>
+        {showImportControls && (
+          <div className="import-buttons-container">
+            <button onClick={onImportClick}
+                    className="import-button"
+                    disabled={importBusy}
+                    id="file-button"
+            >
+              {importBusy ? "Processing...": "Import Episode"}
+            </button>
+            <button
+              onClick={handleRefreshEpisode}
+              className="import-button refresh-button"
+              disabled={importBusy || !openedEpisodeId}
+              title="Refresh episode"
+              aria-label="Refresh episode"
+            >
+              <FaSyncAlt
+                className={refreshSpinning ? "refresh-icon spinning" : "refresh-icon"}
+                onAnimationEnd={() => setRefreshSpinning(false)}
+              />
+            </button>
+          </div>
+        )}
         <div className="grid-checkboxes">
           <div className="selectable-checkboxes">
             <div className="checkbox-row">

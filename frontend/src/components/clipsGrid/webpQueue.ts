@@ -304,12 +304,13 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
 
   const primeFromDiskCache = useCallback(async (jobs: WebpPrimeJob[]) => {
     const context = contextRef.current;
-    if (!context.episodeCacheId) {
+    // each job carries its own episodeCacheId (Scenepacks: per-clip source
+    // episode) and falls back to the shared queue context (Home: one episode
+    // for the whole grid). Drop jobs with neither — there's no cache namespace
+    // to look them up under.
+    const cacheableJobs = jobs.filter((job) => Boolean(job.episodeCacheId ?? context.episodeCacheId));
+    if (cacheableJobs.length === 0) {
       webpLog("prime cache skipped", { reason: "missing episodeCacheId" });
-      return;
-    }
-    if (jobs.length === 0) {
-      webpLog("prime cache skipped", { reason: "no jobs" });
       return;
     }
 
@@ -319,7 +320,7 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
     // only genuinely new clips hit the backend.
     const pending: WebpPrimeJob[] = [];
     const alreadyCached: Array<[string, string]> = [];
-    for (const job of jobs) {
+    for (const job of cacheableJobs) {
       const cachedPath = cacheRef.current.get(makeDemandKey(job.clipId, "animated"));
       if (cachedPath) {
         alreadyCached.push([job.clipId, cachedPath]);
@@ -355,6 +356,7 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
           end: job.end,
           fps: job.fps,
           kind: "animated",
+          episodeCacheId: job.episodeCacheId,
         },
         "animated",
         context

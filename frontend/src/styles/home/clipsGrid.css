@@ -383,7 +383,9 @@
     letter-spacing: 0.5px;
 }
 
-/* Selection action bar (appears above grid when clips selected) */
+/* Selection action bar (appears above grid when clips selected). Sticky so it
+   stays anchored at the top of the scrollable grid, the same way the Import
+   Episode / Preview All header stays pinned above it. */
 .selection-action-bar {
   display: flex;
   align-items: center;
@@ -395,6 +397,9 @@
   background: rgba(0, 0, 0, 0.35);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
+  position: sticky;
+  top: 0;
+  z-index: 25;
 }
 
 .selection-action-bar-count {

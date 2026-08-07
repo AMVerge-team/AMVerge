@@ -94,16 +94,17 @@ export function ScenepacksPanel() {
     return () => window.removeEventListener("click", close);
   }, [contextMenu]);
 
+  const handleSelectScenepack = useCallback((id: string) => {
+    setSelectedScenepackId(id);
+    setSelectedScenepackFolderId(null);
+  }, [setSelectedScenepackId, setSelectedScenepackFolderId]);
+
   const handleOpenScenepack = useCallback((id: string) => {
-    if (openedScenepackId === id) {
-      setOpenedScenepackId(null);
-    } else {
-      setOpenedScenepackId(id);
-      setSelectedScenepackId(id);
-      setSelectedScenepackFolderId(null);
-      setActivePage("scenepacks");
-    }
-  }, [openedScenepackId, setOpenedScenepackId, setSelectedScenepackId, setSelectedScenepackFolderId, setActivePage]);
+    setOpenedScenepackId(id);
+    setSelectedScenepackId(id);
+    setSelectedScenepackFolderId(null);
+    setActivePage("scenepacks");
+  }, [setOpenedScenepackId, setSelectedScenepackId, setSelectedScenepackFolderId, setActivePage]);
 
   const handleSelectFolder = (id: string) => {
     setSelectedScenepackFolderId(id);
@@ -152,6 +153,10 @@ export function ScenepacksPanel() {
     if (!confirmDelete) return;
     if (confirmDelete.kind === "scenepack") {
       removeScenepack(confirmDelete.id);
+      invoke("delete_scenepack_storage", {
+        scenepackId: confirmDelete.id,
+        customPath: useGeneralSettingsStore.getState().episodesPath,
+      }).catch((err) => console.error("Failed to delete Scenepack storage:", err));
     } else {
       removeScenepackFolder(confirmDelete.id);
     }
@@ -304,7 +309,7 @@ export function ScenepacksPanel() {
         key={sp.id}
         className={`episode-panel-row episode-row${isSel ? " is-selected" : ""}${isOpen ? " is-open" : ""}`}
         style={{ paddingLeft }}
-        onClick={() => handleOpenScenepack(sp.id)}
+        onClick={DoubleClick(`sp_${sp.id}`, () => handleSelectScenepack(sp.id), () => handleOpenScenepack(sp.id))}
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();

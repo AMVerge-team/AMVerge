@@ -30,7 +30,7 @@ export function buildDemandJob(
     end: sourceJob.end,
     fps: sourceJob.fps,
     kind,
-    episodeCacheId: context.episodeCacheId ?? null,
+    episodeCacheId: sourceJob.episodeCacheId ?? context.episodeCacheId ?? null,
     customPath: context.customPath ?? null,
   };
 }

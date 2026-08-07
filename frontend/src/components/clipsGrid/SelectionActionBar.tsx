@@ -1,18 +1,23 @@
 import { useState } from "react";
-import { FaLayerGroup } from "react-icons/fa";
+import { FaLayerGroup, FaSpinner } from "react-icons/fa";
 import { useAppStateStore } from "../../stores/appStore";
 import { useUIStateStore } from "../../stores/UIStore";
+import { useGeneralSettingsStore } from "../../stores/settingsStore";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore";
 import { useScenepacksStore } from "../../stores/scenepackStore";
-import type { ScenepackClip } from "../../types/domain";
+import { materializeClipsForScenepack } from "../../utils/scenepackMaterialize";
 
 export function SelectionActionBar() {
   const selectedClips = useAppStateStore((s) => s.selectedClips);
   const setSelectedClips = useAppStateStore((s) => s.setSelectedClips);
   const activePage = useUIStateStore((s) => s.activePage);
+  const scenepacksEnabled = useGeneralSettingsStore((s) => s.scenepacksEnabled);
   const [showModal, setShowModal] = useState(false);
 
-  if (selectedClips.size === 0 || activePage !== "home") return null;
+  // Add-to-Scenepack only makes sense from the Home/episode grid — a
+  // Scenepack's own clips are already materialized copies, not something to
+  // re-add — and never when the feature itself is off.
+  if (selectedClips.size === 0 || activePage !== "home" || !scenepacksEnabled) return null;
 
   return (
     <>
@@ -55,7 +60,6 @@ function BatchAddToScenepackModal({
   onClose: () => void;
 }) {
   const openedEpisodeId = useEpisodePanelRuntimeStore((s) => s.openedEpisodeId);
-  const episodeId = openedEpisodeId ?? "";
   const scenepacks = useScenepacksStore((s) => s.scenepacks);
   const addClipToScenepack = useScenepacksStore((s) => s.addClipToScenepack);
   const addScenepack = useScenepacksStore((s) => s.addScenepack);
@@ -64,10 +68,13 @@ function BatchAddToScenepackModal({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [mode, setMode] = useState<"select" | "create">("select");
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<{ percent: number; message: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const selectedClipItems = allClips.filter((c) => clipIds.includes(c.id));
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     let targetId: string | null = null;
     if (mode === "create") {
       const name = newName.trim();
@@ -78,21 +85,33 @@ function BatchAddToScenepackModal({
     }
     if (!targetId) return;
 
-    for (const clip of selectedClipItems) {
-      const data: ScenepackClip = {
-        episodeId,
-        sceneIndex: clip.sceneIndex ?? 0,
-        input: clip.src,
-        startSec: clip.startSec,
-        endSec: clip.endSec,
-        clipPath: clip.clipPath,
-        thumbnail: clip.thumbnail,
-      };
-      addClipToScenepack(targetId, data);
+    setBusy(true);
+    setError(null);
+    setProgress({ percent: 0, message: `Adding ${selectedClipItems.length} clip(s)...` });
+    try {
+      const { clips, failedCount } = await materializeClipsForScenepack(
+        selectedClipItems,
+        targetId,
+        openedEpisodeId,
+        (percent, message) => setProgress({ percent, message })
+      );
+      for (const data of clips) addClipToScenepack(targetId, data);
+      if (clips.length === 0) {
+        setError("Failed to add clips to Scenepack.");
+        return;
+      }
+      if (failedCount > 0) {
+        console.error(`${failedCount} clip(s) failed to add to Scenepack.`);
+      }
+      const { setActivePage } = useUIStateStore.getState();
+      setActivePage("scenepacks");
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+      setProgress(null);
     }
-    const { setActivePage } = useUIStateStore.getState();
-    setActivePage("scenepacks");
-    onClose();
   };
 
   return (
@@ -139,11 +158,25 @@ function BatchAddToScenepackModal({
           </div>
         )}
 
+        {progress && (
+          <div className="episode-modal-message" style={{ marginBottom: "8px" }}>
+            <FaSpinner className="scenepack-spinner" aria-hidden="true" style={{ marginRight: 6 }} />
+            {progress.message} ({progress.percent}%)
+          </div>
+        )}
+        {error && (
+          <div className="episode-modal-message" style={{ color: "#ff8080", marginBottom: "8px" }}>
+            {error}
+          </div>
+        )}
+
         <div className="episode-modal-actions">
-          <button className="episode-modal-btn" onClick={onClose}>Cancel</button>
+          <button className="episode-modal-btn" onClick={onClose} disabled={busy}>Cancel</button>
           <button className="episode-modal-btn primary" onClick={handleAdd}
-            disabled={mode === "select" ? !selectedId : !newName.trim()}>
-            {mode === "create" ? "Create & Add All" : `Add ${selectedClipItems.length} Clip${selectedClipItems.length !== 1 ? "s" : ""}`}
+            disabled={busy || (mode === "select" ? !selectedId : !newName.trim())}>
+            {busy
+              ? "Adding..."
+              : mode === "create" ? "Create & Add All" : `Add ${selectedClipItems.length} Clip${selectedClipItems.length !== 1 ? "s" : ""}`}
           </button>
         </div>
       </div>

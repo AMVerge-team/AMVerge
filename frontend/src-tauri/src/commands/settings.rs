@@ -6,16 +6,12 @@ use image::DynamicImage;
 use tauri::{AppHandle, Manager};
 
 use crate::utils::ffmpeg::resolve_bundled_tool;
-use crate::utils::paths::is_episode_cache_dir;
+use crate::utils::paths::{is_episode_cache_dir, resolve_episodes_storage_dir};
 use crate::utils::process::apply_no_window;
 
 #[tauri::command]
 pub fn get_default_episodes_dir(app: AppHandle) -> Result<String, String> {
-    let path = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("episodes");
+    let path = resolve_episodes_storage_dir(&app, None)?;
 
     Ok(path.to_string_lossy().to_string())
 }
@@ -26,23 +22,8 @@ pub fn move_episodes_to_new_dir(
     old_dir: Option<String>,
     new_dir: Option<String>,
 ) -> Result<String, String> {
-    let old_path = match old_dir {
-        Some(path) if !path.trim().is_empty() => PathBuf::from(path),
-        _ => app
-            .path()
-            .app_data_dir()
-            .map_err(|e| e.to_string())?
-            .join("episodes"),
-    };
-
-    let new_path = match new_dir {
-        Some(path) if !path.trim().is_empty() => PathBuf::from(path),
-        _ => app
-            .path()
-            .app_data_dir()
-            .map_err(|e| e.to_string())?
-            .join("episodes"),
-    };
+    let old_path = resolve_episodes_storage_dir(&app, old_dir.as_deref())?;
+    let new_path = resolve_episodes_storage_dir(&app, new_dir.as_deref())?;
     let old_path_string = old_path.to_string_lossy().to_string();
 
     if old_path == new_path {

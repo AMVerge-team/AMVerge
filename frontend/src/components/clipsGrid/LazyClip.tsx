@@ -9,7 +9,7 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { LazyClipProps } from "./types.ts"
 import { DownloadButton } from "./DownloadButton.tsx";
 import { useWebpPreview } from "./useWebpPreview.ts";
-import { FaCheck, FaPlus, FaLayerGroup, FaTrashAlt } from "react-icons/fa";
+import { FaCheck, FaPlus, FaLayerGroup, FaTrashAlt, FaVideo, FaImage } from "react-icons/fa";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore, useThemeSettingsStore } from "../../stores/settingsStore.ts";
@@ -70,12 +70,13 @@ export const LazyClip = memo(function LazyClip({
       ? previewAudioStreamIndex
       : null;
   const playbackVolume = useGeneralSettingsStore(s => s.playbackVolume);
+  const scenepacksEnabled = useGeneralSettingsStore(s => s.scenepacksEnabled);
   const gridPreviewSpeed = useThemeSettingsStore(s => s.gridPreviewSpeed ?? 1);
   const showDownloadButton = useThemeSettingsStore(s => s.showDownloadButton);
   const showClipTimestamps = useThemeSettingsStore(s => s.showClipTimestamps);
 
   const openedEpisodeId = useEpisodePanelRuntimeStore(s => s.openedEpisodeId);
-  const episodeId = openedEpisodeId ?? clip.id.split("_").slice(0, -1).join("_");
+  const episodeId = clip.episodeId ?? openedEpisodeId ?? clip.id.split("_").slice(0, -1).join("_");
 
   // ============================ SHARED tile state ============================
   const [isVisible, setIsVisible] = useState(false);
@@ -180,6 +181,7 @@ export const LazyClip = memo(function LazyClip({
     isHovered,
     videoPreviewMode,
     isVideoMode,
+    episodeId,
     previewWebpPath,
     reportWebpDemand,
   });
@@ -1054,7 +1056,24 @@ export const LazyClip = memo(function LazyClip({
             <DownloadButton tone={downloadTone} onClick={() => onDownloadClip(clip)} />
           )}
 
-          {activePage === "home" && (
+          {activePage === "scenepacks" && (() => {
+            // every Scenepack clip has its own clipPath now (materialized at add
+            // time), so clipPath presence can't distinguish origin anymore —
+            // sourceKind records it explicitly. Legacy entries added before that
+            // change never got a clipPath at all, so isVideoMode is still correct
+            // for them.
+            const isWebpSource = clip.sourceKind ? clip.sourceKind === "webp" : !isVideoMode;
+            return (
+              <div
+                className="clip-source-type-badge"
+                title={isWebpSource ? "From a WebP-preview episode" : "From a video-file episode"}
+              >
+                {isWebpSource ? <FaImage /> : <FaVideo />}
+              </div>
+            );
+          })()}
+
+          {activePage === "home" && scenepacksEnabled && (
             <button
               className="clip-add-to-scenepack"
               onClick={(e) => {
@@ -1076,6 +1095,16 @@ export const LazyClip = memo(function LazyClip({
                 const idx = clip.sceneIndex ?? 0;
                 if (spId) {
                   useScenepacksStore.getState().removeClipFromScenepackByIndex(spId, idx);
+                  // materialized clips (added after the Scenepacks-own-their-storage
+                  // change) own a real file under scene_packs/ that needs cleanup;
+                  // legacy entries without a clipPath never had one to begin with.
+                  if (clip.clipPath) {
+                    invoke("delete_scenepack_clip_files", {
+                      scenepackId: spId,
+                      clipPaths: [clip.clipPath],
+                      customPath: useGeneralSettingsStore.getState().episodesPath,
+                    }).catch((err) => console.error("Failed to delete scenepack clip files:", err));
+                  }
                 }
               }}
               title="Remove from Scenepack"

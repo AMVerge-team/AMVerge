@@ -18,7 +18,7 @@ use sha2::{Digest, Sha256};
 use crate::state::{ActiveFfmpegPids, PreviewProxyLocks, PreviewTranscodeSlots, ProxyLockMap};
 use crate::utils::ffmpeg::resolve_bundled_tool;
 use crate::utils::logging::console_log;
-use crate::utils::paths::{file_name_only, sanitize_episode_cache_id};
+use crate::utils::paths::{file_name_only, resolve_episodes_storage_dir, sanitize_episode_cache_id};
 use crate::utils::process::apply_no_window;
 
 #[derive(Serialize)]
@@ -178,15 +178,7 @@ fn resolve_scene_webp_cache_base(
 ) -> Result<PathBuf, String> {
     let base = if let Some(raw_id) = episode_cache_id {
         let id = sanitize_episode_cache_id(raw_id)?;
-        let episodes_base = if let Some(path) = custom_path {
-            PathBuf::from(path)
-        } else {
-            app.path()
-                .app_data_dir()
-                .map_err(|e| e.to_string())?
-                .join("episodes")
-        };
-        episodes_base.join(id).join("scenes")
+        resolve_episodes_storage_dir(app, custom_path)?.join(id).join("scenes")
     } else {
         app.path()
             .app_data_dir()

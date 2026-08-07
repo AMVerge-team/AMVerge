@@ -43,4 +43,5 @@ export type WebpPrimeJob = {
   start: number;
   end: number;
   fps?: number;
+  episodeCacheId?: string | null;
 };

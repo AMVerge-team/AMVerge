@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+import { FaSpinner } from "react-icons/fa";
 import { useScenepacksStore } from "../../stores/scenepackStore";
 import { useUIStateStore } from "../../stores/UIStore";
-import type { ClipItem, ScenepackClip } from "../../types/domain";
+import type { ClipItem } from "../../types/domain";
+import { materializeClipsForScenepack } from "../../utils/scenepackMaterialize";
 
 type AddToScenepackModalProps = {
   clip: ClipItem;
@@ -18,6 +21,8 @@ export function AddToScenepackModal({ clip, episodeId, onClose }: AddToScenepack
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [mode, setMode] = useState<"select" | "create">("select");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -28,34 +33,45 @@ export function AddToScenepackModal({ clip, episodeId, onClose }: AddToScenepack
 
   const sceneIndex = clip.sceneIndex ?? 0;
 
-  const clipData: ScenepackClip = {
-    episodeId,
-    sceneIndex,
-    input: clip.src,
-    startSec: clip.startSec,
-    endSec: clip.endSec,
-    clipPath: clip.clipPath,
-    thumbnail: clip.thumbnail,
-  };
-
-  const handleAdd = () => {
+  const handleAdd = async () => {
+    let targetId: string | null = null;
     if (mode === "create") {
       const name = newName.trim();
       if (!name) return;
-      const id = addScenepack(name, null);
-      addClipToScenepack(id, clipData);
+      targetId = addScenepack(name, null);
     } else if (selectedId) {
-      addClipToScenepack(selectedId, clipData);
+      targetId = selectedId;
     }
-    setActivePage("scenepacks");
-    onClose();
+    if (!targetId) return;
+
+    setBusy(true);
+    setError(null);
+    try {
+      const { clips, failedCount } = await materializeClipsForScenepack([clip], targetId, episodeId);
+      if (clips.length === 0) {
+        setError(failedCount > 0 ? "Failed to add clip to Scenepack." : "Nothing to add.");
+        return;
+      }
+      addClipToScenepack(targetId, clips[0]);
+      setActivePage("scenepacks");
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") onClose();
   };
 
-  return (
+  // portalled to <body>: this modal mounts from inside a clip tile, and
+  // `.clip-wrapper:hover` applies a transform — which makes the tile the
+  // containing block for any `position: fixed` descendant, so without the
+  // portal the "full-screen" overlay renders squeezed into the tile's own
+  // bounds instead of the viewport.
+  return createPortal(
     <div className="episode-modal-overlay" onClick={onClose}>
       <div className="episode-modal" onClick={(e) => e.stopPropagation()} onKeyDown={handleKeyDown}>
         <div className="episode-modal-title">Add to Scenepack</div>
@@ -120,17 +136,26 @@ export function AddToScenepackModal({ clip, episodeId, onClose }: AddToScenepack
           </div>
         )}
 
+        {error && (
+          <div className="episode-modal-message" style={{ color: "#ff8080", marginBottom: "8px" }}>
+            {error}
+          </div>
+        )}
+
         <div className="episode-modal-actions">
-          <button className="episode-modal-btn" onClick={onClose}>Cancel</button>
+          <button className="episode-modal-btn" onClick={onClose} disabled={busy}>Cancel</button>
           <button
             className="episode-modal-btn primary"
             onClick={handleAdd}
-            disabled={mode === "select" ? !selectedId : !newName.trim()}
+            disabled={busy || (mode === "select" ? !selectedId : !newName.trim())}
           >
-            {mode === "create" ? "Create & Add" : "Add Clip"}
+            {busy ? (
+              <><FaSpinner className="scenepack-spinner" aria-hidden="true" /> Adding...</>
+            ) : mode === "create" ? "Create & Add" : "Add Clip"}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
