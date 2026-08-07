@@ -1189,6 +1189,8 @@ fn should_stage_windows_editor_import_path(path: &str) -> bool {
     lowered.contains("\\appdata\\roaming\\")
         || lowered.contains("\\appdata\\local\\")
         || lowered.contains("\\app.amverge\\episodes\\")
+        || lowered.contains("\\episodes_storage\\")
+        || lowered.contains("\\scene_packs\\")
 }
 
 #[cfg(target_os = "windows")]

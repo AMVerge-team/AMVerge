@@ -20,9 +20,9 @@ body.is-resizing-sidebar {
 
 .sidebar-container > .menu-buttons {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
-    padding: 6px 8px 4px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    padding: 6px 6px 4px;
 }
 
 .sidebar-container > .menu-buttons > .sidebar-button {

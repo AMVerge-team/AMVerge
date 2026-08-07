@@ -9,13 +9,16 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { LazyClipProps } from "./types.ts"
 import { DownloadButton } from "./DownloadButton.tsx";
 import { useWebpPreview } from "./useWebpPreview.ts";
-import { FaCheck, FaPlus } from "react-icons/fa";
+import { FaCheck, FaPlus, FaLayerGroup, FaTrashAlt, FaVideo, FaImage } from "react-icons/fa";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore, useThemeSettingsStore } from "../../stores/settingsStore.ts";
 import { usePreviewTranscode } from "../../features/preview/usePreviewTranscode.ts";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
 import { cancelIdle, scheduleIdle } from "../../utils/idle.ts";
+import { AddToScenepackModal } from "./AddToScenepackModal.tsx";
+import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
+import { useScenepacksStore } from "../../stores/scenepackStore.ts";
 
 const DOWNLOAD_TONE_SAMPLE_SIZE = 24;
 const DOWNLOAD_TONE_SOURCE_SIZE = 34;
@@ -57,6 +60,7 @@ export const LazyClip = memo(function LazyClip({
   const isSelected = useAppStateStore(s => s.selectedClips.has(clip.id));
   const isFocused = useAppStateStore(s => s.focusedClipId === clip.id);
   const gridPreview = useUIStateStore(s => s.gridPreview);
+  const activePage = useUIStateStore(s => s.activePage);
   const videoIsHEVC = useAppStateStore(s => s.videoIsHEVC);
   const userHasHEVC = useAppStateStore(s => s.userHasHEVC);
   const audioPlaybackHover = useGeneralSettingsStore(s => s.audioPlaybackHover);
@@ -66,13 +70,19 @@ export const LazyClip = memo(function LazyClip({
       ? previewAudioStreamIndex
       : null;
   const playbackVolume = useGeneralSettingsStore(s => s.playbackVolume);
+  const scenepacksEnabled = useGeneralSettingsStore(s => s.scenepacksEnabled);
   const gridPreviewSpeed = useThemeSettingsStore(s => s.gridPreviewSpeed ?? 1);
   const showDownloadButton = useThemeSettingsStore(s => s.showDownloadButton);
   const showClipTimestamps = useThemeSettingsStore(s => s.showClipTimestamps);
 
+  const openedEpisodeId = useEpisodePanelRuntimeStore(s => s.openedEpisodeId);
+  const episodeId = clip.episodeId ?? openedEpisodeId ?? clip.id.split("_").slice(0, -1).join("_");
+
   // ============================ SHARED tile state ============================
   const [isVisible, setIsVisible] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [showScenepackModal, setShowScenepackModal] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const thumbnailRef = useRef<HTMLImageElement | null>(null);
   const [downloadTone, setDownloadTone] = useState<"light" | "dark">("light");
@@ -171,6 +181,7 @@ export const LazyClip = memo(function LazyClip({
     isHovered,
     videoPreviewMode,
     isVideoMode,
+    episodeId,
     previewWebpPath,
     reportWebpDemand,
   });
@@ -781,10 +792,36 @@ export const LazyClip = memo(function LazyClip({
   return (
     <div
       ref={wrapperRef}
-      className={`clip-wrapper ${isFocused ? "focused" : ""} ${isSelected ? "selected" : ""} ${appearDelayMs !== null ? "clip-appear" : ""}`}
+      className={`clip-wrapper ${isFocused ? "focused" : ""} ${isSelected ? "selected" : ""} ${dragOver ? "scenepack-drag-over" : ""} ${appearDelayMs !== null ? "clip-appear" : ""}`}
       style={appearDelayMs !== null ? { ["--appear-delay" as any]: `${appearDelayMs}ms` } : undefined}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
+      draggable={activePage === "scenepacks"}
+      onDragStart={(e) => {
+        if (activePage !== "scenepacks") return;
+        e.dataTransfer.setData("text/plain", String(clip.sceneIndex ?? index));
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      onDragOver={(e) => {
+        if (activePage !== "scenepacks") return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        if (activePage !== "scenepacks") return;
+        e.preventDefault();
+        setDragOver(false);
+        const fromIdx = Number(e.dataTransfer.getData("text/plain"));
+        const toIdx = clip.sceneIndex ?? index;
+        if (Number.isNaN(fromIdx) || fromIdx === toIdx) return;
+        const spId = useScenepacksStore.getState().openedScenepackId;
+        if (spId) {
+          useScenepacksStore.getState().reorderScenepackClips(spId, fromIdx, toIdx);
+        }
+      }}
+      onDragEnd={() => setDragOver(false)}
       // hover toggles isHovered, which controls whether the <video> mounts and whether playback starts.
       onMouseEnter={() => {
         // IntersectionObserver can lag by a tick; hovering should always mount/play immediately.
@@ -1017,6 +1054,71 @@ export const LazyClip = memo(function LazyClip({
 
           {showDownloadButton && (
             <DownloadButton tone={downloadTone} onClick={() => onDownloadClip(clip)} />
+          )}
+
+          {activePage === "scenepacks" && (() => {
+            // every Scenepack clip has its own clipPath now (materialized at add
+            // time), so clipPath presence can't distinguish origin anymore —
+            // sourceKind records it explicitly. Legacy entries added before that
+            // change never got a clipPath at all, so isVideoMode is still correct
+            // for them.
+            const isWebpSource = clip.sourceKind ? clip.sourceKind === "webp" : !isVideoMode;
+            return (
+              <div
+                className="clip-source-type-badge"
+                title={isWebpSource ? "From a WebP-preview episode" : "From a video-file episode"}
+              >
+                {isWebpSource ? <FaImage /> : <FaVideo />}
+              </div>
+            );
+          })()}
+
+          {activePage === "home" && scenepacksEnabled && (
+            <button
+              className="clip-add-to-scenepack"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowScenepackModal(true);
+              }}
+              title="Add to Scenepack"
+            >
+              <FaLayerGroup />
+            </button>
+          )}
+
+          {activePage === "scenepacks" && (
+            <button
+              className="clip-remove-from-scenepack"
+              onClick={(e) => {
+                e.stopPropagation();
+                const spId = useScenepacksStore.getState().openedScenepackId;
+                const idx = clip.sceneIndex ?? 0;
+                if (spId) {
+                  useScenepacksStore.getState().removeClipFromScenepackByIndex(spId, idx);
+                  // materialized clips (added after the Scenepacks-own-their-storage
+                  // change) own a real file under scene_packs/ that needs cleanup;
+                  // legacy entries without a clipPath never had one to begin with.
+                  if (clip.clipPath) {
+                    invoke("delete_scenepack_clip_files", {
+                      scenepackId: spId,
+                      clipPaths: [clip.clipPath],
+                      customPath: useGeneralSettingsStore.getState().episodesPath,
+                    }).catch((err) => console.error("Failed to delete scenepack clip files:", err));
+                  }
+                }
+              }}
+              title="Remove from Scenepack"
+            >
+              <FaTrashAlt />
+            </button>
+          )}
+
+          {showScenepackModal && (
+            <AddToScenepackModal
+              clip={clip}
+              episodeId={episodeId}
+              onClose={() => setShowScenepackModal(false)}
+            />
           )}
         </>
       )}

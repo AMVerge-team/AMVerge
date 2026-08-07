@@ -25,6 +25,11 @@ export default function EpisodePanel() {
 
   const [nextSortDirection, setNextSortDirection] = useState<"asc" | "desc">("asc");
   const [multiSelectedIds, setMultiSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmDelete, setConfirmDelete] = useState<{
+    kind: "episode" | "episodes" | "folder";
+    ids: string[];
+    label: string;
+  } | null>(null);
 
   const episodeRuntimeState = useEpisodePanelRuntimeStore();
   const episodeMetadataState = useEpisodePanelMetadataStore();
@@ -131,6 +136,43 @@ export default function EpisodePanel() {
     handleToggleFolderExpanded,
   } = useEpisodePanelState();
 
+  const confirmDeleteEpisode = (id: string) => {
+    const ep = episodes.find((e) => e.id === id);
+    setConfirmDelete({
+      kind: "episode",
+      ids: [id],
+      label: ep?.displayName ?? ep?.id ?? "episode",
+    });
+  };
+
+  const confirmDeleteEpisodes = (ids: string[]) => {
+    setConfirmDelete({
+      kind: "episodes",
+      ids,
+      label: `${ids.length} episodes`,
+    });
+  };
+
+  const confirmDeleteFolder = (id: string) => {
+    const f = episodeFolders.find((f) => f.id === id);
+    setConfirmDelete({
+      kind: "folder",
+      ids: [id],
+      label: f?.name ?? "folder",
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    if (!confirmDelete) return;
+    if (confirmDelete.kind === "folder") {
+      for (const id of confirmDelete.ids) handleDeleteFolder(id);
+    } else {
+      for (const id of confirmDelete.ids) void handleDeleteEpisode(id);
+    }
+    setConfirmDelete(null);
+    setMultiSelectedIds(new Set());
+  };
+
   useEffect(() => {
     if (openedEpisodeId) return;
     if (!lastOpenedEpisodeId) return;
@@ -210,24 +252,19 @@ export default function EpisodePanel() {
     if (e.key === "Delete") {
       if (multiSelectedIds.size > 0) {
         e.preventDefault();
-
-        for (const id of multiSelectedIds) {
-          void handleDeleteEpisode(id);
-        }
-
-        setMultiSelectedIds(new Set());
+        confirmDeleteEpisodes([...multiSelectedIds]);
         return;
       }
 
       if (selectedEpisodeId) {
         e.preventDefault();
-        void handleDeleteEpisode(selectedEpisodeId);
+        confirmDeleteEpisode(selectedEpisodeId);
         return;
       }
 
       if (selectedFolderId) {
         e.preventDefault();
-        handleDeleteFolder(selectedFolderId);
+        confirmDeleteFolder(selectedFolderId);
       }
     }
   };
@@ -245,18 +282,15 @@ export default function EpisodePanel() {
           multiSelectedCount={multiSelectedIds.size}
           onDeleteSelectedEpisode={() => {
             if (multiSelectedIds.size > 0) {
-              for (const id of multiSelectedIds) {
-                void handleDeleteEpisode(id);
-              }
-              setMultiSelectedIds(new Set());
+              confirmDeleteEpisodes([...multiSelectedIds]);
               return;
             }
             if (selectedEpisodeId) {
-              void handleDeleteEpisode(selectedEpisodeId);
+              confirmDeleteEpisode(selectedEpisodeId);
               return;
             }
             if (selectedFolderId) {
-              handleDeleteFolder(selectedFolderId);
+              confirmDeleteFolder(selectedFolderId);
             }
           }}
         />
@@ -311,6 +345,26 @@ export default function EpisodePanel() {
           setConfirmModal={setConfirmModal}
         />
 
+        {confirmDelete && (
+          <div className="episode-modal-overlay" onClick={() => setConfirmDelete(null)}>
+            <div className="episode-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="episode-modal-title">
+                Delete {confirmDelete.kind === "folder" ? "Folder" : "Episode"}
+              </div>
+              <div className="episode-modal-message">
+                Are you sure you want to delete "{confirmDelete.label}"?
+              </div>
+              <div className="episode-modal-note">
+                This will also delete all cached clip files on disk.
+              </div>
+              <div className="episode-modal-actions">
+                <button className="episode-modal-btn" onClick={() => setConfirmDelete(null)}>Cancel</button>
+                <button className="episode-modal-btn danger" onClick={handleConfirmDelete}>Delete</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <EpisodePanelContextMenus
           contextMenu={contextMenu}
           folderContextMenu={folderContextMenu}
@@ -324,8 +378,14 @@ export default function EpisodePanel() {
           openNewFolderModal={openNewFolderModal}
           openRenameEpisodeModal={openRenameEpisodeModal}
           openRenameFolderModal={openRenameFolderModal}
-          onDeleteEpisode={handleDeleteEpisode}
-          onDeleteFolder={handleDeleteFolder}
+          onDeleteEpisode={(id) => {
+            if (multiSelectedIds.size > 1 && multiSelectedIds.has(id)) {
+              confirmDeleteEpisodes([...multiSelectedIds]);
+            } else {
+              confirmDeleteEpisode(id);
+            }
+          }}
+          onDeleteFolder={(id) => confirmDeleteFolder(id)}
           onMoveEpisodeToFolder={handleMoveEpisodeToFolder}
         />
         <div className="episode-panel-notice">

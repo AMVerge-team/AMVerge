@@ -8,6 +8,7 @@ import { startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useR
 import { save } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { LazyClip } from "./LazyClip.tsx"
+import { SelectionActionBar } from "./SelectionActionBar.tsx";
 import { useStaggeredMountQueue } from "./staggeredMountQueue.ts";
 import useViewportAwareProxyQueue from "./proxyQueue.ts";
 import useViewportAwareWebpQueue from "./webpQueue.ts";
@@ -284,6 +285,40 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   );
 
   useEffect(() => {
+    // Scenepacks page: clips can come from several different episodes, so each
+    // job carries its own episodeCacheId (clip.episodeId) instead of relying on
+    // the shared queue context. Scenepacks always fully remounts on page switch
+    // (unlike Home, which stays alive via display:none), so the in-memory queue
+    // cache never survives a reopen — this batched disk lookup is what keeps a
+    // reopen fast instead of re-encoding every clip from scratch.
+    if (activePage === "scenepacks") {
+      if (clips.length === 0) return;
+
+      const jobs = clips
+        .map((clip) => {
+          if (clip.clipPath) return null; // video-mode clips don't use WebP queue
+
+          const sourcePath = clip.originalPath || clip.src;
+          const start = clip.startSec ?? 0;
+          const rawEnd = clip.endSec ?? (start + 2);
+          const end = Math.min(rawEnd > start ? rawEnd : start + 2, start + 2.5);
+
+          if (!sourcePath) return null;
+          return {
+            clipId: clip.id,
+            sourcePath,
+            start,
+            end,
+            fps: 8,
+            episodeCacheId: clip.episodeId ?? null,
+          };
+        })
+        .filter((job): job is NonNullable<typeof job> => Boolean(job));
+
+      void primeFromDiskCache(jobs);
+      return;
+    }
+
     // the WebP disk-cache prime only applies to WebP-preview episodes; video
     // episodes show cut clips and never touch the WebP cache.
     if (episodeVideoPreview) {
@@ -319,7 +354,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
       .filter((job): job is NonNullable<typeof job> => Boolean(job));
 
     void primeFromDiskCache(jobs);
-  }, [clips, episodeVideoPreview, openedEpisodeId, primeFromDiskCache]);
+  }, [clips, episodeVideoPreview, openedEpisodeId, primeFromDiskCache, activePage]);
 
   // ctrl + wheel to adjust the grid column count
   const setStoreCols = useUIStateStore((state) => state.setCols);
@@ -369,39 +404,35 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
           ))}
         </div>
       ) : (
-        // non-virtualized: every clip tile is mounted so nothing pops in when you
-        // scroll back up. The expensive work (video playback, WebP encode) is still
-        // viewport-gated inside each tile via its IntersectionObserver, so only the
-        // DOM mount + static thumbnail become eager.
-        // keyed by importToken: every episode open / import / refresh remounts the
-        // tiles from scratch, so cells fully reload (thumbnails, videos, entrance
-        // animation) and any lingering per-tile state is dropped.
-        <div
-          key={importToken}
-          className="clips-grid"
-          style={{
-            gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
-            ["--grid-max-width" as any]: gridMaxWidth,
-          }}
-        >
-          {clips.map((clip, index) => (
-            <LazyClip
-              key={clip.id}
-              clip={clip}
-              index={index}
-              videoPreviewMode={episodeVideoPreview}
-              requestProxySequential={requestProxySequential}
-              reportProxyDemand={reportProxyDemand}
-              reportWebpDemand={reportWebpDemand}
-              reportStaggerDemand={reportStaggerDemand}
-              onClipClick={handleClipClick}
-              onClipDoubleClick={handleClipDoubleClick}
-              onToggleSelection={handleToggleSelection}
-              onDownloadClip={handleDownloadSingleClip}
-              appearDelayMs={appearDelayFor(index)}
-            />
-          ))}
-        </div>
+        <>
+          <SelectionActionBar />
+          <div
+            key={importToken}
+            className="clips-grid"
+            style={{
+              gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
+              ["--grid-max-width" as any]: gridMaxWidth,
+            }}
+          >
+            {clips.map((clip, index) => (
+              <LazyClip
+                key={clip.id}
+                clip={clip}
+                index={index}
+                videoPreviewMode={episodeVideoPreview}
+                requestProxySequential={requestProxySequential}
+                reportProxyDemand={reportProxyDemand}
+                reportWebpDemand={reportWebpDemand}
+                reportStaggerDemand={reportStaggerDemand}
+                onClipClick={handleClipClick}
+                onClipDoubleClick={handleClipDoubleClick}
+                onToggleSelection={handleToggleSelection}
+                onDownloadClip={handleDownloadSingleClip}
+                appearDelayMs={appearDelayFor(index)}
+              />
+            ))}
+          </div>
+        </>
       )}
     </main>
   );

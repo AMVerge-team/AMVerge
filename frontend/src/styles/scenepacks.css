@@ -1,0 +1,258 @@
+/* Scenepacks — panel rows/folders/modals reuse episode-panel classes.
+   Only clip-tile button, page-level UI, toast, and action bar are custom. */
+
+/* Clip tile: source-type badge (bottom-left) — marks whether a Scenepack clip
+   came from a video-file or WebP-preview episode, since a pack can mix both. */
+.clip-source-type-badge {
+  position: absolute;
+  bottom: var(--clip-overlay-inset);
+  left: var(--clip-overlay-inset);
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 11px;
+  padding: 4px 5px;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* Clip tile: Add to Scenepack button (hover-visible, top-right) */
+.clip-add-to-scenepack {
+  position: absolute;
+  top: 8px;
+  right: 44px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.clip-tile:hover .clip-add-to-scenepack,
+.clip-add-to-scenepack:focus-visible {
+  opacity: 1;
+}
+
+.clip-add-to-scenepack:hover {
+  background: rgba(0, 0, 0, 0.75);
+  color: var(--accent);
+}
+
+/* Remove from Scenepack button (Scenepacks tab only, hover-visible) */
+.clip-remove-from-scenepack {
+  position: absolute;
+  top: 8px;
+  right: 44px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 100, 100, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  font-size: 11px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.clip-tile:hover .clip-remove-from-scenepack,
+.clip-remove-from-scenepack:focus-visible {
+  opacity: 1;
+}
+
+.clip-remove-from-scenepack:hover {
+  background: rgba(180, 40, 40, 0.75);
+  color: rgb(255, 120, 120);
+}
+
+/* Drag-over indicator for Scenepack clip reordering */
+.clip-wrapper.scenepack-drag-over {
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+}
+
+/* Page-level empty state */
+.scenepacks-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.55));
+  gap: 8px;
+}
+
+.scenepacks-empty-state h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+}
+
+.scenepacks-empty-state p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Empty panel CTA */
+.scenepacks-empty-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 32px 16px;
+  color: white;
+}
+
+/* Scenepack row thumbnail */
+.scenepack-thumbnail {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+/* Search bar */
+.scenepack-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.scenepack-search-icon {
+  opacity: 0.4;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.scenepack-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 13px;
+  font-family: 'Jersey 10', system-ui, sans-serif;
+  outline: none;
+  min-width: 0;
+}
+
+.scenepack-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.scenepack-search-clear {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  padding: 2px;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.scenepack-search-clear:hover {
+  color: white;
+}
+
+/* Toast notification */
+.scenepack-toast {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.88);
+  border: 1px solid rgb(var(--accent-rgb) / 0.5);
+  color: white;
+  font-size: 13px;
+  font-family: 'Jersey 10', system-ui, sans-serif;
+  z-index: 100;
+  white-space: nowrap;
+  animation: scenepack-toast-in 0.2s ease;
+  pointer-events: none;
+}
+
+@keyframes scenepack-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(6px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Selected scenepack action bar */
+.scenepack-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-top: 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.22);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.scenepack-action-bar-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: white;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.scenepack-action-bar-count {
+  font-size: 12px;
+  color: var(--accent);
+  opacity: 0.75;
+  flex-shrink: 0;
+}
+
+.scenepack-action-bar-buttons {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Exporting status */
+.scenepack-exporting-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--accent);
+  font-family: 'Jersey 10', system-ui, sans-serif;
+}
+
+.scenepack-spinner {
+  animation: scenepack-spin 0.8s linear infinite;
+}
+
+@keyframes scenepack-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

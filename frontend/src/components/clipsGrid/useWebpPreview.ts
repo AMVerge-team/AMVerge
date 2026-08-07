@@ -86,6 +86,7 @@ type UseWebpPreviewArgs = {
   isHovered: boolean;
   videoPreviewMode: boolean;
   isVideoMode: boolean;
+  episodeId?: string;
   previewWebpPath?: string;
   reportWebpDemand: (
     clipId: string,
@@ -106,6 +107,7 @@ export function useWebpPreview({
   isHovered,
   videoPreviewMode,
   isVideoMode,
+  episodeId,
   previewWebpPath,
   reportWebpDemand,
 }: UseWebpPreviewArgs) {
@@ -154,6 +156,7 @@ export function useWebpPreview({
         end: webpEnd,
         fps: 8,
         kind: "animated",
+        episodeCacheId: episodeId ?? null,
       },
     });
   }, [
@@ -168,6 +171,7 @@ export function useWebpPreview({
     webpEnd,
     webpSourcePath,
     webpStart,
+    episodeId,
   ]);
 
   // keep thumbnail rendering resilient: reset load state when source changes.

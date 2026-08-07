@@ -13,6 +13,8 @@ import { useEffect, useState} from "react";
 import SettingRow from "../common/SettingRow";
 import Dropdown, { type DropdownOption } from "../common/Dropdown";
 import { clearEpisodePanelCache } from "../../utils/episodeUtils";
+import { clearScenepacksStorage } from "../../utils/scenepackStorage";
+import { useScenepacksStore } from "../../stores/scenepackStore";
 
 const SCENE_DETECTION_OPTIONS: DropdownOption<SceneDetectionMethod>[] = [
   {
@@ -92,14 +94,20 @@ export default function GeneralSettings({
       ? "hevc"
       : generalSettings.previewTranscodeMode;
   const setGridPreview = useUIStateStore((s) => s.setGridPreview);
+  const scenepacksCount = useScenepacksStore((s) => s.scenepacks.length);
   const [loading, setLoading] = useState(false);
   const [showFactoryResetConfirm, setShowFactoryResetConfirm] = useState(false);
   const [showClearPanelConfirm, setShowClearPanelConfirm] = useState(false);
   const [clearingPanel, setClearingPanel] = useState(false);
+  const [showClearScenepacksConfirm, setShowClearScenepacksConfirm] = useState(false);
+  const [clearingScenepacks, setClearingScenepacks] = useState(false);
+  const [showDisableScenepacksConfirm, setShowDisableScenepacksConfirm] = useState(false);
   const factoryResetConfirmation =
     "This will restore AMVerge to its default settings and move your episode storage folder back to AppData. Any custom settings or storage location changes you made will be reset.";
   const clearPanelConfirmation =
     "This will remove ALL episodes from the Episode Panel and delete their cached files on disk. This cannot be undone.";
+  const clearScenepacksConfirmation =
+    "This will remove ALL Scenepacks and delete their materialized clip files on disk. This cannot be undone.";
   useEffect(() => {
     if (!showFactoryResetConfirm) return;
 
@@ -126,6 +134,32 @@ export default function GeneralSettings({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [showClearPanelConfirm]);
 
+  useEffect(() => {
+    if (!showClearScenepacksConfirm) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowClearScenepacksConfirm(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showClearScenepacksConfirm]);
+
+  useEffect(() => {
+    if (!showDisableScenepacksConfirm) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowDisableScenepacksConfirm(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showDisableScenepacksConfirm]);
+
   const handleClearEpisodePanel = async () => {
     setClearingPanel(true);
     try {
@@ -136,6 +170,28 @@ export default function GeneralSettings({
       setClearingPanel(false);
       setShowClearPanelConfirm(false);
     }
+  };
+
+  const handleClearScenepacks = async () => {
+    setClearingScenepacks(true);
+    try {
+      await clearScenepacksStorage();
+    } catch (err) {
+      window.alert("Failed to clear Scenepack storage: " + String(err));
+    } finally {
+      setClearingScenepacks(false);
+      setShowClearScenepacksConfirm(false);
+    }
+  };
+
+  const handleToggleScenepacksEnabled = (enabled: boolean) => {
+    if (!enabled && scenepacksCount > 0) {
+      // don't flip the setting yet — let the confirm dialog decide whether to
+      // also wipe existing Scenepacks first.
+      setShowDisableScenepacksConfirm(true);
+      return;
+    }
+    setGeneralSettings((prev) => ({ ...prev, scenepacksEnabled: enabled }));
   };
 
   const handlePickDir = async () => {
@@ -307,6 +363,24 @@ export default function GeneralSettings({
         />
 
         <SettingRow
+          label="Scenepacks"
+          description="Enable the Scenepacks feature for grouping clips into themed collections."
+          control={
+            <div className="settings-control">
+              <label className="custom-checkbox">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={generalSettings.scenepacksEnabled}
+                  onChange={(e) => handleToggleScenepacksEnabled(e.target.checked)}
+                />
+                <span className="checkmark"></span>
+              </label>
+            </div>
+          }
+        />
+
+        <SettingRow
           label="Episodes Storage Path"
           description="The location where your processed episodes and clips are stored."
           control={
@@ -330,8 +404,8 @@ export default function GeneralSettings({
         />
 
         <SettingRow
-          label="Clear Episode Panel"
-          description="Remove all episodes from the panel and delete their cached files on disk."
+          label="Clear Episode Storage"
+          description="Remove all episodes from the panel and delete their cached files on disk. Scenepacks are untouched — they own their own storage."
           control={
             <div className="settings-control">
               <button
@@ -341,7 +415,25 @@ export default function GeneralSettings({
                 style={{ width: "auto", padding: "0 16px", marginBottom: 0, color: "red" }}
                 disabled={loading || clearingPanel}
               >
-                {clearingPanel ? "Clearing..." : "Clear Episode Panel"}
+                {clearingPanel ? "Clearing..." : "Clear Episode Storage"}
+              </button>
+            </div>
+          }
+        />
+
+        <SettingRow
+          label="Clear Scenepack Storage"
+          description="Remove all Scenepacks and delete their materialized clip files on disk. Episode storage is untouched."
+          control={
+            <div className="settings-control">
+              <button
+                className="buttons emergency"
+                type="button"
+                onClick={() => setShowClearScenepacksConfirm(true)}
+                style={{ width: "auto", padding: "0 16px", marginBottom: 0, color: "red" }}
+                disabled={loading || clearingScenepacks}
+              >
+                {clearingScenepacks ? "Clearing..." : "Clear Scenepack Storage"}
               </button>
             </div>
           }
@@ -405,7 +497,7 @@ export default function GeneralSettings({
             }}
           >
             <div className="episode-modal" onMouseDown={(e) => e.stopPropagation()}>
-              <div className="episode-modal-title">Clear Episode Panel</div>
+              <div className="episode-modal-title">Clear Episode Storage</div>
               <div className="episode-modal-message">{clearPanelConfirmation}</div>
               <div className="episode-modal-actions">
                 <button
@@ -424,7 +516,89 @@ export default function GeneralSettings({
                   }}
                   disabled={clearingPanel}
                 >
-                  {clearingPanel ? "Clearing..." : "Clear Episode Panel"}
+                  {clearingPanel ? "Clearing..." : "Clear Episode Storage"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showClearScenepacksConfirm && (
+          <div
+            className="episode-modal-overlay"
+            onMouseDown={() => {
+              if (!clearingScenepacks) setShowClearScenepacksConfirm(false);
+            }}
+          >
+            <div className="episode-modal" onMouseDown={(e) => e.stopPropagation()}>
+              <div className="episode-modal-title">Clear Scenepack Storage</div>
+              <div className="episode-modal-message">{clearScenepacksConfirmation}</div>
+              <div className="episode-modal-actions">
+                <button
+                  type="button"
+                  className="episode-modal-btn"
+                  onClick={() => setShowClearScenepacksConfirm(false)}
+                  disabled={clearingScenepacks}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="episode-modal-btn primary"
+                  onClick={() => {
+                    void handleClearScenepacks();
+                  }}
+                  disabled={clearingScenepacks}
+                >
+                  {clearingScenepacks ? "Clearing..." : "Clear Scenepack Storage"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showDisableScenepacksConfirm && (
+          <div
+            className="episode-modal-overlay"
+            onMouseDown={() => setShowDisableScenepacksConfirm(false)}
+          >
+            <div className="episode-modal" onMouseDown={(e) => e.stopPropagation()}>
+              <div className="episode-modal-title">Disable Scenepacks</div>
+              <div className="episode-modal-message">
+                You have {scenepacksCount} Scenepack{scenepacksCount !== 1 ? "s" : ""}. Would you like to delete
+                {scenepacksCount !== 1 ? " them" : " it"} too, or just disable the feature and keep
+                {scenepacksCount !== 1 ? " them" : " it"} for later?
+              </div>
+              <div className="episode-modal-actions">
+                <button
+                  type="button"
+                  className="episode-modal-btn"
+                  onClick={() => setShowDisableScenepacksConfirm(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="episode-modal-btn"
+                  onClick={() => {
+                    setGeneralSettings((prev) => ({ ...prev, scenepacksEnabled: false }));
+                    setShowDisableScenepacksConfirm(false);
+                  }}
+                >
+                  Keep Scenepacks
+                </button>
+                <button
+                  type="button"
+                  className="episode-modal-btn primary"
+                  onClick={() => {
+                    setGeneralSettings((prev) => ({ ...prev, scenepacksEnabled: false }));
+                    setShowDisableScenepacksConfirm(false);
+                    void clearScenepacksStorage().catch((err) =>
+                      window.alert("Failed to clear Scenepack storage: " + String(err))
+                    );
+                  }}
+                >
+                  Delete Scenepacks
                 </button>
               </div>
             </div>

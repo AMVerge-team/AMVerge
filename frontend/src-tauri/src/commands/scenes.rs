@@ -21,7 +21,8 @@ use crate::utils::logging::{
     console_log, emit_console_log, sanitize_for_console, sanitize_line_with_known_paths,
 };
 use crate::utils::paths::{
-    clear_files_in_dir, dir_name_only, file_name_only, sanitize_episode_cache_id,
+    clear_files_in_dir, dir_name_only, file_name_only, resolve_episodes_storage_dir,
+    sanitize_episode_cache_id,
 };
 use crate::utils::process::apply_no_window;
 
@@ -211,14 +212,7 @@ pub async fn detect_scenes(
 ) -> Result<String, String> {
     let video_name = file_name_only(&video_path);
 
-    let base_dir = if let Some(p) = custom_path {
-        PathBuf::from(p)
-    } else {
-        app.path()
-            .app_data_dir()
-            .map_err(|e| e.to_string())?
-            .join("episodes")
-    };
+    let base_dir = resolve_episodes_storage_dir(&app, custom_path.as_deref())?;
 
     let output_dir = if let Some(raw_id) = episode_cache_id.as_deref() {
         let id = sanitize_episode_cache_id(raw_id)?;
@@ -573,14 +567,7 @@ pub async fn load_episode_manifest(
     episode_cache_id: String,
     custom_path: Option<String>,
 ) -> Result<String, String> {
-    let base_dir = if let Some(p) = custom_path {
-        PathBuf::from(p)
-    } else {
-        app.path()
-            .app_data_dir()
-            .map_err(|e| e.to_string())?
-            .join("episodes")
-    };
+    let base_dir = resolve_episodes_storage_dir(&app, custom_path.as_deref())?;
 
     let id = sanitize_episode_cache_id(&episode_cache_id)?;
     let manifest_path = base_dir.join(id).join("manifest.json");
