@@ -42,10 +42,16 @@ async function maybeCheckForUpdatesOnStartup() {
     await update.downloadAndInstall();
     console.log(`[updater] install finished for v${update.version}`);
 
-    await message(
-      `Update v${update.version} was installed.\n\nIf the app does not restart automatically on macOS, please close and reopen AMVerge once.`,
-      { title: "AMVerge Update Installed" },
-    );
+    const isMacOS = /mac/i.test(platformInfo);
+    if (isMacOS) {
+      const { relaunch } = await import("@tauri-apps/plugin-process");
+      await relaunch();
+    } else {
+      await message(
+        `Update v${update.version} was installed.\n\nIf the app does not restart automatically, please close and reopen AMVerge.`,
+        { title: "AMVerge Update Installed" },
+      );
+    }
   } catch (error) {
     // Show a visible error instead of silently dismissing the update flow.
     const [{ message }] = await Promise.all([
