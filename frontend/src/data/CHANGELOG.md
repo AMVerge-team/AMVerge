@@ -1,5 +1,6 @@
 ## v1.3.1
 - Fixed issue with downloading single clips exporting as multiple clips instead (logic error that came from a previous backend change)
+- Fixed issue with mac app updating not restarting the app
 
 ## v1.3.0
 - Added font change feature in "Appearance" settings
@@ -18,7 +19,7 @@
 - Fixed issues with certain files not importing (files that had a '%' sign or certain special characters in the name weren't filtered properly)
 - Made it so if you export clips, it'll export with the selected audio stream as the default audio. This should help for editors like After Effects that only using one track, it'll use the one the user exported as (note that it still exports all tracks in the episode, just reordering so the selected track is the default one)
 
-## v1.2.3
+## v1.2.3adad
 - Added safeguards for clearing episode patch so it doesn't wipe everything in there
 
 ## v1.2.2
