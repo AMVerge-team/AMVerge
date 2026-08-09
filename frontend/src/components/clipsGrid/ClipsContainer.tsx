@@ -5,14 +5,12 @@
  * Optimized for performance with lazy loading, proxying, and staggered mounting.
  */
 import { startTransition, useCallback, useEffect, useRef } from "react";
-import { save } from "@tauri-apps/plugin-dialog";
-import { invoke } from "@tauri-apps/api/core";
 import { LazyClip } from "./LazyClip.tsx"
 import { useStaggeredMountQueue } from "./staggeredMountQueue.ts";
 import useViewportAwareProxyQueue from "./proxyQueue.ts";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { useUIStateStore } from "../../stores/UIStore.ts";
-import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
+import { downloadSingleClip } from "../../features/export/clipExport.ts";
 
 export default function ClipsContainer({ cols }: { cols?: number }) {
   const clips = useAppStateStore((state) => state.clips);
@@ -21,10 +19,8 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   const importToken = useAppStateStore((state) => state.importToken);
   const setFocusedClip = useAppStateStore((state) => state.setFocusedClip);
   const setSelectedClips = useAppStateStore((state) => state.setSelectedClips);
-  const setLoading = useAppStateStore((state) => state.setLoading);
 
   const defaultCols = useUIStateStore((state) => state.cols);
-  const generalSettings = useGeneralSettingsStore();
 
   const activeCols = cols ?? defaultCols;
 
@@ -41,57 +37,6 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   const gridMaxWidth = gridColumns <= 1
     ? "920px"
     : `${gridColumns * 640 + (gridColumns - 1) * 15}px`;
-
-  const handleDownloadSingleClip = useCallback(async (clip: (typeof clips)[number]) => {
-    try {
-      const activeProfile = generalSettings.exportProfiles.find(
-        (candidate) => candidate.id === generalSettings.activeExportProfileId
-      ) ?? generalSettings.exportProfiles[0];
-      const format = activeProfile?.container || generalSettings.exportFormat || "mp4";
-      const fileName = clip.originalName || clip.src.split(/[\\/]/).pop() || "clip";
-      const defaultPath = `${fileName}.${format}`;
-
-      const savePath = await save({
-        defaultPath,
-        filters: [{ name: "Video", extensions: [format] }],
-      });
-
-      if (!savePath) return;
-
-      setLoading(true);
-
-      const srcs = clip.mergedSrcs ?? [clip.src];
-      const exportOptions = {
-        profileId: activeProfile.id,
-        workflow: activeProfile.workflow,
-        editorTarget: activeProfile.editorTarget,
-        codec: activeProfile.codec,
-        audioMode:
-          activeProfile.container === "mov" && activeProfile.audioMode === "flac"
-            ? "alac"
-            : activeProfile.audioMode === "none"
-              ? "copy"
-              : activeProfile.audioMode,
-        hardwareMode: activeProfile.hardwareMode,
-        parallelExports: activeProfile.parallelExports,
-      };
-
-      const exportedFiles = await invoke<string[]>("export_clips", {
-        clips: srcs,
-        savePath,
-        mergeEnabled: srcs.length > 1,
-        exportOptions,
-      });
-
-      if (generalSettings.openFileLocationAfterExport && exportedFiles.length > 0) {
-        await invoke("reveal_in_file_manager", { filePath: exportedFiles[0] });
-      }
-    } catch (err) {
-      console.error("Single clip download failed:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [generalSettings, setLoading]);
 
   const handleClipClick = useCallback(
     (clipId: string, clipSrc: string, index: number, e: React.MouseEvent<HTMLDivElement>) => {
@@ -254,7 +199,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
                   onClipClick={handleClipClick}
                   onClipDoubleClick={handleClipDoubleClick}
                   onToggleSelection={handleToggleSelection}
-                  onDownloadClip={handleDownloadSingleClip}
+                  onDownloadClip={downloadSingleClip}
                 />
               ))}
         </div>

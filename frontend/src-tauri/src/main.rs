@@ -33,6 +33,7 @@ fn main() {
             commands::scenes::abort_detect_scenes,
             commands::export::export_clips,
             commands::export::abort_export,
+            commands::export::ensure_merged_export_clips,
             commands::export::detect_nvidia_encoder_profile,
             commands::export::detect_gpu_encoder_capabilities,
             commands::export::fast_merge,

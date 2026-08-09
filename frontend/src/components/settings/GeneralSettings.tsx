@@ -109,7 +109,7 @@ export default function GeneralSettings({
           control={
           <div className="settings-control">
             <span className="settings-value" style={{ width: "auto" }}>
-              v1.3.0
+              v1.3.1
             </span>
           </div>
           }

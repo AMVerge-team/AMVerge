@@ -1,3 +1,6 @@
+## v1.3.1
+- Fixed issue with downloading single clips exporting as multiple clips instead (logic error that came from a previous backend change)
+
 ## v1.3.0
 - Added font change feature in "Appearance" settings
 - Added "Force 480p previews on HEVC" for users who are having issues with HEVC videos not previewing

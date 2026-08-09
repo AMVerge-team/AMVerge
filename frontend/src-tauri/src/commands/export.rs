@@ -5,12 +5,13 @@ use std::sync::Mutex;
 
 use tauri::{AppHandle, State};
 
-use crate::state::{ActiveFfmpegPids, ExportAbortState};
+use crate::state::{ActiveFfmpegPids, ExportAbortState, PreviewProxyLocks};
 use crate::utils::ffmpeg::resolve_bundled_tool;
 use crate::utils::logging::console_log;
 use crate::utils::paths::file_name_only;
 
 mod compat;
+mod concat;
 mod encode;
 mod hardware;
 mod merge;
@@ -352,4 +353,17 @@ pub async fn fast_split(
 #[tauri::command]
 pub async fn abort_export(abort_state: State<'_, ExportAbortState>) -> Result<String, String> {
     ops::abort_export_inner(abort_state).await
+}
+
+/// Collapse each grid tile's source segments into one path that `export_clips`
+/// can treat as a single clip. Tiles that were never folded together pass
+/// through untouched; see `concat.rs` for why this step exists.
+#[tauri::command]
+pub async fn ensure_merged_export_clips(
+    app: AppHandle,
+    abort_state: State<'_, ExportAbortState>,
+    proxy_locks: State<'_, PreviewProxyLocks>,
+    groups: Vec<Vec<String>>,
+) -> Result<Vec<String>, String> {
+    concat::ensure_merged_export_clips_inner(app, abort_state, proxy_locks, groups).await
 }
