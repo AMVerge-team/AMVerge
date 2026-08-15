@@ -1,3 +1,6 @@
+## v1.3.2
+- Readded "select all" feature, if you click the selected checkbox while no clips are selected, it will select all the clips in the grid
+
 ## v1.3.1
 - Fixed issue with downloading single clips exporting as multiple clips instead (logic error that came from a previous backend change)
 - Fixed issue with mac app updating not restarting the app

@@ -5,6 +5,7 @@ import useImportExport from "../hooks/useImportExport";
 export default function ImportButtons() {
   const selectedClips = useAppStateStore((s: any) => s.selectedClips);
   const setSelectedClips = useAppStateStore((s: any) => s.setSelectedClips);
+  const clips = useAppStateStore((s: any) => s.clips);
   const loading = useAppStateStore((s: any) => s.loading);
   const bgProgress = useAppStateStore((s: any) => s.bgProgress);
   const bgImportProgress = useAppStateStore((s: any) => s.bgImportProgress);
@@ -46,9 +47,10 @@ export default function ImportButtons() {
                   type="checkbox" 
                   className="checkbox"
                   checked={hasSelection}
-                  disabled={!hasSelection}
                   onChange={(e) => {
-                    if (!e.target.checked) {
+                    if (e.target.checked) {
+                      setSelectedClips(new Set(clips.map((c: any) => c.id)))
+                    } else {
                       setSelectedClips(new Set())
                     }
                   }}
