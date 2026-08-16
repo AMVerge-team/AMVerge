@@ -16,6 +16,9 @@ import { useAppStateStore } from "../../stores/appStore.ts";
 import { useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
+import { useScenepacksStore } from "../../stores/scenepackStore.ts";
+import { removeClipsFromScenepack } from "../../utils/scenepackStorage.ts";
+import type { ClipItem } from "../../types/domain.ts";
 
 export default function ClipsContainer({ cols }: { cols?: number }) {
   const clips = useAppStateStore((state) => state.clips);
@@ -25,6 +28,14 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   const setFocusedClipId = useAppStateStore((state) => state.setFocusedClipId);
   const setSelectedClips = useAppStateStore((state) => state.setSelectedClips);
   const setLoading = useAppStateStore((state) => state.setLoading);
+
+  // Right-click menu for Scenepack clips. `targets` is resolved at open time so
+  // the label and the action can never disagree about what gets deleted.
+  const [clipMenu, setClipMenu] = useState<{
+    x: number;
+    y: number;
+    targets: ClipItem[];
+  } | null>(null);
 
   const defaultCols = useUIStateStore((state) => state.cols);
   const activePage = useUIStateStore((state) => state.activePage);
@@ -40,13 +51,68 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   // import-method setting. Legacy episodes without a stored method are inferred
   // from whether their clips have cut video paths. Memoized so the O(n) clip scan
   // doesn't run on every scroll-driven re-render.
+  // Right-clicking a clip that is part of the current selection acts on the
+  // whole selection; right-clicking outside it acts on that one clip only
+  // (and makes it the selection, so the highlight matches what will go).
+  const handleClipContextMenu = useCallback(
+    (event: React.MouseEvent, clip: ClipItem) => {
+      if (activePage !== "scenepacks") return;
+      event.preventDefault();
+      event.stopPropagation();
+
+      const selected = useAppStateStore.getState().selectedClips;
+      const inSelection = selected.has(clip.id);
+      const targets = inSelection
+        ? useAppStateStore.getState().clips.filter((c) => selected.has(c.id))
+        : [clip];
+
+      if (!inSelection) setSelectedClips(new Set([clip.id]));
+
+      setClipMenu({ x: event.clientX, y: event.clientY, targets });
+    },
+    [activePage, setSelectedClips],
+  );
+
+  const handleDeleteFromScenepack = useCallback(async () => {
+    const menu = clipMenu;
+    setClipMenu(null);
+    if (!menu) return;
+
+    const scenepackId = useScenepacksStore.getState().openedScenepackId;
+    if (!scenepackId) return;
+
+    // sceneIndex is the clip's position in the pack (ScenepacksPage assigns it
+    // from the array index), which is what the store removes by.
+    await removeClipsFromScenepack(
+      scenepackId,
+      menu.targets.map((c) => ({ index: c.sceneIndex ?? 0, clipPath: c.clipPath })),
+    );
+
+    setSelectedClips(new Set());
+    setFocusedClip(null);
+    setFocusedClipId(null);
+  }, [clipMenu, setSelectedClips, setFocusedClip, setFocusedClipId]);
+
+  // Any click elsewhere dismisses the menu, same as the episode panel's.
+  useEffect(() => {
+    if (!clipMenu) return;
+    const close = () => setClipMenu(null);
+    window.addEventListener("click", close, { once: true });
+    return () => window.removeEventListener("click", close);
+  }, [clipMenu]);
+
   const episodeVideoPreview = useMemo(() => {
+    // Scenepacks aren't an episode: every clip in one is a materialized video
+    // file, whatever the episode it was taken from used. Reading the (possibly
+    // still-open) episode's method here showed WebP-sourced pack clips as stills.
+    if (activePage === "scenepacks") return true;
+
     const openedEpisode = episodes.find((e) => e.id === openedEpisodeId);
     return (
       openedEpisode?.importMethod === "video_files" ||
       (openedEpisode?.importMethod === undefined && clips.some((c) => Boolean(c.clipPath)))
     );
-  }, [episodes, openedEpisodeId, clips]);
+  }, [activePage, episodes, openedEpisodeId, clips]);
 
   // proxy queue: manages HEVC/H.264 proxy generation and prioritization
   const { requestProxySequential, reportProxyDemand } = useViewportAwareProxyQueue();
@@ -428,10 +494,28 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
                 onClipDoubleClick={handleClipDoubleClick}
                 onToggleSelection={handleToggleSelection}
                 onDownloadClip={handleDownloadSingleClip}
+                onClipContextMenu={handleClipContextMenu}
                 appearDelayMs={appearDelayFor(index)}
               />
             ))}
           </div>
+
+          {clipMenu && (
+            <div
+              className="episode-context-menu"
+              style={{ left: clipMenu.x, top: clipMenu.y }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                className="episode-context-menu-item"
+                onClick={() => void handleDeleteFromScenepack()}
+              >
+                {clipMenu.targets.length > 1
+                  ? `Delete ${clipMenu.targets.length} clips`
+                  : "Delete clip"}
+              </button>
+            </div>
+          )}
         </>
       )}
     </main>

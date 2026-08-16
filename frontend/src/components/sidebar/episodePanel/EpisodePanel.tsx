@@ -388,15 +388,6 @@ export default function EpisodePanel() {
           onDeleteFolder={(id) => confirmDeleteFolder(id)}
           onMoveEpisodeToFolder={handleMoveEpisodeToFolder}
         />
-        <div className="episode-panel-notice">
-          <div className="episode-panel-notice-text">
-            <h4>WARNING</h4>
-            <p>AMVerge V2 will revamp how episodes are stored, and all data 
-              will be wiped. Please treat this episode panel as a temporary storage
-              until then.
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );

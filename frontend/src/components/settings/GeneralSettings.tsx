@@ -13,6 +13,8 @@ import { useEffect, useState} from "react";
 import SettingRow from "../common/SettingRow";
 import Dropdown, { type DropdownOption } from "../common/Dropdown";
 import { clearEpisodePanelCache } from "../../utils/episodeUtils";
+import { clearScenepacksStorage } from "../../utils/scenepackStorage";
+import { useScenepacksStore } from "../../stores/scenepackStore";
 import { useAiDepsStore } from "../../stores/aiDepsStore";
 import { isPackInstalled } from "../../features/aiDeps/packs";
 
@@ -159,6 +161,28 @@ export default function GeneralSettings({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [showDisableScenepacksConfirm]);
+
+  // Turning Scenepacks off with packs still saved asks what to do with them
+  // first; turning it on is immediate.
+  const handleToggleScenepacksEnabled = (enabled: boolean) => {
+    if (!enabled && scenepacksCount > 0) {
+      setShowDisableScenepacksConfirm(true);
+      return;
+    }
+    setGeneralSettings((prev) => ({ ...prev, scenepacksEnabled: enabled }));
+  };
+
+  const handleClearScenepacks = async () => {
+    setClearingScenepacks(true);
+    try {
+      await clearScenepacksStorage();
+    } catch (err) {
+      window.alert("Failed to clear Scenepack storage: " + String(err));
+    } finally {
+      setClearingScenepacks(false);
+      setShowClearScenepacksConfirm(false);
+    }
+  };
 
   const handleClearEpisodePanel = async () => {
     setClearingPanel(true);

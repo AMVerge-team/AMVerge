@@ -3,7 +3,20 @@ import ClipsContainer from "./components/clipsGrid/ClipsContainer";
 import PreviewContainer from "./components/previewPanel/PreviewContainer";
 import { useAppStateStore } from "./stores/appStore";
 
-export default function MainLayout({ intro = false }: { intro?: boolean }) {
+/**
+ * `active` is false for a MainLayout whose page is mounted but hidden. HomePage
+ * stays mounted behind `display: none` so its grid survives navigation, and the
+ * Scenepacks page renders a second MainLayout of its own — both read the same
+ * clip store, so both preview players would load the same clip and play its
+ * audio at once. `display: none` does not stop media playback.
+ */
+export default function MainLayout({
+    intro = false,
+    active = true,
+}: {
+    intro?: boolean;
+    active?: boolean;
+}) {
     const [leftWidth, setLeftWidth] = useState(65);
     const focusedClip = useAppStateStore(s => s.focusedClip);
     const clips = useAppStateStore(s => s.clips);
@@ -71,6 +84,7 @@ export default function MainLayout({ intro = false }: { intro?: boolean }) {
                     <PreviewContainer
                         sourceClip={focusedClip}
                         sourceClipThumbnail={focusedClipThumbnail}
+                        active={active}
                     />
                 </div>
             </div>

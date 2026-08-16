@@ -89,7 +89,11 @@
 
     min-width: 0;
     max-width: 360px;
-    height: 84%;
+    /* Match .buttons exactly (30px tall with a 5px bottom margin) so the path
+       chip and the Change button line up. A percentage height collapsed to the
+       text once the row stopped being a fixed 40px. */
+    height: 30px;
+    margin-bottom: 5px;
     padding: 0 8px;
 
     font-size: 0.8rem;

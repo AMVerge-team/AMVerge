@@ -31,6 +31,9 @@ type PreviewContainerProps = {
   sourceClip: string | null;
   sourceClipThumbnail: string | null;
   onTimeUpdate?: (time: number) => void;
+  /** False when this preview belongs to a mounted-but-hidden page; the video
+   * player is skipped so two pages can't play the same clip's audio at once. */
+  active?: boolean;
 };
 
 export default function PreviewContainer(props: PreviewContainerProps) {
@@ -63,7 +66,12 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     [episodes, openedEpisodeId]
   );
   const previewMethod = openedEpisode?.importMethod ?? importMethod;
-  const webpPreviewMode = previewMethod === "webp_files";
+  // Scenepack clips are materialized video files no matter which import method
+  // produced the episode they came from, so the episode's method says nothing
+  // about them. Asking it left a WebP-imported pack previewing as a still.
+  const activePageForPreview = useUIStateStore(s => s.activePage);
+  const webpPreviewMode =
+    activePageForPreview === "scenepacks" ? false : previewMethod === "webp_files";
 
   const defaultMergedName = (clips[0]?.originalName || "episode").replace(/\.[^./\\]+$/, "") + "_merged";
   const activeExportProfile = React.useMemo(
@@ -265,7 +273,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                   style={{ width: "100%", height: "100%", objectFit: "contain" }}
                   alt=""
                 />
-              ) : !webpPreviewMode && previewVideoSrc ? (
+              ) : !webpPreviewMode && previewVideoSrc && props.active !== false ? (
                 <VideoPlayer
                   key={`${playableVideoSrc}-${importToken}`}
                   src={convertFileSrc(playableVideoSrc!)}

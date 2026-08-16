@@ -17,6 +17,10 @@ export type ScenepacksStore = ScenepacksState & {
   addClipToScenepack: (scenepackId: string, clip: ScenepackClip) => void;
   removeClipFromScenepack: (scenepackId: string, episodeId: string, sceneIndex: number) => void;
   removeClipFromScenepackByIndex: (scenepackId: string, index: number) => void;
+  /** Batch form of the above. Removing indexes one at a time would shift every
+   * later index after the first splice, so a multi-select delete has to filter
+   * against the whole set in one pass. */
+  removeClipsFromScenepackByIndexes: (scenepackId: string, indexes: number[]) => void;
   reorderScenepackClips: (scenepackId: string, fromIndex: number, toIndex: number) => void;
   moveScenepackToFolder: (scenepackId: string, folderId: string | null) => void;
 
@@ -107,6 +111,19 @@ export const useScenepacksStore = create<ScenepacksStore>()(
             return { ...sp, clips };
           }),
         })),
+
+      removeClipsFromScenepackByIndexes: (scenepackId, indexes) =>
+        set((s) => {
+          const drop = new Set(indexes);
+          if (drop.size === 0) return s;
+          return {
+            scenepacks: s.scenepacks.map((sp) =>
+              sp.id === scenepackId
+                ? { ...sp, clips: sp.clips.filter((_, i) => !drop.has(i)) }
+                : sp,
+            ),
+          };
+        }),
 
       reorderScenepackClips: (scenepackId, fromIndex, toIndex) =>
         set((s) => ({

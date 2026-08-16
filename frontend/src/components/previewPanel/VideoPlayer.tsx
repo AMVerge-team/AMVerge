@@ -37,6 +37,41 @@ export default function VideoPlayer({ src, volume, onTimeUpdate }: VideoPlayerPr
     if (v) v.volume = volume;
   }, [volume, src]);
 
+  // Media player release, same pattern as the grid tiles (see LazyClip). A
+  // detached <video> keeps decoding and keeps playing audio until GC, and
+  // PreviewContainer remounts this component on every src change — so without
+  // this, stepping through clips piles one audio track on top of the next.
+  //
+  // The element is captured during setup because React nulls the ref before
+  // passive cleanups run on unmount; releasing the captured (detached) element
+  // still frees its player. The setup phase also restores a src that a previous
+  // cleanup stripped: StrictMode re-runs cleanup+setup on the SAME element, and
+  // React won't re-apply a src prop it considers unchanged.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+
+    if (src && v.getAttribute("src") !== src) {
+      v.setAttribute("src", src);
+      try {
+        v.load();
+        v.play().catch(() => {});
+      } catch {
+        // ignore
+      }
+    }
+
+    return () => {
+      try {
+        v.pause();
+        v.removeAttribute("src");
+        v.load();
+      } catch {
+        // ignore
+      }
+    };
+  }, [src]);
+
   const togglePlay = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;

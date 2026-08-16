@@ -9,7 +9,7 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { LazyClipProps } from "./types.ts"
 import { DownloadButton } from "./DownloadButton.tsx";
 import { useWebpPreview } from "./useWebpPreview.ts";
-import { FaCheck, FaPlus, FaLayerGroup, FaTrashAlt, FaVideo, FaImage } from "react-icons/fa";
+import { FaCheck, FaPlus, FaLayerGroup, FaTrashAlt } from "react-icons/fa";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore, useThemeSettingsStore } from "../../stores/settingsStore.ts";
@@ -19,6 +19,7 @@ import { cancelIdle, scheduleIdle } from "../../utils/idle.ts";
 import { AddToScenepackModal } from "./AddToScenepackModal.tsx";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
 import { useScenepacksStore } from "../../stores/scenepackStore.ts";
+import { removeClipsFromScenepack } from "../../utils/scenepackStorage.ts";
 
 const DOWNLOAD_TONE_SAMPLE_SIZE = 24;
 const DOWNLOAD_TONE_SOURCE_SIZE = 34;
@@ -48,6 +49,7 @@ export const LazyClip = memo(function LazyClip({
   onToggleSelection,
   reportStaggerDemand,
   onDownloadClip,
+  onClipContextMenu,
   appearDelayMs,
 }: LazyClipProps) {
   const importToken = useAppStateStore(s => s.importToken);
@@ -796,6 +798,7 @@ export const LazyClip = memo(function LazyClip({
       style={appearDelayMs !== null ? { ["--appear-delay" as any]: `${appearDelayMs}ms` } : undefined}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
+      onContextMenu={(e) => onClipContextMenu?.(e, clip)}
       draggable={activePage === "scenepacks"}
       onDragStart={(e) => {
         if (activePage !== "scenepacks") return;
@@ -1056,23 +1059,6 @@ export const LazyClip = memo(function LazyClip({
             <DownloadButton tone={downloadTone} onClick={() => onDownloadClip(clip)} />
           )}
 
-          {activePage === "scenepacks" && (() => {
-            // every Scenepack clip has its own clipPath now (materialized at add
-            // time), so clipPath presence can't distinguish origin anymore —
-            // sourceKind records it explicitly. Legacy entries added before that
-            // change never got a clipPath at all, so isVideoMode is still correct
-            // for them.
-            const isWebpSource = clip.sourceKind ? clip.sourceKind === "webp" : !isVideoMode;
-            return (
-              <div
-                className="clip-source-type-badge"
-                title={isWebpSource ? "From a WebP-preview episode" : "From a video-file episode"}
-              >
-                {isWebpSource ? <FaImage /> : <FaVideo />}
-              </div>
-            );
-          })()}
-
           {activePage === "home" && scenepacksEnabled && (
             <button
               className="clip-add-to-scenepack"
@@ -1092,20 +1078,12 @@ export const LazyClip = memo(function LazyClip({
               onClick={(e) => {
                 e.stopPropagation();
                 const spId = useScenepacksStore.getState().openedScenepackId;
-                const idx = clip.sceneIndex ?? 0;
-                if (spId) {
-                  useScenepacksStore.getState().removeClipFromScenepackByIndex(spId, idx);
-                  // materialized clips (added after the Scenepacks-own-their-storage
-                  // change) own a real file under scene_packs/ that needs cleanup;
-                  // legacy entries without a clipPath never had one to begin with.
-                  if (clip.clipPath) {
-                    invoke("delete_scenepack_clip_files", {
-                      scenepackId: spId,
-                      clipPaths: [clip.clipPath],
-                      customPath: useGeneralSettingsStore.getState().episodesPath,
-                    }).catch((err) => console.error("Failed to delete scenepack clip files:", err));
-                  }
-                }
+                if (!spId) return;
+                // Same path as the right-click menu, so store removal and file
+                // cleanup stay in one place.
+                void removeClipsFromScenepack(spId, [
+                  { index: clip.sceneIndex ?? 0, clipPath: clip.clipPath },
+                ]);
               }}
               title="Remove from Scenepack"
             >

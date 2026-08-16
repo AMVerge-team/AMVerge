@@ -54,6 +54,9 @@ export type LazyClipProps = {
   onToggleSelection: (clipId: string, e: React.MouseEvent) => void;
   reportStaggerDemand: (key: string, demand: { order: number; onReady: () => void } | null) => void;
   onDownloadClip: (clip: ClipItem) => void;
+  /** Right-click on the tile. Only wired up on the Scenepacks page, where it
+   * opens the delete menu. */
+  onClipContextMenu?: (e: React.MouseEvent, clip: ClipItem) => void;
   // entrance animation delay (ms) for the episode-open fade-in, or null once the
   // entrance window has passed (class removed so a display:none page switch
   // doesn't replay the animation).

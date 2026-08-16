@@ -7,7 +7,7 @@ use tauri::{AppHandle, Manager};
 
 use crate::utils::ffmpeg::resolve_bundled_tool;
 use crate::utils::logging::console_log;
-use crate::utils::paths::is_episode_cache_dir;
+use crate::utils::paths::{is_episode_cache_dir, resolve_episodes_storage_dir};
 use crate::utils::process::apply_no_window;
 
 #[tauri::command]

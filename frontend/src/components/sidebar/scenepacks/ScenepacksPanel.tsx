@@ -2,15 +2,12 @@ import type React from "react";
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import {
   FaLayerGroup, FaFolderPlus, FaSortAlphaDown, FaSortAlphaUp,
-  FaTrashAlt, FaFileExport, FaPlay, FaPencilAlt, FaCopy, FaSpinner, FaSearch, FaTimes,
+  FaTrashAlt, FaPlay, FaSearch, FaTimes,
 } from "react-icons/fa";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
-import { save } from "@tauri-apps/plugin-dialog";
 import { useScenepacksStore } from "../../../stores/scenepackStore";
 import { useGeneralSettingsStore } from "../../../stores/settingsStore";
 import { useUIStateStore } from "../../../stores/UIStore";
-import { useAppStateStore } from "../../../stores/appStore";
 import type { ScenepackEntry, ScenepackFolder } from "../../../types/domain";
 
 function useScenepackStructure(scenepacks: ScenepackEntry[], folders: ScenepackFolder[]) {
@@ -45,14 +42,6 @@ export function ScenepacksPanel() {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const clickGestureRef = useRef<{ key: string | null; ts: number }>({ key: null, ts: 0 });
   const [nextSortDirection, setNextSortDirection] = useState<"asc" | "desc">("asc");
-  const [toast, setToast] = useState<string | null>(null);
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const showToast = useCallback((msg: string) => {
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    setToast(msg);
-    toastTimerRef.current = setTimeout(() => setToast(null), 2500);
-  }, []);
 
   const setActivePage = useUIStateStore((s) => s.setActivePage);
 
@@ -83,7 +72,6 @@ export function ScenepacksPanel() {
   const [modalFolderId, setModalFolderId] = useState<string | null>(null);
   const [renameModal, setRenameModal] = useState<{ id: string; kind: "scenepack" | "folder"; currentName: string } | null>(null);
   const [contextMenu, setContextMenu] = useState<{ id: string; kind: "scenepack" | "folder"; x: number; y: number } | null>(null);
-  const [exporting, setExporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<{ kind: "scenepack" | "folder"; id: string; name: string } | null>(null);
 
@@ -174,94 +162,6 @@ export function ScenepacksPanel() {
     }
   };
 
-  const handleExport = async (merge: boolean) => {
-    const sp = scenepacks.find((s) => s.id === selectedScenepackId);
-    if (!sp || sp.clips.length === 0 || exporting) return;
-
-    const settings = useGeneralSettingsStore.getState();
-    const exportProfiles = settings.exportProfiles ?? [];
-    const activeProfile = exportProfiles.find(
-      (p) => p.id === settings.activeExportProfileId
-    ) ?? exportProfiles[0];
-    const format = activeProfile?.container ?? "mp4";
-
-    const defaultPath = merge ? `${sp.name}.${format}` : `${sp.name}_scenes`;
-    const filters = merge
-      ? [{ name: "Video", extensions: [format] }]
-      : undefined;
-
-    try {
-      const savePath = await save({
-        defaultPath,
-        filters,
-      });
-      if (!savePath) return;
-
-      setExporting(true);
-      const appStore = useAppStateStore.getState();
-      appStore.setLoading(true);
-      appStore.setActiveOperation("export");
-      appStore.setProgress(0);
-      appStore.setProgressMsg(merge ? "Merging Scenepack clips..." : "Exporting Scenepack clips...");
-
-      const exportSpecs = sp.clips.map((c) => ({
-        input: c.clipPath ?? c.input,
-        start_sec: c.clipPath ? undefined : c.startSec,
-        end_sec: c.clipPath ? undefined : c.endSec,
-      }));
-
-      const exportOptions = {
-        profileId: activeProfile?.id ?? "",
-        workflow: activeProfile?.workflow ?? "video_encode",
-        editorTarget: activeProfile?.editorTarget ?? "",
-        codec: activeProfile?.codec ?? "libx264",
-        audioMode: activeProfile?.audioMode ?? "copy",
-        hardwareMode: activeProfile?.hardwareMode ?? "auto",
-        parallelExports: activeProfile?.parallelExports ?? 4,
-      };
-
-      const unlisten = await listen<{ percent: number; message: string }>(
-        "scene_progress",
-        (event) => {
-          appStore.setProgress(event.payload.percent);
-          appStore.setProgressMsg(event.payload.message);
-        }
-      );
-
-      const exportedFiles = await invoke<string[]>("export_clips", {
-        clips: exportSpecs,
-        savePath,
-        mergeEnabled: merge,
-        exportOptions,
-      });
-
-      unlisten();
-
-      if (exportedFiles.length > 0) {
-        await invoke("reveal_in_file_manager", { filePath: exportedFiles[0] });
-      }
-    } catch (err) {
-      console.error("Scenepack export failed:", err);
-    } finally {
-      setExporting(false);
-      const appStore = useAppStateStore.getState();
-      appStore.setLoading(false);
-      appStore.setActiveOperation(null);
-      appStore.setProgress(0);
-      appStore.setProgressMsg("");
-    }
-  };
-
-  const handleCopyClipList = () => {
-    const sp = scenepacks.find((s) => s.id === selectedScenepackId);
-    if (!sp) return;
-    const lines = sp.clips.map((c) =>
-      `Scene ${c.sceneIndex} — ${c.startSec?.toFixed(1) ?? "0.0"}s → ${c.endSec?.toFixed(1) ?? "?"}s`
-    );
-    navigator.clipboard.writeText(lines.join("\n")).catch(() => {});
-    showToast("Clip list copied to clipboard");
-  };
-
   const DoubleClick = (key: string, onSingle: () => void, onDouble: () => void) => {
     return (_e: React.MouseEvent) => {
       const now = Date.now();
@@ -278,8 +178,6 @@ export function ScenepacksPanel() {
 
   const sortLabel = nextSortDirection === "asc" ? "Sort A-Z" : "Sort Z-A";
   const SortIcon = nextSortDirection === "asc" ? FaSortAlphaDown : FaSortAlphaUp;
-
-  const selectedSp = scenepacks.find((s) => s.id === selectedScenepackId);
 
   const rootFolders = foldersByParentId.get(null) ?? [];
 
@@ -458,52 +356,6 @@ export function ScenepacksPanel() {
           )}
         </div>
 
-        {selectedSp && (
-          <div className="scenepack-action-bar">
-            <span className="scenepack-action-bar-title">{selectedSp.name}</span>
-            <span className="scenepack-action-bar-count">{selectedSp.clips.length} clip{selectedSp.clips.length !== 1 ? "s" : ""}</span>
-            <div className="scenepack-action-bar-buttons">
-              {exporting ? (
-                <span className="scenepack-exporting-status">
-                  <FaSpinner className="scenepack-spinner" aria-hidden="true" />
-                  Exporting...
-                </span>
-              ) : (
-                <>
-                  <button className="episode-panel-action" style={{ fontSize: 11, padding: "4px 10px" }}
-                    onClick={() => handleExport(true)}
-                    disabled={selectedSp.clips.length === 0}
-                    title="Merge all clips into one video" aria-label="Export merged">
-                    <FaFileExport aria-hidden="true" style={{ marginRight: 4 }} />
-                    Merge
-                  </button>
-                  <button className="episode-panel-action" style={{ fontSize: 11, padding: "4px 10px" }}
-                    onClick={() => handleExport(false)}
-                    disabled={selectedSp.clips.length === 0}
-                    title="Export each clip as separate files" aria-label="Export split">
-                    <FaFileExport aria-hidden="true" style={{ marginRight: 4 }} />
-                    Split
-                  </button>
-                </>
-              )}
-              <button className="episode-panel-action icon-only" onClick={handleCopyClipList}
-                disabled={selectedSp.clips.length === 0}
-                title="Copy clip list" aria-label="Copy clip list">
-                <FaCopy aria-hidden="true" />
-              </button>
-              <button className="episode-panel-action icon-only"
-                onClick={() => { setRenameModal({ id: selectedSp.id, kind: "scenepack", currentName: selectedSp.name }); setNewItemName(selectedSp.name); }}
-                title="Rename" aria-label="Rename">
-                <FaPencilAlt aria-hidden="true" />
-              </button>
-              <button className="episode-panel-action icon-only" onClick={() => setConfirmDelete({ kind: "scenepack", id: selectedSp.id, name: selectedSp.name })}
-                title="Delete Scenepack" aria-label="Delete">
-                <FaTrashAlt aria-hidden="true" />
-              </button>
-            </div>
-          </div>
-        )}
-
         {newItemModal && (
           <div className="episode-modal-overlay" onClick={() => { setNewItemModal(null); setModalFolderId(null); }}>
             <div className="episode-modal" onClick={(e) => e.stopPropagation()}>
@@ -619,9 +471,6 @@ export function ScenepacksPanel() {
           </div>
         )}
 
-        {toast && (
-          <div className="scenepack-toast">{toast}</div>
-        )}
       </div>
     </div>
   );
