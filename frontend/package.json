@@ -7,10 +7,11 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "build:sidecar": "node ./scripts/build-sidecar.mjs",
-    "build:all": "npm run build:sidecar && npm run build",
+    "fetch:uv": "node ./scripts/fetch-uv.mjs",
+    "build:all": "npm run build:sidecar && npm run fetch:uv && npm run build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "tauri:dev": "dotenv -e ../.env -- tauri dev",
+    "tauri:dev": "npm run fetch:uv && dotenv -e ../.env -- tauri dev",
     "tauri:build": "dotenv -e ../.env -- tauri build"
   },
   "dependencies": {

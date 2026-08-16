@@ -12,7 +12,7 @@ use crate::payloads::{PassLogPayload, PassPreviewPayload, PassProgressPayload, P
 use crate::state::{ActiveFfmpegPids, ExportAbortState};
 use crate::utils::logging::{console_log, sanitize_for_console};
 use crate::utils::paths::file_name_only;
-use crate::utils::sidecar::{amverge_command, amverge_exe_name};
+use crate::utils::sidecar::{amverge_ai_command, amverge_command, amverge_exe_name};
 
 mod hardware;
 mod ops;
@@ -311,12 +311,14 @@ pub async fn export_clips(
     })
 }
 
-/// Map a pass id to its CLI subcommand.
-fn pass_cli_command(pass: &str) -> Result<&'static str, String> {
+/// Map a pass id to its CLI subcommand and whether it needs the optional AI env.
+/// Dead frames is opencv-only, so it runs on the bundled sidecar; depth and
+/// interpolation need torch.
+fn pass_cli_command(pass: &str) -> Result<(&'static str, bool), String> {
     match pass {
-        "depth" => Ok("depth-map"),
-        "deadframes" => Ok("deadframes"),
-        "interpolate" => Ok("interpolate"),
+        "depth" => Ok(("depth-map", true)),
+        "deadframes" => Ok(("deadframes", false)),
+        "interpolate" => Ok(("interpolate", true)),
         other => Err(format!("Unknown export pass: {other}")),
     }
 }
@@ -336,7 +338,7 @@ pub async fn run_export_pass(
     args: Vec<String>,
     delete_input: Option<bool>,
 ) -> Result<String, String> {
-    let cli_cmd = pass_cli_command(&pass)?;
+    let (cli_cmd, needs_ai) = pass_cli_command(&pass)?;
 
     if !std::path::Path::new(&input_path).exists() {
         return Err(format!("Pass input no longer exists: {}", file_name_only(&input_path)));
@@ -351,7 +353,11 @@ pub async fn run_export_pass(
     let abort_requested = abort_state.abort_requested.clone();
     let active_pids = abort_state.pids.clone();
 
-    let mut cmd = amverge_command(&app)?;
+    let mut cmd = if needs_ai {
+        amverge_ai_command(&app)?
+    } else {
+        amverge_command(&app)?
+    };
     cmd.arg(cli_cmd)
         .arg(&input_path)
         .arg("--output")

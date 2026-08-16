@@ -6,6 +6,7 @@ use image::DynamicImage;
 use tauri::{AppHandle, Manager};
 
 use crate::utils::ffmpeg::resolve_bundled_tool;
+use crate::utils::logging::console_log;
 use crate::utils::paths::is_episode_cache_dir;
 use crate::utils::process::apply_no_window;
 
@@ -55,6 +56,9 @@ pub fn move_episodes_to_new_dir(
 
     fs::create_dir_all(&new_path).map_err(|e| format!("Failed to create new directory: {e}"))?;
 
+    // Source folders that were copied but could not be deleted (locked files).
+    let mut leftovers: Vec<String> = Vec::new();
+
     for entry in
         fs::read_dir(&old_path).map_err(|e| format!("Failed to read old directory: {e}"))?
     {
@@ -71,30 +75,78 @@ pub fn move_episodes_to_new_dir(
 
         let dest = new_path.join(entry.file_name());
 
-        fs::rename(&src, &dest).or_else(|_| {
-            if src.is_dir() {
-                let mut options = fs_extra::dir::CopyOptions::new();
-                options.copy_inside = true;
+        // Fast path: same volume, nothing holding the files open.
+        if fs::rename(&src, &dest).is_ok() {
+            continue;
+        }
 
-                fs::create_dir_all(&dest)
-                    .map_err(|e| format!("Failed to create destination folder: {e}"))?;
+        // Slow path: copy everything first, and only then try to delete the
+        // source. The delete is deliberately best-effort — the grid keeps the
+        // clips it is displaying open in the WebView, so a file can be locked
+        // (os error 32) at any moment. Failing hard here used to abort
+        // `remove_dir_all` mid-way, which had already deleted part of the
+        // episode: the copy survived, but the source was gutted.
+        if src.is_dir() {
+            let mut options = fs_extra::dir::CopyOptions::new();
+            options.copy_inside = true;
+            options.overwrite = true;
 
-                fs_extra::dir::copy(&src, &dest, &options)
-                    .map_err(|e| format!("Failed to copy directory: {e}"))?;
+            fs::create_dir_all(&dest)
+                .map_err(|e| format!("Failed to create destination folder: {e}"))?;
 
-                fs::remove_dir_all(&src)
-                    .map_err(|e| format!("Failed to remove old directory: {e}"))?;
-            } else {
-                fs::copy(&src, &dest).map_err(|e| format!("Failed to copy file: {e}"))?;
+            fs_extra::dir::copy(&src, &dest, &options)
+                .map_err(|e| format!("Failed to copy directory: {e}"))?;
+        } else {
+            fs::copy(&src, &dest).map_err(|e| format!("Failed to copy file: {e}"))?;
+        }
 
-                fs::remove_file(&src).map_err(|e| format!("Failed to remove old file: {e}"))?;
-            }
+        if !remove_with_retries(&src) {
+            leftovers.push(src.to_string_lossy().to_string());
+        }
+    }
 
-            Ok::<(), String>(())
-        })?;
+    if !leftovers.is_empty() {
+        console_log(
+            "SETTINGS|move",
+            &format!(
+                "copied to new location, {} source folder(s) still locked and left in place",
+                leftovers.len()
+            ),
+        );
     }
 
     Ok(old_path_string)
+}
+
+/// Delete a moved-from path, retrying briefly. Windows releases a file handle
+/// slightly after the WebView drops the element that held it, so a couple of
+/// short retries turn most "file in use" failures into a clean delete. Returns
+/// false when the path survived — the caller treats that as a leftover to clean
+/// up later, never as a reason to abort.
+fn remove_with_retries(path: &Path) -> bool {
+    for attempt in 0..5 {
+        let result = if path.is_dir() {
+            fs::remove_dir_all(path)
+        } else {
+            fs::remove_file(path)
+        };
+
+        match result {
+            Ok(()) => return true,
+            Err(_) if attempt < 4 => {
+                std::thread::sleep(std::time::Duration::from_millis(250));
+            }
+            Err(e) => {
+                console_log(
+                    "SETTINGS|move",
+                    &format!("could not remove {}: {e}", path.to_string_lossy()),
+                );
+                return false;
+            }
+        }
+    }
+
+    false
 }
 
 #[tauri::command]

@@ -15,9 +15,7 @@ jobs:
     name: Build checks
     runs-on: windows-latest
     env:
-      # Build the sidecar from the published CLI wheel (dev extra pulls
-      # PyInstaller). CPU torch keeps the PR check light (no 2.5GB CUDA wheel).
-      AMVERGE_CLI_INSTALL_SPEC: "amverge[ml,dev]"
+      AMVERGE_CLI_INSTALL_SPEC: "amverge[edge,discord,dev]"
       AMVERGE_TORCH_INDEX_URL: ""
 
     steps:

@@ -6,9 +6,6 @@ use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-#[cfg(not(windows))]
-use std::os::unix::process::CommandExt;
-
 use tauri::{AppHandle, Emitter, Manager, State};
 use serde_json::{json, Value};
 
@@ -24,6 +21,7 @@ use crate::utils::paths::{
     clear_files_in_dir, dir_name_only, file_name_only, sanitize_episode_cache_id,
 };
 use crate::utils::process::apply_no_window;
+use crate::utils::sidecar::{amverge_ai_command, amverge_command, amverge_exe_name};
 
 fn now_unix_seconds() -> u64 {
     SystemTime::now()
@@ -241,103 +239,47 @@ pub async fn detect_scenes(
 
     let output_dir_base = dir_name_only(&output_dir);
 
-    let mut child = if cfg!(debug_assertions) {
-        // current_dir is frontend/src-tauri during `tauri dev`; pop to the repo root.
-        let mut root = std::env::current_dir().map_err(|e| e.to_string())?;
-        root.pop();
-        root.pop();
+    let method = scene_detection_method
+        .clone()
+        .unwrap_or_else(|| "transnetv2_gpu".to_string());
+    // TransNetV2 lives in the optional AI env; every other method runs on the
+    // bundled sidecar.
+    let needs_ai = method == "transnetv2_gpu";
 
-        // CLI checkout: AMVERGE_CLI_DIR override, else the in-repo ./AMVerge-CLI clone.
-        let cli_dir = std::env::var("AMVERGE_CLI_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| root.join("AMVerge-CLI"));
-
-        let amverge_path = if cfg!(windows) {
-            cli_dir.join(".venv").join("Scripts").join("amverge.exe")
-        } else {
-            cli_dir.join(".venv").join("bin").join("amverge")
-        };
-
-        let amverge_name =
-            amverge_path
-                .file_name()
-                .and_then(|x| x.to_str())
-                .unwrap_or(if cfg!(windows) {
-                    "amverge.exe"
-                } else {
-                    "amverge"
-                });
-        console_log(
-            "SCENE|spawn",
-            &format!(
-                "mode=dev exe={amverge_name} args=[backend,{video_name},{output_dir_base}]"
-            ),
-        );
-
-        let mut cmd = Command::new(&amverge_path);
-        apply_no_window(&mut cmd);
-        #[cfg(not(windows))]
-        cmd.process_group(0);
-        cmd.arg("backend")
-            .arg(&video_path)
-            .arg(&output_dir_str)
-            .arg(scene_detection_method.clone().unwrap_or_else(|| "transnetv2_gpu".to_string()))
-            .arg(import_method.clone().unwrap_or_else(|| "video_files".to_string()))
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|e| format!("Failed to spawn amverge CLI ({}): {e}", amverge_path.display()))?
+    let mut cmd = if needs_ai {
+        amverge_ai_command(&app)?
     } else {
+        amverge_command(&app)?
+    };
+
+    console_log(
+        "SCENE|spawn",
+        &format!(
+            "mode={} exe={} ai={needs_ai} args=[backend,{video_name},{output_dir_base}]",
+            if cfg!(debug_assertions) { "dev" } else { "prod" },
+            amverge_exe_name()
+        ),
+    );
+
+    if !cfg!(debug_assertions) {
         let exe_dir = std::env::current_exe()
             .map_err(|e| format!("Can't find current exe: {e}"))?
             .parent()
             .ok_or("Can't get exe directory")?
             .to_path_buf();
+        cmd.current_dir(exe_dir);
+    }
 
-        let sidecar_rel = if cfg!(windows) {
-            "bin/amverge-x86_64-pc-windows-msvc/amverge.exe"
-        } else if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
-            "bin/amverge-aarch64-apple-darwin/amverge"
-        } else if cfg!(target_os = "macos") {
-            "bin/amverge-x86_64-apple-darwin/amverge"
-        } else {
-            return Err("detect_scenes: unsupported platform".to_string());
-        };
-
-        let backend = app
-            .path()
-            .resolve(sidecar_rel, tauri::path::BaseDirectory::Resource)
-            .map_err(|e| e.to_string())?;
-
-        let backend_name =
-            backend
-                .file_name()
-                .and_then(|x| x.to_str())
-                .unwrap_or(if cfg!(windows) {
-                    "amverge.exe"
-                } else {
-                    "amverge"
-                });
-        console_log(
-            "SCENE|spawn",
-            &format!("mode=prod exe={backend_name} args=[{video_name},{output_dir_base}]"),
-        );
-
-        let mut cmd = Command::new(backend);
-        apply_no_window(&mut cmd);
-        #[cfg(not(windows))]
-        cmd.process_group(0);
-        cmd.current_dir(&exe_dir)
-            .arg("backend")
-            .arg(&video_path)
-            .arg(&output_dir_str)
-            .arg(scene_detection_method.clone().unwrap_or_else(|| "transnetv2_gpu".to_string()))
-            .arg(import_method.clone().unwrap_or_else(|| "video_files".to_string()))
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|e| format!("Failed to spawn backend exe: {e}"))?
-    };
+    let mut child = cmd
+        .arg("backend")
+        .arg(&video_path)
+        .arg(&output_dir_str)
+        .arg(&method)
+        .arg(import_method.clone().unwrap_or_else(|| "video_files".to_string()))
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to spawn amverge backend: {e}"))?;
 
     let child_pid = child.id();
     console_log("SCENE|pid", &format!("pid={}", child_pid));

@@ -124,33 +124,25 @@ async function main() {
   );
 
   const sep = isWindows ? ";" : ":";
-  // Fail fast (before the expensive pip install) if the binaries are missing.
+
   const ffmpegBin = resolveTool(ffmpegBinDir, "ffmpeg", isWindows);
   const ffprobeBin = resolveTool(ffmpegBinDir, "ffprobe", isWindows);
 
   // --- Provision the build venv and install the CLI via pip ------------------
   const basePython = process.env.PYTHON || (isWindows ? "python" : "python3");
-  const extras = process.env.AMVERGE_CLI_EXTRAS || "ml,dev";
-  // Default install source: the local CLI checkout, so a dev's local CLI edits
-  // flow into the app. CI sets AMVERGE_CLI_INSTALL_SPEC to the published wheel
-  // (e.g. "amverge[ml,dev]") — [dev] is required because it pulls PyInstaller.
+  const extras = process.env.AMVERGE_CLI_EXTRAS || "edge,discord,dev";
   const installSpec =
     process.env.AMVERGE_CLI_INSTALL_SPEC || `${cliDir}[${extras}]`;
-  // CUDA torch wheel index (Windows GPU). Empty string skips the explicit torch
-  // install (macOS uses the default CPU wheel pulled by the [ml] extra).
-  const torchIndexUrl =
-    process.env.AMVERGE_TORCH_INDEX_URL ??
-    (isWindows ? "https://download.pytorch.org/whl/cu128" : "");
-  // Empty string skips nelux entirely (the CLI falls back to FFmpeg parallel
-  // decode) — useful where the wheel must build from source and the native
-  // toolchain (CMake + spdlog etc.) isn't available.
-  const neluxSpec =
-    process.env.AMVERGE_NELUX_SPEC ??
-    "git+https://github.com/NevermindNilas/Nelux.git";
+  const torchIndexUrl = process.env.AMVERGE_TORCH_INDEX_URL ?? "";
+  const neluxSpec = process.env.AMVERGE_NELUX_SPEC ?? "";
 
-  // Intel-mac cross build: an Apple-silicon runner targeting x86_64 must run the
-  // x86_64 slice for venv creation, pip installs (so x86_64 wheels land) AND
-  // PyInstaller. Wrap every Python invocation in `arch -x86_64` for that leg.
+  // Fat bundle (the pre-optional-deps behaviour): only when torch is asked for
+  // explicitly. Otherwise torch must not end up in the sidecar at all.
+  const withMl =
+    /(^|[,[])ml($|[,\]])/.test(extras) ||
+    /\[[^\]]*\bml\b[^\]]*\]/.test(installSpec) ||
+    Boolean(torchIndexUrl);
+
   const isX64Mac =
     process.platform === "darwin" && triple === "x86_64-apple-darwin";
   const runPython = (pythonExe, pythonArgs, options = {}) => {
@@ -163,6 +155,38 @@ async function main() {
 
   await fs.mkdir(buildRoot, { recursive: true });
 
+  // The build venv is reused between builds for speed, but pip never removes a
+  // package just because it left the install spec. A venv left over from a
+  // torch-carrying build ([ml,dev]) would silently re-bundle torch, because
+  // PyInstaller collects anything importable and the CLI does `import torch`
+  // behind a try/except. So: whenever the install configuration changes, throw
+  // the venv away and build a clean one.
+  const buildConfig = JSON.stringify({
+    installSpec,
+    extras,
+    torchIndexUrl,
+    neluxSpec,
+  });
+  const buildConfigPath = path.join(buildRoot, "build-config.json");
+  const ownsVenv = !process.env.AMVERGE_BUILD_VENV;
+
+  let previousConfig = null;
+  try {
+    previousConfig = await fs.readFile(buildConfigPath, "utf8");
+  } catch {
+    previousConfig = null;
+  }
+
+  if (previousConfig !== null && previousConfig !== buildConfig && ownsVenv) {
+    console.log("Install spec changed since the last build — recreating the build venv.");
+    await fs.rm(buildVenvDir, { recursive: true, force: true });
+  } else if (previousConfig !== null && previousConfig !== buildConfig) {
+    console.warn(
+      "WARNING: the install spec changed but AMVERGE_BUILD_VENV points at an external venv. " +
+        "Stale packages (e.g. torch from an [ml] build) will be bundled. Recreate it manually."
+    );
+  }
+
   let buildPythonExists = false;
   try {
     buildPythonExists = (await fs.stat(buildPython)).isFile();
@@ -170,17 +194,12 @@ async function main() {
     buildPythonExists = false;
   }
   if (!buildPythonExists) {
-    // A venv's python can bootstrap another venv, so basePython may be the dev
-    // interpreter or a system one on PATH (override with PYTHON).
     runPython(basePython, ["-m", "venv", buildVenvDir]);
   }
+  await fs.writeFile(buildConfigPath, buildConfig, "utf8");
 
   runPython(buildPython, ["-m", "pip", "install", "--upgrade", "pip"]);
-  // CLI itself (regular, non-editable) + extras: ml pulls torch/transnetv2,
-  // dev pulls pyinstaller. --upgrade so each build picks up the latest CLI code.
   runPython(buildPython, ["-m", "pip", "install", "--upgrade", installSpec]);
-  // GPU torch: the [ml] extra resolves a CPU wheel on Windows, so override it
-  // with the CUDA build for prod. Skipped when torchIndexUrl is empty.
   if (torchIndexUrl) {
     runPython(buildPython, [
       "-m", "pip", "install", "--upgrade",
@@ -191,6 +210,27 @@ async function main() {
   // CLI's FFmpeg parallel decode and don't need it.
   if (isWindows && neluxSpec) {
     runPython(buildPython, ["-m", "pip", "install", "--upgrade", neluxSpec]);
+  }
+  // Backstop: PyInstaller bundles whatever is importable, so a stray torch in
+  // the build venv adds gigabytes to the installer and quietly undoes the
+  // install-on-demand design. Catch it here rather than at release time.
+  if (!withMl) {
+    const stray = spawnSync(
+      buildPython,
+      [
+        "-c",
+        "import importlib.util as u, sys; " +
+          "found = [n for n in ('torch','transnetv2_pytorch','spandrel','onnxruntime') if u.find_spec(n)]; " +
+          "print(','.join(found)); sys.exit(1 if found else 0)",
+      ],
+      { encoding: "utf8" }
+    );
+    if (stray.status !== 0) {
+      throw new Error(
+        `The build venv contains AI packages that must not be bundled: ` +
+          `${(stray.stdout || "").trim()}. Delete "${buildVenvDir}" and rebuild.`
+      );
+    }
   }
   // ---------------------------------------------------------------------------
 
@@ -209,14 +249,13 @@ async function main() {
     `${ffmpegBin}${sep}.`,
     "--add-binary",
     `${ffprobeBin}${sep}.`,
-    // transnetv2-pytorch ships model weights as package data files.
-    "--collect-data",
-    "transnetv2_pytorch",
-    // The CLI itself ships package data (e.g. core/upscaling/registry.json,
-    // loaded at import time) — collect it or the frozen app crashes on start.
     "--collect-data",
     "amverge",
   ];
+
+  if (withMl) {
+    pyinstallerArgs.push("--collect-data", "transnetv2_pytorch");
+  }
 
   if (process.platform === "darwin") {
     if (triple === "x86_64-apple-darwin") {
@@ -230,19 +269,35 @@ async function main() {
     pyinstallerArgs.push("--noconsole");
   }
   if (isWindows && neluxSpec) {
-    // nelux (installed on Windows only) ships a native extension plus its own
-    // FFmpeg DLLs (nelux.libs via delvewheel); collect-all grabs the package,
-    // binaries, and data together. Skipped elsewhere since nelux isn't installed.
     pyinstallerArgs.push("--collect-all", "nelux");
   }
 
-  // Build from the neutral build root (its ./dist and ./build live under
-  // buildRoot). runPython adds `arch -x86_64` on the Intel-mac leg.
   runPython(buildPython, pyinstallerArgs, { cwd: buildRoot });
 
   await fs.rm(tauriSidecarDir, { recursive: true, force: true });
   await fs.mkdir(tauriSidecarDir, { recursive: true });
   await fs.cp(distDir, tauriSidecarDir, { recursive: true });
+
+  const versionProbe = spawnSync(
+    buildPython,
+    ["-c", "import importlib.metadata as m; print(m.version('amverge'))"],
+    { encoding: "utf8" }
+  );
+  const cliVersion = (versionProbe.stdout || "").trim();
+  if (versionProbe.status !== 0 || !cliVersion) {
+    throw new Error(
+      `Could not read the installed amverge version from the build venv: ${
+        versionProbe.stderr || versionProbe.error || "no output"
+      }`
+    );
+  }
+  await fs.mkdir(path.join(tauriSidecarDir, "_internal"), { recursive: true });
+  await fs.writeFile(
+    path.join(tauriSidecarDir, "_internal", "cli-version.txt"),
+    `${cliVersion}\n`,
+    "utf8"
+  );
+  console.log(`Sidecar CLI version: ${cliVersion}`);
 
   const exeName = isWindows ? "amverge.exe" : "amverge";
   const exePath = path.join(tauriSidecarDir, exeName);
@@ -270,7 +325,7 @@ async function main() {
         return internalPath;
       }
     } catch {
-      // Missing in both root and _internal.
+      // Missing in both root and _internal. 
     }
 
     return null;

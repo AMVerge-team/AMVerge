@@ -11,6 +11,7 @@ import {
 
 import { runPostExportPasses } from "../features/export/runPostExportPasses";
 import { anyPassEnabled } from "../features/export/postPasses";
+import { useAiDepsStore } from "../stores/aiDepsStore";
 import { useAppStateStore, useAppPersistedStore } from "../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
 import { useGeneralSettingsStore } from "../stores/settingsStore";
@@ -326,6 +327,18 @@ export default function useImportExport(props?: ImportExportProps) {
     // resolve the import as soon as those are done. Phase-2 re-encodes keep
     // streaming via clip_ready and fill their tiles in the background.
     const videoStreaming = streamToGrid && generalSettings.importMethod === "video_files";
+
+    // Safety net for the settings gate: the ml pack could have been removed (or
+    // the setting carried over from an older install) since it was chosen.
+    // Prompt here rather than letting the backend fail mid-import.
+    if (generalSettings.sceneDetectionMethod === "transnetv2_gpu") {
+      const ready = await useAiDepsStore.getState().ensurePack("ml");
+      if (!ready) {
+        throw new Error(
+          "TransNetV2 is not installed. Install it, or switch scene detection to Keyframe Detection in Settings.",
+        );
+      }
+    }
 
     if (videoStreaming) {
       // Stop any previous streaming session so a still-running background

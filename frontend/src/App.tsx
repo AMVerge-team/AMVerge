@@ -11,6 +11,7 @@ import ImportTerminal from "./components/ImportTerminal";
 import BgProgressBar from "./components/BgProgressBar";
 import StartupNotificationModal, { type StartupNotification } from "./components/StartupNotificationModal";
 import PostExportPassesModal from "./components/PostExportPassesModal";
+import AiInstallModal from "./components/AiInstallModal";
 
 import useDiscordRPC from "./hooks/useDiscordRPC";
 import useHEVCSupport from "./hooks/useHEVCSupport";
@@ -21,6 +22,7 @@ import useStartupUpdateNotification from "./hooks/useStartupUpdateNotification";
 import { remapClipPaths, remapPathRoot } from "./utils/episodeUtils";
 import { useScenePreviewStore } from "./stores/scenePreviewStore";
 
+import { useAiDepsStore } from "./stores/aiDepsStore";
 import { useAppStateStore } from "./stores/appStore";
 import { useWebpLoadingStore } from "./stores/webpLoadingStore";
 import { useUIStateStore } from "./stores/UIStore";
@@ -39,7 +41,11 @@ function App() {
   const bgImportProgress = useAppStateStore((s) => s.bgImportProgress);
   const reencodeProgress = useAppStateStore((s) => s.reencodeProgress);
   const webpLoadDone = useWebpLoadingStore((s) => s.done);
-  const webpLoadTotal = useWebpLoadingStore((s) => s.total);
+  const webpLoadTotalRaw = useWebpLoadingStore((s) => s.total);
+  const webpDismissed = useWebpLoadingStore((s) => s.dismissed);
+  // Closing the card hides the preview counter for the rest of this episode;
+  // the queue keeps filling the cache in the background.
+  const webpLoadTotal = webpDismissed ? 0 : webpLoadTotalRaw;
   const sceneDetectionMethod = useGeneralSettingsStore((s) => s.sceneDetectionMethod);
   const importMethodSetting = useGeneralSettingsStore((s) => s.importMethod);
   const activeOperation = useAppStateStore((s) => s.activeOperation);
@@ -72,6 +78,12 @@ function App() {
 
   const handleResetGeneralSettings = async () => {
     try {
+      // Release the clip files the grid holds open, or Windows blocks the move
+      // of anything currently on screen.
+      useAppStateStore.getState().setClips([]);
+      useAppStateStore.getState().setSelectedClips(new Set());
+      await new Promise((resolve) => setTimeout(resolve, 250));
+
       const resolvedOldPath = await invoke<string>("move_episodes_to_new_dir", {
         oldDir: generalSettings.episodesPath,
         newDir: null,
@@ -220,6 +232,12 @@ function App() {
   // null = follow auto behaviour; true/false = user's explicit minimize choice.
   const [minimizeOverride, setMinimizeOverride] = useState<boolean | null>(null);
 
+  // Which optional AI packs are installed — drives the lock badges on the AI
+  // settings, so it needs to be known before the user opens Settings.
+  useEffect(() => {
+    void useAiDepsStore.getState().refresh();
+  }, []);
+
   useEffect(() => {
     if (loading) setImportUiActive(true);
   }, [loading]);
@@ -245,6 +263,10 @@ function App() {
       await handleAbort();
     }
     clearBgProgress();
+    // After clearBgProgress (whose reset() re-arms the card): mark it dismissed,
+    // because the WebP queue is still running and its next progress update would
+    // otherwise reopen the card immediately.
+    useWebpLoadingStore.getState().dismiss();
   }
 
   // Effects
@@ -342,6 +364,15 @@ function App() {
 
       const wwRect = ww.getBoundingClientRect();
       const mlRect = ml.getBoundingClientRect();
+
+      // HomePage stays mounted under `display: none` on Settings/Menu, where its
+      // rect collapses to all zeros. Centering the splitter against that would
+      // translate it by half the window height (visibly stuck near the top), so
+      // drop the offset and let its own `align-self: center` do the work.
+      if (mlRect.height === 0) {
+        setDividerOffsetPx((prev) => (prev === 0 ? prev : 0));
+        return;
+      }
 
       const wwCenterY = wwRect.top + wwRect.height / 2;
       const mlCenterY = mlRect.top + mlRect.height / 2;
@@ -458,6 +489,7 @@ function App() {
         />
       ) : null}
       <PostExportPassesModal />
+      <AiInstallModal />
       </AppLayout>
   );
 }

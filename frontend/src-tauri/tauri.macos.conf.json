@@ -9,7 +9,8 @@
       "bin/amverge-aarch64-apple-darwin/amverge",
       "bin/amverge-aarch64-apple-darwin/_internal/**/*",
       "bin/amverge-aarch64-apple-darwin/_internal/ffmpeg",
-      "bin/amverge-aarch64-apple-darwin/_internal/ffprobe"
+      "bin/amverge-aarch64-apple-darwin/_internal/ffprobe",
+      "bin/uv/aarch64-apple-darwin/uv"
     ]
   }
 }

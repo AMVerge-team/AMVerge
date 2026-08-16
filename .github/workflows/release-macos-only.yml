@@ -24,9 +24,7 @@ jobs:
       AMVERGE_BUG_REPORT_API_KEY: ${{ secrets.AMVERGE_BUG_REPORT_API_KEY }}
       AMVERGE_BUG_REPORT_KEY_ID: ${{ secrets.AMVERGE_BUG_REPORT_KEY_ID }}
       AMVERGE_BUG_REPORT_SIGNING_SECRET: ${{ secrets.AMVERGE_BUG_REPORT_SIGNING_SECRET }}
-      # Bundle the published CLI wheel (dev extra pulls PyInstaller). macOS uses
-      # the CPU torch wheel from [ml] (no CUDA override).
-      AMVERGE_CLI_INSTALL_SPEC: "amverge[ml,dev]"
+      AMVERGE_CLI_INSTALL_SPEC: "amverge[edge,discord,dev]"
     strategy:
       fail-fast: false
       matrix:
