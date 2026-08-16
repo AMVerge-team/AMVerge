@@ -6,5 +6,6 @@ pub mod editor_import;
 pub mod export;
 pub mod notifications;
 pub mod preview;
+pub mod scenepacks;
 pub mod scenes;
 pub mod settings;

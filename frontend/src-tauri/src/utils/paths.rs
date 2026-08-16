@@ -1,4 +1,33 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+use tauri::{AppHandle, Manager};
+
+/// The configured storage root: `custom_path` if the user set one, otherwise
+/// `app_data_dir/episodes`. `episodes_storage/` and `scene_packs/` are separate
+/// subfolders beneath this root — see `resolve_episodes_storage_dir` and
+/// `resolve_scenepacks_storage_dir`.
+pub fn resolve_storage_root(app: &AppHandle, custom_path: Option<&str>) -> Result<PathBuf, String> {
+    match custom_path.map(str::trim) {
+        Some(p) if !p.is_empty() => Ok(PathBuf::from(p)),
+        _ => Ok(app
+            .path()
+            .app_data_dir()
+            .map_err(|e| e.to_string())?
+            .join("episodes")),
+    }
+}
+
+/// Where per-episode data (manifest, cut clips, WebP cache) lives. Kept in its
+/// own subfolder, separate from `scene_packs/`, so a Scenepack's materialized
+/// copies never share storage with — or get deleted alongside — episode data.
+pub fn resolve_episodes_storage_dir(app: &AppHandle, custom_path: Option<&str>) -> Result<PathBuf, String> {
+    Ok(resolve_storage_root(app, custom_path)?.join("episodes_storage"))
+}
+
+/// Where Scenepacks' own materialized clip copies live.
+pub fn resolve_scenepacks_storage_dir(app: &AppHandle, custom_path: Option<&str>) -> Result<PathBuf, String> {
+    Ok(resolve_storage_root(app, custom_path)?.join("scene_packs"))
+}
 
 pub fn file_name_only(s: &str) -> String {
     let p = Path::new(s);

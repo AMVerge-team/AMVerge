@@ -15,7 +15,7 @@ export default function useDiscordRPC() {
       isStartedRef.current = true;
       console.log("Discord RPC started");
 
-      // Initial status
+      // initial status
       updateRPC({
         type: "update",
         details: "Ready to process videos",
@@ -47,13 +47,13 @@ export default function useDiscordRPC() {
     try {
       await invoke("update_discord_rpc", { data });
     } catch (err) {
-      // If it fails, maybe it crashed? reset ref
+      // if it fails, maybe it crashed? reset ref
       console.error("Failed to update Discord RPC:", err);
       // isStartedRef.current = false;
     }
   }, [generalSettings.discordRPCEnabled]);
 
-  // Handle start/stop based on setting
+  // handle start/stop based on setting
   useEffect(() => {
     if (generalSettings.discordRPCEnabled) {
       startRPC();
@@ -66,7 +66,7 @@ export default function useDiscordRPC() {
     };
   }, [generalSettings.discordRPCEnabled, startRPC, stopRPC]);
 
-  // Update status based on page navigation
+  // update status based on page navigation
   useEffect(() => {
     if (!isStartedRef.current || !generalSettings.discordRPCEnabled) return;
 

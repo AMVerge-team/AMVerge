@@ -1,15 +1,15 @@
 import { create } from "zustand";
 
 /**
- * Tracks WebP scene-preview generation progress for the background progress bar.
- * Updated by the viewport-aware WebP queue; consumed by App's BgProgressBar.
+ * tracks WebP scene-preview generation progress for the background progress bar.
+ * updated by the viewport-aware WebP queue; consumed by App's BgProgressBar.
  *
  * `total`/`done` are cumulative for the current loading burst: each newly
  * demanded preview that needs backend work bumps `total`, each finished one
  * bumps `done`. When the queue fully drains (or the episode switches) both reset
  * to 0 so the bar hides and the next burst starts a fresh count.
  *
- * Kept in its own store so these frequent counter updates only re-render the
+ * kept in its own store so these frequent counter updates only re-render the
  * progress bar, never the clips grid (which slices `scenePreviewStore`).
  */
 export type WebpLoadingStore = {

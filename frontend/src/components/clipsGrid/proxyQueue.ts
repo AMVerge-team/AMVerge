@@ -1,9 +1,9 @@
 /**
  * proxyQueue.ts
  *
- * Custom React hook for managing HEVC/H.264 proxy generation and prioritization for video clips.
- * Ensures only visible/needed proxies are generated, and prioritizes hovered/active tiles.
- * This only actually runs if the user does not have HEVC and the episode is encoded in HEVC.
+ * custom React hook for managing HEVC/H.264 proxy generation and prioritization for video clips.
+ * ensures only visible/needed proxies are generated, and prioritizes hovered/active tiles.
+ * this only actually runs if the user does not have HEVC and the episode is encoded in HEVC.
  */
 import { useRef, useCallback } from "react";
 import {
@@ -92,7 +92,7 @@ export default function useViewportAwareProxyQueue() {
 
         try {
           proxyInFlightClipRef.current = clipPath;
-          // Read the quality at dispatch time so a settings change applies to
+          // read the quality at dispatch time so a settings change applies to
           // everything still queued without re-subscribing this long-lived loop.
           const preset =
             PREVIEW_TRANSCODE_PRESETS[

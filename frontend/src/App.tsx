@@ -7,6 +7,7 @@ import AppLayout from "./components/AppLayout";
 import HomePage from "./pages/HomePage";
 import Menu from "./pages/Menu";
 import Settings from "./pages/Settings";
+import ScenepacksPage from "./pages/ScenepacksPage";
 import ImportTerminal from "./components/ImportTerminal";
 import BgProgressBar from "./components/BgProgressBar";
 import StartupNotificationModal, { type StartupNotification } from "./components/StartupNotificationModal";
@@ -60,7 +61,7 @@ function App() {
   const importToken = useAppStateStore((s) => s.importToken);
 
 
-  // Refs
+  // refs
   const windowWrapperRef = useRef<HTMLDivElement | null>(null);
   const mainLayoutWrapperRef = useRef<HTMLDivElement | null>(null);
   const userHasHEVC = useAppStateStore((s) => s.userHasHEVC);
@@ -118,7 +119,7 @@ function App() {
     return { done: Math.max(0, done), total };
   };
 
-  // Persisted UI state
+  // persisted UI state
   const sidebarWidthPx = useUIStateStore(s => s.sidebarWidthPx);
   const setSidebarWidthPx = useUIStateStore(s => s.setSidebarWidthPx);
 
@@ -173,7 +174,7 @@ function App() {
         : s.importedVideoPath,
     }));
 
-    // Animated WebP previews are cached by clip id as absolute paths under the
+    // animated WebP previews are cached by clip id as absolute paths under the
     // episodes folder. They aren't persisted, but within this session they'd
     // still point at the old location and render as black tiles in WebP mode.
     useScenePreviewStore.setState((s) => {
@@ -184,7 +185,7 @@ function App() {
       return { animatedByClipId: next };
     });
 
-    // Rewriting the store isn't enough on its own: the grid is keyed by
+    // rewriting the store isn't enough on its own: the grid is keyed by
     // importToken and each tile seeds its poster path into local state at mount,
     // so already-mounted tiles keep rendering the old location. Bumping the
     // token remounts them against the new paths and, since it's the `?v=` cache
@@ -192,7 +193,7 @@ function App() {
     useAppStateStore.getState().setImportToken(Date.now().toString());
   };
 
-  // Import/export
+  // import/export
   const { updateRPC } = useDiscordRPC();
 
   const { handleImport, handleBatchImport } = useImportExport({
@@ -200,7 +201,7 @@ function App() {
     onRPCUpdate: updateRPC
   });
 
-  // App-level hooks
+  // app-level hooks
   useHEVCSupport();
 
   useDragDropImport({
@@ -222,7 +223,7 @@ function App() {
     }
   }
 
-  // The import overlay (ImportTerminal) stays mounted from the moment loading
+  // the import overlay (ImportTerminal) stays mounted from the moment loading
   // starts until every background task finishes, so it can minimize/expand
   // without losing its terminal log. `bgActive` covers the post-detection
   // phase (clip cuts, thumbnails, webp previews).
@@ -248,13 +249,13 @@ function App() {
     }
   }, [loading, bgActive]);
 
-  // Auto-minimize once the heavy phase (scene detect + first clip cuts) is done
+  // auto-minimize once the heavy phase (scene detect + first clip cuts) is done
   // and only background thumbnail/reencode/preview work remains.
   const autoMinimized = !loading && bgActive;
   const overlayMinimized = minimizeOverride !== null ? minimizeOverride : autoMinimized;
 
   async function handleAbortAndCloseBgProgress() {
-    // When only the WebP "Loading previews" indicator is up there's no backend
+    // when only the WebP "Loading previews" indicator is up there's no backend
     // task to abort — just hide it. Firing the abort invokes would needlessly
     // flag abortedRef and interfere with a later import.
     const { bgProgress: bg, bgImportProgress: bgImport, reencodeProgress: reenc } =
@@ -269,7 +270,7 @@ function App() {
     useWebpLoadingStore.getState().dismiss();
   }
 
-  // Effects
+  // effects
   useEffect(() => {
     applyThemeSettings(themeSettings);
   }, [themeSettings]);
@@ -462,19 +463,19 @@ function App() {
       }}
     >
       <div className="main-content">
-        {/* HomePage stays mounted across navigation (hidden, not unmounted) so
-            returning to an opened episode doesn't tear down and regenerate the
-            whole grid — WebP queue, per-tile proxies, scroll position and all.
-            `display: contents` keeps its children laid out exactly as before when
-            active; `display: none` hides the subtree when another page is open. */}
         <div style={{ display: activePage === "home" ? "contents" : "none" }}>
           <HomePage
             mainLayoutWrapperRef={mainLayoutWrapperRef}
           />
         </div>
+        {activePage === "scenepacks" && generalSettings.scenepacksEnabled && <ScenepacksPage />}
+        {activePage === "scenepacks" && !generalSettings.scenepacksEnabled && (() => {
+          useUIStateStore.getState().setActivePage("home");
+          return null;
+        })()}
         {activePage === "menu" ? (
           <Menu />
-        ) : activePage !== "home" ? (
+        ) : activePage !== "home" && activePage !== "scenepacks" ? (
           <Settings
             onGeneralSettingsReset={handleResetGeneralSettings}
             onEpisodesPathChanged={remapEpisodePaths}

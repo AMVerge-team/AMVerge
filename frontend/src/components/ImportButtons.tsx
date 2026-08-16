@@ -6,7 +6,7 @@ import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
 import { openEpisodeById } from "../hooks/useEpisodePanelState";
 import useImportExport from "../hooks/useImportExport";
 
-export default function ImportButtons() {
+export default function ImportButtons({ showImportControls = true }: { showImportControls?: boolean }) {
   const selectedClips = useAppStateStore((s: any) => s.selectedClips);
   const setSelectedClips = useAppStateStore((s: any) => s.setSelectedClips);
   const loading = useAppStateStore((s: any) => s.loading);
@@ -17,13 +17,13 @@ export default function ImportButtons() {
   const openedEpisodeId = useEpisodePanelRuntimeStore((s) => s.openedEpisodeId);
   const { onImportClick } = useImportExport();
 
-  // Drives the one-shot spin animation on the refresh icon.
+  // drives the one-shot spin animation on the refresh icon.
   const [refreshSpinning, setRefreshSpinning] = useState(false);
 
   const hasSelection = selectedClips.size > 0;
   const importBusy = loading || Boolean(bgProgress) || Boolean(bgImportProgress);
 
-  // Re-opens the current episode: fresh import token, cleared selection/focus,
+  // re-opens the current episode: fresh import token, cleared selection/focus,
   // remounted tiles — same reset as switching away and back, without leaving.
   const handleRefreshEpisode = () => {
     if (!openedEpisodeId || importBusy) return;
@@ -33,27 +33,29 @@ export default function ImportButtons() {
 
   return (
       <main className="clips-import">
-        <div className="import-buttons-container">
-          <button onClick={onImportClick}
-                  className="import-button"
-                  disabled={importBusy}
-                  id="file-button"
-          >
-            {importBusy ? "Processing...": "Import Episode"}
-          </button>
-          <button
-            onClick={handleRefreshEpisode}
-            className="import-button refresh-button"
-            disabled={importBusy || !openedEpisodeId}
-            title="Refresh episode"
-            aria-label="Refresh episode"
-          >
-            <FaSyncAlt
-              className={refreshSpinning ? "refresh-icon spinning" : "refresh-icon"}
-              onAnimationEnd={() => setRefreshSpinning(false)}
-            />
-          </button>
-        </div>
+        {showImportControls && (
+          <div className="import-buttons-container">
+            <button onClick={onImportClick}
+                    className="import-button"
+                    disabled={importBusy}
+                    id="file-button"
+            >
+              {importBusy ? "Processing...": "Import Episode"}
+            </button>
+            <button
+              onClick={handleRefreshEpisode}
+              className="import-button refresh-button"
+              disabled={importBusy || !openedEpisodeId}
+              title="Refresh episode"
+              aria-label="Refresh episode"
+            >
+              <FaSyncAlt
+                className={refreshSpinning ? "refresh-icon spinning" : "refresh-icon"}
+                onAnimationEnd={() => setRefreshSpinning(false)}
+              />
+            </button>
+          </div>
+        )}
         <div className="grid-checkboxes">
           <div className="selectable-checkboxes">
             <div className="checkbox-row">

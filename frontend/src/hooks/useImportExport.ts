@@ -188,15 +188,11 @@ export default function useImportExport(props?: ImportExportProps) {
       episodeState.setEpisodes((prev) => [entry, ...prev.filter((ep) => ep.id !== episodeId)]);
       episodeState.setSelectedEpisodeId(episodeId);
       episodeState.setOpenedEpisodeId(episodeId);
-      // Reveal the grid here — the backend has only *detected* at this point, the
-      // cut hasn't started. Each tile renders its own pending skeleton
-      // (LazyClip's `videoClipPending`) and swaps to video as clip_ready streams
-      // in, so the user browses the episode while cutting continues instead of
-      // staring at a full-screen skeleton for the whole cut.
-      //
-      // bgProgress carries the cut count. It drives the minimized progress card
-      // and doubles as the "import busy" flag that `loading` used to provide, so
-      // a second import still can't start mid-cut.
+      // reveal the grid now: only detection has run, cutting hasn't started. tiles
+      // show their own skeleton and fill in as clip_ready arrives, so the episode
+      // is browsable while cutting continues.
+      // bgProgress tracks the cut and doubles as the "import busy" flag `loading`
+      // used to provide, so a second import can't start mid-cut.
       clipDone = 0;
       clipTotal = clips.length;
       useAppStateStore.setState({
@@ -206,12 +202,12 @@ export default function useImportExport(props?: ImportExportProps) {
       });
     });
 
-    // Coalesce clip_ready patches. Keyframe copies finish in bursts — applying
+    // coalesce clip_ready patches. Keyframe copies finish in bursts — applying
     // each as its own setState re-renders the whole grid every time (two O(n)
     // store maps per event), which freezes the UI during import. Instead we
     // buffer patches by clip id and flush them all in a single update per frame.
     const pendingPatches = new Map<string, Partial<ClipItem>>();
-    // Merge (not replace) so a clip_ready and a thumbnail_ready for the same clip
+    // merge (not replace) so a clip_ready and a thumbnail_ready for the same clip
     // within one frame don't clobber each other.
     const mergePatch = (id: string, patch: Partial<ClipItem>) => {
       pendingPatches.set(id, { ...(pendingPatches.get(id) ?? {}), ...patch });
@@ -229,7 +225,7 @@ export default function useImportExport(props?: ImportExportProps) {
       };
       useAppStateStore.setState((s) => ({
         clips: s.clips.map(applyPatch),
-        // Advance the cut counter on the same frame as the clip patches. Left
+        // advance the cut counter on the same frame as the clip patches. Left
         // untouched once every clip is in — phase1_complete clears it.
         bgProgress:
           clipTotal > 0 && clipDone < clipTotal
@@ -265,7 +261,7 @@ export default function useImportExport(props?: ImportExportProps) {
       }
     );
 
-    // Static jpg poster finished for a scene → flip its thumbnailReady so the
+    // static jpg poster finished for a scene → flip its thumbnailReady so the
     // grid swaps the skeleton for the still image (mirrors production).
     unlistenThumb = await listen<{ position: number }>("thumbnail_ready", (event) => {
       const { position } = event.payload;
@@ -273,13 +269,11 @@ export default function useImportExport(props?: ImportExportProps) {
       scheduleFlush();
     });
 
-    // Phase 1 (keyframe copies) done. The grid is already visible from
-    // initial_clips_ready; this just clears the cut progress card so the import
-    // stops counting as busy. Phase-2 re-encodes keep streaming via clip_ready
-    // and fill their tiles in the background (tracked by reencodeProgress,
-    // which deliberately does NOT block a new import).
+    // keyframe copies done. the grid is already visible, so this only clears the
+    // busy flag. phase-2 re-encodes keep streaming in the background under
+    // reencodeProgress, which deliberately does not block a new import.
     unlistenPhase1 = await listen("phase1_complete", () => {
-      // Flush synchronously so every keyframe clip path is in the store before
+      // flush synchronously so every keyframe clip path is in the store before
       // the import resolves.
       cancelFlush();
       flushPatches();
@@ -287,7 +281,7 @@ export default function useImportExport(props?: ImportExportProps) {
       resolvePhase1();
     });
 
-    // Background phase-2 re-encode progress → drives the "Reencoding X/Y" count
+    // background phase-2 re-encode progress → drives the "Reencoding X/Y" count
     // in the draggable background progress bar. Cleared once it reaches total.
     unlistenReencode = await listen<{ done: number; total: number }>("reencode_progress", (event) => {
       const { done, total } = event.payload;
@@ -297,7 +291,7 @@ export default function useImportExport(props?: ImportExportProps) {
     });
 
     const stop = () => {
-      // Apply any patches buffered right before teardown so none are dropped.
+      // apply any patches buffered right before teardown so none are dropped.
       cancelFlush();
       flushPatches();
       if (unlistenInitial) unlistenInitial();
@@ -305,7 +299,7 @@ export default function useImportExport(props?: ImportExportProps) {
       if (unlistenThumb) unlistenThumb();
       if (unlistenPhase1) unlistenPhase1();
       if (unlistenReencode) unlistenReencode();
-      // Clear any lingering progress indicators for this session. bgProgress is
+      // clear any lingering progress indicators for this session. bgProgress is
       // normally cleared at phase1_complete; this covers the process dying
       // mid-cut, which would otherwise leave the import permanently "busy".
       useAppStateStore.setState({ reencodeProgress: null, bgProgress: null });
@@ -322,10 +316,8 @@ export default function useImportExport(props?: ImportExportProps) {
     episodeEntry: EpisodeEntry;
     sceneCount: number;
   }> => {
-    // In video-preview mode we stream clips into the grid as the backend cuts
-    // them: keep the loading screen up through phase-1 (keyframe copies), then
-    // resolve the import as soon as those are done. Phase-2 re-encodes keep
-    // streaming via clip_ready and fill their tiles in the background.
+    // video mode streams clips into the grid as they're cut and resolves the
+    // import once the keyframe copies land; re-encodes finish in the background.
     const videoStreaming = streamToGrid && generalSettings.importMethod === "video_files";
 
     // Safety net for the settings gate: the ml pack could have been removed (or
@@ -341,13 +333,13 @@ export default function useImportExport(props?: ImportExportProps) {
     }
 
     if (videoStreaming) {
-      // Stop any previous streaming session so a still-running background
+      // stop any previous streaming session so a still-running background
       // phase-2 from an earlier import can't cross-patch this episode.
       streamCleanupRef.current?.();
       const { stop, phase1Done } = await startVideoStreamingListeners(file, episodeId);
       streamCleanupRef.current = stop;
 
-      // Fire detection but DON'T block import completion on it — the process
+      // fire detection but DON'T block import completion on it — the process
       // keeps running phase-2 after phase1_complete. Listeners are torn down
       // only when the whole process ends (success or failure).
       let invokeError: unknown = null;
@@ -364,7 +356,7 @@ export default function useImportExport(props?: ImportExportProps) {
           if (streamCleanupRef.current === stop) streamCleanupRef.current = null;
         });
 
-      // Whichever happens first: phase-1 done (normal) or the process ending
+      // whichever happens first: phase-1 done (normal) or the process ending
       // before phase-1 (error, or a video that produced no scenes).
       const winner = await Promise.race([
         phase1Done.then(() => "phase1" as const),
@@ -372,7 +364,7 @@ export default function useImportExport(props?: ImportExportProps) {
       ]);
 
       if (winner === "phase1") {
-        // Build the entry from the streamed clips already in the store (phase-1
+        // build the entry from the streamed clips already in the store (phase-1
         // paths included); phase-2 patches continue arriving in the background.
         const streamedClips = useAppStateStore.getState().clips;
         const inferredName = streamedClips[0]?.originalName || fileNameFromPath(file);
@@ -388,12 +380,12 @@ export default function useImportExport(props?: ImportExportProps) {
         return { episodeEntry, sceneCount: streamedClips.length };
       }
 
-      // Process ended before any phase-1 signal.
+      // process ended before any phase-1 signal.
       if (invokeError) throw invokeError;
-      // Defensive fallback (no scenes / no phase-1 emitted): detect_scenes already
+      // defensive fallback (no scenes / no phase-1 emitted): detect_scenes already
       // ran above, so skip straight to manifest hydration below.
     } else {
-      // Non-streaming path (webp_files, and any non-streaming import): no streaming
+      // non-streaming path (webp_files, and any non-streaming import): no streaming
       // listeners are wired, so run detection to completion here. This writes the
       // manifest the hydration step below reads. (Without this, brand-new episodes
       // have no manifest on disk and loadEpisodeManifest fails with os error 3.)
@@ -466,7 +458,7 @@ export default function useImportExport(props?: ImportExportProps) {
 
       const { episodeEntry, sceneCount } = await runImportPipeline(file, episodeId, true);
 
-      // Replace (not duplicate) the entry the streaming listener may have added.
+      // replace (not duplicate) the entry the streaming listener may have added.
       episodeState.setEpisodes((prev) => [episodeEntry, ...prev.filter((ep) => ep.id !== episodeId)]);
       episodeState.setSelectedEpisodeId(episodeId);
       episodeState.setOpenedEpisodeId(episodeId);
@@ -514,7 +506,7 @@ export default function useImportExport(props?: ImportExportProps) {
       appState.setProgress(0);
       appState.setProgressMsg("Starting...");
       setActiveOperation("import");
-      // Batch shows the full loading screen (minimizable). bgImportProgress is
+      // batch shows the full loading screen (minimizable). bgImportProgress is
       // still tracked so closing the minimized card aborts remaining episodes.
       setLoading(true);
       appState.setSelectedClips(new Set());
@@ -565,7 +557,7 @@ export default function useImportExport(props?: ImportExportProps) {
           episodeState.setEpisodes((prev) => [episodeEntry, ...prev]);
           setBgImportProgress({ done: i + 1, total: files.length });
 
-          // First finished episode: open it in the grid and drop the full-screen
+          // first finished episode: open it in the grid and drop the full-screen
           // loader (it auto-minimizes to the batch card since bgImportProgress is
           // still active) so completed episodes are browsable while the rest keep
           // processing. Later episodes only stream into the sidebar above — we
@@ -611,7 +603,7 @@ export default function useImportExport(props?: ImportExportProps) {
         }
       }
 
-      // The first finished episode is already opened mid-loop (see above), and
+      // the first finished episode is already opened mid-loop (see above), and
       // every completed episode streams into the sidebar as it finishes, so
       // there's nothing to reveal here at the end — re-opening would yank the
       // user off whichever episode they're currently viewing.
@@ -678,7 +670,7 @@ export default function useImportExport(props?: ImportExportProps) {
       dir = picked as string;
       persistedState.setExportDir(dir);
     }
-    // Files produced by the export, fed to the post-export passes after the
+    // files produced by the export, fed to the post-export passes after the
     // export loader closes. Stays empty on failure so no passes run.
     let producedFiles: string[] = [];
     const passesSnapshot = generalSettings.postExportPasses;
@@ -712,7 +704,7 @@ export default function useImportExport(props?: ImportExportProps) {
       if (mergeEnabled) {
         const mergeBase = (selected[0]?.originalName || "episode").replace(/\.[^./\\]+$/, "");
         const rawBase = mergeFileName || (mergeBase + "_merged");
-        // Sanitize: strip path separators, control chars, and reserved characters;
+        // sanitize: strip path separators, control chars, and reserved characters;
         // collapse to a safe filename. Prevents traversal injection (e.g. "../foo").
         const baseName = (rawBase
           .replace(/[\\/:*?"<>|\x00-\x1f]/g, "_")
@@ -796,7 +788,7 @@ export default function useImportExport(props?: ImportExportProps) {
       setActiveOperation(null);
     }
 
-    // Export loader is now closed. Run any enabled post-export passes on the
+    // export loader is now closed. Run any enabled post-export passes on the
     // produced files; the passes modal drives itself from here.
     if (producedFiles.length > 0 && anyPassEnabled(passesSnapshot)) {
       void runPostExportPasses(producedFiles, passesSnapshot);

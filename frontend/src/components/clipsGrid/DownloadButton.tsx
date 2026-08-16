@@ -9,7 +9,7 @@ type DownloadButtonProps = {
 
 /**
  * A small download button designed to sit on a clip tile.
- * Animated on hover for a premium feel.
+ * animated on hover for a premium feel.
  */
 export const DownloadButton: React.FC<DownloadButtonProps> = ({ onClick, loading, tone = "light" }) => {
   return (

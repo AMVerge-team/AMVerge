@@ -188,9 +188,6 @@
     display: flex;
     flex-direction: column;
     gap: 0;
-    /* Force a stable compositor layer. Without it, WebView2 leaves a black
-       repaint artifact below the panel when the scroll content height changes
-       (e.g. toggling a post-export pass open/closed). */
     transform: translateZ(0);
 }
 
@@ -198,22 +195,38 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 16px;
     min-width: 0;
-    height: 40px;
+    height: auto;
+    min-height: 40px;
+}
+
+.export-setting-row .setting-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    /* basis 0, not auto: the description's max-content width must not count
+       toward the row's demand, or the row shrinks the control to pay for it */
+    flex: 1 1 0;
+    min-width: 0;
 }
 
 .export-setting-row .settings-label {
     min-width: 0;
 }
 
+/* every control box (including the nested .settings-control some rows pass in)
+   sizes to its content - the text column absorbs all the flex instead, so a
+   long description can never squash a checkbox or wrap a button label */
 .export-setting-row .settings-control {
     min-width: 0;
+    flex: 0 0 auto;
     justify-content: flex-end;
 }
 
 .export-setting-row .settings-control.export-setting-control {
-    height: 100%;
+    height: auto;
 }
 
 .export-setting-row .settings-control.export-setting-control > .custom-dropdown,
@@ -223,20 +236,42 @@
     min-width: 0;
 }
 
-.export-setting-row .settings-control.export-setting-control > .custom-checkbox {
+/* descendant, not child: some rows wrap their checkbox in another
+   .settings-control, and those were the ones rendering skinny */
+.export-setting-row .custom-checkbox {
     width: 25px;
     min-width: 25px;
+    flex: 0 0 auto;
     margin-right: 0;
 }
 
+.export-setting-row .settings-control button {
+    white-space: nowrap;
+}
+
 .setting-description {
-    margin-top: -4px;
-    margin-bottom: 16px;
-    margin-left: 0px;
+    margin: 0;
     font-size: 0.8rem;
-    line-height: 1;
+    line-height: 1.2;
     letter-spacing: 0.5px;
     color: rgb(255 255 255 / 0.6);
+    /* widening the episode panel squeezes this column, so cap the description at
+       two lines and ellipsis the rest instead of letting it grow the row. the
+       full text stays available on hover. */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+/* keep a long label from pushing its control out of the row */
+.settings-row .settings-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .export-setting-description a {
@@ -260,7 +295,9 @@
 }
 
 .export-setting-block {
-    margin: 0;
+    /* row separation used to come from .setting-description's bottom margin,
+       which now lives inside the row */
+    margin: 0 0 16px;
 }
 
 /* Post-export passes section */

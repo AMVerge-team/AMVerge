@@ -11,7 +11,8 @@ import Dropdown from "../common/Dropdown";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { useAppPersistedStore } from "../../stores/appStore.ts";
 import { useUIStateStore } from "../../stores/UIStore.ts";
-import { PREVIEW_TRANSCODE_PRESETS, useGeneralSettingsStore } from "../../stores/settingsStore.ts";
+import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
+import { usePreviewTranscode } from "../../features/preview/usePreviewTranscode.ts";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
 import useImportExport from "../../hooks/useImportExport";
@@ -53,10 +54,6 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const previewAudioStreamIndex = useGeneralSettingsStore(s => s.previewAudioStreamIndex);
   const setPreviewAudioStreamIndex = useGeneralSettingsStore(s => s.setPreviewAudioStreamIndex);
   const importMethod = useGeneralSettingsStore(s => s.importMethod);
-  const previewTranscodeMode = useGeneralSettingsStore(s => s.previewTranscodeMode);
-  const previewTranscodeQuality = useGeneralSettingsStore(s => s.previewTranscodeQuality);
-  const videoIsHEVC = useAppStateStore(s => s.videoIsHEVC);
-  const userHasHEVC = useAppStateStore(s => s.userHasHEVC);
   const { handleExport, handlePickExportDir } = useImportExport();
   const [audioStreams, setAudioStreams] = React.useState<PreviewAudioStream[]>([]);
   const openedEpisodeId = useEpisodePanelRuntimeStore(s => s.openedEpisodeId);
@@ -95,7 +92,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
 
   const hasSelectedClips = selectedClips.size > 0;
 
-  // Subscribe to only the focused clip's preview so unrelated WebP results
+  // subscribe to only the focused clip's preview so unrelated WebP results
   // streaming in from the grid queue don't re-render the preview panel.
   const previewImageSrc = useScenePreviewStore(s =>
     focusedClipId ? (s.animatedByClipId[focusedClipId] ?? null) : null
@@ -114,18 +111,10 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     previewAudioStreamIndex !== null && previewAudioStreamIndex > 0 ? previewAudioStreamIndex : null;
   const [languageProxySrc, setLanguageProxySrc] = React.useState<string | null>(null);
 
-  // Cutting stream-copies, so an HEVC episode yields HEVC clips this WebView may
-  // not decode (black video, audio still plays). Mirror the grid's rule: proxy
-  // when the setting asks for it, and always when the codec is unplayable here.
-  const needsPreviewTranscode =
-    previewTranscodeMode === "always" ||
-    (previewTranscodeMode === "hevc" && videoIsHEVC === true) ||
-    (videoIsHEVC === true && userHasHEVC === false);
-  const transcodePreset = PREVIEW_TRANSCODE_PRESETS[previewTranscodeQuality];
+  const { needed: needsPreviewTranscode, preset: transcodePreset } = usePreviewTranscode();
 
-  // Build the proxy the focused clip needs: transcoded to a playable codec and/or
-  // remuxed to the selected audio track. WebP previews are image-only, so this is
-  // video-mode only.
+  // build the proxy this clip needs: a playable codec and/or the chosen audio
+  // track. webp previews are images, so this is video mode only.
   React.useEffect(() => {
     setLanguageProxySrc(null);
     if (webpPreviewMode) return;
@@ -150,19 +139,19 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     transcodePreset,
   ]);
 
-  // While a transcode is pending the raw clip would render black, so hold the
+  // while a transcode is pending the raw clip would render black, so hold the
   // player on the proxy path and let it mount once ffmpeg finishes.
   const playableVideoSrc = needsPreviewTranscode
     ? languageProxySrc
     : (languageProxySrc ?? previewVideoSrc);
 
-  // Source-anchored time window for the focused scene (mirrors the grid's WebP window).
+  // source-anchored time window for the focused scene (mirrors the grid's WebP window).
   const sourcePath = sourceClipObj ? (sourceClipObj.originalPath || sourceClipObj.src) : null;
   const sceneStart = sourceClipObj?.startSec ?? 0;
   const sceneRawEnd = sourceClipObj?.endSec ?? (sceneStart + 2);
   const sceneEnd = Math.min(sceneRawEnd > sceneStart ? sceneRawEnd : sceneStart + 2, sceneStart + 2.5);
 
-  // Generate the animated WebP for the focused clip on demand (never play the original video).
+  // generate the animated WebP for the focused clip on demand (never play the original video).
   React.useEffect(() => {
     if (!webpPreviewMode) return;
     if (!focusedClipId || !sourcePath || previewImageSrc) return;

@@ -1,8 +1,8 @@
 /**
  * staggeredMountQueue.ts
  *
- * Custom React hook for mounting video tiles one at a time in grid preview mode.
- * Prevents browser/GPU stalls by deferring video element creation.
+ * custom React hook for mounting video tiles one at a time in grid preview mode.
+ * prevents browser/GPU stalls by deferring video element creation.
  */
 import { useRef, useCallback } from "react";
 
@@ -13,14 +13,14 @@ type StaggerDemand = {
 
 
 export function useStaggeredMountQueue(delayMs = 50) {
-  // Tracks which tiles want to mount and their order
+  // tracks which tiles want to mount and their order
   const demandRef = useRef<Map<string, StaggerDemand>>(new Map());
-  // Interval for ticking through the queue
+  // interval for ticking through the queue
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Prevents multiple schedules
+  // prevents multiple schedules
   const startScheduledRef = useRef(false);
 
-  // Processes one tile per tick (lowest order first)
+  // processes one tile per tick (lowest order first)
   const tick = useCallback(() => {
     if (demandRef.current.size === 0) {
       if (intervalRef.current !== null) {
@@ -45,7 +45,7 @@ export function useStaggeredMountQueue(delayMs = 50) {
     entry.onReady();
   }, []);
 
-  // Starts the interval for processing the queue
+  // starts the interval for processing the queue
   const startProcessing = useCallback(() => {
     startScheduledRef.current = false;
     if (intervalRef.current !== null) return;
@@ -57,14 +57,14 @@ export function useStaggeredMountQueue(delayMs = 50) {
     }
   }, [tick, delayMs]);
 
-  // Schedules the start of processing (defers to next macrotask)
+  // schedules the start of processing (defers to next macrotask)
   const scheduleStart = useCallback(() => {
     if (startScheduledRef.current || intervalRef.current !== null) return;
     startScheduledRef.current = true;
     setTimeout(startProcessing, 0);
   }, [startProcessing]);
 
-  // Tiles call this to register/unregister their demand to mount
+  // tiles call this to register/unregister their demand to mount
   const reportStaggerDemand = useCallback(
     (key: string, demand: StaggerDemand | null) => {
       if (!demand) {
