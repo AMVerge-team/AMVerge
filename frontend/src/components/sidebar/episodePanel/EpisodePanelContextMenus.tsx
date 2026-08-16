@@ -1,4 +1,4 @@
-// Episode Panel context menu renderer. Displays right-click menus for episodes, folders, and empty panel space.
+// episode Panel context menu renderer. Displays right-click menus for episodes, folders, and empty panel space.
 import type React from "react";
 import type {
   EpisodeContextMenuState,

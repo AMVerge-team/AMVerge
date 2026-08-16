@@ -1,4 +1,5 @@
 import type React from "react";
+import { FaImage, FaVideo } from "react-icons/fa";
 import type { EpisodePanelProps, PointerDragSource } from "../types";
 
 type Episode = EpisodePanelProps["episodes"][number];
@@ -48,6 +49,14 @@ export default function EpisodeRow({
   const paddingLeft =
     folderId === null ? undefined : `${8 + depth * 12 + 28}px`;
 
+  // import method is fixed per episode, but episodes imported before the field
+  // existed don't carry it — infer those from whether their clips have cut video
+  // files, the same rule the grid uses to pick its preview mode.
+  const isWebpEpisode =
+    episode.importMethod === "webp_files" ||
+    (episode.importMethod === undefined &&
+      !episode.clips.some((clip) => Boolean(clip.clipPath)));
+
   return (
     <div
       className={rowClass}
@@ -62,6 +71,13 @@ export default function EpisodeRow({
     >
       <span className="episode-panel-episode-name">
         {episode.displayName}
+      </span>
+      <span
+        className="episode-panel-import-icon"
+        aria-label={isWebpEpisode ? "WebP preview episode" : "Video preview episode"}
+        title={isWebpEpisode ? "Imported as WebP previews" : "Imported as video files"}
+      >
+        {isWebpEpisode ? <FaImage /> : <FaVideo />}
       </span>
     </div>
   );

@@ -1,17 +1,19 @@
 import { useState, useRef, useEffect } from "react";
 import { HexColorPicker } from "react-colorful";
+import { ACCENT_PRESET_COLORS } from "../../features/theme/colorPresets";
 
 type ColorPickerProps = {
   color: string;
   onChange: (color: string) => void;
+  /** swatches to offer; callers pass the list matching what they edit. */
+  presets?: string[];
 };
 
-const PRESET_COLORS = [
-  "#22c55e", "#3b82f6", "#ef4444", "#eab308", "#8b5cf6", "#f43f5e", 
-  "#06b6d4", "#f97316", "#ffffff", "#bebebe", "#6366f1", "#a855f7"
-];
-
-export default function ColorPicker({ color, onChange }: ColorPickerProps) {
+export default function ColorPicker({
+  color,
+  onChange,
+  presets = ACCENT_PRESET_COLORS,
+}: ColorPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -47,7 +49,7 @@ export default function ColorPicker({ color, onChange }: ColorPickerProps) {
           <div className="presets-section">
             <label className="picker-label">Presets</label>
             <div className="color-presets-grid">
-              {PRESET_COLORS.map((preset) => (
+              {presets.map((preset) => (
                 <div
                   key={preset}
                   className={`color-preset-item ${color.toLowerCase() === preset.toLowerCase() ? "active" : ""}`}

@@ -41,7 +41,7 @@ async function maybeCheckForUpdatesOnStartup() {
       { title: "AMVerge Update Installed" },
     );
   } catch (error) {
-    // Show a visible error instead of silently dismissing the update flow.
+    // show a visible error instead of silently dismissing the update flow.
     const [{ message }] = await Promise.all([
       import("@tauri-apps/plugin-dialog"),
     ]);

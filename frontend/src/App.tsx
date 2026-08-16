@@ -7,6 +7,7 @@ import AppLayout from "./components/AppLayout";
 import HomePage from "./pages/HomePage";
 import Menu from "./pages/Menu";
 import Settings from "./pages/Settings";
+import ScenepacksPage from "./pages/ScenepacksPage";
 import ImportTerminal from "./components/ImportTerminal";
 import BgProgressBar from "./components/BgProgressBar";
 import StartupNotificationModal, { type StartupNotification } from "./components/StartupNotificationModal";
@@ -60,7 +61,7 @@ function App() {
   const importToken = useAppStateStore((s) => s.importToken);
 
 
-  // Refs
+  // refs
   const windowWrapperRef = useRef<HTMLDivElement | null>(null);
   const mainLayoutWrapperRef = useRef<HTMLDivElement | null>(null);
   const userHasHEVC = useAppStateStore((s) => s.userHasHEVC);
@@ -118,7 +119,7 @@ function App() {
     return { done: Math.max(0, done), total };
   };
 
-  // Persisted UI state
+  // persisted UI state
   const sidebarWidthPx = useUIStateStore(s => s.sidebarWidthPx);
   const setSidebarWidthPx = useUIStateStore(s => s.setSidebarWidthPx);
 
@@ -184,7 +185,7 @@ function App() {
     useAppStateStore.getState().setImportToken(Date.now().toString());
   };
 
-  // Import/export
+  // import/export
   const { updateRPC } = useDiscordRPC();
 
   const { handleImport, handleBatchImport } = useImportExport({
@@ -192,7 +193,7 @@ function App() {
     onRPCUpdate: updateRPC
   });
 
-  // App-level hooks
+  // app-level hooks
   useHEVCSupport();
 
   useDragDropImport({
@@ -234,7 +235,7 @@ function App() {
     }
   }, [loading, bgActive]);
 
-  // Auto-minimize once the heavy phase (scene detect + first clip cuts) is done
+  // auto-minimize once the heavy phase (scene detect + first clip cuts) is done
   // and only background thumbnail/reencode/preview work remains.
   const autoMinimized = !loading && bgActive;
   const overlayMinimized = minimizeOverride !== null ? minimizeOverride : autoMinimized;
@@ -249,7 +250,7 @@ function App() {
     useWebpLoadingStore.getState().dismiss();
   }
 
-  // Effects
+  // effects
   useEffect(() => {
     applyThemeSettings(themeSettings);
   }, [themeSettings]);
@@ -443,9 +444,14 @@ function App() {
             mainLayoutWrapperRef={mainLayoutWrapperRef}
           />
         </div>
+        {activePage === "scenepacks" && generalSettings.scenepacksEnabled && <ScenepacksPage />}
+        {activePage === "scenepacks" && !generalSettings.scenepacksEnabled && (() => {
+          useUIStateStore.getState().setActivePage("home");
+          return null;
+        })()}
         {activePage === "menu" ? (
           <Menu />
-        ) : activePage !== "home" ? (
+        ) : activePage !== "home" && activePage !== "scenepacks" ? (
           <Settings
             onGeneralSettingsReset={handleResetGeneralSettings}
             onEpisodesPathChanged={remapEpisodePaths}

@@ -8,7 +8,7 @@ import {
 import { useGeneralSettingsStore } from "../stores/settingsStore";
 
 /**
- * Wipes the episode panel UI state and asks the backend to delete all cached
+ * wipes the episode panel UI state and asks the backend to delete all cached
  * episode artifacts on disk. Used by the Episode Panel "clear cache" flow and
  * the General Settings "Clear Episode Panel" button.
  */
@@ -86,9 +86,9 @@ export function remapPathRoot(path: string, oldRoot: string, newRoot: string): s
 }
 
 /**
- * Re-root every stored path on a clip after the episodes folder moves.
+ * re-root every stored path on a clip after the episodes folder moves.
  *
- * Clips carry absolute paths, so a move leaves each of these pointing at the old
+ * clips carry absolute paths, so a move leaves each of these pointing at the old
  * location. Missing one shows up as a black tile rather than an error: video
  * mode plays `clipPath`, WebP mode reads `src`, and merged clips play the
  * `mergedSrcs`/`srcList` entries — so all of them have to move together.

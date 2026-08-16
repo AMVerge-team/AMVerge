@@ -56,6 +56,7 @@ export type GeneralSettings = {
     previewTranscodeMode: PreviewTranscodeMode;
     previewTranscodeQuality: PreviewTranscodeQuality;
     postExportPasses: PostExportPasses;
+    scenepacksEnabled: boolean;
 };
 
 export type GeneralSettingsStore = GeneralSettings & {
@@ -78,6 +79,7 @@ export type GeneralSettingsStore = GeneralSettings & {
     setRpcShowFilename: (enabled: boolean) => void;
     setRpcShowButtons: (enabled: boolean) => void;
     setRpcShowMiniIcons: (enabled: boolean) => void;
+    setScenepacksEnabled: (enabled: boolean) => void;
     resetGeneralSettings: () => void;
     setSceneDetectionMethod: (method: SceneDetectionMethod) => void;
     setImportMethod: (method: importMethod) => void;
@@ -113,6 +115,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     previewTranscodeMode: "hevc",
     previewTranscodeQuality: "480p",
     postExportPasses: DEFAULT_POST_EXPORT_PASSES,
+    scenepacksEnabled: false,
 };
 
 export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
@@ -224,6 +227,8 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                 set({ rpcShowButtons: enabled }),
             setRpcShowMiniIcons: (enabled) =>
                 set({ rpcShowMiniIcons: enabled }),
+            setScenepacksEnabled: (enabled) =>
+                set({ scenepacksEnabled: enabled }),
             
             resetGeneralSettings: () => set(DEFAULT_GENERAL_SETTINGS),
             updatePostExportPasses: (pass, changes) =>

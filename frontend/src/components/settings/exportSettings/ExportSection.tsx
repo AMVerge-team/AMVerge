@@ -118,7 +118,7 @@ export default function ExportSection() {
     [parallelLimit]
   );
 
-  // Sync the persisted nvidiaEncoderProfile to whatever the GPU probe detected,
+  // sync the persisted nvidiaEncoderProfile to whatever the GPU probe detected,
   // and clamp parallelExports into the valid [1, nextParallelLimit] range when
   // the limit shrinks (e.g. user switched codec/profile). Does NOT auto-bump
   // the user's chosen value upward — the user's choice of "1 parallel" is
@@ -173,7 +173,7 @@ export default function ExportSection() {
     updateExportProfile,
   ]);
 
-  // Codecs that have no GPU encoder path (for example ProRes) must be CPU.
+  // codecs that have no GPU encoder path (for example ProRes) must be CPU.
   useEffect(() => {
     if (!encoderLockedToCpu) return;
     if (activeProfile.hardwareMode === "cpu") return;

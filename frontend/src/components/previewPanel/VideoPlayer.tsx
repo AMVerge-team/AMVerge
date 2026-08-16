@@ -1,7 +1,7 @@
 /**
  * VideoPlayer.tsx
  *
- * Custom-skinned preview player. Renders the markup the existing preview CSS
+ * custom-skinned preview player. Renders the markup the existing preview CSS
  * targets (.video-wrapper > .video-frame > video + .controls) so the default
  * browser controls are replaced by the app's play/pause, scrubber, time,
  * volume and fullscreen chrome.
@@ -31,7 +31,7 @@ export default function VideoPlayer({ src, volume, onTimeUpdate }: VideoPlayerPr
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  // Keep the element volume in sync with the app setting.
+  // keep the element volume in sync with the app setting.
   useEffect(() => {
     const v = videoRef.current;
     if (v) v.volume = volume;

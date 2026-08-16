@@ -12,6 +12,12 @@ export type ClipItem = {
   mergedSrcs?: string[];
   clipPath?: string;
   clipMode?: string;
+  episodeId?: string;
+  // Scenepack clips only: the ORIGINAL source type before materialization —
+  // every Scenepack clip gets its own clipPath (a materialized copy) once
+  // added, so clipPath presence alone can no longer tell video-mode and
+  // webp-mode clips apart the way it does for Home-page clips.
+  sourceKind?: "video" | "webp";
 };
 
 export type EpisodeFolder = {
@@ -28,7 +34,32 @@ export type EpisodeEntry = {
   folderId: string | null;
   importedAt: number;
   clips: ClipItem[];
-  // How this episode was imported. Fixed at import time — the global
-  // import-method setting only affects new imports, not existing episodes.
   importMethod?: "video_files" | "webp_files";
+};
+
+export type ScenepackClip = {
+  episodeId: string;
+  sceneIndex: number;
+  input: string;
+  originalPath?: string;
+  startSec?: number;
+  endSec?: number;
+  clipPath?: string;
+  thumbnail: string;
+  sourceKind?: "video" | "webp";
+};
+
+export type ScenepackFolder = {
+  id: string;
+  name: string;
+  parentId: string | null;
+  isExpanded: boolean;
+};
+
+export type ScenepackEntry = {
+  id: string;
+  name: string;
+  folderId: string | null;
+  createdAt: number;
+  clips: ScenepackClip[];
 };

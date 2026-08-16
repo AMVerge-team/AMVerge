@@ -1,13 +1,14 @@
 /**
  * ClipsContainer.tsx
  *
- * Main grid container for displaying video clips. Handles layout, selection logic, and passes props to each tile (LazyClip).
- * Optimized for performance with lazy loading, proxying, and staggered mounting.
+ * main grid container for displaying video clips. Handles layout, selection logic, and passes props to each tile (LazyClip).
+ * optimized for performance with lazy loading, proxying, and staggered mounting.
  */
 import { startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { LazyClip } from "./LazyClip.tsx"
+import { SelectionActionBar } from "./SelectionActionBar.tsx";
 import { useStaggeredMountQueue } from "./staggeredMountQueue.ts";
 import useViewportAwareProxyQueue from "./proxyQueue.ts";
 import useViewportAwareWebpQueue from "./webpQueue.ts";
@@ -27,7 +28,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
 
   const defaultCols = useUIStateStore((state) => state.cols);
   const activePage = useUIStateStore((state) => state.activePage);
-  // Subscribe only to the settings field used during render. Reading the whole
+  // subscribe only to the settings field used during render. Reading the whole
   // settings store here re-rendered the entire grid on any settings change.
   const episodesPath = useGeneralSettingsStore((state) => state.episodesPath);
   const openedEpisodeId = useEpisodePanelRuntimeStore((state) => state.openedEpisodeId);
@@ -35,7 +36,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
 
   const activeCols = cols ?? defaultCols;
 
-  // Preview mode is a per-episode property fixed at import time — NOT the global
+  // preview mode is a per-episode property fixed at import time — NOT the global
   // import-method setting. Legacy episodes without a stored method are inferred
   // from whether their clips have cut video paths. Memoized so the O(n) clip scan
   // doesn't run on every scroll-driven re-render.
@@ -47,22 +48,22 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     );
   }, [episodes, openedEpisodeId, clips]);
 
-  // Proxy queue: manages HEVC/H.264 proxy generation and prioritization
+  // proxy queue: manages HEVC/H.264 proxy generation and prioritization
   const { requestProxySequential, reportProxyDemand } = useViewportAwareProxyQueue();
   // WebP queue: generates scene previews using viewport/hover priority
   const { reportWebpDemand, primeFromDiskCache, resetWebpQueue } = useViewportAwareWebpQueue({
     episodeCacheId: openedEpisodeId,
     customPath: episodesPath,
   });
-  // Staggered mount queue: mounts videos one at a time in grid preview
+  // staggered mount queue: mounts videos one at a time in grid preview
   const { reportStaggerDemand } = useStaggeredMountQueue();
 
-  // Calculate number of columns for the grid
+  // calculate number of columns for the grid
   const gridColumns = loading
     ? activeCols
     : Math.max(1, Math.min(activeCols, clips.length));
 
-  // Cap + center the grid (not each tile) so tiles fill their columns
+  // cap + center the grid (not each tile) so tiles fill their columns
   // edge-to-edge instead of shrinking to a fixed max and leaving gaps. Width
   // scales with the column count; a single-column view keeps a tighter cap for
   // one big preview. The grid only centers once the window exceeds this width.
@@ -72,7 +73,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
 
   const handleDownloadSingleClip = useCallback(async (clip: (typeof clips)[number]) => {
     try {
-      // Read settings at call time so this callback stays referentially stable —
+      // read settings at call time so this callback stays referentially stable —
       // it's passed to every tile, so depending on the settings object would
       // re-render the whole grid whenever any setting changed.
       const settings = useGeneralSettingsStore.getState();
@@ -131,12 +132,12 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
       const isShift = e.shiftKey;
 
       const state = useAppStateStore.getState();
-      // Read clips from the store at click time rather than closing over them, so
+      // read clips from the store at click time rather than closing over them, so
       // this callback stays stable across clip patches (streaming import) and
       // doesn't re-render every memoized tile each time a clip updates.
       const currentClips = state.clips;
 
-      // Shift-click: select a range of clips
+      // shift-click: select a range of clips
       if (isShift) {
         const anchorIndex = state.focusedClipId
           ? currentClips.findIndex((c) => c.id === state.focusedClipId)
@@ -151,7 +152,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
         return;
       }
 
-      // Ctrl/Cmd-click: toggle selection state for this clip
+      // ctrl/Cmd-click: toggle selection state for this clip
       if (isCtrlOrCmd) {
         startTransition(() => {
           setSelectedClips((prev) => {
@@ -163,7 +164,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
         return;
       }
 
-      // Single click: focus this clip for preview without toggling selection
+      // single click: focus this clip for preview without toggling selection
       setFocusedClip(clipSrc);
       setFocusedClipId(clipId);
     },
@@ -184,7 +185,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     [setSelectedClips]
   );
 
-  // Handles double-click on a clip tile (toggle export selection — checkmark only)
+  // handles double-click on a clip tile (toggle export selection — checkmark only)
   const handleClipDoubleClick = useCallback(
     (clipId: string, _clipSrc: string, _index: number, _e: React.MouseEvent<HTMLDivElement>) => {
       startTransition(() => {
@@ -199,10 +200,10 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   );
 
 
-  // Ref for the main container (for scroll-to-top on import)
+  // ref for the main container (for scroll-to-top on import)
   const containerRef = useRef<HTMLElement>(null);
 
-  // The grid stays mounted while another page is open (so nothing regenerates on
+  // the grid stays mounted while another page is open (so nothing regenerates on
   // return), but the browser can drop a scroll container's offset while it's
   // display:none. Track the live scroll position and restore it when the home
   // page becomes visible again so you keep your place.
@@ -224,7 +225,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     }
   }, [activePage]);
 
-  // Preserve scroll position across loading-state toggles that don't come from
+  // preserve scroll position across loading-state toggles that don't come from
   // an import (e.g. exporting). When importToken changes we still want the
   // scroll-to-top behaviour below.
   const savedScrollRef = useRef<number | null>(null);
@@ -236,10 +237,10 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
       return;
     }
     if (loading && !prevLoadingRef.current) {
-      // Loading just started — remember where we were so we can restore.
+      // loading just started — remember where we were so we can restore.
       savedScrollRef.current = el.scrollTop;
     } else if (!loading && prevLoadingRef.current && savedScrollRef.current !== null) {
-      // Loading finished — restore scroll after the grid re-renders.
+      // loading finished — restore scroll after the grid re-renders.
       const target = savedScrollRef.current;
       savedScrollRef.current = null;
       requestAnimationFrame(() => {
@@ -250,16 +251,16 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   }, [loading]);
 
   useEffect(() => {
-    // New import - discard any pending scroll restore and go to the top.
+    // new import - discard any pending scroll restore and go to the top.
     savedScrollRef.current = null;
     containerRef.current?.scrollTo({ top: 0 });
     resetWebpQueue();
-    // Every fresh episode view (open / import / refresh / startup auto-open)
+    // every fresh episode view (open / import / refresh / startup auto-open)
     // starts with Preview All disabled.
     useUIStateStore.getState().setGridPreview(false);
   }, [importToken, resetWebpQueue]);
 
-  // Entrance animation: tiles fade in top-left → bottom-right when an episode
+  // entrance animation: tiles fade in top-left → bottom-right when an episode
   // opens (importToken changes, including app startup auto-open). The class is
   // only applied during a short window and then removed — CSS animations replay
   // when a display:none ancestor becomes visible again, so leaving the class on
@@ -271,7 +272,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     return () => window.clearTimeout(timeout);
   }, [importToken]);
 
-  // Diagonal stagger: delay grows with (row + col), so the wave sweeps from the
+  // diagonal stagger: delay grows with (row + col), so the wave sweeps from the
   // top-left tile to the bottom-right. Capped so huge grids finish promptly.
   const appearDelayFor = useCallback(
     (index: number) => {
@@ -284,7 +285,41 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   );
 
   useEffect(() => {
-    // The WebP disk-cache prime only applies to WebP-preview episodes; video
+    // Scenepacks page: clips can come from several different episodes, so each
+    // job carries its own episodeCacheId (clip.episodeId) instead of relying on
+    // the shared queue context. Scenepacks always fully remounts on page switch
+    // (unlike Home, which stays alive via display:none), so the in-memory queue
+    // cache never survives a reopen — this batched disk lookup is what keeps a
+    // reopen fast instead of re-encoding every clip from scratch.
+    if (activePage === "scenepacks") {
+      if (clips.length === 0) return;
+
+      const jobs = clips
+        .map((clip) => {
+          if (clip.clipPath) return null; // video-mode clips don't use WebP queue
+
+          const sourcePath = clip.originalPath || clip.src;
+          const start = clip.startSec ?? 0;
+          const rawEnd = clip.endSec ?? (start + 2);
+          const end = Math.min(rawEnd > start ? rawEnd : start + 2, start + 2.5);
+
+          if (!sourcePath) return null;
+          return {
+            clipId: clip.id,
+            sourcePath,
+            start,
+            end,
+            fps: 8,
+            episodeCacheId: clip.episodeId ?? null,
+          };
+        })
+        .filter((job): job is NonNullable<typeof job> => Boolean(job));
+
+      void primeFromDiskCache(jobs);
+      return;
+    }
+
+    // the WebP disk-cache prime only applies to WebP-preview episodes; video
     // episodes show cut clips and never touch the WebP cache.
     if (episodeVideoPreview) {
       return;
@@ -292,7 +327,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
 
     if (!openedEpisodeId || clips.length === 0) return;
 
-    // On an episode switch, `openedEpisodeId` updates one render before the
+    // on an episode switch, `openedEpisodeId` updates one render before the
     // transition-deferred `clips` do. Clip ids are `${episodeId}_${sceneIndex}`,
     // so a leading-id mismatch means these clips still belong to the previous
     // episode — skip the throwaway cache lookup until `clips` catches up.
@@ -319,9 +354,9 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
       .filter((job): job is NonNullable<typeof job> => Boolean(job));
 
     void primeFromDiskCache(jobs);
-  }, [clips, episodeVideoPreview, openedEpisodeId, primeFromDiskCache]);
+  }, [clips, episodeVideoPreview, openedEpisodeId, primeFromDiskCache, activePage]);
 
-  // Ctrl + wheel to adjust the grid column count
+  // ctrl + wheel to adjust the grid column count
   const setStoreCols = useUIStateStore((state) => state.setCols);
   const colsOverridden = cols !== undefined;
   const wheelAccumRef = useRef(0);
@@ -369,39 +404,35 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
           ))}
         </div>
       ) : (
-        // Non-virtualized: every clip tile is mounted so nothing pops in when you
-        // scroll back up. The expensive work (video playback, WebP encode) is still
-        // viewport-gated inside each tile via its IntersectionObserver, so only the
-        // DOM mount + static thumbnail become eager.
-        // Keyed by importToken: every episode open / import / refresh remounts the
-        // tiles from scratch, so cells fully reload (thumbnails, videos, entrance
-        // animation) and any lingering per-tile state is dropped.
-        <div
-          key={importToken}
-          className="clips-grid"
-          style={{
-            gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
-            ["--grid-max-width" as any]: gridMaxWidth,
-          }}
-        >
-          {clips.map((clip, index) => (
-            <LazyClip
-              key={clip.id}
-              clip={clip}
-              index={index}
-              videoPreviewMode={episodeVideoPreview}
-              requestProxySequential={requestProxySequential}
-              reportProxyDemand={reportProxyDemand}
-              reportWebpDemand={reportWebpDemand}
-              reportStaggerDemand={reportStaggerDemand}
-              onClipClick={handleClipClick}
-              onClipDoubleClick={handleClipDoubleClick}
-              onToggleSelection={handleToggleSelection}
-              onDownloadClip={handleDownloadSingleClip}
-              appearDelayMs={appearDelayFor(index)}
-            />
-          ))}
-        </div>
+        <>
+          <SelectionActionBar />
+          <div
+            key={importToken}
+            className="clips-grid"
+            style={{
+              gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
+              ["--grid-max-width" as any]: gridMaxWidth,
+            }}
+          >
+            {clips.map((clip, index) => (
+              <LazyClip
+                key={clip.id}
+                clip={clip}
+                index={index}
+                videoPreviewMode={episodeVideoPreview}
+                requestProxySequential={requestProxySequential}
+                reportProxyDemand={reportProxyDemand}
+                reportWebpDemand={reportWebpDemand}
+                reportStaggerDemand={reportStaggerDemand}
+                onClipClick={handleClipClick}
+                onClipDoubleClick={handleClipDoubleClick}
+                onToggleSelection={handleToggleSelection}
+                onDownloadClip={handleDownloadSingleClip}
+                appearDelayMs={appearDelayFor(index)}
+              />
+            ))}
+          </div>
+        </>
       )}
     </main>
   );

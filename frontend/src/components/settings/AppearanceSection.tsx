@@ -6,6 +6,12 @@ import {
   isVideoBackgroundPath,
   useThemeSettingsStore,
 } from "../../stores/settingsStore";
+import {
+  ACCENT_PRESET_COLORS,
+  GRADIENT_PRESET_COLORS,
+  findAccentPreset,
+  isPresetGradient,
+} from "../../features/theme/colorPresets";
 import ColorPicker from "../common/ColorPicker";
 import CropModal from "../common/CropModal";
 import SettingRow from "../common/SettingRow";
@@ -141,19 +147,24 @@ export default function AppearanceSection({
             <div className="settings-control">
               <ColorPicker
                 color={themeSettings.accentColor}
+                presets={ACCENT_PRESET_COLORS}
                 onChange={(newColor) => {
                   setThemeSettings((prev) => {
-                    const currentDark = getDarkerColor(prev.accentColor);
-                    const isDefaultGradient =
-                      prev.backgroundGradientColor === "#001a00" ||
-                      prev.backgroundGradientColor === currentDark;
+                    const preset = findAccentPreset(newColor);
+                    // a preset carries its own gradient, so apply the pair.
+                    // custom colours only move the gradient while it is still
+                    // app-chosen, so a hand-picked one is never overwritten.
+                    const nextGradient = preset
+                      ? preset.gradient
+                      : isPresetGradient(prev.backgroundGradientColor) ||
+                          prev.backgroundGradientColor === getDarkerColor(prev.accentColor)
+                        ? getDarkerColor(newColor)
+                        : prev.backgroundGradientColor;
 
                     return {
                       ...prev,
                       accentColor: newColor,
-                      backgroundGradientColor: isDefaultGradient
-                        ? getDarkerColor(newColor)
-                        : prev.backgroundGradientColor,
+                      backgroundGradientColor: nextGradient,
                     };
                   });
                 }}
@@ -171,6 +182,7 @@ export default function AppearanceSection({
             <div className="settings-control">
               <ColorPicker
                 color={themeSettings.backgroundGradientColor}
+                presets={GRADIENT_PRESET_COLORS}
                 onChange={(newColor) =>
                   setThemeSettings((prev) => ({
                     ...prev,

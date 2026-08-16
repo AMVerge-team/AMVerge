@@ -200,7 +200,7 @@ export default function BugReport() {
                 try {
                     window.localStorage.setItem(BUG_REPORT_COOLDOWN_STORAGE_KEY, submittedAt.toString())
                 } catch {
-                    // Ignore storage errors; cooldown still applies for this session.
+                    // ignore storage errors; cooldown still applies for this session.
                 }
             }
         } catch (err) {

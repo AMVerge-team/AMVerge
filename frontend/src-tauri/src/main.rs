@@ -58,6 +58,10 @@ fn main() {
             commands::preview::lookup_scene_webp_cache_batch,
             commands::cache::delete_episode_cache,
             commands::cache::clear_episode_panel_cache,
+            commands::scenepacks::materialize_scenepack_clips,
+            commands::scenepacks::delete_scenepack_clip_files,
+            commands::scenepacks::delete_scenepack_storage,
+            commands::scenepacks::clear_scenepacks_storage,
             commands::settings::save_background_image,
             commands::settings::crop_and_save_image,
             commands::settings::crop_and_save_profile_icon,
@@ -84,7 +88,7 @@ fn main() {
 }
 
 fn kill_all_child_processes(app: &tauri::AppHandle) {
-    // Kill active export ffmpeg processes.
+    // kill active export ffmpeg processes.
     let export_state = app.state::<ExportAbortState>();
     export_state.abort_requested.store(true, Ordering::SeqCst);
     let export_pids: Vec<u32> = export_state
@@ -103,7 +107,7 @@ fn kill_all_child_processes(app: &tauri::AppHandle) {
             .output();
     }
 
-    // Kill untracked ffmpeg processes (merge, split, proxy)
+    // kill untracked ffmpeg processes (merge, split, proxy)
     let misc_pids: Vec<u32> = app
         .state::<ActiveFfmpegPids>()
         .pids
@@ -121,7 +125,7 @@ fn kill_all_child_processes(app: &tauri::AppHandle) {
             .output();
     }
 
-    // Kill Python sidecar (scene detection) process group
+    // kill Python sidecar (scene detection) process group
     let sidecar = app.state::<ActiveSidecar>();
     if let Ok(mut lock) = sidecar.child.lock() {
         *lock = None;

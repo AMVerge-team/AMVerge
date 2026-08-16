@@ -15,7 +15,7 @@ export default function useDragDropImport({
   const lastExternalDropRef = useRef<{ path: string; ts: number } | null>(null);
   const setIsDragging = useUIStateStore((state) => state.setIsDragging);
 
-  // Use refs for handlers to avoid restarting the effect if they change
+  // use refs for handlers to avoid restarting the effect if they change
   const handlersRef = useRef({ handleImport, handleBatchImport });
   useEffect(() => {
     handlersRef.current = { handleImport, handleBatchImport };

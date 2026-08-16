@@ -1,4 +1,4 @@
-// Recursive Episode Panel tree renderer. Displays folders, nested folders, and episode rows.
+// recursive Episode Panel tree renderer. Displays folders, nested folders, and episode rows.
 import React from "react";
 import EpisodeRow from "./EpisodeRow";
 import FolderRow from "./FolderRow";

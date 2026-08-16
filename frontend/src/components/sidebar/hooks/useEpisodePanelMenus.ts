@@ -1,4 +1,4 @@
-// Menu and modal state hook for the Episode Panel. Owns context menus, text modals, confirm modals, and close behavior.
+// menu and modal state hook for the Episode Panel. Owns context menus, text modals, confirm modals, and close behavior.
 import { useEffect, useRef, useState } from "react";
 import type React from "react";
 import type {
