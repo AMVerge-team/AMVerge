@@ -9,29 +9,23 @@ import {
 } from "../../stores/settingsStore";
 import { useAppStateStore } from "../../stores/appStore";
 import { useUIStateStore } from "../../stores/UIStore";
-import { useEffect, useMemo, useState} from "react";
+import { useEffect, useState} from "react";
 import SettingRow from "../common/SettingRow";
 import Dropdown, { type DropdownOption } from "../common/Dropdown";
 import { clearEpisodePanelCache } from "../../utils/episodeUtils";
 import { useAiDepsStore } from "../../stores/aiDepsStore";
-import {
-  AI_PACKS,
-  estimateDownloadMb,
-  formatSizeMb,
-  isPackInstalled,
-} from "../../features/aiDeps/packs";
+import { isPackInstalled } from "../../features/aiDeps/packs";
 
 const SCENE_DETECTION_OPTIONS: DropdownOption<SceneDetectionMethod>[] = [
   {
     value: "transnetv2_gpu",
     label: "TransNetV2 (GPU)",
-    description: "AI shot detection — most accurate scene boundaries.",
-    // Marked as needing an install below when the ml pack is missing.
+    description: "The most accurate way to find scene cuts. Uses AI.",
   },
   {
     value: "keyframe_detection",
     label: "Keyframe Detection",
-    description: "Fast CPU cuts at I-frame boundaries (no GPU needed)",
+    description: "Fast, and works on any PC. Cuts at keyframes.",
   },
   {
     value: "pyscenedetect_cpu",
@@ -44,12 +38,12 @@ const PREVIEW_METHOD_OPTIONS: DropdownOption<importMethod>[] = [
   {
     value: "video_files",
     label: "Video Files",
-    description: "Cut clips per scene — hover plays real video.",
+    description: "Cuts a real video clip per scene. Hover to play it.",
   },
   {
     value: "webp_files",
     label: "WebP Files",
-    description: "Animated WebP previews generated from the source.",
+    description: "Makes small animated previews instead of video clips.",
   },
 ];
 
@@ -57,23 +51,23 @@ const PREVIEW_TRANSCODE_MODE_OPTIONS: DropdownOption<PreviewTranscodeMode>[] = [
   {
     value: "off",
     label: "Off",
-    description: "Play clips as-is. Requires HEVC support on this PC.",
+    description: "Play clips as they are. Needs HEVC support on this PC.",
   },
   {
     value: "hevc",
     label: "HEVC Only",
-    description: "Re-encode previews only when the source is HEVC/H.265.",
+    description: "Only re-encode when the source is HEVC.",
   },
   {
     value: "always",
     label: "Always",
-    description: "Re-encode every preview, whatever the source codec is.",
+    description: "Re-encode every preview, whatever the source is.",
   },
 ];
 
 const PREVIEW_TRANSCODE_QUALITY_OPTIONS: DropdownOption<PreviewTranscodeQuality>[] = [
   { value: "360p", label: "360p", description: "Smallest and fastest to generate." },
-  { value: "480p", label: "480p", description: "Balanced — recommended." },
+  { value: "480p", label: "480p", description: "Balanced. Recommended." },
   { value: "720p", label: "720p", description: "Sharper previews, slower to generate." },
   { value: "1080p", label: "1080p", description: "Full detail. Slowest, largest cache." },
 ];
@@ -151,22 +145,6 @@ export default function GeneralSettings({
   const aiStatus = useAiDepsStore((s) => s.status);
   const mlInstalled = isPackInstalled(aiStatus, "ml");
 
-  const sceneDetectionOptions = useMemo(
-    () =>
-      SCENE_DETECTION_OPTIONS.map((option) =>
-        option.value === "transnetv2_gpu" && !mlInstalled
-          ? {
-              ...option,
-              label: `${option.label} 🔒`,
-              description: `Needs ${AI_PACKS.ml.dependencyName} (~${formatSizeMb(
-                estimateDownloadMb(aiStatus, "ml"),
-              )}) — selecting this offers to install it.`,
-            }
-          : option,
-      ),
-    [aiStatus, mlInstalled],
-  );
-
   const handleSceneDetectionChange = async (method: SceneDetectionMethod) => {
     if (method === "transnetv2_gpu" && !mlInstalled) {
       const installed = await useAiDepsStore.getState().ensurePack("ml");
@@ -225,11 +203,11 @@ export default function GeneralSettings({
         
         <SettingRow
           label="Scene Detection Method"
-          description="How scene boundaries are found during import."
+          description="How AMVerge finds scene cuts when you import."
           control={
             <Dropdown
               className="settings-wide-dropdown"
-              options={sceneDetectionOptions}
+              options={SCENE_DETECTION_OPTIONS}
               value={generalSettings.sceneDetectionMethod}
               onChange={(method) => void handleSceneDetectionChange(method)}
             />
@@ -238,7 +216,7 @@ export default function GeneralSettings({
 
         <SettingRow
           label="Preview Method"
-          description="Choose whether grid preview should use source videos or generated WebP files."
+          description="What the grid plays when you hover over a clip."
           control={
             <Dropdown
               className="settings-wide-dropdown"
@@ -258,8 +236,8 @@ export default function GeneralSettings({
           label="Re-encode Previews"
           description={
             hevcForced
-              ? "This PC can't decode HEVC, so HEVC previews must be re-encoded to play."
-              : "Clips are cut without re-encoding, so an HEVC source produces HEVC previews. Re-encode them to a playable H.264 proxy."
+              ? "This PC can't play HEVC, so those previews have to be re-encoded."
+              : "Re-encode previews for smoother playback and HEVC support."
           }
           control={
             <Dropdown
@@ -278,7 +256,7 @@ export default function GeneralSettings({
         {effectivePreviewTranscodeMode !== "off" && (
           <SettingRow
             label="Preview Quality"
-            description="Resolution re-encoded previews are generated at. Audio tracks and timing are always preserved."
+            description="Resolution for re-encoded previews. Audio and timing are kept."
             control={
               <Dropdown
                 className="settings-wide-dropdown"
@@ -304,7 +282,7 @@ export default function GeneralSettings({
       
         <SettingRow
           label="Audio Playback Hover"
-          description="Automatically play clip audio when hovering over items in the grid."
+          description="Play a clip's audio when you hover over it."
           control={
             <div className="settings-control">
               <label className="custom-checkbox">
@@ -327,7 +305,7 @@ export default function GeneralSettings({
 
         <SettingRow
           label="Playback Volume"
-          description="Adjust the master volume level for clip previews and audio playback."
+          description="Master volume for clip previews and playback."
           control={
             <div className="settings-control">
               <input
@@ -352,7 +330,7 @@ export default function GeneralSettings({
 
         <SettingRow
           label="Episodes Storage Path"
-          description="The location where your processed episodes and clips are stored."
+          description="Where your imported episodes and clips are saved."
           control={
             <div className="settings-control">
               <button
@@ -375,7 +353,7 @@ export default function GeneralSettings({
 
         <SettingRow
           label="Clear Episode Panel"
-          description="Remove all episodes from the panel and delete their cached files on disk."
+          description="Removes every episode from the panel and deletes its files."
           control={
             <div className="settings-control">
               <button
@@ -393,7 +371,7 @@ export default function GeneralSettings({
 
         <SettingRow
           label="Factory Reset"
-          description="Reset to Defaults"
+          description="Puts every General setting back to its default."
           control={
             <div className="settings-control">
               <button

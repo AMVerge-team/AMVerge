@@ -63,7 +63,7 @@ export default function DependenciesSection() {
 
   const torchLabel = status?.torchVersion
     ? `${status.torchVersion} (${status.torchVariant === "cuda" ? "GPU / CUDA" : "CPU"})`
-    : `not installed — would use the ${
+    : `not installed. Would use the ${
         plannedTorchVariant(status) === "cuda" ? "GPU / CUDA" : "CPU"
       } build`;
 
@@ -79,7 +79,7 @@ export default function DependenciesSection() {
       <div className="about-content">
         <SettingRow
           label="AI features"
-          description="AMVerge ships with scene cutting, previews and the full export stack. The AI features below download their own packages the first time you use them."
+          description="Everything else works out of the box. These features download what they need the first time you use them."
           control={
             <span className="settings-value" style={{ width: "auto" }}>
               {loading ? "checking…" : status?.envReady ? "installed" : "not installed"}
@@ -91,8 +91,8 @@ export default function DependenciesSection() {
           label="PyTorch"
           description={
             gpuRepairAvailable
-              ? "The CPU build is installed but this PC has an NVIDIA GPU — AI features are running many times slower than they could."
-              : "Shared by every AI feature — it downloads once, then later features install in seconds."
+              ? "The CPU version is installed, but this PC has an NVIDIA GPU. AI features are running much slower than they could."
+              : "Shared by every AI feature. It downloads once, then the rest install quickly."
           }
           control={
             <div className="aid-pack-row">
@@ -153,7 +153,7 @@ export default function DependenciesSection() {
 
         <SettingRow
           label="Disk usage"
-          description="Everything the AI features installed, including their Python environment."
+          description="Space used by the AI features and their Python environment."
           control={
             <span className="settings-value" style={{ width: "auto" }}>
               {formatBytes(status?.envSizeBytes ?? 0)}
@@ -162,8 +162,8 @@ export default function DependenciesSection() {
         />
 
         <SettingRow
-          label="Remove AI environment"
-          description="Deletes every AI package and its Python environment. The rest of AMVerge is unaffected, and features can be reinstalled at any time."
+          label="Uninstall AI Features"
+          description="Deletes every AI package. The rest of AMVerge keeps working, and you can reinstall any feature later."
           control={
             <button
               type="button"

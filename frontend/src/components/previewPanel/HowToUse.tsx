@@ -5,14 +5,14 @@ type Platform = "windows" | "mac";
 
 const STEPS: Record<Platform, React.ReactNode[]> = {
   windows: [
-    <>Select clips with <b>Ctrl + Click</b> or <b>Shift + Click</b></>,
-    <>Double click to <b>Focus</b> a clip</>,
+    <>Select clips with <b>Ctrl + Click</b>, <b>Shift + Click</b>, or <b>Double Click</b></>,
+    <>Single click to <b>Focus</b> a clip</>,
     <>Select <b>Export Profile</b> for export settings</>,
     <>Click <b>Export Now</b> to start the process</>,
   ],
   mac: [
-    <>Select clips with <b>Cmd + Click</b> or <b>Shift + Click</b></>,
-    <>Double click to <b>Focus</b> a clip</>,
+    <>Select clips with <b>Cmd + Click</b>, <b>Shift + Click</b> or <b>Double Click</b></>,
+    <>Single click to <b>Focus</b> a clip</>,
     <>Select <b>Export Profile</b> for export settings</>,
     <>Click <b>Export Now</b> to start the process</>,
   ],

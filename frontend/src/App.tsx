@@ -173,9 +173,6 @@ function App() {
         : s.importedVideoPath,
     }));
 
-    // Animated WebP previews are cached by clip id as absolute paths under the
-    // episodes folder. They aren't persisted, but within this session they'd
-    // still point at the old location and render as black tiles in WebP mode.
     useScenePreviewStore.setState((s) => {
       const next: Record<string, string> = {};
       for (const [clipId, path] of Object.entries(s.animatedByClipId)) {
@@ -184,11 +181,6 @@ function App() {
       return { animatedByClipId: next };
     });
 
-    // Rewriting the store isn't enough on its own: the grid is keyed by
-    // importToken and each tile seeds its poster path into local state at mount,
-    // so already-mounted tiles keep rendering the old location. Bumping the
-    // token remounts them against the new paths and, since it's the `?v=` cache
-    // buster on every asset URL, stops the WebView serving the failed old fetch.
     useAppStateStore.getState().setImportToken(Date.now().toString());
   };
 
@@ -222,18 +214,12 @@ function App() {
     }
   }
 
-  // The import overlay (ImportTerminal) stays mounted from the moment loading
-  // starts until every background task finishes, so it can minimize/expand
-  // without losing its terminal log. `bgActive` covers the post-detection
-  // phase (clip cuts, thumbnails, webp previews).
   const bgActive =
     !!(bgProgress || bgImportProgress || reencodeProgress) || webpLoadTotal > 0;
   const [importUiActive, setImportUiActive] = useState(false);
   // null = follow auto behaviour; true/false = user's explicit minimize choice.
   const [minimizeOverride, setMinimizeOverride] = useState<boolean | null>(null);
 
-  // Which optional AI packs are installed — drives the lock badges on the AI
-  // settings, so it needs to be known before the user opens Settings.
   useEffect(() => {
     void useAiDepsStore.getState().refresh();
   }, []);
@@ -254,18 +240,12 @@ function App() {
   const overlayMinimized = minimizeOverride !== null ? minimizeOverride : autoMinimized;
 
   async function handleAbortAndCloseBgProgress() {
-    // When only the WebP "Loading previews" indicator is up there's no backend
-    // task to abort — just hide it. Firing the abort invokes would needlessly
-    // flag abortedRef and interfere with a later import.
     const { bgProgress: bg, bgImportProgress: bgImport, reencodeProgress: reenc } =
       useAppStateStore.getState();
     if (bg || bgImport || reenc) {
       await handleAbort();
     }
     clearBgProgress();
-    // After clearBgProgress (whose reset() re-arms the card): mark it dismissed,
-    // because the WebP queue is still running and its next progress update would
-    // otherwise reopen the card immediately.
     useWebpLoadingStore.getState().dismiss();
   }
 
@@ -365,10 +345,6 @@ function App() {
       const wwRect = ww.getBoundingClientRect();
       const mlRect = ml.getBoundingClientRect();
 
-      // HomePage stays mounted under `display: none` on Settings/Menu, where its
-      // rect collapses to all zeros. Centering the splitter against that would
-      // translate it by half the window height (visibly stuck near the top), so
-      // drop the offset and let its own `align-self: center` do the work.
       if (mlRect.height === 0) {
         setDividerOffsetPx((prev) => (prev === 0 ? prev : 0));
         return;
@@ -462,11 +438,6 @@ function App() {
       }}
     >
       <div className="main-content">
-        {/* HomePage stays mounted across navigation (hidden, not unmounted) so
-            returning to an opened episode doesn't tear down and regenerate the
-            whole grid — WebP queue, per-tile proxies, scroll position and all.
-            `display: contents` keeps its children laid out exactly as before when
-            active; `display: none` hides the subtree when another page is open. */}
         <div style={{ display: activePage === "home" ? "contents" : "none" }}>
           <HomePage
             mainLayoutWrapperRef={mainLayoutWrapperRef}

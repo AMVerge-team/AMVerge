@@ -42,14 +42,14 @@ export const AI_PACKS: Record<AiPackId, AiPack> = {
     label: "AI scene detection",
     dependencyName: "TransNetV2",
     description:
-      "Neural shot-boundary detection. The most accurate scene cuts, and the fastest with an NVIDIA GPU.",
+      "Finds scene cuts with AI. The most accurate option, and fast on an NVIDIA GPU.",
     extraSizeMb: 60,
   },
   depth: {
     id: "depth",
     label: "Depth map pass",
     dependencyName: "Depth-Anything-V2",
-    description: "Renders a depth map of each exported file after export.",
+    description: "Creates a depth map of each exported file.",
     extraSizeMb: 60,
   },
   interpolation: {
@@ -57,14 +57,14 @@ export const AI_PACKS: Record<AiPackId, AiPack> = {
     label: "Interpolation pass",
     dependencyName: "RIFE interpolation",
     description:
-      "Removes dead frames and interpolates each exported file to a higher frame rate.",
+      "Smooths motion by adding frames to each exported file.",
     extraSizeMb: 80,
   },
   upscale: {
     id: "upscale",
     label: "Upscaling",
     dependencyName: "Spandrel / ONNX Runtime",
-    description: "Model-based upscaling of exported files.",
+    description: "Upscales exported files using AI models.",
     extraSizeMb: 250,
   },
 };

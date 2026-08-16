@@ -11,7 +11,7 @@ export default function DiscordRPCSection() {
 
         <SettingRow
           label="Enable Rich Presence"
-          description="Display your current AMVerge activity on your Discord profile."
+          description="Show what you're working on in AMVerge on your Discord profile."
           control={
             <div className="settings-control">
               <label className="custom-checkbox">
@@ -36,7 +36,7 @@ export default function DiscordRPCSection() {
           <>
             <SettingRow
               label="Show filename"
-              description="Shows the name of the video you are currently editing."
+              description="Show the name of the video you're editing."
               control={
                 <div className="settings-control">
                   <label className="custom-checkbox">
@@ -59,7 +59,7 @@ export default function DiscordRPCSection() {
 
             <SettingRow
               label="Show status icons"
-              description="Displays mini icons for editing, loading, and saving status."
+              description="Show small icons for editing, loading, and saving."
               control={
                 <div className="settings-control">
                   <label className="custom-checkbox">
@@ -83,7 +83,7 @@ export default function DiscordRPCSection() {
 
             <SettingRow
               label="Show profile buttons"
-              description='Adds "Discord Server" and "Website" buttons to your status.'
+              description='Add "Discord Server" and "Website" buttons to your status.'
               control={
                 <div className="settings-control">
                   <label className="custom-checkbox">

@@ -2,13 +2,7 @@ import Dropdown from "../../common/Dropdown";
 import SettingRow from "../../common/SettingRow";
 import { useGeneralSettingsStore } from "../../../stores/settingsStore";
 import { useAiDepsStore } from "../../../stores/aiDepsStore";
-import {
-  AI_PACKS,
-  estimateDownloadMb,
-  formatSizeMb,
-  isPackInstalled,
-  type AiPackId,
-} from "../../../features/aiDeps/packs";
+import { isPackInstalled, type AiPackId } from "../../../features/aiDeps/packs";
 import {
   DEPTH_COLORMAP_OPTIONS,
   DEPTH_ENCODER_OPTIONS,
@@ -58,20 +52,11 @@ export default function PostExportPassesSection() {
     update(packId === "depth" ? "depth" : "interpolation", { enabled });
   };
 
-  const lockNote = (packId: AiPackId) =>
-    isPackInstalled(aiStatus, packId)
-      ? ""
-      : ` Needs ${AI_PACKS[packId].dependencyName} (~${formatSizeMb(
-          estimateDownloadMb(aiStatus, packId),
-        )}) — enabling it offers to install.`;
-
   return (
     <>
       <SettingRow
-        label={`Depth map pass${isPackInstalled(aiStatus, "depth") ? "" : " 🔒"}`}
-        description={`After export, also render a Depth-Anything-V2 depth map of each output as <name>_depth.${lockNote(
-          "depth",
-        )}`}
+        label="Depth map pass"
+        description="Also save a depth map of each export as <name>_depth."
         control={
           <ToggleControl
             label="Toggle depth map pass"
@@ -84,7 +69,7 @@ export default function PostExportPassesSection() {
         <div className="pass-config">
           <SettingRow
             label="Depth model"
-            description="Larger = more detail, slower."
+            description="Bigger models look better but take longer."
             control={
               <Dropdown
                 className="settings-wide-dropdown"
@@ -96,7 +81,7 @@ export default function PostExportPassesSection() {
           />
           <SettingRow
             label="Colormap"
-            description="Color palette for the depth output."
+            description="Color palette for the depth map."
             control={
               <Dropdown
                 className="settings-wide-dropdown"
@@ -108,7 +93,7 @@ export default function PostExportPassesSection() {
           />
           <SettingRow
             label="Grayscale"
-            description="Output a grayscale depth map instead of a color palette."
+            description="Use black and white instead of a color palette."
             control={
               <ToggleControl
                 label="Toggle grayscale depth"
@@ -122,7 +107,7 @@ export default function PostExportPassesSection() {
 
       <SettingRow
         label="Dead frames pass"
-        description="After export, also remove dead (static) frames from each output as <name>_deadframes."
+        description="Also save a copy with still frames removed as <name>_deadframes."
         control={
           <ToggleControl
             label="Toggle dead frames pass"
@@ -135,7 +120,7 @@ export default function PostExportPassesSection() {
         <div className="pass-config">
           <SettingRow
             label="Auto-calibrate"
-            description="Auto-tune thresholds from the frame-pair distribution."
+            description="Work out the right settings for each video automatically."
             control={
               <ToggleControl
                 label="Toggle deadframes auto"
@@ -146,7 +131,7 @@ export default function PostExportPassesSection() {
           />
           <SettingRow
             label="Keep talking motion"
-            description="Preserve subtle dialogue / mouth movement."
+            description="Keep frames that only have small mouth movement."
             control={
               <ToggleControl
                 label="Toggle keep talking"
@@ -157,7 +142,7 @@ export default function PostExportPassesSection() {
           />
           <SettingRow
             label="Keep camera motion"
-            description="Preserve camera pan / zoom / shake."
+            description="Keep frames that only have camera pan, zoom, or shake."
             control={
               <ToggleControl
                 label="Toggle keep camera"
@@ -168,7 +153,7 @@ export default function PostExportPassesSection() {
           />
           <SettingRow
             label="Safe mode"
-            description="Only drop completely static frames (keep talking + camera)."
+            description="Only remove frames that are completely still."
             control={
               <ToggleControl
                 label="Toggle safe mode"
@@ -179,7 +164,7 @@ export default function PostExportPassesSection() {
           />
           <SettingRow
             label="Cadence"
-            description="Minimum consecutive dead frames before dropping (preserves animation holds)."
+            description="How many still frames in a row before any are removed."
             control={
               <input
                 type="number"
@@ -198,10 +183,8 @@ export default function PostExportPassesSection() {
       )}
 
       <SettingRow
-        label={`Interpolation pass${isPackInstalled(aiStatus, "interpolation") ? "" : " 🔒"}`}
-        description={`After export, remove dead frames then interpolate each output as <name>_interpolated (intermediate not kept).${lockNote(
-          "interpolation",
-        )}`}
+        label="Interpolation pass"
+        description="Removes still frames, then adds new ones for smoother motion. Saved as <name>_interpolated."
         control={
           <ToggleControl
             label="Toggle interpolation pass"
@@ -214,7 +197,7 @@ export default function PostExportPassesSection() {
         <div className="pass-config">
           <SettingRow
             label="Interpolation model"
-            description="RIFE frame-interpolation model."
+            description="Which RIFE model to use."
             control={
               <Dropdown
                 className="settings-wide-dropdown"
@@ -226,7 +209,7 @@ export default function PostExportPassesSection() {
           />
           <SettingRow
             label="FPS multiplier"
-            description="Frame-rate multiplier applied on top of the deadframes result."
+            description="How much to multiply the frame rate by."
             control={
               <Dropdown
                 className="settings-wide-dropdown"
