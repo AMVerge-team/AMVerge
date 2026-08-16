@@ -46,18 +46,18 @@ export default function ExportHardwareSettings({
         label="Video Encoder"
         description={
           encoderLockedToCpu ? (
-            "Selected codec is CPU-only, with no GPU encoder path."
+            "This codec can only be encoded on the CPU."
           ) : (
             <>
               {!gpuProbeComplete
                 ? "Detecting hardware encoders..."
                 : gpuReadyForCodec
-                  ? `Detected GPU backend: ${gpuCapabilities.preferredBackend}${
+                  ? `Using your ${gpuCapabilities.preferredBackend} GPU${
                       selectedGpuEncoder ? ` (${selectedGpuEncoder})` : ""
-                    }. Auto mode uses GPU and falls back to CPU on failure.`
+                    }. Auto falls back to the CPU if it fails.`
                   : gpuCapabilities.hasGpuEncoder
-                    ? "No compatible GPU encoder for selected codec on this machine. Auto mode falls back to CPU."
-                    : "No compatible GPU encoder detected. Auto mode falls back to CPU."}{" "}
+                    ? "Your GPU can't encode this codec, so Auto uses the CPU."
+                    : "No GPU encoder found, so Auto uses the CPU."}{" "}
               {nvidiaDetection.hasNvidiaGpu ? (
                 <a
                   href={NVIDIA_ENCODER_SUPPORT_MATRIX_URL}
@@ -85,8 +85,8 @@ export default function ExportHardwareSettings({
         label="Parallel Encodes"
         description={
           parallelLocked
-            ? "Enabled only when selected GPU backend supports parallel sessions. Non-NVIDIA backends stay single-worker."
-            : `Detected limit: up to ${parallelLimit} parallel exports for this codec. This option sets how many exports run at the same time.`
+            ? "Only available on GPUs that can run more than one encode at a time."
+            : `How many exports run at the same time. This codec supports up to ${parallelLimit}.`
         }
         control={
           <Dropdown

@@ -19,7 +19,7 @@ Browsers and hardware have limits. If you try to mount and play dozens of videos
 - **Intersection Observer**: Each tile uses this to know when it's near the viewport. If it's not visible, we don't load the video at all.
 - **Proxy Queue**: If a video can't be played natively, we request a proxy. The queue prioritizes which proxies to generate based on user interaction (hovered tiles get priority).
 - **Staggered Mounting**: When grid preview is enabled, we mount one video at a time with a short delay. This keeps the UI responsive and avoids GPU stalls.
-- **Selection Logic**: You can select clips with Ctrl/Cmd (multi-select) or Shift (range select), just like in a file manager.
+- **Selection Logic**: You can select clips with Ctrl/Cmd (multi-select), Shift (range select), just like in a file manager.
 
 ## React Patterns Used
 

@@ -38,7 +38,7 @@ export default function ExportCodecSettings({
         <>
           <SettingRow
             label="Codec"
-            description="Video codec family used when exporting files."
+            description="The video codec used when exporting."
             control={
               <Dropdown
                 className="settings-wide-dropdown"
@@ -51,7 +51,7 @@ export default function ExportCodecSettings({
 
           <SettingRow
             label="Codec Profile"
-            description="Quality/compression profile for the selected codec."
+            description="Quality and compression level for that codec."
             control={
               <Dropdown
                 className="settings-wide-dropdown"
@@ -67,7 +67,7 @@ export default function ExportCodecSettings({
       {showAudioSetting && (
         <SettingRow
           label="Audio Codec"
-          description="Choose encoded audio, source audio copy, or no audio. Audio copy keeps original codec/channels/layout exactly."
+          description="Re-encode the audio, copy it as it is, or drop it. Copying keeps the original exactly."
           control={
             <Dropdown
               className="settings-wide-dropdown"

@@ -142,7 +142,7 @@ export default function AppearanceSection({
 
         <SettingRow
           label="Accent color"
-          description="Customize the primary color used for buttons, highlights, and icons."
+          description="The main color for buttons, highlights, and icons."
           control={
             <div className="settings-control">
               <ColorPicker
@@ -177,7 +177,7 @@ export default function AppearanceSection({
         />
         <SettingRow
           label="Background Gradient"
-          description="Choose the secondary color for the background gradient effect."
+          description="The second color in the background gradient."
           control={
             <div className="settings-control">
               <ColorPicker
@@ -199,7 +199,7 @@ export default function AppearanceSection({
 
         <SettingRow
           label="Background media"
-          description="Upload a custom image, GIF, or video to use as your application background."
+          description="Use your own image, GIF, or video as the background."
           control={
           <div className="settings-control">
             <button className="buttons" type="button" onClick={handlePickBackgroundMedia}>
@@ -221,7 +221,7 @@ export default function AppearanceSection({
         
         <SettingRow
           label="Background opacity"
-          description="Adjust the transparency of the background image."
+          description="How see-through the background is."
           control={
           <div className="settings-control">
             <input
@@ -247,7 +247,7 @@ export default function AppearanceSection({
 
         <SettingRow
           label="Background blur"
-          description="Adjust the blur of the background image."
+          description="How blurry the background is."
           control={
             <div className="settings-control">
               <input
@@ -271,7 +271,7 @@ export default function AppearanceSection({
 
         <SettingRow
           label="Grid preview speed"
-          description="Adjust how fast video previews play in the clips grid."
+          description="How fast previews play in the grid."
           control={
             <div className="settings-control">
               <input
@@ -295,7 +295,7 @@ export default function AppearanceSection({
 
         <SettingRow
           label="Show download button"
-          description="Toggle download button visibility on the clips."
+          description="Show a download button on each clip."
           control={
             <div className="settings-control">
               <label className="custom-checkbox">
@@ -318,7 +318,7 @@ export default function AppearanceSection({
 
         <SettingRow
           label="Show clip timestamps"
-          description="Toggle timestamp visibility on the clips."
+          description="Show timestamps on each clip."
           control={
             <div className="settings-control">
               <label className="custom-checkbox">
@@ -341,7 +341,7 @@ export default function AppearanceSection({
 
         <SettingRow
           label="Widescreen clip tiles"
-          description="Switch clip tiles between square (1080x1080) and widescreen (1920x1080)."
+          description="Show clip tiles as square or widescreen."
           control={
             <div className="settings-control">
               <label className="custom-checkbox">
@@ -363,7 +363,7 @@ export default function AppearanceSection({
         />
         <SettingRow
           label="Factory Reset"
-          description="Revert all appearance and theme settings back to their default values."
+          description="Puts every Appearance setting back to its default."
           control={
             <div className="settings-control">
               <button

@@ -220,7 +220,7 @@ export default function ExportSection() {
       <div className="about-content">
         <SettingRow
           label="Active Profile"
-          description="Export Now uses this active profile, including newly created profiles."
+          description="Export Now uses this profile."
           control={
             <Dropdown
               className="settings-wide-dropdown export-profile-dropdown"
@@ -239,7 +239,7 @@ export default function ExportSection() {
 
         <SettingRow
           label="Profile Name"
-          description="Display name shown in the export profile selector."
+          description="The name shown in the profile selector."
           control={
             <input
               id="export-profile-name"
@@ -252,7 +252,7 @@ export default function ExportSection() {
 
         <SettingRow
           label="Profile Icon"
-          description="Visual icon used in the profile selector."
+          description="The icon shown in the profile selector."
           control={
             <ProfileIconPicker
               activeProfile={activeProfile}
@@ -266,7 +266,7 @@ export default function ExportSection() {
 
         <SettingRow
           label="Workflow"
-          description="Select export behavior: re-encode video or stream-copy remux."
+          description="Re-encode the video, or copy it into a new container."
           control={
             <Dropdown
               className="settings-wide-dropdown"
@@ -279,7 +279,7 @@ export default function ExportSection() {
 
         <SettingRow
           label="Open file location after export"
-          description="Automatically open File Explorer and highlight the exported file after export finishes."
+          description="Open the folder and highlight the file when an export finishes."
           control={
             <label className="custom-checkbox" aria-label="Toggle opening exported file location">
               <input
@@ -322,7 +322,7 @@ export default function ExportSection() {
         {showContainerSetting && (
           <SettingRow
             label="Container"
-            description="File format wrapper: MP4, MKV, or MOV."
+            description="The file format: MP4, MKV, or MOV."
             control={
               <Dropdown
                 className="settings-wide-dropdown"
