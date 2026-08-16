@@ -6,8 +6,8 @@ mod state;
 mod utils;
 
 use state::{
-    ActiveFfmpegPids, ActiveSidecar, DiscordRPCState, EditorImportAbortState, ExportAbortState,
-    PreviewProxyLocks, PreviewTranscodeSlots,
+    ActiveFfmpegPids, ActiveInstall, ActiveSidecar, DiscordRPCState, EditorImportAbortState,
+    ExportAbortState, PreviewProxyLocks, PreviewTranscodeSlots,
 };
 use std::process::Command as StdCommand;
 use std::sync::atomic::Ordering;
@@ -27,8 +27,14 @@ fn main() {
         .manage(EditorImportAbortState::default())
         .manage(ExportAbortState::default())
         .manage(ActiveFfmpegPids::default())
+        .manage(ActiveInstall::default())
         .invoke_handler(tauri::generate_handler![
             commands::bug_report::submit_bug_report,
+            commands::deps::ai_env_status,
+            commands::deps::install_ai_pack,
+            commands::deps::abort_ai_install,
+            commands::deps::uninstall_ai_pack,
+            commands::deps::remove_ai_env,
             commands::notifications::fetch_startup_notification,
             commands::scenes::detect_scenes,
             commands::scenes::load_episode_manifest,
@@ -136,7 +142,25 @@ fn kill_all_child_processes(app: &tauri::AppHandle) {
             .output();
     }
 
-    // gracefully shut down Discord RPC
+    // Kill an in-flight dependency install (uv + its download children)
+    let install_pid = app
+        .state::<ActiveInstall>()
+        .pid
+        .lock()
+        .ok()
+        .and_then(|mut l| l.take());
+    if let Some(pid) = install_pid {
+        #[cfg(not(target_os = "windows"))]
+        let _ = StdCommand::new("kill")
+            .args(["-9", &format!("-{pid}")])
+            .output();
+        #[cfg(target_os = "windows")]
+        let _ = StdCommand::new("taskkill")
+            .args(["/F", "/T", "/PID", &pid.to_string()])
+            .output();
+    }
+
+    // Gracefully shut down Discord RPC
     let discord_child = app
         .state::<DiscordRPCState>()
         .child

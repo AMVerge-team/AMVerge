@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use tokio::sync::Mutex as AsyncMutex;
@@ -15,6 +15,40 @@ impl Default for ActiveSidecar {
             pid: Mutex::new(None),
             child: Mutex::new(None),
         }
+    }
+}
+
+/// The in-flight optional-AI-dependency install (a `uv` process tree).
+/// Cloned into the blocking install task, so every field is shared.
+#[derive(Default, Clone)]
+pub struct ActiveInstall {
+    pub pid: Arc<Mutex<Option<u32>>>,
+    running: Arc<AtomicBool>,
+    cancel_requested: Arc<AtomicBool>,
+}
+
+impl ActiveInstall {
+    /// Claim the install slot. Only one install may run at a time — a second
+    /// one would fight the first over the same venv.
+    pub fn begin(&self) -> Result<(), String> {
+        if self.running.swap(true, Ordering::SeqCst) {
+            return Err("Another dependency install is already running.".to_string());
+        }
+        self.cancel_requested.store(false, Ordering::SeqCst);
+        Ok(())
+    }
+
+    pub fn finish(&self) {
+        self.running.store(false, Ordering::SeqCst);
+        self.cancel_requested.store(false, Ordering::SeqCst);
+    }
+
+    pub fn cancel(&self) {
+        self.cancel_requested.store(true, Ordering::SeqCst);
+    }
+
+    pub fn canceled(&self) -> bool {
+        self.cancel_requested.load(Ordering::SeqCst)
     }
 }
 

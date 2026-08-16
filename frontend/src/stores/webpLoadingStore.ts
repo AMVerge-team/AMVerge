@@ -15,14 +15,30 @@ import { create } from "zustand";
 export type WebpLoadingStore = {
   total: number;
   done: number;
+  /**
+   * The user closed the background-tasks card. Generation continues (results
+   * are cached either way), but the card stays hidden until the queue is reset
+   * — otherwise the next progress update would pop it straight back open.
+   */
+  dismissed: boolean;
   setProgress: (total: number, done: number) => void;
+  dismiss: () => void;
   reset: () => void;
 };
 
 export const useWebpLoadingStore = create<WebpLoadingStore>((set) => ({
   total: 0,
   done: 0,
+  dismissed: false,
   setProgress: (total, done) =>
     set((s) => (s.total === total && s.done === done ? s : { total, done })),
-  reset: () => set((s) => (s.total === 0 && s.done === 0 ? s : { total: 0, done: 0 })),
+  dismiss: () => set((s) => (s.dismissed ? s : { dismissed: true })),
+  // Called when the queue resets (episode switch / new import), which re-arms
+  // the card for the next episode.
+  reset: () =>
+    set((s) =>
+      s.total === 0 && s.done === 0 && !s.dismissed
+        ? s
+        : { total: 0, done: 0, dismissed: false },
+    ),
 }));

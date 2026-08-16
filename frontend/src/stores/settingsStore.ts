@@ -108,7 +108,9 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     rpcShowFilename: true,
     rpcShowButtons: true,
     rpcShowMiniIcons: true,
-    sceneDetectionMethod: "transnetv2_gpu",
+    // Keyframe detection works on a fresh install; TransNetV2 needs the
+    // optional AI pack, which the user opts into from Settings.
+    sceneDetectionMethod: "keyframe_detection",
     importMethod: "video_files",
     previewTranscodeMode: "hevc",
     previewTranscodeQuality: "480p",

@@ -9,18 +9,24 @@ import {
 } from "../../stores/settingsStore";
 import { useAppStateStore } from "../../stores/appStore";
 import { useUIStateStore } from "../../stores/UIStore";
-import { useEffect, useState} from "react";
+import { useEffect, useMemo, useState} from "react";
 import SettingRow from "../common/SettingRow";
 import Dropdown, { type DropdownOption } from "../common/Dropdown";
 import { clearEpisodePanelCache } from "../../utils/episodeUtils";
-import { clearScenepacksStorage } from "../../utils/scenepackStorage";
-import { useScenepacksStore } from "../../stores/scenepackStore";
+import { useAiDepsStore } from "../../stores/aiDepsStore";
+import {
+  AI_PACKS,
+  estimateDownloadMb,
+  formatSizeMb,
+  isPackInstalled,
+} from "../../features/aiDeps/packs";
 
 const SCENE_DETECTION_OPTIONS: DropdownOption<SceneDetectionMethod>[] = [
   {
     value: "transnetv2_gpu",
     label: "TransNetV2 (GPU)",
-    description: "AI scene detection, more accurate.",
+    description: "AI shot detection — most accurate scene boundaries.",
+    // Marked as needing an install below when the ml pack is missing.
   },
   {
     value: "keyframe_detection",
@@ -172,26 +178,33 @@ export default function GeneralSettings({
     }
   };
 
-  const handleClearScenepacks = async () => {
-    setClearingScenepacks(true);
-    try {
-      await clearScenepacksStorage();
-    } catch (err) {
-      window.alert("Failed to clear Scenepack storage: " + String(err));
-    } finally {
-      setClearingScenepacks(false);
-      setShowClearScenepacksConfirm(false);
-    }
-  };
+  // TransNetV2 needs the optional `ml` pack. Prompt at the point of choice
+  // rather than failing later, mid-import.
+  const aiStatus = useAiDepsStore((s) => s.status);
+  const mlInstalled = isPackInstalled(aiStatus, "ml");
 
-  const handleToggleScenepacksEnabled = (enabled: boolean) => {
-    if (!enabled && scenepacksCount > 0) {
-      // don't flip the setting yet — let the confirm dialog decide whether to
-      // also wipe existing Scenepacks first.
-      setShowDisableScenepacksConfirm(true);
-      return;
+  const sceneDetectionOptions = useMemo(
+    () =>
+      SCENE_DETECTION_OPTIONS.map((option) =>
+        option.value === "transnetv2_gpu" && !mlInstalled
+          ? {
+              ...option,
+              label: `${option.label} 🔒`,
+              description: `Needs ${AI_PACKS.ml.dependencyName} (~${formatSizeMb(
+                estimateDownloadMb(aiStatus, "ml"),
+              )}) — selecting this offers to install it.`,
+            }
+          : option,
+      ),
+    [aiStatus, mlInstalled],
+  );
+
+  const handleSceneDetectionChange = async (method: SceneDetectionMethod) => {
+    if (method === "transnetv2_gpu" && !mlInstalled) {
+      const installed = await useAiDepsStore.getState().ensurePack("ml");
+      if (!installed) return; // declined — keep the current method
     }
-    setGeneralSettings((prev) => ({ ...prev, scenepacksEnabled: enabled }));
+    setSceneDetectionMethod(method);
   };
 
   const handlePickDir = async () => {
@@ -206,6 +219,13 @@ export default function GeneralSettings({
         setLoading(true);
 
         try {
+          // Every clip tile in the grid keeps its file open in the WebView, and
+          // Windows refuses to delete a file that is in use. Drop the grid and
+          // let the browser release the handles before touching the files.
+          useAppStateStore.getState().setClips([]);
+          useAppStateStore.getState().setSelectedClips(new Set());
+          await new Promise((resolve) => setTimeout(resolve, 250));
+
           const resolvedOldPath = await invoke<string>("move_episodes_to_new_dir", {
             oldDir: generalSettings.episodesPath,
             newDir: selected,
@@ -253,9 +273,9 @@ export default function GeneralSettings({
           control={
             <Dropdown
               className="settings-wide-dropdown"
-              options={SCENE_DETECTION_OPTIONS}
+              options={sceneDetectionOptions}
               value={generalSettings.sceneDetectionMethod}
-              onChange={(method) => setSceneDetectionMethod(method)}
+              onChange={(method) => void handleSceneDetectionChange(method)}
             />
           }
         />

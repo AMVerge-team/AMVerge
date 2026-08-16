@@ -1,6 +1,14 @@
 import Dropdown from "../../common/Dropdown";
 import SettingRow from "../../common/SettingRow";
 import { useGeneralSettingsStore } from "../../../stores/settingsStore";
+import { useAiDepsStore } from "../../../stores/aiDepsStore";
+import {
+  AI_PACKS,
+  estimateDownloadMb,
+  formatSizeMb,
+  isPackInstalled,
+  type AiPackId,
+} from "../../../features/aiDeps/packs";
 import {
   DEPTH_COLORMAP_OPTIONS,
   DEPTH_ENCODER_OPTIONS,
@@ -37,16 +45,38 @@ export default function PostExportPassesSection() {
   const update = useGeneralSettingsStore((s) => s.updatePostExportPasses);
   const { depth, deadframes, interpolation } = passes;
 
+  // Depth and interpolation need torch (dead frames is opencv-only and ships
+  // with the app). Offer the install when the pass is switched on, so the
+  // dependency is in place long before an export runs.
+  const aiStatus = useAiDepsStore((s) => s.status);
+
+  const enableGatedPass = async (packId: AiPackId, enabled: boolean) => {
+    if (enabled && !isPackInstalled(aiStatus, packId)) {
+      const installed = await useAiDepsStore.getState().ensurePack(packId);
+      if (!installed) return;
+    }
+    update(packId === "depth" ? "depth" : "interpolation", { enabled });
+  };
+
+  const lockNote = (packId: AiPackId) =>
+    isPackInstalled(aiStatus, packId)
+      ? ""
+      : ` Needs ${AI_PACKS[packId].dependencyName} (~${formatSizeMb(
+          estimateDownloadMb(aiStatus, packId),
+        )}) — enabling it offers to install.`;
+
   return (
     <>
       <SettingRow
-        label="Depth map pass"
-        description="After export, also render a Depth-Anything-V2 depth map of each output as <name>_depth."
+        label={`Depth map pass${isPackInstalled(aiStatus, "depth") ? "" : " 🔒"}`}
+        description={`After export, also render a Depth-Anything-V2 depth map of each output as <name>_depth.${lockNote(
+          "depth",
+        )}`}
         control={
           <ToggleControl
             label="Toggle depth map pass"
             checked={depth.enabled}
-            onChange={(enabled) => update("depth", { enabled })}
+            onChange={(enabled) => void enableGatedPass("depth", enabled)}
           />
         }
       />
@@ -168,13 +198,15 @@ export default function PostExportPassesSection() {
       )}
 
       <SettingRow
-        label="Interpolation pass"
-        description="After export, remove dead frames then interpolate each output as <name>_interpolated (intermediate not kept)."
+        label={`Interpolation pass${isPackInstalled(aiStatus, "interpolation") ? "" : " 🔒"}`}
+        description={`After export, remove dead frames then interpolate each output as <name>_interpolated (intermediate not kept).${lockNote(
+          "interpolation",
+        )}`}
         control={
           <ToggleControl
             label="Toggle interpolation pass"
             checked={interpolation.enabled}
-            onChange={(enabled) => update("interpolation", { enabled })}
+            onChange={(enabled) => void enableGatedPass("interpolation", enabled)}
           />
         }
       />

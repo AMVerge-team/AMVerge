@@ -1,5 +1,6 @@
 pub mod bug_report;
 pub mod cache;
+pub mod deps;
 pub mod discord;
 pub mod editor_import;
 pub mod export;

@@ -11,6 +11,7 @@ import {
 
 import { runPostExportPasses } from "../features/export/runPostExportPasses";
 import { anyPassEnabled } from "../features/export/postPasses";
+import { useAiDepsStore } from "../stores/aiDepsStore";
 import { useAppStateStore, useAppPersistedStore } from "../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
 import { useGeneralSettingsStore } from "../stores/settingsStore";
@@ -318,6 +319,18 @@ export default function useImportExport(props?: ImportExportProps) {
     // video mode streams clips into the grid as they're cut and resolves the
     // import once the keyframe copies land; re-encodes finish in the background.
     const videoStreaming = streamToGrid && generalSettings.importMethod === "video_files";
+
+    // Safety net for the settings gate: the ml pack could have been removed (or
+    // the setting carried over from an older install) since it was chosen.
+    // Prompt here rather than letting the backend fail mid-import.
+    if (generalSettings.sceneDetectionMethod === "transnetv2_gpu") {
+      const ready = await useAiDepsStore.getState().ensurePack("ml");
+      if (!ready) {
+        throw new Error(
+          "TransNetV2 is not installed. Install it, or switch scene detection to Keyframe Detection in Settings.",
+        );
+      }
+    }
 
     if (videoStreaming) {
       // stop any previous streaming session so a still-running background

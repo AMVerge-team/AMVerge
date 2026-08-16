@@ -1,7 +1,9 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
+import { useAiDepsStore } from "../../stores/aiDepsStore";
 import { usePassRunStore } from "../../stores/passRunStore";
+import { AI_PACKS } from "../aiDeps/packs";
 import {
   anyPassEnabled,
   deadframesArgs,
@@ -82,11 +84,34 @@ export async function runPostExportPasses(
 ): Promise<void> {
   if (outputs.length === 0 || !anyPassEnabled(passes)) return;
 
-  const jobs = buildJobs(outputs, passes);
+  // Depth and interpolation run on the optional AI env. It is normally in place
+  // (the settings toggle installs it), but a removed pack or a settings file
+  // from another machine would otherwise surface as a failed pass here.
+  const effective: PostExportPasses = { ...passes };
+  const skipped: string[] = [];
+  const skipNote = (packId: "depth" | "interpolation") =>
+    `[skipped] ${packId} pass: ${AI_PACKS[packId].dependencyName} is not installed`;
+
+  if (effective.depth.enabled && !(await useAiDepsStore.getState().ensurePack("depth"))) {
+    effective.depth = { ...effective.depth, enabled: false };
+    skipped.push(skipNote("depth"));
+  }
+  if (
+    effective.interpolation.enabled &&
+    !(await useAiDepsStore.getState().ensurePack("interpolation"))
+  ) {
+    effective.interpolation = { ...effective.interpolation, enabled: false };
+    skipped.push(skipNote("interpolation"));
+  }
+  if (!anyPassEnabled(effective)) return;
+
+  const jobs = buildJobs(outputs, effective);
   if (jobs.length === 0) return;
 
   const store = usePassRunStore.getState();
   store.begin(jobs.length);
+  // After begin(), which clears the log.
+  skipped.forEach((line) => store.pushLog(line));
 
   const unlisteners = await Promise.all([
     listen<{ pass: string; percent: number; message: string }>("pass_progress", (e) => {
