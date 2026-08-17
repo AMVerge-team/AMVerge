@@ -54,9 +54,6 @@ export const LazyClip = memo(function LazyClip({
 }: LazyClipProps) {
   const importToken = useAppStateStore(s => s.importToken);
 
-  // each tile reads only its own animated-WebP path. Subscribing per-tile (rather
-  // than threading it down from ClipsContainer) means a new WebP result re-renders
-  // just this tile, not the whole grid — critical for smooth scrolling.
   const previewWebpPath = useScenePreviewStore(s => s.animatedByClipId[clip.id]);
 
   const isSelected = useAppStateStore(s => s.selectedClips.has(clip.id));
@@ -187,8 +184,17 @@ export const LazyClip = memo(function LazyClip({
     previewWebpPath,
     reportWebpDemand,
   });
-  // show animated WebP on hover, or always when preview-all is enabled.
-  const shouldShowWebpOverlay = webp.hasAnimatedWebp && (isHovered || gridPreview);
+  // show animated WebP on hover, or in preview-all — but only for tiles near the
+  // viewport. Selecting WebP mode force-enables preview-all, so without the
+  // isVisible gate every clip in the episode animates at once (the grid mounts
+  // them all), which is what was killing the WebView2 renderer.
+  const shouldShowWebpOverlay =
+    webp.hasAnimatedWebp && (isHovered || (gridPreview && isVisible));
+
+  // The static layer falls back to the animated WebP file until the extracted
+  // JPEG frame exists — that fallback is only safe for tiles near the viewport,
+  // for the same reason.
+  const webpStaticReady = Boolean(webp.webpThumbnail) || !webp.hasAnimatedWebp;
 
   // when Preview-all is enabled and we need an HEVC proxy, register demand only while visible.
   useEffect(() => {
@@ -861,7 +867,8 @@ export const LazyClip = memo(function LazyClip({
         <>
           {/* ===================== WEBP layer: static thumbnail =====================
               Rendered in WebP mode only; video mode uses the <video> for the poster. */}
-          {!isVideoMode && !webp.thumbnailFailed && clip.thumbnailReady !== false && (
+          {!isVideoMode && !webp.thumbnailFailed && clip.thumbnailReady !== false
+            && (webpStaticReady || isVisible) && (
             <img
               ref={setThumbnailEl}
               className="clip"

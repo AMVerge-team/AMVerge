@@ -30,8 +30,15 @@ function cacheWebpThumbnail(key: string, dataUrl: string) {
   WEBP_THUMBNAIL_CACHE.set(key, dataUrl);
 }
 
-/** Extract a static JPEG from a WebP's first frame as a flicker-free base layer. */
-function useWebpThumbnail(webpSrc: string | undefined): string | null {
+/** Extract a static JPEG from a WebP's first frame as a flicker-free base layer.
+ *
+ * `enabled` is the tile's viewport visibility. The grid mounts every clip (there
+ * is no virtualizer), so without this gate a 900-scene episode kicks off ~900
+ * simultaneous animated-WebP decodes plus a canvas draw and JPEG encode each.
+ * That is enough to take the WebView2 renderer down, which closes the window
+ * with no error. Cached extractions are still served instantly, on or off
+ * screen. */
+function useWebpThumbnail(webpSrc: string | undefined, enabled: boolean): string | null {
   const [thumbnail, setThumbnail] = useState<string | null>(
     () => (webpSrc ? (WEBP_THUMBNAIL_CACHE.get(webpSrc) ?? null) : null)
   );
@@ -40,6 +47,7 @@ function useWebpThumbnail(webpSrc: string | undefined): string | null {
     if (!webpSrc) { setThumbnail(null); return; }
     const cached = WEBP_THUMBNAIL_CACHE.get(webpSrc);
     if (cached) { setThumbnail(cached); return; }
+    if (!enabled) return;
 
     let cancelled = false;
     let idleHandle: IdleHandle | null = null;
@@ -71,9 +79,12 @@ function useWebpThumbnail(webpSrc: string | undefined): string | null {
     return () => {
       cancelled = true;
       img.onload = null;
+      // drop the decoder's reference too: an abandoned in-flight <img> keeps the
+      // partially decoded animation alive until GC.
+      img.src = "";
       if (idleHandle !== null) cancelIdle(idleHandle);
     };
-  }, [webpSrc]);
+  }, [webpSrc, enabled]);
 
   return thumbnail;
 }
@@ -122,7 +133,7 @@ export function useWebpPreview({
   const webpFileSrc = previewWebpPath
     ? `${convertFileSrc(previewWebpPath)}?v=${importToken}`
     : undefined;
-  const webpThumbnail = useWebpThumbnail(webpFileSrc);
+  const webpThumbnail = useWebpThumbnail(webpFileSrc, isVisible);
 
   const [thumbnailSrc, setThumbnailSrc] = useState(displayThumbnailPath);
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
