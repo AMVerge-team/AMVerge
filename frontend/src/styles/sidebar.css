@@ -70,12 +70,20 @@ body.is-resizing-sidebar {
 }
 
 .sidebar-button > .sidebar-nav-button.is-active,
-.sidebar-button > .sidebar-nav-button:disabled {
+.sidebar-button > .sidebar-nav-button:disabled:not(.is-feature-off) {
     background: rgb(var(--accent-rgb) / 0.18);
     color: var(--accent);
     cursor: default;
     border-color: rgb(var(--accent-rgb) / 0.9);
     opacity: 1;
+}
+
+.sidebar-button > .sidebar-nav-button.is-feature-off {
+    background: rgba(15, 0, 0, 0.1);
+    color: rgba(255, 255, 255, 0.45);
+    border-color: rgba(255, 255, 255, 0.12);
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 /* episode panel */

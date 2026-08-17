@@ -256,6 +256,12 @@ function App() {
   }, [themeSettings]);
 
   useEffect(() => {
+    if (activePage === "scenepacks" && !generalSettings.scenepacksEnabled) {
+      useUIStateStore.getState().setActivePage("home");
+    }
+  }, [activePage, generalSettings.scenepacksEnabled]);
+
+  useEffect(() => {
     if (!startupUpdateNotification) {
       return;
     }
@@ -445,10 +451,6 @@ function App() {
           />
         </div>
         {activePage === "scenepacks" && generalSettings.scenepacksEnabled && <ScenepacksPage />}
-        {activePage === "scenepacks" && !generalSettings.scenepacksEnabled && (() => {
-          useUIStateStore.getState().setActivePage("home");
-          return null;
-        })()}
         {activePage === "menu" ? (
           <Menu />
         ) : activePage !== "home" && activePage !== "scenepacks" ? (

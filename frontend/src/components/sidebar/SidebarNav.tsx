@@ -17,29 +17,23 @@ export default function SidebarNav() {
   const setActivePage = useUIStateStore(s => s.setActivePage);
   const scenepacksEnabled = useGeneralSettingsStore(s => s.scenepacksEnabled);
 
-  const buttons = allButtons.filter((b) => {
-    if (b.featureKey === "scenepacks") return scenepacksEnabled;
-    return true;
-  });
-
-  const colCount = buttons.length;
-
   return (
-    <div className="menu-buttons" style={{ gridTemplateColumns: `repeat(${colCount}, minmax(0, 1fr))` }}>
-      {buttons.map((button) => {
+    <div className="menu-buttons">
+      {allButtons.map((button) => {
         const Icon = button.icon;
         const isActive = activePage === button.page;
+        const isFeatureOff = button.featureKey === "scenepacks" && !scenepacksEnabled;
 
         return (
           <div className="sidebar-button" key={button.page}>
             <button
               type="button"
-              className={`sidebar-nav-button${isActive ? " is-active" : ""}`}
+              className={`sidebar-nav-button${isActive ? " is-active" : ""}${isFeatureOff ? " is-feature-off" : ""}`}
               onClick={() => setActivePage(button.page)}
-              disabled={isActive}
+              disabled={isActive || isFeatureOff}
               aria-current={isActive ? "page" : undefined}
               aria-label={button.name}
-              title={button.name}
+              title={isFeatureOff ? "Enable Scenepacks in Settings" : button.name}
             >
               <Icon aria-hidden="true" />
             </button>
