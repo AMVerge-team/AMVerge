@@ -64,8 +64,9 @@ export default function AppLayout({
           ["--amverge-divider-offset" as any]: `${dividerProps.dividerOffsetPx}px`,
         }}
       >
+        <Navbar {...navbarProps} />
         {sidebarEnabled && (
-          <>
+          <div className="window-body">
             <Sidebar />
             <div
               className="divider sidebar-splitter"
@@ -78,12 +79,18 @@ export default function AppLayout({
               <span className="subdivider" />
               <span className="subdivider" />
             </div>
-          </>
+            <div className="content-wrapper">
+              {children}
+            </div>
+          </div>
         )}
-        <div className="content-wrapper">
-          <Navbar {...navbarProps} />
-          {children}
-        </div>
+        {!sidebarEnabled && (
+          <div className="window-body">
+            <div className="content-wrapper">
+              {children}
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
