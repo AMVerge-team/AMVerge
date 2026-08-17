@@ -1,13 +1,14 @@
 import { useRef, startTransition, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { open, save } from "@tauri-apps/plugin-dialog";
+import { open } from "@tauri-apps/plugin-dialog";
 import { ClipItem, EpisodeEntry } from "../types/domain"
 import { fileNameFromPath, truncateFileName, detectScenes } from "../utils/episodeUtils";
 import {
   getRecommendedContainerForCodec,
   isExportCodecContainerCompatible,
 } from "../features/export/profiles";
+import { buildExportOptionsPayload, downloadSingleClip } from "../features/export/clipExport";
 
 import { useAppStateStore, useAppPersistedStore } from "../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
@@ -17,17 +18,6 @@ type ImportExportProps = {
   abortedRef?: React.RefObject<boolean>;
   onRPCUpdate?: (data: any) => void;
 };
-type ExportOptionsPayload = {
-  profileId: string;
-  workflow: string;
-  editorTarget: string;
-  codec: string;
-  audioMode: string;
-  hardwareMode: string;
-  parallelExports: number;
-  audioStreamIndex?: number | null;
-};
-
 export default function useImportExport(props?: ImportExportProps) {
   const appState = useAppStateStore();
   const episodeState = useEpisodePanelRuntimeStore();
@@ -59,33 +49,6 @@ export default function useImportExport(props?: ImportExportProps) {
     };
     console.error("[import] failure", details);
   }, []);
-  const buildExportOptionsPayload = useCallback((profileId: string): ExportOptionsPayload | undefined => {
-    const profile = generalSettings.exportProfiles.find((candidate) => candidate.id === profileId)
-      ?? generalSettings.exportProfiles[0];
-    if (!profile) return undefined;
-
-    // Pass audioMode through as-is. The Rust backend now handles "copy" fallback
-    // safely (probes source audio codec and switches to AAC/etc. when copy would
-    // fail the muxer) and recognizes "none" as `-an`. Silently rewriting here
-    // was hiding muxer-incompat failures and producing 0 KB outputs.
-    let audioMode = profile.audioMode;
-    if (profile.container === "mov" && audioMode === "flac") {
-      // MOV + FLAC isn't natively supported; ALAC keeps lossless audio in a MOV-friendly format.
-      audioMode = "alac";
-    }
-
-    return {
-      profileId: profile.id,
-      workflow: profile.workflow,
-      editorTarget: profile.editorTarget,
-      codec: profile.codec,
-      audioMode,
-      hardwareMode: profile.hardwareMode,
-      parallelExports: profile.parallelExports,
-      audioStreamIndex: generalSettings.previewAudioStreamIndex,
-    };
-  }, [generalSettings.exportProfiles, generalSettings.previewAudioStreamIndex]);
-
   function parseInitialClips(clipsJson: string): ClipItem[] {
     const scenes: any[] = JSON.parse(clipsJson);
 
@@ -588,7 +551,10 @@ export default function useImportExport(props?: ImportExportProps) {
       setLoading(true);
       appState.setIsExporting(true);
       const sep = dir.includes('\\') ? '\\' : '/';
-      const clipArray = selected.flatMap((c: ClipItem) => c.mergedSrcs ?? [c.src]);
+      // One group per selected tile. A tile the import-time similar-scene pass
+      // folded together still points at every source segment it swallowed, so a
+      // single tile can map to several files on disk.
+      const clipGroups = selected.map((c: ClipItem) => c.mergedSrcs ?? [c.src]);
       const exportOptions = buildExportOptionsPayload(generalSettings.activeExportProfileId);
       const activeProfile = generalSettings.exportProfiles.find(
         (candidate) => candidate.id === generalSettings.activeExportProfileId
@@ -622,8 +588,10 @@ export default function useImportExport(props?: ImportExportProps) {
           .trim()
           .slice(0, 180)) || "merged";
         const savePath = `${dir}${sep}${baseName}.${format}`;
+        // Everything lands in one file anyway, so the groups can be flattened
+        // straight into the concat list — no intermediates needed.
         const exportedFiles = await invoke<string[]>("export_clips", {
-          clips: clipArray,
+          clips: clipGroups.flat(),
           savePath,
           mergeEnabled,
           exportOptions,
@@ -638,8 +606,15 @@ export default function useImportExport(props?: ImportExportProps) {
         const firstStem = firstFile.replace(/\.[^/.]+$/, "");
         const defaultBase = firstStem.replace(/_\d{4}$/, "");
         const savePath = `${dir}${sep}${defaultBase}_####.${format}`;
+        // export_clips writes one output per input path, so handing it the raw
+        // segments would emit N files for a single folded tile. Collapse each
+        // multi-segment tile into one intermediate first; unfolded tiles pass
+        // through unchanged and the export itself is untouched.
+        const resolvedClips = await invoke<string[]>("ensure_merged_export_clips", {
+          groups: clipGroups,
+        });
         const exportedFiles = await invoke<string[]>("export_clips", {
-          clips: clipArray,
+          clips: resolvedClips,
           savePath,
           mergeEnabled: false,
           exportOptions,
@@ -696,61 +671,12 @@ export default function useImportExport(props?: ImportExportProps) {
       setLoading(false);
       appState.setIsExporting(false);
     }
-  }, [appState, buildExportOptionsPayload, persistedState, generalSettings, props?.onRPCUpdate]);
+  }, [appState, persistedState, generalSettings, props?.onRPCUpdate]);
 
   const handlePickExportDir = useCallback(async () => {
     const dir = await open({ directory: true, multiple: false });
     if (dir) persistedState.setExportDir(dir as string);
   }, [persistedState]);
-
-  const handleDownloadSingleClip = useCallback(async (clip: ClipItem) => {
-    try {
-      const activeProfile = generalSettings.exportProfiles.find(
-        (candidate) => candidate.id === generalSettings.activeExportProfileId
-      ) ?? generalSettings.exportProfiles[0];
-      const preferredFormat = activeProfile?.container || "mp4";
-      const format =
-        activeProfile &&
-        activeProfile.workflow === "video_encode" &&
-        !isExportCodecContainerCompatible(activeProfile.codec, preferredFormat)
-          ? getRecommendedContainerForCodec(activeProfile.codec)
-          : preferredFormat;
-      const fileName = clip.originalName || fileNameFromPath(clip.src);
-      const defaultPath = `${fileName}.${format}`;
-      const savePath = await save({
-        defaultPath,
-        filters: [{ name: "Video", extensions: [format] }],
-      });
-
-      if (!savePath) return;
-
-      setLoading(true);
-
-      const srcs = clip.mergedSrcs ?? [clip.src];
-      const exportOptions = buildExportOptionsPayload(generalSettings.activeExportProfileId);
-      const exportedFiles = await invoke<string[]>("export_clips", {
-        clips: srcs,
-        savePath,
-        mergeEnabled: srcs.length > 1,
-        exportOptions,
-      });
-      if (generalSettings.openFileLocationAfterExport && exportedFiles.length > 0) {
-        await invoke("reveal_in_file_manager", { filePath: exportedFiles[0] });
-      }
-    } catch (err) {
-      const message = typeof err === "string"
-        ? err
-        : (err instanceof Error ? err.message : "Unknown error");
-      console.error("Single clip download failed:", err);
-      appState.setProgressMsg(`Export failed: ${message}`);
-      setTimeout(() => {
-        appState.setProgressMsg("");
-      }, 8000);
-    } finally {
-      setLoading(false);
-    }
-
-  }, [appState, buildExportOptionsPayload, generalSettings.exportFormat, generalSettings.exportProfiles, generalSettings.openFileLocationAfterExport, generalSettings.activeExportProfileId]);
 
   return {
     loading,
@@ -764,7 +690,7 @@ export default function useImportExport(props?: ImportExportProps) {
     handleExport,
     handlePickExportDir,
     handleBatchImport,
-    handleDownloadSingleClip,
+    handleDownloadSingleClip: downloadSingleClip,
   };
 }
 
