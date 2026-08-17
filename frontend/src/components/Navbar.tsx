@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { useUIStateStore } from "../stores/UIStore";
 import { open } from "@tauri-apps/plugin-shell";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 type NavbarProps = {
     setSidebarEnabled: (val: boolean | ((prev: boolean) => boolean)) => void
@@ -11,11 +13,34 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
     const cols = useUIStateStore((s: any) => s.cols);
     const setCols = useUIStateStore((s: any) => s.setCols);
 
+    const [isMaximized, setIsMaximized] = useState(false);
+
+    useEffect(() => {
+        const appWindow = getCurrentWindow();
+        let unlisten: (() => void) | undefined;
+
+        const refresh = () => {
+            void appWindow.isMaximized().then(setIsMaximized);
+        };
+        refresh();
+
+        void appWindow.onResized(refresh).then((fn) => {
+            unlisten = fn;
+        });
+
+        return () => unlisten?.();
+    }, []);
+
     const handleBigger = () => setCols(Math.max(1, cols - 1));
     const handleSmaller = () => setCols(Math.min(12, cols + 1));
+
+    const handleMinimize = () => void getCurrentWindow().minimize();
+    const handleToggleMaximize = () => void getCurrentWindow().toggleMaximize();
+    const handleClose = () => void getCurrentWindow().close();
+
     return (
-        <div className="navbar">
-            <div className="left-nav">
+        <div className="navbar" data-tauri-drag-region>
+            <div className="left-nav" data-tauri-drag-region>
                 <svg
                     onClick={() => setSidebarEnabled(prev => !prev)}
                     width="24" height="24" viewBox="0 0 24 24"
@@ -24,7 +49,7 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
                 >
                     <path d="M9 6l6 6-6 6" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                <h1><span>AMV</span>erge</h1>
+                <h1 data-tauri-drag-region><span>AMV</span>erge</h1>
                 <a
                     className="discord-link"
                     href="#"
@@ -53,6 +78,50 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
                 <button type="button" onClick={handleBigger}>-</button>
                 <button type="button" onClick={handleSmaller}>+</button>  
                 </form>
+            </div>
+
+            <div className="window-controls">
+                <button
+                    type="button"
+                    className="window-control"
+                    onClick={handleMinimize}
+                    title="Minimize"
+                    aria-label="Minimize"
+                >
+                    <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round">
+                        <line x1="0" y1="5" x2="10" y2="5" />
+                    </svg>
+                </button>
+                <button
+                    type="button"
+                    className="window-control"
+                    onClick={handleToggleMaximize}
+                    title={isMaximized ? "Restore" : "Maximize"}
+                    aria-label={isMaximized ? "Restore" : "Maximize"}
+                >
+                    {isMaximized ? (
+                        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1">
+                            <rect x="0.5" y="0.5" width="7" height="7" />
+                            <rect x="2.5" y="2.5" width="7" height="7" />
+                        </svg>
+                    ) : (
+                        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1">
+                            <rect x="0.5" y="0.5" width="9" height="9" />
+                        </svg>
+                    )}
+                </button>
+                <button
+                    type="button"
+                    className="window-control close"
+                    onClick={handleClose}
+                    title="Close"
+                    aria-label="Close"
+                >
+                    <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round">
+                        <line x1="1" y1="1" x2="9" y2="9" />
+                        <line x1="9" y1="1" x2="1" y2="9" />
+                    </svg>
+                </button>
             </div>
         </div>
     )
