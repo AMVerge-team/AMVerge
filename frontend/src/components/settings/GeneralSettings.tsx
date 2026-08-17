@@ -270,7 +270,7 @@ export default function GeneralSettings({
           }
         />
 
-        <SettingsSection title="Import" description="How clips are found when you import a video." defaultOpen>
+        <SettingsSection id="general.import" title="Import" description="How clips are found when you import a video.">
           <SettingRow
             label="Scene Detection Method"
             description="How AMVerge finds scene cuts when you import."
@@ -285,7 +285,7 @@ export default function GeneralSettings({
           />
         </SettingsSection>
 
-        <SettingsSection title="Preview & Playback" description="How clips look and sound in the grid." defaultOpen>
+        <SettingsSection id="general.preview" title="Preview & Playback" description="How clips look and sound in the grid.">
         <SettingRow
           label="Preview Method"
           description="What the grid plays when you hover over a clip."
@@ -389,7 +389,7 @@ export default function GeneralSettings({
         />
         </SettingsSection>
 
-        <SettingsSection title="Features" description="Optional extras you can turn on.">
+        <SettingsSection id="general.features" title="Features" description="Optional extras you can turn on.">
         <SettingRow
           label="Scenepacks"
           description="Enable the Scenepacks feature for grouping clips into themed collections."
@@ -409,7 +409,7 @@ export default function GeneralSettings({
         />
         </SettingsSection>
 
-        <SettingsSection title="Storage" description="Where your imported episodes and clips live.">
+        <SettingsSection id="general.storage" title="Storage" description="Where your imported episodes and clips live.">
         <SettingRow
           label="Episodes Storage Path"
           description="Where your imported episodes and clips are saved."
@@ -434,7 +434,7 @@ export default function GeneralSettings({
         />
         </SettingsSection>
 
-        <SettingsSection title="Maintenance" description="Storage cleanup and resets. Use with care.">
+        <SettingsSection id="general.maintenance" title="Maintenance" description="Storage cleanup and resets. Use with care.">
         <SettingRow
           label="Clear Episode Panel"
           description="Removes every episode from the panel and deletes its files."

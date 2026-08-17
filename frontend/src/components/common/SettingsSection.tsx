@@ -1,27 +1,29 @@
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { FaChevronDown } from "react-icons/fa";
+import { useSettingsSectionsStore } from "../../stores/settingsSectionsStore";
 
 type SettingsSectionProps = {
+  id: string;
   title: string;
   description?: string;
-  defaultOpen?: boolean;
   children: ReactNode;
 };
 
 export default function SettingsSection({
+  id,
   title,
   description,
-  defaultOpen = false,
   children,
 }: SettingsSectionProps) {
-  const [open, setOpen] = useState(defaultOpen);
+  const open = useSettingsSectionsStore((state) => Boolean(state.openSections[id]));
+  const setSectionOpen = useSettingsSectionsStore((state) => state.setSectionOpen);
 
   return (
     <div className={`settings-collapsible${open ? " is-open" : ""}`}>
       <button
         type="button"
         className="settings-collapsible-header"
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => setSectionOpen(id, !open)}
         aria-expanded={open}
       >
         <span className="settings-collapsible-title">{title}</span>

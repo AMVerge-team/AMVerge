@@ -219,7 +219,7 @@ export default function ExportSection() {
       <h3>Export</h3>
 
       <div className="about-content">
-        <SettingsSection title="Profile" description="The export preset used by Export Now." defaultOpen>
+        <SettingsSection id="export.profile" title="Profile" description="The export preset used by Export Now.">
         <SettingRow
           label="Active Profile"
           description="Export Now uses this profile."
@@ -267,7 +267,7 @@ export default function ExportSection() {
         />
         </SettingsSection>
 
-        <SettingsSection title="Workflow & Encoding" description="How the video is re-encoded or copied." defaultOpen>
+        <SettingsSection id="export.workflow" title="Workflow & Encoding" description="How the video is re-encoded or copied.">
         <SettingRow
           label="Workflow"
           description="Re-encode the video, or copy it into a new container."
@@ -340,7 +340,7 @@ export default function ExportSection() {
         </SettingsSection>
 
         <div className="settings-section-divider" />
-        <SettingsSection title="Post-export passes" description="Extra steps run on each exported file after export.">
+        <SettingsSection id="export.postPasses" title="Post-export passes" description="Extra steps run on each exported file after export.">
           <PostExportPassesSection />
         </SettingsSection>
       </div>
