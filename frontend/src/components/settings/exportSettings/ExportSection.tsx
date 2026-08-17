@@ -26,6 +26,7 @@ import ProfileIconPicker from "./ProfileIconPicker";
 import ExportCodecSettings from "./ExportCodecSettings";
 import ExportHardwareSettings from "./ExportHardwareSettings";
 import PostExportPassesSection from "./PostExportPassesSection";
+import SettingsSection from "../../common/SettingsSection";
 
 function resolveGpuEncoderForCodec(
   codec: ExportProfile["codec"],
@@ -218,6 +219,7 @@ export default function ExportSection() {
       <h3>Export</h3>
 
       <div className="about-content">
+        <SettingsSection title="Profile" description="The export preset used by Export Now." defaultOpen>
         <SettingRow
           label="Active Profile"
           description="Export Now uses this profile."
@@ -263,7 +265,9 @@ export default function ExportSection() {
             />
           }
         />
+        </SettingsSection>
 
+        <SettingsSection title="Workflow & Encoding" description="How the video is re-encoded or copied." defaultOpen>
         <SettingRow
           label="Workflow"
           description="Re-encode the video, or copy it into a new container."
@@ -333,13 +337,12 @@ export default function ExportSection() {
             }
           />
         )}
+        </SettingsSection>
 
         <div className="settings-section-divider" />
-        <h3 className="settings-subheading">Post-export passes</h3>
-        <p className="settings-subheading-desc">
-          Extra CLI steps run on each exported file after export. A live modal shows progress and a preview.
-        </p>
-        <PostExportPassesSection />
+        <SettingsSection title="Post-export passes" description="Extra steps run on each exported file after export.">
+          <PostExportPassesSection />
+        </SettingsSection>
       </div>
     </section>
   );

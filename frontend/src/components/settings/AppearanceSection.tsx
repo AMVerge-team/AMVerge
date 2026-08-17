@@ -15,6 +15,7 @@ import {
 import ColorPicker from "../common/ColorPicker";
 import CropModal from "../common/CropModal";
 import SettingRow from "../common/SettingRow";
+import SettingsSection from "../common/SettingsSection";
 
 type AppearanceSectionProps = {
   onThemeReset: () => void;
@@ -140,6 +141,7 @@ export default function AppearanceSection({
       <h3>Appearance</h3>
       <div className="about-content">
 
+        <SettingsSection title="Colors" description="The accent and gradient that tint the whole app." defaultOpen>
         <SettingRow
           label="Accent color"
           description="The main color for buttons, highlights, and icons."
@@ -196,7 +198,9 @@ export default function AppearanceSection({
             </div>
           }
         />
+        </SettingsSection>
 
+        <SettingsSection title="Background" description="Custom image, video, or effect behind everything.">
         <SettingRow
           label="Background media"
           description="Use your own image, GIF, or video as the background."
@@ -268,7 +272,9 @@ export default function AppearanceSection({
             </div>
           }
         />
+        </SettingsSection>
 
+        <SettingsSection title="Clip Tiles" description="How clips look in the grid.">
         <SettingRow
           label="Grid preview speed"
           description="How fast previews play in the grid."
@@ -361,6 +367,7 @@ export default function AppearanceSection({
             </div>
           }
         />
+        </SettingsSection>
         <SettingRow
           label="Factory Reset"
           description="Puts every Appearance setting back to its default."

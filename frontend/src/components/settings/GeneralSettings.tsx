@@ -12,6 +12,7 @@ import { useUIStateStore } from "../../stores/UIStore";
 import { useEffect, useState} from "react";
 import SettingRow from "../common/SettingRow";
 import Dropdown, { type DropdownOption } from "../common/Dropdown";
+import SettingsSection from "../common/SettingsSection";
 import { clearEpisodePanelCache } from "../../utils/episodeUtils";
 import { clearScenepacksStorage } from "../../utils/scenepackStorage";
 import { useScenepacksStore } from "../../stores/scenepackStore";
@@ -269,19 +270,22 @@ export default function GeneralSettings({
           }
         />
 
-        <SettingRow
-          label="Scene Detection Method"
-          description="How AMVerge finds scene cuts when you import."
-          control={
-            <Dropdown
-              className="settings-wide-dropdown"
-              options={SCENE_DETECTION_OPTIONS}
-              value={generalSettings.sceneDetectionMethod}
-              onChange={(method) => void handleSceneDetectionChange(method)}
-            />
-          }
-        />
+        <SettingsSection title="Import" description="How clips are found when you import a video." defaultOpen>
+          <SettingRow
+            label="Scene Detection Method"
+            description="How AMVerge finds scene cuts when you import."
+            control={
+              <Dropdown
+                className="settings-wide-dropdown"
+                options={SCENE_DETECTION_OPTIONS}
+                value={generalSettings.sceneDetectionMethod}
+                onChange={(method) => void handleSceneDetectionChange(method)}
+              />
+            }
+          />
+        </SettingsSection>
 
+        <SettingsSection title="Preview & Playback" description="How clips look and sound in the grid." defaultOpen>
         <SettingRow
           label="Preview Method"
           description="What the grid plays when you hover over a clip."
@@ -383,7 +387,9 @@ export default function GeneralSettings({
             </div>
           }
         />
+        </SettingsSection>
 
+        <SettingsSection title="Features" description="Optional extras you can turn on.">
         <SettingRow
           label="Scenepacks"
           description="Enable the Scenepacks feature for grouping clips into themed collections."
@@ -401,7 +407,9 @@ export default function GeneralSettings({
             </div>
           }
         />
+        </SettingsSection>
 
+        <SettingsSection title="Storage" description="Where your imported episodes and clips live.">
         <SettingRow
           label="Episodes Storage Path"
           description="Where your imported episodes and clips are saved."
@@ -424,7 +432,9 @@ export default function GeneralSettings({
             </div>
           }
         />
+        </SettingsSection>
 
+        <SettingsSection title="Maintenance" description="Storage cleanup and resets. Use with care.">
         <SettingRow
           label="Clear Episode Panel"
           description="Removes every episode from the panel and deletes its files."
@@ -479,6 +489,7 @@ export default function GeneralSettings({
             </div>
           }
         />
+        </SettingsSection>
 
         {showFactoryResetConfirm && (
           <div
