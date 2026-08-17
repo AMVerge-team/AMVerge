@@ -36,8 +36,9 @@ function splitPath(p: string): { dir: string; stem: string; ext: string; sep: st
   return { dir, stem, ext, sep };
 }
 
-function buildJobs(outputs: string[], passes: PostExportPasses): Job[] {
+function buildJobs(outputs: string[], passes: PostExportPasses): { jobs: Job[]; interpOutputs: string[] } {
   const jobs: Job[] = [];
+  const interpOutputs: string[] = [];
   for (const out of outputs) {
     const { dir, stem, ext, sep } = splitPath(out);
     const path = (suffix: string) => `${dir}${sep}${stem}${suffix}.${ext}`;
@@ -61,6 +62,7 @@ function buildJobs(outputs: string[], passes: PostExportPasses): Job[] {
       // frames intermediate is temporary and deleted after interpolation.
       const tmp = path("_df_tmp");
       const output = path(PASS_SUFFIX.interpolation);
+      interpOutputs.push(output);
       jobs.push({
         label: `Interpolation · ${stem}`,
         calls: [
@@ -70,7 +72,7 @@ function buildJobs(outputs: string[], passes: PostExportPasses): Job[] {
       });
     }
   }
-  return jobs;
+  return { jobs, interpOutputs };
 }
 
 /**
@@ -81,8 +83,8 @@ function buildJobs(outputs: string[], passes: PostExportPasses): Job[] {
 export async function runPostExportPasses(
   outputs: string[],
   passes: PostExportPasses,
-): Promise<void> {
-  if (outputs.length === 0 || !anyPassEnabled(passes)) return;
+): Promise<string[]> {
+  if (outputs.length === 0 || !anyPassEnabled(passes)) return [];
 
   // Depth and interpolation run on the optional AI env. It is normally in place
   // (the settings toggle installs it), but a removed pack or a settings file
@@ -103,10 +105,10 @@ export async function runPostExportPasses(
     effective.interpolation = { ...effective.interpolation, enabled: false };
     skipped.push(skipNote("interpolation"));
   }
-  if (!anyPassEnabled(effective)) return;
+  if (!anyPassEnabled(effective)) return [];
 
-  const jobs = buildJobs(outputs, effective);
-  if (jobs.length === 0) return;
+  const { jobs, interpOutputs } = buildJobs(outputs, effective);
+  if (jobs.length === 0) return [];
 
   const store = usePassRunStore.getState();
   store.begin(jobs.length);
@@ -160,4 +162,6 @@ export async function runPostExportPasses(
     unlisteners.forEach((stop) => stop());
     usePassRunStore.getState().finish();
   }
+
+  return interpOutputs;
 }

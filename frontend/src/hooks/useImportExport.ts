@@ -10,7 +10,7 @@ import {
 } from "../features/export/profiles";
 
 import { runPostExportPasses } from "../features/export/runPostExportPasses";
-import { anyPassEnabled } from "../features/export/postPasses";
+import { anyPassEnabled, type PostExportPasses } from "../features/export/postPasses";
 import { useAiDepsStore } from "../stores/aiDepsStore";
 import { useAppStateStore, useAppPersistedStore } from "../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
@@ -36,6 +36,17 @@ function clipExportSpecs(c: ClipItem): ClipExportSpec[] {
   if (c.mergedSrcs && c.mergedSrcs.length > 0) return c.mergedSrcs.map((input) => ({ input }));
   if (c.clipPath) return [{ input: c.clipPath }];
   return [{ input: c.src, start_sec: c.startSec, end_sec: c.endSec }];
+}
+
+// strip path separators, control chars, and reserved characters; collapse to a
+// safe filename. Prevents traversal injection (e.g. "../foo").
+function sanitizeExportBaseName(rawBase: string): string {
+  return (rawBase
+    .replace(/[\\/:*?"<>|\x00-\x1f]/g, "_")
+    .replace(/^\.+/, "_")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 180)) || "merged";
 }
 
 export default function useImportExport(props?: ImportExportProps) {
@@ -674,6 +685,156 @@ export default function useImportExport(props?: ImportExportProps) {
     // export loader closes. Stays empty on failure so no passes run.
     let producedFiles: string[] = [];
     const passesSnapshot = generalSettings.postExportPasses;
+
+    // Merge + interpolation: interpolation must run per-clip (before the merge)
+    // so it never synthesizes frames across cut boundaries. The merged timeline
+    // is built afterwards from the interpolated clips.
+    if (mergeEnabled && passesSnapshot.interpolation.enabled) {
+      const sep = dir.includes('\\') ? '\\' : '/';
+      const clipArray = selected.flatMap(clipExportSpecs);
+      const exportOptions = buildExportOptionsPayload(generalSettings.activeExportProfileId);
+      const activeProfile = generalSettings.exportProfiles.find(
+        (candidate) => candidate.id === generalSettings.activeExportProfileId
+      ) ?? generalSettings.exportProfiles[0];
+      const preferredFormat = activeProfile?.container || "mp4";
+      const format =
+        activeProfile &&
+        activeProfile.workflow === "video_encode" &&
+        !isExportCodecContainerCompatible(activeProfile.codec, preferredFormat)
+          ? getRecommendedContainerForCodec(activeProfile.codec)
+          : preferredFormat;
+
+      const mergeBase = (selected[0]?.originalName || "episode").replace(/\.[^./\\]+$/, "");
+      const rawBase = mergeFileName || (mergeBase + "_merged");
+      const baseName = sanitizeExportBaseName(rawBase);
+      const finalSavePath = `${dir}${sep}${baseName}.${format}`;
+
+      let mergedFiles: string[] = [];
+
+      try {
+      props?.onRPCUpdate?.({
+        type: "update",
+        details: `Exporting ${selected.length} clips`,
+        state: "Saving Progress",
+        large_image: "amverge_logo",
+        small_image: generalSettings.rpcShowMiniIcons ? "save_icon_new" : undefined,
+        small_text: generalSettings.rpcShowMiniIcons ? "Exporting..." : undefined,
+        buttons: generalSettings.rpcShowButtons,
+      });
+
+      // 1. Export each clip on its own (no merge).
+      let clipFiles: string[] = [];
+      try {
+        setActiveOperation("export");
+        setLoading(true);
+        clipFiles = await invoke<string[]>("export_clips", {
+          clips: clipArray,
+          savePath: `${dir}${sep}${baseName}_####.${format}`,
+          mergeEnabled: false,
+          exportOptions,
+          audioTrack: generalSettings.previewAudioStreamIndex,
+        });
+        if (clipFiles.length === 0) throw new Error("Export produced no files.");
+      } finally {
+        setLoading(false);
+        setActiveOperation(null);
+      }
+
+      // 2. Interpolate each clip (pass modal drives itself; loader is closed).
+      const interpOnly: PostExportPasses = {
+        ...passesSnapshot,
+        depth: { ...passesSnapshot.depth, enabled: false },
+        deadframes: { ...passesSnapshot.deadframes, enabled: false },
+      };
+      const interpFiles = await runPostExportPasses(clipFiles, interpOnly);
+
+      // Interpolation may have been skipped (missing AI pack) — fall back to
+      // merging the raw clips.
+      const mergeInputs = interpFiles.length > 0 ? interpFiles : clipFiles;
+
+      // 3. Merge the (interpolated) clips losslessly (stream copy).
+      try {
+        setActiveOperation("export");
+        setLoading(true);
+        const remuxOptions: ExportOptionsPayload = {
+          profileId: exportOptions?.profileId ?? "",
+          workflow: "video_remux",
+          editorTarget: "none",
+          codec: "copy",
+          audioMode: "copy",
+          hardwareMode: "cpu",
+          parallelExports: 1,
+        };
+        mergedFiles = await invoke<string[]>("export_clips", {
+          clips: mergeInputs.map((input) => ({ input })),
+          savePath: finalSavePath,
+          mergeEnabled: true,
+          exportOptions: remuxOptions,
+        });
+      } finally {
+        setLoading(false);
+        setActiveOperation(null);
+      }
+
+      if (mergedFiles.length > 0 && generalSettings.openFileLocationAfterExport) {
+        await invoke("reveal_in_file_manager", { filePath: mergedFiles[0] });
+      }
+
+      props?.onRPCUpdate?.({
+        type: "update",
+        details: "Export Finished!",
+        state: "Success",
+        large_image: "amverge_logo",
+        small_image: generalSettings.rpcShowMiniIcons ? "check_icon_new" : undefined,
+        small_text: generalSettings.rpcShowMiniIcons ? "Done" : undefined,
+        buttons: generalSettings.rpcShowButtons,
+      });
+
+      setTimeout(() => {
+        props?.onRPCUpdate?.({
+          type: "update",
+          details: "Editing Episode",
+          state: "Ready",
+          large_image: "amverge_logo",
+          small_image: generalSettings.rpcShowMiniIcons ? "edit_icon_new" : undefined,
+          small_text: generalSettings.rpcShowMiniIcons ? "Editing" : undefined,
+          buttons: generalSettings.rpcShowButtons,
+        });
+      }, 10000);
+
+      } catch (err) {
+        const message = typeof err === "string"
+          ? err
+          : (err instanceof Error ? err.message : "Unknown error");
+        console.error("Export failed:", err);
+        appState.setProgressMsg(`Export failed: ${message}`);
+        props?.onRPCUpdate?.({
+          type: "update",
+          details: "Export Failed",
+          state: message.slice(0, 120),
+          large_image: "amverge_logo",
+          small_image: generalSettings.rpcShowMiniIcons ? "edit_icon_new" : undefined,
+          small_text: generalSettings.rpcShowMiniIcons ? "Error" : undefined,
+          buttons: generalSettings.rpcShowButtons,
+        });
+        setTimeout(() => {
+          appState.setProgressMsg("");
+        }, 8000);
+        return;
+      }
+
+      // 4. Any remaining passes (depth/deadframes) run on the merged file.
+      const passesForMerged: PostExportPasses = {
+        ...passesSnapshot,
+        interpolation: { ...passesSnapshot.interpolation, enabled: false },
+      };
+      if (mergedFiles.length > 0 && anyPassEnabled(passesForMerged)) {
+        void runPostExportPasses(mergedFiles, passesForMerged);
+      }
+
+      return;
+    }
+
     try {
       setActiveOperation("export");
       setLoading(true);
@@ -704,14 +865,7 @@ export default function useImportExport(props?: ImportExportProps) {
       if (mergeEnabled) {
         const mergeBase = (selected[0]?.originalName || "episode").replace(/\.[^./\\]+$/, "");
         const rawBase = mergeFileName || (mergeBase + "_merged");
-        // sanitize: strip path separators, control chars, and reserved characters;
-        // collapse to a safe filename. Prevents traversal injection (e.g. "../foo").
-        const baseName = (rawBase
-          .replace(/[\\/:*?"<>|\x00-\x1f]/g, "_")
-          .replace(/^\.+/, "_")
-          .replace(/\s+/g, " ")
-          .trim()
-          .slice(0, 180)) || "merged";
+        const baseName = sanitizeExportBaseName(rawBase);
         const savePath = `${dir}${sep}${baseName}.${format}`;
         const exportedFiles = await invoke<string[]>("export_clips", {
           clips: clipArray,
