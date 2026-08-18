@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 import SettingRow from "../common/SettingRow";
+import SettingsSection from "../common/SettingsSection";
+import AiModelsSection from "./AiModelsSection";
 import { useAiDepsStore } from "../../stores/aiDepsStore";
 import {
   AI_PACKS,
@@ -87,94 +89,102 @@ export default function DependenciesSection() {
           }
         />
 
-        <SettingRow
-          label="PyTorch"
-          description={
-            gpuRepairAvailable
-              ? "The CPU version is installed, but this PC has an NVIDIA GPU. AI features are running much slower than they could."
-              : "Shared by every AI feature. It downloads once, then the rest install quickly."
-          }
-          control={
-            <div className="aid-pack-row">
+        <SettingsSection id="deps.packs" title="AI Packs" description="The packages each feature needs. PyTorch downloads once, then the rest install quickly.">
+          <SettingRow
+            label="PyTorch"
+            description={
+              gpuRepairAvailable
+                ? "The CPU version is installed, but this PC has an NVIDIA GPU. AI features are running much slower than they could."
+                : "Shared by every AI feature. It downloads once, then the rest install quickly."
+            }
+            control={
+              <div className="aid-pack-row">
+                <span className="settings-value" style={{ width: "auto" }}>
+                  {torchLabel}
+                </span>
+                {gpuRepairAvailable ? (
+                  <button
+                    type="button"
+                    className="aid-btn aid-btn-primary"
+                    onClick={() => void useAiDepsStore.getState().repairGpu()}
+                    disabled={busy !== null}
+                  >
+                    Reinstall with GPU support
+                  </button>
+                ) : null}
+              </div>
+            }
+          />
+
+          {VISIBLE_PACK_IDS.map((packId) => {
+            const pack = AI_PACKS[packId];
+            const installed = isPackInstalled(status, packId);
+            return (
+              <SettingRow
+                key={packId}
+                label={pack.label}
+                description={`${pack.description} Requires ${pack.dependencyName}.`}
+                control={
+                  <div className="aid-pack-row">
+                    <span className={`aid-state${installed ? " installed" : ""}`}>
+                      {installed ? "Installed" : `~${formatSizeMb(estimateDownloadMb(status, packId))}`}
+                    </span>
+                    {installed ? (
+                      <button
+                        type="button"
+                        className="aid-btn"
+                        onClick={() => void uninstall(packId)}
+                        disabled={busy !== null}
+                      >
+                        {busy === packId ? "Removing…" : "Remove"}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="aid-btn aid-btn-primary"
+                        onClick={() => void install(packId)}
+                        disabled={busy !== null || status?.uvAvailable === false}
+                      >
+                        Install
+                      </button>
+                    )}
+                  </div>
+                }
+              />
+            );
+          })}
+        </SettingsSection>
+
+        <SettingsSection id="deps.models" title="AI Models" description="Manage the model weights used by the depth map and interpolation passes.">
+          <AiModelsSection />
+        </SettingsSection>
+
+        <SettingsSection id="deps.storage" title="Storage" description="Disk usage and removal of the AI environment.">
+          <SettingRow
+            label="Disk usage"
+            description="Space used by the AI features and their Python environment."
+            control={
               <span className="settings-value" style={{ width: "auto" }}>
-                {torchLabel}
+                {formatBytes(status?.envSizeBytes ?? 0)}
               </span>
-              {gpuRepairAvailable ? (
-                <button
-                  type="button"
-                  className="aid-btn aid-btn-primary"
-                  onClick={() => void useAiDepsStore.getState().repairGpu()}
-                  disabled={busy !== null}
-                >
-                  Reinstall with GPU support
-                </button>
-              ) : null}
-            </div>
-          }
-        />
+            }
+          />
 
-        {VISIBLE_PACK_IDS.map((packId) => {
-          const pack = AI_PACKS[packId];
-          const installed = isPackInstalled(status, packId);
-          return (
-            <SettingRow
-              key={packId}
-              label={pack.label}
-              description={`${pack.description} Requires ${pack.dependencyName}.`}
-              control={
-                <div className="aid-pack-row">
-                  <span className={`aid-state${installed ? " installed" : ""}`}>
-                    {installed ? "Installed" : `~${formatSizeMb(estimateDownloadMb(status, packId))}`}
-                  </span>
-                  {installed ? (
-                    <button
-                      type="button"
-                      className="aid-btn"
-                      onClick={() => void uninstall(packId)}
-                      disabled={busy !== null}
-                    >
-                      {busy === packId ? "Removing…" : "Remove"}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="aid-btn aid-btn-primary"
-                      onClick={() => void install(packId)}
-                      disabled={busy !== null || status?.uvAvailable === false}
-                    >
-                      Install
-                    </button>
-                  )}
-                </div>
-              }
-            />
-          );
-        })}
-
-        <SettingRow
-          label="Disk usage"
-          description="Space used by the AI features and their Python environment."
-          control={
-            <span className="settings-value" style={{ width: "auto" }}>
-              {formatBytes(status?.envSizeBytes ?? 0)}
-            </span>
-          }
-        />
-
-        <SettingRow
-          label="Uninstall AI Features"
-          description="Deletes every AI package. The rest of AMVerge keeps working, and you can reinstall any feature later."
-          control={
-            <button
-              type="button"
-              className="aid-btn"
-              onClick={() => void removeEnv()}
-              disabled={busy !== null || !status?.envReady}
-            >
-              {busy === "env" ? "Removing…" : "Remove"}
-            </button>
-          }
-        />
+          <SettingRow
+            label="Uninstall AI Features"
+            description="Deletes every AI package. The rest of AMVerge keeps working, and you can reinstall any feature later."
+            control={
+              <button
+                type="button"
+                className="aid-btn"
+                onClick={() => void removeEnv()}
+                disabled={busy !== null || !status?.envReady}
+              >
+                {busy === "env" ? "Removing…" : "Remove"}
+              </button>
+            }
+          />
+        </SettingsSection>
 
         {status && !status.managed ? (
           <p className="setting-description">
