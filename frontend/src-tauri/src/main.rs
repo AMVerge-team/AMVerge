@@ -72,6 +72,10 @@ fn main() {
             commands::discord::start_discord_rpc,
             commands::discord::update_discord_rpc,
             commands::discord::stop_discord_rpc,
+            commands::themes::list_themes,
+            commands::themes::load_theme_css,
+            commands::themes::delete_theme,
+            commands::themes::open_themes_folder,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {

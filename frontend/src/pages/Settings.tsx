@@ -3,12 +3,14 @@ import AppearanceSection from "../components/settings/AppearanceSection";
 import DependenciesSection from "../components/settings/DependenciesSection";
 import DiscordRPCSection from "../components/settings/DiscordRPCSection";
 import ExportSection from "../components/settings/exportSettings/ExportSection";
+import ThemesSection from "../components/settings/ThemesSection";
 import { useUIStateStore } from "../stores/UIStore";
 
 const PAGES = [
   { key: "general", label: "General" },
   { key: "export", label: "Export" },
   { key: "appearance", label: "Appearance" },
+  { key: "themes", label: "Themes" },
   { key: "dependencies", label: "Dependencies" },
   { key: "discord", label: "Discord RPC" },
 ];
@@ -57,6 +59,10 @@ export default function Settings({
               <AppearanceSection
                 onThemeReset={onThemeReset}
               />
+            )}
+
+            {activeTab === "themes" && (
+              <ThemesSection />
             )}
 
             {activeTab === "export" && (

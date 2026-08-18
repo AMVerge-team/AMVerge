@@ -312,6 +312,7 @@ export type ThemeSettings = {
     showDownloadButton: boolean;
     showClipTimestamps: boolean;
     widescreenClipTiles: boolean;
+    themeId: string | null;
 };
 
 export type ThemeSettingsStore = ThemeSettings & {
@@ -324,6 +325,7 @@ export type ThemeSettingsStore = ThemeSettings & {
     setShowDownloadButton: (showDownloadButton: boolean) => void;
     setShowClipTimestamps: (showClipTimestamps: boolean) => void;
     setWidescreenClipTiles: (widescreenClipTiles: boolean) => void;
+    setThemeId: (themeId: string | null) => void;
     resetThemeSettings: () => void;
 };
 
@@ -337,6 +339,7 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
     showDownloadButton: true,
     showClipTimestamps: true,
     widescreenClipTiles: false,
+    themeId: null,
 };
 
 export const useThemeSettingsStore = create<ThemeSettingsStore>()(
@@ -378,6 +381,9 @@ export const useThemeSettingsStore = create<ThemeSettingsStore>()(
             },
             setWidescreenClipTiles: (widescreenClipTiles) => {
                 set({ widescreenClipTiles })
+            },
+            setThemeId: (themeId) => {
+                set({ themeId })
             },
             resetThemeSettings: () => {
                 console.log("Resetting theme..")

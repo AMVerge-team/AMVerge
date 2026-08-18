@@ -40,7 +40,7 @@
     --clip-overlay-inset: 7px;
     width: 100%;
     aspect-ratio: var(--clip-tile-aspect, 1 / 1);
-    border-radius: 15px;
+    border-radius: var(--tile-radius, 15px);
     position: relative;
     overflow: hidden;
     background: black;

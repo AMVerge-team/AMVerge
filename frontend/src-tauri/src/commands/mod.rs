@@ -9,3 +9,4 @@ pub mod preview;
 pub mod scenepacks;
 pub mod scenes;
 pub mod settings;
+pub mod themes;

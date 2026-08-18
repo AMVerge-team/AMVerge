@@ -109,3 +109,8 @@ lerna-debug.log*
 **/CLAUDE.md 
 **/AGENT.md
 .claude/
+
+#############################################
+# Themes (developer theme folders)
+#############################################
+themes/

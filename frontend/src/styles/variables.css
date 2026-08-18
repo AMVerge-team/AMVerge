@@ -1,14 +1,59 @@
 @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
 
 :root {
+    /* accent */
     --accent: #22c55e;
     --accent-rgb: 34 197 94;
+
+    /* background */
+    --bg-base: #000000;
+    --bg-accent: #001a00;
+    --app-bg-image: none;
+    --app-bg-opacity: 1;
+    --app-bg-blur: 0px;
+
+    /* surfaces */
+    --surface-0: rgba(0, 0, 0, 0.22);
+    --surface-1: rgba(255, 255, 255, 0.08);
+    --surface-2: rgba(255, 255, 255, 0.12);
+    --panel-bg: rgba(0, 0, 0, 0.22);
+    --panel-border: rgba(255, 255, 255, 0.12);
+
+    /* text */
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.55);
+    --text-muted: rgba(255, 255, 255, 0.3);
+
+    /* borders */
+    --border: rgba(255, 255, 255, 0.15);
+    --border-strong: rgba(255, 255, 255, 0.35);
+
+    /* controls */
+    --button-bg: rgba(15, 0, 0, 0.1);
+    --button-border: #ffffff;
+    --input-bg: rgba(255, 255, 255, 0.08);
+    --input-border: rgba(255, 255, 255, 0.16);
+
+    /* scrollbar */
+    --scrollbar-thumb: rgb(var(--accent-rgb) / 0.42);
+    --scrollbar-track: rgb(255 255 255 / 0.02);
+
+    /* overlays / modals */
+    --overlay-bg: rgba(0, 0, 0, 0.55);
+    --modal-bg: rgba(20, 20, 20, 0.92);
+
+    /* selector (dropdown option highlight) */
     --selector-active-bg: #003a23;
     --selector-active-fg: #00f07a;
     --selector-active-border: #0b8f56;
     --selector-active-desc: rgba(0, 240, 122, 0.82);
-    --app-bg-image: none;
-    --app-bg-opacity: 1;
-    --app-bg-blur: 0px;
-    --bg-accent: #001a00;
+
+    /* clip tiles */
+    --clip-tile-aspect: 1 / 1;
+    --tile-radius: 12px;
+
+    /* font + radius */
+    --font-ui: 'Jersey 10', system-ui, sans-serif;
+    --radius: 8px;
+    --radius-lg: 12px;
 }

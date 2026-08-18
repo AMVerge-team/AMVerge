@@ -15,25 +15,25 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   border-radius: 8px;
   padding: 6px 10px;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   box-sizing: border-box;
 }
 
 .dropdown-trigger:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.35);
+  background: var(--surface-2);
+  border-color: var(--border-strong);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .custom-dropdown.open .dropdown-trigger {
   border-color: var(--accent);
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--surface-2);
   box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.3);
 }
 
@@ -83,7 +83,7 @@
   font-size: 0.74rem;
   line-height: 1.45;
   letter-spacing: 0.22px;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -126,9 +126,9 @@
   top: calc(100% + 6px);
   left: 0;
   right: 0;
-  background: rgba(20, 20, 20, 0.95);
+  background: var(--modal-bg);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   overflow: hidden !important;
@@ -180,14 +180,14 @@
   padding: 8px 12px;
   border-radius: 0;
   border: none;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .dropdown-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: var(--surface-1);
+  color: var(--text-primary);
 }
 
 .dropdown-item.active {

@@ -398,10 +398,10 @@
     height: 32px;
     width: 100%;
     padding: 0 10px;
-    border: 1px solid rgb(255 255 255 / 0.16);
+    border: 1px solid var(--input-border);
     border-radius: 8px;
-    background: rgb(255 255 255 / 0.08);
-    color: white;
+    background: var(--input-bg);
+    color: var(--text-primary);
     font-family: inherit;
     font-size: 20px;
     letter-spacing: 0.2px;

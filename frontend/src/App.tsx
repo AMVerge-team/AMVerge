@@ -28,6 +28,7 @@ import { useAppStateStore } from "./stores/appStore";
 import { useWebpLoadingStore } from "./stores/webpLoadingStore";
 import { useUIStateStore } from "./stores/UIStore";
 import { applyThemeSettings, useGeneralSettingsStore, useThemeSettingsStore } from "./stores/settingsStore";
+import { applyTheme, listThemes, loadThemeCss } from "./features/theme/themes";
 import { useEpisodePanelRuntimeStore } from "./stores/episodeStore";
 
 
@@ -140,7 +141,10 @@ function App() {
       const rect = wrapper.getBoundingClientRect();
       const minWidth = 220;
       const maxWidth = Math.max(minWidth, Math.floor(rect.width * 0.6));
-      const proposed = Math.round(ev.clientX - rect.left);
+      const sidebarRight = document.body.classList.contains("theme-sidebar-right");
+      const proposed = sidebarRight
+        ? Math.round(rect.right - ev.clientX)
+        : Math.round(ev.clientX - rect.left);
       const clamped = Math.min(maxWidth, Math.max(minWidth, proposed));
 
       setSidebarWidthPx(clamped);
@@ -251,9 +255,38 @@ function App() {
   }
 
   // effects
+  const themeId = useThemeSettingsStore((s) => s.themeId);
+
   useEffect(() => {
-    applyThemeSettings(themeSettings);
-  }, [themeSettings]);
+    let cancelled = false;
+    void (async () => {
+      let theme = null;
+      let css: string | undefined;
+      if (themeId) {
+        try {
+          const themes = await listThemes();
+          if (cancelled) return;
+          theme = themes.find((t) => t.id === themeId) ?? null;
+          if (theme?.path) {
+            try {
+              css = await loadThemeCss(theme.path);
+            } catch {
+              css = undefined;
+            }
+          }
+        } catch {
+          theme = null;
+        }
+      }
+      if (cancelled) return;
+      // theme base first, then the granular user settings on top.
+      applyTheme(theme, css);
+      applyThemeSettings(themeSettings);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [themeId, themeSettings]);
 
   useEffect(() => {
     if (activePage === "scenepacks" && !generalSettings.scenepacksEnabled) {

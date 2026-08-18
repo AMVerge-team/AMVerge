@@ -24,6 +24,15 @@
     min-width: 0;
 }
 
+/* Theme layout modes */
+.theme-navbar-hidden .navbar {
+    display: none;
+}
+
+.theme-sidebar-right .window-body {
+    flex-direction: row-reverse;
+}
+
 .window-wrapper,
 .content-wrapper,
 .main-content {
