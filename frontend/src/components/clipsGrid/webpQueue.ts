@@ -13,22 +13,13 @@ import {
   WebpQueueContext,
 } from "./webpQueueTypes";
 
-// two-lane scheduler:
 // - visible tiles: quick batches
 // - offscreen tiles: slow background trickle
-// kept at ~2x the backend's max encode concurrency (8) so the encoder pool stays
-// continuously fed across the IPC roundtrip between batches instead of draining
-// to idle. Per-scene results stream back individually, so a larger batch doesn't
-// delay first paint.
 const VISIBLE_BATCH_SIZE = 16;
 const OFFSCREEN_BATCH_SIZE = 1;
 const OFFSCREEN_BATCH_DELAY_MS = 250;
 
-// when an episode opens, the disk-cache prime can resolve a few hundred WebPs at
-// once. Publishing them all in one commit makes every mounted tile mount its WebP
-// <img> in the same frame — a synchronous decode storm that freezes the grid for
-// a beat. Publishing in index-ordered chunks across animation frames spreads that
-// work out (top rows fill in first) so the grid streams in smoothly instead.
+// when an episode opens, the disk-cache prime can resolve a few hundred WebPs at once.
 const PRIME_PUBLISH_CHUNK = 24;
 
 function nextFrame(): Promise<void> {
@@ -62,32 +53,14 @@ function sleep(ms: number): Promise<void> {
 }
 
 export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}) {
-  // NOTE: intentionally does NOT subscribe to `animatedByClipId`. Each tile reads
-  // its own slice (`animatedByClipId[clip.id]`) directly from the store, so a new
-  // WebP result re-renders only that tile instead of re-rendering ClipsContainer
-  // and reconciling the entire grid on every result (which thrashed scrolling).
   const cacheRef = useRef<Map<string, string>>(new Map());
   const demandRef = useRef<Map<string, QueueDemand>>(new Map());
   const inFlightRef = useRef<Set<string>>(new Set());
   const seqRef = useRef(0);
   const processingRef = useRef(false);
-  // bumped on every reset (episode switch). A batch dispatched before the bump is
-  // recognised as belonging to the previous episode and its results are kept out
-  // of the now-reset store, so switching episodes never paints stale previews.
   const epochRef = useRef(0);
-  // hold the latest context in a ref so the returned callbacks can stay
-  // referentially stable. The caller passes a fresh `context` object literal on
-  // every render; depending on it directly made `primeFromDiskCache` change
-  // identity each render, which re-fired the full-episode disk-cache prime on
-  // every scroll frame and froze scrolling.
   const contextRef = useRef(context);
   contextRef.current = context;
-
-  // progress tracking for the background "Loading previews" bar. `pendingLoadRef`
-  // holds the demand keys that need backend work and haven't resolved yet;
-  // `loadTotalRef`/`loadDoneRef` are the cumulative counters for the current
-  // burst. Disk-cache prime hits are intentionally NOT counted — they republish
-  // instantly, so counting them would flash the bar 0→N→0 on every re-open.
   const pendingLoadRef = useRef<Set<string>>(new Set());
   const loadTotalRef = useRef(0);
   const loadDoneRef = useRef(0);

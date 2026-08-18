@@ -15,7 +15,8 @@
       {
         "title": "AMVerge",
         "minWidth": 920,
-        "minHeight": 540
+        "minHeight": 540,
+        "decorations": false
       }
     ],
     "security": {

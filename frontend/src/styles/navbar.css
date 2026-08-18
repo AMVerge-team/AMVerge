@@ -3,7 +3,11 @@
 -------------------- */
 .navbar {
     display: flex;
+    align-items: center;
     justify-content: space-between;
+    height: 44px;
+    user-select: none;
+    flex-shrink: 0;
 }
 
 .navbar svg { 
@@ -67,4 +71,39 @@
     align-items: center;
     justify-content: flex-end;
     gap: 8px;
+}
+
+/* window chrome controls */
+.window-controls {
+    display: flex;
+    align-items: stretch;
+    height: 100%;
+    flex-shrink: 0;
+}
+
+.window-control {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 100%;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+}
+
+.window-control:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+}
+
+.window-control.close:hover {
+    background: #e81123;
+    color: white;
+}
+
+.window-control svg {
+    width: 12px;
+    height: 12px;
 }
