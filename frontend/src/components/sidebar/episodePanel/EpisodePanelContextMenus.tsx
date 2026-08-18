@@ -147,6 +147,17 @@ export default function EpisodePanelContextMenus({
             type="button"
             className="episode-context-menu-item"
             onClick={() => {
+              openNewFolderModal(folderContextMenu.folderId);
+              setFolderContextMenu(null);
+            }}
+          >
+            Add Subfolder
+          </button>
+
+          <button
+            type="button"
+            className="episode-context-menu-item"
+            onClick={() => {
               openRenameFolderModal(folderContextMenu.folderId);
               setFolderContextMenu(null);
             }}

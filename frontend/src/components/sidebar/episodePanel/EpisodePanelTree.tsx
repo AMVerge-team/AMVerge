@@ -36,6 +36,7 @@ type EpisodePanelTreeProps = {
   onOpenEpisode: (episodeId: string) => void;
   onSelectFolder: (folderId: string | null) => void;
   onToggleFolderExpanded: (folderId: string) => void;
+  forceExpanded?: boolean;
 };
 
 export default function EpisodePanelTree({
@@ -55,6 +56,7 @@ export default function EpisodePanelTree({
   onOpenEpisode,
   onSelectFolder,
   onToggleFolderExpanded,
+  forceExpanded = false,
 }: EpisodePanelTreeProps) {
   const renderEpisodeRow = (
     episode: Episode,
@@ -91,6 +93,8 @@ export default function EpisodePanelTree({
       (dropTarget?.kind === "folder" && dropTarget.folderId === folder.id) ||
       (dropTarget?.kind === "folder-reorder" && dropTarget.folderId === folder.id);
 
+    const isExpanded = forceExpanded || folder.isExpanded;
+
     return (
       <div key={folder.id} className="episode-panel-folder">
         <FolderRow
@@ -105,7 +109,7 @@ export default function EpisodePanelTree({
           onToggleFolderExpanded={onToggleFolderExpanded}
         />
 
-        {folder.isExpanded && (childFolders.length > 0 || folderEpisodes.length > 0) && (
+        {isExpanded && (childFolders.length > 0 || folderEpisodes.length > 0) && (
           <div className="episode-panel-folder-children">
             {childFolders.map((child) => renderFolder(child, depth + 1))}
             {folderEpisodes.map((episode) =>

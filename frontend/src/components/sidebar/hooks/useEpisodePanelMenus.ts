@@ -41,6 +41,11 @@ export default function useEpisodePanelMenus({
   const [panelContextMenu, setPanelContextMenu] = useState<PanelContextMenuState | null>(null);
   const [textModal, setTextModal] = useState<TextModalState | null>(null);
   const [confirmModal, setConfirmModal] = useState<ConfirmModalState | null>(null);
+  const [newFolderModal, setNewFolderModal] = useState<{
+    parentFolderId: string | null;
+  } | null>(null);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [newFolderParentId, setNewFolderParentId] = useState<string | null>(null);
 
   const textModalInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -60,6 +65,7 @@ export default function useEpisodePanelMenus({
         setPanelContextMenu(null);
         setTextModal(null);
         setConfirmModal(null);
+        setNewFolderModal(null);
       }
     };
 
@@ -145,15 +151,23 @@ export default function useEpisodePanelMenus({
     setContextMenu(null);
     setFolderContextMenu(null);
 
-    setTextModal({
-      title: "New Folder",
-      initialValue: "",
-      placeholder: "Folder name",
-      confirmLabel: "Create",
-      onConfirm: (value) => {
-        onCreateFolder(value, parentFolderId);
-      },
-    });
+    setNewFolderModal({ parentFolderId });
+    setNewFolderName("");
+    setNewFolderParentId(parentFolderId);
+  };
+
+  const closeNewFolderModal = () => {
+    setNewFolderModal(null);
+    setNewFolderName("");
+    setNewFolderParentId(null);
+  };
+
+  const handleCreateNewFolder = () => {
+    const name = newFolderName.trim();
+    if (!name) return;
+
+    onCreateFolder(name, newFolderParentId);
+    closeNewFolderModal();
   };
 
   const openRenameEpisodeModal = (episodeId: string) => {
@@ -206,6 +220,14 @@ export default function useEpisodePanelMenus({
     confirmModal,
     setConfirmModal,
     textModalInputRef,
+
+    newFolderModal,
+    newFolderName,
+    setNewFolderName,
+    newFolderParentId,
+    setNewFolderParentId,
+    closeNewFolderModal,
+    handleCreateNewFolder,
 
     openContextMenu,
     openFolderContextMenu,

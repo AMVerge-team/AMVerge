@@ -1,6 +1,7 @@
 // main Episode Panel coordinator. Wires together structure, menus, drag/drop, keyboard shortcuts, and UI sections.
 import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { FaSearch, FaTimes } from "react-icons/fa";
 
 import EpisodePanelContextMenus from "./EpisodePanelContextMenus";
 import EpisodePanelHeader from "./EpisodePanelHeader";
@@ -25,6 +26,7 @@ export default function EpisodePanel() {
 
   const [nextSortDirection, setNextSortDirection] = useState<"asc" | "desc">("asc");
   const [multiSelectedIds, setMultiSelectedIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<{
     kind: "episode" | "episodes" | "folder";
     ids: string[];
@@ -41,6 +43,17 @@ export default function EpisodePanel() {
   const openedEpisodeId = episodeRuntimeState.openedEpisodeId;
   const lastOpenedEpisodeId = episodeMetadataState.lastOpenedEpisodeId;
 
+  const q = searchQuery.trim().toLowerCase();
+  const filteredEpisodes = useMemo(() => {
+    if (!q) return episodes;
+    return episodes.filter((e) => e.displayName.toLowerCase().includes(q));
+  }, [episodes, q]);
+  const filteredFolders = useMemo(() => {
+    if (!q) return episodeFolders;
+    return episodeFolders.filter((f) => f.name.toLowerCase().includes(q));
+  }, [episodeFolders, q]);
+  const isSearching = q.length > 0;
+
   const {
     folderById,
     foldersByParentId,
@@ -48,8 +61,8 @@ export default function EpisodePanel() {
     episodesByFolderId,
     flatEpisodeOrder,
   } = useEpisodePanelStructure({
-    episodes,
-    episodeFolders,
+    episodes: filteredEpisodes,
+    episodeFolders: filteredFolders,
   });
 
   const clearClickGesture = () => {
@@ -199,6 +212,13 @@ export default function EpisodePanel() {
     openNewFolderModal,
     openRenameEpisodeModal,
     openRenameFolderModal,
+    newFolderModal,
+    newFolderName,
+    setNewFolderName,
+    newFolderParentId,
+    setNewFolderParentId,
+    closeNewFolderModal,
+    handleCreateNewFolder,
   } = useEpisodePanelMenus({
     episodes,
     episodeFolders,
@@ -295,6 +315,26 @@ export default function EpisodePanel() {
           }}
         />
 
+        <div className="scenepack-search">
+          <FaSearch className="scenepack-search-icon" />
+          <input
+            type="text"
+            className="scenepack-search-input"
+            placeholder="Search episodes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              className="scenepack-search-clear"
+              onClick={() => setSearchQuery("")}
+              aria-label="Clear search"
+            >
+              <FaTimes />
+            </button>
+          )}
+        </div>
+
         <div
           className={
             dropTarget?.kind === "root"
@@ -334,6 +374,7 @@ export default function EpisodePanel() {
             onOpenEpisode={handleOpenEpisode}
             onSelectFolder={handleSelectFolder}
             onToggleFolderExpanded={handleToggleFolderExpanded}
+            forceExpanded={isSearching}
           />
         </div>
 
@@ -343,6 +384,14 @@ export default function EpisodePanel() {
           textModalInputRef={textModalInputRef}
           setTextModal={setTextModal}
           setConfirmModal={setConfirmModal}
+          newFolderModal={newFolderModal}
+          newFolderName={newFolderName}
+          setNewFolderName={setNewFolderName}
+          newFolderParentId={newFolderParentId}
+          setNewFolderParentId={setNewFolderParentId}
+          episodeFolders={episodeFolders}
+          closeNewFolderModal={closeNewFolderModal}
+          handleCreateNewFolder={handleCreateNewFolder}
         />
 
         {confirmDelete && (
