@@ -109,3 +109,4 @@ lerna-debug.log*
 **/CLAUDE.md 
 **/AGENT.md
 .claude/
+/themes
