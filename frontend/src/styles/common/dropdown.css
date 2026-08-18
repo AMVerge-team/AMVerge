@@ -200,8 +200,8 @@
 
 .dropdown-item.active .dropdown-item-icon {
   color: var(--selector-active-fg);
-  background: rgba(0, 240, 122, 0.08);
-  border-color: rgba(0, 240, 122, 0.35);
+  background: rgb(var(--accent-rgb) / 0.08);
+  border-color: rgb(var(--accent-rgb) / 0.35);
 }
 
 .dropdown-item.active .dropdown-item-description {
