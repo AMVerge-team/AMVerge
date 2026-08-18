@@ -317,7 +317,6 @@
     border-radius: 12px;
     margin-bottom: 12px;
     background: rgb(255 255 255 / 0.025);
-    overflow: hidden;
 }
 
 .settings-collapsible-header {
@@ -332,6 +331,8 @@
     font-family: inherit;
     text-align: left;
     cursor: pointer;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
 }
 
 .settings-collapsible-header:hover {
