@@ -250,14 +250,6 @@ export default function GeneralSettings({
     <section className="panel menu-panel settings-panel">
       <h3>General</h3>
       <div className="about-content">
-        {loading && (
-          <div className="settings-row">
-            <span className="settings-value" style={{ color: "#ff0" }}>
-              Moving episodes to new directory...
-            </span>
-          </div>
-        )}
-
         <SettingRow
           label="Application Version"
           description=""
@@ -270,7 +262,7 @@ export default function GeneralSettings({
           }
         />
 
-        <SettingsSection id="general.import" title="Import" description="How clips are found when you import a video.">
+        <SettingsSection id="general.import" title="Import">
           <SettingRow
             label="Scene Detection Method"
             description="How AMVerge finds scene cuts when you import."
@@ -285,7 +277,7 @@ export default function GeneralSettings({
           />
         </SettingsSection>
 
-        <SettingsSection id="general.preview" title="Preview & Playback" description="How clips look and sound in the grid.">
+        <SettingsSection id="general.preview" title="Preview & Playback">
         <SettingRow
           label="Preview Method"
           description="What the grid plays when you hover over a clip."
@@ -389,7 +381,7 @@ export default function GeneralSettings({
         />
         </SettingsSection>
 
-        <SettingsSection id="general.features" title="Features" description="Optional extras you can turn on.">
+        <SettingsSection id="general.features" title="Features">
         <SettingRow
           label="Scenepacks"
           description="Enable the Scenepacks feature for grouping clips into themed collections."
@@ -409,7 +401,7 @@ export default function GeneralSettings({
         />
         </SettingsSection>
 
-        <SettingsSection id="general.storage" title="Storage" description="Where your imported episodes and clips live.">
+        <SettingsSection id="general.storage" title="Storage">
         <SettingRow
           label="Episodes Storage Path"
           description="Where your imported episodes and clips are saved."
@@ -434,7 +426,7 @@ export default function GeneralSettings({
         />
         </SettingsSection>
 
-        <SettingsSection id="general.maintenance" title="Maintenance" description="Storage cleanup and resets. Use with care.">
+        <SettingsSection id="general.maintenance" title="Maintenance">
         <SettingRow
           label="Clear Episode Panel"
           description="Removes every episode from the panel and deletes its files."
@@ -455,7 +447,7 @@ export default function GeneralSettings({
 
         <SettingRow
           label="Clear Scenepack Storage"
-          description="Remove all Scenepacks and delete their materialized clip files on disk. Episode storage is untouched."
+          description="Remove all Scenepacks and delete its files."
           control={
             <div className="settings-control">
               <button

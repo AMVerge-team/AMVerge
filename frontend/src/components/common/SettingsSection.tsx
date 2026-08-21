@@ -5,17 +5,17 @@ import { useSettingsSectionsStore } from "../../stores/settingsSectionsStore";
 type SettingsSectionProps = {
   id: string;
   title: string;
-  description?: string;
   children: ReactNode;
 };
 
 export default function SettingsSection({
   id,
   title,
-  description,
   children,
 }: SettingsSectionProps) {
-  const open = useSettingsSectionsStore((state) => Boolean(state.openSections[id]));
+  // Open unless the user has collapsed this one before - the store only records
+  // sections they actually toggled, so an absent entry means "never touched".
+  const open = useSettingsSectionsStore((state) => state.openSections[id] ?? true);
   const setSectionOpen = useSettingsSectionsStore((state) => state.setSectionOpen);
 
   return (
@@ -27,9 +27,6 @@ export default function SettingsSection({
         aria-expanded={open}
       >
         <span className="settings-collapsible-title">{title}</span>
-        {description ? (
-          <span className="settings-collapsible-desc">{description}</span>
-        ) : null}
         <FaChevronDown className="settings-collapsible-chevron" aria-hidden="true" />
       </button>
       {open ? <div className="settings-collapsible-body">{children}</div> : null}

@@ -439,15 +439,6 @@ export function ScenepacksPanel() {
 
         {contextMenu && (
           <div className="episode-context-menu" style={{ left: contextMenu.x, top: contextMenu.y }}>
-            {contextMenu.kind === "scenepack" && (
-              <button className="episode-context-menu-item" onClick={() => {
-                const sp = scenepacks.find((s) => s.id === contextMenu.id);
-                if (sp) handleOpenScenepack(sp.id);
-                setContextMenu(null);
-              }}>
-                Open
-              </button>
-            )}
             <button className="episode-context-menu-item" onClick={() => {
               const currentName = contextMenu.kind === "scenepack"
                 ? scenepacks.find((s) => s.id === contextMenu.id)?.name ?? ""
@@ -458,7 +449,6 @@ export function ScenepacksPanel() {
             }}>
               Rename
             </button>
-            <div className="episode-context-menu-separator" />
             <button className="episode-context-menu-item" onClick={() => {
               const name = contextMenu.kind === "scenepack"
                 ? scenepacks.find((s) => s.id === contextMenu.id)?.name ?? ""

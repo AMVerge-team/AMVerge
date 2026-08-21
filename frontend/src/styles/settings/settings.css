@@ -182,6 +182,15 @@
     background: rgb(var(--accent-rgb) / 0.52);
 }
 
+/* Every settings tab wraps its rows in .about-content, which carries its own
+   overflow-y: auto (menu/about.css) because the About and Patch Notes pages
+   rely on it to scroll. Inside a settings panel that stacks a second scroll
+   container on the panel's own - hence the two scrollbars. The panel above is
+   the scroller here, so this one just grows. */
+.settings-tab-content > .panel.settings-panel > .about-content {
+    overflow: visible;
+}
+
 .settings-tab-content > .panel {
     margin-right: 0;
     margin-left: 0;
@@ -339,21 +348,14 @@
     background: rgb(255 255 255 / 0.05);
 }
 
+/* Takes the free space the description used to hold, so the chevron stays
+   pinned to the right edge of the header. */
 .settings-collapsible-title {
+    flex: 1;
+    min-width: 0;
     font-size: 1.05rem;
     font-weight: 600;
     color: var(--accent);
-    flex-shrink: 0;
-}
-
-.settings-collapsible-desc {
-    flex: 1;
-    min-width: 0;
-    font-size: 0.8rem;
-    color: rgb(255 255 255 / 0.45);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .settings-collapsible-chevron {

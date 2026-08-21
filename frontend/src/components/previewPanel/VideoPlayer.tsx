@@ -7,7 +7,13 @@
  * volume and fullscreen chrome.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FaPlay, FaPause, FaVolumeUp, FaVolumeMute, FaExpand } from "react-icons/fa";
+import { FaPlay, FaPause, FaVolumeUp, FaVolumeDown, FaVolumeMute, FaExpand } from "react-icons/fa";
+
+import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
+
+const VOLUME_HIDE_DELAY_MS = 700;
+const FALLBACK_VOLUME = 0.5;
+const VOLUME_COMMIT_DELAY_MS = 150;
 
 function formatTime(seconds: number): string {
   if (!isFinite(seconds) || seconds < 0) seconds = 0;
@@ -25,17 +31,97 @@ type VideoPlayerProps = {
 export default function VideoPlayer({ src, volume, onTimeUpdate }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
+  const volumeRef = useRef<HTMLDivElement | null>(null);
+
+  // The slider writes straight back to the setting the preview panel reads, so
+  // the control and Settings > Playback Volume are the same value.
+  const setPlaybackVolume = useGeneralSettingsStore((s) => s.setPlaybackVolume);
 
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [volumeOpen, setVolumeOpen] = useState(false);
+  // Level being dragged right now, held locally so a drag never waits on the
+  // settings store. null means "no drag in flight, follow the prop".
+  const [dragVolume, setDragVolume] = useState<number | null>(null);
+
+  const hideTimerRef = useRef<number | null>(null);
+  const commitTimerRef = useRef<number | null>(null);
+  const draggingRef = useRef(false);
+  // Last audible level, so unmuting a slider dragged to zero has somewhere to go.
+  const lastVolumeRef = useRef(volume > 0 ? volume : FALLBACK_VOLUME);
+
+  const displayVolume = dragVolume ?? volume;
 
   // keep the element volume in sync with the app setting.
   useEffect(() => {
     const v = videoRef.current;
     if (v) v.volume = volume;
+    if (volume > 0) lastVolumeRef.current = volume;
   }, [volume, src]);
+
+  const commitVolume = useCallback((value: number) => {
+    if (commitTimerRef.current !== null) {
+      window.clearTimeout(commitTimerRef.current);
+      commitTimerRef.current = null;
+    }
+    setPlaybackVolume(value);
+    setDragVolume(null);
+  }, [setPlaybackVolume]);
+
+  const cancelHide = useCallback(() => {
+    if (hideTimerRef.current !== null) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleHide = useCallback(() => {
+    cancelHide();
+    hideTimerRef.current = window.setTimeout(() => {
+      hideTimerRef.current = null;
+      // A drag that wandered off the slider still owns the pointer; closing
+      // under it would drop the grab mid-gesture.
+      if (draggingRef.current) return;
+      setVolumeOpen(false);
+    }, VOLUME_HIDE_DELAY_MS);
+  }, [cancelHide]);
+
+  useEffect(() => cancelHide, [cancelHide]);
+
+  useEffect(() => () => {
+    if (commitTimerRef.current !== null) window.clearTimeout(commitTimerRef.current);
+  }, []);
+
+  // Click anywhere outside the volume control closes it.
+  useEffect(() => {
+    if (!volumeOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const wrap = volumeRef.current;
+      if (wrap && !wrap.contains(e.target as Node)) {
+        cancelHide();
+        setVolumeOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [volumeOpen, cancelHide]);
+
+  // A drag released outside the slider still ends the drag, and restarts the
+  // dismiss countdown if the pointer never came back.
+  useEffect(() => {
+    const onPointerUp = () => {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      // Releasing settles the value, so stop deferring and write it through.
+      if (dragVolume !== null) commitVolume(dragVolume);
+      const wrap = volumeRef.current;
+      if (!wrap?.matches(":hover")) scheduleHide();
+    };
+    document.addEventListener("pointerup", onPointerUp);
+    return () => document.removeEventListener("pointerup", onPointerUp);
+  }, [scheduleHide, commitVolume, dragVolume]);
 
   // Media player release, same pattern as the grid tiles (see LazyClip). A
   // detached <video> keeps decoding and keeps playing audio until GC, and
@@ -79,12 +165,57 @@ export default function VideoPlayer({ src, volume, onTimeUpdate }: VideoPlayerPr
     else v.pause();
   }, []);
 
+  // The store is persisted, so every write serializes the whole settings blob to
+  // localStorage synchronously - and PreviewContainer subscribes to the store
+  // unsliced, so every write re-renders the preview tree. A range drag fires
+  // dozens of events a second, which is more than enough of both to stutter.
+  // So: audio and the slider position update immediately off local state, and
+  // the store only hears about it once the drag settles.
+  const applyVolume = useCallback((next: number, commit = false) => {
+    const clamped = Math.min(1, Math.max(0, next));
+    const v = videoRef.current;
+    if (v) {
+      v.volume = clamped;
+      // Dragging to the bottom is a mute, and dragging back up undoes it.
+      v.muted = clamped === 0;
+    }
+    if (clamped > 0) lastVolumeRef.current = clamped;
+    setMuted(clamped === 0);
+
+    if (commit) {
+      commitVolume(clamped);
+      return;
+    }
+
+    setDragVolume(clamped);
+    if (commitTimerRef.current !== null) window.clearTimeout(commitTimerRef.current);
+    commitTimerRef.current = window.setTimeout(() => {
+      commitTimerRef.current = null;
+      commitVolume(clamped);
+    }, VOLUME_COMMIT_DELAY_MS);
+  }, [commitVolume]);
+
   const toggleMute = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
-    v.muted = !v.muted;
-    setMuted(v.muted);
-  }, []);
+    if (v.muted || displayVolume === 0) {
+      // A single click, not a drag - no reason to defer it.
+      applyVolume(displayVolume > 0 ? displayVolume : lastVolumeRef.current || FALLBACK_VOLUME, true);
+    } else {
+      v.muted = true;
+      setMuted(true);
+    }
+  }, [applyVolume, displayVolume]);
+
+  // First click reveals the slider; once it is open the button is a mute toggle.
+  const handleVolumeButton = useCallback(() => {
+    cancelHide();
+    if (!volumeOpen) {
+      setVolumeOpen(true);
+      return;
+    }
+    toggleMute();
+  }, [cancelHide, toggleMute, volumeOpen]);
 
   const toggleFullscreen = useCallback(() => {
     const el = frameRef.current;
@@ -115,8 +246,10 @@ export default function VideoPlayer({ src, volume, onTimeUpdate }: VideoPlayerPr
           onClick={togglePlay}
           onLoadedMetadata={(e) => {
             e.currentTarget.volume = volume;
+            // Each clip mounts a fresh element, so carry the mute across rather
+            // than letting the next clip come back at full volume.
+            e.currentTarget.muted = muted || volume === 0;
             setDuration(e.currentTarget.duration);
-            setMuted(e.currentTarget.muted);
           }}
           onDurationChange={(e) => setDuration(e.currentTarget.duration)}
           onPlay={() => setPlaying(true)}
@@ -140,9 +273,38 @@ export default function VideoPlayer({ src, volume, onTimeUpdate }: VideoPlayerPr
             <progress value={current} max={duration > 0 ? duration : 1} />
           </div>
 
-          <button onClick={toggleMute} title={muted ? "Unmute" : "Mute"} aria-label={muted ? "Unmute" : "Mute"}>
-            {muted ? <FaVolumeMute /> : <FaVolumeUp />}
-          </button>
+          <div
+            className={`volume-control${volumeOpen ? " open" : ""}`}
+            ref={volumeRef}
+            onMouseEnter={cancelHide}
+            onMouseLeave={scheduleHide}
+          >
+            <button
+              onClick={handleVolumeButton}
+              title={!volumeOpen ? "Volume" : muted ? "Unmute" : "Mute"}
+              aria-label={!volumeOpen ? "Volume" : muted ? "Unmute" : "Mute"}
+            >
+              {muted || displayVolume === 0
+                ? <FaVolumeMute />
+                : displayVolume < 0.5 ? <FaVolumeDown /> : <FaVolumeUp />}
+            </button>
+
+            <div className="volume-popup" aria-hidden={!volumeOpen}>
+              <input
+                className="volume-slider"
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={muted ? 0 : displayVolume}
+                aria-label="Volume"
+                tabIndex={volumeOpen ? 0 : -1}
+                style={{ "--volume-fill": `${(muted ? 0 : displayVolume) * 100}%` } as React.CSSProperties}
+                onPointerDown={() => { draggingRef.current = true; cancelHide(); }}
+                onChange={(e) => applyVolume(parseFloat(e.target.value))}
+              />
+            </div>
+          </div>
 
           <button onClick={toggleFullscreen} title="Fullscreen" aria-label="Fullscreen">
             <FaExpand />

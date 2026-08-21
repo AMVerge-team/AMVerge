@@ -141,7 +141,7 @@ export default function AppearanceSection({
       <h3>Appearance</h3>
       <div className="about-content">
 
-        <SettingsSection id="appearance.colors" title="Colors" description="The accent and gradient that tint the whole app.">
+        <SettingsSection id="appearance.colors" title="Colors">
         <SettingRow
           label="Accent color"
           description="The main color for buttons, highlights, and icons."
@@ -200,7 +200,7 @@ export default function AppearanceSection({
         />
         </SettingsSection>
 
-        <SettingsSection id="appearance.background" title="Background" description="Custom image, video, or effect behind everything.">
+        <SettingsSection id="appearance.background" title="Background">
         <SettingRow
           label="Background media"
           description="Use your own image, GIF, or video as the background."
@@ -274,7 +274,7 @@ export default function AppearanceSection({
         />
         </SettingsSection>
 
-        <SettingsSection id="appearance.clipTiles" title="Clip Tiles" description="How clips look in the grid.">
+        <SettingsSection id="appearance.clipTiles" title="Clip Tiles">
         <SettingRow
           label="Grid preview speed"
           description="How fast previews play in the grid."
@@ -369,7 +369,7 @@ export default function AppearanceSection({
         />
         </SettingsSection>
         <SettingRow
-          label="Factory Reset"
+          label="Appearance Reset"
           description="Puts every Appearance setting back to its default."
           control={
             <div className="settings-control">

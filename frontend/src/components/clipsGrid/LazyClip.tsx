@@ -89,9 +89,7 @@ export const LazyClip = memo(function LazyClip({
   const downloadToneIdleRef = useRef<number | null>(null);
 
   const originalPath = clip.src;
-  // video-file import mode: clip has a pre-cut video file on disk.
   const isVideoMode = Boolean(clip.clipPath) && clip.clipMode !== "failed";
-  // is this clip currently being merged or split on the backend?
   const isProcessing = clip.originalName === "Merging..." || clip.originalName === "Splitting...";
 
   // ========================= VIDEO playback state/refs =======================

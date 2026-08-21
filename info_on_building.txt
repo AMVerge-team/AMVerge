@@ -1,0 +1,9 @@
+for my own reference (powershell only):
+
+# Build from the PUBLISHED PyPI wheel 
+$env:AMVERGE_CLI_INSTALL_SPEC = "amverge[edge,discord,dev]"
+npm run tauri:build
+
+# Build from LOCAL AMVerge-CLI checkout 
+Remove-Item Env:AMVERGE_CLI_INSTALL_SPEC -ErrorAction SilentlyContinue
+npm run tauri:build
