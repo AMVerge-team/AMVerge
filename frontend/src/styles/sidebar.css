@@ -18,9 +18,12 @@ body.is-resizing-sidebar {
     user-select: none;
 }
 
+/* auto-flow rather than a fixed count: the row splits evenly across however
+   many buttons are rendered, so adding or removing one leaves no empty slot */
 .sidebar-container > .menu-buttons {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
     gap: 4px;
     padding: 6px 6px 4px;
 }
