@@ -225,6 +225,10 @@ export const LazyClip = memo(function LazyClip({
     } else {
       reportProxyDemand(originalPath, null);
     }
+
+    // Tiles unmount as they scroll out of the window, so demand has to be
+    // withdrawn or the queue keeps entries for tiles that are gone.
+    return () => reportProxyDemand(originalPath, null);
   }, [gridPreview, isVideoMode, needsHevcProxy, isVisible, effectiveSrc, originalPath, index, isHovered, reportProxyDemand]);
 
   // reset state when clip/import/audio-stream changes

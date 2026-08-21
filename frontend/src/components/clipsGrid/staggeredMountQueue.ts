@@ -4,7 +4,7 @@
  * custom React hook for mounting video tiles one at a time in grid preview mode.
  * prevents browser/GPU stalls by deferring video element creation.
  */
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 
 type StaggerDemand = {
   order: number; // Lower = higher priority (top-left first)
@@ -19,6 +19,7 @@ export function useStaggeredMountQueue(delayMs = 50) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // prevents multiple schedules
   const startScheduledRef = useRef(false);
+  const startTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // processes one tile per tick (lowest order first)
   const tick = useCallback(() => {
@@ -61,8 +62,18 @@ export function useStaggeredMountQueue(delayMs = 50) {
   const scheduleStart = useCallback(() => {
     if (startScheduledRef.current || intervalRef.current !== null) return;
     startScheduledRef.current = true;
-    setTimeout(startProcessing, 0);
+    startTimeoutRef.current = setTimeout(startProcessing, 0);
   }, [startProcessing]);
+
+  // the grid unmounts on page switches; without this the tick keeps running
+  // against a dead queue for the rest of the session
+  useEffect(() => () => {
+    if (intervalRef.current !== null) clearInterval(intervalRef.current);
+    if (startTimeoutRef.current !== null) clearTimeout(startTimeoutRef.current);
+    intervalRef.current = null;
+    startTimeoutRef.current = null;
+    demandRef.current.clear();
+  }, []);
 
   // tiles call this to register/unregister their demand to mount
   const reportStaggerDemand = useCallback(
