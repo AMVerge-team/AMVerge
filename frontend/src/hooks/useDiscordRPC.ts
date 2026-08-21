@@ -7,6 +7,8 @@ export default function useDiscordRPC() {
   const isStartedRef = useRef(false);
   const generalSettings = useGeneralSettingsStore();
   const activePage = useUIStateStore(state => state.activePage);
+  const settingsOpen = useUIStateStore(state => state.settingsOpen);
+  const menuOpen = useUIStateStore(state => state.menuOpen);
 
   const startRPC = useCallback(async () => {
     if (isStartedRef.current) return;
@@ -75,21 +77,21 @@ export default function useDiscordRPC() {
     let small_image = "menu_icon_new";
     let small_text = "Browsing";
 
-    if (activePage === "home") {
-      details = "Editing Episode";
-      state = "Ready";
-      small_image = "edit_icon_new";
-      small_text = "Editing";
-    } else if (activePage === "menu") {
-      details = "In Main Menu";
-      state = "Selecting Episode";
-      small_image = "menu_icon_new";
-      small_text = "Menu";
-    } else if (activePage === "settings") {
+    if (settingsOpen) {
       details = "Adjusting Settings";
       state = "Preferences";
       small_image = "settings_icon_new";
       small_text = "Settings";
+    } else if (menuOpen) {
+      details = "In Main Menu";
+      state = "Selecting Episode";
+      small_image = "menu_icon_new";
+      small_text = "Menu";
+    } else if (activePage === "home") {
+      details = "Editing Episode";
+      state = "Ready";
+      small_image = "edit_icon_new";
+      small_text = "Editing";
     }
 
     updateRPC({
@@ -101,7 +103,7 @@ export default function useDiscordRPC() {
       small_text: generalSettings.rpcShowMiniIcons ? small_text : undefined,
       buttons: generalSettings.rpcShowButtons,
     });
-  }, [activePage, generalSettings, updateRPC]);
+  }, [activePage, settingsOpen, menuOpen, generalSettings, updateRPC]);
 
   return {
     updateRPC,

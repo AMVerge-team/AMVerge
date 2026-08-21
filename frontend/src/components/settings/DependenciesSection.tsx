@@ -89,7 +89,7 @@ export default function DependenciesSection() {
           }
         />
 
-        <SettingsSection id="deps.packs" title="AI Packs" description="The packages each feature needs. PyTorch downloads once, then the rest install quickly.">
+        <SettingsSection id="deps.packs" title="AI Packs">
           <SettingRow
             label="PyTorch"
             description={
@@ -155,11 +155,11 @@ export default function DependenciesSection() {
           })}
         </SettingsSection>
 
-        <SettingsSection id="deps.models" title="AI Models" description="Manage the model weights used by the depth map and interpolation passes.">
+        <SettingsSection id="deps.models" title="AI Models">
           <AiModelsSection />
         </SettingsSection>
 
-        <SettingsSection id="deps.storage" title="Storage" description="Disk usage and removal of the AI environment.">
+        <SettingsSection id="deps.storage" title="Storage">
           <SettingRow
             label="Disk usage"
             description="Space used by the AI features and their Python environment."

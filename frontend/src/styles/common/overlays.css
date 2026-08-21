@@ -267,7 +267,8 @@
     display: flex;
     flex-direction: column;
     position: fixed;
-    bottom: 20px;
+    /* clears the info bar, so the settings gear in its corner stays reachable */
+    bottom: 64px;
     right: 20px;
     z-index: 500;
     background: rgba(10, 10, 10, 0.82);
@@ -362,7 +363,8 @@
 
 .loading-minimized {
     position: fixed;
-    bottom: 20px;
+    /* clears the info bar, so the settings gear in its corner stays reachable */
+    bottom: 64px;
     right: 20px;
     z-index: 1000;
     width: 340px;
@@ -678,7 +680,8 @@
 /* Minimized floating card */
 .pxm-mini {
     position: fixed;
-    bottom: 20px;
+    /* clears the info bar, so the settings gear in its corner stays reachable */
+    bottom: 64px;
     right: 20px;
     z-index: 1100;
     width: 340px;
@@ -854,4 +857,172 @@
 
 .aid-state.installed {
     color: var(--accent);
+}
+
+/* --------------------
+   QUICK MENU (Escape)
+-------------------- */
+
+.quick-menu-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 8500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgb(0 0 0 / 0.7);
+    animation: quick-menu-fade 0.1s ease;
+}
+
+.quick-menu {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 34px 22px 22px;
+    min-width: 280px;
+    border: 1px solid rgb(var(--accent-rgb) / 0.35);
+    border-radius: 14px;
+    background: rgb(0 0 0 / 0.82);
+    box-shadow: 0 18px 44px rgb(0 0 0 / 0.5);
+    animation: quick-menu-rise 0.12s ease;
+}
+
+.quick-menu-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    padding: 4px;
+    border: none;
+    background: transparent;
+    color: rgb(255 255 255 / 0.5);
+    font-size: 0.95rem;
+    line-height: 0;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.quick-menu-close:hover {
+    color: var(--accent);
+}
+
+.quick-menu-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.quick-menu-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border: 1px solid rgb(var(--accent-rgb) / 0.5);
+    border-radius: 10px;
+    background: rgb(var(--accent-rgb) / 0.08);
+    color: white;
+    font-family: inherit;
+    font-size: 1.25rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.quick-menu-option svg {
+    color: var(--accent);
+    font-size: 1rem;
+    transition: color 0.15s ease;
+}
+
+.quick-menu-option:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: black;
+}
+
+.quick-menu-option:hover svg {
+    color: black;
+}
+
+@keyframes quick-menu-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes quick-menu-rise {
+    from { opacity: 0; transform: translateY(8px) scale(0.97); }
+    to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .quick-menu-overlay,
+    .quick-menu {
+        animation: none;
+    }
+}
+
+/* --------------------
+   APP MODAL (settings / menu)
+-------------------- */
+
+.app-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgb(0 0 0 / 0.78);
+    animation: app-modal-fade 0.1s ease;
+}
+
+.app-modal {
+    position: relative;
+    width: min(1180px, 100%);
+    height: min(880px, 100%);
+    border: 1px solid rgb(255 255 255 / 0.15);
+    border-radius: 14px;
+    background: rgb(0 0 0 / 0.72);
+    box-shadow: 0 24px 60px rgb(0 0 0 / 0.55);
+    overflow: hidden;
+    /* the panel repaints on its own; keeps its work off the blurred backdrop */
+    contain: paint;
+    animation: app-modal-rise 0.12s ease;
+}
+
+.app-modal-close {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    z-index: 20;
+    padding: 6px;
+    border: none;
+    background: transparent;
+    color: rgb(255 255 255 / 0.55);
+    font-size: 1.1rem;
+    line-height: 0;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.app-modal-close:hover {
+    color: var(--accent);
+}
+
+@keyframes app-modal-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes app-modal-rise {
+    from { opacity: 0; transform: translateY(8px) scale(0.99); }
+    to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .app-modal-overlay,
+    .app-modal {
+        animation: none;
+    }
 }

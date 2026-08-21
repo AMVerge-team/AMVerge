@@ -3,6 +3,7 @@ import MainLayout from "../MainLayout";
 import ImportButtons from "../components/ImportButtons";
 import { useAppStateStore } from "../stores/appStore";
 import { useScenepacksStore } from "../stores/scenepackStore";
+import { selectOverlayOpen, useUIStateStore } from "../stores/UIStore";
 import type { ClipItem } from "../types/domain";
 
 function scenepackClipToClipItem(
@@ -26,6 +27,7 @@ function scenepackClipToClipItem(
 }
 
 export default function ScenepacksPage() {
+  const overlayOpen = useUIStateStore(selectOverlayOpen);
   const openedScenepackId = useScenepacksStore((s) => s.openedScenepackId);
   const scenepacks = useScenepacksStore((s) => s.scenepacks);
   const openedScenepack = useMemo(
@@ -90,7 +92,7 @@ export default function ScenepacksPage() {
     <>
       <ImportButtons showImportControls={false} />
       <div className="main-layout-wrapper">
-        <MainLayout intro={false} />
+        <MainLayout intro={false} active={!overlayOpen} />
       </div>
     </>
   );

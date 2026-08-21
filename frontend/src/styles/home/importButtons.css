@@ -210,13 +210,41 @@
     display: flex;
     align-items: center;
     padding-left: 8px;
+    /* room for the gear, which is pinned rather than laid out in this row */
+    padding-right: 40px;
 }
 
 .info-bar-filename {
+    /* nowrap makes the full name this item's minimum width, so without room to
+       shrink a long filename pushes the gear past the right edge */
+    flex: 0 1 auto;
+    min-width: 0;
     font-size: 0.75rem;
     color: var(--text-secondary, rgba(255, 255, 255, 0.5));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     user-select: text;
+}
+/* Pinned to the viewport corner: in the info bar's flow it was at the mercy of
+   whatever else the row (or the panes above it) sized itself to. The floating
+   progress cards clear it at bottom: 64px. */
+.settings-gear-button {
+    position: fixed;
+    right: 14px;
+    bottom: 10px;
+    z-index: 1200;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--accent);
+    font-size: 2rem;
+    line-height: 0;
+    cursor: pointer;
+    transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.settings-gear-button:hover {
+    transform: rotate(35deg);
+    filter: drop-shadow(0 0 6px rgb(var(--accent-rgb) / 0.7));
 }

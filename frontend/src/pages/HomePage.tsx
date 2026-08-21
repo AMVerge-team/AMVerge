@@ -1,10 +1,11 @@
 import { useEffect, useState, type RefObject } from "react";
+import { FaCog } from "react-icons/fa";
 import ImportButtons from "../components/ImportButtons";
 import MainLayout from "../MainLayout";
 import { fileNameFromPath } from "../utils/episodeUtils";
 import { useAppStateStore } from "../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
-import { useUIStateStore } from "../stores/UIStore";
+import { selectOverlayOpen, useUIStateStore } from "../stores/UIStore";
 
 interface HomePageProps {
   mainLayoutWrapperRef: RefObject<HTMLDivElement | null>;
@@ -18,7 +19,9 @@ export default function HomePage({
   // This page stays mounted behind `display: none` on other pages. Scenepacks
   // mounts its own MainLayout over the same clip store, so the hidden preview
   // player has to stand down or both would play the clip's audio together.
-  const isActivePage = useUIStateStore(s => s.activePage === "home");
+  // The settings modal covers the page, so previews stand down while it is up.
+  const isActivePage = useUIStateStore(s => s.activePage === "home" && !selectOverlayOpen(s));
+  const openSettings = useUIStateStore(s => s.openSettings);
 
   // app-startup entrance: runs once on mount, then the classes are removed.
   // HomePage stays mounted across page switches behind a display:none wrapper,
@@ -51,6 +54,16 @@ export default function HomePage({
               {fileNameFromPath(importedVideoPath)}
             </span>
           )}
+
+          <button
+            type="button"
+            className="settings-gear-button"
+            onClick={() => openSettings()}
+            aria-label="Settings"
+            title="Settings"
+          >
+            <FaCog aria-hidden="true" />
+          </button>
         </div>
       </div>
     </>

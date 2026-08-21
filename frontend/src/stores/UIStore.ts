@@ -11,6 +11,9 @@ export type UIState = {
     isDragging: boolean;
     activePage: Page;
     settingsTab: string;
+    settingsOpen: boolean;
+    menuOpen: boolean;
+    quickMenuOpen: boolean;
 };
 
 export type UIStateStore = UIState & {
@@ -30,7 +33,16 @@ export type UIStateStore = UIState & {
     setIsDragging: (isDragging: boolean) => void;
     setActivePage: (activePage: Page | ((prev: Page) => Page)) => void;
     setSettingsTab: (tab: string) => void;
+    openSettings: (tab?: string) => void;
+    closeSettings: () => void;
+    openMenu: () => void;
+    closeMenu: () => void;
+    setQuickMenuOpen: (open: boolean) => void;
 };
+
+/** True while a full-screen modal covers the app, so previews can stand down. */
+export const selectOverlayOpen = (state: UIState) =>
+    state.settingsOpen || state.menuOpen;
 
 export const DEFAULT_UI_STATE: UIState = {
     cols: 6,
@@ -41,6 +53,9 @@ export const DEFAULT_UI_STATE: UIState = {
     isDragging: false,
     activePage: "home",
     settingsTab: "general",
+    settingsOpen: false,
+    menuOpen: false,
+    quickMenuOpen: false,
 };
 
 export const useUIStateStore = create<UIStateStore>()(
@@ -87,6 +102,14 @@ export const useUIStateStore = create<UIStateStore>()(
                     activePage: typeof activePage === "function" ? activePage(state.activePage) : activePage,
                 })),
             setSettingsTab: (settingsTab) => set({ settingsTab }),
+            openSettings: (tab) =>
+                set(tab
+                    ? { settingsOpen: true, settingsTab: tab, quickMenuOpen: false }
+                    : { settingsOpen: true, quickMenuOpen: false }),
+            closeSettings: () => set({ settingsOpen: false }),
+            openMenu: () => set({ menuOpen: true, quickMenuOpen: false }),
+            closeMenu: () => set({ menuOpen: false }),
+            setQuickMenuOpen: (quickMenuOpen) => set({ quickMenuOpen }),
         }),
         {
             name: "amverge.ui.v1",

@@ -157,9 +157,34 @@
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    padding-top: 0;
     padding-right: 8px;
     scrollbar-width: thin;
     scrollbar-color: rgb(var(--accent-rgb) / 0.42) rgb(255 255 255 / 0.02);
+}
+
+/* The panel is the scroller, so its heading can pin to the top of it. Negative
+   margins let the bar span the panel's padding instead of leaving a gap that
+   rows would scroll through.
+
+   No solid bar: the tint and blur fade out down the strip, and the mask fades
+   the strip itself, so rows dissolve as they scroll up behind the title rather
+   than disappearing under an edge. */
+.settings-tab-content > .panel.settings-panel > h3 {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    margin: 0 -8px 4px -12px;
+    padding: 12px 12px 24px;
+    pointer-events: none;
+    background: linear-gradient(to bottom,
+            rgb(0 0 0 / 0.96) 0%,
+            rgb(0 0 0 / 0.9) 45%,
+            rgb(0 0 0 / 0) 100%);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
 }
 
 .settings-tab-content > .panel.settings-panel::-webkit-scrollbar {
@@ -189,6 +214,10 @@
    the scroller here, so this one just grows. */
 .settings-tab-content > .panel.settings-panel > .about-content {
     overflow: visible;
+    /* flex: 1 1 auto shrank this to the panel's height and let its rows spill
+       out, so the last one fell outside the panel's scroll range. Sizing to
+       content keeps every row inside what the panel can scroll to. */
+    flex: 0 0 auto;
 }
 
 .settings-tab-content > .panel {
@@ -322,10 +351,7 @@
 
 /* Collapsible settings group (accordion) */
 .settings-collapsible {
-    border: 1px solid rgb(255 255 255 / 0.1);
-    border-radius: 12px;
-    margin-bottom: 12px;
-    background: rgb(255 255 255 / 0.025);
+    margin-bottom: 4px;
 }
 
 .settings-collapsible-header {
@@ -333,19 +359,18 @@
     align-items: center;
     gap: 12px;
     width: 100%;
-    padding: 12px 16px;
+    padding: 12px 4px 8px;
     border: none;
     background: transparent;
     color: white;
     font-family: inherit;
     text-align: left;
     cursor: pointer;
-    border-top-left-radius: 12px;
-    border-top-right-radius: 12px;
 }
 
-.settings-collapsible-header:hover {
-    background: rgb(255 255 255 / 0.05);
+.settings-collapsible-header:hover .settings-collapsible-title,
+.settings-collapsible-header:hover .settings-collapsible-chevron {
+    filter: brightness(1.25);
 }
 
 /* Takes the free space the description used to hold, so the chevron stays
@@ -370,7 +395,7 @@
 }
 
 .settings-collapsible-body {
-    padding: 4px 16px 12px;
+    padding: 0 4px 12px;
 }
 
 .settings-subheading {

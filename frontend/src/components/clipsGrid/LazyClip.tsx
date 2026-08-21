@@ -4,14 +4,14 @@
  * represents a single video tile in the grid. Handles lazy loading, hover preview, proxy logic, and staggered mounting.
  * optimized for performance and compatibility (HEVC/H.264 proxying).
  */
-import { memo, useState, useRef, useEffect, useCallback } from "react"
+import { memo, useState, useRef, useEffect, useCallback, useDeferredValue } from "react"
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { LazyClipProps } from "./types.ts"
 import { DownloadButton } from "./DownloadButton.tsx";
 import { useWebpPreview } from "./useWebpPreview.ts";
 import { FaCheck, FaPlus, FaLayerGroup, FaTrashAlt } from "react-icons/fa";
 import { useAppStateStore } from "../../stores/appStore.ts";
-import { useUIStateStore } from "../../stores/UIStore.ts";
+import { selectOverlayOpen, useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore, useThemeSettingsStore } from "../../stores/settingsStore.ts";
 import { usePreviewTranscode } from "../../features/preview/usePreviewTranscode.ts";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
@@ -58,7 +58,11 @@ export const LazyClip = memo(function LazyClip({
 
   const isSelected = useAppStateStore(s => s.selectedClips.has(clip.id));
   const isFocused = useAppStateStore(s => s.focusedClipId === clip.id);
-  const gridPreview = useUIStateStore(s => s.gridPreview);
+  // Previews stay down while the settings modal is up: no decoders, no proxies.
+  // Deferred so opening settings paints the modal first and tears the tiles
+  // down after, instead of unmounting every decoder in the same commit.
+  const settingsOpen = useDeferredValue(useUIStateStore(selectOverlayOpen));
+  const gridPreview = useUIStateStore(s => s.gridPreview) && !settingsOpen;
   const activePage = useUIStateStore(s => s.activePage);
   const videoIsHEVC = useAppStateStore(s => s.videoIsHEVC);
   const userHasHEVC = useAppStateStore(s => s.userHasHEVC);
@@ -79,7 +83,9 @@ export const LazyClip = memo(function LazyClip({
 
   // ============================ SHARED tile state ============================
   const [isVisible, setIsVisible] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
+  // A tile hovered when the modal opened never gets its mouseleave.
+  const [hovered, setIsHovered] = useState(false);
+  const isHovered = hovered && !settingsOpen;
   const [showScenepackModal, setShowScenepackModal] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);

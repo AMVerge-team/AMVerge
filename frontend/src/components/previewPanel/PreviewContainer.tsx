@@ -48,8 +48,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const importToken = useAppStateStore(s => s.importToken);
   const exportDir = useAppPersistedStore(s => s.exportDir);
   const setExportDir = useAppPersistedStore(s => s.setExportDir);
-  const setActivePage = useUIStateStore(s => s.setActivePage);
-  const setSettingsTab = useUIStateStore(s => s.setSettingsTab);
+  const openSettings = useUIStateStore(s => s.openSettings);
   const generalSettings = useGeneralSettingsStore();
   const setActiveExportProfileId = useGeneralSettingsStore(s => s.setActiveExportProfileId);
   const mergeClipsEnabled = useGeneralSettingsStore(s => s.mergeClipsEnabled);
@@ -315,7 +314,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
               />
               <button
                 className="buttons export-dir-browse"
-                onClick={() => { setSettingsTab("export"); setActivePage("settings"); }}
+                onClick={() => openSettings("export")}
                 title="Edit export settings"
               >
                 <FaPencilAlt />

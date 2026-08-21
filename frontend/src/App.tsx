@@ -5,8 +5,9 @@ import { DEFAULT_GENERAL_SETTINGS } from "./stores/settingsStore";
 
 import AppLayout from "./components/AppLayout";
 import HomePage from "./pages/HomePage";
-import Menu from "./pages/Menu";
-import Settings from "./pages/Settings";
+import SettingsModal from "./components/settings/SettingsModal";
+import QuickMenu from "./components/QuickMenu";
+import MenuModal from "./components/menu/MenuModal";
 import ScenepacksPage from "./pages/ScenepacksPage";
 import ImportTerminal from "./components/ImportTerminal";
 import BgProgressBar from "./components/BgProgressBar";
@@ -451,16 +452,14 @@ function App() {
           />
         </div>
         {activePage === "scenepacks" && generalSettings.scenepacksEnabled && <ScenepacksPage />}
-        {activePage === "menu" ? (
-          <Menu />
-        ) : activePage !== "home" && activePage !== "scenepacks" ? (
-          <Settings
-            onGeneralSettingsReset={handleResetGeneralSettings}
-            onEpisodesPathChanged={remapEpisodePaths}
-            onThemeReset={handleResetTheme}
-          />
-        ) : null}
       </div>
+      <QuickMenu />
+      <MenuModal />
+      <SettingsModal
+        onGeneralSettingsReset={handleResetGeneralSettings}
+        onEpisodesPathChanged={remapEpisodePaths}
+        onThemeReset={handleResetTheme}
+      />
       {showStartupNotification && startupNotification ? (
         <StartupNotificationModal
           notification={startupNotification}

@@ -94,20 +94,6 @@ export default function VideoPlayer({ src, volume, onTimeUpdate }: VideoPlayerPr
     if (commitTimerRef.current !== null) window.clearTimeout(commitTimerRef.current);
   }, []);
 
-  // Click anywhere outside the volume control closes it.
-  useEffect(() => {
-    if (!volumeOpen) return;
-    const onPointerDown = (e: PointerEvent) => {
-      const wrap = volumeRef.current;
-      if (wrap && !wrap.contains(e.target as Node)) {
-        cancelHide();
-        setVolumeOpen(false);
-      }
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [volumeOpen, cancelHide]);
-
   // A drag released outside the slider still ends the drag, and restarts the
   // dismiss countdown if the pointer never came back.
   useEffect(() => {
@@ -207,15 +193,10 @@ export default function VideoPlayer({ src, volume, onTimeUpdate }: VideoPlayerPr
     }
   }, [applyVolume, displayVolume]);
 
-  // First click reveals the slider; once it is open the button is a mute toggle.
-  const handleVolumeButton = useCallback(() => {
+  const showVolume = useCallback(() => {
     cancelHide();
-    if (!volumeOpen) {
-      setVolumeOpen(true);
-      return;
-    }
-    toggleMute();
-  }, [cancelHide, toggleMute, volumeOpen]);
+    setVolumeOpen(true);
+  }, [cancelHide]);
 
   const toggleFullscreen = useCallback(() => {
     const el = frameRef.current;
@@ -276,13 +257,14 @@ export default function VideoPlayer({ src, volume, onTimeUpdate }: VideoPlayerPr
           <div
             className={`volume-control${volumeOpen ? " open" : ""}`}
             ref={volumeRef}
-            onMouseEnter={cancelHide}
+            onMouseEnter={showVolume}
             onMouseLeave={scheduleHide}
           >
             <button
-              onClick={handleVolumeButton}
-              title={!volumeOpen ? "Volume" : muted ? "Unmute" : "Mute"}
-              aria-label={!volumeOpen ? "Volume" : muted ? "Unmute" : "Mute"}
+              onClick={toggleMute}
+              onFocus={showVolume}
+              title={muted ? "Unmute" : "Mute"}
+              aria-label={muted ? "Unmute" : "Mute"}
             >
               {muted || displayVolume === 0
                 ? <FaVolumeMute />
