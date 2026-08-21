@@ -50,23 +50,25 @@ function sanitizeExportBaseName(rawBase: string): string {
 }
 
 export default function useImportExport(props?: ImportExportProps) {
-  const appState = useAppStateStore();
+  // Selectors, not the whole store: this hook is used by PreviewContainer and
+  // ImportButtons, and subscribing to everything re-rendered both on every
+  // progress tick during an import.
+  const loading = useAppStateStore((s) => s.loading);
+  const importToken = useAppStateStore((s) => s.importToken);
+  const batchTotal = useAppStateStore((s) => s.batchTotal);
+  const batchDone = useAppStateStore((s) => s.batchDone);
+  const batchCurrentFile = useAppStateStore((s) => s.batchCurrentFile);
+  const setLoading = useAppStateStore((s) => s.setLoading);
+  const setActiveOperation = useAppStateStore((s) => s.setActiveOperation);
+  const setBgImportProgress = useAppStateStore((s) => s.setBgImportProgress);
+  const setImportToken = useAppStateStore((s) => s.setImportToken);
+  const setBatchTotal = useAppStateStore((s) => s.setBatchTotal);
+  const setBatchDone = useAppStateStore((s) => s.setBatchDone);
+  const setBatchCurrentFile = useAppStateStore((s) => s.setBatchCurrentFile);
   const episodeState = useEpisodePanelRuntimeStore();
   const generalSettings = useGeneralSettingsStore();
   const persistedState = useAppPersistedStore();
 
-  const loading = appState.loading;
-  const setLoading = appState.setLoading;
-  const setActiveOperation = appState.setActiveOperation;
-  const setBgImportProgress = appState.setBgImportProgress;
-  const importToken = appState.importToken;
-  const setImportToken = appState.setImportToken;
-  const batchTotal = appState.batchTotal;
-  const setBatchTotal = appState.setBatchTotal;
-  const batchDone = appState.batchDone;
-  const setBatchDone = appState.setBatchDone;
-  const batchCurrentFile = appState.batchCurrentFile;
-  const setBatchCurrentFile = appState.setBatchCurrentFile;
   const importGenRef = useRef(0);
   const localAbortedRef = useRef(false);
   const abortedRef = props?.abortedRef || localAbortedRef;
@@ -447,15 +449,15 @@ export default function useImportExport(props?: ImportExportProps) {
     const gen = ++importGenRef.current;
 
     try {
-      appState.setProgress(0);
-      appState.setProgressMsg("Starting...");
+      useAppStateStore.getState().setProgress(0);
+      useAppStateStore.getState().setProgressMsg("Starting...");
       setActiveOperation("import");
       setLoading(true);
-      appState.setSelectedClips(new Set());
-      appState.setFocusedClip(null);
-      appState.setFocusedClipId(null);
-      appState.setImportedVideoPath(file);
-      appState.setVideoIsHEVC(null);
+      useAppStateStore.getState().setSelectedClips(new Set());
+      useAppStateStore.getState().setFocusedClip(null);
+      useAppStateStore.getState().setFocusedClipId(null);
+      useAppStateStore.getState().setImportedVideoPath(file);
+      useAppStateStore.getState().setVideoIsHEVC(null);
       setImportToken(Date.now().toString());
       props?.onRPCUpdate?.({
         type: "update",
@@ -498,7 +500,7 @@ export default function useImportExport(props?: ImportExportProps) {
       }
       console.info("[import] finished", { mode: "single", file, episodeId, importGeneration: gen });
     }
-  }, [appState, episodeState, generalSettings, props?.onRPCUpdate, logImportError, runImportPipeline]);
+  }, [episodeState, generalSettings, props?.onRPCUpdate, logImportError, runImportPipeline]);
 
   const handleBatchImport = useCallback(async (files: string[]) => {
     if (files.length === 0) return;
@@ -514,16 +516,16 @@ export default function useImportExport(props?: ImportExportProps) {
       episodePath: generalSettings.episodesPath,
     });
     try {
-      appState.setProgress(0);
-      appState.setProgressMsg("Starting...");
+      useAppStateStore.getState().setProgress(0);
+      useAppStateStore.getState().setProgressMsg("Starting...");
       setActiveOperation("import");
       // batch shows the full loading screen (minimizable). bgImportProgress is
       // still tracked so closing the minimized card aborts remaining episodes.
       setLoading(true);
-      appState.setSelectedClips(new Set());
-      appState.setFocusedClip(null);
-      appState.setFocusedClipId(null);
-      appState.setVideoIsHEVC(null);
+      useAppStateStore.getState().setSelectedClips(new Set());
+      useAppStateStore.getState().setFocusedClip(null);
+      useAppStateStore.getState().setFocusedClipId(null);
+      useAppStateStore.getState().setVideoIsHEVC(null);
       useAppStateStore.setState({ bgProgress: null });
       setBgImportProgress({ done: 0, total: files.length });
       setImportToken(Date.now().toString());
@@ -539,8 +541,8 @@ export default function useImportExport(props?: ImportExportProps) {
         const fileName = fileNameFromPath(file);
         setBatchDone(i);
         setBatchCurrentFile(truncateFileName(fileName));
-        appState.setProgress(0);
-        appState.setProgressMsg("Starting...");
+        useAppStateStore.getState().setProgress(0);
+        useAppStateStore.getState().setProgressMsg("Starting...");
         useAppStateStore.setState({ bgProgress: null });
         console.info("[import] batch file begin", {
           index: i + 1,
@@ -576,10 +578,10 @@ export default function useImportExport(props?: ImportExportProps) {
           if (completedEpisodes.length === 1) {
             episodeState.setSelectedEpisodeId(episodeEntry.id);
             episodeState.setOpenedEpisodeId(episodeEntry.id);
-            appState.setImportedVideoPath(episodeEntry.videoPath);
+            useAppStateStore.getState().setImportedVideoPath(episodeEntry.videoPath);
             setImportToken(Date.now().toString());
             startTransition(() => {
-              appState.setClips(episodeEntry.clips);
+              useAppStateStore.getState().setClips(episodeEntry.clips);
             });
             setLoading(false);
           }
@@ -636,7 +638,7 @@ export default function useImportExport(props?: ImportExportProps) {
         importGeneration: gen,
       });
     }
-  }, [appState, episodeState, generalSettings, abortedRef, setBgImportProgress, logImportError, runImportPipeline]);
+  }, [episodeState, generalSettings, abortedRef, setBgImportProgress, logImportError, runImportPipeline]);
 
   const onImportClick = useCallback(async () => {
     const currentState = useAppStateStore.getState();
@@ -669,9 +671,9 @@ export default function useImportExport(props?: ImportExportProps) {
   }, [handleImport, handleBatchImport, logImportError]);
 
   const handleExport = useCallback(async (selectedClips: Set<string>, mergeEnabled: boolean, mergeFileName?: string) => {
-    console.log(`[handleExport] selectedClips.size=${selectedClips.size} appState.clips.length=${appState.clips.length} IDs=[${[...selectedClips].slice(0, 3).join(',')}]`);
+    console.log(`[handleExport] selectedClips.size=${selectedClips.size} useAppStateStore.getState().clips.length=${useAppStateStore.getState().clips.length} IDs=[${[...selectedClips].slice(0, 3).join(',')}]`);
     if (selectedClips.size === 0) return;
-    const selected = appState.clips.filter((c: ClipItem) => selectedClips.has(c.id));
+    const selected = useAppStateStore.getState().clips.filter((c: ClipItem) => selectedClips.has(c.id));
     console.log(`[handleExport] matched ${selected.length} clips from store`);
     if (selected.length === 0) return;
     let dir = persistedState.exportDir;
@@ -807,7 +809,7 @@ export default function useImportExport(props?: ImportExportProps) {
           ? err
           : (err instanceof Error ? err.message : "Unknown error");
         console.error("Export failed:", err);
-        appState.setProgressMsg(`Export failed: ${message}`);
+        useAppStateStore.getState().setProgressMsg(`Export failed: ${message}`);
         props?.onRPCUpdate?.({
           type: "update",
           details: "Export Failed",
@@ -818,7 +820,7 @@ export default function useImportExport(props?: ImportExportProps) {
           buttons: generalSettings.rpcShowButtons,
         });
         setTimeout(() => {
-          appState.setProgressMsg("");
+          useAppStateStore.getState().setProgressMsg("");
         }, 8000);
         return;
       }
@@ -924,7 +926,7 @@ export default function useImportExport(props?: ImportExportProps) {
         ? err
         : (err instanceof Error ? err.message : "Unknown error");
       console.error("Export failed:", err);
-      appState.setProgressMsg(`Export failed: ${message}`);
+      useAppStateStore.getState().setProgressMsg(`Export failed: ${message}`);
       props?.onRPCUpdate?.({
         type: "update",
         details: "Export Failed",
@@ -935,7 +937,7 @@ export default function useImportExport(props?: ImportExportProps) {
         buttons: generalSettings.rpcShowButtons,
       });
       setTimeout(() => {
-        appState.setProgressMsg("");
+        useAppStateStore.getState().setProgressMsg("");
       }, 8000);
     } finally {
       setLoading(false);
@@ -947,7 +949,7 @@ export default function useImportExport(props?: ImportExportProps) {
     if (producedFiles.length > 0 && anyPassEnabled(passesSnapshot)) {
       void runPostExportPasses(producedFiles, passesSnapshot);
     }
-  }, [appState, buildExportOptionsPayload, persistedState, generalSettings, props?.onRPCUpdate]);
+  }, [buildExportOptionsPayload, persistedState, generalSettings, props?.onRPCUpdate]);
 
   const handlePickExportDir = useCallback(async () => {
     const dir = await open({ directory: true, multiple: false });
@@ -995,16 +997,16 @@ export default function useImportExport(props?: ImportExportProps) {
         ? err
         : (err instanceof Error ? err.message : "Unknown error");
       console.error("Single clip download failed:", err);
-      appState.setProgressMsg(`Export failed: ${message}`);
+      useAppStateStore.getState().setProgressMsg(`Export failed: ${message}`);
       setTimeout(() => {
-        appState.setProgressMsg("");
+        useAppStateStore.getState().setProgressMsg("");
       }, 8000);
     } finally {
       setLoading(false);
       setActiveOperation(null);
     }
 
-  }, [appState, buildExportOptionsPayload, generalSettings.exportFormat, generalSettings.exportProfiles, generalSettings.openFileLocationAfterExport, generalSettings.activeExportProfileId]);
+  }, [buildExportOptionsPayload, generalSettings.exportFormat, generalSettings.exportProfiles, generalSettings.openFileLocationAfterExport, generalSettings.activeExportProfileId]);
 
   return {
     loading,

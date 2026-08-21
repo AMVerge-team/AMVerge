@@ -22,18 +22,13 @@ import { isPackInstalled } from "../../features/aiDeps/packs";
 const SCENE_DETECTION_OPTIONS: DropdownOption<SceneDetectionMethod>[] = [
   {
     value: "transnetv2_gpu",
-    label: "TransNetV2 (GPU)",
+    label: "AI Scene Detection",
     description: "The most accurate way to find scene cuts. Uses AI.",
   },
   {
     value: "keyframe_detection",
     label: "Keyframe Detection",
     description: "Fast, and works on any PC. Cuts at keyframes.",
-  },
-  {
-    value: "pyscenedetect_cpu",
-    label: "PySceneDetect (CPU)",
-    description: "Not implemented yet.",
   },
 ];
 

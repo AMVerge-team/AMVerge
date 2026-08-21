@@ -69,7 +69,7 @@ function App() {
   const abortedRef = useRef(false);
 
   // UI state
-  const generalSettings = useGeneralSettingsStore();
+  const scenepacksEnabled = useGeneralSettingsStore((s) => s.scenepacksEnabled);
   const themeSettings = useThemeSettingsStore();
 
 
@@ -87,7 +87,7 @@ function App() {
       await new Promise((resolve) => setTimeout(resolve, 250));
 
       const resolvedOldPath = await invoke<string>("move_episodes_to_new_dir", {
-        oldDir: generalSettings.episodesPath,
+        oldDir: useGeneralSettingsStore.getState().episodesPath,
         newDir: null,
       });
 
@@ -257,10 +257,10 @@ function App() {
   }, [themeSettings]);
 
   useEffect(() => {
-    if (activePage === "scenepacks" && !generalSettings.scenepacksEnabled) {
+    if (activePage === "scenepacks" && !scenepacksEnabled) {
       useUIStateStore.getState().setActivePage("home");
     }
-  }, [activePage, generalSettings.scenepacksEnabled]);
+  }, [activePage, scenepacksEnabled]);
 
   useEffect(() => {
     if (!startupUpdateNotification) {
@@ -451,7 +451,7 @@ function App() {
             mainLayoutWrapperRef={mainLayoutWrapperRef}
           />
         </div>
-        {activePage === "scenepacks" && generalSettings.scenepacksEnabled && <ScenepacksPage />}
+        {activePage === "scenepacks" && scenepacksEnabled && <ScenepacksPage />}
       </div>
       <QuickMenu />
       <MenuModal />

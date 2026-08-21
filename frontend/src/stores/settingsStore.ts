@@ -18,7 +18,7 @@ import {
     GENERAL SETTINGS 
 =====================*/
 export type ExportFormat = "mp4" | "mkv" | "mov" | "xml";
-export type SceneDetectionMethod = "transnetv2_gpu" | "pyscenedetect_cpu" | "keyframe_detection";
+export type SceneDetectionMethod = "transnetv2_gpu" | "keyframe_detection";
 export type importMethod = "video_files" | "webp_files";
 
 export type PreviewTranscodeMode = "off" | "hevc" | "always";
@@ -269,7 +269,6 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                     activeExportProfileId,
                     exportFormat,
                     sceneDetectionMethod:
-                        persisted.sceneDetectionMethod === "pyscenedetect_cpu" ||
                         persisted.sceneDetectionMethod === "keyframe_detection" ||
                         persisted.sceneDetectionMethod === "transnetv2_gpu"
                             ? persisted.sceneDetectionMethod

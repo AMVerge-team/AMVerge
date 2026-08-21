@@ -170,6 +170,9 @@ export function useWebpPreview({
         episodeCacheId: episodeId ?? null,
       },
     });
+
+    // withdraw on unmount: tiles come and go as the grid window scrolls
+    return () => reportWebpDemand(clip.id, null);
   }, [
     clip.id,
     index,

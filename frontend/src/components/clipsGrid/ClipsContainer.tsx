@@ -12,6 +12,7 @@ import { SelectionActionBar } from "./SelectionActionBar.tsx";
 import { useStaggeredMountQueue } from "./staggeredMountQueue.ts";
 import useViewportAwareProxyQueue from "./proxyQueue.ts";
 import useViewportAwareWebpQueue from "./webpQueue.ts";
+import { useGridWindow } from "./useGridWindow.ts";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
@@ -268,6 +269,22 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
 
   // ref for the main container (for scroll-to-top on import)
   const containerRef = useRef<HTMLElement>(null);
+  const [gridEl, setGridEl] = useState<HTMLDivElement | null>(null);
+
+  // only the rows near the viewport are mounted; the rest is grid padding
+  const gridWindow = useGridWindow({
+    scrollRef: containerRef,
+    gridEl,
+    itemCount: clips.length,
+    columns: gridColumns,
+  });
+  const visibleClips = useMemo(
+    () =>
+      clips
+        .slice(gridWindow.start, gridWindow.end)
+        .map((clip, offset) => ({ clip, index: gridWindow.start + offset })),
+    [clips, gridWindow.start, gridWindow.end]
+  );
 
   // the grid stays mounted while another page is open (so nothing regenerates on
   // return), but the browser can drop a scroll container's offset while it's
@@ -475,12 +492,15 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
           <div
             key={importToken}
             className="clips-grid"
+            ref={setGridEl}
             style={{
               gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
               ["--grid-max-width" as any]: gridMaxWidth,
+              paddingTop: gridWindow.padTop ? `calc(15px + ${gridWindow.padTop}px)` : undefined,
+              paddingBottom: gridWindow.padBottom ? `calc(15px + ${gridWindow.padBottom}px)` : undefined,
             }}
           >
-            {clips.map((clip, index) => (
+            {visibleClips.map(({ clip, index }) => (
               <LazyClip
                 key={clip.id}
                 clip={clip}

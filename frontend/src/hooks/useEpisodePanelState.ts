@@ -34,7 +34,9 @@ export function openEpisodeById(episodeId: string) {
 }
 
 export default function useEpisodePanelState() {
-	const appState = useAppStateStore();
+	// getState, not a subscription: only actions are used here, and subscribing
+	// re-rendered the whole episode panel on every import progress tick.
+	const appState = useAppStateStore.getState();
 	const episodeRuntimeState = useEpisodePanelRuntimeStore();
 	const episodeMetadataState = useEpisodePanelMetadataStore();
 
