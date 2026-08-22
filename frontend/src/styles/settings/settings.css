@@ -272,6 +272,7 @@
 }
 
 .export-setting-row .settings-control.export-setting-control > .custom-dropdown,
+.export-setting-row .settings-control.export-setting-control > .font-picker,
 .export-setting-row .settings-control.export-setting-control > .settings-text-input,
 .export-setting-row .settings-control.export-setting-control > .settings-number-input {
     width: min(560px, 100%);
@@ -355,10 +356,10 @@
 }
 
 .settings-collapsible-header {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 12px;
-    width: 100%;
+    gap: 8px;
+    width: auto;
     padding: 12px 4px 8px;
     border: none;
     background: transparent;
@@ -373,11 +374,8 @@
     filter: brightness(1.25);
 }
 
-/* Takes the free space the description used to hold, so the chevron stays
-   pinned to the right edge of the header. */
 .settings-collapsible-title {
-    flex: 1;
-    min-width: 0;
+    flex: 0 0 auto;
     font-size: 1.05rem;
     font-weight: 600;
     color: var(--accent);
@@ -957,4 +955,248 @@
         min-width: 0;
         font-size: 16px;
     }
+}
+
+/* --------------------
+   SETTING INFO BUTTON
+-------------------- */
+
+.settings-label-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.info-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: 1px solid rgb(var(--accent-rgb) / 0.5);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--accent);
+    font-size: 8px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.info-button:hover {
+    background: var(--accent);
+    color: black;
+}
+
+.info-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgb(0 0 0 / 0.6);
+    animation: app-modal-fade 0.1s ease;
+}
+
+.info-modal {
+    display: flex;
+    flex-direction: column;
+    width: min(560px, 100%);
+    max-height: min(680px, 100%);
+    border: 1px solid rgb(var(--accent-rgb) / 0.35);
+    border-radius: 14px;
+    background: rgb(8 8 10 / 0.98);
+    box-shadow: 0 20px 50px rgb(0 0 0 / 0.55);
+    /* explainer text is long-form, so it reads in a normal UI face rather than
+       the pixel display font the rest of the app uses */
+    font-family: Arial, Helvetica, sans-serif;
+    animation: app-modal-rise 0.12s ease;
+}
+
+.info-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px 10px;
+    border-bottom: 1px solid rgb(255 255 255 / 0.08);
+}
+
+.info-modal-title {
+    margin: 0;
+    color: var(--accent);
+    font-size: 1.1rem;
+}
+
+.info-modal-close {
+    padding: 4px;
+    border: none;
+    background: transparent;
+    color: rgb(255 255 255 / 0.55);
+    font-size: 1rem;
+    line-height: 0;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.info-modal-close:hover {
+    color: var(--accent);
+}
+
+.info-modal-body {
+    overflow-y: auto;
+    padding: 4px 18px 18px;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--accent-rgb) / 0.42) transparent;
+}
+
+.info-modal-body h4 {
+    margin: 16px 0 6px;
+    color: white;
+    font-size: 1rem;
+}
+
+.info-modal-body h4:first-child {
+    margin-top: 8px;
+}
+
+.info-modal-body p {
+    margin: 0 0 10px;
+    color: rgb(255 255 255 / 0.72);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+/* --------------------
+   FONT PICKER
+-------------------- */
+
+.font-picker {
+    position: relative;
+    width: 100%;
+    min-width: 220px;
+}
+
+.font-picker-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid rgb(255 255 255 / 0.15);
+    border-radius: 8px;
+    background: rgb(0 0 0 / 0.3);
+    color: inherit;
+    font-size: 18px;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.font-picker-trigger:hover {
+    border-color: rgb(var(--accent-rgb) / 0.5);
+    background: rgb(255 255 255 / 0.06);
+}
+
+.font-picker-caret {
+    flex: none;
+    font-size: 12px;
+    opacity: 0.6;
+    transition: transform 0.15s ease;
+}
+
+.font-picker-caret.open {
+    transform: rotate(180deg);
+}
+
+.font-picker-body {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: auto;
+    right: 0;
+    z-index: 1000;
+    width: max(100%, 320px);
+    max-width: calc(100vw - 48px);
+    padding: 8px;
+    border: 1px solid rgb(255 255 255 / 0.15);
+    border-radius: 8px;
+    background: rgb(20 20 20 / 0.97);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 32px rgb(0 0 0 / 0.5);
+    animation: dropdown-fade-in 0.2s ease-out;
+}
+
+.font-picker-search-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.font-picker-search {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 10px;
+    border: 1px solid rgb(255 255 255 / 0.15);
+    border-radius: 8px;
+    background: rgb(0 0 0 / 0.3);
+    color: inherit;
+    font-family: var(--app-font);
+    box-sizing: border-box;
+}
+
+.font-picker-search:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.font-picker-load-all {
+    width: auto;
+    padding: 0 12px;
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+.font-picker-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 2px;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--accent-rgb) / 0.42) transparent;
+}
+
+.font-picker-option {
+    padding: 6px 10px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    font-size: 18px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.font-picker-option:hover {
+    background: rgb(255 255 255 / 0.06);
+}
+
+.font-picker-option.active {
+    border-color: var(--accent);
+    background: rgb(var(--accent-rgb) / 0.15);
+    color: var(--accent);
+}
+
+.font-picker-empty {
+    margin: 0;
+    padding: 10px;
+    opacity: 0.7;
 }

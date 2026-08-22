@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import MainLayout from "../MainLayout";
-import ImportButtons from "../components/ImportButtons";
+import GridPageLayout from "../components/GridPageLayout";
 import { useAppStateStore } from "../stores/appStore";
 import { useScenepacksStore } from "../stores/scenepackStore";
 import { selectOverlayOpen, useUIStateStore } from "../stores/UIStore";
@@ -79,21 +78,11 @@ export default function ScenepacksPage() {
     useAppStateStore.getState().setClips(clips);
   }, [openedScenepack]);
 
-  if (!openedScenepack) {
-    return (
-      <div className="scenepacks-empty-state">
-        <h3>No Scenepack opened</h3>
-        <p>Select a Scenepack from the sidebar to view its clips.</p>
-      </div>
-    );
-  }
-
   return (
-    <>
-      <ImportButtons showImportControls={false} />
-      <div className="main-layout-wrapper">
-        <MainLayout intro={false} active={!overlayOpen} />
-      </div>
-    </>
+    <GridPageLayout
+      active={!overlayOpen}
+      showImportControls={false}
+      infoText={openedScenepack?.name ?? null}
+    />
   );
 }

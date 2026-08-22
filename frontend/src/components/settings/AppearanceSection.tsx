@@ -15,6 +15,7 @@ import {
 import ColorPicker from "../common/ColorPicker";
 import CropModal from "../common/CropModal";
 import SettingRow from "../common/SettingRow";
+import FontPicker from "./FontPicker";
 import SettingsSection from "../common/SettingsSection";
 
 type AppearanceSectionProps = {
@@ -29,6 +30,7 @@ export default function AppearanceSection({
   const bgOpacityId = useId();
   const bgBlurId = useId();
   const gridPreviewSpeedId = useId();
+  const appFontAdjustId = useId();
 
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [originalPath, setOriginalPath] = useState<string | null>(null);
@@ -272,6 +274,41 @@ export default function AppearanceSection({
             </div>
           }
         />
+        </SettingsSection>
+
+        <SettingsSection id="appearance.text" title="Text">
+          <SettingRow
+            label="App font"
+            description="Pick any font installed on this PC. Each option previews in its own font. The logo is unaffected."
+            control={<FontPicker />}
+          />
+
+          <SettingRow
+            label="Text size"
+            description="Scales the chosen font to match the app's default sizing. Only applies with a custom font."
+            control={
+              <div className="settings-control">
+                <input
+                  id={appFontAdjustId}
+                  type="range"
+                  min="0.35"
+                  max="0.6"
+                  step="0.01"
+                  value={themeSettings.appFontAdjust ?? 0.47}
+                  disabled={themeSettings.appFontFamily === null}
+                  onChange={(e) =>
+                    setThemeSettings((prev) => ({
+                      ...prev,
+                      appFontAdjust: parseFloat(e.target.value),
+                    }))
+                  }
+                />
+                <span className="settings-value">
+                  {Math.round(((themeSettings.appFontAdjust ?? 0.47) / 0.47) * 100)}%
+                </span>
+              </div>
+            }
+          />
         </SettingsSection>
 
         <SettingsSection id="appearance.clipTiles" title="Clip Tiles">

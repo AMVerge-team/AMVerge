@@ -1,7 +1,7 @@
 // main Episode Panel coordinator. Wires together structure, menus, drag/drop, keyboard shortcuts, and UI sections.
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FaSearch, FaTimes } from "react-icons/fa";
+import { FaSearch, FaTimes, FaVideo } from "react-icons/fa";
 
 import EpisodePanelContextMenus from "./EpisodePanelContextMenus";
 import EpisodePanelHeader from "./EpisodePanelHeader";
@@ -12,6 +12,7 @@ import useEpisodePanelDragDrop from "../hooks/useEpisodePanelDragDrop";
 import useEpisodePanelMenus from "../hooks/useEpisodePanelMenus";
 import useEpisodePanelStructure from "../hooks/useEpisodePanelStructure";
 import useEpisodePanelState from "../../../hooks/useEpisodePanelState";
+import useImportExport from "../../../hooks/useImportExport";
 
 import { useEpisodePanelMetadataStore, useEpisodePanelRuntimeStore } from "../../../stores/episodeStore";
 
@@ -53,6 +54,9 @@ export default function EpisodePanel() {
     return episodeFolders.filter((f) => f.name.toLowerCase().includes(q));
   }, [episodeFolders, q]);
   const isSearching = q.length > 0;
+  const isLibraryEmpty = episodes.length === 0 && episodeFolders.length === 0;
+
+  const { onImportClick } = useImportExport();
 
   const {
     folderById,
@@ -376,6 +380,21 @@ export default function EpisodePanel() {
             onToggleFolderExpanded={handleToggleFolderExpanded}
             forceExpanded={isSearching}
           />
+
+          {isLibraryEmpty && (
+            <div className="episode-panel-empty-cta">
+              <FaVideo style={{ fontSize: 28, opacity: 0.3 }} />
+              <span style={{ fontSize: 15, opacity: 0.6 }}>No episodes yet</span>
+              <span style={{ fontSize: 12, opacity: 0.4 }}>Import a video to cut it into clips</span>
+              <button
+                className="episode-modal-btn primary"
+                onClick={() => void onImportClick()}
+                style={{ marginTop: 8, fontSize: 14 }}
+              >
+                Import your first episode
+              </button>
+            </div>
+          )}
         </div>
 
         <EpisodePanelModals

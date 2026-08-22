@@ -13,6 +13,7 @@ import { useStaggeredMountQueue } from "./staggeredMountQueue.ts";
 import useViewportAwareProxyQueue from "./proxyQueue.ts";
 import useViewportAwareWebpQueue from "./webpQueue.ts";
 import { useGridWindow } from "./useGridWindow.ts";
+import { buildWebpJob } from "./useWebpPreview.ts";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
@@ -124,6 +125,20 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   });
   // staggered mount queue: mounts videos one at a time in grid preview
   const { reportStaggerDemand } = useStaggeredMountQueue();
+
+  // Register every clip in the episode, not just the tiles currently mounted:
+  // the queue works through offscreen demand in its own lane, and the loading
+  // count has to be the episode's total rather than however far you scrolled.
+  // Tiles still raise their own entry's priority while visible or hovered.
+  useEffect(() => {
+    if (episodeVideoPreview) return;
+    for (let index = 0; index < clips.length; index++) {
+      const clip = clips[index];
+      const job = buildWebpJob(clip, clip.episodeId ?? openedEpisodeId ?? null);
+      if (!job) continue;
+      reportWebpDemand(clip.id, { isVisible: false, order: index, priority: false, job });
+    }
+  }, [clips, episodeVideoPreview, openedEpisodeId, reportWebpDemand]);
 
   // calculate number of columns for the grid
   const gridColumns = loading
@@ -472,7 +487,11 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     <main className="clips-container" ref={containerRef}>
       {clips.length === 0 ? (
         <div className="empty-grid-wrapper">
-          <p id="empty-grid">No video loaded.<br/>If no clips are displaying, try changing the episode storage path in general settings.</p>
+          <p id="empty-grid">
+            {activePage === "scenepacks"
+              ? <>No Scenepack opened.<br/>Select one from the sidebar to view its clips.</>
+              : <>No video loaded.<br/>If no clips are displaying, try changing the episode storage path in general settings.</>}
+          </p>
         </div>
       ) : loading ? (
         <div

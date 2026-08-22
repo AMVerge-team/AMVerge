@@ -515,3 +515,21 @@ pub async fn fast_split(
 pub async fn abort_export(abort_state: State<'_, ExportAbortState>) -> Result<String, String> {
     ops::abort_export_inner(abort_state).await
 }
+
+/// Delete the per-clip files an export produced once the merged output exists.
+/// Only removes files sitting directly in `dir`, so a bad path can never reach
+/// outside the export folder the user picked.
+#[tauri::command]
+pub async fn delete_export_intermediates(dir: String, paths: Vec<String>) -> Result<(), String> {
+    let dir_path = std::path::PathBuf::from(&dir);
+
+    for candidate in paths {
+        let path = std::path::PathBuf::from(&candidate);
+        if path.parent() != Some(dir_path.as_path()) {
+            continue;
+        }
+        let _ = std::fs::remove_file(&path);
+    }
+
+    Ok(())
+}

@@ -110,6 +110,21 @@ type UseWebpPreviewArgs = {
   ) => void;
 };
 
+/** The animated-WebP encode job for a clip, or null if it has no source. */
+export function buildWebpJob(
+  clip: { originalPath?: string; src: string; startSec?: number; endSec?: number },
+  episodeCacheId: string | null
+): Omit<SceneWebpJob, "sceneId"> | null {
+  const sourcePath = clip.originalPath || clip.src;
+  if (!sourcePath) return null;
+
+  const start = clip.startSec ?? 0;
+  const rawEnd = clip.endSec ?? start + 2;
+  const end = Math.min(rawEnd > start ? rawEnd : start + 2, start + 2.5);
+
+  return { sourcePath, start, end, fps: 8, kind: "animated", episodeCacheId };
+}
+
 export function useWebpPreview({
   clip,
   index,
@@ -171,8 +186,24 @@ export function useWebpPreview({
       },
     });
 
-    // withdraw on unmount: tiles come and go as the grid window scrolls
-    return () => reportWebpDemand(clip.id, null);
+    // Tiles come and go as the window scrolls, so unmounting drops back to
+    // background priority rather than withdrawing - the grid registers every
+    // clip, and cancelling here would shrink the loading total as you scroll.
+    return () => {
+      reportWebpDemand(clip.id, {
+        isVisible: false,
+        order: index,
+        priority: false,
+        job: {
+          sourcePath: webpSourcePath,
+          start: webpStart,
+          end: webpEnd,
+          fps: 8,
+          kind: "animated",
+          episodeCacheId: episodeId ?? null,
+        },
+      });
+    };
   }, [
     clip.id,
     index,
