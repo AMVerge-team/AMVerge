@@ -19,6 +19,7 @@ import { useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
 import { useScenepacksStore } from "../../stores/scenepackStore.ts";
+import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
 import { removeClipsFromScenepack } from "../../utils/scenepackStorage.ts";
 import type { ClipItem } from "../../types/domain.ts";
 
@@ -132,8 +133,14 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   // Tiles still raise their own entry's priority while visible or hovered.
   useEffect(() => {
     if (episodeVideoPreview) return;
+    // Read, don't subscribe: results stream in constantly and the grid must not
+    // re-render for each. Clips that already have a preview are skipped so they
+    // never enter the loading count - counting them made the total shrink as you
+    // scrolled, when their tile mounted and withdrew the demand.
+    const resolved = useScenePreviewStore.getState().animatedByClipId;
     for (let index = 0; index < clips.length; index++) {
       const clip = clips[index];
+      if (resolved[clip.id]) continue;
       const job = buildWebpJob(clip, clip.episodeId ?? openedEpisodeId ?? null);
       if (!job) continue;
       reportWebpDemand(clip.id, { isVisible: false, order: index, priority: false, job });
