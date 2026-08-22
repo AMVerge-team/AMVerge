@@ -64,7 +64,6 @@ function App() {
 
   // refs
   const windowWrapperRef = useRef<HTMLDivElement | null>(null);
-  const mainLayoutWrapperRef = useRef<HTMLDivElement | null>(null);
   const userHasHEVC = useAppStateStore((s) => s.userHasHEVC);
   const abortedRef = useRef(false);
 
@@ -344,9 +343,16 @@ function App() {
   }, [importedVideoPath, importToken, setVideoIsHEVC]);
 
   useEffect(() => {
+    // Every clip page renders a .main-layout-wrapper and only the active one has
+    // height (the others sit behind display:none), so the visible one is what
+    // the sidebar divider aligns to - whichever page is showing.
+    const visibleWrapper = () =>
+      Array.from(document.querySelectorAll<HTMLElement>(".main-layout-wrapper"))
+        .find((el) => el.getBoundingClientRect().height > 0) ?? null;
+
     const update = () => {
       const ww = windowWrapperRef.current;
-      const ml = mainLayoutWrapperRef.current;
+      const ml = visibleWrapper();
 
       if (!ww || !ml) return;
 
@@ -371,9 +377,9 @@ function App() {
 
     const ro = new ResizeObserver(() => update());
 
-    if (mainLayoutWrapperRef.current) {
-      ro.observe(mainLayoutWrapperRef.current);
-    }
+    document
+      .querySelectorAll<HTMLElement>(".main-layout-wrapper")
+      .forEach((el) => ro.observe(el));
 
     window.addEventListener("resize", update);
 
@@ -447,9 +453,7 @@ function App() {
     >
       <div className="main-content">
         <div style={{ display: activePage === "home" ? "contents" : "none" }}>
-          <HomePage
-            mainLayoutWrapperRef={mainLayoutWrapperRef}
-          />
+          <HomePage />
         </div>
         {activePage === "scenepacks" && scenepacksEnabled && <ScenepacksPage />}
       </div>

@@ -42,13 +42,20 @@ export default function ModalShell({
   if (!open) return null;
 
   return (
-    <div className="app-modal-overlay" onMouseDown={onClose}>
+    <div
+      className="app-modal-overlay"
+      // Target check rather than stopPropagation on the panel: stopping the
+      // synthetic event also stops the native one, which document-level
+      // outside-click handlers (dropdowns) rely on.
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
         className={`app-modal${className ? ` ${className}` : ""}`}
         role="dialog"
         aria-modal="true"
         aria-label={label}
-        onMouseDown={(e) => e.stopPropagation()}
       >
         <button
           type="button"

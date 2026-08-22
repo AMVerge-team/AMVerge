@@ -420,7 +420,7 @@
   color: white;
   font-size: 13px;
   cursor: pointer;
-  font-family: 'Jersey 10', system-ui, sans-serif;
+  font-family: var(--app-font);
   transition: background 0.2s ease, border 0.2s ease;
 }
 

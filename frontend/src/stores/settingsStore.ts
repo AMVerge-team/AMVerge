@@ -308,6 +308,8 @@ export type ThemeSettings = {
     backgroundOpacity: number; // 0 to 1
     backgroundBlur: number; // pixels
     gridPreviewSpeed: number;
+    appFontFamily: string | null; // null = default (Jersey 10 stack)
+    appFontAdjust: number; // font-size-adjust, so a custom font matches the default's apparent size
     showDownloadButton: boolean;
     showClipTimestamps: boolean;
     widescreenClipTiles: boolean;
@@ -320,6 +322,8 @@ export type ThemeSettingsStore = ThemeSettings & {
     setBackgroundOpacity: (opacity: number) => void;
     setBackgroundBlur: (blur: number) => void;
     setGridPreviewSpeed: (speed: number) => void;
+    setAppFontFamily: (font: string | null) => void;
+    setAppFontAdjust: (adjust: number) => void;
     setShowDownloadButton: (showDownloadButton: boolean) => void;
     setShowClipTimestamps: (showClipTimestamps: boolean) => void;
     setWidescreenClipTiles: (widescreenClipTiles: boolean) => void;
@@ -333,6 +337,8 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
     backgroundOpacity: 1.0,
     backgroundBlur: 0,
     gridPreviewSpeed: 1,
+    appFontFamily: null,
+    appFontAdjust: 0.47,
     showDownloadButton: true,
     showClipTimestamps: true,
     widescreenClipTiles: false,
@@ -367,6 +373,9 @@ export const useThemeSettingsStore = create<ThemeSettingsStore>()(
                 const clamped = Math.max(0.25, Math.min(3, speed));
                 set({ gridPreviewSpeed: clamped });
             },
+            setAppFontFamily: (font) => set({ appFontFamily: font }),
+            setAppFontAdjust: (adjust) =>
+                set({ appFontAdjust: Math.max(0.3, Math.min(0.7, adjust)) }),
             setShowDownloadButton: (showDownloadButton) => {
                 console.log("Toggling download button..")
                 set({ showDownloadButton: showDownloadButton })
@@ -419,6 +428,9 @@ function hexToRgbTriplet(hex: string): string | null {
     return `${r} ${g} ${b}`;
 }
 
+export const DEFAULT_FONT_STACK =
+    "'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+
 export function applyThemeSettings(settings: ThemeSettings) {
     const root = document.documentElement;
     const body = document.body;
@@ -454,6 +466,21 @@ export function applyThemeSettings(settings: ThemeSettings) {
     const clipTileAspect = settings.widescreenClipTiles ? "16 / 9" : "1 / 1";
     root.style.setProperty("--clip-tile-aspect", clipTileAspect);
     body.style.setProperty("--clip-tile-aspect", clipTileAspect);
+
+    // UI font from the Appearance picker, falling back to the default stack.
+    const appFont = settings.appFontFamily
+        ? `"${settings.appFontFamily}", ${DEFAULT_FONT_STACK}`
+        : DEFAULT_FONT_STACK;
+    root.style.setProperty("--app-font", appFont);
+    body.style.setProperty("--app-font", appFont);
+
+    // Most fonts render much larger than the pixel default at the same px size,
+    // so a custom pick gets normalized by x-height. "none" leaves Jersey 10 be.
+    const fontAdjust = settings.appFontFamily
+        ? String(settings.appFontAdjust ?? 0.47)
+        : "none";
+    root.style.setProperty("--app-font-adjust", fontAdjust);
+    body.style.setProperty("--app-font-adjust", fontAdjust);
 }
 
 export function getDarkerColor(hex: string, factor = 0.5): string {

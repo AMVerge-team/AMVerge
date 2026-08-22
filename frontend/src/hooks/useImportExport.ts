@@ -10,7 +10,7 @@ import {
 } from "../features/export/profiles";
 
 import { runPostExportPasses } from "../features/export/runPostExportPasses";
-import { anyPassEnabled, type PostExportPasses } from "../features/export/postPasses";
+import { anyPassEnabled, PASS_SUFFIX, type PostExportPasses } from "../features/export/postPasses";
 import { useAiDepsStore } from "../stores/aiDepsStore";
 import { useAppStateStore, useAppPersistedStore } from "../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
@@ -742,40 +742,59 @@ export default function useImportExport(props?: ImportExportProps) {
         setActiveOperation(null);
       }
 
-      // 2. Interpolate each clip (pass modal drives itself; loader is closed).
+      const remuxOptions: ExportOptionsPayload = {
+        profileId: exportOptions?.profileId ?? "",
+        workflow: "video_remux",
+        editorTarget: "none",
+        codec: "copy",
+        audioMode: "copy",
+        hardwareMode: "cpu",
+        parallelExports: 1,
+      };
+
+      const mergeInto = async (inputs: string[], savePath: string) => {
+        try {
+          setActiveOperation("export");
+          setLoading(true);
+          return await invoke<string[]>("export_clips", {
+            clips: inputs.map((input) => ({ input })),
+            savePath,
+            mergeEnabled: true,
+            exportOptions: remuxOptions,
+          });
+        } finally {
+          setLoading(false);
+          setActiveOperation(null);
+        }
+      };
+
+      // 2. Merge the untouched clips: this is the plain export, and it keeps the
+      // name the user chose. Passes never overwrite it.
+      mergedFiles = await mergeInto(clipFiles, finalSavePath);
+
+      // 3. Interpolation runs per clip (never across a cut) and merges into its
+      // own _interpolated file, so both versions survive side by side.
       const interpOnly: PostExportPasses = {
         ...passesSnapshot,
         depth: { ...passesSnapshot.depth, enabled: false },
         deadframes: { ...passesSnapshot.deadframes, enabled: false },
       };
       const interpFiles = await runPostExportPasses(clipFiles, interpOnly);
+      if (interpFiles.length > 0) {
+        await mergeInto(
+          interpFiles,
+          `${dir}${sep}${baseName}${PASS_SUFFIX.interpolation}.${format}`
+        );
+      }
 
-      // Interpolation may have been skipped (missing AI pack) — fall back to
-      // merging the raw clips.
-      const mergeInputs = interpFiles.length > 0 ? interpFiles : clipFiles;
-
-      // 3. Merge the (interpolated) clips losslessly (stream copy).
-      try {
-        setActiveOperation("export");
-        setLoading(true);
-        const remuxOptions: ExportOptionsPayload = {
-          profileId: exportOptions?.profileId ?? "",
-          workflow: "video_remux",
-          editorTarget: "none",
-          codec: "copy",
-          audioMode: "copy",
-          hardwareMode: "cpu",
-          parallelExports: 1,
-        };
-        mergedFiles = await invoke<string[]>("export_clips", {
-          clips: mergeInputs.map((input) => ({ input })),
-          savePath: finalSavePath,
-          mergeEnabled: true,
-          exportOptions: remuxOptions,
-        });
-      } finally {
-        setLoading(false);
-        setActiveOperation(null);
+      // 4. Drop the per-clip parts; only the merged outputs are wanted on disk.
+      const intermediates = [...clipFiles, ...interpFiles];
+      if (intermediates.length > 0) {
+        try {
+          await invoke("delete_export_intermediates", { dir, paths: intermediates });
+        } catch (err) {
+          console.warn("Failed to clean up export intermediates:", err);
+        }
       }
 
       if (mergedFiles.length > 0 && generalSettings.openFileLocationAfterExport) {
@@ -825,7 +844,7 @@ export default function useImportExport(props?: ImportExportProps) {
         return;
       }
 
-      // 4. Any remaining passes (depth/deadframes) run on the merged file.
+      // 5. Any remaining passes (depth/deadframes) run on the merged file.
       const passesForMerged: PostExportPasses = {
         ...passesSnapshot,
         interpolation: { ...passesSnapshot.interpolation, enabled: false },

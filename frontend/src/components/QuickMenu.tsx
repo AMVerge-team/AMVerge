@@ -30,13 +30,17 @@ export default function QuickMenu() {
   if (!open) return null;
 
   return (
-    <div className="quick-menu-overlay" onMouseDown={() => setQuickMenuOpen(false)}>
+    <div
+      className="quick-menu-overlay"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) setQuickMenuOpen(false);
+      }}
+    >
       <div
         className="quick-menu"
         role="dialog"
         aria-modal="true"
         aria-label="Quick menu"
-        onMouseDown={(e) => e.stopPropagation()}
       >
         <button
           type="button"

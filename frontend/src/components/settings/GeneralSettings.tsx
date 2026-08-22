@@ -13,6 +13,7 @@ import { useEffect, useState} from "react";
 import SettingRow from "../common/SettingRow";
 import Dropdown, { type DropdownOption } from "../common/Dropdown";
 import SettingsSection from "../common/SettingsSection";
+import InfoButton from "../common/InfoButton";
 import { clearEpisodePanelCache } from "../../utils/episodeUtils";
 import { clearScenepacksStorage } from "../../utils/scenepackStorage";
 import { useScenepacksStore } from "../../stores/scenepackStore";
@@ -261,6 +262,43 @@ export default function GeneralSettings({
           <SettingRow
             label="Scene Detection Method"
             description="How AMVerge finds scene cuts when you import."
+            info={
+              <InfoButton title="Scene Detection Method">
+                <h4>AI Scene Detection</h4>
+                <p>
+                  Runs every frame of the episode through TransNetV2, a neural network
+                  trained to spot the moment one shot ends and the next begins. It is the
+                  most accurate option and catches cuts that other methods miss.
+                </p>
+                <p>
+                  It is also the slowest, because the whole episode has to be decoded and
+                  looked at frame by frame. A GPU makes this much faster.
+                </p>
+                <p>
+                  Near the end of an import you may see some clips being re-encoded. Video
+                  can only be split instantly at a keyframe, so any clip whose cut does not
+                  land on one gets rebuilt. That is what makes each clip start exactly where
+                  the AI said the shot changed instead of a moment early or late.
+                </p>
+
+                <h4>Keyframe Detection</h4>
+                <p>
+                  A video file does not store a full picture for every frame. Every so often
+                  it saves a complete one, called a keyframe, and the frames after it only
+                  store what changed since. Those complete pictures are the only places a
+                  video can be cut without rebuilding it.
+                </p>
+                <p>
+                  This method cuts at those points and nowhere else, so it is instant and
+                  works on any PC with no GPU needed. It is by far the fastest way to import.
+                </p>
+                <p>
+                  The tradeoff is accuracy. Cuts land on the nearest keyframe rather than the
+                  exact shot change, so a clip can start slightly early or late, and shot
+                  changes that happen between keyframes are missed entirely.
+                </p>
+              </InfoButton>
+            }
             control={
               <Dropdown
                 className="settings-wide-dropdown"
@@ -276,6 +314,35 @@ export default function GeneralSettings({
         <SettingRow
           label="Preview Method"
           description="What the grid plays when you hover over a clip."
+          info={
+            <InfoButton title="Preview Method">
+              <h4>Video Files</h4>
+              <p>
+                Cuts a real video clip for every scene. Hovering a tile plays the actual
+                video, so what you see is exactly what you get when you export.
+              </p>
+              <p>
+                Each tile that plays is a real video being decoded, so a long episode with
+                hundreds of scenes asks a lot of your PC. This is the heavier option.
+              </p>
+
+              <h4>WebP Files</h4>
+              <p>
+                Builds a small animated preview for each scene instead, similar to a GIF.
+                They are far lighter than video, so scrolling and hovering stay smooth even
+                with hundreds of scenes. If the app feels slow, this is the option to pick.
+              </p>
+              <p>
+                The cost is import time. Every preview has to be made up front, so importing
+                takes noticeably longer than it does with video files.
+              </p>
+              <p>
+                This only changes what you preview in the grid. Exports are always cut from
+                the original episode video, so your exported clips are full quality either
+                way.
+              </p>
+            </InfoButton>
+          }
           control={
             <Dropdown
               className="settings-wide-dropdown"

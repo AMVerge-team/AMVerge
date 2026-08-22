@@ -162,7 +162,7 @@
     cursor: pointer;
     transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
     font-size: 20px;
-    font-family: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--app-font);
 }
 
 .startup-notification-close:hover {
