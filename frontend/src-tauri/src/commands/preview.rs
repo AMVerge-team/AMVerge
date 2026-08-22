@@ -26,6 +26,8 @@ use crate::utils::process::apply_no_window;
 pub struct PreviewAudioStream {
     pub audio_stream_index: u32,
     pub label: String,
+    /// Raw ffprobe language tag ("eng"), empty when the stream is untagged.
+    pub language: String,
 }
 
 #[derive(Deserialize)]
@@ -823,6 +825,7 @@ pub async fn get_audio_streams(app: AppHandle, video_path: String) -> Result<Vec
         out.push(PreviewAudioStream {
             audio_stream_index: audio_order_index as u32,
             label,
+            language: language_raw.trim().to_lowercase(),
         });
     }
 

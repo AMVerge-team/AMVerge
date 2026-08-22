@@ -100,6 +100,7 @@ pub async fn export_clips(
     merge_enabled: bool,
     export_options: Option<ExportOptionsPayload>,
     audio_track: Option<u32>,
+    audio_language: Option<String>,
 ) -> Result<Vec<String>, String> {
     abort_state.abort_requested.store(false, Ordering::SeqCst);
     if let Ok(mut lock) = abort_state.pids.lock() {
@@ -207,6 +208,9 @@ pub async fn export_clips(
         .arg(&hardware)
         .arg("--workers")
         .arg(workers.to_string());
+    if let Some(language) = audio_language.as_deref().filter(|l| !l.is_empty()) {
+        cmd.arg("--audio-language").arg(language);
+    }
     if let Some(track) = audio_track {
         cmd.arg("--audio-track").arg(track.to_string());
     }

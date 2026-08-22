@@ -735,6 +735,7 @@ export default function useImportExport(props?: ImportExportProps) {
           mergeEnabled: false,
           exportOptions,
           audioTrack: generalSettings.previewAudioStreamIndex,
+          audioLanguage: generalSettings.previewAudioLanguage,
         });
         if (clipFiles.length === 0) throw new Error("Export produced no files.");
       } finally {
@@ -894,6 +895,7 @@ export default function useImportExport(props?: ImportExportProps) {
           mergeEnabled,
           exportOptions,
           audioTrack: generalSettings.previewAudioStreamIndex,
+          audioLanguage: generalSettings.previewAudioLanguage,
         });
         producedFiles = exportedFiles;
         if (generalSettings.openFileLocationAfterExport && exportedFiles.length > 0) {
@@ -912,6 +914,7 @@ export default function useImportExport(props?: ImportExportProps) {
           mergeEnabled: false,
           exportOptions,
           audioTrack: generalSettings.previewAudioStreamIndex,
+          audioLanguage: generalSettings.previewAudioLanguage,
         });
         producedFiles = exportedFiles;
         if (generalSettings.openFileLocationAfterExport && exportedFiles.length > 0) {
@@ -1007,6 +1010,7 @@ export default function useImportExport(props?: ImportExportProps) {
         mergeEnabled: srcs.length > 1,
         exportOptions,
         audioTrack: generalSettings.previewAudioStreamIndex,
+          audioLanguage: generalSettings.previewAudioLanguage,
       });
       if (generalSettings.openFileLocationAfterExport && exportedFiles.length > 0) {
         await invoke("reveal_in_file_manager", { filePath: exportedFiles[0] });

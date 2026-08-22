@@ -25,6 +25,7 @@ import {
 type PreviewAudioStream = {
   audioStreamIndex: number;
   label: string;
+  language: string;
 };
 
 type PreviewContainerProps = {
@@ -54,6 +55,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const mergeClipsEnabled = useGeneralSettingsStore(s => s.mergeClipsEnabled);
   const setMergeClipsEnabled = useGeneralSettingsStore(s => s.setMergeClipsEnabled);
   const previewAudioStreamIndex = useGeneralSettingsStore(s => s.previewAudioStreamIndex);
+  const setPreviewAudioLanguage = useGeneralSettingsStore(s => s.setPreviewAudioLanguage);
   const setPreviewAudioStreamIndex = useGeneralSettingsStore(s => s.setPreviewAudioStreamIndex);
   const importMethod = useGeneralSettingsStore(s => s.importMethod);
   const { handleExport, handlePickExportDir } = useImportExport();
@@ -194,18 +196,53 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     }
   }, [showMergeNameModal]);
 
+  // One clip per source episode, capped: clips from the same episode carry the
+  // same tracks, and probing every clip in a large pack spawns an ffprobe per
+  // clip all at once.
+  const scenepackProbeKey = React.useMemo(() => {
+    if (activePageForPreview !== "scenepacks") return "";
+    const seen = new Set<string>();
+    const paths: string[] = [];
+    for (const clip of clips) {
+      if (!clip.clipPath) continue;
+      const key = clip.episodeId ?? clip.clipPath;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      paths.push(clip.clipPath);
+      if (paths.length >= 8) break;
+    }
+    return paths.join("|");
+  }, [activePageForPreview, clips]);
+
   React.useEffect(() => {
-    if (!importedVideoPath) {
+    const sources = importedVideoPath
+      ? [importedVideoPath]
+      : scenepackProbeKey.split("|").filter(Boolean);
+    if (sources.length === 0) {
       setAudioStreams([]);
       return;
     }
 
     let cancelled = false;
 
-    invoke<PreviewAudioStream[]>("get_audio_streams", { videoPath: importedVideoPath })
-      .then((streams) => {
+    Promise.all(
+      sources.map((videoPath) =>
+        invoke<PreviewAudioStream[]>("get_audio_streams", { videoPath }).catch(() => [])
+      )
+    )
+      .then((results) => {
         if (cancelled) return;
-        setAudioStreams(streams ?? []);
+        // Union by language: clips can order their tracks differently, so the
+        // index is only meaningful per file. Export resolves the language again
+        // against each clip.
+        const byLanguage = new Map<string, PreviewAudioStream>();
+        for (const streams of results) {
+          for (const stream of streams ?? []) {
+            const key = stream.language || `#${stream.audioStreamIndex}`;
+            if (!byLanguage.has(key)) byLanguage.set(key, stream);
+          }
+        }
+        setAudioStreams([...byLanguage.values()]);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -216,25 +253,26 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     return () => {
       cancelled = true;
     };
-  }, [importedVideoPath]);
+  }, [importedVideoPath, scenepackProbeKey]);
 
   React.useEffect(() => {
     if (audioStreams.length === 0) {
-      if (previewAudioStreamIndex !== null) {
-        setPreviewAudioStreamIndex(null);
-      }
+      setPreviewAudioStreamIndex(null);
       return;
     }
 
-    if (previewAudioStreamIndex === null) {
-      setPreviewAudioStreamIndex(audioStreams[0].audioStreamIndex);
-      return;
-    }
-
-    if (!audioStreams.some((stream) => stream.audioStreamIndex === previewAudioStreamIndex)) {
-      setPreviewAudioStreamIndex(audioStreams[0].audioStreamIndex);
-    }
-  }, [audioStreams, previewAudioStreamIndex, setPreviewAudioStreamIndex]);
+    const current = audioStreams.find(
+      (stream) => stream.audioStreamIndex === previewAudioStreamIndex
+    );
+    const chosen = current ?? audioStreams[0];
+    setPreviewAudioStreamIndex(chosen.audioStreamIndex);
+    setPreviewAudioLanguage(chosen.language || null);
+  }, [
+    audioStreams,
+    previewAudioStreamIndex,
+    setPreviewAudioStreamIndex,
+    setPreviewAudioLanguage,
+  ]);
 
   const onExportClick = () => {
     if (!hasSelectedClips) return;
@@ -372,7 +410,12 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                   className="export-profile-select audio-stream-select"
                   options={audioStreamOptions}
                   value={previewAudioStreamIndex ?? (audioStreams[0]?.audioStreamIndex ?? 0)}
-                  onChange={setPreviewAudioStreamIndex}
+                  onChange={(index) => {
+                    setPreviewAudioStreamIndex(index);
+                    setPreviewAudioLanguage(
+                      audioStreams.find((s) => s.audioStreamIndex === index)?.language || null
+                    );
+                  }}
                   preferredDirection="up"
                   disabled={audioStreamOptions.length === 0 || webpPreviewMode}
                 />

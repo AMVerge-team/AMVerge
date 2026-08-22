@@ -46,6 +46,8 @@ export type GeneralSettings = {
     audioPlaybackHover: boolean;
     previewAudioEnabled: boolean;
     previewAudioStreamIndex: number | null;
+    /** Language tag of the chosen track, resolved per clip at export time. */
+    previewAudioLanguage: string | null;
     playbackVolume: number;
     discordRPCEnabled: boolean;
     rpcShowFilename: boolean;
@@ -74,6 +76,7 @@ export type GeneralSettingsStore = GeneralSettings & {
     setAudioPlaybackHover: (enabled: boolean) => void;
     setPreviewAudioEnabled: (enabled: boolean) => void;
     setPreviewAudioStreamIndex: (index: number | null) => void;
+    setPreviewAudioLanguage: (language: string | null) => void;
     setPlaybackVolume: (volume: number) => void;
     setDiscordRPCEnabled: (enabled: boolean) => void;
     setRpcShowFilename: (enabled: boolean) => void;
@@ -103,6 +106,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     audioPlaybackHover: false,
     previewAudioEnabled: false,
     previewAudioStreamIndex: null,
+    previewAudioLanguage: null,
     playbackVolume: 0.2,
     discordRPCEnabled: true,
     rpcShowFilename: true,
@@ -216,8 +220,18 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                 set({ audioPlaybackHover: enabled }),
             setPreviewAudioEnabled: (enabled) =>
                 set({ previewAudioEnabled: enabled }),
+            setPreviewAudioLanguage: (previewAudioLanguage) =>
+                set((s) =>
+                    s.previewAudioLanguage === previewAudioLanguage
+                        ? s
+                        : { previewAudioLanguage }
+                ),
             setPreviewAudioStreamIndex: (index) =>
-                set({ previewAudioStreamIndex: index }),
+                set((s) =>
+                    s.previewAudioStreamIndex === index
+                        ? s
+                        : { previewAudioStreamIndex: index }
+                ),
             setPlaybackVolume: (volume) => set({ playbackVolume: volume }),
             setDiscordRPCEnabled: (enabled) =>
                 set({ discordRPCEnabled: enabled }),
