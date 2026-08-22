@@ -414,6 +414,14 @@
     border-left: 2px solid rgb(var(--accent-rgb) / 0.3);
 }
 
+.pass-subheading {
+    margin: 12px 0 2px;
+    color: rgb(var(--accent-rgb) / 0.85);
+    font-size: 0.85rem;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+}
+
 .pass-number-input {
     width: 90px;
 }

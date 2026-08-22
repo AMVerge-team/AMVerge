@@ -778,18 +778,28 @@ export default function useImportExport(props?: ImportExportProps) {
       const interpOnly: PostExportPasses = {
         ...passesSnapshot,
         depth: { ...passesSnapshot.depth, enabled: false },
-        deadframes: { ...passesSnapshot.deadframes, enabled: false },
       };
-      const interpFiles = await runPostExportPasses(clipFiles, interpOnly);
-      if (interpFiles.length > 0) {
+      const passOutputs = await runPostExportPasses(clipFiles, interpOnly);
+      if (passOutputs.interpolated.length > 0) {
         await mergeInto(
-          interpFiles,
+          passOutputs.interpolated,
           `${dir}${sep}${baseName}${PASS_SUFFIX.interpolation}.${format}`
+        );
+      }
+      // The dead-frames copies are per clip too, so they merge the same way.
+      if (passOutputs.deadframes.length > 0) {
+        await mergeInto(
+          passOutputs.deadframes,
+          `${dir}${sep}${baseName}${PASS_SUFFIX.deadframes}.${format}`
         );
       }
 
       // 4. Drop the per-clip parts; only the merged outputs are wanted on disk.
-      const intermediates = [...clipFiles, ...interpFiles];
+      const intermediates = [
+        ...clipFiles,
+        ...passOutputs.interpolated,
+        ...passOutputs.deadframes,
+      ];
       if (intermediates.length > 0) {
         try {
           await invoke("delete_export_intermediates", { dir, paths: intermediates });

@@ -36,9 +36,13 @@ function splitPath(p: string): { dir: string; stem: string; ext: string; sep: st
   return { dir, stem, ext, sep };
 }
 
-function buildJobs(outputs: string[], passes: PostExportPasses): { jobs: Job[]; interpOutputs: string[] } {
+function buildJobs(
+  outputs: string[],
+  passes: PostExportPasses
+): { jobs: Job[]; interpOutputs: string[]; deadframesOutputs: string[] } {
   const jobs: Job[] = [];
   const interpOutputs: string[] = [];
+  const deadframesOutputs: string[] = [];
   for (const out of outputs) {
     const { dir, stem, ext, sep } = splitPath(out);
     const path = (suffix: string) => `${dir}${sep}${stem}${suffix}.${ext}`;
@@ -50,29 +54,30 @@ function buildJobs(outputs: string[], passes: PostExportPasses): { jobs: Job[]; 
         calls: [{ pass: "depth", input: out, output, args: depthArgs(passes.depth) }],
       });
     }
-    if (passes.deadframes.enabled) {
-      const output = path(PASS_SUFFIX.deadframes);
-      jobs.push({
-        label: `Dead frames · ${stem}`,
-        calls: [{ pass: "deadframes", input: out, output, args: deadframesArgs(passes.deadframes) }],
-      });
-    }
     if (passes.interpolation.enabled) {
-      // interpolation = dead frames first, then interpolate on top. The dead
-      // frames intermediate is temporary and deleted after interpolation.
-      const tmp = path("_df_tmp");
+      // Dead frames first, then interpolate on top of that. Keeping the copy
+      // just means writing it to its final name and not deleting it after.
+      const keepDeadframes = passes.deadframes.exportCopy;
+      const deadframesOut = keepDeadframes ? path(PASS_SUFFIX.deadframes) : path("_df_tmp");
       const output = path(PASS_SUFFIX.interpolation);
       interpOutputs.push(output);
+      if (keepDeadframes) deadframesOutputs.push(deadframesOut);
       jobs.push({
         label: `Interpolation · ${stem}`,
         calls: [
-          { pass: "deadframes", input: out, output: tmp, args: deadframesArgs(passes.deadframes) },
-          { pass: "interpolate", input: tmp, output, args: interpolationArgs(passes.interpolation), deleteInput: true },
+          { pass: "deadframes", input: out, output: deadframesOut, args: deadframesArgs(passes.deadframes) },
+          {
+            pass: "interpolate",
+            input: deadframesOut,
+            output,
+            args: interpolationArgs(passes.interpolation),
+            deleteInput: !keepDeadframes,
+          },
         ],
       });
     }
   }
-  return { jobs, interpOutputs };
+  return { jobs, interpOutputs, deadframesOutputs };
 }
 
 /**
@@ -83,8 +88,8 @@ function buildJobs(outputs: string[], passes: PostExportPasses): { jobs: Job[]; 
 export async function runPostExportPasses(
   outputs: string[],
   passes: PostExportPasses,
-): Promise<string[]> {
-  if (outputs.length === 0 || !anyPassEnabled(passes)) return [];
+): Promise<{ interpolated: string[]; deadframes: string[] }> {
+  if (outputs.length === 0 || !anyPassEnabled(passes)) return { interpolated: [], deadframes: [] };
 
   // Depth and interpolation run on the optional AI env. It is normally in place
   // (the settings toggle installs it), but a removed pack or a settings file
@@ -105,10 +110,10 @@ export async function runPostExportPasses(
     effective.interpolation = { ...effective.interpolation, enabled: false };
     skipped.push(skipNote("interpolation"));
   }
-  if (!anyPassEnabled(effective)) return [];
+  if (!anyPassEnabled(effective)) return { interpolated: [], deadframes: [] };
 
-  const { jobs, interpOutputs } = buildJobs(outputs, effective);
-  if (jobs.length === 0) return [];
+  const { jobs, interpOutputs, deadframesOutputs } = buildJobs(outputs, effective);
+  if (jobs.length === 0) return { interpolated: [], deadframes: [] };
 
   const store = usePassRunStore.getState();
   store.begin(jobs.length);
@@ -163,5 +168,5 @@ export async function runPostExportPasses(
     usePassRunStore.getState().finish();
   }
 
-  return interpOutputs;
+  return { interpolated: interpOutputs, deadframes: deadframesOutputs };
 }

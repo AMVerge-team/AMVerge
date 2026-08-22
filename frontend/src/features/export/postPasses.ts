@@ -18,7 +18,8 @@ export type DepthPassConfig = {
 };
 
 export type DeadframesPassConfig = {
-  enabled: boolean;
+  /** Keep the dead-frames video, instead of discarding it after interpolation. */
+  exportCopy: boolean;
   auto: boolean;
   keepTalking: boolean;
   keepCamera: boolean;
@@ -43,7 +44,7 @@ export type PostExportPassKind = keyof PostExportPasses;
 export const DEFAULT_POST_EXPORT_PASSES: PostExportPasses = {
   depth: { enabled: false, encoder: "vitl", colormap: "inferno", grayscale: false },
   deadframes: {
-    enabled: false,
+    exportCopy: false,
     auto: false,
     keepTalking: false,
     keepCamera: false,
@@ -117,7 +118,7 @@ export function interpolationArgs(c: InterpolationPassConfig): string[] {
 }
 
 export function anyPassEnabled(passes: PostExportPasses): boolean {
-  return passes.depth.enabled || passes.deadframes.enabled || passes.interpolation.enabled;
+  return passes.depth.enabled || passes.interpolation.enabled;
 }
 
 // deep-merge persisted (possibly partial/old) config over the defaults so a

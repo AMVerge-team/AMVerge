@@ -106,18 +106,54 @@ export default function PostExportPassesSection() {
       )}
 
       <SettingRow
-        label="Dead frames pass"
-        description="Also save a copy with still frames removed as <name>_deadframes."
+        label="Interpolation pass"
+        description="Removes still frames, then adds new ones for smoother motion. Saved as <name>_interpolated."
         control={
           <ToggleControl
-            label="Toggle dead frames pass"
-            checked={deadframes.enabled}
-            onChange={(enabled) => update("deadframes", { enabled })}
+            label="Toggle interpolation pass"
+            checked={interpolation.enabled}
+            onChange={(enabled) => void enableGatedPass("interpolation", enabled)}
           />
         }
       />
-      {deadframes.enabled && (
+      {interpolation.enabled && (
         <div className="pass-config">
+          <SettingRow
+            label="Interpolation model"
+            description="Which RIFE model to use."
+            control={
+              <Dropdown
+                className="settings-wide-dropdown"
+                options={INTERPOLATION_MODEL_OPTIONS}
+                value={interpolation.model}
+                onChange={(model) => update("interpolation", { model })}
+              />
+            }
+          />
+          <SettingRow
+            label="FPS multiplier"
+            description="How much to multiply the frame rate by."
+            control={
+              <Dropdown
+                className="settings-wide-dropdown"
+                options={INTERPOLATION_FACTOR_OPTIONS}
+                value={interpolation.factor}
+                onChange={(factor) => update("interpolation", { factor: Number(factor) })}
+              />
+            }
+          />
+          <SettingRow
+            label="Also export dead frames video"
+            description="Save the still-frames-removed video too, as <name>_deadframes."
+            control={
+              <ToggleControl
+                label="Toggle dead frames export"
+                checked={deadframes.exportCopy}
+                onChange={(exportCopy) => update("deadframes", { exportCopy })}
+              />
+            }
+          />
+          <p className="pass-subheading">Dead frame removal</p>
           <SettingRow
             label="Auto-calibrate"
             description="Work out the right settings for each video automatically."
@@ -176,46 +212,6 @@ export default function PostExportPassesSection() {
                   const next = Math.max(1, Math.min(16, Number(event.target.value) || 1));
                   update("deadframes", { cadence: next });
                 }}
-              />
-            }
-          />
-        </div>
-      )}
-
-      <SettingRow
-        label="Interpolation pass"
-        description="Removes still frames, then adds new ones for smoother motion. Saved as <name>_interpolated."
-        control={
-          <ToggleControl
-            label="Toggle interpolation pass"
-            checked={interpolation.enabled}
-            onChange={(enabled) => void enableGatedPass("interpolation", enabled)}
-          />
-        }
-      />
-      {interpolation.enabled && (
-        <div className="pass-config">
-          <SettingRow
-            label="Interpolation model"
-            description="Which RIFE model to use."
-            control={
-              <Dropdown
-                className="settings-wide-dropdown"
-                options={INTERPOLATION_MODEL_OPTIONS}
-                value={interpolation.model}
-                onChange={(model) => update("interpolation", { model })}
-              />
-            }
-          />
-          <SettingRow
-            label="FPS multiplier"
-            description="How much to multiply the frame rate by."
-            control={
-              <Dropdown
-                className="settings-wide-dropdown"
-                options={INTERPOLATION_FACTOR_OPTIONS}
-                value={interpolation.factor}
-                onChange={(factor) => update("interpolation", { factor: Number(factor) })}
               />
             }
           />
