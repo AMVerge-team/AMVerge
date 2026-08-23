@@ -18,6 +18,8 @@ import { useAppStateStore } from "../../stores/appStore.ts";
 import { useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
+import { clipExportSpecs } from "../../features/export/clipSpecs.ts";
+import { deliverExportedFiles } from "../../features/export/deliverExports.ts";
 import { useScenepacksStore } from "../../stores/scenepackStore.ts";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
 import { removeClipsFromScenepack } from "../../utils/scenepackStorage.ts";
@@ -182,7 +184,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
 
       setLoading(true);
 
-      const srcs = clip.mergedSrcs ?? [clip.src];
+      const srcs = clipExportSpecs(clip);
       const exportOptions = {
         profileId: activeProfile.id,
         workflow: activeProfile.workflow,
@@ -205,9 +207,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
         exportOptions,
       });
 
-      if (settings.openFileLocationAfterExport && exportedFiles.length > 0) {
-        await invoke("reveal_in_file_manager", { filePath: exportedFiles[0] });
-      }
+      await deliverExportedFiles(exportedFiles);
     } catch (err) {
       console.error("Single clip download failed:", err);
     } finally {

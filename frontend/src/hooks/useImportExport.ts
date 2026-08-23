@@ -11,6 +11,8 @@ import {
 
 import { runPostExportPasses } from "../features/export/runPostExportPasses";
 import { anyPassEnabled, PASS_SUFFIX, type PostExportPasses } from "../features/export/postPasses";
+import { clipExportSpecs } from "../features/export/clipSpecs";
+import { deliverExportedFiles } from "../features/export/deliverExports";
 import { useAiDepsStore } from "../stores/aiDepsStore";
 import { useAppStateStore, useAppPersistedStore } from "../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
@@ -29,14 +31,6 @@ type ExportOptionsPayload = {
   hardwareMode: string;
   parallelExports: number;
 };
-
-type ClipExportSpec = { input: string; start_sec?: number; end_sec?: number };
-
-function clipExportSpecs(c: ClipItem): ClipExportSpec[] {
-  if (c.mergedSrcs && c.mergedSrcs.length > 0) return c.mergedSrcs.map((input) => ({ input }));
-  if (c.clipPath) return [{ input: c.clipPath }];
-  return [{ input: c.src, start_sec: c.startSec, end_sec: c.endSec }];
-}
 
 // strip path separators, control chars, and reserved characters; collapse to a
 // safe filename. Prevents traversal injection (e.g. "../foo").
@@ -808,9 +802,7 @@ export default function useImportExport(props?: ImportExportProps) {
         }
       }
 
-      if (mergedFiles.length > 0 && generalSettings.openFileLocationAfterExport) {
-        await invoke("reveal_in_file_manager", { filePath: mergedFiles[0] });
-      }
+      await deliverExportedFiles(mergedFiles);
 
       props?.onRPCUpdate?.({
         type: "update",
@@ -908,9 +900,7 @@ export default function useImportExport(props?: ImportExportProps) {
           audioLanguage: generalSettings.previewAudioLanguage,
         });
         producedFiles = exportedFiles;
-        if (generalSettings.openFileLocationAfterExport && exportedFiles.length > 0) {
-          await invoke("reveal_in_file_manager", { filePath: exportedFiles[0] });
-        }
+        await deliverExportedFiles(exportedFiles);
 
       } else {
         const firstClipPath = selected[0]?.src || "";
@@ -927,9 +917,7 @@ export default function useImportExport(props?: ImportExportProps) {
           audioLanguage: generalSettings.previewAudioLanguage,
         });
         producedFiles = exportedFiles;
-        if (generalSettings.openFileLocationAfterExport && exportedFiles.length > 0) {
-          await invoke("reveal_in_file_manager", { filePath: exportedFiles[0] });
-        }
+        await deliverExportedFiles(exportedFiles);
       }
 
       props?.onRPCUpdate?.({
@@ -1022,9 +1010,7 @@ export default function useImportExport(props?: ImportExportProps) {
         audioTrack: generalSettings.previewAudioStreamIndex,
           audioLanguage: generalSettings.previewAudioLanguage,
       });
-      if (generalSettings.openFileLocationAfterExport && exportedFiles.length > 0) {
-        await invoke("reveal_in_file_manager", { filePath: exportedFiles[0] });
-      }
+      await deliverExportedFiles(exportedFiles);
     } catch (err) {
       const message = typeof err === "string"
         ? err

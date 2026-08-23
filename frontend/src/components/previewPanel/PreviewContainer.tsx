@@ -7,7 +7,9 @@ import {
   FaFileExport,
   FaPencilAlt,
 } from "react-icons/fa";
+import { SiDavinciresolve } from "react-icons/si";
 import Dropdown from "../common/Dropdown";
+import { useDavinciAvailable } from "../../features/davinci/useDavinciAvailable.ts";
 import Tooltip from "../common/Tooltip";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { useAppPersistedStore } from "../../stores/appStore.ts";
@@ -55,10 +57,13 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const setActiveExportProfileId = useGeneralSettingsStore(s => s.setActiveExportProfileId);
   const mergeClipsEnabled = useGeneralSettingsStore(s => s.mergeClipsEnabled);
   const setMergeClipsEnabled = useGeneralSettingsStore(s => s.setMergeClipsEnabled);
+  const davinciExportSelected = useGeneralSettingsStore(s => s.davinciExportSelected);
+  const setDavinciExportSelected = useGeneralSettingsStore(s => s.setDavinciExportSelected);
   const previewAudioStreamIndex = useGeneralSettingsStore(s => s.previewAudioStreamIndex);
   const setPreviewAudioLanguage = useGeneralSettingsStore(s => s.setPreviewAudioLanguage);
   const setPreviewAudioStreamIndex = useGeneralSettingsStore(s => s.setPreviewAudioStreamIndex);
   const importMethod = useGeneralSettingsStore(s => s.importMethod);
+  const davinciAvailable = useDavinciAvailable();
   const { handleExport, handlePickExportDir } = useImportExport();
   const [audioStreams, setAudioStreams] = React.useState<PreviewAudioStream[]>([]);
   const openedEpisodeId = useEpisodePanelRuntimeStore(s => s.openedEpisodeId);
@@ -404,6 +409,27 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                 <span className="checkmark" />
               </label>
             </div>
+            {davinciAvailable && (
+              <div className="export-dir-item">
+                <Tooltip
+                  content={
+                    davinciExportSelected
+                      ? "Exported clips go to the DaVinci Resolve timeline"
+                      : "Send exported clips to the DaVinci Resolve timeline (Studio only)"
+                  }
+                >
+                  <button
+                    type="button"
+                    className={`davinci-export-toggle${davinciExportSelected ? " is-active" : ""}`}
+                    aria-pressed={davinciExportSelected}
+                    aria-label="Send exported clips to DaVinci Resolve"
+                    onClick={() => setDavinciExportSelected(!davinciExportSelected)}
+                  >
+                    <SiDavinciresolve />
+                  </button>
+                </Tooltip>
+              </div>
+            )}
             <div className="export-dir-item">
               <div className="audio-stream-field" aria-label="Preview language selector">
                 <span className="audio-stream-label" aria-hidden="true">

@@ -364,6 +364,35 @@
     padding: 0px 4px;
 }
 
+/* DaVinci Resolve export target: an icon toggle, rendered only when Resolve is
+   installed and the feature is on in Settings. No box around it - the icon is
+   the control, lit when selected. Active = exported clips are sent to the
+   Resolve timeline instead of opening the file explorer. */
+.davinci-export-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 32px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.2s ease, filter 0.2s ease;
+}
+
+.davinci-export-toggle:hover {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.davinci-export-toggle.is-active {
+    color: var(--accent);
+    filter: drop-shadow(0 0 6px rgb(var(--accent-rgb) / 0.45));
+}
+
 .merge-clips-label {
     width: 72px;
     min-width: 72px;

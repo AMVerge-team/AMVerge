@@ -252,6 +252,8 @@ frontend/
 | `fast_split` | export.rs | Direct ffmpeg split at timestamp |
 | `import_media_to_editor` | editor_import.rs | Windows editor automation |
 | `abort_editor_import` | editor_import.rs | Set abort flag |
+| `detect_davinci_resolve` | editor_import.rs | Is DaVinci Resolve installed (path lookup) |
+| `import_clips_to_davinci` | editor_import.rs | Media Pool + append to Resolve timeline |
 | `check_hevc` | preview.rs | ffprobe codec detection |
 | `get_audio_streams` | preview.rs | ffprobe audio stream listing |
 | `hover_preview_error` | preview.rs | Log hover preview errors |

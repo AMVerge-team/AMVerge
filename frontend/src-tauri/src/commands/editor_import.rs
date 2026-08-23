@@ -2,10 +2,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
-#[cfg(target_os = "windows")]
 use std::process::Stdio;
-#[cfg(target_os = "windows")]
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use tauri::{AppHandle, State};
 #[cfg(target_os = "windows")]
@@ -20,7 +18,7 @@ use crate::utils::process::apply_no_window;
 
 mod after_effects;
 mod capcut;
-mod davinci_resolve;
+pub mod davinci_resolve;
 mod premier_pro;
 
 #[derive(Debug, Clone, Copy, serde::Deserialize)]
@@ -488,16 +486,33 @@ fn run_editor_ui_import_ps(script_path: &Path, editor_name: &str) -> Result<Stri
 fn run_python_script(script_path: &Path) -> Result<String, String> {
     let mut launch_errors: Vec<String> = Vec::new();
 
-    // resolve script runs against the user's system Python (the backend/venv
+    // Resolve script runs against the user's system Python (the backend/venv
     // interpreter lookup was removed with the backend folder).
+    //
+    // `fusionscript.dll` is a CPython extension built against ONE ABI — 3.13 for
+    // Resolve 21 — and a mismatched interpreter dies with "initialization of
+    // fusionscript failed without raising an exception" before Resolve is ever
+    // contacted. The default `python` on PATH is routinely an older version, so
+    // the launcher's newest versions are tried first and the loop falls through
+    // on the ABI failure.
     #[cfg(target_os = "windows")]
     let candidates: Vec<(String, Vec<String>)> = vec![
+        ("py".to_string(), vec!["-3.13".to_string()]),
+        ("py".to_string(), vec!["-3.12".to_string()]),
+        ("py".to_string(), vec!["-3.11".to_string()]),
+        ("py".to_string(), vec!["-3.10".to_string()]),
         ("python".to_string(), vec![]),
         ("py".to_string(), vec!["-3".to_string()]),
     ];
 
+    // Same ABI constraint on macOS and Linux, where `fusionscript.so` is the
+    // extension and there is no `py` launcher to ask for a version.
     #[cfg(not(target_os = "windows"))]
     let candidates: Vec<(String, Vec<String>)> = vec![
+        ("python3.13".to_string(), vec![]),
+        ("python3.12".to_string(), vec![]),
+        ("python3.11".to_string(), vec![]),
+        ("python3.10".to_string(), vec![]),
         ("python3".to_string(), vec![]),
         ("python".to_string(), vec![]),
     ];
@@ -508,6 +523,9 @@ fn run_python_script(script_path: &Path) -> Result<String, String> {
         cmd.args(extra_args)
             .arg(script_path)
             .env("PYTHONIOENCODING", "utf-8");
+
+        #[cfg(not(target_os = "windows"))]
+        davinci_resolve::apply_resolve_script_env(&mut cmd);
 
         #[cfg(target_os = "windows")]
         {
@@ -558,8 +576,14 @@ fn run_python_script(script_path: &Path) -> Result<String, String> {
             }
         }
 
-        match cmd.output() {
-            Ok(out) => {
+        match run_with_timeout(&mut cmd, PYTHON_SCRIPT_TIMEOUT) {
+            Ok(None) => {
+                launch_errors.push(format!(
+                    "{exe} was killed after {}s without answering",
+                    PYTHON_SCRIPT_TIMEOUT.as_secs()
+                ));
+            }
+            Ok(Some(out)) => {
                 let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
                 let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
 
@@ -570,6 +594,14 @@ fn run_python_script(script_path: &Path) -> Result<String, String> {
                         stdout
                     };
                     return Ok(msg);
+                }
+
+                // The bridge itself loaded and Resolve answered (or refused):
+                // every remaining interpreter would hit the same wall, so the
+                // error goes straight back to the retry harness that knows how
+                // to classify it.
+                if is_resolve_side_failure(&stderr) {
+                    return Err(stderr);
                 }
 
                 if !stderr.is_empty() {
@@ -592,6 +624,81 @@ fn run_python_script(script_path: &Path) -> Result<String, String> {
         "{}\nFailed to run DaVinci scripting bridge.",
         launch_errors.join("\n")
     ))
+}
+
+/// Errors raised by the bridge script itself, i.e. past the point where the
+/// interpreter mattered.
+fn is_resolve_side_failure(stderr: &str) -> bool {
+    const MARKERS: [&str; 5] = [
+        "Could not connect to DaVinci Resolve",
+        "No Resolve project is open",
+        "Could not access Resolve media pool",
+        "Resolve refused",
+        "Resolve failed to import media",
+    ];
+    MARKERS.iter().any(|marker| stderr.contains(marker))
+}
+
+/// A Resolve API call can hang forever (project switch, wedged handle). Plain
+/// `Command::output()` would hang with it, and the retry harness above would
+/// never get its turn — so the child gets a deadline and a kill.
+const PYTHON_SCRIPT_TIMEOUT: Duration = Duration::from_secs(180);
+
+/// `Ok(None)` = the deadline passed and the child was killed.
+fn run_with_timeout(
+    cmd: &mut Command,
+    timeout: Duration,
+) -> std::io::Result<Option<std::process::Output>> {
+    use std::io::Read;
+
+    let mut child = cmd
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+
+    // Drained on threads: a child that fills a pipe buffer blocks on write, and
+    // would then never reach the exit we are polling for.
+    let mut child_stdout = child.stdout.take();
+    let mut child_stderr = child.stderr.take();
+    let stdout_reader = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        if let Some(pipe) = child_stdout.as_mut() {
+            let _ = pipe.read_to_end(&mut buf);
+        }
+        buf
+    });
+    let stderr_reader = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        if let Some(pipe) = child_stderr.as_mut() {
+            let _ = pipe.read_to_end(&mut buf);
+        }
+        buf
+    });
+
+    let deadline = Instant::now() + timeout;
+    let status = loop {
+        match child.try_wait()? {
+            Some(status) => break Some(status),
+            None => {
+                if Instant::now() >= deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    break None;
+                }
+                std::thread::sleep(Duration::from_millis(100));
+            }
+        }
+    };
+
+    let stdout = stdout_reader.join().unwrap_or_default();
+    let stderr = stderr_reader.join().unwrap_or_default();
+
+    Ok(status.map(|status| std::process::Output {
+        status,
+        stdout,
+        stderr,
+    }))
 }
 
 fn runtime_temp_path(prefix: &str, extension: &str) -> Result<PathBuf, String> {
@@ -1158,10 +1265,6 @@ Write-Output '__EDITOR_NAME__ import complete.'
         )
         .replace("__PROJECT_READY_EXPRESSION__", project_ready_expression)
         .replace("__DIALOG_REJECT_EXPRESSION__", dialog_reject_expression)
-}
-
-fn escape_py_single_quoted(raw: &str) -> String {
-    raw.replace('\\', "\\\\").replace('\'', "\\'")
 }
 
 #[cfg(target_os = "windows")]

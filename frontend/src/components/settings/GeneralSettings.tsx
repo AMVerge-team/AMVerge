@@ -462,6 +462,29 @@ export default function GeneralSettings({
             </div>
           }
         />
+
+        <SettingRow
+          label="DaVinci Resolve Compatibility"
+          description="Send exported clips straight to the DaVinci Resolve timeline (Studio only)."
+          control={
+            <div className="settings-control">
+              <label className="custom-checkbox">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={generalSettings.davinciResolveEnabled}
+                  onChange={(e) =>
+                    setGeneralSettings((prev) => ({
+                      ...prev,
+                      davinciResolveEnabled: e.target.checked,
+                    }))
+                  }
+                />
+                <span className="checkmark"></span>
+              </label>
+            </div>
+          }
+        />
         </SettingsSection>
 
         <SettingsSection id="general.storage" title="Storage">
