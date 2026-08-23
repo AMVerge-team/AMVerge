@@ -520,19 +520,26 @@ pub fn delete_profile_icon_file(app: tauri::AppHandle, icon_path: String) -> Res
 #[cfg(target_os = "windows")]
 #[tauri::command]
 pub fn reveal_in_file_manager(file_path: String) -> Result<(), String> {
-    let raw_path = PathBuf::from(file_path.trim());
+    let clean = file_path.trim().trim_matches('"');
+    let raw_path = PathBuf::from(clean);
     if !raw_path.exists() {
-        return Err("Target file or directory does not exist on disk.".to_string());
+        return Err(format!("Target file or directory does not exist on disk: {clean}"));
     }
 
-    let path = fs::canonicalize(&raw_path).unwrap_or(raw_path);
-    let path_string = path.to_string_lossy().to_string();
+    let path = fs::canonicalize(&raw_path).unwrap_or(raw_path.clone());
+    // Strip Windows extended-length path prefix "\\?\" as explorer.exe does not recognize it
+    let path_string = path
+        .to_string_lossy()
+        .replace(r"\\?\", "")
+        .replace('/', "\\");
+
+    let is_dir = raw_path.is_dir() || path.is_dir();
 
     let mut cmd = Command::new("explorer");
-    if path.is_dir() {
+    if is_dir {
         cmd.arg(&path_string);
     } else {
-        cmd.arg("/select,").arg(&path_string);
+        cmd.arg(format!("/select,{path_string}"));
     }
 
     cmd.spawn()

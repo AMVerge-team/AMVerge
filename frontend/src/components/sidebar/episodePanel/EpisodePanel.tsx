@@ -203,7 +203,28 @@ export default function EpisodePanel() {
     const ep = episodes.find((e) => e.id === episodeId);
     if (!ep) return;
 
-    // Check if any clip has an absolute path on disk to reveal its episode folder
+    const episodesPath = useGeneralSettingsStore.getState().episodesPath;
+    let baseStorage = episodesPath;
+    if (!baseStorage) {
+      try {
+        baseStorage = await invoke<string>("get_default_episodes_dir");
+      } catch {
+        // ignore
+      }
+    }
+
+    if (baseStorage) {
+      const cleanBase = baseStorage.replace(/\\/g, "/").replace(/\/+$/, "");
+      const directEpisodeFolder = `${cleanBase}/episodes_storage/${ep.id}`;
+      try {
+        await invoke("reveal_in_file_manager", { filePath: directEpisodeFolder });
+        return;
+      } catch {
+        // fallback to clip paths or videoPath
+      }
+    }
+
+    // Check if any clip has an absolute path on disk
     const firstClip = ep.clips?.[0];
     const samplePath = firstClip?.clipPath || firstClip?.src || firstClip?.thumbnail;
 
@@ -409,6 +430,7 @@ export default function EpisodePanel() {
             openContextMenu={openContextMenu}
             openFolderContextMenu={openFolderContextMenu}
             onOpenEpisode={handleOpenEpisode}
+            onRevealEpisode={handleRevealEpisode}
             onSelectFolder={handleSelectFolder}
             onToggleFolderExpanded={handleToggleFolderExpanded}
             forceExpanded={isSearching}

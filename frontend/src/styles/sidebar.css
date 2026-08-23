@@ -270,17 +270,30 @@ body.is-resizing-sidebar {
     flex: none;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     color: var(--accent);
     opacity: 0.65;
-    font-size: 12px;
-    pointer-events: none;
+    font-size: 13px;
+    background: transparent;
+    border: none;
+    padding: 3px 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.episode-panel-import-icon:hover {
+    background: rgba(var(--accent-rgb), 0.2);
+    color: #ffffff;
+    opacity: 1;
+    transform: scale(1.1);
 }
 
 .episode-panel-row:hover .episode-panel-import-icon,
 .episode-panel-row.is-open .episode-panel-import-icon,
 .episode-panel-row.is-focused .episode-panel-import-icon,
 .episode-panel-row.is-multi-selected .episode-panel-import-icon {
-    opacity: 1;
+    opacity: 0.9;
 }
 
 .episode-panel-count {

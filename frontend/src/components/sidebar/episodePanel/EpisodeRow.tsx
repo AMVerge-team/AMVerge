@@ -1,5 +1,5 @@
 import type React from "react";
-import { FaImage, FaVideo } from "react-icons/fa";
+import { FaFolderOpen } from "react-icons/fa";
 import Tooltip from "../../common/Tooltip";
 import type { EpisodePanelProps, PointerDragSource } from "../types";
 
@@ -22,6 +22,7 @@ type EpisodeRowProps = {
   handleEpisodeClick: (episodeId: string) => (e: React.MouseEvent) => void;
   openContextMenu: (episodeId: string, e: React.MouseEvent) => void;
   onOpenEpisode: (episodeId: string) => void;
+  onRevealEpisode?: (episodeId: string) => void;
 };
 
 export default function EpisodeRow({
@@ -36,6 +37,7 @@ export default function EpisodeRow({
   handleEpisodeClick,
   openContextMenu,
   onOpenEpisode,
+  onRevealEpisode,
 }: EpisodeRowProps) {
   const isOpen = openedEpisodeId === episode.id;
   const isSelected = selectedEpisodeId === episode.id;
@@ -50,13 +52,10 @@ export default function EpisodeRow({
   const paddingLeft =
     folderId === null ? undefined : `${8 + depth * 12 + 28}px`;
 
-  // import method is fixed per episode, but episodes imported before the field
-  // existed don't carry it — infer those from whether their clips have cut video
-  // files, the same rule the grid uses to pick its preview mode.
-  const isWebpEpisode =
-    episode.importMethod === "webp_files" ||
-    (episode.importMethod === undefined &&
-      !episode.clips.some((clip) => Boolean(clip.clipPath)));
+  const handleReveal = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onRevealEpisode?.(episode.id);
+  };
 
   return (
     <div
@@ -69,24 +68,20 @@ export default function EpisodeRow({
       onDoubleClick={() => onOpenEpisode(episode.id)}
       onContextMenu={(e) => openContextMenu(episode.id, e)}
     >
-      {/* two hints, one per zone rather than one nested inside the other: the
-          name carries the source path, the badge what the episode was imported
-          as. Nesting them would open both bubbles on the badge. */}
       <Tooltip content={episode.videoPath} side="right" maxWidth={360}>
         <span className="episode-panel-episode-name">
           {episode.displayName}
         </span>
       </Tooltip>
-      <Tooltip
-        content={isWebpEpisode ? "Imported as WebP previews" : "Imported as video files"}
-        side="right"
-      >
-        <span
-          className="episode-panel-import-icon"
-          aria-label={isWebpEpisode ? "WebP preview episode" : "Video preview episode"}
+      <Tooltip content="Show in File Explorer" side="right">
+        <button
+          type="button"
+          className="episode-panel-import-icon episode-folder-btn"
+          onClick={handleReveal}
+          aria-label="Show in File Explorer"
         >
-          {isWebpEpisode ? <FaImage /> : <FaVideo />}
-        </span>
+          <FaFolderOpen />
+        </button>
       </Tooltip>
     </div>
   );

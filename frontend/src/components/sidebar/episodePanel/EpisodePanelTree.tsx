@@ -34,6 +34,7 @@ type EpisodePanelTreeProps = {
   openFolderContextMenu: (folderId: string, e: React.MouseEvent) => void;
 
   onOpenEpisode: (episodeId: string) => void;
+  onRevealEpisode?: (episodeId: string) => void;
   onSelectFolder: (folderId: string | null) => void;
   onToggleFolderExpanded: (folderId: string) => void;
   forceExpanded?: boolean;
@@ -54,6 +55,7 @@ export default function EpisodePanelTree({
   openContextMenu,
   openFolderContextMenu,
   onOpenEpisode,
+  onRevealEpisode,
   onSelectFolder,
   onToggleFolderExpanded,
   forceExpanded = false,
@@ -81,6 +83,7 @@ export default function EpisodePanelTree({
         handleEpisodeClick={handleEpisodeClick}
         openContextMenu={openContextMenu}
         onOpenEpisode={onOpenEpisode}
+        onRevealEpisode={onRevealEpisode}
       />
     );
   };
