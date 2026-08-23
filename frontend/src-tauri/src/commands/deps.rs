@@ -118,7 +118,6 @@ fn uv_command(app: &AppHandle) -> Result<Command, String> {
     cmd.env("UV_PYTHON_INSTALL_DIR", uv_python_dir(app)?);
     cmd.env("UV_CACHE_DIR", uv_cache_dir(app)?);
     cmd.env("UV_PYTHON_PREFERENCE", "only-managed");
-    cmd.env("UV_NO_PROGRESS", "1");
     Ok(cmd)
 }
 
@@ -344,18 +343,49 @@ fn run_uv_step(
 
     let mut tail: Vec<String> = Vec::new();
     if let Some(stderr) = child.stderr.take() {
-        for line in BufReader::new(stderr).lines().map_while(Result::ok) {
-            let trimmed = line.trim();
-            if trimmed.is_empty() {
-                continue;
+        // Read byte-by-byte or split on \r / \n to properly catch in-place terminal progress updates
+        let mut reader = BufReader::new(stderr);
+        let mut buf = Vec::new();
+
+        while let Ok(n) = reader.read_until(b'\n', &mut buf) {
+            if n == 0 {
+                break;
             }
-            let sanitized = sanitize_for_console(trimmed);
-            console_log("DEPS|uv", &sanitized);
-            emit_log(app, pack, &sanitized);
-            tail.push(sanitized);
-            if tail.len() > 12 {
-                tail.remove(0);
+            let raw = String::from_utf8_lossy(&buf);
+            for segment in raw.split(|c| c == '\r' || c == '\n') {
+                let trimmed = segment.trim();
+                if trimmed.is_empty() {
+                    continue;
+                }
+                let sanitized = sanitize_for_console(trimmed);
+                console_log("DEPS|uv", &sanitized);
+                emit_log(app, pack, &sanitized);
+
+                // Parse progress information from uv:
+                // Examples from uv:
+                // "Downloading torch 2.6.0+cu128 (2.7GB / 2.7GB) [====================] 100% 24.5MB/s 0s"
+                // "Fetching torch (450MB / 2.7GB) 15.2MB/s"
+                if sanitized.contains('%') {
+                    if let Some(pct_pos) = sanitized.find('%') {
+                        let prefix = &sanitized[..pct_pos];
+                        if let Some(num_start) = prefix.rfind(|c: char| !c.is_ascii_digit()) {
+                            if let Ok(val) = prefix[num_start + 1..].parse::<u8>() {
+                                // Scale from 10% to 95% during package install
+                                let scaled = 10 + (val as f32 * 0.85) as u8;
+                                emit_progress(app, pack, "packages", scaled.min(98), false, &sanitized);
+                            }
+                        }
+                    }
+                } else if sanitized.contains("Downloaded") || sanitized.contains("Installing") || sanitized.contains("Uninstalled") {
+                    emit_progress(app, pack, "packages", 90, false, &sanitized);
+                }
+
+                tail.push(sanitized);
+                if tail.len() > 12 {
+                    tail.remove(0);
+                }
             }
+            buf.clear();
         }
     }
 
