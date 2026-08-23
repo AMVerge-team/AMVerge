@@ -81,11 +81,14 @@
 .menu-content {
     flex: 1 1 auto;
     min-height: 0;
+    height: 100%;
     display: flex;
     justify-content: center;
-    align-items: flex-start;
+    align-items: stretch;
     width: 100%;
     overflow: hidden;
+    padding: 0 12px 12px 12px;
+    box-sizing: border-box;
 }
 
 .menu-section {
@@ -93,6 +96,7 @@
     max-width: 1100px;
     margin: 0 auto;
     height: 100%;
+    min-height: 0;
     display: flex;
     flex-direction: column;
 }
@@ -116,9 +120,8 @@
     flex-direction: column;
     min-height: 0;
     height: 100%;
-    margin-bottom: 8px;
-    margin-right: 8px;
-    margin-left: 8px;
+    margin: 0;
+    box-sizing: border-box;
 }
 
 /* UNIFIED MENU PANEL & HERO HEADER */
@@ -126,11 +129,51 @@
 .credits-panel,
 .patchnotes-panel,
 .bugreport-panel {
-    overflow-y: auto;
+    overflow-y: auto !important;
     scrollbar-width: thin;
-    scrollbar-color: rgba(var(--accent-rgb), 0.5) rgba(255, 255, 255, 0.05);
+    scrollbar-color: rgb(var(--accent-rgb) / 0.34) rgb(255 255 255 / 0.02);
     padding: 20px 24px;
     gap: 16px;
+}
+
+.about-panel::-webkit-scrollbar,
+.credits-panel::-webkit-scrollbar,
+.patchnotes-panel::-webkit-scrollbar,
+.bugreport-panel::-webkit-scrollbar,
+.patchnotes-detail-card::-webkit-scrollbar,
+.menu-panel::-webkit-scrollbar {
+    width: 8px;
+}
+
+.about-panel::-webkit-scrollbar-track,
+.credits-panel::-webkit-scrollbar-track,
+.patchnotes-panel::-webkit-scrollbar-track,
+.bugreport-panel::-webkit-scrollbar-track,
+.patchnotes-detail-card::-webkit-scrollbar-track,
+.menu-panel::-webkit-scrollbar-track {
+    background: rgb(255 255 255 / 0.02);
+    border-radius: 10px;
+}
+
+.about-panel::-webkit-scrollbar-thumb,
+.credits-panel::-webkit-scrollbar-thumb,
+.patchnotes-panel::-webkit-scrollbar-thumb,
+.bugreport-panel::-webkit-scrollbar-thumb,
+.patchnotes-detail-card::-webkit-scrollbar-thumb,
+.menu-panel::-webkit-scrollbar-thumb {
+    background: rgb(var(--accent-rgb) / 0.34);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+.about-panel::-webkit-scrollbar-thumb:hover,
+.credits-panel::-webkit-scrollbar-thumb:hover,
+.patchnotes-panel::-webkit-scrollbar-thumb:hover,
+.bugreport-panel::-webkit-scrollbar-thumb:hover,
+.patchnotes-detail-card::-webkit-scrollbar-thumb:hover,
+.menu-panel::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--accent-rgb) / 0.52);
 }
 
 .about-hero,

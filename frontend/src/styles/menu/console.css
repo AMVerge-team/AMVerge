@@ -154,7 +154,26 @@
     white-space: pre-wrap;
     word-break: break-word;
     scrollbar-width: thin;
-    scrollbar-color: rgba(var(--accent-rgb), 0.5) rgba(255, 255, 255, 0.05);
+    scrollbar-color: rgba(var(--accent-rgb), 0.4) rgba(255, 255, 255, 0.02);
+}
+
+.console-output::-webkit-scrollbar {
+    width: 6px;
+}
+
+.console-output::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 999px;
+}
+
+.console-output::-webkit-scrollbar-thumb {
+    background: rgba(var(--accent-rgb), 0.35);
+    border-radius: 999px;
+    transition: background 0.15s ease;
+}
+
+.console-output::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
 }
 
 .console-empty {
