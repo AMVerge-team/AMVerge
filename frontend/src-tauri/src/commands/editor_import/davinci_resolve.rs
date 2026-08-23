@@ -1,14 +1,157 @@
 use super::*;
 
+// The Python bridge lives in its own file rather than being string-built in
+// Rust: it is the only Resolve-specific logic in the app, and keeping it
+// readable is what makes it patchable (or deletable) on its own.
+const IMPORT_SCRIPT_TEMPLATE: &str = include_str!("resolve_import.py");
+
+#[derive(serde::Serialize)]
+pub struct DavinciDetection {
+    pub installed: bool,
+    pub path: Option<String>,
+}
+
+/// Whether DaVinci Resolve is installed at all. Free and Studio share the same
+/// install path, executable metadata and `fusionscript.dll`, so nothing on disk
+/// tells the two editions apart — only an actual scripting connection does, and
+/// that needs Resolve running. Detection therefore gates on "installed", and a
+/// Free install surfaces as an explicit error at import time.
+#[tauri::command]
+pub fn detect_davinci_resolve() -> DavinciDetection {
+    match davinci_install_path() {
+        Some(path) => DavinciDetection {
+            installed: true,
+            path: Some(path.to_string_lossy().to_string()),
+        },
+        None => DavinciDetection {
+            installed: false,
+            path: None,
+        },
+    }
+}
+
+/// Send clip files straight to Resolve: Media Pool, then appended to the current
+/// timeline (a new one at the clip's frame rate if no timeline is open).
+#[tauri::command]
+pub async fn import_clips_to_davinci(
+    app: AppHandle,
+    abort_state: State<'_, EditorImportAbortState>,
+    clip_paths: Vec<String>,
+) -> Result<String, String> {
+    abort_state.abort_requested.store(false, Ordering::SeqCst);
+    let normalized = normalize_editor_media_paths(clip_paths)?;
+
+    import_clips_into_timeline(&app, &normalized, &abort_state.abort_requested).await
+}
+
+fn davinci_install_path() -> Option<PathBuf> {
+    if let Ok(custom) = std::env::var("AMVERGE_RESOLVE_PATH") {
+        let path = PathBuf::from(custom);
+        if path.exists() {
+            return Some(path);
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        resolve_davinci_executable()
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        // The installer puts the bundle in its own folder; older installs and
+        // manual copies sit straight in /Applications.
+        [
+            "/Applications/DaVinci Resolve/DaVinci Resolve.app",
+            "/Applications/DaVinci Resolve.app",
+        ]
+        .iter()
+        .map(PathBuf::from)
+        .find(|p| p.exists())
+    }
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        let bin = PathBuf::from("/opt/resolve/bin/resolve");
+        bin.exists().then_some(bin)
+    }
+}
+
+/// Official Resolve scripting environment, per platform. Without it the Python
+/// module falls back to its own hardcoded defaults, which miss any install that
+/// is not in the stock location.
+///
+/// Windows sets this inline in `run_python_script`, where it also has to prepend
+/// Resolve's folder to PATH for `fusionscript.dll`'s dependencies.
+#[cfg(not(target_os = "windows"))]
+pub(super) fn apply_resolve_script_env(cmd: &mut Command) {
+    let Some(install) = davinci_install_path() else {
+        return;
+    };
+
+    #[cfg(target_os = "macos")]
+    let (api_dir, lib_path) = (
+        PathBuf::from(
+            "/Library/Application Support/Blackmagic Design/DaVinci Resolve/Developer/Scripting",
+        ),
+        install.join("Contents/Libraries/Fusion/fusionscript.so"),
+    );
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let (api_dir, lib_path) = {
+        // install points at <root>/bin/resolve.
+        let root = install
+            .parent()
+            .and_then(|p| p.parent())
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("/opt/resolve"));
+        (
+            root.join("Developer/Scripting"),
+            root.join("libs/Fusion/fusionscript.so"),
+        )
+    };
+
+    cmd.env("RESOLVE_SCRIPT_API", &api_dir);
+    cmd.env("RESOLVE_SCRIPT_LIB", &lib_path);
+
+    let mut python_path = vec![api_dir.join("Modules").to_string_lossy().to_string()];
+    if let Ok(existing) = std::env::var("PYTHONPATH") {
+        if !existing.trim().is_empty() {
+            python_path.insert(0, existing);
+        }
+    }
+    cmd.env("PYTHONPATH", python_path.join(":"));
+}
+
+/// Media Pool only — used by the export-profile editor import path.
 pub(super) async fn import_into_davinci_resolve(
     app: &AppHandle,
     media_paths: &[String],
     abort_requested: &AtomicBool,
 ) -> Result<String, String> {
+    run_davinci_import(app, media_paths, abort_requested, false).await
+}
+
+/// Media Pool + append to the current (or a freshly created) timeline — used by
+/// the clip-selection bar.
+pub(super) async fn import_clips_into_timeline(
+    app: &AppHandle,
+    media_paths: &[String],
+    abort_requested: &AtomicBool,
+) -> Result<String, String> {
+    run_davinci_import(app, media_paths, abort_requested, true).await
+}
+
+async fn run_davinci_import(
+    app: &AppHandle,
+    media_paths: &[String],
+    abort_requested: &AtomicBool,
+    append_to_timeline: bool,
+) -> Result<String, String> {
     let script_path = write_temp_script(
         "amverge_resolve_import",
         "py",
-        &build_davinci_import_script(media_paths),
+        &build_davinci_import_script(media_paths, append_to_timeline),
     )?;
 
     #[cfg(target_os = "windows")]
@@ -47,123 +190,16 @@ pub(super) async fn import_into_davinci_resolve(
     }
 }
 
-pub(super) fn build_davinci_import_script(media_paths: &[String]) -> String {
-    let files = media_paths
-        .iter()
-        .map(|p| format!("r'{}'", escape_py_single_quoted(p)))
-        .collect::<Vec<_>>()
-        .join(",\n    ");
+pub(super) fn build_davinci_import_script(
+    media_paths: &[String],
+    append_to_timeline: bool,
+) -> String {
+    let media_json = serde_json::to_string(media_paths).unwrap_or_else(|_| "[]".to_string());
 
-    [
-        "import os".to_string(),
-        "import sys".to_string(),
-        "".to_string(),
-        "MEDIA_FILES = [".to_string(),
-        format!("    {files}"),
-        "]".to_string(),
-        "".to_string(),
-        "def ensure_resolve_module():".to_string(),
-        "    try:".to_string(),
-        "        import DaVinciResolveScript as dvr_script".to_string(),
-        "        return dvr_script".to_string(),
-        "    except Exception:".to_string(),
-        "        pass".to_string(),
-        "".to_string(),
-        "    candidates = []".to_string(),
-        "    if os.name == 'nt':".to_string(),
-        "        program_data = os.environ.get('PROGRAMDATA', r'C:\\\\ProgramData')".to_string(),
-        "        candidates.append(os.path.join(program_data, 'Blackmagic Design', 'DaVinci Resolve', 'Support', 'Developer', 'Scripting', 'Modules'))".to_string(),
-        "    elif sys.platform == 'darwin':".to_string(),
-        "        candidates.append('/Library/Application Support/Blackmagic Design/DaVinci Resolve/Developer/Scripting/Modules')".to_string(),
-        "    else:".to_string(),
-        "        candidates.append('/opt/resolve/Developer/Scripting/Modules')".to_string(),
-        "".to_string(),
-        "    for path in candidates:".to_string(),
-        "        if os.path.isdir(path) and path not in sys.path:".to_string(),
-        "            sys.path.append(path)".to_string(),
-        "".to_string(),
-        "    import DaVinciResolveScript as dvr_script".to_string(),
-        "    return dvr_script".to_string(),
-        "".to_string(),
-        "dvr_script = ensure_resolve_module()".to_string(),
-        "resolve = dvr_script.scriptapp('Resolve')".to_string(),
-        "if not resolve:".to_string(),
-        "    raise RuntimeError('Could not connect to DaVinci Resolve. Ensure Resolve Studio is running and External scripting is set to Local.')"
-            .to_string(),
-        "".to_string(),
-        "pm = resolve.GetProjectManager()".to_string(),
-        "project = pm.GetCurrentProject() if pm else None".to_string(),
-        "if not project:".to_string(),
-        "    project = pm.CreateProject('AMVerge Auto Import') if pm else None".to_string(),
-        "if not project:".to_string(),
-        "    raise RuntimeError('No Resolve project is currently open, and AMVerge could not create one automatically.')"
-            .to_string(),
-        "".to_string(),
-        "media_pool = project.GetMediaPool()".to_string(),
-        "if not media_pool:".to_string(),
-        "    raise RuntimeError('Could not access Resolve media pool.')".to_string(),
-        "".to_string(),
-        "def norm(p):".to_string(),
-        "    return os.path.normcase(os.path.normpath(str(p or ''))).replace('\\\\', '/')".to_string(),
-        "".to_string(),
-        "def iter_clips(folder):".to_string(),
-        "    if not folder:".to_string(),
-        "        return".to_string(),
-        "    for clip in (folder.GetClipList() or []):".to_string(),
-        "        yield clip".to_string(),
-        "    for sub in (folder.GetSubFolderList() or []):".to_string(),
-        "        for clip in iter_clips(sub):".to_string(),
-        "            yield clip".to_string(),
-        "".to_string(),
-        "def clip_exists(project_obj, file_path):".to_string(),
-        "    try:".to_string(),
-        "        root = project_obj.GetMediaPool().GetRootFolder()".to_string(),
-        "    except Exception:".to_string(),
-        "        return False".to_string(),
-        "    wanted = norm(file_path)".to_string(),
-        "    for clip in iter_clips(root):".to_string(),
-        "        try:".to_string(),
-        "            props = clip.GetClipProperty() or {}".to_string(),
-        "            clip_path = props.get('File Path') or props.get('FilePath') or ''".to_string(),
-        "            if norm(clip_path) == wanted:".to_string(),
-        "                return True".to_string(),
-        "        except Exception:".to_string(),
-        "            pass".to_string(),
-        "    return False".to_string(),
-        "".to_string(),
-        "normalized = []".to_string(),
-        "for p in MEDIA_FILES:".to_string(),
-        "    ap = os.path.abspath(p)".to_string(),
-        "    normalized.append(ap.replace('\\\\\\\\', '/'))".to_string(),
-        "".to_string(),
-        "missing = [p for p in normalized if not os.path.exists(p)]".to_string(),
-        "if missing:".to_string(),
-        "    raise RuntimeError('Resolve import paths not found: ' + '; '.join(missing))".to_string(),
-        "".to_string(),
-        "to_import = [p for p in normalized if not clip_exists(project, p)]".to_string(),
-        "if not to_import:".to_string(),
-        "    print('DaVinci Resolve import complete.')".to_string(),
-        "    raise SystemExit(0)".to_string(),
-        "".to_string(),
-        "result = media_pool.ImportMedia(to_import)".to_string(),
-        "if not result:".to_string(),
-        "    clip_infos = [{'FilePath': p} for p in to_import]".to_string(),
-        "    result = media_pool.ImportMedia(clip_infos)".to_string(),
-        "".to_string(),
-        "if not result:".to_string(),
-        "    imported_any = False".to_string(),
-        "    failed = []".to_string(),
-        "    for p in to_import:".to_string(),
-        "        r = media_pool.ImportMedia([p])".to_string(),
-        "        if r:".to_string(),
-        "            imported_any = True".to_string(),
-        "        else:".to_string(),
-        "            failed.append(p)".to_string(),
-        "    if not imported_any:".to_string(),
-        "        raise RuntimeError('Resolve failed to import media into current project. Failed paths: ' + '; '.join(failed))"
-            .to_string(),
-        "".to_string(),
-        "print('DaVinci Resolve import complete.')".to_string(),
-    ]
-    .join("\n")
+    IMPORT_SCRIPT_TEMPLATE
+        .replace("__AMVERGE_MEDIA_JSON__", &media_json)
+        .replace(
+            "__AMVERGE_APPEND_JSON__",
+            if append_to_timeline { "true" } else { "false" },
+        )
 }

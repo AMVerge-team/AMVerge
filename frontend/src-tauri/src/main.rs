@@ -55,6 +55,8 @@ fn main() {
             commands::extension_sync::clear_extension_sync,
             commands::editor_import::import_media_to_editor,
             commands::editor_import::abort_editor_import,
+            commands::editor_import::davinci_resolve::detect_davinci_resolve,
+            commands::editor_import::davinci_resolve::import_clips_to_davinci,
             commands::preview::check_hevc,
             commands::preview::get_audio_streams,
             commands::preview::hover_preview_error,
