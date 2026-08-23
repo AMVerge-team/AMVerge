@@ -387,7 +387,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
           </div>
         </div>
 
-        <div>
+        <div className="export-options-row">
           <div className="export-dir-row">
             <div className="export-dir-item">
               <span className="audio-stream-label" aria-hidden="true">
