@@ -248,9 +248,6 @@ export default function BugReport() {
   return (
     <section className="panel menu-panel bugreport-panel">
       <div className="bugreport-hero">
-        <div className="about-hero-badge">
-          <FaBug style={{ marginRight: 6 }} /> SUPPORT & BUG REPORTING
-        </div>
         <h2 className="about-hero-title">Report an Issue</h2>
         <p className="about-hero-subtitle">
           Found an error or unexpected behavior? Submit details directly to the AMVerge team.

@@ -59,9 +59,6 @@ export default function PatchNotes() {
   return (
     <section className="panel menu-panel patchnotes-panel">
       <div className="patchnotes-hero">
-        <div className="about-hero-badge">
-          <FaHistory style={{ marginRight: 6 }} /> CHANGELOG
-        </div>
         <h2 className="about-hero-title">Update Logs</h2>
         <p className="about-hero-subtitle">
           Track features, engine changes, and bug fixes across AMVerge releases.

@@ -14,7 +14,6 @@ export default function Credits() {
     return (
         <div className="panel menu-panel credits-panel">
             <div className="credits-hero">
-                <div className="about-hero-badge"><FaUsers style={{ marginRight: 6 }} /> CONTRIBUTORS</div>
                 <h2 className="about-hero-title">The People Behind AMVerge</h2>
                 <p className="about-hero-subtitle">
                     AMVerge is an open-source collaboration built with passion by video editors, engineers, and creators.

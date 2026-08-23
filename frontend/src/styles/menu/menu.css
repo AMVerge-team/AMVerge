@@ -121,49 +121,44 @@
     margin-left: 8px;
 }
 
-/* ABOUT PAGE MODERN REDESIGN */
-.about-panel {
+/* UNIFIED MENU PANEL & HERO HEADER */
+.about-panel,
+.credits-panel,
+.patchnotes-panel,
+.bugreport-panel {
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: rgba(var(--accent-rgb), 0.5) rgba(255, 255, 255, 0.05);
-    padding: 24px 28px;
-    gap: 20px;
+    padding: 20px 24px;
+    gap: 16px;
 }
 
-.about-hero {
+.about-hero,
+.credits-hero,
+.patchnotes-hero,
+.bugreport-hero {
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 20px 24px;
+    padding: 16px 20px;
     background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.1) 0%, rgba(255, 255, 255, 0.02) 100%);
     border: 1px solid rgba(var(--accent-rgb), 0.25);
     border-radius: 12px;
-}
-
-.about-hero-badge {
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: var(--accent);
-    background: rgba(var(--accent-rgb), 0.12);
-    border: 1px solid rgba(var(--accent-rgb), 0.25);
-    padding: 3px 10px;
-    border-radius: 999px;
-    margin-bottom: 10px;
+    margin-bottom: 2px;
 }
 
 .about-hero-title {
-    font-size: 1.6rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    margin: 0 0 8px 0;
+    margin: 0 0 6px 0;
     color: #ffffff;
     letter-spacing: -0.01em;
 }
 
 .about-hero-subtitle {
-    font-size: 0.92rem;
-    line-height: 1.55;
+    font-size: 0.9rem;
+    line-height: 1.5;
     color: rgba(255, 255, 255, 0.75);
     max-width: 680px;
     margin: 0;
@@ -366,25 +361,6 @@
 }
 
 /* CREDITS PAGE MODERN REDESIGN */
-.credits-panel {
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(var(--accent-rgb), 0.5) rgba(255, 255, 255, 0.05);
-    padding: 24px 28px;
-    gap: 20px;
-}
-
-.credits-hero {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 20px 24px;
-    background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.1) 0%, rgba(255, 255, 255, 0.02) 100%);
-    border: 1px solid rgba(var(--accent-rgb), 0.25);
-    border-radius: 12px;
-}
-
 .credits-grid {
     display: grid;
     grid-template-columns: 1.4fr 1fr;
@@ -460,25 +436,6 @@
 }
 
 /* PATCH NOTES COLLAPSIBLE REDESIGN */
-.patchnotes-panel {
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(var(--accent-rgb), 0.5) rgba(255, 255, 255, 0.05);
-    padding: 24px 28px;
-    gap: 20px;
-}
-
-.patchnotes-hero {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 20px 24px;
-    background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.1) 0%, rgba(255, 255, 255, 0.02) 100%);
-    border: 1px solid rgba(var(--accent-rgb), 0.25);
-    border-radius: 12px;
-}
-
 .patchnotes-collapsible-list {
     display: flex;
     flex-direction: column;

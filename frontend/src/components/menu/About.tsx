@@ -12,7 +12,6 @@ export default function About() {
   return (
     <section className="panel menu-panel about-panel">
       <div className="about-hero">
-        <div className="about-hero-badge">FAST SCENE DETECTION FOR EDITORS</div>
         <h2 className="about-hero-title">About AMVerge</h2>
         <p className="about-hero-subtitle">
           AMVerge eliminates the tedious chore of manual scene selection. Skim full episodes at a glance, cut lossless clips in seconds, and import directly into your editing workflow.
