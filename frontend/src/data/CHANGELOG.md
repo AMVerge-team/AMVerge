@@ -1,4 +1,14 @@
-# v2.0.0
+# v2.0.0 (Beta)
+
+- Complete recode of the app backend into a standalone CLI for better performance and memory management
+- Added AI Scene detection (TransNetV2, ~90% accuracy)
+- Added Depth maps export
+- Added Dead frames removal + RIFE frame interpolation passes
+- Added Scenepack feature to collect favorite clips into custom packs
+- Added WebP animated previews in the grid for huge performance gains on all PCs
+- Fixed memory build-up bug from V1 where clips accumulated in RAM
+- Smoother and more optimized UI rendering
+- Added Esc keybind navigation for menu and overlays
 
 ## v1.2.1
 - Fixed hovered videos sometimes not displaying full clip content
@@ -30,7 +40,7 @@
   - Makes it easier to find specific voice lines or sound effects
 
 - Added Discord Rich Presence support
-  - AMVerge now shows on your Discord status while you’re using it
+  - AMVerge now shows on your Discord status while you're using it
 
 - General settings improvements
   - Added a new "General" section in Settings
