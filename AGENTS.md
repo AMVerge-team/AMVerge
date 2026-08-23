@@ -27,7 +27,7 @@
 │  main.rs                                                         │
 │  ├── 3 plugins: shell, dialog, updater                           │
 │  ├── 7 managed state structs                                     │
-│  ├── 30 registered commands across 9 modules                     │
+│  ├── 46 registered commands across 12 modules                    │
 │  ├── 13 event types emitted to frontend                          │
 │  └── on_window_event CloseRequested → kill_all_child_processes   │
 │                                                                  │
@@ -39,6 +39,8 @@
 │  ├── cache.rs → episode disk cleanup                             │
 │  ├── editor_import.rs → Windows automation (PS/Python)           │
 │  ├── notifications.rs + bug_report.rs → HTTP API calls           │
+│  ├── deps.rs → AI env (uv venv), pack install/status             │
+│  ├── models.rs → AI model weights (list/download/delete)         │
 │  └── discord.rs → RPC (currently disabled)                       │
 └──────┬───────────────────────┬──────────────────────────────────┘
        │                       │
@@ -112,6 +114,9 @@ frontend/
 
       settings/
         GeneralSettings.tsx, AppearanceSection.tsx, DiscordRPCSection.tsx
+        DependenciesSection.tsx    # AI packs/models/storage categories
+        AiModelsSection.tsx        # depth + interpolation model weights manager
+        exportSettings/            # Export + PostExportPasses sections
 
     features/export/
       profiles.ts                   # Export profile definitions, codec/container logic
@@ -174,6 +179,8 @@ frontend/
         editor_import.rs            # Windows: AE, Premiere, Resolve, CapCut import
         notifications.rs            # Startup notification fetch (HTTP GET)
         bug_report.rs               # Bug report submit (HTTP POST, HMAC signed)
+        deps.rs                     # AI env (uv venv), pack install/status
+        models.rs                   # AI model weights (list/download/delete)
         discord.rs                  # Discord RPC (currently no-op)
 
         export/                     # Export sub-modules
@@ -267,6 +274,14 @@ frontend/
 | `stop_discord_rpc` | discord.rs | Kill RPC child process |
 | `submit_bug_report` | bug_report.rs | HTTP POST (HMAC signed) |
 | `fetch_startup_notification` | notifications.rs | HTTP GET startup notification |
+| `ai_env_status` | deps.rs | AI env status: packs, torch variant, GPU, sizes |
+| `install_ai_pack` | deps.rs | Install one AI pack (+ torch) into app venv |
+| `abort_ai_install` | deps.rs | Kill in-flight uv install |
+| `uninstall_ai_pack` | deps.rs | Remove one pack's packages (torch kept) |
+| `remove_ai_env` | deps.rs | Delete the whole AI environment |
+| `list_models` | models.rs | Spawn `amverge models --json` → depth + interpolation weights |
+| `download_model` | models.rs | `amverge models --json --download <key>` |
+| `delete_model` | models.rs | `amverge models --json --delete <key>` |
 
 ---
 
@@ -372,6 +387,25 @@ useImportExport.ts: handleExport(selectedClips, mergeEnabled)
            ├─ For each pass: invoke("run_export_pass", { pass, inputPath, outputPath, args })
            └─ Drive passRunStore (modal UI with progress/preview/logs)
 ```
+
+---
+
+## AI Models Manager
+
+Settings → Dependencies tab (categories: **AI Packs**, **AI Models**, **Storage**) manages the model weights for the depth-map and interpolation passes. Thin bridge over the CLI `amverge models --json` command:
+
+```
+AiModelsSection.tsx → invoke("list_models") → Rust models.rs → amverge models --json
+  → CLI prints {"depth":[{key,name,method,file,sizeBytes,downloaded}],
+                 "interpolation":[...]}
+  → parsed into ModelInfo[] → rendered with Download/Delete buttons
+
+Download/Delete → invoke("download_model"|"delete_model", { key })
+  → amverge models --json --download <key> | --delete <key>
+  → CLI prints {"result":{ok, action, key, message}} → surfaced, list refreshed
+```
+
+Each category is gated on its AI pack (`depth`, `interpolation`) being installed in the AI env. Model files live under `%APPDATA%/com.amverge.cli/models/{depth|interpolation}/`.
 
 ---
 
@@ -512,3 +546,5 @@ App starts → main.tsx: maybeCheckForUpdatesOnStartup()
 9. **Animated WebP cache** — fingerprinted by SHA-256 of file head/mid/tail bytes. Cache invalidated if source changes.
 
 10. **All child processes killed on close** — `on_window_event(CloseRequested)` walks all PID lists and kills every subprocess.
+
+11. **Dev builds never install AI** — `ai_env_status` reports `managed: false`, and `ensurePack`/`install_ai_pack` short-circuit in dev. AI runs from the CLI checkout's venv; install extras there with `pip install -e .[all]`. A `managed`-mode (production) build shows the real install dialog.
