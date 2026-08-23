@@ -1,5 +1,6 @@
 import type React from "react";
 import { FaImage, FaVideo } from "react-icons/fa";
+import Tooltip from "../../common/Tooltip";
 import type { EpisodePanelProps, PointerDragSource } from "../types";
 
 type Episode = EpisodePanelProps["episodes"][number];
@@ -67,18 +68,26 @@ export default function EpisodeRow({
       onClick={handleEpisodeClick(episode.id)}
       onDoubleClick={() => onOpenEpisode(episode.id)}
       onContextMenu={(e) => openContextMenu(episode.id, e)}
-      title={episode.videoPath}
     >
-      <span className="episode-panel-episode-name">
-        {episode.displayName}
-      </span>
-      <span
-        className="episode-panel-import-icon"
-        aria-label={isWebpEpisode ? "WebP preview episode" : "Video preview episode"}
-        title={isWebpEpisode ? "Imported as WebP previews" : "Imported as video files"}
+      {/* two hints, one per zone rather than one nested inside the other: the
+          name carries the source path, the badge what the episode was imported
+          as. Nesting them would open both bubbles on the badge. */}
+      <Tooltip content={episode.videoPath} side="right" maxWidth={360}>
+        <span className="episode-panel-episode-name">
+          {episode.displayName}
+        </span>
+      </Tooltip>
+      <Tooltip
+        content={isWebpEpisode ? "Imported as WebP previews" : "Imported as video files"}
+        side="right"
       >
-        {isWebpEpisode ? <FaImage /> : <FaVideo />}
-      </span>
+        <span
+          className="episode-panel-import-icon"
+          aria-label={isWebpEpisode ? "WebP preview episode" : "Video preview episode"}
+        >
+          {isWebpEpisode ? <FaImage /> : <FaVideo />}
+        </span>
+      </Tooltip>
     </div>
   );
 }

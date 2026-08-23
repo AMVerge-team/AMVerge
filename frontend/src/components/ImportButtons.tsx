@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { FaSyncAlt } from "react-icons/fa";
+import Tooltip from "./common/Tooltip";
 import { useAppStateStore } from "../stores/appStore";
 import { useUIStateStore } from "../stores/UIStore";
 import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
@@ -42,18 +43,23 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
             >
               {importBusy ? "Processing...": "Import Episode"}
             </button>
-            <button
-              onClick={handleRefreshEpisode}
-              className="import-button refresh-button"
-              disabled={importBusy || !openedEpisodeId}
-              title="Refresh episode"
-              aria-label="Refresh episode"
-            >
-              <FaSyncAlt
-                className={refreshSpinning ? "refresh-icon spinning" : "refresh-icon"}
-                onAnimationEnd={() => setRefreshSpinning(false)}
-              />
-            </button>
+            {/* wrapper span: a disabled button fires no pointer events of its
+                own, so the tooltip listens on the element around it */}
+            <Tooltip content="Refresh episode">
+              <span className="tooltip-anchor">
+                <button
+                  onClick={handleRefreshEpisode}
+                  className="import-button refresh-button"
+                  disabled={importBusy || !openedEpisodeId}
+                  aria-label="Refresh episode"
+                >
+                  <FaSyncAlt
+                    className={refreshSpinning ? "refresh-icon spinning" : "refresh-icon"}
+                    onAnimationEnd={() => setRefreshSpinning(false)}
+                  />
+                </button>
+              </span>
+            </Tooltip>
           </div>
         )}
         <div className="grid-checkboxes">

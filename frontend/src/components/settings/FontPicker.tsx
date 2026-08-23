@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FaChevronDown } from "react-icons/fa";
+import Tooltip from "../common/Tooltip";
 import { useThemeSettingsStore } from "../../stores/settingsStore";
 
 // Shown immediately and with no permission prompt: common Windows/macOS faces
@@ -134,15 +135,19 @@ export default function FontPicker() {
               onChange={(e) => setQuery(e.target.value)}
             />
             {canLoadAll && (
-              <button
-                type="button"
-                className="buttons font-picker-load-all"
-                onClick={handleLoadAll}
-                disabled={loadingAll}
-                title="List every font installed on this system"
-              >
-                {loadingAll ? "Loading..." : "Load all installed"}
-              </button>
+              // wrapper span: the button disables itself while loading
+              <Tooltip content="List every font installed on this system">
+                <span className="tooltip-anchor">
+                  <button
+                    type="button"
+                    className="buttons font-picker-load-all"
+                    onClick={handleLoadAll}
+                    disabled={loadingAll}
+                  >
+                    {loadingAll ? "Loading..." : "Load all installed"}
+                  </button>
+                </span>
+              </Tooltip>
             )}
           </div>
 

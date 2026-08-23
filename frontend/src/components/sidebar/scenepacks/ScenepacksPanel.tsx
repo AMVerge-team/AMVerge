@@ -5,6 +5,7 @@ import {
   FaTrashAlt, FaPlay, FaSearch, FaTimes,
 } from "react-icons/fa";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
+import Tooltip from "../../common/Tooltip";
 import { useScenepacksStore } from "../../../stores/scenepackStore";
 import { useGeneralSettingsStore } from "../../../stores/settingsStore";
 import { useUIStateStore } from "../../../stores/UIStore";
@@ -258,14 +259,17 @@ export function ScenepacksPanel() {
             setContextMenu({ id: folder.id, kind: "folder", x: e.clientX, y: e.clientY });
           }}
         >
-          <button
-            type="button"
-            className={`episode-panel-caret${isExpanded ? " is-expanded" : ""}`}
-            onClick={(e) => { e.stopPropagation(); handleToggleFolder(folder.id); }}
-            tabIndex={-1}
-          >
-            ▸
-          </button>
+          <Tooltip content={isExpanded ? "Collapse folder" : "Expand folder"} side="right">
+            <button
+              type="button"
+              className={`episode-panel-caret${isExpanded ? " is-expanded" : ""}`}
+              onClick={(e) => { e.stopPropagation(); handleToggleFolder(folder.id); }}
+              aria-label={isExpanded ? "Collapse folder" : "Expand folder"}
+              tabIndex={-1}
+            >
+              ▸
+            </button>
+          </Tooltip>
           <span className="episode-panel-folder-name">{folder.name}</span>
         </div>
         {isExpanded && (children.length > 0 || items.length > 0) && (
@@ -284,28 +288,39 @@ export function ScenepacksPanel() {
         <div className="episode-panel-header">
           <div className="episode-panel-title">Scenepacks</div>
           <div className="episode-panel-actions">
-            <button type="button" className="episode-panel-action icon-only" onClick={handleSort} title={sortLabel} aria-label={sortLabel}>
-              <SortIcon aria-hidden="true" />
-            </button>
+            <Tooltip content={sortLabel}>
+              <button type="button" className="episode-panel-action icon-only" onClick={handleSort} aria-label={sortLabel}>
+                <SortIcon aria-hidden="true" />
+              </button>
+            </Tooltip>
 
-            <button type="button" className="episode-panel-action icon-only"
-              onClick={() => { setNewItemModal({ kind: "folder", parentId: null }); setNewItemName(""); setModalFolderId(null); }}
-              title="New folder" aria-label="New folder">
-              <FaFolderPlus aria-hidden="true" />
-            </button>
+            <Tooltip content="New folder">
+              <button type="button" className="episode-panel-action icon-only"
+                onClick={() => { setNewItemModal({ kind: "folder", parentId: null }); setNewItemName(""); setModalFolderId(null); }}
+                aria-label="New folder">
+                <FaFolderPlus aria-hidden="true" />
+              </button>
+            </Tooltip>
 
-            <button type="button" className="episode-panel-action icon-only"
-              onClick={() => { setNewItemModal({ kind: "scenepack", parentId: selectedScenepackFolderId }); setNewItemName(""); setModalFolderId(selectedScenepackFolderId); }}
-              title="New Scenepack" aria-label="New Scenepack">
-              <FaLayerGroup aria-hidden="true" />
-            </button>
+            <Tooltip content="New Scenepack">
+              <button type="button" className="episode-panel-action icon-only"
+                onClick={() => { setNewItemModal({ kind: "scenepack", parentId: selectedScenepackFolderId }); setNewItemName(""); setModalFolderId(selectedScenepackFolderId); }}
+                aria-label="New Scenepack">
+                <FaLayerGroup aria-hidden="true" />
+              </button>
+            </Tooltip>
 
-            <button type="button" className="episode-panel-action icon-only"
-              onClick={handleDeleteSelected}
-              disabled={!selectedScenepackId && !selectedScenepackFolderId}
-              title="Delete selected item" aria-label="Delete selected">
-              <FaTrashAlt aria-hidden="true" />
-            </button>
+            {/* wrapper span: disabled until something is selected */}
+            <Tooltip content="Delete selected item">
+              <span className="tooltip-anchor">
+                <button type="button" className="episode-panel-action icon-only"
+                  onClick={handleDeleteSelected}
+                  disabled={!selectedScenepackId && !selectedScenepackFolderId}
+                  aria-label="Delete selected">
+                  <FaTrashAlt aria-hidden="true" />
+                </button>
+              </span>
+            </Tooltip>
           </div>
         </div>
 
@@ -319,9 +334,15 @@ export function ScenepacksPanel() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           {searchQuery && (
-            <button className="scenepack-search-clear" onClick={() => setSearchQuery("")}>
-              <FaTimes />
-            </button>
+            <Tooltip content="Clear search">
+              <button
+                className="scenepack-search-clear"
+                onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
+              >
+                <FaTimes />
+              </button>
+            </Tooltip>
           )}
         </div>
 

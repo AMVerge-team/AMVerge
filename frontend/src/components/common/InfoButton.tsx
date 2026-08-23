@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { FaInfo, FaTimes } from "react-icons/fa";
 
+import Tooltip from "./Tooltip";
+
 type InfoButtonProps = {
   title: string;
   children: ReactNode;
@@ -24,15 +26,16 @@ export default function InfoButton({ title, children }: InfoButtonProps) {
 
   return (
     <>
-      <button
-        type="button"
-        className="info-button"
-        onClick={() => setOpen(true)}
-        aria-label={`About ${title}`}
-        title={`About ${title}`}
-      >
-        <FaInfo aria-hidden="true" />
-      </button>
+      <Tooltip content={`About ${title}`}>
+        <button
+          type="button"
+          className="info-button"
+          onClick={() => setOpen(true)}
+          aria-label={`About ${title}`}
+        >
+          <FaInfo aria-hidden="true" />
+        </button>
+      </Tooltip>
 
       {open && (
         <div
@@ -44,15 +47,16 @@ export default function InfoButton({ title, children }: InfoButtonProps) {
           <div className="info-modal" role="dialog" aria-modal="true" aria-label={title}>
             <div className="info-modal-head">
               <h3 className="info-modal-title">{title}</h3>
-              <button
-                type="button"
-                className="info-modal-close"
-                onClick={() => setOpen(false)}
-                aria-label="Close"
-                title="Close"
-              >
-                <FaTimes aria-hidden="true" />
-              </button>
+              <Tooltip content="Close">
+                <button
+                  type="button"
+                  className="info-modal-close"
+                  onClick={() => setOpen(false)}
+                  aria-label="Close"
+                >
+                  <FaTimes aria-hidden="true" />
+                </button>
+              </Tooltip>
             </div>
             <div className="info-modal-body">{children}</div>
           </div>

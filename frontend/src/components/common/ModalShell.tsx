@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { FaTimes } from "react-icons/fa";
 
+import Tooltip from "./Tooltip";
+
 type ModalShellProps = {
   open: boolean;
   onClose: () => void;
@@ -57,15 +59,16 @@ export default function ModalShell({
         aria-modal="true"
         aria-label={label}
       >
-        <button
-          type="button"
-          className="app-modal-close"
-          onClick={onClose}
-          aria-label={`Close ${label.toLowerCase()}`}
-          title="Close"
-        >
-          <FaTimes aria-hidden="true" />
-        </button>
+        <Tooltip content="Close">
+          <button
+            type="button"
+            className="app-modal-close"
+            onClick={onClose}
+            aria-label={`Close ${label.toLowerCase()}`}
+          >
+            <FaTimes aria-hidden="true" />
+          </button>
+        </Tooltip>
         {contentReady ? children : null}
       </div>
     </div>

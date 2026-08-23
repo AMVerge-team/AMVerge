@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
+import Tooltip from "./common/Tooltip";
 import { usePassRunStore } from "../stores/passRunStore";
 
 export default function PostExportPassesModal() {
@@ -49,17 +50,23 @@ export default function PostExportPassesModal() {
             {finished ? "Passes complete" : label || "Post-export passes"}
           </span>
           <div className="pxm-actions">
-            <button type="button" className="pxm-btn" onClick={() => setMinimized(false)} title="Expand">
-              ▢
-            </button>
+            <Tooltip content="Expand">
+              <button type="button" className="pxm-btn" onClick={() => setMinimized(false)} aria-label="Expand">
+                ▢
+              </button>
+            </Tooltip>
             {finished ? (
-              <button type="button" className="pxm-btn" onClick={close} title="Close">
-                ✕
-              </button>
+              <Tooltip content="Close">
+                <button type="button" className="pxm-btn" onClick={close} aria-label="Close">
+                  ✕
+                </button>
+              </Tooltip>
             ) : (
-              <button type="button" className="pxm-btn pxm-stop" onClick={stop} title="Stop">
-                ✕
-              </button>
+              <Tooltip content="Stop">
+                <button type="button" className="pxm-btn pxm-stop" onClick={stop} aria-label="Stop">
+                  ✕
+                </button>
+              </Tooltip>
             )}
           </div>
         </div>
@@ -86,17 +93,23 @@ export default function PostExportPassesModal() {
               : "Post-export passes"}
           </span>
           <div className="pxm-actions">
-            <button type="button" className="pxm-btn" onClick={() => setMinimized(true)} title="Minimize">
-              ─
-            </button>
+            <Tooltip content="Minimize">
+              <button type="button" className="pxm-btn" onClick={() => setMinimized(true)} aria-label="Minimize">
+                ─
+              </button>
+            </Tooltip>
             {finished ? (
-              <button type="button" className="pxm-btn" onClick={close} title="Close">
-                ✕
-              </button>
+              <Tooltip content="Close">
+                <button type="button" className="pxm-btn" onClick={close} aria-label="Close">
+                  ✕
+                </button>
+              </Tooltip>
             ) : (
-              <button type="button" className="pxm-btn pxm-stop" onClick={stop} title="Stop">
-                ✕
-              </button>
+              <Tooltip content="Stop">
+                <button type="button" className="pxm-btn pxm-stop" onClick={stop} aria-label="Stop">
+                  ✕
+                </button>
+              </Tooltip>
             )}
           </div>
         </header>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FaCopy, FaTrashAlt } from "react-icons/fa";
+import Tooltip from "../common/Tooltip";
 import {
   clearConsoleLogs,
   serializeConsoleLogs,
@@ -42,24 +43,26 @@ export default function Console() {
         </div>
 
         <div className="console-actions">
-          <button
-            className="console-action-icon"
-            type="button"
-            onClick={handleCopy}
-            aria-label="Copy Logs"
-            title="Copy Logs"
-          >
-            <FaCopy aria-hidden="true" />
-          </button>
-          <button
-            className="console-action-icon"
-            type="button"
-            onClick={handleClear}
-            aria-label="Clear Logs"
-            title="Clear Logs"
-          >
-            <FaTrashAlt aria-hidden="true" />
-          </button>
+          <Tooltip content="Copy logs">
+            <button
+              className="console-action-icon"
+              type="button"
+              onClick={handleCopy}
+              aria-label="Copy Logs"
+            >
+              <FaCopy aria-hidden="true" />
+            </button>
+          </Tooltip>
+          <Tooltip content="Clear logs">
+            <button
+              className="console-action-icon"
+              type="button"
+              onClick={handleClear}
+              aria-label="Clear Logs"
+            >
+              <FaTrashAlt aria-hidden="true" />
+            </button>
+          </Tooltip>
         </div>
       </div>
 

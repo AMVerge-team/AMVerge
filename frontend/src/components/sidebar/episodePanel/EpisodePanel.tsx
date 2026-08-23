@@ -3,6 +3,7 @@ import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FaSearch, FaTimes, FaVideo } from "react-icons/fa";
 
+import Tooltip from "../../common/Tooltip";
 import EpisodePanelContextMenus from "./EpisodePanelContextMenus";
 import EpisodePanelHeader from "./EpisodePanelHeader";
 import EpisodePanelModals from "./EpisodePanelModals";
@@ -329,13 +330,15 @@ export default function EpisodePanel() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           {searchQuery && (
-            <button
-              className="scenepack-search-clear"
-              onClick={() => setSearchQuery("")}
-              aria-label="Clear search"
-            >
-              <FaTimes />
-            </button>
+            <Tooltip content="Clear search">
+              <button
+                className="scenepack-search-clear"
+                onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
+              >
+                <FaTimes />
+              </button>
+            </Tooltip>
           )}
         </div>
 

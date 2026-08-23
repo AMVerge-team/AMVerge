@@ -8,6 +8,8 @@ import {
 } from "react";
 import { listen, type Event, type UnlistenFn } from "@tauri-apps/api/event";
 
+import Tooltip from "./common/Tooltip";
+
 interface ImportTerminalProps {
   progress: number;
   progressMsg: string;
@@ -267,25 +269,27 @@ export default function ImportTerminal({
             {isBatch ? "Importing videos" : progressMsg || "Finishing import…"}
           </span>
           <div className="lm-actions">
-            <button
-              type="button"
-              className="lm-btn"
-              onClick={onToggleMinimize}
-              aria-label="Expand"
-              title="Expand"
-            >
-              ▢
-            </button>
-            {onClose ? (
+            <Tooltip content="Expand">
               <button
                 type="button"
-                className="lm-btn lm-close"
-                onClick={onClose}
-                aria-label="Dismiss"
-                title="Dismiss"
+                className="lm-btn"
+                onClick={onToggleMinimize}
+                aria-label="Expand"
               >
-                ✕
+                ▢
               </button>
+            </Tooltip>
+            {onClose ? (
+              <Tooltip content="Dismiss">
+                <button
+                  type="button"
+                  className="lm-btn lm-close"
+                  onClick={onClose}
+                  aria-label="Dismiss"
+                >
+                  ✕
+                </button>
+              </Tooltip>
             ) : null}
           </div>
         </div>
@@ -345,15 +349,16 @@ export default function ImportTerminal({
         <div className="it-header">
           <span className="it-title">AMVerge CLI</span>
           {onToggleMinimize ? (
-            <button
-              type="button"
-              className="it-min"
-              onClick={onToggleMinimize}
-              aria-label="Minimize"
-              title="Minimize"
-            >
-              ─
-            </button>
+            <Tooltip content="Minimize">
+              <button
+                type="button"
+                className="it-min"
+                onClick={onToggleMinimize}
+                aria-label="Minimize"
+              >
+                ─
+              </button>
+            </Tooltip>
           ) : null}
         </div>
         <div className="it-body" ref={bodyRef}>
