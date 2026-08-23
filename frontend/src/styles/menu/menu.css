@@ -512,11 +512,131 @@
 }
 
 .patchnotes-collapsible-body {
-    padding: 12px 20px 18px 20px;
+    padding: 14px 18px 16px 18px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.patchnotes-doc-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+    padding-top: 10px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
-    font-size: 0.86rem;
-    line-height: 1.55;
-    color: rgba(255, 255, 255, 0.8);
+}
+
+.patchnotes-doc-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--accent);
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.patchnotes-doc-btn:hover {
+    background: rgba(var(--accent-rgb), 0.15);
+    border-color: var(--accent);
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+/* FULL UPDATE LOG SUBPAGE DETAIL VIEW */
+.patchnotes-detail-view {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 860px;
+    margin: 0 auto;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.patchnotes-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 4px;
+}
+
+.patchnotes-back-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.patchnotes-back-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000000;
+    transform: translateY(-1px);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.35);
+}
+
+.patchnotes-detail-badge {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-family: monospace;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.patchnotes-detail-card {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 24px 28px;
+    font-size: 0.92rem;
+    line-height: 1.65;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.patchnotes-detail-card h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+    color: #ffffff;
+}
+
+.patchnotes-detail-card h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 20px 0 8px 0;
+    color: var(--accent);
+}
+
+.patchnotes-detail-card hr {
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    margin: 18px 0;
+}
+
+.patchnotes-detail-card ul {
+    margin: 8px 0 16px 20px;
+    padding: 0;
+}
+
+.patchnotes-detail-card li {
+    margin-bottom: 6px;
 }
 
 .patchnotes-collapsible-body ul {

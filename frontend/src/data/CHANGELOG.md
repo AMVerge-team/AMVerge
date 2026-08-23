@@ -1,4 +1,23 @@
-# v2.0.0 (Beta)
+# v2.0.1
+
+- Added interactive Show in Folder button on episode items with rounded border styling
+- Added Show in File Explorer option to the episode right-click context menu
+- Added dedicated Show in Folder button to the Episode Panel top toolbar
+- Fixed Windows File Explorer reveal commands for paths with extended UNC prefixes
+- Added non-blocking background AI downloads with a minimized task bar widget
+- Added real-time transfer speed, downloaded bytes, elapsed timer, and ETA statistics to the AI installer
+- Configured concurrent download throughput optimization for uv package installation
+- Added AI Detection and GPU status pill badge in the top navigation bar
+- Added live clip selection counter and active episode breadcrumb in navbar
+- Added modern pill-style window control buttons (minimize, maximize, close)
+- Replaced native browser tooltips across the app with collision-aware custom floating tooltips
+- Redesigned Menu tabs (About, Credits, Console, Update Logs, Bug Report) with vector icons and unified layout
+- Redesigned Bug Report form with 2-column card layout and streamlined dropdown selection
+- Added log severity filters and search bar to the Console tab
+- Added collapsible release accordion cards to Update Logs
+- Added contributor avatars and profile links in Credits
+
+## v2.0.0 (Beta)
 
 - Complete recode of the app backend into a standalone CLI for better performance and memory management
 - Added AI Scene detection (TransNetV2, ~90% accuracy)
