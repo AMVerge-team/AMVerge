@@ -15,6 +15,7 @@ interface DropdownProps<T> {
   className?: string;
   disabled?: boolean;
   preferredDirection?: "auto" | "up" | "down";
+  showTriggerDescription?: boolean;
 }
 
 export default function Dropdown<T extends string | number>({
@@ -24,6 +25,7 @@ export default function Dropdown<T extends string | number>({
   className = "",
   disabled = false,
   preferredDirection = "auto",
+  showTriggerDescription = true,
 }: DropdownProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
   const [openUp, setOpenUp] = useState(false);
@@ -91,13 +93,15 @@ export default function Dropdown<T extends string | number>({
     setIsOpen(false);
   };
 
-  const renderOptionContent = (option: DropdownOption<T>) => (
-    <div className={`dropdown-item-content${option.description ? " has-description" : ""}`}>
+  const renderOptionContent = (option: DropdownOption<T>, isTrigger = false) => (
+    <div className={`dropdown-item-content${option.description && (!isTrigger || showTriggerDescription) ? " has-description" : ""}`}>
       <div className="dropdown-item-main">
         {option.icon && <span className="dropdown-item-icon">{option.icon}</span>}
         <span className="dropdown-item-label">{option.label}</span>
       </div>
-      {option.description && <span className="dropdown-item-description">{option.description}</span>}
+      {option.description && (!isTrigger || showTriggerDescription) && (
+        <span className="dropdown-item-description">{option.description}</span>
+      )}
     </div>
   );
 
@@ -110,8 +114,8 @@ export default function Dropdown<T extends string | number>({
     >
       <div className="dropdown-trigger" onClick={toggleDropdown}>
         {selectedOption ? (
-          <div className={`dropdown-value${selectedOption.description ? " rich" : ""}`}>
-            {renderOptionContent(selectedOption)}
+          <div className={`dropdown-value${selectedOption.description && showTriggerDescription ? " rich" : ""}`}>
+            {renderOptionContent(selectedOption, true)}
           </div>
         ) : (
           <span className="dropdown-value">{String(value)}</span>

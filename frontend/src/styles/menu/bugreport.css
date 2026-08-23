@@ -1,170 +1,222 @@
 /* ---------------------
         BUG REPORTS
 ------------------------ */
-.bugreport-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-    /* background: rgb(0 0 0 / 0.42); */
-    /* border: 1px solid rgb(255 255 255 / 0.12);
-    border-radius: 10px; */
-}
-
-.bugreport-wrapper form {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    width: min(860px, 100%);
-    margin: 0 auto;
-    padding: 8px 10px 14px;
+.bugreport-panel {
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: var(--accent) transparent;
+    scrollbar-color: rgba(var(--accent-rgb), 0.5) rgba(255, 255, 255, 0.05);
+    padding: 24px 28px;
+    gap: 20px;
 }
 
-.bugreport-wrapper form::-webkit-scrollbar {
-    width: 10px;
-}
-
-.bugreport-wrapper form::-webkit-scrollbar-thumb {
-    background: var(--accent);
-    border-radius: 8px;
-}
-
-.bugreport-row {
+.bugreport-hero {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 12px;
+    align-items: center;
+    text-align: center;
+    padding: 20px 24px;
+    background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.1) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border: 1px solid rgba(var(--accent-rgb), 0.25);
+    border-radius: 12px;
 }
 
-.bugreport-row label {
-    font-size: 0.95rem;
-    color: rgb(255 255 255 / 0.92);
-    letter-spacing: 0.7px;
-    margin-left: 5px;
-}
-
-.bugreport-row small {
-    color: rgb(255 255 255 / 0.6);
-    font-size: 0.82rem;
-    line-height: 1;
-    letter-spacing: 0.7px;
-    margin-left: 5px;
-}
-
-.bugreport-row input[type="text"],
-.bugreport-row input[type="url"],
-.bugreport-row select,
-.bugreport-row textarea {
+.bugreport-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 16px;
     width: 100%;
-    min-height: 40px;
-    padding: 9px 11px;
+}
+
+@media (max-width: 820px) {
+    .bugreport-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.bugreport-card-main {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.bugreport-side-col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.bugreport-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.bugreport-field.flex-grow {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.bugreport-field-inline {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+}
+
+.bugreport-field.half {
+    flex: 1;
+}
+
+.bugreport-label {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0;
+}
+
+.required-star {
+    color: #ef4444;
+    margin-left: 2px;
+}
+
+.bugreport-help {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.78rem;
+    line-height: 1.4;
+    margin-bottom: 2px;
+}
+
+.bugreport-field input[type="text"],
+.bugreport-field input[type="url"],
+.bugreport-field textarea {
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 12px;
     border-radius: 8px;
-    border: 1px solid rgb(255 255 255 / 0.2);
-    background: rgb(0 0 0 / 0.65);
-    color: #fff;
-    font-size: 0.95rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.35);
+    color: #ffffff;
+    font-size: 0.88rem;
     font-family: inherit;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
-    letter-spacing: 0.7px;
+    box-sizing: border-box;
 }
 
-.bugreport-row input::placeholder,
-.bugreport-row textarea::placeholder {
-    color: rgb(255 255 255 / 0.42);
+.bugreport-field textarea {
+    resize: vertical;
+    min-height: 120px;
+    line-height: 1.5;
+    flex: 1;
 }
 
-.bugreport-row input[type="text"]:focus,
-.bugreport-row input[type="url"]:focus,
-.bugreport-row select:focus,
-.bugreport-row textarea:focus {
+.bugreport-field input::placeholder,
+.bugreport-field textarea::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.bugreport-field input[type="text"]:focus,
+.bugreport-field input[type="url"]:focus,
+.bugreport-field textarea:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / 0.2);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.2);
 }
 
-.bugreport-row input[type="file"] {
+.bugreport-field input[type="file"] {
     width: 100%;
-    color: rgb(255 255 255 / 0.8);
-    font-family: var(--app-font);
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.82rem;
+    font-family: inherit;
+    padding: 2px 0;
 }
 
-.bugreport-row input[type="file"]::file-selector-button {
+.bugreport-field input[type="file"]::file-selector-button {
     margin-right: 10px;
-    border: 1px solid rgb(255 255 255 / 0.2);
-    background: #000;
-    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.06);
+    color: #ffffff;
+    border-radius: 6px;
+    padding: 5px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 500;
+    transition: all 0.15s ease;
+}
+
+.bugreport-field input[type="file"]::file-selector-button:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.bugreport-dropdown {
+    width: 100%;
+}
+
+.bugreport-dropdown .dropdown-trigger {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    padding: 7px 11px;
-    cursor: pointer;
-    transition: border-color 0.15s ease, color 0.15s ease;
-    letter-spacing: 0.7px;
-    font-family: var(--app-font);
+    padding: 8px 12px;
+    font-size: 0.88rem;
+    height: 38px;
 }
 
-.bugreport-row input[type="file"]::file-selector-button:hover {
-    border-color: var(--accent);
-    color: var(--accent);
+.bugreport-dropdown .dropdown-trigger:hover {
+    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.05);
 }
 
-.bugreport-row input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    accent-color: var(--accent);
+.bugreport-dropdown .dropdown-value {
+    font-size: 0.88rem;
+    font-weight: 500;
+    text-transform: none;
 }
 
-.bugreport-row p {
-    margin: 0;
-    color: rgb(255 255 255 / 0.9);
+.bugreport-alert {
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.84rem;
+    font-weight: 500;
 }
 
-.bugreport-row p[role="alert"] {
-    color: #ff8787;
+.bugreport-alert.error {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #fca5a5;
 }
 
-.bugreport-row button[type="submit"] {
-    align-self: flex-start;
-    min-width: 170px;
-    min-height: 40px;
-    border-radius: 9px;
-    border: 1px solid rgb(var(--accent-rgb) / 0.88);
-    background: #000;
-    color: #fff;
-    font-size: 0.96rem;
-    font-weight: 1;
-    letter-spacing: 0.7px;
-    cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-    font-family: var(--app-font);
+.bugreport-alert.success {
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.35);
+    color: #86efac;
 }
 
-.bugreport-row button[type="submit"]:hover:not(:disabled) {
+.bugreport-submit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 10px 18px;
+    border-radius: 8px;
     background: var(--accent);
-    color: #000;
-    border-color: #000;
+    color: #000000;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 0 16px rgba(var(--accent-rgb), 0.35);
 }
 
-.bugreport-row button[type="submit"]:disabled {
-    opacity: 0.6;
+.bugreport-submit-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.55);
+}
+
+.bugreport-submit-btn:disabled {
+    opacity: 0.5;
     cursor: not-allowed;
-}
-
-@media (max-width: 900px) {
-    .bugreport-wrapper form {
-        width: 100%;
-        padding-inline: 4px;
-    }
-
-    .bugreport-row {
-        padding: 10px;
-    }
-
-    .bugreport-row button[type="submit"] {
-        width: 100%;
-        align-self: stretch;
-    }
+    box-shadow: none;
 }
