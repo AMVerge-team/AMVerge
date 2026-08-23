@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { FaBars, FaCog, FaTimes } from "react-icons/fa";
+import Tooltip from "./common/Tooltip";
 import { useUIStateStore } from "../stores/UIStore";
 
 /** Dialogs that own Escape themselves - the quick menu stays out of their way. */
@@ -42,15 +43,16 @@ export default function QuickMenu() {
         aria-modal="true"
         aria-label="Quick menu"
       >
-        <button
-          type="button"
-          className="quick-menu-close"
-          onClick={() => setQuickMenuOpen(false)}
-          aria-label="Close"
-          title="Close"
-        >
-          <FaTimes aria-hidden="true" />
-        </button>
+        <Tooltip content="Close">
+          <button
+            type="button"
+            className="quick-menu-close"
+            onClick={() => setQuickMenuOpen(false)}
+            aria-label="Close"
+          >
+            <FaTimes aria-hidden="true" />
+          </button>
+        </Tooltip>
 
         <div className="quick-menu-options">
           <button

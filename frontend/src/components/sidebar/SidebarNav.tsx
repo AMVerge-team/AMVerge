@@ -2,6 +2,7 @@
 import type { IconType } from "react-icons";
 import { FaBars, FaHome, FaLayerGroup } from "react-icons/fa";
 import type { Page } from "./types";
+import Tooltip from "../common/Tooltip";
 import { useUIStateStore } from "../../stores/UIStore";
 import { useGeneralSettingsStore } from "../../stores/settingsStore";
 
@@ -24,33 +25,41 @@ export default function SidebarNav() {
         const isFeatureOff = button.featureKey === "scenepacks" && !scenepacksEnabled;
 
         return (
-          <div className="sidebar-button" key={button.page}>
-            <button
-              type="button"
-              className={`sidebar-nav-button${isActive ? " is-active" : ""}${isFeatureOff ? " is-feature-off" : ""}`}
-              onClick={() => setActivePage(button.page)}
-              disabled={isActive || isFeatureOff}
-              aria-current={isActive ? "page" : undefined}
-              aria-label={button.name}
-              title={isFeatureOff ? "Enable Scenepacks in Settings" : button.name}
-            >
-              <Icon aria-hidden="true" />
-            </button>
-          </div>
+          // the tooltip sits on the row rather than the button: the active and
+          // feature-off buttons are disabled, and those fire no pointer events
+          <Tooltip
+            key={button.page}
+            content={isFeatureOff ? "Enable Scenepacks in Settings" : button.name}
+            side="right"
+          >
+            <div className="sidebar-button">
+              <button
+                type="button"
+                className={`sidebar-nav-button${isActive ? " is-active" : ""}${isFeatureOff ? " is-feature-off" : ""}`}
+                onClick={() => setActivePage(button.page)}
+                disabled={isActive || isFeatureOff}
+                aria-current={isActive ? "page" : undefined}
+                aria-label={button.name}
+              >
+                <Icon aria-hidden="true" />
+              </button>
+            </div>
+          </Tooltip>
         );
       })}
 
-      <div className="sidebar-button">
-        <button
-          type="button"
-          className="sidebar-nav-button"
-          onClick={openMenu}
-          aria-label="Menu"
-          title="Menu"
-        >
-          <FaBars aria-hidden="true" />
-        </button>
-      </div>
+      <Tooltip content="Menu" side="right">
+        <div className="sidebar-button">
+          <button
+            type="button"
+            className="sidebar-nav-button"
+            onClick={openMenu}
+            aria-label="Menu"
+          >
+            <FaBars aria-hidden="true" />
+          </button>
+        </div>
+      </Tooltip>
     </div>
   );
 }

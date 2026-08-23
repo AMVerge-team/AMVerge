@@ -9,6 +9,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FaPlay, FaPause, FaVolumeUp, FaVolumeDown, FaVolumeMute, FaExpand } from "react-icons/fa";
 
+import Tooltip from "../common/Tooltip";
+
 import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
 
 const VOLUME_HIDE_DELAY_MS = 700;
@@ -242,9 +244,11 @@ export default function VideoPlayer({ src, volume, onTimeUpdate }: VideoPlayerPr
           }}
         />
         <div className="controls">
-          <button onClick={togglePlay} title={playing ? "Pause" : "Play"} aria-label={playing ? "Pause" : "Play"}>
-            {playing ? <FaPause /> : <FaPlay />}
-          </button>
+          <Tooltip content={playing ? "Pause" : "Play"}>
+            <button onClick={togglePlay} aria-label={playing ? "Pause" : "Play"}>
+              {playing ? <FaPause /> : <FaPlay />}
+            </button>
+          </Tooltip>
 
           <span className="time-display">
             {formatTime(current)} / {formatTime(duration)}
@@ -260,16 +264,17 @@ export default function VideoPlayer({ src, volume, onTimeUpdate }: VideoPlayerPr
             onMouseEnter={showVolume}
             onMouseLeave={scheduleHide}
           >
+            <Tooltip content={muted ? "Unmute" : "Mute"}>
             <button
               onClick={toggleMute}
               onFocus={showVolume}
-              title={muted ? "Unmute" : "Mute"}
               aria-label={muted ? "Unmute" : "Mute"}
             >
               {muted || displayVolume === 0
                 ? <FaVolumeMute />
                 : displayVolume < 0.5 ? <FaVolumeDown /> : <FaVolumeUp />}
             </button>
+            </Tooltip>
 
             <div className="volume-popup" aria-hidden={!volumeOpen}>
               <input
@@ -288,9 +293,11 @@ export default function VideoPlayer({ src, volume, onTimeUpdate }: VideoPlayerPr
             </div>
           </div>
 
-          <button onClick={toggleFullscreen} title="Fullscreen" aria-label="Fullscreen">
-            <FaExpand />
-          </button>
+          <Tooltip content="Fullscreen" align="end">
+            <button onClick={toggleFullscreen} aria-label="Fullscreen">
+              <FaExpand />
+            </button>
+          </Tooltip>
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import {
   FaThumbtack,
 } from "react-icons/fa";
 import CropModal from "../../common/CropModal"
+import Tooltip from "../../common/Tooltip"
 import {
   EXPORT_PROFILE_ICON_OPTIONS,
   type ExportProfile,
@@ -498,24 +499,25 @@ export default function ProfileIconPicker({
           {inlineVisibleIconItems.map((item) => {
             if (item.type === "builtin") {
               return (
-                <button
-                  key={`builtin-${item.value}`}
-                  type="button"
-                  className={`profile-icon-button${
-                    activeProfile.icon === item.value ? " active" : ""
-                  }`}
-                  title={item.value}
-                  onClick={() => updateActiveProfile({ icon: item.value })}
-                >
-                  <ProfileIconGlyph
-                    icon={item.value}
-                    customIconPath={
-                      item.value === "custom"
-                        ? activeProfile.customIconPath
-                        : null
-                    }
-                  />
-                </button>
+                <Tooltip key={`builtin-${item.value}`} content={item.value}>
+                  <button
+                    type="button"
+                    className={`profile-icon-button${
+                      activeProfile.icon === item.value ? " active" : ""
+                    }`}
+                    aria-label={item.value}
+                    onClick={() => updateActiveProfile({ icon: item.value })}
+                  >
+                    <ProfileIconGlyph
+                      icon={item.value}
+                      customIconPath={
+                        item.value === "custom"
+                          ? activeProfile.customIconPath
+                          : null
+                      }
+                    />
+                  </button>
+                </Tooltip>
               );
             }
 
@@ -528,60 +530,65 @@ export default function ProfileIconPicker({
                 key={`custom-${item.path}`}
                 className="profile-custom-icon-slot"
               >
-                <button
-                  type="button"
-                  className={`profile-icon-button${isActiveCustom ? " active" : ""}`}
-                  title="Use custom icon"
-                  onClick={() => applyCustomIconSelection(item.path, false)}
-                >
-                  <img
-                    className="profile-custom-icon"
-                    src={convertFileSrc(item.path)}
-                    alt="Custom profile icon"
-                  />
-                </button>
+                <Tooltip content="Use custom icon">
+                  <button
+                    type="button"
+                    className={`profile-icon-button${isActiveCustom ? " active" : ""}`}
+                    aria-label="Use custom icon"
+                    onClick={() => applyCustomIconSelection(item.path, false)}
+                  >
+                    <img
+                      className="profile-custom-icon"
+                      src={convertFileSrc(item.path)}
+                      alt="Custom profile icon"
+                    />
+                  </button>
+                </Tooltip>
 
-                <button
-                  type="button"
-                  className="profile-icon-delete"
-                  title="Delete custom icon"
-                  aria-label="Delete custom icon"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    void handleDeleteCustomIcon(item.path);
-                  }}
-                >
-                  ×
-                </button>
+                <Tooltip content="Delete custom icon">
+                  <button
+                    type="button"
+                    className="profile-icon-delete"
+                    aria-label="Delete custom icon"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void handleDeleteCustomIcon(item.path);
+                    }}
+                  >
+                    ×
+                  </button>
+                </Tooltip>
               </div>
             );
           })}
         </div>
 
-        <button
-          type="button"
-          className={`profile-icon-button profile-upload-tile${
-            activeProfile.icon === "custom" ? " active" : ""
-          }`}
-          title="Add custom icon"
-          aria-label="Add custom icon"
-          onClick={() => {
-            void handlePickCustomIcon();
-          }}
-        >
-          <FaPlus />
-        </button>
+        <Tooltip content="Add custom icon">
+          <button
+            type="button"
+            className={`profile-icon-button profile-upload-tile${
+              activeProfile.icon === "custom" ? " active" : ""
+            }`}
+            aria-label="Add custom icon"
+            onClick={() => {
+              void handlePickCustomIcon();
+            }}
+          >
+            <FaPlus />
+          </button>
+        </Tooltip>
 
-        <button
-          type="button"
-          className="profile-icon-button profile-icon-more-trigger"
-          title="Choose icon"
-          aria-label="Choose icon"
-          aria-expanded={showIconPicker}
-          onClick={() => setShowIconPicker((current) => !current)}
-        >
-          <FaEllipsisH />
-        </button>
+        <Tooltip content="Choose icon">
+          <button
+            type="button"
+            className="profile-icon-button profile-icon-more-trigger"
+            aria-label="Choose icon"
+            aria-expanded={showIconPicker}
+            onClick={() => setShowIconPicker((current) => !current)}
+          >
+            <FaEllipsisH />
+          </button>
+        </Tooltip>
 
         {showIconPicker && (
           <div
@@ -599,43 +606,44 @@ export default function ProfileIconPicker({
 
                 return (
                   <div key={option.value} className="profile-icon-tile">
-                    <button
-                      type="button"
-                      className={`profile-icon-button${
-                        activeProfile.icon === option.value ? " active" : ""
-                      }`}
-                      title={option.label}
-                      onClick={() => {
-                        updateActiveProfile({ icon: option.value });
-                        setShowIconPicker(false);
-                      }}
-                    >
-                      <ProfileIconGlyph
-                        icon={option.value}
-                        customIconPath={null}
-                      />
-                    </button>
+                    <Tooltip content={option.label}>
+                      <button
+                        type="button"
+                        className={`profile-icon-button${
+                          activeProfile.icon === option.value ? " active" : ""
+                        }`}
+                        aria-label={option.label}
+                        onClick={() => {
+                          updateActiveProfile({ icon: option.value });
+                          setShowIconPicker(false);
+                        }}
+                      >
+                        <ProfileIconGlyph
+                          icon={option.value}
+                          customIconPath={null}
+                        />
+                      </button>
+                    </Tooltip>
 
-                    <button
-                      type="button"
-                      className={`profile-icon-pin${pinned ? " pinned" : ""}`}
-                      title={
-                        pinned
-                          ? "Unpin from quick icons"
-                          : "Pin to quick icons"
-                      }
-                      aria-label={
-                        pinned
-                          ? "Unpin from quick icons"
-                          : "Pin to quick icons"
-                      }
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        toggleFeaturedIcon(option.value);
-                      }}
+                    <Tooltip
+                      content={pinned ? "Unpin from quick icons" : "Pin to quick icons"}
                     >
-                      <FaThumbtack />
-                    </button>
+                      <button
+                        type="button"
+                        className={`profile-icon-pin${pinned ? " pinned" : ""}`}
+                        aria-label={
+                          pinned
+                            ? "Unpin from quick icons"
+                            : "Pin to quick icons"
+                        }
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleFeaturedIcon(option.value);
+                        }}
+                      >
+                        <FaThumbtack />
+                      </button>
+                    </Tooltip>
                   </div>
                 );
               })}
@@ -646,17 +654,18 @@ export default function ProfileIconPicker({
             </div>
 
             <div className="profile-icon-grid">
-              <button
-                type="button"
-                className="profile-icon-button profile-upload-tile"
-                title="Add custom icon"
-                aria-label="Add custom icon"
-                onClick={() => {
-                  void handlePickCustomIcon();
-                }}
-              >
-                <FaPlus />
-              </button>
+              <Tooltip content="Add custom icon">
+                <button
+                  type="button"
+                  className="profile-icon-button profile-upload-tile"
+                  aria-label="Add custom icon"
+                  onClick={() => {
+                    void handlePickCustomIcon();
+                  }}
+                >
+                  <FaPlus />
+                </button>
+              </Tooltip>
 
               {normalizedCustomProfileIcons.map((iconPath) => {
                 const isActiveCustom =
@@ -670,58 +679,60 @@ export default function ProfileIconPicker({
                     key={`popover-${iconPath}`}
                     className="profile-custom-icon-slot"
                   >
-                    <button
-                      type="button"
-                      className={`profile-icon-button${
-                        isActiveCustom ? " active" : ""
-                      }`}
-                      title="Use custom icon"
-                      onClick={() => {
-                        applyCustomIconSelection(iconPath, true);
-                      }}
-                    >
-                      <img
-                        className="profile-custom-icon"
-                        src={convertFileSrc(iconPath)}
-                        alt="Custom profile icon"
-                      />
-                    </button>
+                    <Tooltip content="Use custom icon">
+                      <button
+                        type="button"
+                        className={`profile-icon-button${
+                          isActiveCustom ? " active" : ""
+                        }`}
+                        aria-label="Use custom icon"
+                        onClick={() => {
+                          applyCustomIconSelection(iconPath, true);
+                        }}
+                      >
+                        <img
+                          className="profile-custom-icon"
+                          src={convertFileSrc(iconPath)}
+                          alt="Custom profile icon"
+                        />
+                      </button>
+                    </Tooltip>
 
-                    <button
-                      type="button"
-                      className={`profile-icon-pin profile-icon-pin-custom${
-                        pinnedCustom ? " pinned" : ""
-                      }`}
-                      title={
-                        pinnedCustom
-                          ? "Unpin from quick icons"
-                          : "Pin to quick icons"
-                      }
-                      aria-label={
-                        pinnedCustom
-                          ? "Unpin from quick icons"
-                          : "Pin to quick icons"
-                      }
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        toggleFeaturedCustomIcon(iconPath);
-                      }}
+                    <Tooltip
+                      content={pinnedCustom ? "Unpin from quick icons" : "Pin to quick icons"}
                     >
-                      <FaThumbtack />
-                    </button>
+                      <button
+                        type="button"
+                        className={`profile-icon-pin profile-icon-pin-custom${
+                          pinnedCustom ? " pinned" : ""
+                        }`}
+                        aria-label={
+                          pinnedCustom
+                            ? "Unpin from quick icons"
+                            : "Pin to quick icons"
+                        }
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleFeaturedCustomIcon(iconPath);
+                        }}
+                      >
+                        <FaThumbtack />
+                      </button>
+                    </Tooltip>
 
-                    <button
-                      type="button"
-                      className="profile-icon-delete"
-                      title="Delete custom icon"
-                      aria-label="Delete custom icon"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void handleDeleteCustomIcon(iconPath);
-                      }}
-                    >
-                      ×
-                    </button>
+                    <Tooltip content="Delete custom icon">
+                      <button
+                        type="button"
+                        className="profile-icon-delete"
+                        aria-label="Delete custom icon"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleDeleteCustomIcon(iconPath);
+                        }}
+                      >
+                        ×
+                      </button>
+                    </Tooltip>
                   </div>
                 );
               })}

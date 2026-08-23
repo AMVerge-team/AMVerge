@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { FaCog } from "react-icons/fa";
 import ImportButtons from "./ImportButtons";
+import Tooltip from "./common/Tooltip";
 import MainLayout from "../MainLayout";
 import { useUIStateStore } from "../stores/UIStore";
 
@@ -44,15 +45,16 @@ export default function GridPageLayout({
         >
           {infoText ? <span className="info-bar-filename">{infoText}</span> : null}
 
-          <button
-            type="button"
-            className="settings-gear-button"
-            onClick={() => openSettings()}
-            aria-label="Settings"
-            title="Settings"
-          >
-            <FaCog aria-hidden="true" />
-          </button>
+          <Tooltip content="Settings">
+            <button
+              type="button"
+              className="settings-gear-button"
+              onClick={() => openSettings()}
+              aria-label="Settings"
+            >
+              <FaCog aria-hidden="true" />
+            </button>
+          </Tooltip>
         </div>
       </div>
     </>

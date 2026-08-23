@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 
+import Tooltip from "./common/Tooltip";
 import { useAiDepsStore } from "../stores/aiDepsStore";
 import {
   AI_PACKS,
@@ -121,18 +122,22 @@ export default function AiInstallModal() {
           </span>
           <div className="pxm-actions">
             {stage === "installing" ? (
-              <button
-                type="button"
-                className="pxm-btn"
-                onClick={() => useAiDepsStore.getState().minimize()}
-                title="Minimize and run in background"
-              >
-                🗕
-              </button>
+              <Tooltip content="Minimize and run in background">
+                <button
+                  type="button"
+                  className="pxm-btn"
+                  onClick={() => useAiDepsStore.getState().minimize()}
+                  aria-label="Minimize and run in background"
+                >
+                  🗕
+                </button>
+              </Tooltip>
             ) : (
-              <button type="button" className="pxm-btn" onClick={close} title="Close">
-                ✕
-              </button>
+              <Tooltip content="Close">
+                <button type="button" className="pxm-btn" onClick={close} aria-label="Close">
+                  ✕
+                </button>
+              </Tooltip>
             )}
           </div>
         </header>
@@ -223,14 +228,15 @@ export default function AiInstallModal() {
             <div className="aid-buttons">
               {stage === "installing" ? (
                 <>
-                  <button
-                    type="button"
-                    className="aid-btn"
-                    onClick={() => useAiDepsStore.getState().minimize()}
-                    title="Keep downloading in the background"
-                  >
-                    Run in background
-                  </button>
+                  <Tooltip content="Keep downloading in the background">
+                    <button
+                      type="button"
+                      className="aid-btn"
+                      onClick={() => useAiDepsStore.getState().minimize()}
+                    >
+                      Run in background
+                    </button>
+                  </Tooltip>
                   <button type="button" className="aid-btn" onClick={cancel}>
                     Cancel
                   </button>

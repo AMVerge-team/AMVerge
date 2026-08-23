@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
+import Tooltip from "./common/Tooltip";
+
 type BgProgress = {
   clipDone?: number;
   clipTotal?: number;
@@ -135,15 +137,16 @@ export default function BgProgressBar({
       {!attached ? (
         <div className={`bg-progress-head${dragging ? " dragging" : ""}`} onPointerDown={handlePointerDown}>
           <span className="bg-progress-label header">Background tasks</span>
-          <button
-            type="button"
-            className="bg-progress-close"
-            onClick={onClose}
-            aria-label="Close processing indicator"
-            title="Close"
-          >
-            x
-          </button>
+          <Tooltip content="Close">
+            <button
+              type="button"
+              className="bg-progress-close"
+              onClick={onClose}
+              aria-label="Close processing indicator"
+            >
+              x
+            </button>
+          </Tooltip>
         </div>
       ) : null}
       {showClipProgress ? (
@@ -174,10 +177,10 @@ export default function BgProgressBar({
       ) : null}
 
       {showAiProgress ? (
+        <Tooltip content="Click to view full installation details">
         <div
           onClick={onAiClick}
           style={{ cursor: onAiClick ? "pointer" : "default", marginTop: 6 }}
-          title="Click to view full installation details"
         >
           <p className="bg-progress-label" style={{ display: "flex", justifyContent: "space-between" }}>
             <span>{aiLabel}</span>
@@ -187,6 +190,7 @@ export default function BgProgressBar({
             <div className="progress-fill" style={{ width: `${aiPercent}%` }} />
           </div>
         </div>
+        </Tooltip>
       ) : null}
     </div>
   );

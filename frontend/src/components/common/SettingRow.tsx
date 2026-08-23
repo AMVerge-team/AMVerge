@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import Tooltip from "./Tooltip";
+
 type SettingRowProps = {
   label: string;
   description: ReactNode;
@@ -15,12 +17,18 @@ export default function SettingRow({ label, description, control, info }: Settin
     <div className="export-setting-block">
       <div className="settings-row export-setting-row">
         <div className="setting-text">
+          {/* label and description are both clipped when the row is narrow, so
+              each carries its own full text on hover */}
           <div className="settings-label-row">
-            <label className="settings-label" title={label}>{label}</label>
+            <Tooltip content={label}>
+              <label className="settings-label">{label}</label>
+            </Tooltip>
             {info}
           </div>
           {description ? (
-            <p className="setting-description" title={descriptionTitle}>{description}</p>
+            <Tooltip content={descriptionTitle} maxWidth={320}>
+              <p className="setting-description">{description}</p>
+            </Tooltip>
           ) : null}
         </div>
         <div className="settings-control export-setting-control">{control}</div>

@@ -8,6 +8,7 @@ import {
   FaPencilAlt,
 } from "react-icons/fa";
 import Dropdown from "../common/Dropdown";
+import Tooltip from "../common/Tooltip";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { useAppPersistedStore } from "../../stores/appStore.ts";
 import { useUIStateStore } from "../../stores/UIStore.ts";
@@ -350,13 +351,15 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                 onChange={setActiveExportProfileId}
                 preferredDirection="down"
               />
-              <button
-                className="buttons export-dir-browse"
-                onClick={() => openSettings("export")}
-                title="Edit export settings"
-              >
-                <FaPencilAlt />
-              </button>
+              <Tooltip content="Edit export settings">
+                <button
+                  className="buttons export-dir-browse"
+                  onClick={() => openSettings("export")}
+                  aria-label="Edit export settings"
+                >
+                  <FaPencilAlt />
+                </button>
+              </Tooltip>
             </div>
           </div>
         </div>
@@ -372,13 +375,15 @@ export default function PreviewContainer(props: PreviewContainerProps) {
               value={exportDir || ""}
               onChange={(e) => setExportDir(e.target.value)}
             />
-            <button
-              className="buttons export-dir-browse"
-              onClick={handlePickExportDir}
-              title="Browse for output folder"
-            >
-              <FaFolderOpen />
-            </button>
+            <Tooltip content="Browse for output folder">
+              <button
+                className="buttons export-dir-browse"
+                onClick={handlePickExportDir}
+                aria-label="Browse for output folder"
+              >
+                <FaFolderOpen />
+              </button>
+            </Tooltip>
           </div>
         </div>
 
@@ -424,14 +429,21 @@ export default function PreviewContainer(props: PreviewContainerProps) {
           </div>
         </div>
 
-        <button
-          className="buttons export-main-button"
-          disabled={!hasSelectedClips}
-          onClick={onExportClick}
-          title={!hasSelectedClips ? "Select at least one clip to export" : "Export selected clips"}
+        {/* wrapper span: with no selection the button is disabled and fires no
+            pointer events, which is exactly when its hint matters most */}
+        <Tooltip
+          content={!hasSelectedClips ? "Select at least one clip to export" : "Export selected clips"}
         >
-          Export Now
-        </button>
+          <span className="tooltip-anchor export-main-anchor">
+            <button
+              className="buttons export-main-button"
+              disabled={!hasSelectedClips}
+              onClick={onExportClick}
+            >
+              Export Now
+            </button>
+          </span>
+        </Tooltip>
       </div>
 
       <HowToUse />

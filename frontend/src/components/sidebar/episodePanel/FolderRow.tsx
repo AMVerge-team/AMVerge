@@ -1,4 +1,5 @@
 import type React from "react";
+import Tooltip from "../../common/Tooltip";
 import type { EpisodePanelProps, PointerDragSource } from "../types";
 
 type Folder = EpisodePanelProps["episodeFolders"][number];
@@ -54,34 +55,41 @@ export default function FolderRow({
         },
       })}
       onContextMenu={(e) => openFolderContextMenu(folder.id, e)}
-      title={folder.name}
       style={{ paddingLeft: `${8 + depth * 12}px` }}
     >
-      <button
-        type="button"
-        className={
-          folder.isExpanded
-            ? "episode-panel-caret is-expanded"
-            : "episode-panel-caret"
-        }
-        draggable={false}
-        onPointerDown={(e) => {
-          e.stopPropagation();
-        }}
-        onMouseDown={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleFolderExpanded(folder.id);
-        }}
-        aria-label={folder.isExpanded ? "Collapse folder" : "Expand folder"}
+      <Tooltip
+        content={folder.isExpanded ? "Collapse folder" : "Expand folder"}
+        side="right"
       >
-        ▸
-      </button>
+        <button
+          type="button"
+          className={
+            folder.isExpanded
+              ? "episode-panel-caret is-expanded"
+              : "episode-panel-caret"
+          }
+          draggable={false}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+          }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFolderExpanded(folder.id);
+          }}
+          aria-label={folder.isExpanded ? "Collapse folder" : "Expand folder"}
+        >
+          ▸
+        </button>
+      </Tooltip>
 
-      <span className="episode-panel-folder-name">{folder.name}</span>
+      {/* on the name rather than the whole row, so the caret keeps its own hover */}
+      <Tooltip content={folder.name} side="right" maxWidth={280}>
+        <span className="episode-panel-folder-name">{folder.name}</span>
+      </Tooltip>
     </div>
   );
 }

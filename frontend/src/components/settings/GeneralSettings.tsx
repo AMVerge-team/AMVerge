@@ -14,6 +14,7 @@ import SettingRow from "../common/SettingRow";
 import Dropdown, { type DropdownOption } from "../common/Dropdown";
 import SettingsSection from "../common/SettingsSection";
 import InfoButton from "../common/InfoButton";
+import Tooltip from "../common/Tooltip";
 import { clearEpisodePanelCache } from "../../utils/episodeUtils";
 import { clearScenepacksStorage } from "../../utils/scenepackStorage";
 import { useScenepacksStore } from "../../stores/scenepackStore";
@@ -477,12 +478,14 @@ export default function GeneralSettings({
               >
                 {generalSettings.episodesPath ? "Change" : "Select Path"}
               </button>
-              <span
-                className="settings-path-value"
-                title={generalSettings.episodesPath || "Default (App Data)"}
+              <Tooltip
+                content={generalSettings.episodesPath || "Default (App Data)"}
+                maxWidth={360}
               >
-                {generalSettings.episodesPath || "Default (App Data)"}
-              </span>
+                <span className="settings-path-value">
+                  {generalSettings.episodesPath || "Default (App Data)"}
+                </span>
+              </Tooltip>
             </div>
           }
         />

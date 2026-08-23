@@ -1,6 +1,8 @@
 // episode Panel toolbar. Renders Sort, New Folder, and Delete-selected-episode actions.
 import { FaFolderPlus, FaSortAlphaDown, FaSortAlphaUp, FaTrashAlt } from "react-icons/fa";
 
+import Tooltip from "../../common/Tooltip";
+
 type EpisodePanelHeaderProps = {
   nextSortDirection: "asc" | "desc";
   setNextSortDirection: React.Dispatch<
@@ -42,42 +44,49 @@ export default function EpisodePanelHeader({
       <div className="episode-panel-title">Episode Panel</div>
 
       <div className="episode-panel-actions">
-        <button
-          type="button"
-          className="episode-panel-action icon-only"
-          onClick={() => {
-            onSortEpisodePanel(nextSortDirection);
+        <Tooltip content={sortLabel}>
+          <button
+            type="button"
+            className="episode-panel-action icon-only"
+            onClick={() => {
+              onSortEpisodePanel(nextSortDirection);
 
-            setNextSortDirection((prev) =>
-              prev === "asc" ? "desc" : "asc"
-            );
-          }}
-          title={sortLabel}
-          aria-label={sortLabel}
-        >
-          <SortIcon aria-hidden="true" />
-        </button>
+              setNextSortDirection((prev) =>
+                prev === "asc" ? "desc" : "asc"
+              );
+            }}
+            aria-label={sortLabel}
+          >
+            <SortIcon aria-hidden="true" />
+          </button>
+        </Tooltip>
 
-        <button
-          type="button"
-          className="episode-panel-action icon-only"
-          onClick={() => openNewFolderModal(null)}
-          title="New folder"
-          aria-label="New folder"
-        >
-          <FaFolderPlus aria-hidden="true" />
-        </button>
+        <Tooltip content="New folder">
+          <button
+            type="button"
+            className="episode-panel-action icon-only"
+            onClick={() => openNewFolderModal(null)}
+            aria-label="New folder"
+          >
+            <FaFolderPlus aria-hidden="true" />
+          </button>
+        </Tooltip>
 
-        <button
-          type="button"
-          className="episode-panel-action icon-only"
-          onClick={onDeleteSelectedEpisode}
-          disabled={deleteDisabled}
-          title={deleteLabel}
-          aria-label={deleteLabel}
-        >
-          <FaTrashAlt aria-hidden="true" />
-        </button>
+        {/* wrapper span: the delete action is disabled until something is
+            selected, and that is when its label is worth reading */}
+        <Tooltip content={deleteLabel}>
+          <span className="tooltip-anchor">
+            <button
+              type="button"
+              className="episode-panel-action icon-only"
+              onClick={onDeleteSelectedEpisode}
+              disabled={deleteDisabled}
+              aria-label={deleteLabel}
+            >
+              <FaTrashAlt aria-hidden="true" />
+            </button>
+          </span>
+        </Tooltip>
       </div>
     </div>
   );

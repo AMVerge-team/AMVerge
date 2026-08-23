@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { FaLayerGroup, FaSpinner } from "react-icons/fa";
+import Tooltip from "../common/Tooltip";
 import { useAppStateStore } from "../../stores/appStore";
 import { useUIStateStore } from "../../stores/UIStore";
 import { useGeneralSettingsStore } from "../../stores/settingsStore";
@@ -25,21 +26,23 @@ export function SelectionActionBar() {
         <span className="selection-action-bar-count">
           {selectedClips.size} selected
         </span>
-        <button
-          className="selection-action-bar-btn"
-          onClick={() => setShowModal(true)}
-          title="Add selected clips to Scenepack"
-        >
-          <FaLayerGroup />
-          <span>Add to Scenepack</span>
-        </button>
-        <button
-          className="selection-action-bar-btn"
-          onClick={() => setSelectedClips(new Set())}
-          title="Deselect all"
-        >
-          Clear
-        </button>
+        <Tooltip content="Add selected clips to Scenepack">
+          <button
+            className="selection-action-bar-btn"
+            onClick={() => setShowModal(true)}
+          >
+            <FaLayerGroup />
+            <span>Add to Scenepack</span>
+          </button>
+        </Tooltip>
+        <Tooltip content="Deselect all">
+          <button
+            className="selection-action-bar-btn"
+            onClick={() => setSelectedClips(new Set())}
+          >
+            Clear
+          </button>
+        </Tooltip>
       </div>
 
       {showModal && (

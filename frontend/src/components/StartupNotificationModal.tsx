@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
+import Tooltip from "./common/Tooltip";
+
 export type StartupNotification = {
   id: string;
   targetVersion?: string | null;
@@ -166,14 +168,16 @@ export default function StartupNotificationModal({
     <div className="startup-notification-overlay" role="dialog" aria-modal="true" aria-labelledby="startup-notification-title">
       <div className={`startup-notification-modal ${isUpdateMode ? "startup-notification-modal--update" : ""}`.trim()}>
         {isUpdateMode ? (
-          <button
-            type="button"
-            className="startup-notification-icon-close"
-            aria-label="Close notification"
-            onClick={() => onClose(false)}
-          >
-            x
-          </button>
+          <Tooltip content="Close">
+            <button
+              type="button"
+              className="startup-notification-icon-close"
+              aria-label="Close notification"
+              onClick={() => onClose(false)}
+            >
+              x
+            </button>
+          </Tooltip>
         ) : null}
         {bannerSrc ? (
           <img

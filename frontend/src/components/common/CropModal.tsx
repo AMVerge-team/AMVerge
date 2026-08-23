@@ -3,6 +3,8 @@ import ReactCrop, { centerCrop, makeAspectCrop, Crop, PixelCrop } from "react-im
 import { FaUndo, FaRedo, FaArrowsAltH, FaArrowsAltV, FaExpand, FaSyncAlt } from "react-icons/fa";
 import "react-image-crop/dist/ReactCrop.css";
 
+import Tooltip from "./Tooltip";
+
 type CropModalProps = {
   image: string;
   title?: string;
@@ -141,9 +143,11 @@ export default function CropModal({
             <FaExpand className="header-icon" />
             <h3>{title}</h3>
           </div>
-          <button className="reset-btn" onClick={handleReset} title="Reset all changes">
-            <FaSyncAlt /> Reset
-          </button>
+          <Tooltip content="Reset all changes">
+            <button className="reset-btn" onClick={handleReset}>
+              <FaSyncAlt /> Reset
+            </button>
+          </Tooltip>
         </div>
 
         <div className="crop-container-wrapper">
@@ -217,26 +221,36 @@ export default function CropModal({
           <div className="toolbar-section">
             <label>Rotate & Flip</label>
             <div className="transform-buttons">
-              <button className="toolbar-btn" onClick={() => setRotation((r) => r - 90)} title="Rotate Left">
-                <FaUndo />
-              </button>
-              <button className="toolbar-btn" onClick={() => setRotation((r) => r + 90)} title="Rotate Right">
-                <FaRedo />
-              </button>
-              <button
-                className={`toolbar-btn ${flip.horizontal ? "active" : ""}`}
-                onClick={() => setFlip((f) => ({ ...f, horizontal: !f.horizontal }))}
-                title="Flip Horizontal"
-              >
-                <FaArrowsAltH />
-              </button>
-              <button
-                className={`toolbar-btn ${flip.vertical ? "active" : ""}`}
-                onClick={() => setFlip((f) => ({ ...f, vertical: !f.vertical }))}
-                title="Flip Vertical"
-              >
-                <FaArrowsAltV />
-              </button>
+              <Tooltip content="Rotate left">
+                <button className="toolbar-btn" onClick={() => setRotation((r) => r - 90)} aria-label="Rotate left">
+                  <FaUndo />
+                </button>
+              </Tooltip>
+              <Tooltip content="Rotate right">
+                <button className="toolbar-btn" onClick={() => setRotation((r) => r + 90)} aria-label="Rotate right">
+                  <FaRedo />
+                </button>
+              </Tooltip>
+              <Tooltip content="Flip horizontal">
+                <button
+                  className={`toolbar-btn ${flip.horizontal ? "active" : ""}`}
+                  onClick={() => setFlip((f) => ({ ...f, horizontal: !f.horizontal }))}
+                  aria-label="Flip horizontal"
+                  aria-pressed={flip.horizontal}
+                >
+                  <FaArrowsAltH />
+                </button>
+              </Tooltip>
+              <Tooltip content="Flip vertical">
+                <button
+                  className={`toolbar-btn ${flip.vertical ? "active" : ""}`}
+                  onClick={() => setFlip((f) => ({ ...f, vertical: !f.vertical }))}
+                  aria-label="Flip vertical"
+                  aria-pressed={flip.vertical}
+                >
+                  <FaArrowsAltV />
+                </button>
+              </Tooltip>
             </div>
           </div>
 

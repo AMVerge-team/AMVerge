@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { FaChevronDown, FaChevronUp, FaQuestionCircle, FaWindows, FaApple } from "react-icons/fa";
 
+import Tooltip from "../common/Tooltip";
+
 type Platform = "windows" | "mac";
 
 const STEPS: Record<Platform, React.ReactNode[]> = {
@@ -29,9 +31,16 @@ export default function HowToUse() {
           <FaQuestionCircle className="info-icon" />
           <span className="info-title">HOW TO USE</span>
         </div>
-        <button className="info-toggle">
-          {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
-        </button>
+        <Tooltip content={isExpanded ? "Hide the guide" : "Show the guide"}>
+          <button
+            className="info-toggle"
+            type="button"
+            aria-label={isExpanded ? "Hide the guide" : "Show the guide"}
+            aria-expanded={isExpanded}
+          >
+            {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
+          </button>
+        </Tooltip>
       </div>
 
       {isExpanded && (

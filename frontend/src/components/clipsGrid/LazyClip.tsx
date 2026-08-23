@@ -8,6 +8,7 @@ import { memo, useState, useRef, useEffect, useCallback, useDeferredValue } from
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { LazyClipProps } from "./types.ts"
 import { DownloadButton } from "./DownloadButton.tsx";
+import Tooltip from "../common/Tooltip.tsx";
 import { useWebpPreview } from "./useWebpPreview.ts";
 import { FaCheck, FaPlus, FaLayerGroup, FaTrashAlt } from "react-icons/fa";
 import { useAppStateStore } from "../../stores/appStore.ts";
@@ -858,13 +859,15 @@ export const LazyClip = memo(function LazyClip({
         setIsVideoReady(false);
       }}
     >
-      <button
-        className={`clip-selected ${isSelected ? "active" : ""}`}
-        onClick={(e) => onToggleSelection(clip.id, e)}
-        title={isSelected ? "Deselect clip" : "Select clip"}
-      >
-        {isSelected ? <FaCheck /> : <FaPlus />}
-      </button>
+      <Tooltip content={isSelected ? "Deselect clip" : "Select clip"}>
+        <button
+          className={`clip-selected ${isSelected ? "active" : ""}`}
+          onClick={(e) => onToggleSelection(clip.id, e)}
+          aria-label={isSelected ? "Deselect clip" : "Select clip"}
+        >
+          {isSelected ? <FaCheck /> : <FaPlus />}
+        </button>
+      </Tooltip>
 
       {/* Content renders for every windowed tile — the virtualizer already limits
           mounting to near-viewport rows, so we don't gate the thumbnail behind the
@@ -1075,19 +1078,22 @@ export const LazyClip = memo(function LazyClip({
           )}
 
           {activePage === "home" && scenepacksEnabled && (
-            <button
-              className="clip-add-to-scenepack"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowScenepackModal(true);
-              }}
-              title="Add to Scenepack"
-            >
-              <FaLayerGroup />
-            </button>
+            <Tooltip content="Add to Scenepack">
+              <button
+                className="clip-add-to-scenepack"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowScenepackModal(true);
+                }}
+                aria-label="Add to Scenepack"
+              >
+                <FaLayerGroup />
+              </button>
+            </Tooltip>
           )}
 
           {activePage === "scenepacks" && (
+            <Tooltip content="Remove from Scenepack">
             <button
               className="clip-remove-from-scenepack"
               onClick={(e) => {
@@ -1100,10 +1106,11 @@ export const LazyClip = memo(function LazyClip({
                   { index: clip.sceneIndex ?? 0, clipPath: clip.clipPath },
                 ]);
               }}
-              title="Remove from Scenepack"
+              aria-label="Remove from Scenepack"
             >
               <FaTrashAlt />
             </button>
+            </Tooltip>
           )}
 
           {showScenepackModal && (
