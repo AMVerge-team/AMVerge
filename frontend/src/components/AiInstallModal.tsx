@@ -95,6 +95,19 @@ export default function AiInstallModal() {
     }
   }
 
+  // Extract speed (e.g. "24.5MB/s" or "12.3 MiB/s") and size (e.g. "450MB / 2.7GB") if present
+  let speedText: string | null = null;
+  let transferredText: string | null = null;
+
+  const matchSpeed = message.match(/(\d+(?:\.\d+)?\s*(?:MB|MiB|KB|KiB)\/s)/i);
+  if (matchSpeed) {
+    speedText = matchSpeed[1];
+  }
+  const matchTransferred = message.match(/(\d+(?:\.\d+)?\s*(?:GB|GiB|MB|MiB)\s*\/\s*\d+(?:\.\d+)?\s*(?:GB|GiB|MB|MiB))/i);
+  if (matchTransferred) {
+    transferredText = matchTransferred[1];
+  }
+
   return (
     <div className="pxm-overlay">
       <div className="pxm-modal aid-modal">
@@ -166,7 +179,13 @@ export default function AiInstallModal() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginBottom: 4 }}>
                 <span className="pxm-bar-label">Progress</span>
                 {stage === "installing" && (
-                  <div style={{ display: "flex", gap: 8, fontSize: "0.75rem", color: "rgba(255, 255, 255, 0.65)" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 10, fontSize: "0.75rem", color: "rgba(255, 255, 255, 0.65)" }}>
+                    {speedText && (
+                      <span>Speed: <strong style={{ color: "#38bdf8", fontFamily: "monospace" }}>{speedText}</strong></span>
+                    )}
+                    {transferredText && (
+                      <span>Size: <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{transferredText}</strong></span>
+                    )}
                     <span>Elapsed: <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{formatDuration(elapsed)}</strong></span>
                     <span>ETA: <strong style={{ color: "var(--accent)", fontFamily: "monospace" }}>{etaText}</strong></span>
                   </div>
