@@ -49,6 +49,14 @@ function App() {
   // Closing the card hides the preview counter for the rest of this episode;
   // the queue keeps filling the cache in the background.
   const webpLoadTotal = webpDismissed ? 0 : webpLoadTotalRaw;
+
+  const aiStage = useAiDepsStore((s) => s.stage);
+  const aiPercent = useAiDepsStore((s) => s.percent);
+  const aiModalOpen = useAiDepsStore((s) => s.open);
+  const aiPack = useAiDepsStore((s) => s.pack);
+  const aiInstalling = aiStage === "installing";
+  const aiPackName = aiPack ? (aiPack === "ml" ? "AI Scene Detection" : aiPack === "interpolation" ? "AI Interpolation" : aiPack === "depth" ? "Depth Maps" : "AI Models") : "AI Models";
+
   const sceneDetectionMethod = useGeneralSettingsStore((s) => s.sceneDetectionMethod);
   const importMethodSetting = useGeneralSettingsStore((s) => s.importMethod);
   const activeOperation = useAppStateStore((s) => s.activeOperation);
@@ -427,7 +435,7 @@ function App() {
               />
             }
           />
-        ) : (bgProgress || bgImportProgress || reencodeProgress || webpLoadTotal > 0) ? (
+        ) : (bgProgress || bgImportProgress || reencodeProgress || webpLoadTotal > 0 || (aiInstalling && !aiModalOpen)) ? (
           <BgProgressBar
             clipDone={(reencodeProgress ?? bgProgress)?.done ?? 0}
             clipTotal={(reencodeProgress ?? bgProgress)?.total ?? 0}
@@ -436,7 +444,16 @@ function App() {
             importTotal={bgImportProgress?.total ?? 0}
             webpDone={webpLoadDone}
             webpTotal={webpLoadTotal}
-            onClose={handleAbortAndCloseBgProgress}
+            aiDone={aiPercent}
+            aiTotal={aiInstalling && !aiModalOpen ? 100 : 0}
+            aiLabel={`Downloading ${aiPackName}`}
+            onAiClick={() => useAiDepsStore.getState().openModal()}
+            onClose={() => {
+              if (aiInstalling && !aiModalOpen) {
+                useAiDepsStore.getState().cancel();
+              }
+              handleAbortAndCloseBgProgress();
+            }}
           />
         ) : null
       }

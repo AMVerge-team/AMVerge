@@ -9,6 +9,10 @@ type BgProgress = {
   webpDone?: number;
   webpTotal?: number;
   webpLabel?: string;
+  aiDone?: number;
+  aiTotal?: number;
+  aiLabel?: string;
+  onAiClick?: () => void;
   onClose: () => void;
   /** Render inline (no fixed positioning, drag, or header) so a parent can
    * attach it below the minimized loading card. */
@@ -24,6 +28,10 @@ export default function BgProgressBar({
   webpDone = 0,
   webpTotal = 0,
   webpLabel = "Loading previews",
+  aiDone = 0,
+  aiTotal = 0,
+  aiLabel = "Installing AI models",
+  onAiClick,
   onClose,
   attached = false,
 }: BgProgress) {
@@ -35,9 +43,11 @@ export default function BgProgressBar({
   const clipPercent = clipTotal > 0 ? Math.round((clipDone / clipTotal) * 100) : 0;
   const importPercent = importTotal > 0 ? Math.round((importDone / importTotal) * 100) : 0;
   const webpPercent = webpTotal > 0 ? Math.round((webpDone / webpTotal) * 100) : 0;
+  const aiPercent = Math.min(100, Math.max(0, Math.round(aiDone)));
   const showClipProgress = clipTotal > 0;
   const showImportProgress = importTotal > 0;
   const showWebpProgress = webpTotal > 0;
+  const showAiProgress = aiTotal > 0;
 
   const clampPosition = (x: number, y: number) => {
     const element = containerRef.current;
@@ -161,6 +171,22 @@ export default function BgProgressBar({
             <div className="progress-fill" style={{ width: `${webpPercent}%` }} />
           </div>
         </>
+      ) : null}
+
+      {showAiProgress ? (
+        <div
+          onClick={onAiClick}
+          style={{ cursor: onAiClick ? "pointer" : "default", marginTop: 6 }}
+          title="Click to view full installation details"
+        >
+          <p className="bg-progress-label" style={{ display: "flex", justifyContent: "space-between" }}>
+            <span>{aiLabel}</span>
+            <strong style={{ color: "var(--accent)" }}>{aiPercent}%</strong>
+          </p>
+          <div className="progress-bar" style={{ width: "100%", marginTop: 4, marginLeft: 0, marginRight: 0 }}>
+            <div className="progress-fill" style={{ width: `${aiPercent}%` }} />
+          </div>
+        </div>
       ) : null}
     </div>
   );

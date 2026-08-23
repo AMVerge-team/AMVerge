@@ -42,6 +42,8 @@ export type AiDepsStore = {
   repairGpu: () => Promise<void>;
   cancel: () => void;
   close: () => void;
+  minimize: () => void;
+  openModal: () => void;
 
   // Driven by the Tauri event listeners in AiInstallModal.
   applyProgress: (percent: number, indeterminate: boolean, message: string) => void;
@@ -210,6 +212,14 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
   close: () => {
     settle(get().stage === "done");
     set({ open: false, pack: null });
+  },
+
+  minimize: () => {
+    set({ open: false });
+  },
+
+  openModal: () => {
+    set({ open: true });
   },
 
   applyProgress: (percent, indeterminate, message) =>

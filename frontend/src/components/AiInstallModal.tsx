@@ -119,13 +119,22 @@ export default function AiInstallModal() {
                 ? `${info.dependencyName} install failed`
                 : `${info.label}`}
           </span>
-          {stage !== "installing" ? (
-            <div className="pxm-actions">
+          <div className="pxm-actions">
+            {stage === "installing" ? (
+              <button
+                type="button"
+                className="pxm-btn"
+                onClick={() => useAiDepsStore.getState().minimize()}
+                title="Minimize and run in background"
+              >
+                🗕
+              </button>
+            ) : (
               <button type="button" className="pxm-btn" onClick={close} title="Close">
                 ✕
               </button>
-            </div>
-          ) : null}
+            )}
+          </div>
         </header>
 
         {stage === "confirm" ? (
@@ -213,9 +222,19 @@ export default function AiInstallModal() {
 
             <div className="aid-buttons">
               {stage === "installing" ? (
-                <button type="button" className="aid-btn" onClick={cancel}>
-                  Cancel
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="aid-btn"
+                    onClick={() => useAiDepsStore.getState().minimize()}
+                    title="Keep downloading in the background"
+                  >
+                    Run in background
+                  </button>
+                  <button type="button" className="aid-btn" onClick={cancel}>
+                    Cancel
+                  </button>
+                </>
               ) : (
                 <>
                   {stage === "error" ? (
