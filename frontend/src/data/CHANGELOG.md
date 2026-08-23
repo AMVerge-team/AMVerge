@@ -1,4 +1,4 @@
-# v2.0.1
+# v2.0.1b
 
 - Added interactive Show in Folder button on episode items with rounded border styling
 - Added Show in File Explorer option to the episode right-click context menu
@@ -17,7 +17,7 @@
 - Added collapsible release accordion cards to Update Logs
 - Added contributor avatars and profile links in Credits
 
-## v2.0.0 (Beta)
+## v2.0.0b
 
 - Complete recode of the app backend into a standalone CLI for better performance and memory management
 - Added AI Scene detection (TransNetV2, ~90% accuracy)
