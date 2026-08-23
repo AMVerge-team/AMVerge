@@ -81,7 +81,7 @@ export default function DependenciesSection() {
       <div className="about-content">
         <SettingRow
           label="AI features"
-          description="Everything else works out of the box. These features download what they need the first time you use them."
+          description="Everything else works out of the box. These features download what they need the first time you use them. For a 100% offline experience with everything pre-baked, you can also use the Full-CUDA.exe installer from GitHub Releases."
           control={
             <span className="settings-value" style={{ width: "auto" }}>
               {loading ? "checking…" : status?.envReady ? "installed" : "not installed"}
