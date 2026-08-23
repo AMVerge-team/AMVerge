@@ -15,6 +15,8 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
   const bgImportProgress = useAppStateStore((s: any) => s.bgImportProgress);
   const gridPreview = useUIStateStore((s: any) => s.gridPreview);
   const setGridPreview = useUIStateStore((s: any) => s.setGridPreview);
+  const previewCollapsed = useUIStateStore((s: any) => s.previewCollapsed);
+  const setPreviewCollapsed = useUIStateStore((s: any) => s.setPreviewCollapsed);
   const openedEpisodeId = useEpisodePanelRuntimeStore((s) => s.openedEpisodeId);
   const { onImportClick } = useImportExport();
 
@@ -94,6 +96,26 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
               <span>{selectedClips.size} selected</span>
             </div>
           </div>
+
+          {/* Right end of the row, over the pane it controls. `.grid-checkboxes`
+              is space-between, so this lands there on its own. */}
+          <Tooltip content={previewCollapsed ? "Show preview panel" : "Hide preview panel"} placement="bottom-end">
+            <button
+              type="button"
+              className={`import-button panel-toggle-button${previewCollapsed ? "" : " active"}`}
+              onClick={() => setPreviewCollapsed(!previewCollapsed)}
+              aria-label={previewCollapsed ? "Show preview panel" : "Hide preview panel"}
+              aria-pressed={!previewCollapsed}
+            >
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M15 3v18" />
+                {!previewCollapsed && (
+                  <rect x="15.9" y="4.9" width="4.2" height="14.2" rx="1" fill="currentColor" stroke="none" />
+                )}
+              </svg>
+            </button>
+          </Tooltip>
         </div>
       </main>
   )

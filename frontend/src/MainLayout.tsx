@@ -2,6 +2,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import ClipsContainer from "./components/clipsGrid/ClipsContainer";
 import PreviewContainer from "./components/previewPanel/PreviewContainer";
 import { useAppStateStore } from "./stores/appStore";
+import { useUIStateStore } from "./stores/UIStore";
+
+/** Drag the divider past this share of the width and the preview pane folds away. */
+const COLLAPSE_AT_PERCENT = 90;
 
 /**
  * `active` is false for a MainLayout whose page is mounted but hidden. HomePage
@@ -18,6 +22,10 @@ export default function MainLayout({
     active?: boolean;
 }) {
     const [leftWidth, setLeftWidth] = useState(65);
+    // Shared by both MainLayout instances (episodes + scenepacks) and persisted, so the
+    // pane stays where it was left across navigation and restarts.
+    const previewCollapsed = useUIStateStore(s => s.previewCollapsed);
+    const setPreviewCollapsed = useUIStateStore(s => s.setPreviewCollapsed);
     const focusedClip = useAppStateStore(s => s.focusedClip);
     const clips = useAppStateStore(s => s.clips);
 
@@ -47,6 +55,14 @@ export default function MainLayout({
         const onMouseMove = (ev: MouseEvent) => {
             const delta = ev.clientX - startX;
             const newPercent = ((startLeftWidth + delta) / totalWidth) * 100;
+            // Shoving the divider past the last stop folds the pane away, live. The
+            // listeners sit on the window, so the drag survives the divider unmounting
+            // and pulling back left brings the pane straight back.
+            if (newPercent >= COLLAPSE_AT_PERCENT) {
+                setPreviewCollapsed(true);
+                return;
+            }
+            setPreviewCollapsed(false);
             setLeftWidth(Math.min(85, Math.max(15, newPercent)));
         };
 
@@ -60,31 +76,37 @@ export default function MainLayout({
         window.addEventListener("mousemove", onMouseMove);
         window.addEventListener("mouseup", onMouseUp);
         resizeCleanupRef.current = onMouseUp;
-    }, [setLeftWidth]);
+    }, [setLeftWidth, setPreviewCollapsed]);
 
     return (
         <div className="main-layout-root" style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
             <div className="split-layout" style={{ flex: 1, minHeight: 0 }}>
                 <div
                     className={`left-pane ${intro ? "app-intro" : ""}`}
-                    style={{ width: `${leftWidth}%`, ...(intro ? { ["--intro-delay" as any]: "80ms" } : {}) }}
+                    style={{ width: previewCollapsed ? "100%" : `${leftWidth}%`, ...(intro ? { ["--intro-delay" as any]: "80ms" } : {}) }}
                 >
                     <ClipsContainer />
                 </div>
 
-                <div className="divider" onMouseDown={startHorizontalResize}>
-                    <span className="subdivider" />
-                    <span className="subdivider" />
-                </div>
+                {!previewCollapsed && (
+                    <div className="divider" onMouseDown={startHorizontalResize}>
+                        <span className="subdivider" />
+                        <span className="subdivider" />
+                    </div>
+                )}
 
+                {/* Kept mounted while collapsed: the pane holds the export settings, and
+                    `active={false}` is what actually stops the player — `display: none`
+                    alone does not. */}
                 <div
-                    className={`right-pane ${intro ? "app-intro" : ""}`}
-                    style={{ width: `${100 - leftWidth}%`, ...(intro ? { ["--intro-delay" as any]: "180ms" } : {}) }}
+                    className={`right-pane ${previewCollapsed ? "collapsed" : ""} ${intro ? "app-intro" : ""}`}
+                    style={{ width: previewCollapsed ? 0 : `${100 - leftWidth}%`, ...(intro ? { ["--intro-delay" as any]: "180ms" } : {}) }}
+                    aria-hidden={previewCollapsed}
                 >
                     <PreviewContainer
                         sourceClip={focusedClip}
                         sourceClipThumbnail={focusedClipThumbnail}
-                        active={active}
+                        active={active && !previewCollapsed}
                     />
                 </div>
             </div>

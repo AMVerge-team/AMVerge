@@ -77,6 +77,33 @@
     cursor: not-allowed;
 }
 
+/* Square icon button, same chrome again — this one is a toggle, so it also has
+   an on state rather than only a hover. */
+.panel-toggle-button {
+    width: 2rem;
+    min-width: 2rem;
+    margin-right: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border 0.2s ease,
+                box-shadow 0.2s ease,
+                color 0.2s ease,
+                background 0.2s ease;
+}
+
+.panel-toggle-button:hover {
+    box-shadow: 0 0 15px rgb(var(--accent-rgb) / 0.4);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+}
+
+.panel-toggle-button.active {
+    color: var(--accent);
+    background: rgb(var(--accent-rgb) / 0.12);
+}
+
 .refresh-icon.spinning {
     animation: spin 0.5s ease;
 }

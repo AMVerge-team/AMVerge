@@ -74,6 +74,13 @@
     min-width: 280px;
 }
 
+/* Folded away by the divider. `display: none` rather than a zero width, which the
+   min-width above would override. The pane stays mounted, so the export settings
+   keep their state. */
+.right-pane.collapsed {
+    display: none;
+}
+
 .divider {
     display: flex;
     flex-direction: row;

@@ -14,6 +14,7 @@ export type UIState = {
     settingsOpen: boolean;
     menuOpen: boolean;
     quickMenuOpen: boolean;
+    previewCollapsed: boolean;
 };
 
 export type UIStateStore = UIState & {
@@ -38,6 +39,7 @@ export type UIStateStore = UIState & {
     openMenu: () => void;
     closeMenu: () => void;
     setQuickMenuOpen: (open: boolean) => void;
+    setPreviewCollapsed: (collapsed: boolean) => void;
 };
 
 /** True while a full-screen modal covers the app, so previews can stand down. */
@@ -56,6 +58,7 @@ export const DEFAULT_UI_STATE: UIState = {
     settingsOpen: false,
     menuOpen: false,
     quickMenuOpen: false,
+    previewCollapsed: false,
 };
 
 export const useUIStateStore = create<UIStateStore>()(
@@ -110,6 +113,7 @@ export const useUIStateStore = create<UIStateStore>()(
             openMenu: () => set({ menuOpen: true, quickMenuOpen: false }),
             closeMenu: () => set({ menuOpen: false }),
             setQuickMenuOpen: (quickMenuOpen) => set({ quickMenuOpen }),
+            setPreviewCollapsed: (previewCollapsed) => set({ previewCollapsed }),
         }),
         {
             name: "amverge.ui.v1",
@@ -120,6 +124,7 @@ export const useUIStateStore = create<UIStateStore>()(
                 sidebarWidthPx: state.sidebarWidthPx,
                 cols: state.cols,
                 sidebarEnabled: state.sidebarEnabled,
+                previewCollapsed: state.previewCollapsed,
             }),
         }
     )
