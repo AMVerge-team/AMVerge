@@ -77,6 +77,8 @@ export default function EpisodeRow({
         <button
           type="button"
           className="episode-panel-import-icon episode-folder-btn"
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
           onClick={handleReveal}
           aria-label="Show in File Explorer"
         >
