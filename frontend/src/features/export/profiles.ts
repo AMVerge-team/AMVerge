@@ -125,9 +125,6 @@ export const EXPORT_AUDIO_OPTIONS: { value: ExportAudioMode; label: string }[] =
   { value: "aac_320", label: "AAC 320 kbps" },
   { value: "pcm16", label: "PCM 16-bit" },
   { value: "pcm24", label: "PCM 24-bit" },
-  { value: "flac", label: "FLAC lossless" },
-  { value: "alac", label: "ALAC lossless" },
-  { value: "opus", label: "Opus 160 kbps" },
   { value: "mp3", label: "MP3 320 kbps" },
   { value: "none", label: "No audio" },
 ];
