@@ -138,18 +138,6 @@ export default function AiInstallModal() {
                 </dd>
               </div>
             </dl>
-            <div style={{
-              marginTop: 10,
-              padding: "8px 12px",
-              borderRadius: 8,
-              background: "rgba(34, 197, 94, 0.08)",
-              border: "1px solid rgba(34, 197, 94, 0.25)",
-              fontSize: "0.78rem",
-              color: "rgba(255, 255, 255, 0.8)",
-              lineHeight: 1.4,
-            }}>
-              💡 <strong>Prefer 100% offline & instant setup?</strong> Download the optional <strong style={{ color: "var(--accent)" }}>Full-CUDA.exe</strong> release installer on GitHub with all AI models pre-installed.
-            </div>
             {status && !status.uvAvailable ? (
               <p className="pxm-errors">
                 The installer component is missing from this build, so AMVerge can't add the
