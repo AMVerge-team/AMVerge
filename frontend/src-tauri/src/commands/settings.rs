@@ -522,16 +522,20 @@ pub fn delete_profile_icon_file(app: tauri::AppHandle, icon_path: String) -> Res
 pub fn reveal_in_file_manager(file_path: String) -> Result<(), String> {
     let raw_path = PathBuf::from(file_path.trim());
     if !raw_path.exists() {
-        return Err("Exported file no longer exists on disk.".to_string());
+        return Err("Target file or directory does not exist on disk.".to_string());
     }
 
     let path = fs::canonicalize(&raw_path).unwrap_or(raw_path);
     let path_string = path.to_string_lossy().to_string();
 
-    Command::new("explorer")
-        .arg("/select,")
-        .arg(path_string)
-        .spawn()
+    let mut cmd = Command::new("explorer");
+    if path.is_dir() {
+        cmd.arg(&path_string);
+    } else {
+        cmd.arg("/select,").arg(&path_string);
+    }
+
+    cmd.spawn()
         .map_err(|e| format!("Failed to open Explorer: {e}"))?;
 
     Ok(())

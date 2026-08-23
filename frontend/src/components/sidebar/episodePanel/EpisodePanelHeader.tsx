@@ -1,7 +1,8 @@
-// episode Panel toolbar. Renders Sort, New Folder, and Delete-selected-episode actions.
-import { FaFolderPlus, FaSortAlphaDown, FaSortAlphaUp, FaTrashAlt } from "react-icons/fa";
+import { FaFolderOpen, FaFolderPlus, FaSortAlphaDown, FaSortAlphaUp, FaTrashAlt } from "react-icons/fa";
+import { invoke } from "@tauri-apps/api/core";
 
 import Tooltip from "../../common/Tooltip";
+import { useGeneralSettingsStore } from "../../../stores/settingsStore";
 
 type EpisodePanelHeaderProps = {
   nextSortDirection: "asc" | "desc";
@@ -27,6 +28,7 @@ export default function EpisodePanelHeader({
   multiSelectedCount,
   onDeleteSelectedEpisode,
 }: EpisodePanelHeaderProps) {
+  const episodesPath = useGeneralSettingsStore((s) => s.episodesPath);
   const sortLabel = nextSortDirection === "asc" ? "Sort A-Z" : "Sort Z-A";
   const SortIcon = nextSortDirection === "asc" ? FaSortAlphaDown : FaSortAlphaUp;
   const deleteDisabled =
@@ -38,6 +40,16 @@ export default function EpisodePanelHeader({
       : selectedEpisodeId
         ? "Delete selected episode"
         : "Delete selected folder";
+
+  const handleOpenStorage = async () => {
+    if (episodesPath) {
+      try {
+        await invoke("reveal_in_file_manager", { filePath: episodesPath });
+      } catch (err) {
+        console.warn("Could not reveal storage path:", err);
+      }
+    }
+  };
 
   return (
     <div className="episode-panel-header">
@@ -71,6 +83,19 @@ export default function EpisodePanelHeader({
             <FaFolderPlus aria-hidden="true" />
           </button>
         </Tooltip>
+
+        {episodesPath && (
+          <Tooltip content="Show in folder">
+            <button
+              type="button"
+              className="episode-panel-action icon-only"
+              onClick={handleOpenStorage}
+              aria-label="Show in folder"
+            >
+              <FaFolderOpen aria-hidden="true" />
+            </button>
+          </Tooltip>
+        )}
 
         {/* wrapper span: the delete action is disabled until something is
             selected, and that is when its label is worth reading */}

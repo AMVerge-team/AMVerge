@@ -23,6 +23,7 @@ type EpisodePanelContextMenusProps = {
   openRenameEpisodeModal: (episodeId: string) => void;
   openRenameFolderModal: (folderId: string) => void;
 
+  onRevealEpisode: (episodeId: string) => void | Promise<void>;
   onDeleteEpisode: (episodeId: string) => void | Promise<void>;
   onDeleteFolder: (folderId: string) => void;
   onMoveEpisodeToFolder: (episodeId: string, folderId: string | null) => void;
@@ -41,6 +42,7 @@ export default function EpisodePanelContextMenus({
   openNewFolderModal,
   openRenameEpisodeModal,
   openRenameFolderModal,
+  onRevealEpisode,
   onDeleteEpisode,
   onDeleteFolder,
   onMoveEpisodeToFolder,
@@ -111,6 +113,17 @@ export default function EpisodePanelContextMenus({
             </>
           ) : (
             <>
+              <button
+                type="button"
+                className="episode-context-menu-item"
+                onClick={() => {
+                  void onRevealEpisode(contextMenu.episodeId);
+                  setContextMenu(null);
+                }}
+              >
+                Show in File Explorer
+              </button>
+
               <button
                 type="button"
                 className="episode-context-menu-item"

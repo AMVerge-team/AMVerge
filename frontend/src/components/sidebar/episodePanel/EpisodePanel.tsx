@@ -199,6 +199,36 @@ export default function EpisodePanel() {
     handleOpenEpisode(lastOpenedEpisodeId);
   }, [episodes, openedEpisodeId, lastOpenedEpisodeId, handleOpenEpisode]);
 
+  const handleRevealEpisode = async (episodeId: string) => {
+    const ep = episodes.find((e) => e.id === episodeId);
+    if (!ep) return;
+
+    // Check if any clip has an absolute path on disk to reveal its episode folder
+    const firstClip = ep.clips?.[0];
+    const samplePath = firstClip?.clipPath || firstClip?.src || firstClip?.thumbnail;
+
+    if (samplePath && (samplePath.includes("/") || samplePath.includes("\\"))) {
+      const parts = samplePath.replace(/\\/g, "/").split("/");
+      parts.pop(); // remove clip file name to get episode folder directory
+      const episodeDir = parts.join("/");
+      try {
+        await invoke("reveal_in_file_manager", { filePath: episodeDir });
+        return;
+      } catch (err) {
+        console.warn("Could not reveal episode directory:", err);
+      }
+    }
+
+    // Fallback: reveal the original video file if present
+    if (ep.videoPath) {
+      try {
+        await invoke("reveal_in_file_manager", { filePath: ep.videoPath });
+      } catch (err) {
+        console.warn("Could not reveal video path:", err);
+      }
+    }
+  };
+
   const {
     contextMenu,
     setContextMenu,
@@ -449,6 +479,7 @@ export default function EpisodePanel() {
           openNewFolderModal={openNewFolderModal}
           openRenameEpisodeModal={openRenameEpisodeModal}
           openRenameFolderModal={openRenameFolderModal}
+          onRevealEpisode={handleRevealEpisode}
           onDeleteEpisode={(id) => {
             if (multiSelectedIds.size > 1 && multiSelectedIds.has(id)) {
               confirmDeleteEpisodes([...multiSelectedIds]);
