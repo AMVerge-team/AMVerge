@@ -4,6 +4,7 @@ pub mod deps;
 pub mod discord;
 pub mod editor_import;
 pub mod export;
+pub mod extension_sync;
 pub mod models;
 pub mod notifications;
 pub mod preview;

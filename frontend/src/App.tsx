@@ -20,6 +20,7 @@ import useHEVCSupport from "./hooks/useHEVCSupport";
 import useDragDropImport from "./hooks/useDragDropImport";
 import useImportExport from "./hooks/useImportExport";
 import useStartupUpdateNotification from "./hooks/useStartupUpdateNotification";
+import useExtensionSync from "./hooks/useExtensionSync";
 
 import { remapClipPaths, remapPathRoot } from "./utils/episodeUtils";
 import { useScenePreviewStore } from "./stores/scenePreviewStore";
@@ -107,6 +108,7 @@ function App() {
   const [startupNotification, setStartupNotification] = useState<StartupNotification | null>(null);
   const [showStartupNotification, setShowStartupNotification] = useState(false);
   const startupUpdateNotification = useStartupUpdateNotification();
+  useExtensionSync();
 
   const parseThumbnailProgress = (message: string): { done: number; total: number } | null => {
     const match = message.match(/generating thumbnails\.\.\.\s*(\d+)\s*\/\s*(\d+)/i);
