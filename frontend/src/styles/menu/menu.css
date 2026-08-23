@@ -403,6 +403,71 @@
     padding-top: 8px;
 }
 
+/* BUG REPORT ALTERNATIVE REPORTING BANNER */
+.bugreport-alt-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 18px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    flex-wrap: wrap;
+}
+
+.bugreport-alt-text {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.4;
+}
+
+.bugreport-alt-icon {
+    font-size: 1rem;
+    color: var(--accent);
+    flex-shrink: 0;
+}
+
+.bugreport-alt-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.bugreport-alt-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.bugreport-alt-btn.discord:hover {
+    background: #5865F2;
+    border-color: #5865F2;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 0 10px rgba(88, 101, 242, 0.4);
+}
+
+.bugreport-alt-btn.github:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
 /* CREDITS PAGE MODERN REDESIGN */
 .credits-grid {
     display: grid;

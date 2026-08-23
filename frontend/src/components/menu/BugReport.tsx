@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-shell";
 import { useEffect, useMemo, useState, type SubmitEvent } from "react";
 import {
   getConsoleLogsSnapshot,
@@ -14,6 +15,9 @@ import {
   FaFileVideo,
   FaDesktop,
   FaImage,
+  FaDiscord,
+  FaGithub,
+  FaInfoCircle,
 } from "react-icons/fa";
 
 const ENABLE_SUBMIT_COOLDOWN = false;
@@ -252,6 +256,33 @@ export default function BugReport() {
         <p className="about-hero-subtitle">
           Found an error or unexpected behavior? Submit details directly to the AMVerge team.
         </p>
+      </div>
+
+      <div className="bugreport-alt-banner">
+        <div className="bugreport-alt-text">
+          <FaInfoCircle className="bugreport-alt-icon" />
+          <span>
+            Prefer reporting directly? You can also open an issue on GitHub or chat with us in our Discord server:
+          </span>
+        </div>
+        <div className="bugreport-alt-buttons">
+          <button
+            type="button"
+            className="bugreport-alt-btn discord"
+            onClick={() => void open("https://discord.gg/bmXjTgsAaN")}
+          >
+            <FaDiscord style={{ marginRight: 6, fontSize: "0.95rem" }} />
+            Discord Community
+          </button>
+          <button
+            type="button"
+            className="bugreport-alt-btn github"
+            onClick={() => void open("https://github.com/AMVerge-team/AMVerge/issues")}
+          >
+            <FaGithub style={{ marginRight: 6, fontSize: "0.95rem" }} />
+            GitHub Issues
+          </button>
+        </div>
       </div>
 
       <form onSubmit={onSubmit} className="bugreport-grid">
