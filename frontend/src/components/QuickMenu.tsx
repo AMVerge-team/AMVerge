@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { FaBars, FaCog, FaTimes } from "react-icons/fa";
+import { open as openUrl } from "@tauri-apps/plugin-shell";
+import { FaBars, FaCog, FaTimes, FaDiscord, FaGithub } from "react-icons/fa";
 import Tooltip from "./common/Tooltip";
 import { useUIStateStore } from "../stores/UIStore";
 
@@ -98,6 +99,31 @@ export default function QuickMenu() {
                 General options, export profiles, appearance, and AI models
               </span>
             </div>
+          </button>
+        </div>
+
+        <div className="quick-menu-footer">
+          <button
+            type="button"
+            className="quick-menu-footer-btn discord"
+            onClick={() => {
+              setQuickMenuOpen(false);
+              void openUrl("https://discord.gg/bmXjTgsAaN");
+            }}
+          >
+            <FaDiscord style={{ marginRight: 6, fontSize: "0.95rem" }} />
+            Discord
+          </button>
+          <button
+            type="button"
+            className="quick-menu-footer-btn github"
+            onClick={() => {
+              setQuickMenuOpen(false);
+              void openUrl("https://github.com/AMVerge-team/AMVerge");
+            }}
+          >
+            <FaGithub style={{ marginRight: 6, fontSize: "0.95rem" }} />
+            GitHub
           </button>
         </div>
       </div>
