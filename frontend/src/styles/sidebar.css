@@ -263,37 +263,42 @@ body.is-resizing-sidebar {
     white-space: nowrap;
 }
 
-/* Import-method badge, pinned right of the name (the name is flex:1, so it
-   takes the remaining space and pushes this to the edge). Sits at reduced
-   opacity so it reads as metadata, and brightens with the row states. */
 .episode-panel-import-icon {
     flex: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 24px;
+    height: 24px;
     color: var(--accent);
-    opacity: 0.65;
-    font-size: 13px;
-    background: transparent;
-    border: none;
-    padding: 3px 5px;
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    font-size: 11px;
     cursor: pointer;
     transition: all 0.15s ease;
+    opacity: 0.75;
 }
 
 .episode-panel-import-icon:hover {
-    background: rgba(var(--accent-rgb), 0.2);
-    color: #ffffff;
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000000;
     opacity: 1;
-    transform: scale(1.1);
+    box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.4);
+    transform: translateY(-1px);
+}
+
+.episode-panel-import-icon:active {
+    transform: translateY(0);
 }
 
 .episode-panel-row:hover .episode-panel-import-icon,
 .episode-panel-row.is-open .episode-panel-import-icon,
 .episode-panel-row.is-focused .episode-panel-import-icon,
 .episode-panel-row.is-multi-selected .episode-panel-import-icon {
-    opacity: 0.9;
+    opacity: 1;
+    border-color: rgba(var(--accent-rgb), 0.35);
 }
 
 .episode-panel-count {

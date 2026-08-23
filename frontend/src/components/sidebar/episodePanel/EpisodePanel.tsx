@@ -16,6 +16,8 @@ import useEpisodePanelState from "../../../hooks/useEpisodePanelState";
 import useImportExport from "../../../hooks/useImportExport";
 
 import { useEpisodePanelMetadataStore, useEpisodePanelRuntimeStore } from "../../../stores/episodeStore";
+import { useGeneralSettingsStore } from "../../../stores/settingsStore";
+import { invoke } from "@tauri-apps/api/core";
 
 export default function EpisodePanel() {
   const panelListRef = useRef<HTMLDivElement | null>(null);
