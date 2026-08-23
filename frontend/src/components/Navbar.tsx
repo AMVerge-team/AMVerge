@@ -1,7 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Tooltip from "./common/Tooltip";
 import { useUIStateStore } from "../stores/UIStore";
+import { useAppStateStore } from "../stores/appStore";
+import { useEpisodePanelRuntimeStore, useEpisodePanelMetadataStore } from "../stores/episodeStore";
+import { useGeneralSettingsStore } from "../stores/settingsStore";
+import { useAiDepsStore } from "../stores/aiDepsStore";
 import { open } from "@tauri-apps/plugin-shell";
+import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 type NavbarProps = {
@@ -13,8 +18,23 @@ type NavbarProps = {
 export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProps ) {
     const cols = useUIStateStore((s: any) => s.cols);
     const setCols = useUIStateStore((s: any) => s.setCols);
+    const setActivePage = useUIStateStore((s: any) => s.setActivePage);
+
+    const clips = useAppStateStore(s => s.clips);
+    const selectedClips = useAppStateStore(s => s.selectedClips);
+    const openedEpisodeId = useEpisodePanelRuntimeStore(s => s.openedEpisodeId);
+    const episodes = useEpisodePanelRuntimeStore(s => s.episodes);
+    const episodeNamesById = useEpisodePanelMetadataStore(s => s.episodeNamesById);
+    const episodesPath = useGeneralSettingsStore(s => s.episodesPath);
+    const sceneDetectionMethod = useGeneralSettingsStore(s => s.sceneDetectionMethod);
+    const aiStatus = useAiDepsStore(s => s.status);
+    const refreshAiStatus = useAiDepsStore(s => s.refresh);
 
     const [isMaximized, setIsMaximized] = useState(false);
+
+    useEffect(() => {
+        void refreshAiStatus();
+    }, [refreshAiStatus]);
 
     useEffect(() => {
         const appWindow = getCurrentWindow();
@@ -32,12 +52,36 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
         return () => unlisten?.();
     }, []);
 
+    const activeEpisode = useMemo(() => {
+        if (!openedEpisodeId) return null;
+        return episodes.find(ep => ep.id === openedEpisodeId) ?? null;
+    }, [openedEpisodeId, episodes]);
+
+    const activeEpisodeName = useMemo(() => {
+        if (!activeEpisode) return null;
+        return episodeNamesById[activeEpisode.id] || activeEpisode.name || "Untitled Episode";
+    }, [activeEpisode, episodeNamesById]);
+
+    const isTransNet = sceneDetectionMethod === "transnetv2_gpu";
+    const gpuName = aiStatus?.gpuName;
+    const isCudaReady = aiStatus?.torchVariant?.includes("cu") || (aiStatus?.hasNvidiaGpu && isTransNet);
+
     const handleBigger = () => setCols(Math.max(1, cols - 1));
     const handleSmaller = () => setCols(Math.min(12, cols + 1));
 
     const handleMinimize = () => void getCurrentWindow().minimize();
     const handleToggleMaximize = () => void getCurrentWindow().toggleMaximize();
     const handleClose = () => void getCurrentWindow().close();
+
+    const handleOpenStorage = async () => {
+        if (episodesPath) {
+            try {
+                await invoke("reveal_in_file_manager", { path: episodesPath });
+            } catch (err) {
+                console.warn("Could not reveal storage path:", err);
+            }
+        }
+    };
 
     return (
         <div className="navbar" data-tauri-drag-region>
@@ -76,50 +120,119 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
                     </svg>
                 </a>
                 </Tooltip>
+
+                {activeEpisodeName && (
+                    <div className="navbar-breadcrumb" data-tauri-drag-region>
+                        <span className="breadcrumb-divider">/</span>
+                        <span className="breadcrumb-pill" title={activeEpisodeName}>
+                            <svg className="breadcrumb-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polygon points="5 3 19 12 5 21 5 3" fill="currentColor" fillOpacity="0.25" />
+                            </svg>
+                            <span className="breadcrumb-text">{activeEpisodeName}</span>
+                            {clips.length > 0 && <span className="breadcrumb-count">{clips.length}</span>}
+                        </span>
+                    </div>
+                )}
             </div>
 
-            <div className="zoomWrapper">
-                <span>Grid: {cols} columns</span>
-                <form>
-                <Tooltip content="Bigger tiles, fewer columns" side="bottom">
-                    <button type="button" onClick={handleBigger} aria-label="Bigger tiles, fewer columns">-</button>
-                </Tooltip>
-                <Tooltip content="Smaller tiles, more columns" side="bottom">
-                    <button type="button" onClick={handleSmaller} aria-label="Smaller tiles, more columns">+</button>
-                </Tooltip>
-                </form>
+            <div className="navbar-center" data-tauri-drag-region>
+                <div className="zoomWrapper">
+                    <Tooltip content="Bigger tiles, fewer columns" side="bottom">
+                        <button type="button" className="zoom-btn" onClick={handleBigger} aria-label="Bigger tiles, fewer columns">
+                            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                <line x1="3" y1="8" x2="13" y2="8" />
+                            </svg>
+                        </button>
+                    </Tooltip>
+                    <span className="zoom-label">Grid: <strong>{cols}</strong> cols</span>
+                    <Tooltip content="Smaller tiles, more columns" side="bottom">
+                        <button type="button" className="zoom-btn" onClick={handleSmaller} aria-label="Smaller tiles, more columns">
+                            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                <line x1="8" y1="3" x2="8" y2="13" />
+                                <line x1="3" y1="8" x2="13" y2="8" />
+                            </svg>
+                        </button>
+                    </Tooltip>
+                </div>
+
+                {clips.length > 0 && (
+                    <div className="navbar-selection-badge">
+                        <span className="selection-badge-dot" />
+                        <span className="selection-badge-text">
+                            <strong>{selectedClips.size}</strong> / {clips.length} selected
+                        </span>
+                    </div>
+                )}
             </div>
 
-            {/* window controls sit against the top-right corner: anchoring the
-                bubbles below and right-aligned keeps them off both edges */}
             <div className="window-controls">
+                {/* Engine / AI Detection & GPU Pill */}
+                <Tooltip
+                    content={
+                        isTransNet
+                            ? `TransNetV2 (AI GPU Detection) • ${gpuName || "CUDA Enabled"}`
+                            : "Keyframe Detection (Fast CPU Demux) • Click to open Settings"
+                    }
+                    placement="bottom"
+                >
+                    <div
+                        className={`navbar-engine-pill ${isTransNet ? "ai" : "keyframe"}`}
+                        onClick={() => setActivePage("settings")}
+                        role="button"
+                        tabIndex={0}
+                    >
+                        <span className={`engine-dot ${isTransNet && isCudaReady ? "active" : ""}`} />
+                        <span className="engine-label">
+                            {isTransNet ? "AI TransNetV2" : "Keyframe Split"}
+                        </span>
+                        {isTransNet && isCudaReady && (
+                            <span className="engine-cuda-tag">CUDA</span>
+                        )}
+                    </div>
+                </Tooltip>
+
+                {episodesPath && (
+                    <Tooltip content="Open episodes storage folder" placement="bottom">
+                        <button
+                            type="button"
+                            className="window-control folder-btn"
+                            onClick={handleOpenStorage}
+                            aria-label="Open episodes storage folder"
+                        >
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                            </svg>
+                        </button>
+                    </Tooltip>
+                )}
+
                 <Tooltip content="Minimize" placement="bottom-end">
                     <button
                         type="button"
-                        className="window-control"
+                        className="window-control minimize"
                         onClick={handleMinimize}
                         aria-label="Minimize"
                     >
-                        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round">
-                            <line x1="0" y1="5" x2="10" y2="5" />
+                        <svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                            <line x1="1" y1="6" x2="11" y2="6" />
                         </svg>
                     </button>
                 </Tooltip>
                 <Tooltip content={isMaximized ? "Restore" : "Maximize"} placement="bottom-end">
                     <button
                         type="button"
-                        className="window-control"
+                        className="window-control maximize"
                         onClick={handleToggleMaximize}
                         aria-label={isMaximized ? "Restore" : "Maximize"}
                     >
                         {isMaximized ? (
-                            <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1">
-                                <rect x="0.5" y="0.5" width="7" height="7" />
-                                <rect x="2.5" y="2.5" width="7" height="7" />
+                            <svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.2">
+                                <rect x="3" y="1" width="8" height="8" rx="1.5" />
+                                <path d="M1 4v6a1 1 0 0 0 1 1h6" strokeLinecap="round" />
                             </svg>
                         ) : (
-                            <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1">
-                                <rect x="0.5" y="0.5" width="9" height="9" />
+                            <svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.2">
+                                <rect x="1.5" y="1.5" width="9" height="9" rx="2" />
                             </svg>
                         )}
                     </button>
@@ -131,13 +244,13 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
                         onClick={handleClose}
                         aria-label="Close"
                     >
-                        <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round">
-                            <line x1="1" y1="1" x2="9" y2="9" />
-                            <line x1="9" y1="1" x2="1" y2="9" />
+                        <svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                            <line x1="2" y1="2" x2="10" y2="10" />
+                            <line x1="10" y1="2" x2="2" y2="10" />
                         </svg>
                     </button>
                 </Tooltip>
             </div>
         </div>
-    )
+    );
 }
