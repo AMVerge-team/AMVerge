@@ -59,7 +59,13 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
 
     const activeEpisodeName = useMemo(() => {
         if (!activeEpisode) return null;
-        return episodeNamesById[activeEpisode.id] || activeEpisode.name || "Untitled Episode";
+        if (episodeNamesById[activeEpisode.id]) return episodeNamesById[activeEpisode.id];
+        if (activeEpisode.displayName) return activeEpisode.displayName;
+        if (activeEpisode.videoPath) {
+            const raw = activeEpisode.videoPath.split(/[/\\]/).pop() || "";
+            return raw.replace(/\.[^/.]+$/, "") || raw;
+        }
+        return activeEpisode.id || "Episode";
     }, [activeEpisode, episodeNamesById]);
 
     const isTransNet = sceneDetectionMethod === "transnetv2_gpu";
@@ -177,17 +183,14 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
                 >
                     <div
                         className={`navbar-engine-pill ${isTransNet ? "ai" : "keyframe"}`}
-                        onClick={() => setActivePage("settings")}
+                        onClick={() => useUIStateStore.getState().openSettings("general")}
                         role="button"
                         tabIndex={0}
                     >
-                        <span className={`engine-dot ${isTransNet && isCudaReady ? "active" : ""}`} />
+                        <span className={`engine-dot ${isTransNet ? "active" : ""}`} />
                         <span className="engine-label">
-                            {isTransNet ? "AI TransNetV2" : "Keyframe Split"}
+                            {isTransNet ? (isCudaReady ? "TransNetV2 (GPU)" : "TransNetV2 (CPU)") : "Keyframe Detection"}
                         </span>
-                        {isTransNet && isCudaReady && (
-                            <span className="engine-cuda-tag">CUDA</span>
-                        )}
                     </div>
                 </Tooltip>
 

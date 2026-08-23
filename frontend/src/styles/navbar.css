@@ -241,10 +241,10 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 3px 9px;
+    padding: 3px 10px;
     background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
     cursor: pointer;
     user-select: none;
     transition: all 0.2s ease;
@@ -253,17 +253,17 @@
 
 .navbar-engine-pill:hover {
     background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(var(--accent-rgb), 0.35);
+    border-color: rgba(var(--accent-rgb), 0.4);
 }
 
 .navbar-engine-pill.ai {
-    border-color: rgba(var(--accent-rgb), 0.25);
-    background: rgba(var(--accent-rgb), 0.06);
+    border-color: rgba(var(--accent-rgb), 0.3);
+    background: rgba(var(--accent-rgb), 0.08);
 }
 
 .navbar-engine-pill.ai:hover {
     border-color: var(--accent);
-    background: rgba(var(--accent-rgb), 0.12);
+    background: rgba(var(--accent-rgb), 0.15);
 }
 
 .engine-dot {
@@ -279,22 +279,10 @@
 }
 
 .engine-label {
-    font-size: 0.76rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.85);
-    letter-spacing: 0.3px;
+    color: rgba(255, 255, 255, 0.9);
     white-space: nowrap;
-}
-
-.engine-cuda-tag {
-    font-size: 0.65rem;
-    font-weight: 800;
-    color: #000000;
-    background: var(--accent);
-    padding: 0 4px;
-    border-radius: 3px;
-    letter-spacing: 0.5px;
-    line-height: 1.2;
 }
 
 /* WINDOW CONTROLS: MODERN FLOATING PILL BUTTONS */
