@@ -230,6 +230,19 @@ fn compute_status(app: &AppHandle) -> Result<AiEnvStatus, String> {
             }
         });
         env_cli_version = installed.get("amverge").cloned();
+    } else if let Ok(dir) = sidecar_dir(app) {
+        // If the standalone AI env is not provisioned, check if this is the
+        // pre-bundled Full CUDA build (torch and transnet in sidecar _internal).
+        let internal = dir.join("_internal");
+        let has_bundled_torch = internal.join("torch").is_dir()
+            || internal.join("torch-bin").is_dir()
+            || internal.join("transnetv2_pytorch").is_dir();
+
+        if has_bundled_torch {
+            packs.insert("ml".to_string(), true);
+            torch_version = Some("bundled".to_string());
+            torch_variant = Some("cuda".to_string());
+        }
     }
 
     let env_size_bytes = if env_ready {
