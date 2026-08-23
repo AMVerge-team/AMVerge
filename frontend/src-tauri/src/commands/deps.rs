@@ -118,6 +118,7 @@ fn uv_command(app: &AppHandle) -> Result<Command, String> {
     cmd.env("UV_PYTHON_INSTALL_DIR", uv_python_dir(app)?);
     cmd.env("UV_CACHE_DIR", uv_cache_dir(app)?);
     cmd.env("UV_PYTHON_PREFERENCE", "only-managed");
+    cmd.env("UV_CONCURRENT_DOWNLOADS", "8");
     Ok(cmd)
 }
 
