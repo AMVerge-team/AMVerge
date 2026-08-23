@@ -15,6 +15,7 @@ export type UIState = {
     menuOpen: boolean;
     quickMenuOpen: boolean;
     previewCollapsed: boolean;
+    pinned: boolean;
 };
 
 export type UIStateStore = UIState & {
@@ -40,6 +41,7 @@ export type UIStateStore = UIState & {
     closeMenu: () => void;
     setQuickMenuOpen: (open: boolean) => void;
     setPreviewCollapsed: (collapsed: boolean) => void;
+    togglePinned: () => void;
 };
 
 /** True while a full-screen modal covers the app, so previews can stand down. */
@@ -59,6 +61,7 @@ export const DEFAULT_UI_STATE: UIState = {
     menuOpen: false,
     quickMenuOpen: false,
     previewCollapsed: false,
+    pinned: false,
 };
 
 export const useUIStateStore = create<UIStateStore>()(
@@ -114,6 +117,7 @@ export const useUIStateStore = create<UIStateStore>()(
             closeMenu: () => set({ menuOpen: false }),
             setQuickMenuOpen: (quickMenuOpen) => set({ quickMenuOpen }),
             setPreviewCollapsed: (previewCollapsed) => set({ previewCollapsed }),
+            togglePinned: () => set((state) => ({ pinned: !state.pinned })),
         }),
         {
             name: "amverge.ui.v1",
@@ -125,6 +129,9 @@ export const useUIStateStore = create<UIStateStore>()(
                 cols: state.cols,
                 sidebarEnabled: state.sidebarEnabled,
                 previewCollapsed: state.previewCollapsed,
+                // always-on-top outlives a restart; the Tauri window state does not,
+                // so Navbar re-applies it on mount
+                pinned: state.pinned,
             }),
         }
     )

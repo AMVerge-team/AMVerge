@@ -59,6 +59,8 @@ export type GeneralSettings = {
     previewTranscodeQuality: PreviewTranscodeQuality;
     postExportPasses: PostExportPasses;
     scenepacksEnabled: boolean;
+    davinciResolveEnabled: boolean;
+    davinciExportSelected: boolean;
 };
 
 export type GeneralSettingsStore = GeneralSettings & {
@@ -83,6 +85,8 @@ export type GeneralSettingsStore = GeneralSettings & {
     setRpcShowButtons: (enabled: boolean) => void;
     setRpcShowMiniIcons: (enabled: boolean) => void;
     setScenepacksEnabled: (enabled: boolean) => void;
+    setDavinciResolveEnabled: (enabled: boolean) => void;
+    setDavinciExportSelected: (selected: boolean) => void;
     resetGeneralSettings: () => void;
     setSceneDetectionMethod: (method: SceneDetectionMethod) => void;
     setImportMethod: (method: importMethod) => void;
@@ -120,6 +124,8 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     previewTranscodeQuality: "480p",
     postExportPasses: DEFAULT_POST_EXPORT_PASSES,
     scenepacksEnabled: false,
+    davinciResolveEnabled: false,
+    davinciExportSelected: false,
 };
 
 export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
@@ -243,6 +249,10 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                 set({ rpcShowMiniIcons: enabled }),
             setScenepacksEnabled: (enabled) =>
                 set({ scenepacksEnabled: enabled }),
+            setDavinciResolveEnabled: (enabled) =>
+                set({ davinciResolveEnabled: enabled }),
+            setDavinciExportSelected: (selected) =>
+                set({ davinciExportSelected: selected }),
             
             resetGeneralSettings: () => set(DEFAULT_GENERAL_SETTINGS),
             updatePostExportPasses: (pass, changes) =>

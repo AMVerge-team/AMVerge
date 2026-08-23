@@ -329,6 +329,18 @@
     background: rgba(var(--accent-rgb), 0.1);
 }
 
+.window-control.pin-btn.pinned {
+    color: var(--accent);
+    background: rgb(var(--accent-rgb) / 0.12);
+    border-color: rgb(var(--accent-rgb) / 0.35);
+}
+
+.window-control.pin-btn.pinned:hover {
+    color: var(--accent);
+    background: rgb(var(--accent-rgb) / 0.2);
+    border-color: rgb(var(--accent-rgb) / 0.5);
+}
+
 .window-control.close:hover {
     background: rgba(232, 17, 35, 0.85);
     border-color: #e81123;
