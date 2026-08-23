@@ -4,12 +4,20 @@ import Console from "../components/menu/Console";
 import PatchNotes from "../components/menu/PatchNotes";
 import Credits from "../components/menu/Credits";
 import BugReport from "../components/menu/BugReport";
+import {
+  FaInfoCircle,
+  FaTerminal,
+  FaHistory,
+  FaUsers,
+  FaBug,
+} from "react-icons/fa";
+
 const PAGES = [
-  { key: "about", label: "About" },
-  { key: "console", label: "Console" },
-  { key: "logs", label: "Update logs" },
-  { key: "credits", label: "Credits" },
-  { key: "bugreport", label: "Report Bug" }
+  { key: "about", label: "About", icon: FaInfoCircle },
+  { key: "console", label: "Console", icon: FaTerminal },
+  { key: "logs", label: "Update Logs", icon: FaHistory },
+  { key: "credits", label: "Credits", icon: FaUsers },
+  { key: "bugreport", label: "Report Bug", icon: FaBug },
 ];
 
 export default function Menu() {
@@ -18,17 +26,21 @@ export default function Menu() {
   return (
     <div className="menu-page">
       <div className="menu-header">
-        <h2 className="menu-title">Menu</h2>
         <div className="menu-nav">
-          {PAGES.map((page) => (
-            <button
-              key={page.key}
-              className={`menu-nav-btn${activePage === page.key ? " active" : ""}`}
-              onClick={() => setActivePage(page.key)}
-            >
-              {page.label}
-            </button>
-          ))}
+          {PAGES.map((page) => {
+            const Icon = page.icon;
+            const isActive = activePage === page.key;
+            return (
+              <button
+                key={page.key}
+                className={`menu-nav-btn${isActive ? " active" : ""}`}
+                onClick={() => setActivePage(page.key)}
+              >
+                <Icon className="menu-nav-icon" />
+                <span>{page.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
       <div className="menu-content">
