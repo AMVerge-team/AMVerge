@@ -242,11 +242,16 @@
     margin: 0;
 }
 
-.clip-download-btn {
+/* Holds the corner slot. The button itself stays in this box's flow so the two
+   share one rect, which is what the tooltip anchors to. */
+.clip-download-anchor {
     position: absolute;
     top: calc(var(--clip-overlay-inset));
     right: calc(var(--clip-overlay-inset));
     z-index: 15;
+}
+
+.clip-download-btn {
     width: 25px;
     height: 25px;
     border-radius: 8px;
