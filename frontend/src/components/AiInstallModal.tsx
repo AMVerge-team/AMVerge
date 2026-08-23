@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 
 import { useAiDepsStore } from "../stores/aiDepsStore";
@@ -8,6 +8,12 @@ import {
   formatSizeMb,
   plannedTorchVariant,
 } from "../features/aiDeps/packs";
+
+function formatDuration(sec: number): string {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s < 10 ? "0" : ""}${s}`;
+}
 
 /**
  * Confirm-then-install dialog for the optional AI dependencies. Opened by
@@ -26,9 +32,27 @@ export default function AiInstallModal() {
   const status = useAiDepsStore((s) => s.status);
 
   const logRef = useRef<HTMLDivElement | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const startTimeRef = useRef<number | null>(null);
+
   useLayoutEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [logs]);
+
+  useEffect(() => {
+    if (stage === "installing") {
+      startTimeRef.current = Date.now();
+      setElapsed(0);
+      const timer = setInterval(() => {
+        if (startTimeRef.current) {
+          setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
+        }
+      }, 1000);
+      return () => clearInterval(timer);
+    } else {
+      startTimeRef.current = null;
+    }
+  }, [stage]);
 
   // One set of listeners for the app's lifetime — installs are serialized by the
   // backend, so there is only ever one stream to follow.
@@ -59,6 +83,17 @@ export default function AiInstallModal() {
   const close = () => useAiDepsStore.getState().close();
   const install = () => void useAiDepsStore.getState().startInstall();
   const cancel = () => useAiDepsStore.getState().cancel();
+
+  // Compute ETA if progress is non-zero
+  let etaText = "Calculating…";
+  if (stage === "installing") {
+    if (percent > 3 && elapsed > 2) {
+      const remainingSec = (elapsed / (percent / 100)) - elapsed;
+      if (remainingSec > 0 && Number.isFinite(remainingSec)) {
+        etaText = formatDuration(remainingSec);
+      }
+    }
+  }
 
   return (
     <div className="pxm-overlay">
@@ -128,7 +163,15 @@ export default function AiInstallModal() {
         {stage === "installing" || stage === "done" || stage === "error" ? (
           <>
             <div className="pxm-progress">
-              <span className="pxm-bar-label">Progress</span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginBottom: 4 }}>
+                <span className="pxm-bar-label">Progress</span>
+                {stage === "installing" && (
+                  <div style={{ display: "flex", gap: 8, fontSize: "0.75rem", color: "rgba(255, 255, 255, 0.65)" }}>
+                    <span>Elapsed: <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{formatDuration(elapsed)}</strong></span>
+                    <span>ETA: <strong style={{ color: "var(--accent)", fontFamily: "monospace" }}>{etaText}</strong></span>
+                  </div>
+                )}
+              </div>
               <div className="progress-bar pxm-bar">
                 <div
                   className={`progress-fill${indeterminate ? " aid-fill-indeterminate" : ""}`}
