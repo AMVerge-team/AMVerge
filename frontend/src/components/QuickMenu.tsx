@@ -38,7 +38,7 @@ export default function QuickMenu() {
       }}
     >
       <div
-        className="quick-menu"
+        className="quick-menu-dialog"
         role="dialog"
         aria-modal="true"
         aria-label="Quick menu"
@@ -46,7 +46,7 @@ export default function QuickMenu() {
         <Tooltip content="Close">
           <button
             type="button"
-            className="quick-menu-close"
+            className="app-modal-close"
             onClick={() => setQuickMenuOpen(false)}
             aria-label="Close"
           >
@@ -54,23 +54,50 @@ export default function QuickMenu() {
           </button>
         </Tooltip>
 
-        <div className="quick-menu-options">
+        <div className="quick-menu-hero">
+          <h2 className="about-hero-title">Quick Navigation</h2>
+          <p className="about-hero-subtitle">
+            Quickly jump between pages or configure preferences.
+          </p>
+        </div>
+
+        <div className="quick-menu-grid">
           <button
             type="button"
-            className="quick-menu-option"
-            onClick={() => openMenu()}
+            className="quick-menu-card"
+            onClick={() => {
+              setQuickMenuOpen(false);
+              openMenu();
+            }}
           >
-            <FaBars aria-hidden="true" />
-            <span>Menu</span>
+            <div className="quick-menu-card-icon">
+              <FaBars aria-hidden="true" />
+            </div>
+            <div className="quick-menu-card-body">
+              <span className="quick-menu-card-title">Menu</span>
+              <span className="quick-menu-card-desc">
+                About, Update Logs, Console, Credits, and Bug Reports
+              </span>
+            </div>
           </button>
 
           <button
             type="button"
-            className="quick-menu-option"
-            onClick={() => openSettings()}
+            className="quick-menu-card"
+            onClick={() => {
+              setQuickMenuOpen(false);
+              openSettings();
+            }}
           >
-            <FaCog aria-hidden="true" />
-            <span>Settings</span>
+            <div className="quick-menu-card-icon">
+              <FaCog aria-hidden="true" />
+            </div>
+            <div className="quick-menu-card-body">
+              <span className="quick-menu-card-title">Settings</span>
+              <span className="quick-menu-card-desc">
+                General options, export profiles, appearance, and AI models
+              </span>
+            </div>
           </button>
         </div>
       </div>
