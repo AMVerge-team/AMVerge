@@ -78,67 +78,6 @@
     color: var(--accent);
 }
 
-/* BREADCRUMB: ACTIVE EPISODE */
-.navbar-breadcrumb {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-    max-width: 320px;
-}
-
-.breadcrumb-divider {
-    color: rgba(255, 255, 255, 0.2);
-    font-size: 1.1rem;
-    font-weight: 300;
-}
-
-.breadcrumb-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 10px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    cursor: default;
-    min-width: 0;
-    transition: border-color 0.2s ease, background 0.2s ease;
-}
-
-.breadcrumb-pill:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(var(--accent-rgb), 0.3);
-}
-
-.breadcrumb-icon {
-    color: var(--accent);
-    flex-shrink: 0;
-    width: 15px !important;
-    height: 15px !important;
-}
-
-.breadcrumb-text {
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: #ffffff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    letter-spacing: 0.3px;
-}
-
-.breadcrumb-count {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--accent);
-    background: rgba(var(--accent-rgb), 0.14);
-    border: 1px solid rgba(var(--accent-rgb), 0.25);
-    padding: 1px 6px;
-    border-radius: 4px;
-    flex-shrink: 0;
-}
-
 /* CENTER: SEGMENTED GRID ZOOM PILL */
 .navbar-center {
     display: flex;

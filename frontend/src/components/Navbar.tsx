@@ -1,8 +1,7 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import Tooltip from "./common/Tooltip";
 import { useUIStateStore } from "../stores/UIStore";
 import { useAppStateStore } from "../stores/appStore";
-import { useEpisodePanelRuntimeStore, useEpisodePanelMetadataStore } from "../stores/episodeStore";
 import { useGeneralSettingsStore } from "../stores/settingsStore";
 import { useAiDepsStore } from "../stores/aiDepsStore";
 import { open } from "@tauri-apps/plugin-shell";
@@ -19,15 +18,11 @@ type NavbarProps = {
 export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProps ) {
     const cols = useUIStateStore((s: any) => s.cols);
     const setCols = useUIStateStore((s: any) => s.setCols);
-    const setActivePage = useUIStateStore((s: any) => s.setActivePage);
     const pinned = useUIStateStore((s: any) => s.pinned);
     const togglePinned = useUIStateStore((s: any) => s.togglePinned);
 
     const clips = useAppStateStore(s => s.clips);
     const selectedClips = useAppStateStore(s => s.selectedClips);
-    const openedEpisodeId = useEpisodePanelRuntimeStore(s => s.openedEpisodeId);
-    const episodes = useEpisodePanelRuntimeStore(s => s.episodes);
-    const episodeNamesById = useEpisodePanelMetadataStore(s => s.episodeNamesById);
     const episodesPath = useGeneralSettingsStore(s => s.episodesPath);
     const sceneDetectionMethod = useGeneralSettingsStore(s => s.sceneDetectionMethod);
     const aiStatus = useAiDepsStore(s => s.status);
@@ -61,32 +56,9 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
         void getCurrentWindow().setAlwaysOnTop(pinned).catch(() => {});
     }, [pinned]);
 
-    const activeEpisode = useMemo(() => {
-        if (!openedEpisodeId) return null;
-        return episodes.find(ep => ep.id === openedEpisodeId) ?? null;
-    }, [openedEpisodeId, episodes]);
+    const handleSmaller = () => setCols(Math.min(cols + 1, 9));
+    const handleBigger = () => setCols(Math.max(cols - 1, 1));
 
-    const activeEpisodeName = useMemo(() => {
-        if (!activeEpisode) return null;
-        if (episodeNamesById[activeEpisode.id]) return episodeNamesById[activeEpisode.id];
-        if (activeEpisode.displayName) return activeEpisode.displayName;
-        if (activeEpisode.videoPath) {
-            const raw = activeEpisode.videoPath.split(/[/\\]/).pop() || "";
-            return raw.replace(/\.[^/.]+$/, "") || raw;
-        }
-        return activeEpisode.id || "Episode";
-    }, [activeEpisode, episodeNamesById]);
-
-    const isTransNet = sceneDetectionMethod === "transnetv2_gpu";
-    const gpuName = aiStatus?.gpuName;
-    const isCudaReady = aiStatus?.torchVariant?.includes("cu") || (aiStatus?.hasNvidiaGpu && isTransNet);
-
-    const handleBigger = () => setCols(Math.max(1, cols - 1));
-    const handleSmaller = () => setCols(Math.min(12, cols + 1));
-
-    // Pinning doubles as a compact companion mode: the size of the mode being left is
-    // banked, the target mode's own size restored. The resize lives here and not in the
-    // effect above, which must not move the window on every launch.
     const handleTogglePin = () => {
         const next = !pinned;
         rememberWinSize(next ? "free" : "pinned");
@@ -108,6 +80,10 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
             }
         }
     };
+
+    const isTransNet = sceneDetectionMethod === "transnetv2_gpu";
+    const gpuName = aiStatus?.gpuName;
+    const isCudaReady = aiStatus?.torchVariant?.includes("cu") || (aiStatus?.hasNvidiaGpu && isTransNet);
 
     return (
         <div className="navbar" data-tauri-drag-region>
@@ -146,19 +122,6 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
                     </svg>
                 </a>
                 </Tooltip>
-
-                {activeEpisodeName && (
-                    <div className="navbar-breadcrumb" data-tauri-drag-region>
-                        <span className="breadcrumb-divider">/</span>
-                        <span className="breadcrumb-pill" title={activeEpisodeName}>
-                            <svg className="breadcrumb-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polygon points="5 3 19 12 5 21 5 3" fill="currentColor" fillOpacity="0.25" />
-                            </svg>
-                            <span className="breadcrumb-text">{activeEpisodeName}</span>
-                            {clips.length > 0 && <span className="breadcrumb-count">{clips.length}</span>}
-                        </span>
-                    </div>
-                )}
             </div>
 
             <div className="navbar-center" data-tauri-drag-region>
