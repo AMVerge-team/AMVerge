@@ -17,6 +17,7 @@ import {
   FaTimes,
   FaThumbtack,
   FaFileExport,
+  FaAngleRight,
 } from "react-icons/fa";
 import { useUIStateStore } from "../stores/UIStore";
 import { useEpisodePanelRuntimeStore, useEpisodePanelMetadataStore } from "../stores/episodeStore";
@@ -26,6 +27,8 @@ import { useThemeSettingsStore } from "../stores/settingsStore";
 import { COLOR_PRESETS } from "../features/theme/colorPresets";
 import { openEpisodeById } from "../hooks/useEpisodePanelState";
 import useImportExport from "../hooks/useImportExport";
+
+type CategoryFilter = "all" | "episodes" | "scenepacks" | "actions" | "themes" | "settings";
 
 interface CommandItem {
   id: string;
@@ -37,6 +40,7 @@ interface CommandItem {
   action: () => void;
   preview?: {
     thumbnail?: string | null;
+    metaTags?: string[];
     metaLine1?: string;
     metaLine2?: string;
     filePath?: string;
@@ -45,6 +49,15 @@ interface CommandItem {
     description?: string;
   };
 }
+
+const CATEGORY_CHIPS: { id: CategoryFilter; label: string; icon: any; prefix: string }[] = [
+  { id: "all", label: "All Items", icon: FaSearch, prefix: "" },
+  { id: "episodes", label: "Episodes", icon: FaPlay, prefix: "@" },
+  { id: "scenepacks", label: "Scenepacks", icon: FaLayerGroup, prefix: "#" },
+  { id: "actions", label: "Actions", icon: FaBolt, prefix: ">" },
+  { id: "themes", label: "Themes", icon: FaPalette, prefix: "!" },
+  { id: "settings", label: "Settings", icon: FaCog, prefix: "?" },
+];
 
 const BLOCKING_OVERLAYS =
   ".episode-modal-overlay, .crop-modal-overlay, .pxm-overlay, .startup-notification-overlay";
@@ -77,6 +90,7 @@ export default function QuickMenu() {
   const { onImportClick } = useImportExport();
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<CategoryFilter>("all");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -115,21 +129,22 @@ export default function QuickMenu() {
   useEffect(() => {
     if (open) {
       setSearchQuery("");
+      setActiveFilter("all");
       setSelectedIndex(0);
       setTimeout(() => inputRef.current?.focus(), 40);
     }
   }, [open]);
 
-  // Parse prefixes: @episodes, #scenepacks, >actions, !themes, ?settings
-  const { filterCategory, query } = useMemo(() => {
+  // Parse prefixes or chip filter
+  const { effectiveFilter, cleanQuery } = useMemo(() => {
     const trimmed = searchQuery.trim();
-    if (trimmed.startsWith("@")) return { filterCategory: "episodes", query: trimmed.slice(1).trim() };
-    if (trimmed.startsWith("#")) return { filterCategory: "scenepacks", query: trimmed.slice(1).trim() };
-    if (trimmed.startsWith(">")) return { filterCategory: "actions", query: trimmed.slice(1).trim() };
-    if (trimmed.startsWith("!")) return { filterCategory: "themes", query: trimmed.slice(1).trim() };
-    if (trimmed.startsWith("?")) return { filterCategory: "settings", query: trimmed.slice(1).trim() };
-    return { filterCategory: "all", query: trimmed };
-  }, [searchQuery]);
+    if (trimmed.startsWith("@")) return { effectiveFilter: "episodes" as CategoryFilter, cleanQuery: trimmed.slice(1).trim() };
+    if (trimmed.startsWith("#")) return { effectiveFilter: "scenepacks" as CategoryFilter, cleanQuery: trimmed.slice(1).trim() };
+    if (trimmed.startsWith(">")) return { effectiveFilter: "actions" as CategoryFilter, cleanQuery: trimmed.slice(1).trim() };
+    if (trimmed.startsWith("!")) return { effectiveFilter: "themes" as CategoryFilter, cleanQuery: trimmed.slice(1).trim() };
+    if (trimmed.startsWith("?")) return { effectiveFilter: "settings" as CategoryFilter, cleanQuery: trimmed.slice(1).trim() };
+    return { effectiveFilter: activeFilter, cleanQuery: trimmed };
+  }, [searchQuery, activeFilter]);
 
   // Build searchable commands index
   const allCommands = useMemo<CommandItem[]>(() => {
@@ -145,7 +160,7 @@ export default function QuickMenu() {
         id: `ep-${ep.id}`,
         category: "episodes",
         title: name,
-        subtitle: `${clipCount} clips • ${ep.videoPath || "Imported"}`,
+        subtitle: `${clipCount} scenes • ${ep.videoPath || "Ready in library"}`,
         badge: "Episode",
         icon: FaPlay,
         action: () => {
@@ -155,10 +170,11 @@ export default function QuickMenu() {
         },
         preview: {
           thumbnail,
-          metaLine1: `${clipCount} Scenes`,
-          metaLine2: ep.videoPath || "Ready in library",
+          metaTags: [`${clipCount} Clips`, "Keyframe / TransNet", "Video Source"],
+          metaLine1: name,
+          metaLine2: ep.videoPath || "Imported Video File",
           filePath: ep.videoPath,
-          description: "Click to load all clips into workspace timeline.",
+          description: "Immediately loads and streams all cut clips into the timeline workspace.",
           shortcut: "↵ Open",
         },
       });
@@ -171,7 +187,7 @@ export default function QuickMenu() {
         id: `sp-${sp.id}`,
         category: "scenepacks",
         title: sp.name,
-        subtitle: `${count} clips in pack`,
+        subtitle: `${count} scenes collected`,
         badge: "Scenepack",
         icon: FaLayerGroup,
         action: () => {
@@ -182,9 +198,10 @@ export default function QuickMenu() {
         },
         preview: {
           thumbnail: sp.clips?.[0]?.thumbnail || null,
-          metaLine1: `${count} Clips`,
-          metaLine2: "Scenepack Collection",
-          description: "Click to browse and export clips from this scenepack.",
+          metaTags: [`${count} Clips`, "Scenepack", "Saved Collection"],
+          metaLine1: sp.name,
+          metaLine2: "Custom Scene Pack",
+          description: "Browse, filter, and batch export clips grouped in this scenepack.",
           shortcut: "↵ Open",
         },
       });
@@ -195,7 +212,7 @@ export default function QuickMenu() {
       {
         id: "act-import",
         category: "actions",
-        title: "Import Video / Episode",
+        title: "Import New Episode",
         subtitle: "Launch file browser to detect and cut new footage",
         badge: "Action",
         icon: FaFolderOpen,
@@ -204,8 +221,9 @@ export default function QuickMenu() {
           onImportClick();
         },
         preview: {
-          metaLine1: "Smart Cut Demux",
-          description: "Open video file dialog to start scene detection.",
+          metaTags: ["Pipeline", "Demux", "SmartCut"],
+          metaLine1: "Scene Detection Pipeline",
+          description: "Select an MKV / MP4 file to run TransNetV2 AI or fast keyframe demux.",
           shortcut: "⌘I",
         },
       },
@@ -213,40 +231,42 @@ export default function QuickMenu() {
         id: "act-select-all",
         category: "actions",
         title: "Select All Clips",
-        subtitle: `Select all ${clips.length} scenes in current grid`,
-        badge: "Action",
+        subtitle: `Select all ${clips.length} scenes in timeline`,
+        badge: "Selection",
         icon: FaThLarge,
         action: () => {
           setSelectedClips(new Set(clips.map((c) => c.id)));
           setQuickMenuOpen(false);
         },
         preview: {
-          metaLine1: `${clips.length} Available Clips`,
-          description: "Selects every clip in the current timeline.",
+          metaTags: [`${clips.length} Clips`, "Timeline"],
+          metaLine1: "Bulk Selection",
+          description: "Highlights and selects every scene for batch export or merge.",
           shortcut: "Ctrl+A",
         },
       },
       {
         id: "act-clear-select",
         category: "actions",
-        title: "Clear Clip Selection",
+        title: "Clear Selection",
         subtitle: `Deselect currently selected ${selectedClips.size} scenes`,
-        badge: "Action",
+        badge: "Selection",
         icon: FaTimes,
         action: () => {
           setSelectedClips(new Set());
           setQuickMenuOpen(false);
         },
         preview: {
-          metaLine1: `${selectedClips.size} Selected`,
-          description: "Clears selection state.",
+          metaTags: [`${selectedClips.size} Selected`],
+          metaLine1: "Deselect All",
+          description: "Clears current timeline selection.",
         },
       },
       {
         id: "act-pin",
         category: "actions",
-        title: pinned ? "Unpin Window (Disable Always-on-Top)" : "Pin Window (Always on Top)",
-        subtitle: "Keep AMVerge floating above other editing applications",
+        title: pinned ? "Unpin Window (Normal Mode)" : "Pin Window (Always on Top)",
+        subtitle: "Toggle floating companion window for After Effects / Premiere",
         badge: "Window",
         icon: FaThumbtack,
         action: () => {
@@ -254,8 +274,9 @@ export default function QuickMenu() {
           setQuickMenuOpen(false);
         },
         preview: {
-          metaLine1: pinned ? "Status: Pinned" : "Status: Normal",
-          description: "Toggles floating companion mode for Premiere / AE editing.",
+          metaTags: [pinned ? "Currently Pinned" : "Normal Window", "Companion Size"],
+          metaLine1: "Always on Top Mode",
+          description: "Shrinks and pins AMVerge over your video editor workspace.",
         },
       },
       {
@@ -270,7 +291,9 @@ export default function QuickMenu() {
           setQuickMenuOpen(false);
         },
         preview: {
-          description: "Expand or collapse the episode management sidebar.",
+          metaTags: [sidebarEnabled ? "Sidebar Visible" : "Sidebar Hidden", "Navigation"],
+          metaLine1: "Sidebar Visibility",
+          description: "Expands or collapses the left episode panel to save screen space.",
         },
       }
     );
@@ -281,9 +304,9 @@ export default function QuickMenu() {
       items.push({
         id: `th-${idx}`,
         category: "themes",
-        title: `Accent Preset: ${preset.accent}`,
-        subtitle: `Gradient background ${preset.gradient}`,
-        badge: isCurrent ? "Active Color" : "Theme Color",
+        title: `Color Accent: ${preset.accent}`,
+        subtitle: `Harmonious gradient ${preset.gradient}`,
+        badge: isCurrent ? "Active" : "Theme",
         icon: FaPalette,
         action: () => {
           setAccentColor(preset.accent);
@@ -292,9 +315,10 @@ export default function QuickMenu() {
         },
         preview: {
           accentColor: preset.accent,
-          metaLine1: `Accent: ${preset.accent}`,
+          metaTags: ["Live Palette", preset.accent],
+          metaLine1: `Theme Accent: ${preset.accent}`,
           metaLine2: `Gradient: ${preset.gradient}`,
-          description: "Instantly applies accent color and harmonious backdrop gradient.",
+          description: "Applies accent tint, glowing UI highlights, and matching dark gradient backdrop.",
           shortcut: "↵ Apply",
         },
       });
@@ -412,11 +436,11 @@ export default function QuickMenu() {
     togglePinned,
   ]);
 
-  // Filter commands by active query and prefix category
+  // Filter commands
   const filteredCommands = useMemo(() => {
-    const lower = query.toLowerCase();
+    const lower = cleanQuery.toLowerCase();
     return allCommands.filter((cmd) => {
-      if (filterCategory !== "all" && cmd.category !== filterCategory) return false;
+      if (effectiveFilter !== "all" && cmd.category !== effectiveFilter) return false;
       if (!lower) return true;
       return (
         cmd.title.toLowerCase().includes(lower) ||
@@ -424,9 +448,8 @@ export default function QuickMenu() {
         (cmd.badge && cmd.badge.toLowerCase().includes(lower))
       );
     });
-  }, [allCommands, query, filterCategory]);
+  }, [allCommands, cleanQuery, effectiveFilter]);
 
-  // Active highlighted command
   const activeCommand = filteredCommands[selectedIndex] || filteredCommands[0] || null;
 
   // Keyboard navigation within list
@@ -442,19 +465,24 @@ export default function QuickMenu() {
       if (activeCommand) {
         activeCommand.action();
       }
+    } else if (e.key === "Tab") {
+      e.preventDefault();
+      // Cycle category filter
+      const idx = CATEGORY_CHIPS.findIndex((c) => c.id === activeFilter);
+      const next = CATEGORY_CHIPS[(idx + 1) % CATEGORY_CHIPS.length].id;
+      setActiveFilter(next);
+      setSelectedIndex(0);
     }
   };
 
   // Scroll active item into view
   useEffect(() => {
     if (!resultsContainerRef.current) return;
-    const selectedEl = resultsContainerRef.current.querySelector(".spotlight-item.is-selected");
+    const selectedEl = resultsContainerRef.current.querySelector(".spotlight-pro-item.is-selected");
     if (selectedEl) {
       selectedEl.scrollIntoView({ block: "nearest" });
     }
   }, [selectedIndex]);
-
-  if (!open) return null;
 
   return (
     <div
@@ -464,51 +492,83 @@ export default function QuickMenu() {
       }}
     >
       <div
-        className="spotlight-command-center"
+        className="spotlight-pro-container"
         role="dialog"
         aria-modal="true"
         aria-label="Spotlight Command Center"
         onKeyDown={handleKeyDown}
       >
-        {/* Top Search Input Bar */}
-        <div className="spotlight-search-header">
-          <FaSearch className="spotlight-search-icon" />
-          <input
-            ref={inputRef}
-            type="text"
-            className="spotlight-search-input"
-            placeholder="Type a command or search... (@episodes, #scenepacks, >actions, !themes)"
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setSelectedIndex(0);
-            }}
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              className="spotlight-clear-btn"
-              onClick={() => {
-                setSearchQuery("");
+        {/* TOP SEARCH BAR */}
+        <div className="spotlight-pro-header">
+          <div className="spotlight-pro-searchbox">
+            <FaSearch className="spotlight-pro-search-icon" />
+            <input
+              ref={inputRef}
+              type="text"
+              className="spotlight-pro-input"
+              placeholder="Search episodes, scenepacks, actions, settings..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
                 setSelectedIndex(0);
-                inputRef.current?.focus();
               }}
-            >
-              <FaTimes />
-            </button>
-          )}
-          <span className="spotlight-esc-pill" onClick={() => setQuickMenuOpen(false)}>
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="spotlight-pro-clear-btn"
+                onClick={() => {
+                  setSearchQuery("");
+                  setSelectedIndex(0);
+                  inputRef.current?.focus();
+                }}
+              >
+                <FaTimes />
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            className="spotlight-pro-close-pill"
+            onClick={() => setQuickMenuOpen(false)}
+          >
             ESC
-          </span>
+          </button>
         </div>
 
-        {/* Split Body: Left Results List, Right Live Detail Card */}
-        <div className="spotlight-body">
-          <div className="spotlight-results-pane" ref={resultsContainerRef}>
+        {/* FILTER CHIPS ROW */}
+        <div className="spotlight-pro-chips-bar">
+          {CATEGORY_CHIPS.map((chip) => {
+            const ChipIcon = chip.icon;
+            const isChipActive = effectiveFilter === chip.id;
+            return (
+              <button
+                key={chip.id}
+                type="button"
+                className={`spotlight-chip${isChipActive ? " active" : ""}`}
+                onClick={() => {
+                  setActiveFilter(chip.id);
+                  setSelectedIndex(0);
+                  inputRef.current?.focus();
+                }}
+              >
+                <ChipIcon className="chip-icon" />
+                <span>{chip.label}</span>
+                {chip.prefix && <span className="chip-prefix">{chip.prefix}</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 60 / 40 SPLIT BODY */}
+        <div className="spotlight-pro-body">
+          {/* LEFT: RESULTS LIST */}
+          <div className="spotlight-pro-list-pane" ref={resultsContainerRef}>
             {filteredCommands.length === 0 ? (
-              <div className="spotlight-empty-state">
-                <p>No matching commands or episodes found.</p>
-                <span>Try searching with prefixes like @ for episodes or &gt; for actions</span>
+              <div className="spotlight-pro-empty">
+                <FaSearch className="empty-icon" />
+                <h4>No matching results found</h4>
+                <p>Try searching another title or use category filter chips above</p>
               </div>
             ) : (
               filteredCommands.map((cmd, idx) => {
@@ -517,30 +577,34 @@ export default function QuickMenu() {
                 return (
                   <div
                     key={cmd.id}
-                    className={`spotlight-item${isSelected ? " is-selected" : ""}`}
+                    className={`spotlight-pro-item${isSelected ? " is-selected" : ""}`}
                     onMouseEnter={() => setSelectedIndex(idx)}
                     onClick={() => cmd.action()}
                   >
-                    <div className="spotlight-item-icon">
+                    <div className="spotlight-pro-item-icon">
                       <Icon />
                     </div>
-                    <div className="spotlight-item-content">
-                      <span className="spotlight-item-title">{cmd.title}</span>
-                      {cmd.subtitle && <span className="spotlight-item-subtitle">{cmd.subtitle}</span>}
+                    <div className="spotlight-pro-item-main">
+                      <div className="item-title-row">
+                        <span className="item-title">{cmd.title}</span>
+                        {cmd.badge && <span className="item-badge">{cmd.badge}</span>}
+                      </div>
+                      {cmd.subtitle && <span className="item-sub">{cmd.subtitle}</span>}
                     </div>
-                    {cmd.badge && <span className="spotlight-item-badge">{cmd.badge}</span>}
+                    <FaAngleRight className="item-arrow" />
                   </div>
                 );
               })
             )}
           </div>
 
-          {/* Right Live Preview / Inspector Card */}
-          <div className="spotlight-preview-pane">
+          {/* RIGHT: RICH INSPECTOR CARD */}
+          <div className="spotlight-pro-inspector-pane">
             {activeCommand ? (
-              <div className="spotlight-detail-card">
+              <div className="spotlight-inspector-content">
+                {/* Hero Media Banner */}
                 {activeCommand.preview?.thumbnail ? (
-                  <div className="spotlight-preview-media">
+                  <div className="inspector-media-banner">
                     <img
                       src={
                         activeCommand.preview.thumbnail.startsWith("data:")
@@ -549,83 +613,112 @@ export default function QuickMenu() {
                       }
                       alt={activeCommand.title}
                     />
+                    <div className="media-overlay-gradient" />
                   </div>
                 ) : (
                   <div
-                    className="spotlight-preview-icon-hero"
+                    className="inspector-icon-hero"
                     style={
                       activeCommand.preview?.accentColor
-                        ? { borderColor: activeCommand.preview.accentColor, background: `${activeCommand.preview.accentColor}18` }
+                        ? {
+                            borderColor: `${activeCommand.preview.accentColor}40`,
+                            background: `linear-gradient(180deg, ${activeCommand.preview.accentColor}25 0%, rgba(0,0,0,0.4) 100%)`,
+                          }
                         : undefined
                     }
                   >
                     {React.createElement(activeCommand.icon, {
-                      className: "spotlight-hero-icon",
-                      style: activeCommand.preview?.accentColor ? { color: activeCommand.preview.accentColor } : undefined,
+                      className: "inspector-hero-icon",
+                      style: activeCommand.preview?.accentColor
+                        ? { color: activeCommand.preview.accentColor }
+                        : undefined,
                     })}
                   </div>
                 )}
 
-                <div className="spotlight-preview-info">
-                  <h4>{activeCommand.title}</h4>
-                  {activeCommand.preview?.metaLine1 && (
-                    <span className="spotlight-preview-meta primary">{activeCommand.preview.metaLine1}</span>
+                {/* Details Section */}
+                <div className="inspector-details">
+                  <h3 className="inspector-title">{activeCommand.title}</h3>
+
+                  {/* Metadata Chips */}
+                  {activeCommand.preview?.metaTags && (
+                    <div className="inspector-chips-row">
+                      {activeCommand.preview.metaTags.map((tag, i) => (
+                        <span key={i} className="inspector-meta-tag">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                   )}
+
                   {activeCommand.preview?.metaLine2 && (
-                    <span className="spotlight-preview-meta secondary">{activeCommand.preview.metaLine2}</span>
+                    <div className="inspector-path-box">
+                      <span className="path-label">Location</span>
+                      <span className="path-text">{activeCommand.preview.metaLine2}</span>
+                    </div>
                   )}
+
                   {activeCommand.preview?.description && (
-                    <p className="spotlight-preview-desc">{activeCommand.preview.description}</p>
+                    <p className="inspector-desc">{activeCommand.preview.description}</p>
                   )}
                 </div>
 
-                {/* Card Quick Actions */}
-                <div className="spotlight-preview-actions">
+                {/* Action Buttons */}
+                <div className="inspector-actions">
                   <button
                     type="button"
-                    className="spotlight-action-primary"
+                    className="inspector-btn-primary"
                     onClick={() => activeCommand.action()}
                   >
-                    Execute Command <span className="key-hint">↵</span>
+                    <span>Execute Command</span>
+                    <kbd className="action-key-pill">↵</kbd>
                   </button>
+
                   {activeCommand.preview?.filePath && (
                     <button
                       type="button"
-                      className="spotlight-action-secondary"
-                      onClick={() => void invoke("reveal_in_file_manager", { path: activeCommand.preview?.filePath })}
+                      className="inspector-btn-secondary"
+                      onClick={() =>
+                        void invoke("reveal_in_file_manager", {
+                          path: activeCommand.preview?.filePath,
+                        })
+                      }
                     >
-                      <FaFolderOpen /> Reveal in Explorer
+                      <FaFolderOpen />
+                      <span>Reveal in Explorer</span>
                     </button>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="spotlight-empty-preview">
-                <FaBolt />
+              <div className="spotlight-inspector-empty">
+                <FaBolt className="empty-bolt" />
                 <span>Select an item to view preview</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Footer Hotkey & Community Bar */}
-        <div className="spotlight-footer">
-          <div className="spotlight-footer-shortcuts">
+        {/* FOOTER SHORTCUTS BAR */}
+        <div className="spotlight-pro-footer">
+          <div className="footer-keys">
             <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
-            <span><kbd>↵</kbd> Select</span>
+            <span><kbd>↵</kbd> Open</span>
+            <span><kbd>TAB</kbd> Next Filter</span>
             <span><kbd>ESC</kbd> Close</span>
           </div>
-          <div className="spotlight-footer-links">
+
+          <div className="footer-actions">
             <button
               type="button"
-              className="spotlight-footer-link"
+              className="footer-link-btn"
               onClick={() => void openUrl("https://discord.gg/bmXjTgsAaN")}
             >
-              Discord
+              Discord Community
             </button>
             <button
               type="button"
-              className="spotlight-footer-link"
+              className="footer-link-btn"
               onClick={() => void openUrl("https://github.com/AMVerge-team/AMVerge")}
             >
               GitHub
