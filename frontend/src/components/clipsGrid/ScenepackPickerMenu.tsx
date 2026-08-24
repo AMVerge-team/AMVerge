@@ -55,8 +55,12 @@ export function ScenepackPickerMenu({
 
     const onPointerDown = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
-      // the button that opened the menu toggles it itself
-      if (target?.closest(".scenepack-picker-menu, .clip-add-to-scenepack")) return;
+      if (target?.closest(".scenepack-picker-menu")) return;
+      // Only THIS tile's button is exempt, so it can toggle its own menu shut.
+      // Matching every tile's button meant pressing a neighbour's left this one
+      // hanging around until the pointer-leave timer got round to it.
+      const anchorEl = target?.closest("[data-scenepack-anchor]") as HTMLElement | null;
+      if (anchorEl?.dataset.scenepackAnchor === clip.id) return;
       onCloseRef.current();
     };
     const onKeyDown = (e: KeyboardEvent) => {
@@ -64,18 +68,25 @@ export function ScenepackPickerMenu({
     };
 
     const onBlur = () => onCloseRef.current();
+    // The menu is placed in window coordinates, so any scroll under it leaves
+    // it pointing at nothing. It goes at once — no easing, no timer.
+    const onScroll = () => onCloseRef.current();
 
     // capture, so a handler that stops propagation on its way up cannot keep
-    // the menu alive
+    // the menu alive, and so a scrolling container is caught as well as the page
     window.addEventListener("mousedown", onPointerDown, true);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("blur", onBlur);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("wheel", onScroll, { capture: true, passive: true });
     return () => {
       window.removeEventListener("mousedown", onPointerDown, true);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("blur", onBlur);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("wheel", onScroll, true);
     };
-  }, [busy]);
+  }, [busy, clip.id]);
 
   useEffect(() => {
     return () => {
@@ -83,12 +94,13 @@ export function ScenepackPickerMenu({
     };
   }, []);
 
-  // Moving the pointer away closes it too, after a grace period — brushing past
-  // a corner of the menu on the way to it should not dismiss it.
+  // Moving the pointer away closes it too. The grace period is short — just
+  // enough that clipping a corner on the way in does not dismiss it, not enough
+  // to read as the menu lingering.
   const handleMouseLeave = () => {
     if (busy) return;
     if (leaveTimerRef.current !== null) window.clearTimeout(leaveTimerRef.current);
-    leaveTimerRef.current = window.setTimeout(() => onCloseRef.current(), 420);
+    leaveTimerRef.current = window.setTimeout(() => onCloseRef.current(), 150);
   };
 
   const handleMouseEnter = () => {

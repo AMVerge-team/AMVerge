@@ -1084,6 +1084,9 @@ export const LazyClip = memo(function LazyClip({
             <Tooltip content="Add to Scenepack">
               <button
                 className="clip-add-to-scenepack"
+                // lets an open picker tell its own button apart from the one on
+                // the tile next door, which it has to close for
+                data-scenepack-anchor={clip.id}
                 onClick={(e) => {
                   e.stopPropagation();
                   setScenepackMenu((prev) => (prev ? null : { x: e.clientX, y: e.clientY }));
