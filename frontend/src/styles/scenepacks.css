@@ -156,8 +156,24 @@
 .scenepack-picker-menu {
   min-width: 190px;
   max-width: 260px;
-  max-height: 320px;
+}
+
+/* Caps the list at roughly five packs and scrolls past that, so a library with
+   forty of them opens a short menu instead of a full-height wall. The footer
+   sits outside this box and stays reachable however long the list gets. */
+.scenepack-picker-list {
+  max-height: 180px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.scenepack-picker-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scenepack-picker-list::-webkit-scrollbar-thumb {
+  background: rgb(var(--accent-rgb) / 0.35);
+  border-radius: 999px;
 }
 
 .scenepack-picker-item {

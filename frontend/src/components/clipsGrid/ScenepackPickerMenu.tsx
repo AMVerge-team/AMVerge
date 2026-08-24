@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FaSpinner } from "react-icons/fa";
 import { useScenepacksStore } from "../../stores/scenepackStore";
@@ -36,16 +36,86 @@ export function ScenepackPickerMenu({
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const leaveTimerRef = useRef<number | null>(null);
 
-  // Any click outside closes it, the way the panel context menus behave. While
-  // a clip is being cut the menu stays put, so the spinner is visible until the
-  // work finishes rather than vanishing mid-add.
+  // onClose comes from a tile that re-renders constantly (hover, playback,
+  // preview state), so it is read through a ref. Depending on it directly tore
+  // the listeners down and rebuilt them on every one of those renders, which is
+  // what left the menu stuck open.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  const busy = busyId !== null;
+
+  // Anything that means "I am done here" closes it: a press outside, Escape, or
+  // the window losing focus. While a clip is being cut it stays put, so the
+  // spinner is visible until the work finishes rather than vanishing mid-add.
   useEffect(() => {
-    if (busyId) return;
-    const close = () => onClose();
-    window.addEventListener("click", close, { once: true });
-    return () => window.removeEventListener("click", close);
-  }, [busyId, onClose]);
+    if (busy) return;
+
+    const onPointerDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      // the button that opened the menu toggles it itself
+      if (target?.closest(".scenepack-picker-menu, .clip-add-to-scenepack")) return;
+      onCloseRef.current();
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCloseRef.current();
+    };
+
+    const onBlur = () => onCloseRef.current();
+
+    // capture, so a handler that stops propagation on its way up cannot keep
+    // the menu alive
+    window.addEventListener("mousedown", onPointerDown, true);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("mousedown", onPointerDown, true);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, [busy]);
+
+  useEffect(() => {
+    return () => {
+      if (leaveTimerRef.current !== null) window.clearTimeout(leaveTimerRef.current);
+    };
+  }, []);
+
+  // Moving the pointer away closes it too, after a grace period — brushing past
+  // a corner of the menu on the way to it should not dismiss it.
+  const handleMouseLeave = () => {
+    if (busy) return;
+    if (leaveTimerRef.current !== null) window.clearTimeout(leaveTimerRef.current);
+    leaveTimerRef.current = window.setTimeout(() => onCloseRef.current(), 420);
+  };
+
+  const handleMouseEnter = () => {
+    if (leaveTimerRef.current !== null) {
+      window.clearTimeout(leaveTimerRef.current);
+      leaveTimerRef.current = null;
+    }
+  };
+
+  // The click point is only a starting position: measured once mounted, the
+  // menu is pulled back inside the window and flipped above the cursor when
+  // there is no room below it.
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const [placement, setPlacement] = useState({ left: anchor.x, top: anchor.y });
+
+  useLayoutEffect(() => {
+    const el = menuRef.current;
+    if (!el) return;
+    const { width, height } = el.getBoundingClientRect();
+    const margin = 8;
+    const left = Math.max(margin, Math.min(anchor.x, window.innerWidth - width - margin));
+    const top =
+      anchor.y + height + margin > window.innerHeight
+        ? Math.max(margin, anchor.y - height)
+        : anchor.y;
+    setPlacement({ left, top });
+  }, [anchor, scenepacks.length]);
 
   const sceneIndex = clip.sceneIndex ?? 0;
 
@@ -112,10 +182,16 @@ export function ScenepackPickerMenu({
   // portal the menu would be trapped inside the tile's own bounds.
   return createPortal(
     <div
+      ref={menuRef}
       className="episode-context-menu scenepack-picker-menu"
-      style={{ left: anchor.x, top: anchor.y }}
+      style={{ left: placement.left, top: placement.top }}
       onClick={(e) => e.stopPropagation()}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
+      {/* only the packs scroll — "New Scenepack…" stays reachable however many
+          packs there are */}
+      <div className="scenepack-picker-list">
       {groups.map((group) => (
         <div key={group.id ?? "root"}>
           {group.name && <div className="episode-context-menu-label">{group.name}</div>}
@@ -128,7 +204,7 @@ export function ScenepackPickerMenu({
                 type="button"
                 className="episode-context-menu-item scenepack-picker-item"
                 onClick={() => void handlePick(pack)}
-                disabled={isIn || busyId !== null}
+                disabled={isIn || busy}
               >
                 <span className="scenepack-picker-name">{pack.name}</span>
                 {busyId === pack.id ? (
@@ -142,6 +218,8 @@ export function ScenepackPickerMenu({
         </div>
       ))}
 
+      </div>
+
       {groups.length > 0 && <div className="episode-context-menu-separator" />}
 
       <button
@@ -151,7 +229,7 @@ export function ScenepackPickerMenu({
           onClose();
           onCreateNew();
         }}
-        disabled={busyId !== null}
+        disabled={busy}
       >
         New Scenepack…
       </button>
