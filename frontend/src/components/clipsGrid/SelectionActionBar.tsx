@@ -130,7 +130,7 @@ function BatchAddToScenepackModal({
         </div>
 
         {mode === "select" ? (
-          <div style={{ maxHeight: "220px", overflowY: "auto", marginBottom: "12px" }}>
+          <div className="scenepack-scroll-list">
             {scenepacks.length === 0 ? (
               <div className="episode-modal-message" style={{ opacity: 0.55 }}>No Scenepacks yet. Switch to "Create New".</div>
             ) : (

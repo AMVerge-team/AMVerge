@@ -174,13 +174,34 @@
   overscroll-behavior: contain;
 }
 
-.scenepack-picker-list::-webkit-scrollbar {
-  width: 6px;
+/* The pack list inside the add modals. It used to be an inline maxHeight with
+   overflow auto, which meant the platform scrollbar: a grey slab with arrow
+   buttons, nothing like the rest of the app. */
+.scenepack-scroll-list {
+  max-height: 220px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin-bottom: 12px;
 }
 
-.scenepack-picker-list::-webkit-scrollbar-thumb {
+/* One scrollbar treatment for both, matching what the grid, the episode panel
+   and the overlays already use: transparent track, accent thumb, fully
+   rounded, brighter under the pointer. */
+.scenepack-picker-list::-webkit-scrollbar,
+.scenepack-scroll-list::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+
+.scenepack-picker-list::-webkit-scrollbar-thumb,
+.scenepack-scroll-list::-webkit-scrollbar-thumb {
   background: rgb(var(--accent-rgb) / 0.35);
   border-radius: 999px;
+}
+
+.scenepack-picker-list::-webkit-scrollbar-thumb:hover,
+.scenepack-scroll-list::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--accent-rgb) / 0.6);
 }
 
 .scenepack-picker-item {
