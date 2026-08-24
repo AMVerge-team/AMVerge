@@ -816,10 +816,13 @@ pub async fn get_audio_streams(app: AppHandle, video_path: String) -> Result<Vec
             .to_string();
 
         let language = normalize_language_label(language_raw);
+        // The trailing track number was only there to disambiguate two streams
+        // sharing a language; the title already does that when present, and a
+        // bare number next to "English" reads like part of the language name.
         let label = if title.is_empty() {
-            format!("{} ({})", language, audio_order_index + 1)
+            language.clone()
         } else {
-            format!("{} - {} ({})", language, title, audio_order_index + 1)
+            format!("{} - {}", language, title)
         };
 
         out.push(PreviewAudioStream {
