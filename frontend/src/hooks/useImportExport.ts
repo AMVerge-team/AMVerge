@@ -154,10 +154,26 @@ export default function useImportExport(props?: ImportExportProps) {
     return `${safeStem}_${shortSuffix}`;
   }
 
+  /**
+   * Wire the streaming import events for one episode.
+   *
+   * Every payload carries the episode it belongs to, so several imports can be
+   * in flight at once - a batch keeps re-encoding one episode while cutting the
+   * next - and each session only reacts to its own events.
+   *
+   * `focusGrid` decides whether this episode takes over the view. The batch only
+   * grants it to the first episode; the rest fill their own buffer and appear in
+   * the sidebar without disturbing whatever the user is browsing.
+   */
   const startVideoStreamingListeners = useCallback(async (
     file: string,
     episodeId: string,
-  ): Promise<{ stop: () => void; phase1Done: Promise<void> }> => {
+    focusGrid = true,
+  ): Promise<{
+    stop: () => void;
+    phase1Done: Promise<void>;
+    getClips: () => ClipItem[];
+  }> => {
     let unlistenInitial: (() => void) | null = null;
     let unlistenClip: (() => void) | null = null;
     let unlistenThumb: (() => void) | null = null;
@@ -171,8 +187,28 @@ export default function useImportExport(props?: ImportExportProps) {
 
     let clipDone = 0;
     let clipTotal = 0;
+    // This session's own copy of the clips. The grid store only mirrors it when
+    // this episode holds focus, so a background import can never overwrite the
+    // episode on screen.
+    let sessionClips: ClipItem[] = [];
 
-    unlistenInitial = await listen<{ clips_json: string }>("initial_clips_ready", (event) => {
+    /** Events for other episodes belong to another session. */
+    const isMine = (payload: { episode_cache_id?: string | null }) =>
+      !payload.episode_cache_id || payload.episode_cache_id === episodeId;
+
+    /**
+     * Whether this episode is the one on screen right now - checked live, not
+     * captured. `focusGrid` only says whether the import opens itself; the user
+     * can open a background episode at any point, and its patches have to start
+     * reaching the grid from then on.
+     */
+    const isOnScreen = () =>
+      useEpisodePanelRuntimeStore.getState().openedEpisodeId === episodeId;
+
+    unlistenInitial = await listen<{ clips_json: string; episode_cache_id?: string | null }>(
+      "initial_clips_ready",
+      (event) => {
+      if (!isMine(event.payload)) return;
       let parsed: unknown;
       try {
         parsed = JSON.parse(event.payload.clips_json);
@@ -192,7 +228,15 @@ export default function useImportExport(props?: ImportExportProps) {
         clips,
         importMethod: generalSettings.importMethod,
       };
+      sessionClips = clips;
+      clipDone = 0;
+      clipTotal = clips.length;
+      // The episode lands in the sidebar the moment its scenes are known, so a
+      // batch makes each one openable as it arrives rather than at the end.
       episodeState.setEpisodes((prev) => [entry, ...prev.filter((ep) => ep.id !== episodeId)]);
+
+      if (!focusGrid) return;
+
       episodeState.setSelectedEpisodeId(episodeId);
       episodeState.setOpenedEpisodeId(episodeId);
       // reveal the grid now: only detection has run, cutting hasn't started. tiles
@@ -200,8 +244,6 @@ export default function useImportExport(props?: ImportExportProps) {
       // is browsable while cutting continues.
       // bgProgress tracks the cut and doubles as the "import busy" flag `loading`
       // used to provide, so a second import can't start mid-cut.
-      clipDone = 0;
-      clipTotal = clips.length;
       useAppStateStore.setState({
         clips,
         loading: false,
@@ -230,15 +272,19 @@ export default function useImportExport(props?: ImportExportProps) {
         const p = snapshot.get(c.id);
         return p ? { ...c, ...p } : c;
       };
-      useAppStateStore.setState((s) => ({
-        clips: s.clips.map(applyPatch),
-        // advance the cut counter on the same frame as the clip patches. Left
-        // untouched once every clip is in — phase1_complete clears it.
-        bgProgress:
-          clipTotal > 0 && clipDone < clipTotal
+      sessionClips = sessionClips.map(applyPatch);
+      if (isOnScreen()) {
+        useAppStateStore.setState((s) => ({
+          clips: s.clips.map(applyPatch),
+          // advance the cut counter on the same frame as the clip patches. Left
+          // untouched once every clip is in — phase1_complete clears it.
+          // bgProgress stays with the import that owns the view: a background
+          // episode must not make the app look busy while you browse another.
+          bgProgress: focusGrid && clipTotal > 0 && clipDone < clipTotal
             ? { done: clipDone, total: clipTotal }
             : s.bgProgress,
-      }));
+        }));
+      }
       episodeState.setEpisodes((prev) =>
         prev.map((ep) => (ep.id === episodeId ? { ...ep, clips: ep.clips.map(applyPatch) } : ep))
       );
@@ -255,9 +301,15 @@ export default function useImportExport(props?: ImportExportProps) {
       }
     };
 
-    unlistenClip = await listen<{ scene_index: number; clip_path: string | null; clip_mode: string }>(
+    unlistenClip = await listen<{
+      scene_index: number;
+      clip_path: string | null;
+      clip_mode: string;
+      episode_cache_id?: string | null;
+    }>(
       "clip_ready",
       (event) => {
+        if (!isMine(event.payload)) return;
         const { scene_index, clip_path, clip_mode } = event.payload;
         mergePatch(`${episodeId}_${scene_index}`, {
           clipPath: clip_path ?? undefined,
@@ -270,7 +322,10 @@ export default function useImportExport(props?: ImportExportProps) {
 
     // static jpg poster finished for a scene → flip its thumbnailReady so the
     // grid swaps the skeleton for the still image (mirrors production).
-    unlistenThumb = await listen<{ position: number }>("thumbnail_ready", (event) => {
+    unlistenThumb = await listen<{ position: number; episode_cache_id?: string | null }>(
+      "thumbnail_ready",
+      (event) => {
+      if (!isMine(event.payload)) return;
       const { position } = event.payload;
       mergePatch(`${episodeId}_${position}`, { thumbnailReady: true });
       scheduleFlush();
@@ -279,18 +334,26 @@ export default function useImportExport(props?: ImportExportProps) {
     // keyframe copies done. the grid is already visible, so this only clears the
     // busy flag. phase-2 re-encodes keep streaming in the background under
     // reencodeProgress, which deliberately does not block a new import.
-    unlistenPhase1 = await listen("phase1_complete", () => {
+    unlistenPhase1 = await listen<{ episode_cache_id?: string | null }>(
+      "phase1_complete",
+      (event) => {
+      if (!isMine(event.payload)) return;
       // flush synchronously so every keyframe clip path is in the store before
       // the import resolves.
       cancelFlush();
       flushPatches();
-      useAppStateStore.setState({ loading: false, bgProgress: null });
+      if (focusGrid) useAppStateStore.setState({ loading: false, bgProgress: null });
       resolvePhase1();
     });
 
     // background phase-2 re-encode progress → drives the "Reencoding X/Y" count
     // in the draggable background progress bar. Cleared once it reaches total.
-    unlistenReencode = await listen<{ done: number; total: number }>("reencode_progress", (event) => {
+    unlistenReencode = await listen<{
+      done: number;
+      total: number;
+      episode_cache_id?: string | null;
+    }>("reencode_progress", (event) => {
+      if (!isMine(event.payload)) return;
       const { done, total } = event.payload;
       useAppStateStore.setState({
         reencodeProgress: total > 0 && done < total ? { done, total } : null,
@@ -309,16 +372,22 @@ export default function useImportExport(props?: ImportExportProps) {
       // clear any lingering progress indicators for this session. bgProgress is
       // normally cleared at phase1_complete; this covers the process dying
       // mid-cut, which would otherwise leave the import permanently "busy".
-      useAppStateStore.setState({ reencodeProgress: null, bgProgress: null });
+      // Only the session that owns the view may clear them - a background
+      // episode finishing would otherwise wipe the active import's progress.
+      if (focusGrid) {
+        useAppStateStore.setState({ reencodeProgress: null, bgProgress: null });
+      }
     };
 
-    return { stop, phase1Done };
+    return { stop, phase1Done, getClips: () => sessionClips };
   }, [episodeState, generalSettings.importMethod]);
 
   const runImportPipeline = useCallback(async (
     file: string,
     episodeId: string,
     streamToGrid = false,
+    // Batch imports stream every episode but only the first one takes the view.
+    focusGrid = streamToGrid,
   ): Promise<{
     episodeEntry: EpisodeEntry;
     sceneCount: number;
@@ -340,11 +409,19 @@ export default function useImportExport(props?: ImportExportProps) {
     }
 
     if (videoStreaming) {
-      // stop any previous streaming session so a still-running background
-      // phase-2 from an earlier import can't cross-patch this episode.
-      streamCleanupRef.current?.();
-      const { stop, phase1Done } = await startVideoStreamingListeners(file, episodeId);
-      streamCleanupRef.current = stop;
+      // Sessions no longer need to be torn down for each other: every event
+      // carries its episode id, so an earlier import's phase-2 keeps patching
+      // its own episode while this one starts.
+      const { stop, phase1Done, getClips } = await startVideoStreamingListeners(
+        file,
+        episodeId,
+        focusGrid,
+      );
+      const previousCleanup = streamCleanupRef.current;
+      streamCleanupRef.current = () => {
+        previousCleanup?.();
+        stop();
+      };
 
       // fire detection but DON'T block import completion on it — the process
       // keeps running phase-2 after phase1_complete. Listeners are torn down
@@ -360,7 +437,6 @@ export default function useImportExport(props?: ImportExportProps) {
         .catch((err) => { invokeError = err; })
         .finally(() => {
           stop();
-          if (streamCleanupRef.current === stop) streamCleanupRef.current = null;
         });
 
       // whichever happens first: phase-1 done (normal) or the process ending
@@ -371,9 +447,10 @@ export default function useImportExport(props?: ImportExportProps) {
       ]);
 
       if (winner === "phase1") {
-        // build the entry from the streamed clips already in the store (phase-1
-        // paths included); phase-2 patches continue arriving in the background.
-        const streamedClips = useAppStateStore.getState().clips;
+        // build the entry from this session's streamed clips (phase-1 paths
+        // included); phase-2 patches continue arriving in the background. Read
+        // from the session, not the grid - a background episode never wrote there.
+        const streamedClips = getClips();
         const inferredName = streamedClips[0]?.originalName || fileNameFromPath(file);
         const episodeEntry: EpisodeEntry = {
           id: episodeId,
@@ -546,7 +623,15 @@ export default function useImportExport(props?: ImportExportProps) {
         });
 
         try {
-          const { episodeEntry, sceneCount: manifestSceneCount } = await runImportPipeline(file, episodeId);
+          // Stream every episode so it appears as soon as its keyframe cuts land
+          // and re-encodes finish in the background. Only the first takes the
+          // grid; the rest fill the sidebar without moving the user's view.
+          const { episodeEntry, sceneCount: manifestSceneCount } = await runImportPipeline(
+            file,
+            episodeId,
+            true,
+            completedEpisodes.length === 0,
+          );
           console.info("[import] manifest verified", {
             mode: "batch",
             episodeId,
@@ -561,7 +646,12 @@ export default function useImportExport(props?: ImportExportProps) {
           }
 
           completedEpisodes.push(episodeEntry);
-          episodeState.setEpisodes((prev) => [episodeEntry, ...prev]);
+          // The streaming listener already inserted this episode when its scenes
+          // were detected, so replace that entry rather than adding a second one.
+          episodeState.setEpisodes((prev) => [
+            episodeEntry,
+            ...prev.filter((ep) => ep.id !== episodeEntry.id),
+          ]);
           setBgImportProgress({ done: i + 1, total: files.length });
 
           // first finished episode: open it in the grid and drop the full-screen

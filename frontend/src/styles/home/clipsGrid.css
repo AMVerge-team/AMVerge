@@ -3,6 +3,7 @@
 -------------------- */
 
 .clips-container {
+    --selection-bar-height: 34px;
     flex: 1;
     min-height: 0;
     min-width: 0;
@@ -391,20 +392,27 @@
 /* Selection action bar (appears above grid when clips selected). Sticky so it
    stays anchored at the top of the scrollable grid, the same way the Import
    Episode / Preview All header stays pinned above it. */
+/* Floats over the grid rather than sitting above it: sticky keeps it pinned
+   while scrolling, and the negative bottom margin cancels the row it would
+   otherwise push the tiles down by. Side margins line its left edge up with the
+   Import button and keep the right edge clear of the scrollbar. */
 .selection-action-bar {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  margin-bottom: 8px;
+  margin: 0 15px calc(-1 * (var(--selection-bar-height)));
   border-radius: 10px;
   border: 1px solid rgb(var(--accent-rgb) / 0.35);
-  background: rgba(0, 0, 0, 0.35);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.72);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   position: sticky;
-  top: 0;
+  top: 0px;
   z-index: 25;
+  height: var(--selection-bar-height);
+  box-sizing: border-box;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.45);
 }
 
 .selection-action-bar-count {

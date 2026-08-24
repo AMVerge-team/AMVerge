@@ -36,11 +36,16 @@ pub struct PassLogPayload {
 #[derive(Serialize, Clone)]
 pub struct InitialClipsPayload {
     pub clips_json: String,
+    /// Which episode this belongs to. A batch import has several running at
+    /// once (one still re-encoding while the next is cut), and the listeners
+    /// key clips by episode - without this they would patch the wrong one.
+    pub episode_cache_id: Option<String>,
 }
 
 #[derive(Serialize, Clone)]
 pub struct ThumbnailReadyPayload {
     pub position: u32,
+    pub episode_cache_id: Option<String>,
 }
 
 #[derive(Serialize, Clone)]
@@ -49,6 +54,7 @@ pub struct ClipReadyPayload {
     /// Absolute path to the cut clip, or None if cutting failed.
     pub clip_path: Option<String>,
     pub clip_mode: String,
+    pub episode_cache_id: Option<String>,
 }
 
 #[derive(Serialize, Clone)]
@@ -62,4 +68,10 @@ pub struct PairResultPayload {
 pub struct ReencodeProgressPayload {
     pub done: u32,
     pub total: u32,
+    pub episode_cache_id: Option<String>,
+}
+
+#[derive(Serialize, Clone)]
+pub struct Phase1CompletePayload {
+    pub episode_cache_id: Option<String>,
 }

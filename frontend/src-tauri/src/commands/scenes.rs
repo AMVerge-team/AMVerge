@@ -10,8 +10,8 @@ use tauri::{AppHandle, Emitter, State};
 use serde_json::{json, Value};
 
 use crate::payloads::{
-    ClipReadyPayload, InitialClipsPayload, PairResultPayload, ProgressPayload,
-    ReencodeProgressPayload, ThumbnailReadyPayload,
+    ClipReadyPayload, InitialClipsPayload, PairResultPayload, Phase1CompletePayload,
+    ProgressPayload, ReencodeProgressPayload, ThumbnailReadyPayload,
 };
 use crate::state::ActiveSidecar;
 use crate::utils::logging::{
@@ -333,7 +333,10 @@ pub async fn detect_scenes(
             } else if let Some(clips_json) = line.strip_prefix("INITIAL_CLIPS_READY|") {
                 let _ = app_for_stderr.emit(
                     "initial_clips_ready",
-                    InitialClipsPayload { clips_json: clips_json.to_string() },
+                    InitialClipsPayload {
+                        clips_json: clips_json.to_string(),
+                        episode_cache_id: episode_cache_id_for_thread.clone(),
+                    },
                 );
                 // persist a preliminary manifest the moment scenes are known, so
                 // the episode has a lookup on disk before any clip is cut.
@@ -354,7 +357,12 @@ pub async fn detect_scenes(
                     ),
                 }
             } else if line.trim() == "PHASE1_COMPLETE" {
-                let _ = app_for_stderr.emit("phase1_complete", ());
+                let _ = app_for_stderr.emit(
+                    "phase1_complete",
+                    Phase1CompletePayload {
+                        episode_cache_id: episode_cache_id_for_thread.clone(),
+                    },
+                );
             } else if let Some(rest) = line.strip_prefix("REENCODE_PROGRESS|") {
                 // REENCODE_PROGRESS|<done>|<total>
                 let parts: Vec<&str> = rest.splitn(2, '|').collect();
@@ -363,14 +371,24 @@ pub async fn detect_scenes(
                         (parts[0].trim().parse::<u32>(), parts[1].trim().parse::<u32>())
                     {
                         let _ = app_for_stderr
-                            .emit("reencode_progress", ReencodeProgressPayload { done, total });
+                            .emit(
+                                "reencode_progress",
+                                ReencodeProgressPayload {
+                                    done,
+                                    total,
+                                    episode_cache_id: episode_cache_id_for_thread.clone(),
+                                },
+                            );
                     }
                 }
             } else if let Some(pos_str) = line.strip_prefix("THUMBNAIL_READY|") {
                 if let Ok(position) = pos_str.trim().parse::<u32>() {
                     let _ = app_for_stderr.emit(
                         "thumbnail_ready",
-                        ThumbnailReadyPayload { position },
+                        ThumbnailReadyPayload {
+                            position,
+                            episode_cache_id: episode_cache_id_for_thread.clone(),
+                        },
                     );
                 }
             } else if let Some(rest) = line.strip_prefix("CLIP_READY|") {
@@ -389,6 +407,7 @@ pub async fn detect_scenes(
                                     Some(clip_path)
                                 },
                                 clip_mode: parts[2].trim().to_string(),
+                                episode_cache_id: episode_cache_id_for_thread.clone(),
                             },
                         );
                     }
