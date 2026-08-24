@@ -18,13 +18,16 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 5;
+  /* same layer as the other tile controls (select, download, timestamp) */
+  z-index: 12;
   font-size: 12px;
   opacity: 0;
   transition: opacity 0.15s;
 }
 
-.clip-tile:hover .clip-add-to-scenepack,
+/* the tile element is .clip-wrapper — .clip-tile matches nothing, which left
+   this button stuck at opacity 0 and invisible on every tile. */
+.clip-wrapper:hover .clip-add-to-scenepack,
 .clip-add-to-scenepack:focus-visible {
   opacity: 1;
 }
@@ -49,13 +52,13 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 5;
+  z-index: 12;
   font-size: 11px;
   opacity: 0;
   transition: opacity 0.15s;
 }
 
-.clip-tile:hover .clip-remove-from-scenepack,
+.clip-wrapper:hover .clip-remove-from-scenepack,
 .clip-remove-from-scenepack:focus-visible {
   opacity: 1;
 }
