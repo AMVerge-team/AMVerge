@@ -68,9 +68,15 @@ export function ScenepackPickerMenu({
     };
 
     const onBlur = () => onCloseRef.current();
-    // The menu is placed in window coordinates, so any scroll under it leaves
-    // it pointing at nothing. It goes at once — no easing, no timer.
-    const onScroll = () => onCloseRef.current();
+    // The menu is placed in window coordinates, so a scroll UNDER it leaves it
+    // pointing at nothing, and it goes at once — no easing, no timer. Scrolling
+    // the pack list inside it is the opposite of leaving, so those events are
+    // let through; without that the list could never be scrolled at all.
+    const onScroll = (e: Event) => {
+      const target = e.target as Element | null;
+      if (target?.closest?.(".scenepack-picker-menu")) return;
+      onCloseRef.current();
+    };
 
     // capture, so a handler that stops propagation on its way up cannot keep
     // the menu alive, and so a scrolling container is caught as well as the page
