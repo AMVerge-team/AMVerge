@@ -100,7 +100,10 @@ export const LazyClip = memo(function LazyClip({
 
   const originalPath = clip.src;
   const isVideoMode = Boolean(clip.clipPath) && clip.clipMode !== "failed";
-  const isProcessing = clip.originalName === "Merging..." || clip.originalName === "Splitting...";
+  const isProcessing =
+    clip.originalName === "Merging..." ||
+    clip.originalName === "Splitting..." ||
+    clip.originalName === "Adding...";
 
   // ========================= VIDEO playback state/refs =======================
   const videoRef = useRef<HTMLVideoElement | null>(null);

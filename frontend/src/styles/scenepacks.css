@@ -152,6 +152,13 @@
   animation: spin 0.9s linear infinite;
 }
 
+.scenepack-row-spinner {
+  flex: none;
+  font-size: 11px;
+  opacity: 0.7;
+  color: var(--accent);
+}
+
 /* Tile picker: choose the Scenepack without leaving the grid */
 .scenepack-picker-menu {
   min-width: 190px;

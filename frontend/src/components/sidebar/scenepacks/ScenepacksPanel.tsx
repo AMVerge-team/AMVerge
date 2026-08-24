@@ -2,11 +2,12 @@ import type React from "react";
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import {
   FaLayerGroup, FaFolderPlus, FaSortAlphaDown, FaSortAlphaUp,
-  FaTrashAlt, FaPlay, FaSearch, FaTimes,
+  FaTrashAlt, FaPlay, FaSearch, FaTimes, FaSpinner,
 } from "react-icons/fa";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import Tooltip from "../../common/Tooltip";
 import { useScenepacksStore } from "../../../stores/scenepackStore";
+import { countPendingForPack, useScenepackPendingStore } from "../../../stores/scenepackPendingStore";
 import { useGeneralSettingsStore } from "../../../stores/settingsStore";
 import { useUIStateStore } from "../../../stores/UIStore";
 import type { ScenepackEntry, ScenepackFolder } from "../../../types/domain";
@@ -67,6 +68,9 @@ export function ScenepacksPanel() {
 
   const { foldersByParentId, scenepacksByFolderId, rootScenepacks } =
     useScenepackStructure(scenepacks, scenepackFolders);
+
+  // clips still being cut into a pack, so a row can say so while it happens
+  const pending = useScenepackPendingStore((s) => s.pending);
 
   const [newItemModal, setNewItemModal] = useState<{ kind: "scenepack"; parentId: string | null } | { kind: "folder"; parentId: string | null } | null>(null);
   const [newItemName, setNewItemName] = useState("");
@@ -201,6 +205,7 @@ export function ScenepacksPanel() {
   const renderScenepackRow = (sp: ScenepackEntry, depth: number, inFolder: boolean) => {
     const isSel = selectedScenepackId === sp.id;
     const isOpen = openedScenepackId === sp.id;
+    const pendingCount = countPendingForPack(pending, sp.id);
     const paddingLeft = (inFolder ? 28 : 8) + depth * 12;
 
     return (
@@ -226,6 +231,11 @@ export function ScenepacksPanel() {
           <FaLayerGroup className="episode-panel-import-icon" aria-hidden="true" />
         )}
         <span className="episode-panel-episode-name">{sp.name}</span>
+        {pendingCount > 0 && (
+          <Tooltip content={`Adding ${pendingCount} clip${pendingCount > 1 ? "s" : ""}…`} side="right">
+            <FaSpinner className="scenepack-spinner scenepack-row-spinner" aria-hidden="true" />
+          </Tooltip>
+        )}
         <span className="episode-panel-count">{sp.clips.length}</span>
         {isOpen && <FaPlay className="episode-panel-import-icon" style={{ marginLeft: 4 }} />}
       </div>

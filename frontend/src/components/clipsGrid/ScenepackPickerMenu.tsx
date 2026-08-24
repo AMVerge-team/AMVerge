@@ -1,8 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { FaSpinner } from "react-icons/fa";
 import { useScenepacksStore } from "../../stores/scenepackStore";
-import { materializeClipsForScenepack } from "../../utils/scenepackMaterialize";
+import { addClipsToScenepack } from "../../utils/scenepackAdd";
 import type { ClipItem, ScenepackEntry } from "../../types/domain";
 
 type ScenepackPickerMenuProps = {
@@ -32,10 +31,7 @@ export function ScenepackPickerMenu({
 }: ScenepackPickerMenuProps) {
   const scenepacks = useScenepacksStore((s) => s.scenepacks);
   const scenepackFolders = useScenepacksStore((s) => s.scenepackFolders);
-  const addClipToScenepack = useScenepacksStore((s) => s.addClipToScenepack);
 
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const leaveTimerRef = useRef<number | null>(null);
 
   // onClose comes from a tile that re-renders constantly (hover, playback,
@@ -45,14 +41,9 @@ export function ScenepackPickerMenu({
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
-  const busy = busyId !== null;
-
-  // Anything that means "I am done here" closes it: a press outside, Escape, or
-  // the window losing focus. While a clip is being cut it stays put, so the
-  // spinner is visible until the work finishes rather than vanishing mid-add.
+  // Anything that means "I am done here" closes it: a press outside, Escape,
+  // or the window losing focus.
   useEffect(() => {
-    if (busy) return;
-
     const onPointerDown = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
       if (target?.closest(".scenepack-picker-menu")) return;
@@ -92,7 +83,7 @@ export function ScenepackPickerMenu({
       window.removeEventListener("scroll", onScroll, true);
       window.removeEventListener("wheel", onScroll, true);
     };
-  }, [busy, clip.id]);
+  }, [clip.id]);
 
   useEffect(() => {
     return () => {
@@ -104,7 +95,6 @@ export function ScenepackPickerMenu({
   // enough that clipping a corner on the way in does not dismiss it, not enough
   // to read as the menu lingering.
   const handleMouseLeave = () => {
-    if (busy) return;
     if (leaveTimerRef.current !== null) window.clearTimeout(leaveTimerRef.current);
     leaveTimerRef.current = window.setTimeout(() => onCloseRef.current(), 150);
   };
@@ -172,26 +162,11 @@ export function ScenepackPickerMenu({
     ].filter((g) => g.packs.length > 0);
   }, [scenepacks, scenepackFolders]);
 
-  const handlePick = async (pack: ScenepackEntry) => {
-    setBusyId(pack.id);
-    setError(null);
-    try {
-      const { clips, failedCount } = await materializeClipsForScenepack(
-        [clip],
-        pack.id,
-        episodeId
-      );
-      if (clips.length === 0) {
-        setError(failedCount > 0 ? "Could not add this clip." : "Nothing to add.");
-        return;
-      }
-      addClipToScenepack(pack.id, clips[0]);
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusyId(null);
-    }
+  // Starts the add and closes. The cutting happens in the background and the
+  // clip shows up in the pack as a placeholder until its file exists.
+  const handlePick = (pack: ScenepackEntry) => {
+    addClipsToScenepack([clip], pack.id, episodeId);
+    onClose();
   };
 
   // portalled to <body>: this mounts from inside a clip tile, and
@@ -221,15 +196,13 @@ export function ScenepackPickerMenu({
                 key={pack.id}
                 type="button"
                 className="episode-context-menu-item scenepack-picker-item"
-                onClick={() => void handlePick(pack)}
-                disabled={isIn || busy}
+                onClick={() => handlePick(pack)}
+                disabled={isIn}
               >
                 <span className="scenepack-picker-name">{pack.name}</span>
-                {busyId === pack.id ? (
-                  <FaSpinner className="scenepack-spinner" aria-hidden="true" />
-                ) : (
-                  <span className="scenepack-picker-count">{isIn ? "added" : pack.clips.length}</span>
-                )}
+                <span className="scenepack-picker-count">
+                  {isIn ? "added" : pack.clips.length}
+                </span>
               </button>
             );
           })}
@@ -247,12 +220,10 @@ export function ScenepackPickerMenu({
           onClose();
           onCreateNew();
         }}
-        disabled={busy}
       >
         New Scenepack…
       </button>
 
-      {error && <div className="scenepack-picker-error">{error}</div>}
     </div>,
     document.body
   );
