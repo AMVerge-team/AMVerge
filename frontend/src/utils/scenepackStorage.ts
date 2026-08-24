@@ -50,3 +50,31 @@ export async function removeClipsFromScenepack(
     console.error("delete_scenepack_clip_files failed:", err);
   }
 }
+
+/**
+ * Opens a Scenepack's own storage folder in the system file manager.
+ *
+ * The path is taken from a clip the pack already holds rather than rebuilt from
+ * the settings: every materialized clip lives directly in
+ * `<storage root>/scene_packs/<pack id>/`, so its parent directory IS the pack
+ * folder, whatever storage root is configured. An empty pack has no folder on
+ * disk yet — nothing is created just to look at it.
+ */
+export async function revealScenepackStorage(pack: {
+  clips: { clipPath?: string; thumbnail?: string }[];
+}): Promise<void> {
+  const sample = pack.clips.find((c) => c.clipPath)?.clipPath
+    ?? pack.clips.find((c) => c.thumbnail)?.thumbnail;
+  if (!sample) return;
+
+  const parts = sample.replace(/\\/g, "/").split("/");
+  parts.pop();
+  const dir = parts.join("/");
+  if (!dir) return;
+
+  try {
+    await invoke("reveal_in_file_manager", { filePath: dir });
+  } catch (err) {
+    console.error("Could not reveal Scenepack folder:", err);
+  }
+}
