@@ -2,11 +2,13 @@ import type React from "react";
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import {
   FaLayerGroup, FaFolderPlus, FaSortAlphaDown, FaSortAlphaUp,
-  FaTrashAlt, FaPlay, FaSearch, FaTimes,
+  FaTrashAlt, FaSearch, FaTimes, FaSpinner, FaFolderOpen,
 } from "react-icons/fa";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import Tooltip from "../../common/Tooltip";
 import { useScenepacksStore } from "../../../stores/scenepackStore";
+import { countPendingForPack, useScenepackPendingStore } from "../../../stores/scenepackPendingStore";
+import { revealScenepackStorage } from "../../../utils/scenepackStorage";
 import { useGeneralSettingsStore } from "../../../stores/settingsStore";
 import { useUIStateStore } from "../../../stores/UIStore";
 import type { ScenepackEntry, ScenepackFolder } from "../../../types/domain";
@@ -59,6 +61,7 @@ export function ScenepacksPanel() {
     removeScenepack,
     renameScenepack,
     addScenepackFolder,
+    moveScenepackToFolder,
     removeScenepackFolder,
     renameScenepackFolder,
     toggleScenepackFolderExpanded,
@@ -68,11 +71,28 @@ export function ScenepacksPanel() {
   const { foldersByParentId, scenepacksByFolderId, rootScenepacks } =
     useScenepackStructure(scenepacks, scenepackFolders);
 
+  // clips still being cut into a pack, so a row can say so while it happens
+  const pending = useScenepackPendingStore((s) => s.pending);
+
   const [newItemModal, setNewItemModal] = useState<{ kind: "scenepack"; parentId: string | null } | { kind: "folder"; parentId: string | null } | null>(null);
   const [newItemName, setNewItemName] = useState("");
   const [modalFolderId, setModalFolderId] = useState<string | null>(null);
   const [renameModal, setRenameModal] = useState<{ id: string; kind: "scenepack" | "folder"; currentName: string } | null>(null);
   const [contextMenu, setContextMenu] = useState<{ id: string; kind: "scenepack" | "folder"; x: number; y: number } | null>(null);
+  // right-click on the panel's empty space, like the episode panel's
+  const [panelContextMenu, setPanelContextMenu] = useState<{ x: number; y: number } | null>(null);
+
+  // the folder (or the root) currently under a dragged pack
+  const [dropTarget, setDropTarget] = useState<string | "root" | null>(null);
+  const packDragRef = useRef<{
+    packId: string;
+    startX: number;
+    startY: number;
+    dragging: boolean;
+    pointerId: number;
+  } | null>(null);
+  // a drag that ends on a row must not also read as a click on it
+  const suppressClickRef = useRef(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<{ kind: "scenepack" | "folder"; id: string; name: string } | null>(null);
 
@@ -82,6 +102,13 @@ export function ScenepacksPanel() {
     window.addEventListener("click", close, { once: true });
     return () => window.removeEventListener("click", close);
   }, [contextMenu]);
+
+  useEffect(() => {
+    if (!panelContextMenu) return;
+    const close = () => setPanelContextMenu(null);
+    window.addEventListener("click", close, { once: true });
+    return () => window.removeEventListener("click", close);
+  }, [panelContextMenu]);
 
   const handleSelectScenepack = useCallback((id: string) => {
     setSelectedScenepackId(id);
@@ -102,6 +129,66 @@ export function ScenepacksPanel() {
 
   const handleToggleFolder = (id: string) => {
     toggleScenepackFolderExpanded(id);
+  };
+
+  /**
+   * Pointer-driven drag, like the episode panel's. The window intercepts native
+   * drag events, so `draggable` never fires here: rows are dragged by hand and
+   * the row under the cursor is found with elementFromPoint.
+   */
+  const dropTargetAt = (clientX: number, clientY: number): string | "root" | null => {
+    const el = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
+    if (!el) return null;
+    const folderEl = el.closest("[data-scenepack-folder-id]") as HTMLElement | null;
+    if (folderEl) return folderEl.getAttribute("data-scenepack-folder-id");
+    // a pack row counts as its own folder, so dropping onto a sibling files the
+    // dragged pack beside it rather than doing nothing
+    const packEl = el.closest("[data-scenepack-folder-of]") as HTMLElement | null;
+    if (packEl) return packEl.getAttribute("data-scenepack-folder-of") || "root";
+    return el.closest('[data-scenepacks-root="true"]') ? "root" : null;
+  };
+
+  const beginPackDrag = (packId: string) => (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    packDragRef.current = {
+      packId,
+      startX: e.clientX,
+      startY: e.clientY,
+      dragging: false,
+      pointerId: e.pointerId,
+    };
+
+    const onMove = (ev: PointerEvent) => {
+      const state = packDragRef.current;
+      if (!state || ev.pointerId !== state.pointerId) return;
+
+      if (!state.dragging) {
+        // a few pixels of slop, so a click with a shaky hand stays a click
+        if (Math.abs(ev.clientX - state.startX) + Math.abs(ev.clientY - state.startY) <= 6) return;
+        state.dragging = true;
+      }
+      setDropTarget(dropTargetAt(ev.clientX, ev.clientY));
+    };
+
+    const onUp = (ev: PointerEvent) => {
+      const state = packDragRef.current;
+      packDragRef.current = null;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      setDropTarget(null);
+      if (!state || ev.pointerId !== state.pointerId || !state.dragging) return;
+
+      suppressClickRef.current = true;
+      const target = dropTargetAt(ev.clientX, ev.clientY);
+      if (target !== null) {
+        moveScenepackToFolder(state.packId, target === "root" ? null : target);
+      }
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
   };
 
   const handleSort = () => {
@@ -165,6 +252,10 @@ export function ScenepacksPanel() {
 
   const DoubleClick = (key: string, onSingle: () => void, onDouble: () => void) => {
     return (_e: React.MouseEvent) => {
+      if (suppressClickRef.current) {
+        suppressClickRef.current = false;
+        return;
+      }
       const now = Date.now();
       const state = clickGestureRef.current;
       if (state.key === key && now - state.ts < 260) {
@@ -201,6 +292,7 @@ export function ScenepacksPanel() {
   const renderScenepackRow = (sp: ScenepackEntry, depth: number, inFolder: boolean) => {
     const isSel = selectedScenepackId === sp.id;
     const isOpen = openedScenepackId === sp.id;
+    const pendingCount = countPendingForPack(pending, sp.id);
     const paddingLeft = (inFolder ? 28 : 8) + depth * 12;
 
     return (
@@ -208,10 +300,14 @@ export function ScenepacksPanel() {
         key={sp.id}
         className={`episode-panel-row episode-row${isSel ? " is-selected" : ""}${isOpen ? " is-open" : ""}`}
         style={{ paddingLeft }}
+        data-scenepack-id={sp.id}
+        data-scenepack-folder-of={sp.folderId ?? "root"}
+        onPointerDown={beginPackDrag(sp.id)}
         onClick={DoubleClick(`sp_${sp.id}`, () => handleSelectScenepack(sp.id), () => handleOpenScenepack(sp.id))}
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
+          setPanelContextMenu(null);
           setContextMenu({ id: sp.id, kind: "scenepack", x: e.clientX, y: e.clientY });
         }}
       >
@@ -226,8 +322,32 @@ export function ScenepacksPanel() {
           <FaLayerGroup className="episode-panel-import-icon" aria-hidden="true" />
         )}
         <span className="episode-panel-episode-name">{sp.name}</span>
+        {pendingCount > 0 && (
+          <Tooltip content={`Adding ${pendingCount} clip${pendingCount > 1 ? "s" : ""}…`} side="right">
+            <FaSpinner className="scenepack-spinner scenepack-row-spinner" aria-hidden="true" />
+          </Tooltip>
+        )}
         <span className="episode-panel-count">{sp.clips.length}</span>
-        {isOpen && <FaPlay className="episode-panel-import-icon" style={{ marginLeft: 4 }} />}
+        <Tooltip
+          content={sp.clips.length === 0 ? "Nothing stored yet" : "Show in File Explorer"}
+          side="right"
+        >
+          <span className="tooltip-anchor">
+            <button
+              type="button"
+              className="episode-panel-import-icon episode-folder-btn"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                void revealScenepackStorage(sp);
+              }}
+              disabled={sp.clips.length === 0}
+              aria-label="Show in File Explorer"
+            >
+              <FaFolderOpen />
+            </button>
+          </span>
+        </Tooltip>
       </div>
     );
   };
@@ -242,8 +362,9 @@ export function ScenepacksPanel() {
     return (
       <div key={folder.id} className="episode-panel-folder">
         <div
-          className={`episode-panel-row folder-row${isSel ? " is-selected" : ""}`}
+          className={`episode-panel-row folder-row${isSel ? " is-selected" : ""}${dropTarget === folder.id ? " is-drop-target" : ""}`}
           style={{ paddingLeft }}
+          data-scenepack-folder-id={folder.id}
           onClick={q
             ? () => handleSelectFolder(folder.id)
             : DoubleClick(
@@ -256,6 +377,7 @@ export function ScenepacksPanel() {
             e.preventDefault();
             e.stopPropagation();
             handleSelectFolder(folder.id);
+            setPanelContextMenu(null);
             setContextMenu({ id: folder.id, kind: "folder", x: e.clientX, y: e.clientY });
           }}
         >
@@ -263,6 +385,7 @@ export function ScenepacksPanel() {
             <button
               type="button"
               className={`episode-panel-caret${isExpanded ? " is-expanded" : ""}`}
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => { e.stopPropagation(); handleToggleFolder(folder.id); }}
               aria-label={isExpanded ? "Collapse folder" : "Expand folder"}
               tabIndex={-1}
@@ -347,9 +470,10 @@ export function ScenepacksPanel() {
         </div>
 
         <div
-          className="episode-panel-list"
+          className={`episode-panel-list${dropTarget === "root" ? " is-drop-target-root" : ""}`}
           tabIndex={0}
           ref={panelRef}
+          data-scenepacks-root="true"
           onKeyDown={(e) => { if (e.key === "Delete") handleDeleteSelected(); }}
           onMouseDown={() => panelRef.current?.focus()}
           onClick={(e) => {
@@ -357,6 +481,13 @@ export function ScenepacksPanel() {
               setSelectedScenepackId(null);
               setSelectedScenepackFolderId(null);
             }
+          }}
+          onContextMenu={(e) => {
+            // only the empty space below the rows: a row handles its own
+            if (e.target !== e.currentTarget) return;
+            e.preventDefault();
+            setContextMenu(null);
+            setPanelContextMenu({ x: e.clientX, y: e.clientY });
           }}
         >
           {displayRootFolders.map((folder) => renderFolder(folder, 0))}
@@ -458,25 +589,184 @@ export function ScenepacksPanel() {
           </div>
         )}
 
-        {contextMenu && (
-          <div className="episode-context-menu" style={{ left: contextMenu.x, top: contextMenu.y }}>
-            <button className="episode-context-menu-item" onClick={() => {
-              const currentName = contextMenu.kind === "scenepack"
-                ? scenepacks.find((s) => s.id === contextMenu.id)?.name ?? ""
-                : scenepackFolders.find((f) => f.id === contextMenu.id)?.name ?? "";
-              setRenameModal({ id: contextMenu.id, kind: contextMenu.kind, currentName });
-              setNewItemName(currentName);
-              setContextMenu(null);
-            }}>
+        {panelContextMenu && (
+          <div
+            className="episode-context-menu"
+            style={{ left: panelContextMenu.x, top: panelContextMenu.y }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="episode-context-menu-item"
+              onClick={() => {
+                setNewItemModal({ kind: "scenepack", parentId: null });
+                setNewItemName("");
+                setModalFolderId(null);
+                setPanelContextMenu(null);
+              }}
+            >
+              Add Scenepack
+            </button>
+
+            <button
+              type="button"
+              className="episode-context-menu-item"
+              onClick={() => {
+                setNewItemModal({ kind: "folder", parentId: null });
+                setNewItemName("");
+                setModalFolderId(null);
+                setPanelContextMenu(null);
+              }}
+            >
+              Add Folder
+            </button>
+          </div>
+        )}
+
+        {contextMenu?.kind === "scenepack" && (
+          <div
+            className="episode-context-menu"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="episode-context-menu-item"
+              onClick={() => {
+                handleOpenScenepack(contextMenu.id);
+                setContextMenu(null);
+              }}
+            >
+              Open
+            </button>
+
+            <button
+              type="button"
+              className="episode-context-menu-item"
+              onClick={() => {
+                const pack = scenepacks.find((sp) => sp.id === contextMenu.id);
+                if (pack) void revealScenepackStorage(pack);
+                setContextMenu(null);
+              }}
+            >
+              Show in File Explorer
+            </button>
+
+            <button
+              type="button"
+              className="episode-context-menu-item"
+              onClick={() => {
+                const currentName = scenepacks.find((sp) => sp.id === contextMenu.id)?.name ?? "";
+                setRenameModal({ id: contextMenu.id, kind: "scenepack", currentName });
+                setNewItemName(currentName);
+                setContextMenu(null);
+              }}
+            >
               Rename
             </button>
-            <button className="episode-context-menu-item" onClick={() => {
-              const name = contextMenu.kind === "scenepack"
-                ? scenepacks.find((s) => s.id === contextMenu.id)?.name ?? ""
-                : scenepackFolders.find((f) => f.id === contextMenu.id)?.name ?? "";
-              setConfirmDelete({ kind: contextMenu.kind, id: contextMenu.id, name });
-              setContextMenu(null);
-            }}>
+
+            <button
+              type="button"
+              className="episode-context-menu-item"
+              onClick={() => {
+                const name = scenepacks.find((sp) => sp.id === contextMenu.id)?.name ?? "";
+                setConfirmDelete({ kind: "scenepack", id: contextMenu.id, name });
+                setContextMenu(null);
+              }}
+            >
+              Delete
+            </button>
+
+            {scenepackFolders.length > 0 && (
+              <>
+                <div className="episode-context-menu-separator" />
+                <div className="episode-context-menu-label">Move to</div>
+
+                {scenepacks.find((sp) => sp.id === contextMenu.id)?.folderId && (
+                  <button
+                    type="button"
+                    className="episode-context-menu-item"
+                    onClick={() => {
+                      moveScenepackToFolder(contextMenu.id, null);
+                      setContextMenu(null);
+                    }}
+                  >
+                    No folder
+                  </button>
+                )}
+
+                {scenepackFolders.map((folder) => (
+                  <button
+                    key={folder.id}
+                    type="button"
+                    className="episode-context-menu-item"
+                    onClick={() => {
+                      moveScenepackToFolder(contextMenu.id, folder.id);
+                      setContextMenu(null);
+                    }}
+                  >
+                    {folder.name}
+                  </button>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+
+        {contextMenu?.kind === "folder" && (
+          <div
+            className="episode-context-menu"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="episode-context-menu-item"
+              onClick={() => {
+                setNewItemModal({ kind: "folder", parentId: contextMenu.id });
+                setNewItemName("");
+                setModalFolderId(contextMenu.id);
+                setContextMenu(null);
+              }}
+            >
+              Add Subfolder
+            </button>
+
+            <button
+              type="button"
+              className="episode-context-menu-item"
+              onClick={() => {
+                setNewItemModal({ kind: "scenepack", parentId: contextMenu.id });
+                setNewItemName("");
+                setModalFolderId(contextMenu.id);
+                setContextMenu(null);
+              }}
+            >
+              Add Scenepack
+            </button>
+
+            <button
+              type="button"
+              className="episode-context-menu-item"
+              onClick={() => {
+                const currentName = scenepackFolders.find((f) => f.id === contextMenu.id)?.name ?? "";
+                setRenameModal({ id: contextMenu.id, kind: "folder", currentName });
+                setNewItemName(currentName);
+                setContextMenu(null);
+              }}
+            >
+              Rename
+            </button>
+
+            <button
+              type="button"
+              className="episode-context-menu-item"
+              onClick={() => {
+                const name = scenepackFolders.find((f) => f.id === contextMenu.id)?.name ?? "";
+                setConfirmDelete({ kind: "folder", id: contextMenu.id, name });
+                setContextMenu(null);
+              }}
+            >
               Delete
             </button>
           </div>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import GridPageLayout from "../components/GridPageLayout";
 import { useAppStateStore } from "../stores/appStore";
 import { useScenepacksStore } from "../stores/scenepackStore";
+import { useScenepackPendingStore } from "../stores/scenepackPendingStore";
 import { selectOverlayOpen, useUIStateStore } from "../stores/UIStore";
 import type { ClipItem } from "../types/domain";
 
@@ -70,13 +71,28 @@ export default function ScenepacksPage() {
     store.setFocusedClip(null);
   }, [openedScenepackId]);
 
+  // Clips still being cut into this pack, drawn from their episode copy so the
+  // tile is not blank while it waits. They are not in the pack yet — they land
+  // in the store proper once the CLI has produced their own file.
+  const pending = useScenepackPendingStore((s) => s.pending);
+  const pendingClips = useMemo<ClipItem[]>(() => {
+    if (!openedScenepackId) return [];
+    return pending
+      .filter((p) => p.scenepackId === openedScenepackId)
+      .map((p) => ({
+        ...p.source,
+        id: `pending_${p.key}`,
+        originalName: p.error ? `Failed: ${p.error}` : "Adding...",
+      }));
+  }, [pending, openedScenepackId]);
+
   useEffect(() => {
     if (!openedScenepack) return;
     const clips = openedScenepack.clips.map((c, i) =>
       scenepackClipToClipItem(openedScenepack.id, c, i)
     );
-    useAppStateStore.getState().setClips(clips);
-  }, [openedScenepack]);
+    useAppStateStore.getState().setClips([...clips, ...pendingClips]);
+  }, [openedScenepack, pendingClips]);
 
   return (
     <GridPageLayout

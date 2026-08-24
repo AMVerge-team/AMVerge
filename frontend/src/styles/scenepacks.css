@@ -1,66 +1,77 @@
 /* Scenepacks — panel rows/folders/modals reuse episode-panel classes.
    Only the clip-tile buttons and page-level UI are custom. */
 
-/* Clip tile: Add to Scenepack button (hover-visible, top-right) */
-.clip-add-to-scenepack {
-  position: absolute;
-  top: 8px;
-  right: 44px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(0, 0, 0, 0.55);
-  color: rgba(255, 255, 255, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 5;
-  font-size: 12px;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.clip-tile:hover .clip-add-to-scenepack,
-.clip-add-to-scenepack:focus-visible {
-  opacity: 1;
-}
-
-.clip-add-to-scenepack:hover {
-  background: rgba(0, 0, 0, 0.75);
-  color: var(--accent);
-}
-
-/* Remove from Scenepack button (Scenepacks tab only, hover-visible) */
+/* Clip tile: Add to Scenepack (bottom-left) and Remove from Scenepack
+   (Scenepacks tab only). Both are shaped like the download button they sit on
+   the same tile with — same size, radius, glass and motion — so the tile reads
+   as one set of controls rather than a mix of squares and circles. The only
+   difference is where they come in from, and the remove button's red. */
+.clip-add-to-scenepack,
 .clip-remove-from-scenepack {
   position: absolute;
-  top: 8px;
-  right: 44px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(0, 0, 0, 0.55);
-  color: rgba(255, 100, 100, 0.85);
+  bottom: var(--clip-overlay-inset);
+  left: var(--clip-overlay-inset);
+  /* same layer as the other tile controls (select, download, timestamp) */
+  z-index: 12;
+  width: 25px;
+  height: 25px;
+  border-radius: 8px;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  background: rgb(8 12 22 / 0.2);
+  color: rgb(255 255 255 / 0.98);
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 5;
-  font-size: 11px;
   opacity: 0;
-  transition: opacity 0.15s;
+  transform: translateY(4px) scale(0.96);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
-.clip-tile:hover .clip-remove-from-scenepack,
+/* the tile element is .clip-wrapper — .clip-tile matches nothing, which left
+   these buttons stuck at opacity 0 and invisible on every tile. */
+.clip-wrapper:hover .clip-add-to-scenepack,
+.clip-wrapper:hover .clip-remove-from-scenepack,
+.clip-add-to-scenepack:focus-visible,
 .clip-remove-from-scenepack:focus-visible {
-  opacity: 1;
+  opacity: 0.95;
+  transform: translateY(0) scale(1);
 }
 
-.clip-remove-from-scenepack:hover {
-  background: rgba(180, 40, 40, 0.75);
-  color: rgb(255, 120, 120);
+.clip-add-to-scenepack:hover,
+.clip-add-to-scenepack:focus-visible {
+  background-color: rgb(8 12 22 / 0.42);
+  border-color: rgb(255 255 255 / 0.34);
+  box-shadow:
+    0 6px 14px rgb(0 0 0 / 0.32),
+    inset 0 1px 0 rgb(255 255 255 / 0.08);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transform: translateY(0) scale(1.03);
+}
+
+.clip-remove-from-scenepack {
+  color: rgb(255 120 120 / 0.95);
+}
+
+.clip-remove-from-scenepack:hover,
+.clip-remove-from-scenepack:focus-visible {
+  background-color: rgb(120 20 20 / 0.45);
+  border-color: rgb(255 120 120 / 0.4);
+  box-shadow:
+    0 6px 14px rgb(0 0 0 / 0.32),
+    inset 0 1px 0 rgb(255 255 255 / 0.08);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transform: translateY(0) scale(1.03);
 }
 
 /* Drag-over indicator for Scenepack clip reordering */
@@ -133,4 +144,94 @@
 
 .scenepack-search-clear:hover {
   color: white;
+}
+
+/* The class was already used by the add modals and the selection bar, but had
+   no rule, so the icon just sat there. */
+.scenepack-spinner {
+  animation: spin 0.9s linear infinite;
+}
+
+.scenepack-row-spinner {
+  flex: none;
+  font-size: 11px;
+  opacity: 0.7;
+  color: var(--accent);
+}
+
+/* Tile picker: choose the Scenepack without leaving the grid */
+.scenepack-picker-menu {
+  min-width: 190px;
+  max-width: 260px;
+}
+
+/* Caps the list at roughly five packs and scrolls past that, so a library with
+   forty of them opens a short menu instead of a full-height wall. The footer
+   sits outside this box and stays reachable however long the list gets. */
+.scenepack-picker-list {
+  max-height: 180px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* The pack list inside the add modals. It used to be an inline maxHeight with
+   overflow auto, which meant the platform scrollbar: a grey slab with arrow
+   buttons, nothing like the rest of the app. */
+.scenepack-scroll-list {
+  max-height: 220px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin-bottom: 12px;
+}
+
+/* One scrollbar treatment for both, matching what the grid, the episode panel
+   and the overlays already use: transparent track, accent thumb, fully
+   rounded, brighter under the pointer. */
+.scenepack-picker-list::-webkit-scrollbar,
+.scenepack-scroll-list::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+
+.scenepack-picker-list::-webkit-scrollbar-thumb,
+.scenepack-scroll-list::-webkit-scrollbar-thumb {
+  background: rgb(var(--accent-rgb) / 0.35);
+  border-radius: 999px;
+}
+
+.scenepack-picker-list::-webkit-scrollbar-thumb:hover,
+.scenepack-scroll-list::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--accent-rgb) / 0.6);
+}
+
+.scenepack-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.scenepack-picker-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.scenepack-picker-count {
+  flex: none;
+  opacity: 0.5;
+  font-size: 13px;
+}
+
+.scenepack-picker-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.scenepack-picker-error {
+  padding: 6px 10px 2px;
+  font-size: 13px;
+  color: #ff8080;
 }

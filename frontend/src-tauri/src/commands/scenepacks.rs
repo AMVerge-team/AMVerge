@@ -59,8 +59,14 @@ pub async fn materialize_scenepack_clips(
     let out_dir = resolve_scenepacks_storage_dir(&app, custom_path.as_deref())?.join(id);
     std::fs::create_dir_all(&out_dir).map_err(|e| e.to_string())?;
 
-    let inputs_path =
-        std::env::temp_dir().join(format!("amverge_materialize_{}.json", std::process::id()));
+    // A per-call name, not a per-process one: two adds started close together
+    // shared a single path, so the second wrote its list over the first before
+    // that CLI had read it — and the first pack received the wrong clip.
+    let inputs_path = std::env::temp_dir().join(format!(
+        "amverge_materialize_{}_{}.json",
+        std::process::id(),
+        uuid::Uuid::new_v4()
+    ));
     std::fs::write(
         &inputs_path,
         serde_json::to_string(&clips).map_err(|e| e.to_string())?,
