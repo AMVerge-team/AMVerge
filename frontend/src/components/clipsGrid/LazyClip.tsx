@@ -18,6 +18,7 @@ import { usePreviewTranscode } from "../../features/preview/usePreviewTranscode.
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
 import { cancelIdle, scheduleIdle } from "../../utils/idle.ts";
 import { AddToScenepackModal } from "./AddToScenepackModal.tsx";
+import { ScenepackPickerMenu } from "./ScenepackPickerMenu.tsx";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
 import { useScenepacksStore } from "../../stores/scenepackStore.ts";
 import { removeClipsFromScenepack } from "../../utils/scenepackStorage.ts";
@@ -88,6 +89,8 @@ export const LazyClip = memo(function LazyClip({
   const [hovered, setIsHovered] = useState(false);
   const isHovered = hovered && !settingsOpen;
   const [showScenepackModal, setShowScenepackModal] = useState(false);
+  // where the tile's Scenepack picker opened, or null when it is closed
+  const [scenepackMenu, setScenepackMenu] = useState<{ x: number; y: number } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const thumbnailRef = useRef<HTMLImageElement | null>(null);
@@ -1083,13 +1086,30 @@ export const LazyClip = memo(function LazyClip({
                 className="clip-add-to-scenepack"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setShowScenepackModal(true);
+                  setScenepackMenu((prev) => (prev ? null : { x: e.clientX, y: e.clientY }));
+                }}
+                // dblclick is its own event and does not inherit the stopped
+                // clicks beneath it, so without this a second press would also
+                // toggle the tile's selection.
+                onDoubleClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                 }}
                 aria-label="Add to Scenepack"
               >
                 <FaLayerGroup />
               </button>
             </Tooltip>
+          )}
+
+          {scenepackMenu && (
+            <ScenepackPickerMenu
+              clip={clip}
+              episodeId={episodeId}
+              anchor={scenepackMenu}
+              onClose={() => setScenepackMenu(null)}
+              onCreateNew={() => setShowScenepackModal(true)}
+            />
           )}
 
           {activePage === "scenepacks" && (

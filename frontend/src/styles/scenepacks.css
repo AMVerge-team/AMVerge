@@ -1,11 +1,13 @@
 /* Scenepacks — panel rows/folders/modals reuse episode-panel classes.
    Only the clip-tile buttons and page-level UI are custom. */
 
-/* Clip tile: Add to Scenepack button (hover-visible, top-right) */
+/* Clip tile: Add to Scenepack button (hover-visible, bottom-left).
+   The other three corners are taken — select, download and the timestamp — and
+   the bottom-left is where the eye lands after reading the tile. */
 .clip-add-to-scenepack {
   position: absolute;
-  top: 8px;
-  right: 44px;
+  bottom: 8px;
+  left: 8px;
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -133,4 +135,50 @@
 
 .scenepack-search-clear:hover {
   color: white;
+}
+
+/* The class was already used by the add modals and the selection bar, but had
+   no rule, so the icon just sat there. */
+.scenepack-spinner {
+  animation: spin 0.9s linear infinite;
+}
+
+/* Tile picker: choose the Scenepack without leaving the grid */
+.scenepack-picker-menu {
+  min-width: 190px;
+  max-width: 260px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.scenepack-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.scenepack-picker-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.scenepack-picker-count {
+  flex: none;
+  opacity: 0.5;
+  font-size: 13px;
+}
+
+.scenepack-picker-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.scenepack-picker-error {
+  padding: 6px 10px 2px;
+  font-size: 13px;
+  color: #ff8080;
 }
