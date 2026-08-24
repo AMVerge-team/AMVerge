@@ -7,7 +7,6 @@ import {
   FaFolder,
   FaLayerGroup,
   FaBolt,
-  FaPalette,
   FaCog,
   FaTerminal,
   FaBug,
@@ -17,22 +16,28 @@ import {
   FaTimes,
   FaThumbtack,
   FaFileExport,
+  FaInfoCircle,
   FaAngleRight,
+  FaColumns,
+  FaVolumeUp,
+  FaVolumeMute,
+  FaExpand,
+  FaSlidersH,
+  FaCodeBranch,
 } from "react-icons/fa";
 import { useUIStateStore } from "../stores/UIStore";
 import { useEpisodePanelRuntimeStore, useEpisodePanelMetadataStore } from "../stores/episodeStore";
 import { useScenepacksStore } from "../stores/scenepackStore";
 import { useAppStateStore } from "../stores/appStore";
-import { useThemeSettingsStore } from "../stores/settingsStore";
-import { COLOR_PRESETS } from "../features/theme/colorPresets";
+import { useGeneralSettingsStore, useThemeSettingsStore } from "../stores/settingsStore";
 import { openEpisodeById } from "../hooks/useEpisodePanelState";
 import useImportExport from "../hooks/useImportExport";
 
-type CategoryFilter = "all" | "episodes" | "scenepacks" | "actions" | "themes" | "settings";
+type CategoryFilter = "all" | "episodes" | "scenepacks" | "actions" | "settings" | "menu";
 
 interface CommandItem {
   id: string;
-  category: "episodes" | "scenepacks" | "actions" | "themes" | "settings";
+  category: "episodes" | "scenepacks" | "actions" | "settings" | "menu";
   title: string;
   subtitle?: string;
   badge?: string;
@@ -44,19 +49,18 @@ interface CommandItem {
     metaLine1?: string;
     metaLine2?: string;
     filePath?: string;
-    accentColor?: string;
     shortcut?: string;
     description?: string;
   };
 }
 
 const CATEGORY_CHIPS: { id: CategoryFilter; label: string; icon: any; prefix: string }[] = [
-  { id: "all", label: "All Items", icon: FaSearch, prefix: "" },
+  { id: "all", label: "All", icon: FaSearch, prefix: "" },
   { id: "episodes", label: "Episodes", icon: FaPlay, prefix: "@" },
   { id: "scenepacks", label: "Scenepacks", icon: FaLayerGroup, prefix: "#" },
   { id: "actions", label: "Actions", icon: FaBolt, prefix: ">" },
-  { id: "themes", label: "Themes", icon: FaPalette, prefix: "!" },
   { id: "settings", label: "Settings", icon: FaCog, prefix: "?" },
+  { id: "menu", label: "System & Menu", icon: FaTerminal, prefix: "/" },
 ];
 
 const BLOCKING_OVERLAYS =
@@ -72,6 +76,10 @@ export default function QuickMenu() {
   const togglePinned = useUIStateStore((s: any) => s.togglePinned);
   const sidebarEnabled = useUIStateStore((s: any) => s.sidebarEnabled);
   const setSidebarEnabled = useUIStateStore((s: any) => s.setSidebarEnabled);
+  const previewCollapsed = useUIStateStore((s: any) => s.previewCollapsed);
+  const setPreviewCollapsed = useUIStateStore((s: any) => s.setPreviewCollapsed);
+  const cols = useUIStateStore((s: any) => s.cols);
+  const setCols = useUIStateStore((s: any) => s.setCols);
 
   const episodes = useEpisodePanelRuntimeStore((s) => s.episodes);
   const episodeNamesById = useEpisodePanelMetadataStore((s) => s.episodeNamesById);
@@ -83,9 +91,8 @@ export default function QuickMenu() {
   const selectedClips = useAppStateStore((s) => s.selectedClips);
   const setSelectedClips = useAppStateStore((s) => s.setSelectedClips);
 
-  const currentAccent = useThemeSettingsStore((s) => s.accentColor);
-  const setAccentColor = useThemeSettingsStore((s) => s.setAccentColor);
-  const setBackgroundGradientColor = useThemeSettingsStore((s) => s.setBackgroundGradientColor);
+  const generalSettings = useGeneralSettingsStore();
+  const themeSettings = useThemeSettingsStore();
 
   const { onImportClick } = useImportExport();
 
@@ -125,7 +132,7 @@ export default function QuickMenu() {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [setQuickMenuOpen]);
 
-  // Focus input when opened
+  // Focus input on open
   useEffect(() => {
     if (open) {
       setSearchQuery("");
@@ -135,14 +142,14 @@ export default function QuickMenu() {
     }
   }, [open]);
 
-  // Parse prefixes or chip filter
+  // Parse prefixes or active chip filter
   const { effectiveFilter, cleanQuery } = useMemo(() => {
     const trimmed = searchQuery.trim();
     if (trimmed.startsWith("@")) return { effectiveFilter: "episodes" as CategoryFilter, cleanQuery: trimmed.slice(1).trim() };
     if (trimmed.startsWith("#")) return { effectiveFilter: "scenepacks" as CategoryFilter, cleanQuery: trimmed.slice(1).trim() };
     if (trimmed.startsWith(">")) return { effectiveFilter: "actions" as CategoryFilter, cleanQuery: trimmed.slice(1).trim() };
-    if (trimmed.startsWith("!")) return { effectiveFilter: "themes" as CategoryFilter, cleanQuery: trimmed.slice(1).trim() };
     if (trimmed.startsWith("?")) return { effectiveFilter: "settings" as CategoryFilter, cleanQuery: trimmed.slice(1).trim() };
+    if (trimmed.startsWith("/")) return { effectiveFilter: "menu" as CategoryFilter, cleanQuery: trimmed.slice(1).trim() };
     return { effectiveFilter: activeFilter, cleanQuery: trimmed };
   }, [searchQuery, activeFilter]);
 
@@ -160,7 +167,7 @@ export default function QuickMenu() {
         id: `ep-${ep.id}`,
         category: "episodes",
         title: name,
-        subtitle: `${clipCount} scenes • ${ep.videoPath || "Ready in library"}`,
+        subtitle: `${clipCount} cut scenes • ${ep.videoPath || "Ready in workspace"}`,
         badge: "Episode",
         icon: FaPlay,
         action: () => {
@@ -170,11 +177,11 @@ export default function QuickMenu() {
         },
         preview: {
           thumbnail,
-          metaTags: [`${clipCount} Clips`, "Keyframe / TransNet", "Video Source"],
+          metaTags: [`${clipCount} Clips`, "Video Demux", "Workspace Ready"],
           metaLine1: name,
-          metaLine2: ep.videoPath || "Imported Video File",
+          metaLine2: ep.videoPath || "Local video file",
           filePath: ep.videoPath,
-          description: "Immediately loads and streams all cut clips into the timeline workspace.",
+          description: "Immediately loads and streams all cut scenes into the grid timeline.",
           shortcut: "↵ Open",
         },
       });
@@ -187,7 +194,7 @@ export default function QuickMenu() {
         id: `sp-${sp.id}`,
         category: "scenepacks",
         title: sp.name,
-        subtitle: `${count} scenes collected`,
+        subtitle: `${count} scenes in collection`,
         badge: "Scenepack",
         icon: FaLayerGroup,
         action: () => {
@@ -198,32 +205,32 @@ export default function QuickMenu() {
         },
         preview: {
           thumbnail: sp.clips?.[0]?.thumbnail || null,
-          metaTags: [`${count} Clips`, "Scenepack", "Saved Collection"],
+          metaTags: [`${count} Clips`, "Scenepack", "Collection"],
           metaLine1: sp.name,
-          metaLine2: "Custom Scene Pack",
-          description: "Browse, filter, and batch export clips grouped in this scenepack.",
+          metaLine2: "Custom Scenepack Folder",
+          description: "Browse, filter, and batch export clips collected in this scenepack.",
           shortcut: "↵ Open",
         },
       });
     });
 
-    // 3. ACTIONS
+    // 3. WORKSPACE ACTIONS
     items.push(
       {
         id: "act-import",
         category: "actions",
         title: "Import New Episode",
-        subtitle: "Launch file browser to detect and cut new footage",
-        badge: "Action",
+        subtitle: "Select video file to detect and cut into scene clips",
+        badge: "Workspace",
         icon: FaFolderOpen,
         action: () => {
           setQuickMenuOpen(false);
           onImportClick();
         },
         preview: {
-          metaTags: ["Pipeline", "Demux", "SmartCut"],
+          metaTags: ["Pipeline", "Scene Cut", "SmartCut Demux"],
           metaLine1: "Scene Detection Pipeline",
-          description: "Select an MKV / MP4 file to run TransNetV2 AI or fast keyframe demux.",
+          description: "Open file dialog to run TransNetV2 AI or fast keyframe demux.",
           shortcut: "⌘I",
         },
       },
@@ -231,7 +238,7 @@ export default function QuickMenu() {
         id: "act-select-all",
         category: "actions",
         title: "Select All Clips",
-        subtitle: `Select all ${clips.length} scenes in timeline`,
+        subtitle: `Highlight all ${clips.length} scenes in timeline`,
         badge: "Selection",
         icon: FaThLarge,
         action: () => {
@@ -239,16 +246,16 @@ export default function QuickMenu() {
           setQuickMenuOpen(false);
         },
         preview: {
-          metaTags: [`${clips.length} Clips`, "Timeline"],
+          metaTags: [`${clips.length} Available Clips`, "Timeline"],
           metaLine1: "Bulk Selection",
-          description: "Highlights and selects every scene for batch export or merge.",
+          description: "Selects every scene for batch export, merging, or scenepack grouping.",
           shortcut: "Ctrl+A",
         },
       },
       {
         id: "act-clear-select",
         category: "actions",
-        title: "Clear Selection",
+        title: "Clear Clip Selection",
         subtitle: `Deselect currently selected ${selectedClips.size} scenes`,
         badge: "Selection",
         icon: FaTimes,
@@ -259,7 +266,7 @@ export default function QuickMenu() {
         preview: {
           metaTags: [`${selectedClips.size} Selected`],
           metaLine1: "Deselect All",
-          description: "Clears current timeline selection.",
+          description: "Clears selection state across the grid.",
         },
       },
       {
@@ -276,7 +283,7 @@ export default function QuickMenu() {
         preview: {
           metaTags: [pinned ? "Currently Pinned" : "Normal Window", "Companion Size"],
           metaLine1: "Always on Top Mode",
-          description: "Shrinks and pins AMVerge over your video editor workspace.",
+          description: "Shrinks and pins AMVerge floating above your editing application.",
         },
       },
       {
@@ -295,119 +302,246 @@ export default function QuickMenu() {
           metaLine1: "Sidebar Visibility",
           description: "Expands or collapses the left episode panel to save screen space.",
         },
-      }
-    );
-
-    // 4. THEMES (COLOR PRESETS)
-    COLOR_PRESETS.forEach((preset, idx) => {
-      const isCurrent = preset.accent.toLowerCase() === currentAccent.toLowerCase();
-      items.push({
-        id: `th-${idx}`,
-        category: "themes",
-        title: `Color Accent: ${preset.accent}`,
-        subtitle: `Harmonious gradient ${preset.gradient}`,
-        badge: isCurrent ? "Active" : "Theme",
-        icon: FaPalette,
+      },
+      {
+        id: "act-toggle-preview",
+        category: "actions",
+        title: previewCollapsed ? "Show Video Preview Panel" : "Hide Video Preview Panel",
+        subtitle: "Toggle the right preview player to expand clip grid full-width",
+        badge: "Layout",
+        icon: FaExpand,
         action: () => {
-          setAccentColor(preset.accent);
-          setBackgroundGradientColor(preset.gradient);
+          setPreviewCollapsed(!previewCollapsed);
           setQuickMenuOpen(false);
         },
         preview: {
-          accentColor: preset.accent,
-          metaTags: ["Live Palette", preset.accent],
-          metaLine1: `Theme Accent: ${preset.accent}`,
-          metaLine2: `Gradient: ${preset.gradient}`,
-          description: "Applies accent tint, glowing UI highlights, and matching dark gradient backdrop.",
-          shortcut: "↵ Apply",
+          metaTags: [previewCollapsed ? "Preview Folded" : "Preview Visible", "Grid Full-Width"],
+          metaLine1: "Preview Pane Toggle",
+          description: "Hides or restores the right video playback and export controls pane.",
         },
-      });
-    });
+      },
+      {
+        id: "act-grid-zoom-in",
+        category: "actions",
+        title: "Grid: Zoom In (Larger Tiles)",
+        subtitle: `Currently ${cols} columns per row`,
+        badge: "Grid",
+        icon: FaColumns,
+        action: () => {
+          setCols((prev: number) => Math.max(1, prev - 1));
+          setQuickMenuOpen(false);
+        },
+        preview: {
+          metaTags: [`Current: ${cols} cols`, "Grid Sizing"],
+          metaLine1: "Bigger Clip Tiles",
+          description: "Decreases columns to give each clip thumbnail more screen real estate.",
+        },
+      },
+      {
+        id: "act-grid-zoom-out",
+        category: "actions",
+        title: "Grid: Zoom Out (More Columns)",
+        subtitle: `Currently ${cols} columns per row`,
+        badge: "Grid",
+        icon: FaColumns,
+        action: () => {
+          setCols((prev: number) => Math.min(9, prev + 1));
+          setQuickMenuOpen(false);
+        },
+        preview: {
+          metaTags: [`Current: ${cols} cols`, "Grid Sizing"],
+          metaLine1: "Smaller Clip Tiles",
+          description: "Increases columns to view more scene clips at a glance.",
+        },
+      },
+      {
+        id: "act-toggle-audio",
+        category: "actions",
+        title: generalSettings.audioPlaybackHover ? "Mute Audio on Hover" : "Enable Audio on Hover",
+        subtitle: "Toggle clip hover sound in the scene grid",
+        badge: "Audio",
+        icon: generalSettings.audioPlaybackHover ? FaVolumeMute : FaVolumeUp,
+        action: () => {
+          generalSettings.setAudioPlaybackHover(!generalSettings.audioPlaybackHover);
+          setQuickMenuOpen(false);
+        },
+        preview: {
+          metaTags: [generalSettings.audioPlaybackHover ? "Audio: Active" : "Audio: Muted", "Hover Audio"],
+          metaLine1: "Hover Audio Playback",
+          description: "Controls whether hovering over a clip tile plays its synchronized audio track.",
+        },
+      }
+    );
 
-    // 5. SETTINGS & DIAGNOSTICS
+    // 4. SETTINGS
     items.push(
       {
         id: "set-general",
         category: "settings",
         title: "Settings: General",
-        subtitle: "Scene detection method, storage directories, and app defaults",
+        subtitle: "Scene detection methods, episodes storage path, and app defaults",
         badge: "Settings",
         icon: FaCog,
         action: () => {
           setQuickMenuOpen(false);
           openSettings("general");
         },
+        preview: {
+          metaTags: ["Detection Method", "Storage Folder", "Transcode Quality"],
+          metaLine1: "General Preferences",
+          metaLine2: generalSettings.episodesPath || "Default Cache Directory",
+          description: "Configure detection algorithms, cache locations, and video decode pipelines.",
+          shortcut: "↵ Open",
+        },
       },
       {
         id: "set-export",
         category: "settings",
         title: "Settings: Export Profiles",
-        subtitle: "Hardware acceleration encoders (NVENC/AMF/QSV) and codecs",
+        subtitle: "GPU acceleration encoders (NVENC / AMF / QSV) and video codecs",
         badge: "Settings",
         icon: FaFileExport,
         action: () => {
           setQuickMenuOpen(false);
           openSettings("export");
         },
+        preview: {
+          metaTags: ["NVENC / AMF / QSV", "H.264 / HEVC / AV1", "ProRes"],
+          metaLine1: "Export Configuration",
+          metaLine2: generalSettings.exportPath || "Default Export Folder",
+          description: "Manage export encoders, bitrates, hardware profiles, and container formats.",
+          shortcut: "↵ Open",
+        },
       },
       {
         id: "set-appearance",
         category: "settings",
         title: "Settings: Appearance",
-        subtitle: "Custom background images, fonts, and tile styles",
+        subtitle: "Custom colors, wallpaper background blur, and clip styling",
         badge: "Settings",
-        icon: FaPalette,
+        icon: FaSlidersH,
         action: () => {
           setQuickMenuOpen(false);
           openSettings("appearance");
+        },
+        preview: {
+          metaTags: ["Accent Tint", "Custom Background", "Font Adjust"],
+          metaLine1: "Visual Styling",
+          metaLine2: `Accent: ${themeSettings.accentColor}`,
+          description: "Personalize app colors, background images, opacity, and typography.",
+          shortcut: "↵ Open",
         },
       },
       {
         id: "set-deps",
         category: "settings",
         title: "Settings: AI Dependencies & Models",
-        subtitle: "PyTorch, CUDA, Depth-Map, and RIFE frame interpolation",
+        subtitle: "PyTorch CUDA environment, Depth-Map weights, and RIFE interpolation",
         badge: "Settings",
         icon: FaBolt,
         action: () => {
           setQuickMenuOpen(false);
           openSettings("dependencies");
         },
+        preview: {
+          metaTags: ["TransNetV2", "RIFE Interpolation", "Depth Maps"],
+          metaLine1: "AI Pack Ecosystem",
+          description: "Check GPU status, install AI packs, and manage neural model weights.",
+          shortcut: "↵ Open",
+        },
       },
       {
-        id: "menu-console",
+        id: "set-discord",
         category: "settings",
+        title: "Settings: Discord Rich Presence",
+        subtitle: "Configure Discord status badges, filenames, and rich details",
+        badge: "Settings",
+        icon: FaCodeBranch,
+        action: () => {
+          setQuickMenuOpen(false);
+          openSettings("discord");
+        },
+        preview: {
+          metaTags: [generalSettings.discordRPCEnabled ? "RPC Enabled" : "RPC Disabled", "Discord"],
+          metaLine1: "Discord RPC Integration",
+          description: "Show your editing status and active clips count on Discord.",
+          shortcut: "↵ Open",
+        },
+      }
+    );
+
+    // 5. SYSTEM & MENU
+    items.push(
+      {
+        id: "menu-console",
+        category: "menu",
         title: "Developer Console Logs",
-        subtitle: "View real-time CLI IPC messages and diagnostic streams",
+        subtitle: "Live CLI IPC events, backend streams, and diagnostic logs",
         badge: "System",
         icon: FaTerminal,
         action: () => {
           setQuickMenuOpen(false);
           openMenu();
         },
+        preview: {
+          metaTags: ["CLI IPC", "Debug Output", "FFmpeg Logs"],
+          metaLine1: "Diagnostic Console",
+          description: "Inspect live stderr/stdout telemetry from FFmpeg, PyAV, and AI sidecars.",
+          shortcut: "↵ Open",
+        },
       },
       {
         id: "menu-patchnotes",
-        category: "settings",
-        title: "Version & Update Logs",
-        subtitle: "Explore changelogs and release notes",
+        category: "menu",
+        title: "Update Logs & Patch Notes",
+        subtitle: "Read release history and new features in AMVerge v2",
         badge: "System",
         icon: FaHistory,
         action: () => {
           setQuickMenuOpen(false);
           openMenu();
         },
+        preview: {
+          metaTags: ["Release v2.0", "Changelog", "Patch History"],
+          metaLine1: "Version Release Logs",
+          description: "Browse changelogs, bug fixes, and feature additions.",
+          shortcut: "↵ Open",
+        },
+      },
+      {
+        id: "menu-about",
+        category: "menu",
+        title: "About AMVerge",
+        subtitle: "Architecture, system info, and open-source licenses",
+        badge: "System",
+        icon: FaInfoCircle,
+        action: () => {
+          setQuickMenuOpen(false);
+          openMenu();
+        },
+        preview: {
+          metaTags: ["Tauri v2", "Rust Backend", "AMVerge CLI"],
+          metaLine1: "About AMVerge Desktop",
+          description: "High-performance anime & video scene cutter by Crptk & team.",
+          shortcut: "↵ Open",
+        },
       },
       {
         id: "menu-bugreport",
-        category: "settings",
+        category: "menu",
         title: "Report a Bug / Issue",
-        subtitle: "Submit feedback with diagnostic telemetry",
+        subtitle: "Submit feedback with diagnostic telemetry or connect to Discord",
         badge: "Support",
         icon: FaBug,
         action: () => {
           setQuickMenuOpen(false);
           openMenu();
+        },
+        preview: {
+          metaTags: ["HMAC Verified", "Bug Tracker", "Community"],
+          metaLine1: "Feedback & Bug Reports",
+          description: "Submit reproducible bugs directly to the development team.",
+          shortcut: "↵ Open",
         },
       }
     );
@@ -417,11 +551,14 @@ export default function QuickMenu() {
     episodes,
     episodeNamesById,
     scenepacks,
-    currentAccent,
     clips,
     selectedClips,
     pinned,
     sidebarEnabled,
+    previewCollapsed,
+    cols,
+    generalSettings,
+    themeSettings,
     onImportClick,
     setSelectedScenepackId,
     setOpenedScenepackId,
@@ -430,9 +567,9 @@ export default function QuickMenu() {
     setActivePage,
     setSelectedClips,
     setQuickMenuOpen,
-    setAccentColor,
-    setBackgroundGradientColor,
     setSidebarEnabled,
+    setPreviewCollapsed,
+    setCols,
     togglePinned,
   ]);
 
@@ -468,7 +605,7 @@ export default function QuickMenu() {
     } else if (e.key === "Tab") {
       e.preventDefault();
       // Cycle category filter
-      const idx = CATEGORY_CHIPS.findIndex((c) => c.id === activeFilter);
+      const idx = CATEGORY_CHIPS.findIndex((c) => c.id === effectiveFilter);
       const next = CATEGORY_CHIPS[(idx + 1) % CATEGORY_CHIPS.length].id;
       setActiveFilter(next);
       setSelectedIndex(0);
@@ -506,7 +643,7 @@ export default function QuickMenu() {
               ref={inputRef}
               type="text"
               className="spotlight-pro-input"
-              placeholder="Search episodes, scenepacks, actions, settings..."
+              placeholder="Search episodes, scenepacks, actions, settings, menu..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -616,22 +753,9 @@ export default function QuickMenu() {
                     <div className="media-overlay-gradient" />
                   </div>
                 ) : (
-                  <div
-                    className="inspector-icon-hero"
-                    style={
-                      activeCommand.preview?.accentColor
-                        ? {
-                            borderColor: `${activeCommand.preview.accentColor}40`,
-                            background: `linear-gradient(180deg, ${activeCommand.preview.accentColor}25 0%, rgba(0,0,0,0.4) 100%)`,
-                          }
-                        : undefined
-                    }
-                  >
+                  <div className="inspector-icon-hero">
                     {React.createElement(activeCommand.icon, {
                       className: "inspector-hero-icon",
-                      style: activeCommand.preview?.accentColor
-                        ? { color: activeCommand.preview.accentColor }
-                        : undefined,
                     })}
                   </div>
                 )}
@@ -653,7 +777,7 @@ export default function QuickMenu() {
 
                   {activeCommand.preview?.metaLine2 && (
                     <div className="inspector-path-box">
-                      <span className="path-label">Location</span>
+                      <span className="path-label">Target</span>
                       <span className="path-text">{activeCommand.preview.metaLine2}</span>
                     </div>
                   )}

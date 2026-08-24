@@ -868,14 +868,12 @@
     inset: 0;
     z-index: 9999;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
-    padding-top: min(8vh, 70px);
-    padding-left: 20px;
-    padding-right: 20px;
-    background: rgba(0, 0, 0, 0.76);
-    -webkit-backdrop-filter: blur(18px);
-    backdrop-filter: blur(18px);
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.78);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
     animation: app-modal-fade 0.12s ease;
 }
 
@@ -883,13 +881,14 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    width: min(920px, 100%);
-    max-height: min(620px, 84vh);
+    width: min(940px, 94vw);
+    height: 600px;
+    max-height: 86vh;
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 18px;
-    background: rgba(12, 12, 15, 0.92);
-    backdrop-filter: blur(32px);
-    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(var(--accent-rgb), 0.25);
+    background: rgba(13, 13, 16, 0.94);
+    backdrop-filter: blur(36px);
+    box-shadow: 0 36px 90px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(var(--accent-rgb), 0.22);
     animation: app-modal-rise 0.14s ease;
     overflow: hidden;
 }
@@ -899,7 +898,7 @@
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 16px 20px 12px 20px;
+    padding: 18px 22px 14px 22px;
     background: rgba(255, 255, 255, 0.02);
 }
 
@@ -911,14 +910,14 @@
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
-    padding: 10px 16px;
+    padding: 11px 16px;
     transition: all 0.15s ease;
 }
 
 .spotlight-pro-searchbox:focus-within {
     background: rgba(var(--accent-rgb), 0.06);
-    border-color: rgba(var(--accent-rgb), 0.5);
-    box-shadow: 0 0 16px rgba(var(--accent-rgb), 0.25);
+    border-color: rgba(var(--accent-rgb), 0.55);
+    box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.28);
 }
 
 .spotlight-pro-search-icon {
@@ -965,7 +964,7 @@
 }
 
 .spotlight-pro-close-pill {
-    padding: 8px 12px;
+    padding: 9px 14px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 10px;
@@ -988,7 +987,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0 20px 14px 20px;
+    padding: 0 22px 14px 22px;
     overflow-x: auto;
     scrollbar-width: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -1002,7 +1001,7 @@
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    padding: 6px 12px;
+    padding: 6px 14px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -1043,30 +1042,37 @@
 .spotlight-pro-body {
     display: flex;
     flex: 1 1 auto;
-    min-height: 380px;
-    max-height: 460px;
+    min-height: 0;
     overflow: hidden;
 }
 
-/* LEFT RESULTS LIST */
+/* LEFT RESULTS LIST WITH CUSTOM SCROLLBAR */
 .spotlight-pro-list-pane {
     flex: 1 1 58%;
     overflow-y: auto;
-    padding: 12px 14px;
+    padding: 14px 16px;
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 6px;
     scrollbar-width: thin;
-    scrollbar-color: rgba(var(--accent-rgb), 0.35) transparent;
+    scrollbar-color: rgba(var(--accent-rgb), 0.4) transparent;
 }
 
 .spotlight-pro-list-pane::-webkit-scrollbar {
     width: 6px;
 }
 
+.spotlight-pro-list-pane::-webkit-scrollbar-track {
+    background: transparent;
+}
+
 .spotlight-pro-list-pane::-webkit-scrollbar-thumb {
-    background: rgba(var(--accent-rgb), 0.3);
+    background: rgba(var(--accent-rgb), 0.4);
     border-radius: 4px;
+}
+
+.spotlight-pro-list-pane::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
 }
 
 .spotlight-pro-empty {
@@ -1207,28 +1213,39 @@
     transform: translateX(2px);
 }
 
-/* RIGHT RICH INSPECTOR PANE */
+/* RIGHT RICH INSPECTOR PANE WITH CUSTOM SCROLLBAR */
 .spotlight-pro-inspector-pane {
     flex: 1 1 42%;
     border-left: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(0, 0, 0, 0.28);
-    padding: 20px;
+    padding: 22px;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--accent-rgb), 0.4) transparent;
+}
+
+.spotlight-pro-inspector-pane::-webkit-scrollbar {
+    width: 6px;
+}
+
+.spotlight-pro-inspector-pane::-webkit-scrollbar-thumb {
+    background: rgba(var(--accent-rgb), 0.4);
+    border-radius: 4px;
 }
 
 .spotlight-inspector-content {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 16px;
     height: 100%;
 }
 
 .inspector-media-banner {
     position: relative;
     width: 100%;
-    height: 150px;
+    height: 155px;
     border-radius: 12px;
     overflow: hidden;
     background: #000000;
@@ -1251,26 +1268,26 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 120px;
-    border-radius: 12px;
-    background: rgba(var(--accent-rgb), 0.1);
-    border: 1px solid rgba(var(--accent-rgb), 0.25);
+    height: 130px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.14) 0%, rgba(0, 0, 0, 0.4) 100%);
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
 }
 
 .inspector-hero-icon {
-    font-size: 2.6rem;
+    font-size: 2.8rem;
     color: var(--accent);
-    filter: drop-shadow(0 0 16px rgba(var(--accent-rgb), 0.6));
+    filter: drop-shadow(0 0 18px rgba(var(--accent-rgb), 0.65));
 }
 
 .inspector-details {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
 }
 
 .inspector-title {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     font-weight: 700;
     color: #ffffff;
     margin: 0;
@@ -1319,9 +1336,9 @@
 }
 
 .inspector-desc {
-    font-size: 0.78rem;
-    line-height: 1.45;
-    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.68);
     margin: 0;
 }
 
@@ -1405,7 +1422,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 20px;
+    padding: 12px 22px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(0, 0, 0, 0.45);
     font-size: 0.75rem;
