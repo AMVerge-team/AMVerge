@@ -1,71 +1,77 @@
 /* Scenepacks — panel rows/folders/modals reuse episode-panel classes.
    Only the clip-tile buttons and page-level UI are custom. */
 
-/* Clip tile: Add to Scenepack button (hover-visible, bottom-left).
-   The other three corners are taken — select, download and the timestamp — and
-   the bottom-left is where the eye lands after reading the tile. */
-.clip-add-to-scenepack {
+/* Clip tile: Add to Scenepack (bottom-left) and Remove from Scenepack
+   (Scenepacks tab only). Both are shaped like the download button they sit on
+   the same tile with — same size, radius, glass and motion — so the tile reads
+   as one set of controls rather than a mix of squares and circles. The only
+   difference is where they come in from, and the remove button's red. */
+.clip-add-to-scenepack,
+.clip-remove-from-scenepack {
   position: absolute;
-  bottom: 8px;
-  left: 8px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(0, 0, 0, 0.55);
-  color: rgba(255, 255, 255, 0.8);
+  bottom: var(--clip-overlay-inset);
+  left: var(--clip-overlay-inset);
+  /* same layer as the other tile controls (select, download, timestamp) */
+  z-index: 12;
+  width: 25px;
+  height: 25px;
+  border-radius: 8px;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  background: rgb(8 12 22 / 0.2);
+  color: rgb(255 255 255 / 0.98);
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  /* same layer as the other tile controls (select, download, timestamp) */
-  z-index: 12;
-  font-size: 12px;
   opacity: 0;
-  transition: opacity 0.15s;
+  transform: translateY(4px) scale(0.96);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 /* the tile element is .clip-wrapper — .clip-tile matches nothing, which left
-   this button stuck at opacity 0 and invisible on every tile. */
+   these buttons stuck at opacity 0 and invisible on every tile. */
 .clip-wrapper:hover .clip-add-to-scenepack,
-.clip-add-to-scenepack:focus-visible {
-  opacity: 1;
-}
-
-.clip-add-to-scenepack:hover {
-  background: rgba(0, 0, 0, 0.75);
-  color: var(--accent);
-}
-
-/* Remove from Scenepack button (Scenepacks tab only, hover-visible) */
-.clip-remove-from-scenepack {
-  position: absolute;
-  top: 8px;
-  right: 44px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(0, 0, 0, 0.55);
-  color: rgba(255, 100, 100, 0.85);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 12;
-  font-size: 11px;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
 .clip-wrapper:hover .clip-remove-from-scenepack,
+.clip-add-to-scenepack:focus-visible,
 .clip-remove-from-scenepack:focus-visible {
-  opacity: 1;
+  opacity: 0.95;
+  transform: translateY(0) scale(1);
 }
 
-.clip-remove-from-scenepack:hover {
-  background: rgba(180, 40, 40, 0.75);
-  color: rgb(255, 120, 120);
+.clip-add-to-scenepack:hover,
+.clip-add-to-scenepack:focus-visible {
+  background-color: rgb(8 12 22 / 0.42);
+  border-color: rgb(255 255 255 / 0.34);
+  box-shadow:
+    0 6px 14px rgb(0 0 0 / 0.32),
+    inset 0 1px 0 rgb(255 255 255 / 0.08);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transform: translateY(0) scale(1.03);
+}
+
+.clip-remove-from-scenepack {
+  color: rgb(255 120 120 / 0.95);
+}
+
+.clip-remove-from-scenepack:hover,
+.clip-remove-from-scenepack:focus-visible {
+  background-color: rgb(120 20 20 / 0.45);
+  border-color: rgb(255 120 120 / 0.4);
+  box-shadow:
+    0 6px 14px rgb(0 0 0 / 0.32),
+    inset 0 1px 0 rgb(255 255 255 / 0.08);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transform: translateY(0) scale(1.03);
 }
 
 /* Drag-over indicator for Scenepack clip reordering */
