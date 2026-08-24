@@ -81,6 +81,18 @@ export function ScenepacksPanel() {
   const [contextMenu, setContextMenu] = useState<{ id: string; kind: "scenepack" | "folder"; x: number; y: number } | null>(null);
   // right-click on the panel's empty space, like the episode panel's
   const [panelContextMenu, setPanelContextMenu] = useState<{ x: number; y: number } | null>(null);
+
+  // the folder (or the root) currently under a dragged pack
+  const [dropTarget, setDropTarget] = useState<string | "root" | null>(null);
+  const packDragRef = useRef<{
+    packId: string;
+    startX: number;
+    startY: number;
+    dragging: boolean;
+    pointerId: number;
+  } | null>(null);
+  // a drag that ends on a row must not also read as a click on it
+  const suppressClickRef = useRef(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<{ kind: "scenepack" | "folder"; id: string; name: string } | null>(null);
 
@@ -117,6 +129,66 @@ export function ScenepacksPanel() {
 
   const handleToggleFolder = (id: string) => {
     toggleScenepackFolderExpanded(id);
+  };
+
+  /**
+   * Pointer-driven drag, like the episode panel's. The window intercepts native
+   * drag events, so `draggable` never fires here: rows are dragged by hand and
+   * the row under the cursor is found with elementFromPoint.
+   */
+  const dropTargetAt = (clientX: number, clientY: number): string | "root" | null => {
+    const el = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
+    if (!el) return null;
+    const folderEl = el.closest("[data-scenepack-folder-id]") as HTMLElement | null;
+    if (folderEl) return folderEl.getAttribute("data-scenepack-folder-id");
+    // a pack row counts as its own folder, so dropping onto a sibling files the
+    // dragged pack beside it rather than doing nothing
+    const packEl = el.closest("[data-scenepack-folder-of]") as HTMLElement | null;
+    if (packEl) return packEl.getAttribute("data-scenepack-folder-of") || "root";
+    return el.closest('[data-scenepacks-root="true"]') ? "root" : null;
+  };
+
+  const beginPackDrag = (packId: string) => (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    packDragRef.current = {
+      packId,
+      startX: e.clientX,
+      startY: e.clientY,
+      dragging: false,
+      pointerId: e.pointerId,
+    };
+
+    const onMove = (ev: PointerEvent) => {
+      const state = packDragRef.current;
+      if (!state || ev.pointerId !== state.pointerId) return;
+
+      if (!state.dragging) {
+        // a few pixels of slop, so a click with a shaky hand stays a click
+        if (Math.abs(ev.clientX - state.startX) + Math.abs(ev.clientY - state.startY) <= 6) return;
+        state.dragging = true;
+      }
+      setDropTarget(dropTargetAt(ev.clientX, ev.clientY));
+    };
+
+    const onUp = (ev: PointerEvent) => {
+      const state = packDragRef.current;
+      packDragRef.current = null;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      setDropTarget(null);
+      if (!state || ev.pointerId !== state.pointerId || !state.dragging) return;
+
+      suppressClickRef.current = true;
+      const target = dropTargetAt(ev.clientX, ev.clientY);
+      if (target !== null) {
+        moveScenepackToFolder(state.packId, target === "root" ? null : target);
+      }
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
   };
 
   const handleSort = () => {
@@ -180,6 +252,10 @@ export function ScenepacksPanel() {
 
   const DoubleClick = (key: string, onSingle: () => void, onDouble: () => void) => {
     return (_e: React.MouseEvent) => {
+      if (suppressClickRef.current) {
+        suppressClickRef.current = false;
+        return;
+      }
       const now = Date.now();
       const state = clickGestureRef.current;
       if (state.key === key && now - state.ts < 260) {
@@ -224,6 +300,9 @@ export function ScenepacksPanel() {
         key={sp.id}
         className={`episode-panel-row episode-row${isSel ? " is-selected" : ""}${isOpen ? " is-open" : ""}`}
         style={{ paddingLeft }}
+        data-scenepack-id={sp.id}
+        data-scenepack-folder-of={sp.folderId ?? "root"}
+        onPointerDown={beginPackDrag(sp.id)}
         onClick={DoubleClick(`sp_${sp.id}`, () => handleSelectScenepack(sp.id), () => handleOpenScenepack(sp.id))}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -257,6 +336,7 @@ export function ScenepacksPanel() {
             <button
               type="button"
               className="episode-panel-import-icon episode-folder-btn"
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
                 void revealScenepackStorage(sp);
@@ -282,8 +362,9 @@ export function ScenepacksPanel() {
     return (
       <div key={folder.id} className="episode-panel-folder">
         <div
-          className={`episode-panel-row folder-row${isSel ? " is-selected" : ""}`}
+          className={`episode-panel-row folder-row${isSel ? " is-selected" : ""}${dropTarget === folder.id ? " is-drop-target" : ""}`}
           style={{ paddingLeft }}
+          data-scenepack-folder-id={folder.id}
           onClick={q
             ? () => handleSelectFolder(folder.id)
             : DoubleClick(
@@ -304,6 +385,7 @@ export function ScenepacksPanel() {
             <button
               type="button"
               className={`episode-panel-caret${isExpanded ? " is-expanded" : ""}`}
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => { e.stopPropagation(); handleToggleFolder(folder.id); }}
               aria-label={isExpanded ? "Collapse folder" : "Expand folder"}
               tabIndex={-1}
@@ -388,9 +470,10 @@ export function ScenepacksPanel() {
         </div>
 
         <div
-          className="episode-panel-list"
+          className={`episode-panel-list${dropTarget === "root" ? " is-drop-target-root" : ""}`}
           tabIndex={0}
           ref={panelRef}
+          data-scenepacks-root="true"
           onKeyDown={(e) => { if (e.key === "Delete") handleDeleteSelected(); }}
           onMouseDown={() => panelRef.current?.focus()}
           onClick={(e) => {
