@@ -602,6 +602,10 @@ export default function QuickMenu() {
       if (activeCommand) {
         activeCommand.action();
       }
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      setQuickMenuOpen(false);
     } else if (e.key === "Tab") {
       e.preventDefault();
       // Cycle category filter
