@@ -881,7 +881,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    width: min(940px, 94vw);
+    width: min(1040px, 95vw);
     height: 600px;
     max-height: 86vh;
     border: 1px solid rgba(255, 255, 255, 0.14);
@@ -900,6 +900,7 @@
     gap: 14px;
     padding: 18px 22px 14px 22px;
     background: rgba(255, 255, 255, 0.02);
+    flex-shrink: 0;
 }
 
 .spotlight-pro-searchbox {
@@ -986,32 +987,31 @@
 .spotlight-pro-chips-bar {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 2px 22px 16px 22px;
-    overflow-x: auto;
-    scrollbar-width: none;
+    gap: 10px;
+    padding: 0 22px 14px 22px;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: visible;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.spotlight-pro-chips-bar::-webkit-scrollbar {
-    display: none;
+    flex-shrink: 0;
 }
 
 .spotlight-chip {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px 15px;
+    gap: 7px;
+    padding: 6px 14px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: rgba(255, 255, 255, 0.7);
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 600;
     cursor: pointer;
     user-select: none;
     transition: all 0.15s ease;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .spotlight-chip:hover {
@@ -1029,11 +1029,11 @@
 }
 
 .spotlight-chip .chip-icon {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
 }
 
 .spotlight-chip .chip-prefix {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     opacity: 0.75;
     font-family: monospace;
     padding-left: 2px;
