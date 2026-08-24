@@ -125,7 +125,7 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
             </div>
 
             <div className="navbar-center" data-tauri-drag-region>
-                <div className="zoomWrapper">
+                <div className="zoomWrapper" data-tauri-drag-region>
                     <Tooltip content="Bigger tiles, fewer columns" side="bottom">
                         <button type="button" className="zoom-btn" onClick={handleBigger} aria-label="Bigger tiles, fewer columns">
                             <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -145,7 +145,7 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
                 </div>
 
                 {clips.length > 0 && (
-                    <div className="navbar-selection-badge">
+                    <div className="navbar-selection-badge" data-tauri-drag-region>
                         <span className="selection-badge-dot" />
                         <span className="selection-badge-text">
                             <strong>{selectedClips.size}</strong> / {clips.length} selected
@@ -154,7 +154,7 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
                 )}
             </div>
 
-            <div className="window-controls">
+            <div className="window-controls" data-tauri-drag-region>
                 {/* Engine / AI Detection & GPU Pill */}
                 <Tooltip
                     content={

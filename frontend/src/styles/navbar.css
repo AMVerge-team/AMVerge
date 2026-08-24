@@ -291,3 +291,16 @@
 .window-control svg {
     display: block;
 }
+
+/* TITLEBAR DRAG REGION
+   Tauri reads `data-tauri-drag-region` off the mousedown target itself, without
+   walking up the tree: any element sitting on top of the titlebar swallows the
+   drag unless it carries the attribute too. The labels below are pure text, so
+   rather than tagging every span they are taken out of hit-testing and the
+   drag falls through to their container. The real controls keep their pointer
+   events — a titlebar is not draggable by its own buttons. */
+.navbar h1 span,
+.zoom-label,
+.navbar-selection-badge > * {
+    pointer-events: none;
+}
