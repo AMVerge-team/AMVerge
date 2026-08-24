@@ -33,6 +33,13 @@ import { useUIStateStore } from "./stores/UIStore";
 import { applyThemeSettings, useGeneralSettingsStore, useThemeSettingsStore } from "./stores/settingsStore";
 import { useEpisodePanelRuntimeStore } from "./stores/episodeStore";
 
+/**
+ * Shove the sidebar divider left of this and the sidebar folds away, the same
+ * gesture the preview pane answers to on the other side of the grid. Sits well
+ * under the 220px minimum width, so brushing the stop does not dismiss it.
+ */
+const SIDEBAR_COLLAPSE_BELOW_PX = 140;
+
 
 function App() {
   const loading = useAppStateStore((s) => s.loading);
@@ -144,7 +151,8 @@ function App() {
     e.stopPropagation();
 
     const pointerId = e.pointerId;
-    e.currentTarget.setPointerCapture(pointerId);
+    const divider = e.currentTarget;
+    divider.setPointerCapture(pointerId);
     document.body.classList.add("is-resizing-sidebar");
 
     const onPointerMove = (ev: PointerEvent) => {
@@ -152,9 +160,23 @@ function App() {
       const minWidth = 220;
       const maxWidth = Math.max(minWidth, Math.floor(rect.width * 0.6));
       const proposed = Math.round(ev.clientX - rect.left);
-      const clamped = Math.min(maxWidth, Math.max(minWidth, proposed));
 
-      setSidebarWidthPx(clamped);
+      // Past the last stop the sidebar folds away, live. The listeners sit on the
+      // window rather than on the divider, so the drag survives the divider
+      // unmounting and pulling back right brings the sidebar straight back — the
+      // gesture is undoable without letting go.
+      if (proposed < SIDEBAR_COLLAPSE_BELOW_PX) {
+        // Hand the pointer back before the divider unmounts underneath it, so the
+        // moves keep reaching the window listeners and the fold stays undoable.
+        if (divider.hasPointerCapture(pointerId)) {
+          divider.releasePointerCapture(pointerId);
+        }
+        setSidebarEnabled(false);
+        return;
+      }
+      setSidebarEnabled(true);
+
+      setSidebarWidthPx(Math.min(maxWidth, Math.max(minWidth, proposed)));
     };
 
     const stop = () => {
