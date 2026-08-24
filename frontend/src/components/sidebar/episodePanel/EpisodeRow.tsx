@@ -1,5 +1,5 @@
 import type React from "react";
-import { FaFolderOpen } from "react-icons/fa";
+import { FaFolderOpen, FaImage, FaVideo } from "react-icons/fa";
 import Tooltip from "../../common/Tooltip";
 import type { EpisodePanelProps, PointerDragSource } from "../types";
 
@@ -52,6 +52,14 @@ export default function EpisodeRow({
   const paddingLeft =
     folderId === null ? undefined : `${8 + depth * 12 + 28}px`;
 
+  // import method is fixed per episode, but episodes imported before the field
+  // existed don't carry it - infer those from whether their clips have cut video
+  // files, the same rule the grid uses to pick its preview mode.
+  const isWebpEpisode =
+    episode.importMethod === "webp_files" ||
+    (episode.importMethod === undefined &&
+      !episode.clips.some((clip) => Boolean(clip.clipPath)));
+
   const handleReveal = (e: React.MouseEvent) => {
     e.stopPropagation();
     onRevealEpisode?.(episode.id);
@@ -68,6 +76,18 @@ export default function EpisodeRow({
       onDoubleClick={() => onOpenEpisode(episode.id)}
       onContextMenu={(e) => openContextMenu(episode.id, e)}
     >
+      <Tooltip
+        content={isWebpEpisode ? "Imported as WebP previews" : "Imported as video files"}
+        side="right"
+      >
+        <span
+          className="episode-panel-media-icon"
+          aria-label={isWebpEpisode ? "WebP preview episode" : "Video preview episode"}
+        >
+          {isWebpEpisode ? <FaImage /> : <FaVideo />}
+        </span>
+      </Tooltip>
+
       <Tooltip content={episode.videoPath} side="right" maxWidth={360}>
         <span className="episode-panel-episode-name">
           {episode.displayName}

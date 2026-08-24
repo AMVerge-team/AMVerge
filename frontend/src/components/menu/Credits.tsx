@@ -16,7 +16,10 @@ export default function Credits() {
             <div className="credits-hero">
                 <h2 className="about-hero-title">The People Behind AMVerge</h2>
                 <p className="about-hero-subtitle">
-                    AMVerge is an open-source collaboration built with passion by video editors, engineers, and creators.
+                    AMVerge started as one editor's side project and became something the
+                    whole community builds. Nearly every feature here began as someone's
+                    suggestion, bug report, or pull request, and it goes wherever the people
+                    using it push it next.
                 </p>
             </div>
 
@@ -24,7 +27,7 @@ export default function Credits() {
                 <div className="about-card credits-card">
                     <div className="about-card-header">
                         <span className="about-card-icon"><FaCodeBranch /></span>
-                        <h4>Core Team</h4>
+                        <h4>Contributors</h4>
                     </div>
                     <div className="credits-team-grid">
                         {team.map((member) => (

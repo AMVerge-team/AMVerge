@@ -25,6 +25,9 @@
     grid-template-columns: 1.2fr 1fr;
     gap: 16px;
     width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    align-items: stretch;
 }
 
 @media (max-width: 820px) {
@@ -42,7 +45,14 @@
 .bugreport-side-col {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 10px;
+    height: 100%;
+}
+
+/* The submit card takes the slack, so the column reaches the bottom of the row
+   without stretching the two short cards above it out of shape. */
+.bugreport-side-col > .about-card:last-child {
+    flex: 1 1 auto;
 }
 
 .bugreport-field {
@@ -51,20 +61,14 @@
     gap: 6px;
 }
 
+.bugreport-field + .bugreport-field {
+    margin-top: 12px;
+}
+
 .bugreport-field.flex-grow {
     flex: 1;
     display: flex;
     flex-direction: column;
-}
-
-.bugreport-field-inline {
-    display: flex;
-    gap: 12px;
-    width: 100%;
-}
-
-.bugreport-field.half {
-    flex: 1;
 }
 
 .bugreport-label {

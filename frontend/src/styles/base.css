@@ -28,6 +28,11 @@ body {
     overflow: hidden;
     font-family: var(--app-font);
     font-size-adjust: var(--app-font-adjust, none);
+    /* Jersey 10 ships a single weight, so every bold request was being faked by
+       the renderer - smeared pixels, and the reason it read badly. With
+       synthesis off, a bold request falls back to the real weight instead. Fonts
+       that do ship a bold (the UI face used for descriptions) still use it. */
+    font-synthesis-weight: none;
 }
 
 body::before {

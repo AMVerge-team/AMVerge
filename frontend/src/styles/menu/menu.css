@@ -203,15 +203,19 @@
     font-size: 0.9rem;
     line-height: 1.5;
     color: rgba(255, 255, 255, 0.75);
-    max-width: 680px;
+    max-width: 860px;
     margin: 0;
 }
 
 .about-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    grid-auto-rows: 1fr;
     gap: 16px;
     width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    align-content: stretch;
 }
 
 .about-card {
@@ -474,6 +478,9 @@
     grid-template-columns: 1.4fr 1fr;
     gap: 16px;
     width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    align-items: stretch;
 }
 
 @media (max-width: 800px) {

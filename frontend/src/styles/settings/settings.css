@@ -1208,3 +1208,30 @@
     padding: 10px;
     opacity: 0.7;
 }
+
+/* Explanatory copy stays in a readable UI face regardless of the app font the
+   user picks - a display font is fine for labels, not for prose. */
+.setting-description,
+.dropdown-item-description,
+.settings-collapsible-body .setting-description,
+.about-hero-subtitle,
+.quick-menu-card-desc,
+.about-card-list,
+.about-card-steps,
+.about-card-text,
+.about-author-note,
+.shortcut-desc,
+.console-header p,
+.member-role,
+.patchnotes-markdown-content,
+.patchnotes-detail-card,
+.patchnotes-collapsible-body,
+.bugreport-help,
+.bugreport-alt-text,
+.bugreport-label,
+.bugreport-field input[type="text"],
+.bugreport-field input[type="url"],
+.bugreport-field textarea {
+    font-family: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
+    font-size-adjust: none;
+}

@@ -329,12 +329,9 @@ export default function BugReport() {
               <span className="about-card-icon">
                 <FaFileVideo />
               </span>
-              <h4>Video Details (Optional)</h4>
+              <h4>Screen Recording (Optional)</h4>
             </div>
             <div className="bugreport-field">
-              <small className="bugreport-help">
-                Sharing a sample video link, anime title, episode, or torrent helps us reproduce accurately.
-              </small>
               <input
                 id="video-reference"
                 type="text"
@@ -353,32 +350,30 @@ export default function BugReport() {
               </span>
               <h4>System & Contact (Optional)</h4>
             </div>
-            <div className="bugreport-field-inline">
-              <div className="bugreport-field half">
-                <label htmlFor="pc-specs" className="bugreport-label">
-                  PC Specs
-                </label>
-                <input
-                  id="pc-specs"
-                  type="text"
-                  value={PCSpecs}
-                  placeholder="e.g. RTX 3080, Win 11"
-                  onChange={(e) => setPCSpecs(e.target.value)}
-                />
-              </div>
+            <div className="bugreport-field">
+              <label htmlFor="pc-specs" className="bugreport-label">
+                PC Specs
+              </label>
+              <input
+                id="pc-specs"
+                type="text"
+                value={PCSpecs}
+                placeholder="e.g. RTX 3080, Win 11"
+                onChange={(e) => setPCSpecs(e.target.value)}
+              />
+            </div>
 
-              <div className="bugreport-field half">
-                <label htmlFor="contact" className="bugreport-label">
-                  Contact
-                </label>
-                <input
-                  id="contact"
-                  type="text"
-                  value={contact}
-                  placeholder="Discord username / email"
-                  onChange={(e) => setContact(e.target.value)}
-                />
-              </div>
+            <div className="bugreport-field">
+              <label htmlFor="contact" className="bugreport-label">
+                Contact
+              </label>
+              <input
+                id="contact"
+                type="text"
+                value={contact}
+                placeholder="Discord username / email"
+                onChange={(e) => setContact(e.target.value)}
+              />
             </div>
           </div>
 

@@ -311,6 +311,66 @@ fn emit_log(app: &AppHandle, pack: &str, line: &str) {
 
 /// Run one uv step, streaming its output to the install modal. Returns the tail
 /// of the output on failure so the UI can show a real reason.
+/// Turn uv's output into a real percentage. Its own progress lines carry a byte
+/// percentage ("... [====] 42% ..."), which is the most accurate source; when a
+/// line has none, the "Resolved N packages" header plus one "Downloaded <name>"
+/// per package still fills the bar across the download.
+fn report_uv_progress(
+    app: &AppHandle,
+    pack: &str,
+    line: &str,
+    total_packages: &mut usize,
+    downloaded: &mut usize,
+) {
+    const DOWNLOAD_START: u8 = 10;
+    const DOWNLOAD_END: u8 = 80;
+
+    if let Some(pct_pos) = line.find('%') {
+        let prefix = &line[..pct_pos];
+        let digits = prefix
+            .rfind(|c: char| !c.is_ascii_digit())
+            .map(|i| &prefix[i + 1..])
+            .unwrap_or(prefix);
+        if let Ok(val) = digits.parse::<u8>() {
+            let span = (DOWNLOAD_END - DOWNLOAD_START) as u32;
+            let scaled = DOWNLOAD_START as u32 + val.min(100) as u32 * span / 100;
+            emit_progress(app, pack, "packages", scaled as u8, false, line);
+            return;
+        }
+    }
+
+    if let Some(rest) = line.strip_prefix("Resolved ") {
+        if let Some(count) = rest.split_whitespace().next().and_then(|n| n.parse().ok()) {
+            *total_packages = count;
+        }
+        return;
+    }
+
+    if line.starts_with("Downloaded ") {
+        *downloaded += 1;
+        if *total_packages > 0 {
+            let span = (DOWNLOAD_END - DOWNLOAD_START) as usize;
+            let done = (*downloaded).min(*total_packages);
+            let percent = DOWNLOAD_START as usize + span * done / *total_packages;
+            emit_progress(
+                app,
+                pack,
+                "packages",
+                percent.min(DOWNLOAD_END as usize) as u8,
+                false,
+                &format!("Downloading packages ({done}/{total})", total = *total_packages),
+            );
+        }
+        return;
+    }
+
+    if line.starts_with("Prepared ") {
+        emit_progress(app, pack, "packages", 85, false, "Installing packages...");
+    } else if line.starts_with("Installed ") {
+        emit_progress(app, pack, "packages", 95, false, "Finishing up...");
+    }
+}
+
 fn run_uv_step(
     app: &AppHandle,
     install_state: &ActiveInstall,
@@ -343,8 +403,13 @@ fn run_uv_step(
     });
 
     let mut tail: Vec<String> = Vec::new();
+    let track_progress = step_label == "Package install";
+    let mut total_packages = 0usize;
+    let mut downloaded = 0usize;
     if let Some(stderr) = child.stderr.take() {
-        // Read byte-by-byte or split on \r / \n to properly catch in-place terminal progress updates
+        // uv redraws its progress in place with \r rather than one line per
+        // update, so read to the newline and split on both terminators to catch
+        // those intermediate redraws.
         let mut reader = BufReader::new(stderr);
         let mut buf = Vec::new();
 
@@ -362,23 +427,14 @@ fn run_uv_step(
                 console_log("DEPS|uv", &sanitized);
                 emit_log(app, pack, &sanitized);
 
-                // Parse progress information from uv:
-                // Examples from uv:
-                // "Downloading torch 2.6.0+cu128 (2.7GB / 2.7GB) [====================] 100% 24.5MB/s 0s"
-                // "Fetching torch (450MB / 2.7GB) 15.2MB/s"
-                if sanitized.contains('%') {
-                    if let Some(pct_pos) = sanitized.find('%') {
-                        let prefix = &sanitized[..pct_pos];
-                        if let Some(num_start) = prefix.rfind(|c: char| !c.is_ascii_digit()) {
-                            if let Ok(val) = prefix[num_start + 1..].parse::<u8>() {
-                                // Scale from 10% to 95% during package install
-                                let scaled = 10 + (val as f32 * 0.85) as u8;
-                                emit_progress(app, pack, "packages", scaled.min(98), false, &sanitized);
-                            }
-                        }
-                    }
-                } else if sanitized.contains("Downloaded") || sanitized.contains("Installing") || sanitized.contains("Uninstalled") {
-                    emit_progress(app, pack, "packages", 90, false, &sanitized);
+                if track_progress {
+                    report_uv_progress(
+                        app,
+                        pack,
+                        &sanitized,
+                        &mut total_packages,
+                        &mut downloaded,
+                    );
                 }
 
                 tail.push(sanitized);
@@ -488,9 +544,9 @@ fn install_ai_pack_inner(
         10,
         true,
         &format!(
-            "Downloading {} and PyTorch ({}) — this can take several minutes...",
+            "Downloading {} and PyTorch ({})...",
             pack.id,
-            if gpu { "GPU build, ~2.7 GB" } else { "CPU build, ~250 MB" }
+            if gpu { "GPU build, ~3 GB" } else { "CPU build, ~300 MB" }
         ),
     );
 
@@ -499,8 +555,18 @@ fn install_ai_pack_inner(
         .arg("install")
         .arg("--python")
         .arg(&python)
-        .arg(&spec)
-        .arg("torch");
+        .arg(&spec);
+
+    // torch AND torchvision, even for a pack that only needs torch. torchvision
+    // is ABI-locked to one torch build, so a later pack pulling it in (depth,
+    // via depth-anything-v2) would make uv replace the torch already on disk.
+    // On Windows that replace fails outright if any process has torch's
+    // _C.*.pyd loaded, and the half-finished swap leaves the env with no torch
+    // metadata - unusable, and not recoverable by retrying. Laying both down in
+    // the first resolution means later packs find a matched pair already there.
+    for dist in TORCH_FAMILY {
+        cmd.arg(dist);
+    }
 
     if gpu {
         // uv gives an extra index priority over the default one and, under the
@@ -648,7 +714,9 @@ pub async fn abort_ai_install(install_state: State<'_, ActiveInstall>) -> Result
 pub async fn uninstall_ai_pack(app: AppHandle, pack: String) -> Result<AiEnvStatus, String> {
     let target = pack_by_id(&pack)?;
     if !ai_env_ready(&app) {
-        return ai_env_status(app).await;
+        // Returning the status here looked like success and left the button
+        // unchanged, with no clue that nothing had happened.
+        return Err("There is no AI environment to remove from.".to_string());
     }
 
     let app_for_task = app.clone();

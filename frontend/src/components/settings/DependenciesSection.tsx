@@ -5,6 +5,7 @@ import SettingRow from "../common/SettingRow";
 import SettingsSection from "../common/SettingsSection";
 import AiModelsSection from "./AiModelsSection";
 import { useAiDepsStore } from "../../stores/aiDepsStore";
+import { useGeneralSettingsStore } from "../../stores/settingsStore";
 import {
   AI_PACKS,
   VISIBLE_PACK_IDS,
@@ -37,12 +38,30 @@ export default function DependenciesSection() {
     await useAiDepsStore.getState().ensurePack(packId);
   };
 
+  // A removed pack leaves its settings pointing at something that is no longer
+  // there, so they fall back rather than failing later mid-import or mid-export.
+  const resetSettingsFor = (packId: AiPackId | "all") => {
+    const settings = useGeneralSettingsStore.getState();
+    if (packId === "ml" || packId === "all") {
+      if (settings.sceneDetectionMethod === "transnetv2_gpu") {
+        settings.setSceneDetectionMethod("keyframe_detection");
+      }
+    }
+    if (packId === "depth" || packId === "all") {
+      settings.updatePostExportPasses("depth", { enabled: false });
+    }
+    if (packId === "interpolation" || packId === "all") {
+      settings.updatePostExportPasses("interpolation", { enabled: false });
+    }
+  };
+
   const uninstall = async (packId: AiPackId) => {
     setBusy(packId);
     setError(null);
     try {
       const next = await invoke<AiEnvStatus>("uninstall_ai_pack", { pack: packId });
       useAiDepsStore.setState({ status: next });
+      resetSettingsFor(packId);
     } catch (err) {
       setError(String(err));
     } finally {
@@ -56,6 +75,7 @@ export default function DependenciesSection() {
     try {
       const next = await invoke<AiEnvStatus>("remove_ai_env");
       useAiDepsStore.setState({ status: next });
+      resetSettingsFor("all");
     } catch (err) {
       setError(String(err));
     } finally {

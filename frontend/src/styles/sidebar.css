@@ -478,3 +478,17 @@ body.is-resizing-sidebar {
     color: white;
     text-align: center;
 }
+
+/* Media-type marker at the head of an episode row: a label, not a control, so
+   it has none of the import-icon button's chrome. */
+.episode-panel-media-icon {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    margin-right: 8px;
+    color: var(--accent);
+    font-size: 0.8rem;
+    opacity: 0.75;
+}

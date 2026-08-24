@@ -502,7 +502,7 @@
 .pxm-overlay {
     position: fixed;
     inset: 0;
-    z-index: 1100;
+    z-index: 10500;
     background: rgba(0, 0, 0, 0.62);
     display: flex;
     align-items: center;
@@ -683,7 +683,7 @@
     /* clears the info bar, so the settings gear in its corner stays reachable */
     bottom: 64px;
     right: 20px;
-    z-index: 1100;
+    z-index: 10400;
     width: 340px;
     max-width: calc(100vw - 40px);
     display: flex;
@@ -1104,4 +1104,16 @@
     .app-modal {
         animation: none;
     }
+}
+
+/* Jersey 10 is a pixel face and sets tight by default, so the labels in this
+   dialog get a little tracking. Scoped here, and skipped for the descriptions,
+   which are already in a UI font. */
+.quick-menu-dialog .about-hero-title {
+    letter-spacing: 1px;
+}
+
+.quick-menu-card-title,
+.quick-menu-footer-btn {
+    letter-spacing: 1px;
 }

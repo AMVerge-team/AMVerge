@@ -1,12 +1,16 @@
 import { open } from "@tauri-apps/plugin-shell";
 import {
-  FaBolt,
-  FaRocket,
+  FaQuestionCircle,
+  FaWrench,
   FaKeyboard,
   FaGlobe,
   FaDiscord,
   FaGithub,
 } from "react-icons/fa";
+
+// navigator.platform is deprecated but still the only synchronous read here, and
+// the Tauri OS plugin would be an async round trip for one label.
+const IS_MAC = /mac/i.test(navigator.platform);
 
 export default function About() {
   return (
@@ -14,7 +18,7 @@ export default function About() {
       <div className="about-hero">
         <h2 className="about-hero-title">About AMVerge</h2>
         <p className="about-hero-subtitle">
-          AMVerge eliminates the tedious chore of manual scene selection. Skim full episodes at a glance, cut lossless clips in seconds, and import directly into your editing workflow.
+          AMVerge makes scene selection easier. It splits an episode into every shot up front, so you skim a grid instead of scrubbing a timeline, then cut the clips you picked losslessly and send them straight to your editor.
         </p>
       </div>
 
@@ -22,29 +26,30 @@ export default function About() {
         {/* Card 1: Key Features */}
         <div className="about-card">
           <div className="about-card-header">
-            <span className="about-card-icon"><FaBolt /></span>
-            <h4>Core Superpowers</h4>
+            <span className="about-card-icon"><FaQuestionCircle /></span>
+            <h4>What is AMVerge?</h4>
           </div>
-          <ul className="about-card-list">
-            <li>
-              <strong>Instant Visual Skimming:</strong> Every scene is rendered in an interactive, responsive grid so you can find key moments in seconds.
-            </li>
-            <li>
-              <strong>AI & Keyframe Detection:</strong> Choose between blazingly fast keyframe splits (zero ML deps) or AI TransNetV2 neural cut detection.
-            </li>
-            <li>
-              <strong>100% Lossless Smart Cuts:</strong> Clips are stream-copied losslessly with GOP-alignment, preserving original source bitrate and color.
-            </li>
-            <li>
-              <strong>Editor Import Ready:</strong> Auto-converts and prepares MP4/MOV footage compatible with After Effects, Premiere, and DaVinci Resolve.
-            </li>
-          </ul>
+          <p className="about-card-text">
+            A clip cutter for anime editors. Give it an episode and it finds every
+            shot change, then lays the whole thing out as a grid you can skim.
+          </p>
+          <p className="about-card-text">
+            Click the scenes you want and it pulls them out of the source file
+            without re-encoding, so the clips keep the quality of the original.
+            They land in a folder ready to drag into After Effects, Premiere, or
+            Resolve.
+          </p>
+          <p className="about-card-text">
+            It doesn't edit anything for you or decide which scenes are good. It
+            just takes out the part where you scrub through an episode hunting for
+            the four seconds you remembered.
+          </p>
         </div>
 
         {/* Card 2: Recommended Workflow */}
         <div className="about-card">
           <div className="about-card-header">
-            <span className="about-card-icon"><FaRocket /></span>
+            <span className="about-card-icon"><FaWrench /></span>
             <h4>Fast-Track Workflow</h4>
           </div>
           <ol className="about-card-steps">
@@ -89,8 +94,8 @@ export default function About() {
               <span className="shortcut-desc">Select continuous clip range</span>
             </div>
             <div className="shortcut-row">
-              <span className="shortcut-key">Grid Zoom</span>
-              <span className="shortcut-desc">Adjust columns in titlebar</span>
+              <span className="shortcut-key">{IS_MAC ? "Cmd + Scroll" : "Ctrl + Scroll"}</span>
+              <span className="shortcut-desc">Adjust the number of grid columns</span>
             </div>
           </div>
         </div>
