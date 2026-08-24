@@ -7,6 +7,7 @@ import AppLayout from "./components/AppLayout";
 import HomePage from "./pages/HomePage";
 import SettingsModal from "./components/settings/SettingsModal";
 import QuickMenu from "./components/QuickMenu";
+import CommandPalette from "./components/CommandPalette";
 import MenuModal from "./components/menu/MenuModal";
 import ScenepacksPage from "./pages/ScenepacksPage";
 import ImportTerminal from "./components/ImportTerminal";
@@ -477,6 +478,7 @@ function App() {
         {activePage === "scenepacks" && scenepacksEnabled && <ScenepacksPage />}
       </div>
       <QuickMenu />
+      <CommandPalette />
       <MenuModal />
       <SettingsModal
         onGeneralSettingsReset={handleResetGeneralSettings}

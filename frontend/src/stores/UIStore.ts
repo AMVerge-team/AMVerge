@@ -14,6 +14,7 @@ export type UIState = {
     settingsOpen: boolean;
     menuOpen: boolean;
     quickMenuOpen: boolean;
+    commandPaletteOpen: boolean;
     previewCollapsed: boolean;
     pinned: boolean;
 };
@@ -40,6 +41,7 @@ export type UIStateStore = UIState & {
     openMenu: () => void;
     closeMenu: () => void;
     setQuickMenuOpen: (open: boolean) => void;
+    setCommandPaletteOpen: (open: boolean) => void;
     setPreviewCollapsed: (collapsed: boolean) => void;
     togglePinned: () => void;
 };
@@ -60,6 +62,7 @@ export const DEFAULT_UI_STATE: UIState = {
     settingsOpen: false,
     menuOpen: false,
     quickMenuOpen: false,
+    commandPaletteOpen: false,
     previewCollapsed: false,
     pinned: false,
 };
@@ -110,12 +113,13 @@ export const useUIStateStore = create<UIStateStore>()(
             setSettingsTab: (settingsTab) => set({ settingsTab }),
             openSettings: (tab) =>
                 set(tab
-                    ? { settingsOpen: true, settingsTab: tab, quickMenuOpen: false }
-                    : { settingsOpen: true, quickMenuOpen: false }),
+                    ? { settingsOpen: true, settingsTab: tab, quickMenuOpen: false, commandPaletteOpen: false }
+                    : { settingsOpen: true, quickMenuOpen: false, commandPaletteOpen: false }),
             closeSettings: () => set({ settingsOpen: false }),
-            openMenu: () => set({ menuOpen: true, quickMenuOpen: false }),
+            openMenu: () => set({ menuOpen: true, quickMenuOpen: false, commandPaletteOpen: false }),
             closeMenu: () => set({ menuOpen: false }),
             setQuickMenuOpen: (quickMenuOpen) => set({ quickMenuOpen }),
+            setCommandPaletteOpen: (commandPaletteOpen) => set({ commandPaletteOpen }),
             setPreviewCollapsed: (previewCollapsed) => set({ previewCollapsed }),
             togglePinned: () => set((state) => ({ pinned: !state.pinned })),
         }),
