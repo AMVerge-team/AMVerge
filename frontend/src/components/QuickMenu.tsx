@@ -24,6 +24,8 @@ import {
   FaExpand,
   FaSlidersH,
   FaCodeBranch,
+  FaDiscord,
+  FaGithub,
 } from "react-icons/fa";
 import { useUIStateStore } from "../stores/UIStore";
 import { useEpisodePanelRuntimeStore, useEpisodePanelMetadataStore } from "../stores/episodeStore";
@@ -839,17 +841,19 @@ export default function QuickMenu() {
           <div className="footer-actions">
             <button
               type="button"
-              className="footer-link-btn"
+              className="spotlight-footer-btn discord"
               onClick={() => void openUrl("https://discord.gg/bmXjTgsAaN")}
             >
-              Discord Community
+              <FaDiscord />
+              <span>Discord</span>
             </button>
             <button
               type="button"
-              className="footer-link-btn"
+              className="spotlight-footer-btn github"
               onClick={() => void openUrl("https://github.com/AMVerge-team/AMVerge")}
             >
-              GitHub
+              <FaGithub />
+              <span>GitHub</span>
             </button>
           </div>
         </div>

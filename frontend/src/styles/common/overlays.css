@@ -986,8 +986,8 @@
 .spotlight-pro-chips-bar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 0 22px 14px 22px;
+    gap: 12px;
+    padding: 2px 22px 16px 22px;
     overflow-x: auto;
     scrollbar-width: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -1000,13 +1000,13 @@
 .spotlight-chip {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    padding: 6px 14px;
+    gap: 8px;
+    padding: 7px 15px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.65);
-    font-size: 0.78rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
     user-select: none;
@@ -1017,7 +1017,7 @@
 .spotlight-chip:hover {
     background: rgba(255, 255, 255, 0.08);
     color: #ffffff;
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.25);
 }
 
 .spotlight-chip.active {
@@ -1029,13 +1029,14 @@
 }
 
 .spotlight-chip .chip-icon {
-    font-size: 0.75rem;
+    font-size: 0.8rem;
 }
 
 .spotlight-chip .chip-prefix {
-    font-size: 0.7rem;
-    opacity: 0.7;
+    font-size: 0.72rem;
+    opacity: 0.75;
     font-family: monospace;
+    padding-left: 2px;
 }
 
 /* 60 / 40 SPLIT BODY */
@@ -1454,21 +1455,42 @@
 .footer-actions {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
-.footer-link-btn {
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.55);
-    cursor: pointer;
+.spotlight-footer-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.75);
     font-size: 0.75rem;
+    font-weight: 600;
     font-family: inherit;
-    transition: color 0.15s ease;
+    cursor: pointer;
+    transition: all 0.15s ease;
 }
 
-.footer-link-btn:hover {
-    color: var(--accent);
+.spotlight-footer-btn svg {
+    font-size: 0.82rem;
+}
+
+.spotlight-footer-btn.discord:hover {
+    background: rgba(88, 101, 242, 0.18);
+    border-color: #5865F2;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(88, 101, 242, 0.35);
+    transform: translateY(-1px);
+}
+
+.spotlight-footer-btn.github:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #ffffff;
+    transform: translateY(-1px);
 }
 
 @media (prefers-reduced-motion: reduce) {
