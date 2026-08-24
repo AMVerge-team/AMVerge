@@ -627,6 +627,8 @@ export default function QuickMenu() {
     }
   }, [selectedIndex]);
 
+  if (!open) return null;
+
   return (
     <div
       className="quick-menu-overlay"
