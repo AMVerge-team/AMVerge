@@ -20,6 +20,9 @@ export type AiEnvStatus = {
   envCliVersion: string | null;
   bundledCliVersion: string | null;
   gpuAvailable: boolean;
+  /** Apple Silicon: torch's MPS backend works without a special wheel, so this
+   *  holds even when `gpuAvailable`/`torchVariant` (both NVIDIA-only) don't. */
+  mpsAvailable: boolean;
   envSizeBytes: number;
   /// False in dev builds, where the CLI checkout's venv is used as-is.
   managed: boolean;

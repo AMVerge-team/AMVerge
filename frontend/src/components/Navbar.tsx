@@ -82,7 +82,15 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
     };
 
     const isTransNet = sceneDetectionMethod === "transnetv2_gpu";
-    const isCudaReady = aiStatus?.torchVariant?.includes("cu") || (aiStatus?.gpuAvailable && isTransNet);
+    // TransNetV2's own device picker tries cuda, then mps, then cpu — so GPU
+    // accel isn't just an NVIDIA/CUDA question, it also covers Apple Silicon.
+    const gpuBackend: "cuda" | "mps" | null =
+        aiStatus?.torchVariant?.includes("cu") || (aiStatus?.gpuAvailable && isTransNet)
+            ? "cuda"
+            : aiStatus?.mpsAvailable
+                ? "mps"
+                : null;
+    const isGpuReady = gpuBackend !== null;
 
     return (
         <div className="navbar" data-tauri-drag-region>
@@ -158,7 +166,13 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
                 <Tooltip
                     content={
                         isTransNet
-                            ? "TransNetV2 (AI GPU Detection) • CUDA Enabled"
+                            ? `TransNetV2 (AI GPU Detection) • ${
+                                gpuBackend === "cuda"
+                                    ? "CUDA Enabled"
+                                    : gpuBackend === "mps"
+                                        ? "Apple GPU (MPS) Enabled"
+                                        : "GPU Unavailable, Falling Back to CPU"
+                              }`
                             : "Keyframe Detection (Fast CPU Demux) • Click to open Settings"
                     }
                     placement="bottom"
@@ -171,7 +185,7 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
                     >
                         <span className={`engine-dot ${isTransNet ? "active" : ""}`} />
                         <span className="engine-label">
-                            {isTransNet ? (isCudaReady ? "TransNetV2 (GPU)" : "TransNetV2 (CPU)") : "Keyframe Detection"}
+                            {isTransNet ? (isGpuReady ? "TransNetV2 (GPU)" : "TransNetV2 (CPU)") : "Keyframe Detection"}
                         </span>
                     </div>
                 </Tooltip>
