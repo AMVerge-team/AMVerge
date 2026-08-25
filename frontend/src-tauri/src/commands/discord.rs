@@ -28,7 +28,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use crate::utils::discord_ipc::DiscordIpc;
+use crate::utils::discord_ipc::{DiscordIpc, CLOSED};
 
 /// AMVerge's Discord application id. Public by design — it is what identifies
 /// the app on a profile; only a client *secret* would be sensitive.
@@ -47,7 +47,9 @@ const CDN: &str = "https://cdn.discordapp.com";
 
 /// Discord's own cap: one activity per 15 s, extra ones are dropped in silence.
 const THROTTLE: Duration = Duration::from_secs(15);
-/// Re-publish the current activity this often; a dead pipe surfaces here.
+/// Re-publish the current activity this often, so a presence Discord dropped on
+/// its own (a client restart it recovered from, say) comes back without waiting
+/// for the user to navigate. Death itself is caught by the poll above, not here.
 const HEARTBEAT: Duration = Duration::from_secs(60);
 const RECONNECT_MIN: Duration = Duration::from_secs(2);
 const RECONNECT_MAX: Duration = Duration::from_secs(60);
@@ -357,6 +359,21 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRpcStatus>
         }
 
         let now = Instant::now();
+
+        // --- notice a pipe that died -----------------------------------------
+        // Cheap, non-blocking, and it also answers any ping sitting on the pipe.
+        // Without it, Discord quitting would go unnoticed until the next write,
+        // which can be a whole heartbeat away - long enough for the settings
+        // screen to keep claiming a connection that is already gone.
+        if client.as_mut().is_some_and(|c| !c.poll()) {
+            client = None;
+            signed_in = None;
+            last_error = Some(CLOSED.to_string());
+            last_sent = None;
+            retry_at = Some(now + retry_delay);
+            retry_delay = (retry_delay * 2).min(RECONNECT_MAX);
+            dirty = true;
+        }
 
         // --- connect ---------------------------------------------------------
         if enabled && client.is_none() && retry_at.is_some_and(|at| now >= at) {
