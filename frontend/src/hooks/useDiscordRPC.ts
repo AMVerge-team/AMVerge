@@ -1,111 +1,209 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { useGeneralSettingsStore } from "../stores/settingsStore";
 import { useUIStateStore } from "../stores/UIStore";
+import { useAppStateStore } from "../stores/appStore";
 
+/** What a caller describes: the activity itself, without the display toggles. */
+export type RPCActivity = {
+    details?: string;
+    state?: string;
+    large_image?: string;
+    small_image?: string;
+    small_text?: string;
+};
+
+/** Mirror of the Rust `DiscordRpcStatus` payload. */
+export type DiscordRPCStatus = {
+    enabled: boolean;
+    connected: boolean;
+    user: string | null;
+    error: string | null;
+    activity: Record<string, unknown> | null;
+};
+
+const STATUS_EVENT = "discord_rpc_status";
+
+const IDLE: RPCActivity = {
+    details: "Navigating menus",
+    state: "Idle",
+    small_image: "menu_icon_new",
+    small_text: "Browsing",
+};
+
+/**
+ * Drives the Discord Rich Presence.
+ *
+ * The Rust side owns the connection, the reconnects and Discord's one-update-per-
+ * 15s cap, so this hook only says *what* to show and never worries about *when*.
+ * Two rules keep the presence honest:
+ *
+ * * a running import/export owns the presence — navigating while clips encode
+ *   must not overwrite "Exporting 42 clips" with "Navigating menus";
+ * * the display toggles (buttons, small icons, elapsed timer) re-send the last
+ *   activity instead of inventing a new one, so flipping a switch in Settings
+ *   shows up on the profile without waiting for the next page change.
+ */
 export default function useDiscordRPC() {
-  const isStartedRef = useRef(false);
-  const generalSettings = useGeneralSettingsStore();
-  const activePage = useUIStateStore(state => state.activePage);
-  const settingsOpen = useUIStateStore(state => state.settingsOpen);
-  const menuOpen = useUIStateStore(state => state.menuOpen);
+    const enabled = useGeneralSettingsStore((s) => s.discordRPCEnabled);
+    const showButtons = useGeneralSettingsStore((s) => s.rpcShowButtons);
+    const showMiniIcons = useGeneralSettingsStore((s) => s.rpcShowMiniIcons);
+    const showElapsed = useGeneralSettingsStore((s) => s.rpcShowElapsed);
 
-  const startRPC = useCallback(async () => {
-    if (isStartedRef.current) return;
-    try {
-      await invoke("start_discord_rpc");
-      isStartedRef.current = true;
-      console.log("Discord RPC started");
+    const activePage = useUIStateStore((s) => s.activePage);
+    const settingsOpen = useUIStateStore((s) => s.settingsOpen);
+    const menuOpen = useUIStateStore((s) => s.menuOpen);
+    const activeOperation = useAppStateStore((s) => s.activeOperation);
 
-      // initial status
-      updateRPC({
-        type: "update",
-        details: "Ready to process videos",
-        state: "Idle",
-      });
-    } catch (err) {
-      const text = String(err);
-      if (text.toLowerCase().includes("discord rpc script not found")) {
-        console.warn("Discord RPC unavailable in this build.");
-      } else {
-        console.error("Failed to start Discord RPC:", err);
-      }
-    }
-  }, []);
+    const isStartedRef = useRef(false);
+    // The last activity a caller asked for, kept so a toggle can replay it.
+    const lastActivityRef = useRef<RPCActivity>(IDLE);
+    // Settings read inside callbacks that must not be re-created on every flip.
+    const flagsRef = useRef({ showButtons, showMiniIcons, showElapsed });
+    flagsRef.current = { showButtons, showMiniIcons, showElapsed };
 
-  const stopRPC = useCallback(async () => {
-    if (!isStartedRef.current) return;
-    try {
-      await invoke("stop_discord_rpc");
-      isStartedRef.current = false;
-      console.log("Discord RPC stopped");
-    } catch (err) {
-      console.error("Failed to stop Discord RPC:", err);
-    }
-  }, []);
+    /** Send an activity, layering the user's display toggles on top of it. */
+    const publish = useCallback(async (activity: RPCActivity) => {
+        if (!isStartedRef.current) return;
+        const flags = flagsRef.current;
+        try {
+            await invoke("update_discord_rpc", {
+                data: {
+                    details: activity.details,
+                    state: activity.state,
+                    large_image: activity.large_image ?? "amverge_logo",
+                    small_image: flags.showMiniIcons ? activity.small_image : undefined,
+                    small_text: flags.showMiniIcons ? activity.small_text : undefined,
+                    buttons: flags.showButtons,
+                    show_elapsed: flags.showElapsed,
+                },
+            });
+        } catch (err) {
+            console.error("Failed to update Discord RPC:", err);
+        }
+    }, []);
 
-  const updateRPC = useCallback(async (data: any) => {
-    if (!isStartedRef.current || !generalSettings.discordRPCEnabled) return;
-    try {
-      await invoke("update_discord_rpc", { data });
-    } catch (err) {
-      // if it fails, maybe it crashed? reset ref
-      console.error("Failed to update Discord RPC:", err);
-      // isStartedRef.current = false;
-    }
-  }, [generalSettings.discordRPCEnabled]);
+    /**
+     * Public entry point. Callers pass whatever they like (the import/export
+     * pipeline still sends its own `small_image`/`buttons`), the toggles win.
+     */
+    const updateRPC = useCallback(
+        async (data: RPCActivity & { type?: string }) => {
+            lastActivityRef.current = {
+                details: data.details,
+                state: data.state,
+                large_image: data.large_image,
+                small_image: data.small_image,
+                small_text: data.small_text,
+            };
+            await publish(lastActivityRef.current);
+        },
+        [publish]
+    );
 
-  // handle start/stop based on setting
-  useEffect(() => {
-    if (generalSettings.discordRPCEnabled) {
-      startRPC();
-    } else {
-      stopRPC();
-    }
+    // Start/stop with the setting. Stopping clears the presence on the profile;
+    // the Rust worker survives, so switching back on reconnects immediately.
+    useEffect(() => {
+        let cancelled = false;
+        if (enabled) {
+            invoke("start_discord_rpc")
+                .then(() => {
+                    if (cancelled) return;
+                    isStartedRef.current = true;
+                    void publish(lastActivityRef.current);
+                })
+                .catch((err) => console.error("Failed to start Discord RPC:", err));
+        } else if (isStartedRef.current) {
+            isStartedRef.current = false;
+            void invoke("stop_discord_rpc").catch((err) =>
+                console.error("Failed to stop Discord RPC:", err)
+            );
+        }
+        return () => {
+            cancelled = true;
+        };
+    }, [enabled, publish]);
 
-    return () => {
-      stopRPC();
-    };
-  }, [generalSettings.discordRPCEnabled, startRPC, stopRPC]);
+    // Where the user is. An operation in flight speaks for itself, so navigation
+    // stays quiet until it finishes.
+    const prevOperationRef = useRef(activeOperation);
+    useEffect(() => {
+        const justFinished = prevOperationRef.current !== null && activeOperation === null;
+        prevOperationRef.current = activeOperation;
+        if (!isStartedRef.current || activeOperation) return;
+        // An import/export that just ended has published its own outcome
+        // ("Export Finished!") and restores the idle status itself — stepping on
+        // it here would make the result flash by for a single frame.
+        if (justFinished) return;
 
-  // update status based on page navigation
-  useEffect(() => {
-    if (!isStartedRef.current || !generalSettings.discordRPCEnabled) return;
+        let activity: RPCActivity = IDLE;
+        if (settingsOpen) {
+            activity = {
+                details: "Adjusting Settings",
+                state: "Preferences",
+                small_image: "settings_icon_new",
+                small_text: "Settings",
+            };
+        } else if (menuOpen) {
+            activity = {
+                details: "In Main Menu",
+                state: "Selecting Episode",
+                small_image: "menu_icon_new",
+                small_text: "Menu",
+            };
+        } else if (activePage === "scenepacks") {
+            activity = {
+                details: "Browsing Scenepacks",
+                state: "Library",
+                small_image: "menu_icon_new",
+                small_text: "Scenepacks",
+            };
+        } else if (activePage === "home") {
+            activity = {
+                details: "Editing Episode",
+                state: "Ready",
+                small_image: "edit_icon_new",
+                small_text: "Editing",
+            };
+        }
 
-    let details = "Navigating menus";
-    let state = "Idle";
-    let small_image = "menu_icon_new";
-    let small_text = "Browsing";
+        lastActivityRef.current = activity;
+        void publish(activity);
+    }, [activePage, settingsOpen, menuOpen, activeOperation, publish]);
 
-    if (settingsOpen) {
-      details = "Adjusting Settings";
-      state = "Preferences";
-      small_image = "settings_icon_new";
-      small_text = "Settings";
-    } else if (menuOpen) {
-      details = "In Main Menu";
-      state = "Selecting Episode";
-      small_image = "menu_icon_new";
-      small_text = "Menu";
-    } else if (activePage === "home") {
-      details = "Editing Episode";
-      state = "Ready";
-      small_image = "edit_icon_new";
-      small_text = "Editing";
-    }
+    // A toggle must show on the profile now, not at the next page change.
+    useEffect(() => {
+        if (!isStartedRef.current) return;
+        void publish(lastActivityRef.current);
+    }, [showButtons, showMiniIcons, showElapsed, publish]);
 
-    updateRPC({
-      type: "update",
-      details,
-      state,
-      large_image: "amverge_logo",
-      small_image: generalSettings.rpcShowMiniIcons ? small_image : undefined,
-      small_text: generalSettings.rpcShowMiniIcons ? small_text : undefined,
-      buttons: generalSettings.rpcShowButtons,
-    });
-  }, [activePage, settingsOpen, menuOpen, generalSettings, updateRPC]);
+    return { updateRPC };
+}
 
-  return {
-    updateRPC,
-  };
+/**
+ * Live connection state for the settings screen. Separate from the driving hook
+ * so mounting it costs nothing: it only listens, it never publishes.
+ */
+export function useDiscordRPCStatus() {
+    const [status, setStatus] = useState<DiscordRPCStatus | null>(null);
+
+    useEffect(() => {
+        let alive = true;
+        invoke<DiscordRPCStatus>("discord_rpc_status")
+            .then((s) => {
+                if (alive) setStatus(s);
+            })
+            .catch(() => {});
+        // Discord being started or closed mid-session lands here.
+        const unlisten = listen<DiscordRPCStatus>(STATUS_EVENT, (event) => {
+            if (alive) setStatus(event.payload);
+        });
+        return () => {
+            alive = false;
+            void unlisten.then((off) => off());
+        };
+    }, []);
+
+    return status;
 }

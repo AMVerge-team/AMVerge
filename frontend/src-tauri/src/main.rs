@@ -81,6 +81,7 @@ fn main() {
             commands::discord::start_discord_rpc,
             commands::discord::update_discord_rpc,
             commands::discord::stop_discord_rpc,
+            commands::discord::discord_rpc_status,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
@@ -169,20 +170,7 @@ fn kill_all_child_processes(app: &tauri::AppHandle) {
             .output();
     }
 
-    // Gracefully shut down Discord RPC
-    let discord_child = app
-        .state::<DiscordRPCState>()
-        .child
-        .lock()
-        .ok()
-        .and_then(|mut g| g.take());
-    if let Some(mut child) = discord_child {
-        use std::io::Write;
-        if let Some(stdin) = child.stdin.as_mut() {
-            let _ = writeln!(stdin, "{{\"type\": \"shutdown\"}}");
-            let _ = stdin.flush();
-            std::thread::sleep(std::time::Duration::from_millis(100));
-        }
-        let _ = child.kill();
-    }
+    // Clear the Discord presence before the process goes away, so no ghost
+    // "playing AMVerge" is left on the profile.
+    commands::discord::shutdown(app);
 }

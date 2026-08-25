@@ -1235,3 +1235,59 @@
     font-family: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
     font-size-adjust: none;
 }
+
+
+/* =========================
+   DISCORD RICH PRESENCE
+   ========================= */
+
+/* Connection state sits above the toggles: it explains why nothing shows up on
+   the profile yet, which no label below it can. */
+.discord-rpc-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    border: 1px solid rgb(255 255 255 / 0.08);
+    border-radius: 8px;
+    background: rgb(255 255 255 / 0.03);
+}
+
+.discord-rpc-status .setting-description {
+    /* the status is one short sentence; clamping it would hide the useful half */
+    display: block;
+    -webkit-line-clamp: none;
+    line-clamp: none;
+}
+
+.discord-rpc-status-dot {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 0.25);
+}
+
+.discord-rpc-status--live .discord-rpc-status-dot {
+    background: #43b581;
+    box-shadow: 0 0 6px rgb(67 181 129 / 0.7);
+}
+
+/* Discord simply not being open is the common case, so this pulses rather than
+   alarms. */
+.discord-rpc-status--waiting .discord-rpc-status-dot {
+    background: #faa61a;
+    animation: discord-rpc-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes discord-rpc-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .discord-rpc-status--waiting .discord-rpc-status-dot {
+        animation: none;
+    }
+}

@@ -1,5 +1,36 @@
 import { useGeneralSettingsStore } from "../../stores/settingsStore";
+import { useDiscordRPCStatus } from "../../hooks/useDiscordRPC";
 import SettingRow from "../common/SettingRow";
+
+/**
+ * What the connection is doing right now — the one thing about Rich Presence the
+ * screen cannot show on its own. Discord being closed is normal, not a fault, so
+ * "waiting" reads as a state rather than an error.
+ */
+function ConnectionStatus({ enabled }: { enabled: boolean }) {
+  const status = useDiscordRPCStatus();
+
+  let tone = "idle";
+  let text = "Rich Presence is off.";
+  if (enabled) {
+    if (status?.connected) {
+      tone = "live";
+      text = status.user
+        ? `Connected to Discord as ${status.user}.`
+        : "Connected to Discord.";
+    } else {
+      tone = "waiting";
+      text = "Waiting for Discord — open the app and this connects on its own.";
+    }
+  }
+
+  return (
+    <div className={`discord-rpc-status discord-rpc-status--${tone}`}>
+      <span className="discord-rpc-status-dot" aria-hidden="true" />
+      <p className="setting-description">{text}</p>
+    </div>
+  );
+}
 
 export default function DiscordRPCSection() {
   const generalSettings = useGeneralSettingsStore();
@@ -8,6 +39,8 @@ export default function DiscordRPCSection() {
     <section className="panel menu-panel settings-panel">
       <h3>Discord Rich Presence</h3>
       <div className="about-content">
+
+        <ConnectionStatus enabled={generalSettings.discordRPCEnabled} />
 
         <SettingRow
           label="Enable Rich Presence"
@@ -43,7 +76,7 @@ export default function DiscordRPCSection() {
                     <input
                       type="checkbox"
                       className="checkbox"
-                      checked={generalSettings.discordRPCEnabled}
+                      checked={generalSettings.rpcShowFilename}
                       onChange={(e) =>
                         setGeneralSettings((prev) => ({
                           ...prev,
@@ -79,7 +112,29 @@ export default function DiscordRPCSection() {
                 </div>
               }
             />
-          
+
+            <SettingRow
+              label="Show elapsed time"
+              description="Count how long AMVerge has been open, like a game session."
+              control={
+                <div className="settings-control">
+                  <label className="custom-checkbox">
+                    <input
+                      type="checkbox"
+                      className="checkbox"
+                      checked={generalSettings.rpcShowElapsed}
+                      onChange={(e) =>
+                        setGeneralSettings((prev) => ({
+                          ...prev,
+                          rpcShowElapsed: e.target.checked,
+                        }))
+                      }
+                    />
+                    <span className="checkmark"></span>
+                  </label>
+                </div>
+              }
+            />
 
             <SettingRow
               label="Show profile buttons"
