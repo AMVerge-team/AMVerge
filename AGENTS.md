@@ -27,8 +27,8 @@
 │  main.rs                                                         │
 │  ├── 3 plugins: shell, dialog, updater                           │
 │  ├── 7 managed state structs                                     │
-│  ├── 48 registered commands across 12 modules                    │
-│  ├── 14 event types emitted to frontend                          │
+│  ├── 46 registered commands across 12 modules                    │
+│  ├── 13 event types emitted to frontend                          │
 │  └── on_window_event CloseRequested → kill_all_child_processes   │
 │                                                                  │
 │  Key modules:                                                    │
@@ -41,7 +41,7 @@
 │  ├── notifications.rs + bug_report.rs → HTTP API calls           │
 │  ├── deps.rs → AI env (uv venv), pack install/status             │
 │  ├── models.rs → AI model weights (list/download/delete)         │
-│  └── discord.rs → Rich Presence over the local Discord IPC pipe  │
+│  └── discord.rs → RPC (currently disabled)                       │
 └──────┬───────────────────────┬──────────────────────────────────┘
        │                       │
        │  process::Command     │  process::Command
@@ -181,7 +181,7 @@ frontend/
         bug_report.rs               # Bug report submit (HTTP POST, HMAC signed)
         deps.rs                     # AI env (uv venv), pack install/status
         models.rs                   # AI model weights (list/download/delete)
-        discord.rs                  # Rich Presence: worker thread, throttle, status
+        discord.rs                  # Discord RPC (currently no-op)
 
         export/                     # Export sub-modules
           types.rs                  # ExportOptionsPayload, GPU capability payloads
@@ -195,7 +195,6 @@ frontend/
           capcut.rs                 # PowerShell UI automation for CapCut
 
       utils/
-        discord_ipc.rs              # Discord IPC client (named pipe / unix socket, framed JSON)
         ffmpeg.rs                   # resolve_bundled_tool (ffmpeg/ffprobe path lookup)
         logging.rs                  # console_log emission to frontend
         paths.rs                    # Path sanitization, cache ID helpers
@@ -272,11 +271,9 @@ frontend/
 | `reveal_in_file_manager` | settings.rs | Open Explorer/Finder at path |
 | `move_episodes_to_new_dir` | settings.rs | Relocate episode cache folders |
 | `get_default_episodes_dir` | settings.rs | Return app_data_dir/episodes |
-| `start_discord_rpc` | discord.rs | Enable the presence, spawning the worker on first use |
-| `update_discord_rpc` | discord.rs | Push the activity to show (non-blocking) |
-| `stop_discord_rpc` | discord.rs | Disable the presence and clear it from the profile |
-| `discord_rpc_status` | discord.rs | Connection state + the activity that would be published |
-| `discord_rpc_app_info` | discord.rs | App name and art from Discord's public endpoints (cached) |
+| `start_discord_rpc` | discord.rs | **NO-OP** |
+| `update_discord_rpc` | discord.rs | **NO-OP** |
+| `stop_discord_rpc` | discord.rs | Kill RPC child process |
 | `submit_bug_report` | bug_report.rs | HTTP POST (HMAC signed) |
 | `fetch_startup_notification` | notifications.rs | HTTP GET startup notification |
 | `ai_env_status` | deps.rs | AI env status: packs, torch variant, GPU, sizes |
@@ -307,7 +304,6 @@ frontend/
 | `pass_preview` | `{pass, path, seq}` | export.rs |
 | `pass_log` | `{pass, line}` | export.rs |
 | `console_log` | `{source, level, message}` | logging.rs |
-| `discord_rpc_status` | `{enabled, connected, user, error, activity}` | discord.rs |
 
 ---
 
@@ -535,9 +531,7 @@ App starts → main.tsx: maybeCheckForUpdatesOnStartup()
 
 1. **CLI sidecar is external** — `AMVerge-CLI` is a separate Git repo. Dev mode expects it at `../AMVerge-CLI/`. Prod bundles it via PyInstaller.
 
-2. **Discord RPC talks to Discord directly** — no sidecar, no Python. `utils/discord_ipc.rs` speaks the local pipe protocol; a worker thread in `discord.rs` owns the connection, reconnects with backoff, and honours Discord's one-`SET_ACTIVITY`-per-15s cap by replaying the latest intent. The worker runs even when the presence is switched off, because the Settings preview renders what *would* be published.
-
-   Two traps that cost a lot of testing: activity **buttons never render for the owner** of the presence (documented, and the same on every client), and the activity-level `url` is accepted then never drawn — only `details_url` / `state_url` / `assets.large_url` / `assets.small_url` make a card clickable. `type: 1` (Streaming) is rejected outright on the RPC path.
+2. **Discord RPC is disabled** — `start_discord_rpc` and `update_discord_rpc` are no-ops. Only `stop_discord_rpc` actually works (kills old process).
 
 3. **Episode cache is immutable after import** — clips are generated once and cached. To re-detect scenes, delete the episode cache first.
 
