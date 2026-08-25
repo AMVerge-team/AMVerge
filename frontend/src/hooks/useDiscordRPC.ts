@@ -170,10 +170,14 @@ function derivePresence(input: PresenceInput): RPCActivity {
     }
 
     if (episodeName) {
-        // The name carries it; a clip count underneath said nothing anyone
-        // reading the card wanted to know.
+        const state = selectedCount
+            ? `${selectedCount} of ${clipCount} clips selected`
+            : clipCount
+              ? `${clipCount} clips`
+              : "No clips yet";
         return {
             details: showFilename ? episodeName : "Editing Episode",
+            state,
             small_image: "edit_icon_new",
             small_text: "Editing",
         };

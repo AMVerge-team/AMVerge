@@ -22,8 +22,9 @@ const APP_ID: &str = "1497922104065134823";
 const DEFAULT_LARGE_IMAGE: &str = "amverge_logo";
 const DEFAULT_LARGE_TEXT: &str = "AMVerge";
 /// Where a presence can send someone. The per-field urls (`details_url`,
-/// `state_url`, `assets.large_url`, `assets.small_url`) turn the card's lines
-/// and art into links: art to the server, text to the site.
+/// `assets.large_url`, `assets.small_url`) turn parts of the card into links:
+/// the art to the server, the first line to the site. `state_url` exists too,
+/// but a second clickable line is clutter.
 ///
 /// The activity-level `url` is an older field, meaningful only for type 1
 /// (Streaming), which the RPC path rejects outright. Do not reach for it.
@@ -466,10 +467,9 @@ fn build_activity(update: &PresenceUpdate, started_at: u64) -> Value {
         }
     }
     if let Some(state) = clamp_text(update.state.as_ref()) {
+        // No url here on purpose: the first line already carries the link, and
+        // two clickable lines side by side read as clutter.
         activity["state"] = json!(state);
-        if update.links {
-            activity["state_url"] = json!(WEBSITE_URL);
-        }
     }
     if update.show_elapsed {
         // Seconds since the epoch, not milliseconds.
