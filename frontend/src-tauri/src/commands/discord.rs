@@ -36,6 +36,21 @@ const APP_ID: &str = "1497922104065134823";
 
 const DEFAULT_LARGE_IMAGE: &str = "amverge_logo";
 const DEFAULT_LARGE_TEXT: &str = "AMVerge";
+/// The two profile buttons. They are the ONLY way a presence can send anyone
+/// anywhere, and Discord caps them at two.
+///
+/// You cannot see your own buttons: Discord renders them for other people only.
+/// That is documented, and every tool in this space (CustomRP included) carries
+/// the same warning — so an owner looking at their own profile and seeing no
+/// buttons is working as intended, not a bug to chase.
+///
+/// The alternatives were tried against a live client and all closed:
+///
+/// * `type: 1` (Streaming) is the one activity whose title is a link, and the
+///   RPC path rejects it outright: `"type" must be one of [0, 2, 3, 5]`.
+/// * an activity-level `url` IS accepted and echoed back on type 0 and 3, but
+///   the client never draws it — verified by eye, nothing on the card clicks.
+/// * a third button is rejected: `"buttons" must contain <= 2 items`.
 const DISCORD_URL: &str = "https://discord.gg/asJkqwqb";
 const WEBSITE_URL: &str = "https://amverge.app/";
 

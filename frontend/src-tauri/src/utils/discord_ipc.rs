@@ -236,6 +236,13 @@ impl DiscordIpc {
 
     /// Publish an activity, or clear the presence with `None`.
     pub fn set_activity(&mut self, activity: Option<Value>) -> Result<(), String> {
+        self.set_activity_raw(activity).map(|_| ())
+    }
+
+    /// Same, but hands back Discord's reply. The reply echoes the activity as
+    /// the client stored it, which is the only honest way to see which fields it
+    /// kept and which it dropped without a word.
+    pub fn set_activity_raw(&mut self, activity: Option<Value>) -> Result<Value, String> {
         let nonce = uuid::Uuid::new_v4().to_string();
         self.write_frame(
             OP_FRAME,
@@ -258,7 +265,7 @@ impl DiscordIpc {
                 .unwrap_or("discord rejected the activity");
             return Err(detail.to_string());
         }
-        Ok(())
+        Ok(reply)
     }
 
     /// Best-effort goodbye: clearing the presence before the pipe dies keeps a
