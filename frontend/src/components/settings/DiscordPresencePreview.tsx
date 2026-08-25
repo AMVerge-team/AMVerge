@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { open } from "@tauri-apps/plugin-shell";
 
 import {
   useDiscordAppInfo,
@@ -16,25 +17,41 @@ function formatElapsed(startSec: number, nowSec: number) {
   return hours > 0 ? `${hours}:${rest}` : rest;
 }
 
-/**
- * An asset key resolves to the art published on the developer portal; without it
- * Discord falls back to the application icon. The preview makes the same fallback
- * so it never shows an image nobody will see — and drops to the bundled logo when
- * the machine is offline.
- */
 function resolveAsset(info: DiscordAppInfo | null, key: string | undefined) {
-  if (!key) return null;
-  return info?.assets?.[key] ?? null;
+  return key ? info?.assets?.[key] ?? null : null;
+}
+
+/** Clickable when the activity carries a url for this element, inert otherwise. */
+function Linked({
+  url,
+  className,
+  children,
+}: {
+  url?: string;
+  className: string;
+  children: ReactNode;
+}) {
+  if (!url) return <div className={className}>{children}</div>;
+  return (
+    <button
+      type="button"
+      className={`${className} discord-preview-linked`}
+      title={url}
+      onClick={() => void open(url).catch(() => {})}
+    >
+      {children}
+    </button>
+  );
 }
 
 /**
- * The activity card as it appears on a Discord profile. The content is whatever
- * Rust says it would publish (`status.activity`), never rebuilt here: a second
- * implementation would drift from the real thing the moment a rule changed.
+ * The activity card as it appears on a Discord profile, rendering the exact
+ * payload Rust would publish (`status.activity`) rather than rebuilding it.
  *
- * Profile buttons are left out on purpose. Discord never renders them on your
- * own profile — only other people see them — so drawing them here would show
- * the user something their own Discord will not.
+ * Profile buttons are left out: Discord draws them for other people only, never
+ * on your own profile, so showing them here would promise what the user's own
+ * Discord will not deliver. The per-field links are the opposite — everyone sees
+ * those, so the preview makes them clickable too.
  */
 export default function DiscordPresencePreview({
   activity,
@@ -56,8 +73,8 @@ export default function DiscordPresencePreview({
     return () => clearInterval(id);
   }, [start]);
 
-  // A new URL deserves a fresh attempt; without this a single CDN hiccup would
-  // stick for the rest of the session.
+  // Falls back the way Discord itself does: named asset, then app icon, then the
+  // bundled logo when the machine is offline.
   const largeUrl = resolveAsset(info, activity?.assets?.large_image) ?? info?.icon ?? null;
   const smallUrl = resolveAsset(info, activity?.assets?.small_image);
   useEffect(() => setLargeBroken(false), [largeUrl]);
@@ -73,24 +90,26 @@ export default function DiscordPresencePreview({
 
       <div className="discord-preview-body">
         <div className="discord-preview-art">
-          <img
-            className="discord-preview-large"
-            src={largeSrc}
-            alt=""
-            referrerPolicy="no-referrer"
-            onError={() => setLargeBroken(true)}
-          />
-          {showSmall && (
-            // The small badge overlaps the corner of the large art, exactly as
-            // Discord stacks them.
+          <Linked url={activity?.assets?.large_url} className="discord-preview-large-wrap">
             <img
-              className="discord-preview-small"
-              src={smallUrl}
+              className="discord-preview-large"
+              src={largeSrc}
               alt=""
-              title={activity?.assets?.small_text}
               referrerPolicy="no-referrer"
-              onError={() => setSmallBroken(true)}
+              onError={() => setLargeBroken(true)}
             />
+          </Linked>
+          {showSmall && (
+            <Linked url={activity?.assets?.small_url} className="discord-preview-small-wrap">
+              <img
+                className="discord-preview-small"
+                src={smallUrl}
+                alt=""
+                title={activity?.assets?.small_text}
+                referrerPolicy="no-referrer"
+                onError={() => setSmallBroken(true)}
+              />
+            </Linked>
           )}
         </div>
 
@@ -98,8 +117,16 @@ export default function DiscordPresencePreview({
           {/* The name comes from the developer portal, not from our branding:
               that is the one your friends actually read. */}
           <p className="discord-preview-name">{info?.name || "AMVerge"}</p>
-          {activity?.details && <p className="discord-preview-line">{activity.details}</p>}
-          {activity?.state && <p className="discord-preview-line">{activity.state}</p>}
+          {activity?.details && (
+            <Linked url={activity.details_url} className="discord-preview-line">
+              {activity.details}
+            </Linked>
+          )}
+          {activity?.state && (
+            <Linked url={activity.state_url} className="discord-preview-line">
+              {activity.state}
+            </Linked>
+          )}
           {start ? (
             <p className="discord-preview-line discord-preview-elapsed">
               {formatElapsed(start, now)} elapsed

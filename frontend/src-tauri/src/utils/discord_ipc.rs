@@ -1,32 +1,18 @@
 //! Minimal Discord IPC client — one named pipe (Windows) or unix socket, framed
 //! JSON, no external crate.
 //!
-//! The official `discord-rpc` C++ library is deprecated, and the local protocol
-//! is a page long, so we speak it directly (reference:
-//! `discord/discord-rpc/documentation/hard-mode.md`):
+//! Four rules the protocol will not forgive:
 //!
-//! * Discord listens on `discord-ipc-0` … `-9` — Stable, PTB and Canary can run
-//!   side by side, each holding its own — so we probe 0→9 and keep the first
-//!   that answers.
+//! * Discord listens on `discord-ipc-0` … `-9`; Stable, PTB and Canary each hold
+//!   their own, so probe 0→9 and keep the first that answers.
 //! * A frame is `[opcode u32 LE][len u32 LE][utf8 JSON]`, written in a **single**
-//!   write: splitting the header from the body interleaves them on a Windows
-//!   pipe and breaks the connection.
-//! * `0 HANDSHAKE {v:1, client_id}` → Discord replies `DISPATCH`/`READY` with the
-//!   logged-in user.
+//!   write — a split header and body interleave on a Windows pipe and break the
+//!   connection.
 //! * `3 PING` must be answered with `4 PONG` carrying the nonce verbatim, or
-//!   Discord drops us.
+//!   Discord hangs up.
+//! * Reads must be buffered: a chunk can split a frame or carry several.
 //!
-//! Every command gets a reply frame, so the client is synchronous: write, then
-//! read until the answer shows up. Unsolicited PINGs are answered along the way.
-//! Between commands, [`DiscordIpc::poll`] checks the pipe without blocking —
-//! that is what notices Discord closing, and what answers a ping before Discord
-//! decides we went silent.
-//!
-//! Reads are buffered: a chunk can split a frame or carry several, and a
-//! non-blocking peek can hand back half a header.
-//!
-//! Discord not running is the nominal case, not a failure — [`DiscordIpc::connect`]
-//! just returns an error and the caller retries later.
+//! Discord not running is the nominal case, not a failure.
 
 use std::io::{Read, Write};
 
@@ -38,15 +24,12 @@ const OP_CLOSE: u32 = 2;
 const OP_PING: u32 = 3;
 const OP_PONG: u32 = 4;
 
-/// `discord-ipc-0` … `discord-ipc-9`.
 const PIPE_COUNT: u8 = 10;
-/// A frame larger than this is a desync, not a message — bail instead of
-/// allocating whatever the other end claims.
+/// A frame larger than this is a desync, not a message.
 const MAX_FRAME_LEN: u32 = 1024 * 1024;
 /// Frames read while waiting for a specific reply (pings, events we ignore).
 const MAX_SKIPPED_FRAMES: usize = 32;
 
-/// One wording for a dead pipe, whichever layer notices it first.
 pub const CLOSED: &str = "connection closed by Discord";
 
 /// The Discord account the client is signed in as, for the settings screen.
@@ -57,7 +40,6 @@ pub struct DiscordUser {
 }
 
 impl DiscordUser {
-    /// What the UI shows: display name first, handle as a fallback.
     pub fn label(&self) -> Option<String> {
         self.global_name
             .as_ref()
@@ -187,8 +169,7 @@ pub struct DiscordIpc {
 }
 
 impl DiscordIpc {
-    /// Probe `discord-ipc-0` … `-9` and handshake with the first pipe that
-    /// answers `READY`. `Err` means "no Discord here right now" — retry later.
+    /// `Err` means "no Discord here right now" — retry later.
     pub fn connect(app_id: &str) -> Result<Self, String> {
         let mut last = "Discord is not running".to_string();
         for index in 0..PIPE_COUNT {
@@ -239,9 +220,8 @@ impl DiscordIpc {
         self.set_activity_raw(activity).map(|_| ())
     }
 
-    /// Same, but hands back Discord's reply. The reply echoes the activity as
-    /// the client stored it, which is the only honest way to see which fields it
-    /// kept and which it dropped without a word.
+    /// Same, but hands back Discord's reply — the echo is the only way to see
+    /// which fields the client kept and which it dropped without a word.
     pub fn set_activity_raw(&mut self, activity: Option<Value>) -> Result<Value, String> {
         let nonce = uuid::Uuid::new_v4().to_string();
         self.write_frame(
@@ -253,7 +233,6 @@ impl DiscordIpc {
                 "nonce": nonce,
             }),
         )?;
-        // Consume the ack so it cannot be mistaken for the next command's reply.
         let reply = self.read_until(|op, msg| {
             op == OP_FRAME && msg.get("nonce").and_then(Value::as_str) == Some(nonce.as_str())
         })?;
@@ -268,8 +247,8 @@ impl DiscordIpc {
         Ok(reply)
     }
 
-    /// Best-effort goodbye: clearing the presence before the pipe dies keeps a
-    /// stale "playing AMVerge" from lingering on the profile.
+    /// Clear the presence before the pipe dies, so no stale "playing AMVerge"
+    /// lingers on the profile.
     pub fn close(&mut self) {
         let _ = self.set_activity(None);
         let _ = self.write_frame(OP_CLOSE, &json!({}));
@@ -282,13 +261,10 @@ impl DiscordIpc {
         frame.extend_from_slice(&op.to_le_bytes());
         frame.extend_from_slice(&(body.len() as u32).to_le_bytes());
         frame.extend_from_slice(&body);
-        // One write: a split header/body interleaves on a Windows pipe.
         self.transport.write_all(&frame).map_err(|e| e.to_string())?;
         self.transport.flush().map_err(|e| e.to_string())
     }
 
-    /// Pull one complete frame out of the buffer, or `None` while it holds less
-    /// than a whole one.
     fn take_frame(&mut self) -> Result<Option<(u32, Value)>, String> {
         if self.buf.len() < 8 {
             return Ok(None);
@@ -307,8 +283,6 @@ impl DiscordIpc {
         Ok(Some((op, msg)))
     }
 
-    /// Block until the pipe hands over more bytes. Zero bytes means the other
-    /// end went away.
     fn fill(&mut self) -> Result<usize, String> {
         let mut chunk = [0u8; 4096];
         match self.transport.read(&mut chunk) {
@@ -330,21 +304,18 @@ impl DiscordIpc {
         }
     }
 
-    /// Service the pipe without blocking: answer any ping waiting on it and say
-    /// whether the connection is still alive.
+    /// Service the pipe without blocking; `false` once the connection is gone.
     ///
-    /// Without this the worker would only learn Discord had quit the next time
-    /// it wrote - up to a heartbeat later - and a ping would sit unanswered just
-    /// as long, which is itself grounds for Discord to hang up on us.
+    /// Without this, Discord quitting goes unnoticed until the next write, and a
+    /// ping sits unanswered just as long — which is itself grounds for Discord to
+    /// hang up on us.
     pub fn poll(&mut self) -> bool {
         loop {
             match self.fill_nonblocking() {
-                Ok(0) => return true, // nothing waiting, still connected
+                Ok(0) => return true,
                 Ok(_) => {}
                 Err(_) => return false,
             }
-            // Drain what completed; a half-arrived frame stays buffered for the
-            // next pass.
             loop {
                 match self.take_frame() {
                     Ok(Some((OP_PING, msg))) => {
@@ -353,8 +324,6 @@ impl DiscordIpc {
                         }
                     }
                     Ok(Some((OP_CLOSE, _))) => return false,
-                    // An answer to something nobody is waiting on any more; the
-                    // nonce match in read_until is what pairs replies up.
                     Ok(Some(_)) => {}
                     Ok(None) => break,
                     Err(_) => return false,
@@ -363,14 +332,11 @@ impl DiscordIpc {
         }
     }
 
-    /// Bytes waiting on the pipe, appended to the buffer. `Ok(0)` means "nothing
-    /// right now"; `Err` means the pipe is gone.
     #[cfg(windows)]
     fn fill_nonblocking(&mut self) -> Result<usize, String> {
         let Transport::Pipe(file) = &self.transport;
         // PeekNamedPipe is the sanctioned way to look at a blocking pipe without
-        // consuming or waiting. PIPE_NOWAIT exists but is discouraged, and it
-        // would change the semantics of every other read in this file.
+        // consuming or waiting; PIPE_NOWAIT would change every other read here.
         let available = peek_named_pipe(file).ok_or(CLOSED)?;
         if available == 0 {
             return Ok(0);
@@ -392,18 +358,16 @@ impl DiscordIpc {
             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => Ok(0),
             Err(e) => Err(e.to_string()),
         };
-        // Back to blocking: every other read in this file expects to wait.
+        // Back to blocking: every other read here expects to wait.
         let Transport::Socket(sock) = &self.transport;
         let _ = sock.set_nonblocking(false);
         outcome
     }
 
-    /// Read frames until `want` matches, answering pings and surfacing `CLOSE`.
     fn read_until(&mut self, want: impl Fn(u32, &Value) -> bool) -> Result<Value, String> {
         for _ in 0..MAX_SKIPPED_FRAMES {
             let (op, msg) = self.read_frame()?;
             if op == OP_PING {
-                // Nonce echoed verbatim, or Discord hangs up on us.
                 self.write_frame(OP_PONG, &msg)?;
                 continue;
             }

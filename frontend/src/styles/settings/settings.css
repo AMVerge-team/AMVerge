@@ -1243,9 +1243,7 @@
    DISCORD RICH PRESENCE
    ========================= */
 
-/* Status and preview are one block, not two stacked boxes: they answer the same
-   question — what Discord is showing right now — and the app's own panel
-   treatment is what makes them belong to this screen rather than to Discord. */
+/* Status and preview are one block: they answer the same question. */
 .discord-presence {
     margin-bottom: 16px;
     border: 1px solid rgb(255 255 255 / 0.08);
@@ -1265,7 +1263,7 @@
 }
 
 .discord-presence-status .setting-description {
-    /* one short sentence; clamping it would hide the useful half */
+
     display: block;
     -webkit-line-clamp: none;
     line-clamp: none;
@@ -1284,8 +1282,7 @@
     box-shadow: 0 0 6px rgb(var(--accent-rgb) / 0.7);
 }
 
-/* Discord simply not being open is the common case, so this pulses rather than
-   alarms. */
+/* Discord not being open is the common case, so this pulses rather than alarms. */
 .discord-presence--waiting .discord-presence-dot {
     background: #d9a441;
     animation: discord-presence-pulse 1.8s ease-in-out infinite;
@@ -1302,16 +1299,13 @@
     }
 }
 
-/* Activity card, laid out the way Discord draws it on a profile — art on the
-   left with the small badge notched into its corner, three lines on the right —
-   but wearing this app's type and colours. */
+/* Laid out the way Discord draws it, wearing this app's type and colours. */
 .discord-preview {
     padding: 12px;
     transition: opacity 0.15s ease;
 }
 
-/* Presence off: still shown, because the point is to preview what turning it
-   back on would publish. */
+/* Presence off: still shown, to preview what turning it back on would publish. */
 .discord-preview--dim {
     opacity: 0.4;
 }
@@ -1338,6 +1332,12 @@
     height: 56px;
 }
 
+.discord-preview-large-wrap {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
 .discord-preview-large {
     width: 100%;
     height: 100%;
@@ -1346,12 +1346,18 @@
     border: 1px solid rgb(255 255 255 / 0.08);
 }
 
-.discord-preview-small {
+.discord-preview-small-wrap {
     position: absolute;
     right: -5px;
     bottom: -5px;
+    display: block;
     width: 22px;
     height: 22px;
+}
+
+.discord-preview-small {
+    width: 100%;
+    height: 100%;
     border-radius: 50%;
     object-fit: cover;
     /* the ring separates the badge from the art behind it, so it has to match
@@ -1360,12 +1366,41 @@
     background: #0c0c0e;
 }
 
+/* Clickable here too, so the preview shows where the links actually land. */
+.discord-preview-linked {
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+p.discord-preview-line,
+button.discord-preview-line {
+    max-width: 100%;
+    display: block;
+}
+
+button.discord-preview-line:hover,
+button.discord-preview-line:focus-visible {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+.discord-preview-large-wrap:hover .discord-preview-large,
+.discord-preview-small-wrap:hover .discord-preview-small,
+.discord-preview-large-wrap:focus-visible .discord-preview-large,
+.discord-preview-small-wrap:focus-visible .discord-preview-small {
+    border-color: rgb(var(--accent-rgb) / 0.7);
+}
+
 .discord-preview-lines {
     min-width: 0;
 }
 
-/* The app name wears the app's display face, like every other title on this
-   screen; the lines under it stay on the UI face, like every description. */
+
 .discord-preview-name {
     margin: 0 0 2px;
     font-size: 20px;
@@ -1379,8 +1414,7 @@
     line-height: 1.35;
     letter-spacing: 0.3px;
     color: rgb(255 255 255 / 0.7);
-    /* Discord truncates rather than wraps; a preview that wrapped would promise
-       room that does not exist */
+    /* Discord truncates rather than wraps */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

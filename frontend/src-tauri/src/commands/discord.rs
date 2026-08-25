@@ -1,24 +1,9 @@
-//! Discord Rich Presence.
+//! Discord Rich Presence, spoken straight from Rust over the local IPC pipe
+//! (see [`crate::utils::discord_ipc`]) — no sidecar to ship, and dev builds
+//! behave like packaged ones.
 //!
-//! The presence used to be a Python helper spawned as a child process; it was
-//! left as a no-op through the backend → CLI migration. It now talks to Discord
-//! straight from Rust over the local IPC pipe (see [`crate::utils::discord_ipc`]),
-//! so there is no sidecar to ship, nothing to install, and dev builds behave the
-//! same as packaged ones.
-//!
-//! A single worker thread owns the connection. The UI only ever pushes intent
-//! into a channel, so an unreachable Discord — the common case, it simply is not
-//! running — can never block an `invoke`. The worker:
-//!
-//! * reconnects with exponential backoff while the presence is enabled, so
-//!   starting Discord after AMVerge just works;
-//! * honours Discord's cap of one `SET_ACTIVITY` per 15 s. Over the cap Discord
-//!   drops updates **silently**, so the worker keeps the latest intent and
-//!   replays it when the window opens — flipping through five pages shows the
-//!   fifth, not the first;
-//! * re-sends the current activity every minute, which is how a pipe that died
-//!   with the Discord client gets noticed while the user is idle;
-//! * clears the presence on the way out, so no ghost "playing AMVerge" survives.
+//! A single worker thread owns the connection; the UI only pushes intent into a
+//! channel, so an unreachable Discord can never block an `invoke`.
 
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex};
@@ -30,45 +15,33 @@ use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::utils::discord_ipc::{DiscordIpc, CLOSED};
 
-/// AMVerge's Discord application id. Public by design — it is what identifies
-/// the app on a profile; only a client *secret* would be sensitive.
+/// Public by design: it identifies the app on a profile. Only a client
+/// *secret* would be sensitive.
 const APP_ID: &str = "1497922104065134823";
 
 const DEFAULT_LARGE_IMAGE: &str = "amverge_logo";
 const DEFAULT_LARGE_TEXT: &str = "AMVerge";
-/// The two profile buttons. They are the ONLY way a presence can send anyone
-/// anywhere, and Discord caps them at two.
+/// Where a presence can send someone, by two routes that are not equivalent:
+/// `buttons` are shown to OTHER people only, never to the owner, while the
+/// per-field urls (`details_url`, `state_url`, `assets.large_url`,
+/// `assets.small_url`) turn the card's lines and art into links everyone sees.
 ///
-/// You cannot see your own buttons: Discord renders them for other people only.
-/// That is documented, and every tool in this space (CustomRP included) carries
-/// the same warning — so an owner looking at their own profile and seeing no
-/// buttons is working as intended, not a bug to chase.
-///
-/// The alternatives were tried against a live client and all closed:
-///
-/// * `type: 1` (Streaming) is the one activity whose title is a link, and the
-///   RPC path rejects it outright: `"type" must be one of [0, 2, 3, 5]`.
-/// * an activity-level `url` IS accepted and echoed back on type 0 and 3, but
-///   the client never draws it — verified by eye, nothing on the card clicks.
-/// * a third button is rejected: `"buttons" must contain <= 2 items`.
-const DISCORD_URL: &str = "https://discord.gg/asJkqwqb";
+/// The activity-level `url` is an older field, meaningful only for type 1
+/// (Streaming), which the RPC path rejects outright. Do not reach for it.
+const DISCORD_URL: &str = "https://discord.gg/bmXjTgsAaN";
 const WEBSITE_URL: &str = "https://amverge.app/";
 
-/// Public, unauthenticated endpoints: the app's name and the art assets keyed by
-/// the very names the activity references. The settings preview uses them so it
-/// shows the picture Discord will actually draw, not a local stand-in.
+/// Public, unauthenticated endpoints for the app's name and art assets.
 const API: &str = "https://discord.com/api";
 const CDN: &str = "https://cdn.discordapp.com";
 
 /// Discord's own cap: one activity per 15 s, extra ones are dropped in silence.
 const THROTTLE: Duration = Duration::from_secs(15);
-/// Re-publish the current activity this often, so a presence Discord dropped on
-/// its own (a client restart it recovered from, say) comes back without waiting
-/// for the user to navigate. Death itself is caught by the poll above, not here.
+/// Re-publish this often, so a presence Discord dropped on its own comes back
+/// without waiting for the user to navigate. A dead pipe is caught by `poll`.
 const HEARTBEAT: Duration = Duration::from_secs(60);
 const RECONNECT_MIN: Duration = Duration::from_secs(2);
 const RECONNECT_MAX: Duration = Duration::from_secs(60);
-/// How often the worker wakes up when no command is waiting.
 const TICK: Duration = Duration::from_millis(500);
 
 /// Discord rejects a line shorter than 2 characters and truncates past 128.
@@ -96,6 +69,8 @@ pub struct PresenceUpdate {
     #[serde(default = "yes")]
     pub buttons: bool,
     #[serde(default = "yes")]
+    pub links: bool,
+    #[serde(default = "yes")]
     pub show_elapsed: bool,
 }
 
@@ -106,15 +81,12 @@ fn yes() -> bool {
 /// Everything the settings screen needs to explain what Discord is doing.
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct DiscordRpcStatus {
-    /// The presence is switched on (independent of whether Discord answered).
     pub enabled: bool,
     pub connected: bool,
-    /// Display name of the signed-in Discord account, once connected.
     pub user: Option<String>,
-    /// Why the last attempt failed — `None` while things are fine.
     pub error: Option<String>,
-    /// The exact activity that would be published right now. The settings
-    /// preview renders this instead of rebuilding it, so the two cannot drift.
+    /// The exact activity that would be published right now. The preview renders
+    /// this instead of rebuilding it, so the two cannot drift.
     pub activity: Option<Value>,
 }
 
@@ -125,12 +97,11 @@ enum Cmd {
     Shutdown,
 }
 
-/// Handle onto the worker thread. Started lazily by [`start_discord_rpc`].
 #[derive(Default)]
 pub struct DiscordRPCState {
     tx: Mutex<Option<Sender<Cmd>>>,
     status: Arc<Mutex<DiscordRpcStatus>>,
-    /// Resolved once per run — the art does not change under the user's feet.
+    /// Resolved once per run.
     app_info: Mutex<Option<DiscordAppInfo>>,
 }
 
@@ -147,9 +118,8 @@ impl DiscordRPCState {
        TAURI COMMANDS
    ========================= */
 
-/// Start the worker on first use and hand back a way to talk to it. The worker
-/// runs even when the presence is switched off: it still tracks what *would* be
-/// published, which is what the settings preview renders.
+/// The worker runs even when the presence is switched off: it still tracks what
+/// *would* be published, which is what the settings preview renders.
 fn ensure_worker(app: &AppHandle, state: &DiscordRPCState, cmd: Cmd) -> Result<(), String> {
     let mut guard = state.tx.lock().map_err(|e| e.to_string())?;
     if guard.is_none() {
@@ -168,14 +138,12 @@ fn ensure_worker(app: &AppHandle, state: &DiscordRPCState, cmd: Cmd) -> Result<(
     Ok(())
 }
 
-/// Turn the presence on, spawning the worker on first use.
 #[tauri::command]
 pub async fn start_discord_rpc(app: AppHandle, state: State<'_, DiscordRPCState>) -> Result<(), String> {
     ensure_worker(&app, &state, Cmd::Enable)
 }
 
-/// Push the activity the user should be seen doing. Cheap and non-blocking:
-/// the worker owns the timing.
+/// Cheap and non-blocking: the worker owns the timing.
 #[tauri::command]
 pub async fn update_discord_rpc(
     app: AppHandle,
@@ -183,21 +151,18 @@ pub async fn update_discord_rpc(
     data: Value,
 ) -> Result<(), String> {
     let update: PresenceUpdate = serde_json::from_value(data).map_err(|e| e.to_string())?;
-    // Accepted even with the presence off — the preview has to keep up with the
-    // app either way, and the worker only connects once enabled.
+    // Accepted even with the presence off: the preview keeps up either way.
     ensure_worker(&app, &state, Cmd::Set(Box::new(update)))
 }
 
-/// Turn the presence off and drop it from the profile. The worker stays alive so
-/// flipping the setting back on costs nothing.
+/// The worker stays alive, so flipping the setting back on costs nothing.
 #[tauri::command]
 pub async fn stop_discord_rpc(state: State<'_, DiscordRPCState>) -> Result<(), String> {
     state.send(Cmd::Disable);
     Ok(())
 }
 
-/// Current connection state, for the settings screen. The same payload arrives
-/// unprompted on the `discord_rpc_status` event whenever it changes.
+/// The same payload arrives unprompted on the `discord_rpc_status` event.
 #[tauri::command]
 pub async fn discord_rpc_status(
     state: State<'_, DiscordRPCState>,
@@ -209,8 +174,7 @@ pub async fn discord_rpc_status(
         .map_err(|e| e.to_string())
 }
 
-/// Clear the presence during app shutdown. Best-effort and time-boxed: a dead
-/// Discord must not hold the window open.
+/// Best-effort and time-boxed: a dead Discord must not hold the window open.
 pub fn shutdown(app: &AppHandle) {
     let state = app.state::<DiscordRPCState>();
     state.send(Cmd::Shutdown);
@@ -228,9 +192,7 @@ pub struct DiscordAppInfo {
     pub icon: Option<String>,
 }
 
-/// Resolve the app's name and art once per run. Offline is not a failure: the
-/// preview falls back to the bundled logo, which is what Discord would show
-/// anyway if an asset were missing.
+/// Offline is not a failure: the preview falls back to the bundled logo.
 #[tauri::command]
 pub async fn discord_rpc_app_info(
     state: State<'_, DiscordRPCState>,
@@ -266,8 +228,8 @@ pub async fn discord_rpc_app_info(
             .map(|hash| format!("{CDN}/app-icons/{APP_ID}/{hash}.png?size=160")),
     };
 
-    // Art assets are a separate, also public, listing. Missing them is survivable
-    // — the icon covers the large image and the small badge simply drops.
+    // A separate, also public listing. Missing it is survivable: the icon covers
+    // the large image and the small badge simply drops.
     if let Ok(resp) = http
         .get(format!("{API}/v9/oauth2/applications/{APP_ID}/assets"))
         .send()
@@ -300,8 +262,8 @@ pub async fn discord_rpc_app_info(
    ========================= */
 
 fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRpcStatus>>) {
-    // "Elapsed" counts from app start, like a game session — not from the last
-    // page change, which would reset the timer every few seconds.
+    // Counted from app start, like a game session: from the last page change it
+    // would reset every few seconds.
     let started_at = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
@@ -322,8 +284,7 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRpcStatus>
     let mut dirty = true;
 
     loop {
-        // Block until something happens, then drain: a burst of updates should
-        // collapse into the last one rather than costing a tick each.
+        // Drain after the first: a burst of updates collapses into the last.
         let first = match rx.recv_timeout(TICK) {
             Ok(cmd) => Some(cmd),
             Err(RecvTimeoutError::Timeout) => None,
@@ -376,10 +337,6 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRpcStatus>
         let now = Instant::now();
 
         // --- notice a pipe that died -----------------------------------------
-        // Cheap, non-blocking, and it also answers any ping sitting on the pipe.
-        // Without it, Discord quitting would go unnoticed until the next write,
-        // which can be a whole heartbeat away - long enough for the settings
-        // screen to keep claiming a connection that is already gone.
         if client.as_mut().is_some_and(|c| !c.poll()) {
             client = None;
             signed_in = None;
@@ -399,8 +356,8 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRpcStatus>
                     signed_in = Some(c.user.as_ref().and_then(|u| u.label()));
                     last_error = None;
                     client = Some(c);
-                    // First presence right away — waiting for the next page
-                    // change would leave the profile blank for minutes.
+                    // First presence right away: waiting for the next page change
+                    // would leave the profile blank for minutes.
                     pending = true;
                     last_sent = None;
                     dirty = true;
@@ -429,8 +386,7 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRpcStatus>
                         last_sent = Some(Instant::now());
                     }
                     Err(e) => {
-                        // The pipe is gone (Discord quit, or it hung up). Drop it
-                        // and let the backoff bring the presence back.
+                        // Let the backoff bring the presence back.
                         client = None;
                         signed_in = None;
                         last_error = Some(e);
@@ -461,8 +417,8 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRpcStatus>
         }
     }
 
-    // Leaving the worker means the app is closing: say so once, so a settings
-    // screen still mounted does not keep claiming a live connection.
+    // The app is closing: say so once, so a settings screen still mounted does
+    // not keep claiming a live connection.
     let _ = app.emit(STATUS_EVENT, store_status(&status, DiscordRpcStatus::default()));
 }
 
@@ -470,9 +426,8 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRpcStatus>
          ACTIVITY
    ========================= */
 
-/// A usable activity line, or `None`: Discord wants 2..=128 characters and
-/// refuses an empty string. Truncation is on a char boundary — a cut multi-byte
-/// character would make the whole frame invalid UTF-8.
+/// Discord wants 2..=128 characters. Truncation is on a char boundary: a cut
+/// multi-byte character would make the whole frame invalid UTF-8.
 fn clamp_text(value: Option<&String>) -> Option<String> {
     let text = value?.trim();
     if text.chars().count() < TEXT_MIN {
@@ -484,14 +439,17 @@ fn clamp_text(value: Option<&String>) -> Option<String> {
     Some(text.chars().take(TEXT_MAX).collect())
 }
 
-/// Turn the UI's intent into the payload Discord expects. Kept in one place so
-/// the settings preview and what friends actually see cannot diverge.
+/// Kept in one place so the preview and what friends see cannot diverge.
 fn build_activity(update: &PresenceUpdate, started_at: u64) -> Value {
     let mut assets = json!({
         "large_image": update.large_image.as_deref().unwrap_or(DEFAULT_LARGE_IMAGE),
         "large_text": update.large_text.as_deref().unwrap_or(DEFAULT_LARGE_TEXT),
     });
-    // A small icon without its tooltip renders as a bare dot — pair or omit.
+    if update.links {
+        assets["large_url"] = json!(WEBSITE_URL);
+        assets["small_url"] = json!(DISCORD_URL);
+    }
+    // A small icon without its tooltip renders as a bare dot: pair or omit.
     if let (Some(image), Some(text)) = (
         update.small_image.as_deref().filter(|s| !s.is_empty()),
         clamp_text(update.small_text.as_ref()),
@@ -501,11 +459,19 @@ fn build_activity(update: &PresenceUpdate, started_at: u64) -> Value {
     }
 
     let mut activity = json!({ "assets": assets });
+    // A url without its line would have nothing to hang on, so each is attached
+    // only alongside the text it makes clickable.
     if let Some(details) = clamp_text(update.details.as_ref()) {
         activity["details"] = json!(details);
+        if update.links {
+            activity["details_url"] = json!(WEBSITE_URL);
+        }
     }
     if let Some(state) = clamp_text(update.state.as_ref()) {
         activity["state"] = json!(state);
+        if update.links {
+            activity["state_url"] = json!(DISCORD_URL);
+        }
     }
     if update.show_elapsed {
         // Seconds since the epoch, not milliseconds.
@@ -520,8 +486,7 @@ fn build_activity(update: &PresenceUpdate, started_at: u64) -> Value {
     activity
 }
 
-/// Keep the snapshot the `discord_rpc_status` command reads in sync with the one
-/// going out on the event, so a screen that mounts late sees the same thing.
+/// Keeps what the command reads in sync with what goes out on the event.
 fn store_status(
     status: &Arc<Mutex<DiscordRpcStatus>>,
     next: DiscordRpcStatus,

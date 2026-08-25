@@ -4,9 +4,8 @@ import DiscordPresencePreview from "./DiscordPresencePreview";
 import SettingRow from "../common/SettingRow";
 
 /**
- * What the connection is doing right now — the one thing about Rich Presence the
- * screen cannot show on its own. Discord being closed is normal, not a fault, so
- * "waiting" reads as a state rather than an error.
+ * Discord being closed is normal, not a fault, so "waiting" reads as a state
+ * rather than an error.
  */
 function PresencePanel({ enabled }: { enabled: boolean }) {
   const status = useDiscordRPCStatus();
@@ -131,6 +130,29 @@ export default function DiscordRPCSection() {
                         setGeneralSettings((prev) => ({
                           ...prev,
                           rpcShowElapsed: e.target.checked,
+                        }))
+                      }
+                    />
+                    <span className="checkmark"></span>
+                  </label>
+                </div>
+              }
+            />
+
+            <SettingRow
+              label="Clickable links"
+              description="Make the card's lines and images open the website and the Discord server. Unlike the buttons, everyone can see and click these."
+              control={
+                <div className="settings-control">
+                  <label className="custom-checkbox">
+                    <input
+                      type="checkbox"
+                      className="checkbox"
+                      checked={generalSettings.rpcShowLinks}
+                      onChange={(e) =>
+                        setGeneralSettings((prev) => ({
+                          ...prev,
+                          rpcShowLinks: e.target.checked,
                         }))
                       }
                     />

@@ -55,6 +55,8 @@ export type GeneralSettings = {
     rpcShowMiniIcons: boolean;
     /** Show the "elapsed" timer Discord counts from app launch. */
     rpcShowElapsed: boolean;
+    /** Make the presence card's lines and art open the site / the server. */
+    rpcShowLinks: boolean;
     sceneDetectionMethod: SceneDetectionMethod;
     importMethod: importMethod;
     previewTranscodeMode: PreviewTranscodeMode;
@@ -87,6 +89,7 @@ export type GeneralSettingsStore = GeneralSettings & {
     setRpcShowButtons: (enabled: boolean) => void;
     setRpcShowMiniIcons: (enabled: boolean) => void;
     setRpcShowElapsed: (enabled: boolean) => void;
+    setRpcShowLinks: (enabled: boolean) => void;
     setScenepacksEnabled: (enabled: boolean) => void;
     setDavinciResolveEnabled: (enabled: boolean) => void;
     setDavinciExportSelected: (selected: boolean) => void;
@@ -120,6 +123,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     rpcShowButtons: true,
     rpcShowMiniIcons: true,
     rpcShowElapsed: true,
+    rpcShowLinks: true,
     // Keyframe detection works on a fresh install; TransNetV2 needs the
     // optional AI pack, which the user opts into from Settings.
     sceneDetectionMethod: "keyframe_detection",
@@ -253,6 +257,8 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                 set({ rpcShowMiniIcons: enabled }),
             setRpcShowElapsed: (enabled) =>
                 set({ rpcShowElapsed: enabled }),
+            setRpcShowLinks: (enabled) =>
+                set({ rpcShowLinks: enabled }),
             setScenepacksEnabled: (enabled) =>
                 set({ scenepacksEnabled: enabled }),
             setDavinciResolveEnabled: (enabled) =>
