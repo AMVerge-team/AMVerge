@@ -59,6 +59,16 @@ const OUTCOME_HOLD_MS = 12_000;
 
 const fileName = (path: string) => path.split(/[/\\]/).pop() || path;
 
+/** Container extensions this app actually imports. */
+const MEDIA_EXT =
+    /\.(mp4|mkv|mov|avi|webm|m4v|wmv|flv|mpg|mpeg|ts|mts|m2ts|webp|gif|png|jpe?g)$/i;
+
+/**
+ * The media's name as a person would say it: no folders, no extension. Matching
+ * a known list rather than "a short tail after a dot" keeps "My.Show.S01" whole.
+ */
+const mediaName = (path: string) => fileName(path).replace(MEDIA_EXT, "");
+
 /** Everything the presence is derived from, gathered in one place. */
 type PresenceInput = {
     showFilename: boolean;
@@ -108,7 +118,7 @@ function derivePresence(input: PresenceInput): RPCActivity {
         // The file being imported, NOT the episode still open in the panel —
         // during a single import that one names the previous video.
         const source = batchCurrentFile || importedVideoPath;
-        const target = source ? fileName(source) : null;
+        const target = source ? mediaName(source) : null;
         const details = showFilename && target ? `Detecting: ${target}` : "Detecting scenes";
         const state =
             batchTotal > 1
@@ -160,15 +170,10 @@ function derivePresence(input: PresenceInput): RPCActivity {
     }
 
     if (episodeName) {
-        // The second line answers "how far along", which a bare "Ready" never did.
-        const state = selectedCount
-            ? `${selectedCount} of ${clipCount} clips selected`
-            : clipCount
-              ? `${clipCount} clips`
-              : "No clips yet";
+        // The name carries it; a clip count underneath said nothing anyone
+        // reading the card wanted to know.
         return {
-            details: showFilename ? `Editing ${episodeName}` : "Editing Episode",
-            state,
+            details: showFilename ? episodeName : "Editing Episode",
             small_image: "edit_icon_new",
             small_text: "Editing",
         };
@@ -218,7 +223,7 @@ export default function useDiscordRPC() {
         return (
             episodeNamesById[episode.id] ||
             episode.displayName ||
-            (episode.videoPath ? fileName(episode.videoPath) : null) ||
+            (episode.videoPath ? mediaName(episode.videoPath) : null) ||
             `Episode ${episode.id}`
         );
     }, [openedEpisodeId, episodes, episodeNamesById]);
