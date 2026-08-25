@@ -36,7 +36,6 @@ function Linked({
     <button
       type="button"
       className={`${className} discord-preview-linked`}
-      title={url}
       onClick={() => void open(url).catch(() => {})}
     >
       {children}
@@ -103,7 +102,6 @@ export default function DiscordPresencePreview({
                 className="discord-preview-small"
                 src={smallUrl}
                 alt=""
-                title={activity?.assets?.small_text}
                 referrerPolicy="no-referrer"
                 onError={() => setSmallBroken(true)}
               />
