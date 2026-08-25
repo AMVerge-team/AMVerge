@@ -26,13 +26,13 @@ function PresencePanel({ enabled }: { enabled: boolean }) {
   }
 
   return (
-    <>
-      <div className={`discord-rpc-status discord-rpc-status--${tone}`}>
-        <span className="discord-rpc-status-dot" aria-hidden="true" />
+    <div className={`discord-presence discord-presence--${tone}`}>
+      <div className="discord-presence-status">
+        <span className="discord-presence-dot" aria-hidden="true" />
         <p className="setting-description">{text}</p>
       </div>
       <DiscordPresencePreview activity={status?.activity ?? null} dim={!enabled} />
-    </>
+    </div>
   );
 }
 
@@ -142,7 +142,7 @@ export default function DiscordRPCSection() {
 
             <SettingRow
               label="Show profile buttons"
-              description='Add "Discord Server" and "Website" buttons to your status.'
+              description='Add "Discord Server" and "Website" buttons to your status. Discord only shows these to other people, never on your own profile.'
               control={
                 <div className="settings-control">
                   <label className="custom-checkbox">

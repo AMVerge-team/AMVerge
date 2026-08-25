@@ -31,6 +31,10 @@ function resolveAsset(info: DiscordAppInfo | null, key: string | undefined) {
  * The activity card as it appears on a Discord profile. The content is whatever
  * Rust says it would publish (`status.activity`), never rebuilt here: a second
  * implementation would drift from the real thing the moment a rule changed.
+ *
+ * Profile buttons are left out on purpose. Discord never renders them on your
+ * own profile — only other people see them — so drawing them here would show
+ * the user something their own Discord will not.
  */
 export default function DiscordPresencePreview({
   activity,
@@ -61,7 +65,6 @@ export default function DiscordPresencePreview({
 
   const largeSrc = largeUrl && !largeBroken ? largeUrl : localLogo;
   const showSmall = !!smallUrl && !smallBroken;
-  const buttons = activity?.buttons ?? [];
   const empty = !activity?.details && !activity?.state && !start;
 
   return (
@@ -104,17 +107,6 @@ export default function DiscordPresencePreview({
           ) : null}
         </div>
       </div>
-
-      {buttons.length > 0 && (
-        // Static on purpose: this is a picture of a profile, not the profile.
-        <div className="discord-preview-buttons">
-          {buttons.map((button) => (
-            <span className="discord-preview-button" key={button.url} title={button.url}>
-              {button.label}
-            </span>
-          ))}
-        </div>
-      )}
 
       {empty && <p className="discord-preview-empty">Nothing to show yet.</p>}
     </div>

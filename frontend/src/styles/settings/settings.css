@@ -1231,37 +1231,47 @@
 .bugreport-label,
 .bugreport-field input[type="text"],
 .bugreport-field input[type="url"],
-.bugreport-field textarea {
+.bugreport-field textarea,
+.discord-preview-heading,
+.discord-preview-line,
+.discord-preview-empty {
     font-family: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
     font-size-adjust: none;
 }
-
 
 /* =========================
    DISCORD RICH PRESENCE
    ========================= */
 
-/* Connection state sits above the toggles: it explains why nothing shows up on
-   the profile yet, which no label below it can. */
-.discord-rpc-status {
+/* Status and preview are one block, not two stacked boxes: they answer the same
+   question — what Discord is showing right now — and the app's own panel
+   treatment is what makes them belong to this screen rather than to Discord. */
+.discord-presence {
+    margin-bottom: 16px;
+    border: 1px solid rgb(255 255 255 / 0.08);
+    border-radius: 12px;
+    background: rgb(12 12 14 / 0.65);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    overflow: hidden;
+}
+
+.discord-presence-status {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 10px;
-    padding: 8px 10px;
-    border: 1px solid rgb(255 255 255 / 0.08);
-    border-radius: 8px;
-    background: rgb(255 255 255 / 0.03);
+    padding: 9px 12px;
+    border-bottom: 1px solid rgb(255 255 255 / 0.06);
 }
 
-.discord-rpc-status .setting-description {
-    /* the status is one short sentence; clamping it would hide the useful half */
+.discord-presence-status .setting-description {
+    /* one short sentence; clamping it would hide the useful half */
     display: block;
     -webkit-line-clamp: none;
     line-clamp: none;
 }
 
-.discord-rpc-status-dot {
+.discord-presence-dot {
     flex: 0 0 auto;
     width: 8px;
     height: 8px;
@@ -1269,76 +1279,71 @@
     background: rgb(255 255 255 / 0.25);
 }
 
-.discord-rpc-status--live .discord-rpc-status-dot {
-    background: #43b581;
-    box-shadow: 0 0 6px rgb(67 181 129 / 0.7);
+.discord-presence--live .discord-presence-dot {
+    background: var(--accent);
+    box-shadow: 0 0 6px rgb(var(--accent-rgb) / 0.7);
 }
 
 /* Discord simply not being open is the common case, so this pulses rather than
    alarms. */
-.discord-rpc-status--waiting .discord-rpc-status-dot {
-    background: #faa61a;
-    animation: discord-rpc-pulse 1.8s ease-in-out infinite;
+.discord-presence--waiting .discord-presence-dot {
+    background: #d9a441;
+    animation: discord-presence-pulse 1.8s ease-in-out infinite;
 }
 
-@keyframes discord-rpc-pulse {
+@keyframes discord-presence-pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.35; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .discord-rpc-status--waiting .discord-rpc-status-dot {
+    .discord-presence--waiting .discord-presence-dot {
         animation: none;
     }
 }
 
-
-/* Activity card, laid out the way Discord draws it on a profile: art on the
-   left with the small badge notched into its corner, three text lines on the
-   right, buttons underneath. The palette is Discord's own so the preview reads
-   as "their surface", not ours. */
+/* Activity card, laid out the way Discord draws it on a profile — art on the
+   left with the small badge notched into its corner, three lines on the right —
+   but wearing this app's type and colours. */
 .discord-preview {
-    margin-bottom: 12px;
-    padding: 14px;
-    border: 1px solid rgb(255 255 255 / 0.08);
-    border-radius: 10px;
-    background: #232428;
+    padding: 12px;
     transition: opacity 0.15s ease;
 }
 
 /* Presence off: still shown, because the point is to preview what turning it
    back on would publish. */
 .discord-preview--dim {
-    opacity: 0.45;
+    opacity: 0.4;
 }
 
 .discord-preview-heading {
     margin: 0 0 10px;
     font-size: 0.6875rem;
     font-weight: 700;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.8px;
     text-transform: uppercase;
-    color: rgb(255 255 255 / 0.55);
+    color: rgb(var(--accent-rgb) / 0.85);
 }
 
 .discord-preview-body {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
 }
 
 .discord-preview-art {
     position: relative;
     flex: 0 0 auto;
-    width: 54px;
-    height: 54px;
+    width: 56px;
+    height: 56px;
 }
 
 .discord-preview-large {
     width: 100%;
     height: 100%;
-    border-radius: 8px;
+    border-radius: 10px;
     object-fit: cover;
+    border: 1px solid rgb(255 255 255 / 0.08);
 }
 
 .discord-preview-small {
@@ -1349,29 +1354,33 @@
     height: 22px;
     border-radius: 50%;
     object-fit: cover;
-    /* the ring is what separates the badge from the art behind it */
-    border: 2px solid #232428;
-    background: #232428;
+    /* the ring separates the badge from the art behind it, so it has to match
+       the panel it sits on rather than be transparent */
+    border: 2px solid #0c0c0e;
+    background: #0c0c0e;
 }
 
 .discord-preview-lines {
     min-width: 0;
-    line-height: 1.3;
 }
 
+/* The app name wears the app's display face, like every other title on this
+   screen; the lines under it stay on the UI face, like every description. */
 .discord-preview-name {
-    margin: 0;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #f2f3f5;
+    margin: 0 0 2px;
+    font-size: 20px;
+    line-height: 1;
+    color: #fff;
 }
 
-/* Every line is one line: Discord truncates rather than wraps, and a preview
-   that wrapped would promise room that does not exist. */
 .discord-preview-line {
     margin: 0;
-    font-size: 0.78rem;
-    color: rgb(255 255 255 / 0.72);
+    font-size: 0.8rem;
+    line-height: 1.35;
+    letter-spacing: 0.3px;
+    color: rgb(255 255 255 / 0.7);
+    /* Discord truncates rather than wraps; a preview that wrapped would promise
+       room that does not exist */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1379,32 +1388,11 @@
 
 .discord-preview-elapsed {
     font-variant-numeric: tabular-nums;
-    color: rgb(255 255 255 / 0.55);
-}
-
-.discord-preview-buttons {
-    display: flex;
-    gap: 8px;
-    margin-top: 12px;
-}
-
-.discord-preview-button {
-    flex: 1 1 0;
-    padding: 7px 10px;
-    border: 1px solid rgb(255 255 255 / 0.12);
-    border-radius: 4px;
-    background: #4e5058;
-    color: #f2f3f5;
-    font-size: 0.78rem;
-    font-weight: 500;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    color: rgb(255 255 255 / 0.5);
 }
 
 .discord-preview-empty {
     margin: 10px 0 0;
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     color: rgb(255 255 255 / 0.5);
 }
