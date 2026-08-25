@@ -1,6 +1,7 @@
 import { useGeneralSettingsStore } from "../../stores/settingsStore";
 import { useDiscordRPCStatus } from "../../hooks/useDiscordRPC";
 import DiscordPresencePreview from "./DiscordPresencePreview";
+import InfoButton from "../common/InfoButton";
 import SettingRow from "../common/SettingRow";
 
 /**
@@ -73,6 +74,21 @@ export default function DiscordRPCSection() {
             <SettingRow
               label="Show filename"
               description="Show the name of the video you're editing."
+              info={
+                <InfoButton title="Show filename">
+                  <p>
+                    On, the card names the episode you have open — the same name the
+                    episode panel shows, and the video's filename when you have not
+                    renamed it. During an import it names the file being scanned.
+                  </p>
+                  <p>
+                    Anyone who can see your Discord profile reads that name. If you
+                    work on something you would rather not announce, turn this off:
+                    the card then says "Editing Episode" and keeps the title to
+                    itself.
+                  </p>
+                </InfoButton>
+              }
               control={
                 <div className="settings-control">
                   <label className="custom-checkbox">
@@ -119,6 +135,19 @@ export default function DiscordRPCSection() {
             <SettingRow
               label="Show elapsed time"
               description="Count how long AMVerge has been open, like a game session."
+              info={
+                <InfoButton title="Show elapsed time">
+                  <p>
+                    The timer starts when AMVerge starts, and keeps running while you
+                    switch episodes, import, or export. It is a session length, not
+                    time spent on the episode currently open.
+                  </p>
+                  <p>
+                    Closing the app resets it. Turning Rich Presence off and back on
+                    does not — the count follows the app, not the presence.
+                  </p>
+                </InfoButton>
+              }
               control={
                 <div className="settings-control">
                   <label className="custom-checkbox">
@@ -141,7 +170,7 @@ export default function DiscordRPCSection() {
 
             <SettingRow
               label="Clickable links"
-              description="Make the presence card clickable: the images open the Discord server, the text opens the website."
+              description="Make the presence card clickable: the images open the Discord server, the first line opens the website."
               control={
                 <div className="settings-control">
                   <label className="custom-checkbox">
