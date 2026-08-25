@@ -48,10 +48,8 @@ function Linked({
  * The activity card as it appears on a Discord profile, rendering the exact
  * payload Rust would publish (`status.activity`) rather than rebuilding it.
  *
- * Profile buttons are left out: Discord draws them for other people only, never
- * on your own profile, so showing them here would promise what the user's own
- * Discord will not deliver. The per-field links are the opposite — everyone sees
- * those, so the preview makes them clickable too.
+ * The lines and art are clickable here as they are on the profile, so where a
+ * link lands can be checked without leaving Settings.
  */
 export default function DiscordPresencePreview({
   activity,

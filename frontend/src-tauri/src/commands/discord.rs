@@ -66,8 +66,6 @@ pub struct PresenceUpdate {
     #[serde(default)]
     pub small_text: Option<String>,
     #[serde(default = "yes")]
-    pub buttons: bool,
-    #[serde(default = "yes")]
     pub links: bool,
     #[serde(default = "yes")]
     pub show_elapsed: bool,
@@ -476,12 +474,6 @@ fn build_activity(update: &PresenceUpdate, started_at: u64) -> Value {
     if update.show_elapsed {
         // Seconds since the epoch, not milliseconds.
         activity["timestamps"] = json!({ "start": started_at });
-    }
-    if update.buttons {
-        activity["buttons"] = json!([
-            { "label": "Discord Server", "url": DISCORD_URL },
-            { "label": "Website", "url": WEBSITE_URL },
-        ]);
     }
     activity
 }

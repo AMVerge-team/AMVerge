@@ -537,7 +537,6 @@ export default function useImportExport(props?: ImportExportProps) {
         large_image: "amverge_logo",
         small_image: generalSettings.rpcShowMiniIcons ? "loading_icon_new" : undefined,
         small_text: generalSettings.rpcShowMiniIcons ? "Detecting..." : undefined,
-        buttons: generalSettings.rpcShowButtons,
       });
 
       const { episodeEntry, sceneCount } = await runImportPipeline(file, episodeId, true);
@@ -805,7 +804,6 @@ export default function useImportExport(props?: ImportExportProps) {
         large_image: "amverge_logo",
         small_image: generalSettings.rpcShowMiniIcons ? "save_icon_new" : undefined,
         small_text: generalSettings.rpcShowMiniIcons ? "Exporting..." : undefined,
-        buttons: generalSettings.rpcShowButtons,
       });
 
       // 1. Export each clip on its own (no merge).
@@ -901,7 +899,6 @@ export default function useImportExport(props?: ImportExportProps) {
         large_image: "amverge_logo",
         small_image: generalSettings.rpcShowMiniIcons ? "check_icon_new" : undefined,
         small_text: generalSettings.rpcShowMiniIcons ? "Done" : undefined,
-        buttons: generalSettings.rpcShowButtons,
       });
 
       setTimeout(() => {
@@ -912,7 +909,6 @@ export default function useImportExport(props?: ImportExportProps) {
           large_image: "amverge_logo",
           small_image: generalSettings.rpcShowMiniIcons ? "edit_icon_new" : undefined,
           small_text: generalSettings.rpcShowMiniIcons ? "Editing" : undefined,
-          buttons: generalSettings.rpcShowButtons,
         });
       }, 10000);
 
@@ -929,7 +925,6 @@ export default function useImportExport(props?: ImportExportProps) {
           large_image: "amverge_logo",
           small_image: generalSettings.rpcShowMiniIcons ? "edit_icon_new" : undefined,
           small_text: generalSettings.rpcShowMiniIcons ? "Error" : undefined,
-          buttons: generalSettings.rpcShowButtons,
         });
         setTimeout(() => {
           useAppStateStore.getState().setProgressMsg("");
@@ -973,7 +968,6 @@ export default function useImportExport(props?: ImportExportProps) {
         large_image: "amverge_logo",
         small_image: generalSettings.rpcShowMiniIcons ? "save_icon_new" : undefined,
         small_text: generalSettings.rpcShowMiniIcons ? "Exporting..." : undefined,
-        buttons: generalSettings.rpcShowButtons,
       });
 
       if (mergeEnabled) {
@@ -1017,7 +1011,6 @@ export default function useImportExport(props?: ImportExportProps) {
         large_image: "amverge_logo",
         small_image: generalSettings.rpcShowMiniIcons ? "check_icon_new" : undefined,
         small_text: generalSettings.rpcShowMiniIcons ? "Done" : undefined,
-        buttons: generalSettings.rpcShowButtons,
       });
 
       setTimeout(() => {
@@ -1028,7 +1021,6 @@ export default function useImportExport(props?: ImportExportProps) {
           large_image: "amverge_logo",
           small_image: generalSettings.rpcShowMiniIcons ? "edit_icon_new" : undefined,
           small_text: generalSettings.rpcShowMiniIcons ? "Editing" : undefined,
-          buttons: generalSettings.rpcShowButtons,
         });
       }, 10000);
     } catch (err) {
@@ -1044,7 +1036,6 @@ export default function useImportExport(props?: ImportExportProps) {
         large_image: "amverge_logo",
         small_image: generalSettings.rpcShowMiniIcons ? "edit_icon_new" : undefined,
         small_text: generalSettings.rpcShowMiniIcons ? "Error" : undefined,
-        buttons: generalSettings.rpcShowButtons,
       });
       setTimeout(() => {
         useAppStateStore.getState().setProgressMsg("");

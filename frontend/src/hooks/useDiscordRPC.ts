@@ -29,7 +29,6 @@ export type DiscordActivity = {
         small_url?: string;
     };
     timestamps?: { start?: number };
-    buttons?: { label: string; url: string }[];
 };
 
 /** Mirror of the Rust `DiscordRpcStatus` payload. */
@@ -64,7 +63,6 @@ const IDLE: RPCActivity = {
  */
 export default function useDiscordRPC() {
     const enabled = useGeneralSettingsStore((s) => s.discordRPCEnabled);
-    const showButtons = useGeneralSettingsStore((s) => s.rpcShowButtons);
     const showMiniIcons = useGeneralSettingsStore((s) => s.rpcShowMiniIcons);
     const showElapsed = useGeneralSettingsStore((s) => s.rpcShowElapsed);
     const showLinks = useGeneralSettingsStore((s) => s.rpcShowLinks);
@@ -77,8 +75,8 @@ export default function useDiscordRPC() {
     // The last activity a caller asked for, kept so a toggle can replay it.
     const lastActivityRef = useRef<RPCActivity>(IDLE);
     // Settings read inside callbacks that must not be re-created on every flip.
-    const flagsRef = useRef({ showButtons, showMiniIcons, showElapsed, showLinks });
-    flagsRef.current = { showButtons, showMiniIcons, showElapsed, showLinks };
+    const flagsRef = useRef({ showMiniIcons, showElapsed, showLinks });
+    flagsRef.current = { showMiniIcons, showElapsed, showLinks };
 
     /**
      * Sent even when the presence is off: Rust only connects once enabled, but
@@ -94,7 +92,6 @@ export default function useDiscordRPC() {
                     large_image: activity.large_image ?? "amverge_logo",
                     small_image: flags.showMiniIcons ? activity.small_image : undefined,
                     small_text: flags.showMiniIcons ? activity.small_text : undefined,
-                    buttons: flags.showButtons,
                     links: flags.showLinks,
                     show_elapsed: flags.showElapsed,
                 },
@@ -176,7 +173,7 @@ export default function useDiscordRPC() {
     // A toggle must show now, not at the next page change.
     useEffect(() => {
         void publish(lastActivityRef.current);
-    }, [showButtons, showMiniIcons, showElapsed, showLinks, publish]);
+    }, [showMiniIcons, showElapsed, showLinks, publish]);
 
     return { updateRPC };
 }

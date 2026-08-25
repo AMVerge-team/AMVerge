@@ -161,29 +161,6 @@ export default function DiscordRPCSection() {
                 </div>
               }
             />
-
-            <SettingRow
-              label="Show profile buttons"
-              description='Add "Discord Server" and "Website" buttons to your status. Discord only shows these to other people, never on your own profile.'
-              control={
-                <div className="settings-control">
-                  <label className="custom-checkbox">
-                    <input
-                      type="checkbox"
-                      className="checkbox"
-                      checked={generalSettings.rpcShowButtons}
-                      onChange={(e) =>
-                        setGeneralSettings((prev) => ({
-                          ...prev,
-                          rpcShowButtons: e.target.checked,
-                        }))
-                      }
-                    />
-                    <span className="checkmark"></span>
-                  </label>
-                </div>
-              }
-            />
           </>
         )}
       </div>
