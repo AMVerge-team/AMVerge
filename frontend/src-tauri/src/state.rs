@@ -81,10 +81,9 @@ impl Default for PreviewTranscodeSlots {
     }
 }
 
-#[derive(Default)]
-pub struct DiscordRPCState {
-    pub child: Mutex<Option<std::process::Child>>,
-}
+/// Discord Rich Presence lives with its worker thread, not here — the presence
+/// is an IPC connection, no longer a child process.
+pub use crate::commands::discord::DiscordRPCState;
 
 #[derive(Default)]
 pub struct EditorImportAbortState {
