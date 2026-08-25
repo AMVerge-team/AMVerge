@@ -92,6 +92,10 @@ pub struct AiEnvStatus {
     pub bundled_cli_version: Option<String>,
     /// An NVIDIA GPU was detected, so a CUDA torch build is worth downloading.
     pub gpu_available: bool,
+    /// Apple Silicon: torch's MPS backend accelerates inference (TransNetV2
+    /// included) without any special wheel, so this holds even when
+    /// `gpu_available`/`torch_variant` — both NVIDIA-only signals — don't.
+    pub mps_available: bool,
     pub env_size_bytes: u64,
     /// Dev builds run against the CLI checkout's venv and never provision this.
     pub managed: bool,
@@ -186,6 +190,15 @@ fn nvidia_gpu_present() -> bool {
         .unwrap_or(false)
 }
 
+/// Apple Silicon ships torch's MPS backend in the ordinary (non-CUDA) wheel,
+/// and `ai_scene_detection.py`'s own device picker falls back to it ahead of
+/// CPU (`cuda > mps > cpu`). Detected by target rather than probing torch
+/// itself, since this only needs to answer "would MPS be tried", not "is a
+/// specific env's torch build new enough".
+fn mps_available() -> bool {
+    cfg!(all(target_os = "macos", target_arch = "aarch64"))
+}
+
 fn dir_size_bytes(path: &Path) -> u64 {
     let Ok(entries) = std::fs::read_dir(path) else {
         return 0;
@@ -247,6 +260,7 @@ fn compute_status(app: &AppHandle) -> Result<AiEnvStatus, String> {
         env_cli_version,
         bundled_cli_version: bundled_cli_version(app),
         gpu_available: nvidia_gpu_present(),
+        mps_available: mps_available(),
         env_size_bytes,
         managed: !cfg!(debug_assertions),
     })

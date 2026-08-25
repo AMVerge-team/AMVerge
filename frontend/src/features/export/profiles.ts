@@ -39,7 +39,7 @@ export type ExportAudioMode =
   | "opus"
   | "mp3"
   | "none";
-export type ExportContainer = "mp4" | "mkv" | "mov" | "mxf";
+export type ExportContainer = "mp4" | "mov" | "mxf";
 export type ExportHardwareMode = "auto" | "gpu" | "cpu";
 export type ExportEditorTarget =
   | "none";
@@ -131,7 +131,6 @@ export const EXPORT_AUDIO_OPTIONS: { value: ExportAudioMode; label: string }[] =
 
 export const EXPORT_CONTAINER_OPTIONS: { value: ExportContainer; label: string }[] = [
   { value: "mp4", label: "MP4" },
-  { value: "mkv", label: "MKV" },
   { value: "mov", label: "MOV" },
 ];
 
@@ -517,8 +516,6 @@ export function isExportCodecContainerCompatible(
       return family === "h264" || family === "h265" || family === "av1";
     case "mov":
       return family === "h264" || family === "h265" || family === "av1" || family === "prores";
-    case "mkv":
-      return true;
     case "mxf":
       return family === "prores";
     default:

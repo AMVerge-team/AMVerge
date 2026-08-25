@@ -17,7 +17,7 @@ import {
 /*====================
     GENERAL SETTINGS 
 =====================*/
-export type ExportFormat = "mp4" | "mkv" | "mov" | "xml";
+export type ExportFormat = "mp4" | "mov" | "xml";
 export type SceneDetectionMethod = "transnetv2_gpu" | "keyframe_detection";
 export type importMethod = "video_files" | "webp_files";
 
@@ -36,7 +36,7 @@ export const PREVIEW_TRANSCODE_PRESETS: Record<
 
 export type GeneralSettings = {
     episodesPath: string | null;
-    exportFormat: "mp4" | "mkv" | "mov" | "xml";
+    exportFormat: "mp4" | "mov" | "xml";
     exportPath: string | null;
     mergeClipsEnabled: boolean;
     openFileLocationAfterExport: boolean;
@@ -282,7 +282,7 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
 
                 const rawExportFormat = persisted.exportFormat;
                 const exportFormat: ExportFormat =
-                    rawExportFormat === "mkv" || rawExportFormat === "mov" || rawExportFormat === "xml"
+                    rawExportFormat === "mov" || rawExportFormat === "xml"
                         ? rawExportFormat
                         : "mp4";
 
