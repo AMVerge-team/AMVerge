@@ -21,10 +21,9 @@ const APP_ID: &str = "1497922104065134823";
 
 const DEFAULT_LARGE_IMAGE: &str = "amverge_logo";
 const DEFAULT_LARGE_TEXT: &str = "AMVerge";
-/// Where a presence can send someone, by two routes that are not equivalent:
-/// `buttons` are shown to OTHER people only, never to the owner, while the
-/// per-field urls (`details_url`, `state_url`, `assets.large_url`,
-/// `assets.small_url`) turn the card's lines and art into links everyone sees.
+/// Where a presence can send someone. The per-field urls (`details_url`,
+/// `state_url`, `assets.large_url`, `assets.small_url`) turn the card's lines
+/// and art into links: art to the server, text to the site.
 ///
 /// The activity-level `url` is an older field, meaningful only for type 1
 /// (Streaming), which the RPC path rejects outright. Do not reach for it.
@@ -446,7 +445,8 @@ fn build_activity(update: &PresenceUpdate, started_at: u64) -> Value {
         "large_text": update.large_text.as_deref().unwrap_or(DEFAULT_LARGE_TEXT),
     });
     if update.links {
-        assets["large_url"] = json!(WEBSITE_URL);
+        // Art sends to the server, text sends to the site.
+        assets["large_url"] = json!(DISCORD_URL);
         assets["small_url"] = json!(DISCORD_URL);
     }
     // A small icon without its tooltip renders as a bare dot: pair or omit.
@@ -470,7 +470,7 @@ fn build_activity(update: &PresenceUpdate, started_at: u64) -> Value {
     if let Some(state) = clamp_text(update.state.as_ref()) {
         activity["state"] = json!(state);
         if update.links {
-            activity["state_url"] = json!(DISCORD_URL);
+            activity["state_url"] = json!(WEBSITE_URL);
         }
     }
     if update.show_elapsed {

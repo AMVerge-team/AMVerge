@@ -141,7 +141,7 @@ export default function DiscordRPCSection() {
 
             <SettingRow
               label="Clickable links"
-              description="Make the card's lines and images open the website and the Discord server. Unlike the buttons, everyone can see and click these."
+              description="Make the presence card clickable: the images open the Discord server, the text opens the website."
               control={
                 <div className="settings-control">
                   <label className="custom-checkbox">
