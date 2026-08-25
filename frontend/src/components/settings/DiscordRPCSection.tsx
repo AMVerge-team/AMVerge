@@ -1,5 +1,6 @@
 import { useGeneralSettingsStore } from "../../stores/settingsStore";
 import { useDiscordRPCStatus } from "../../hooks/useDiscordRPC";
+import DiscordPresencePreview from "./DiscordPresencePreview";
 import SettingRow from "../common/SettingRow";
 
 /**
@@ -7,7 +8,7 @@ import SettingRow from "../common/SettingRow";
  * screen cannot show on its own. Discord being closed is normal, not a fault, so
  * "waiting" reads as a state rather than an error.
  */
-function ConnectionStatus({ enabled }: { enabled: boolean }) {
+function PresencePanel({ enabled }: { enabled: boolean }) {
   const status = useDiscordRPCStatus();
 
   let tone = "idle";
@@ -25,10 +26,13 @@ function ConnectionStatus({ enabled }: { enabled: boolean }) {
   }
 
   return (
-    <div className={`discord-rpc-status discord-rpc-status--${tone}`}>
-      <span className="discord-rpc-status-dot" aria-hidden="true" />
-      <p className="setting-description">{text}</p>
-    </div>
+    <>
+      <div className={`discord-rpc-status discord-rpc-status--${tone}`}>
+        <span className="discord-rpc-status-dot" aria-hidden="true" />
+        <p className="setting-description">{text}</p>
+      </div>
+      <DiscordPresencePreview activity={status?.activity ?? null} dim={!enabled} />
+    </>
   );
 }
 
@@ -40,7 +44,7 @@ export default function DiscordRPCSection() {
       <h3>Discord Rich Presence</h3>
       <div className="about-content">
 
-        <ConnectionStatus enabled={generalSettings.discordRPCEnabled} />
+        <PresencePanel enabled={generalSettings.discordRPCEnabled} />
 
         <SettingRow
           label="Enable Rich Presence"

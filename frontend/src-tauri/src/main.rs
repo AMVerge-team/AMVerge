@@ -82,6 +82,7 @@ fn main() {
             commands::discord::update_discord_rpc,
             commands::discord::stop_discord_rpc,
             commands::discord::discord_rpc_status,
+            commands::discord::discord_rpc_app_info,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {

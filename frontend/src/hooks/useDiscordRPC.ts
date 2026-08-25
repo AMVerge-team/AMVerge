@@ -14,13 +14,35 @@ export type RPCActivity = {
     small_text?: string;
 };
 
+/** The activity payload Discord receives, mirrored for the settings preview. */
+export type DiscordActivity = {
+    details?: string;
+    state?: string;
+    assets?: {
+        large_image?: string;
+        large_text?: string;
+        small_image?: string;
+        small_text?: string;
+    };
+    timestamps?: { start?: number };
+    buttons?: { label: string; url: string }[];
+};
+
 /** Mirror of the Rust `DiscordRpcStatus` payload. */
 export type DiscordRPCStatus = {
     enabled: boolean;
     connected: boolean;
     user: string | null;
     error: string | null;
-    activity: Record<string, unknown> | null;
+    activity: DiscordActivity | null;
+};
+
+/** Mirror of the Rust `DiscordAppInfo` payload. */
+export type DiscordAppInfo = {
+    name: string;
+    /** Asset key (`amverge_logo`, `edit_icon_new`, …) → CDN url. */
+    assets: Record<string, string>;
+    icon: string | null;
 };
 
 const STATUS_EVENT = "discord_rpc_status";
@@ -56,16 +78,19 @@ export default function useDiscordRPC() {
     const menuOpen = useUIStateStore((s) => s.menuOpen);
     const activeOperation = useAppStateStore((s) => s.activeOperation);
 
-    const isStartedRef = useRef(false);
     // The last activity a caller asked for, kept so a toggle can replay it.
     const lastActivityRef = useRef<RPCActivity>(IDLE);
     // Settings read inside callbacks that must not be re-created on every flip.
     const flagsRef = useRef({ showButtons, showMiniIcons, showElapsed });
     flagsRef.current = { showButtons, showMiniIcons, showElapsed };
 
-    /** Send an activity, layering the user's display toggles on top of it. */
+    /**
+     * Send an activity, layering the user's display toggles on top of it. Sent
+     * even when the presence is off: Rust only connects once enabled, but it
+     * keeps tracking what *would* be published so the settings card can preview
+     * it.
+     */
     const publish = useCallback(async (activity: RPCActivity) => {
-        if (!isStartedRef.current) return;
         const flags = flagsRef.current;
         try {
             await invoke("update_discord_rpc", {
@@ -105,24 +130,10 @@ export default function useDiscordRPC() {
     // Start/stop with the setting. Stopping clears the presence on the profile;
     // the Rust worker survives, so switching back on reconnects immediately.
     useEffect(() => {
-        let cancelled = false;
-        if (enabled) {
-            invoke("start_discord_rpc")
-                .then(() => {
-                    if (cancelled) return;
-                    isStartedRef.current = true;
-                    void publish(lastActivityRef.current);
-                })
-                .catch((err) => console.error("Failed to start Discord RPC:", err));
-        } else if (isStartedRef.current) {
-            isStartedRef.current = false;
-            void invoke("stop_discord_rpc").catch((err) =>
-                console.error("Failed to stop Discord RPC:", err)
-            );
-        }
-        return () => {
-            cancelled = true;
-        };
+        const command = enabled ? "start_discord_rpc" : "stop_discord_rpc";
+        invoke(command)
+            .then(() => publish(lastActivityRef.current))
+            .catch((err) => console.error(`Failed to run ${command}:`, err));
     }, [enabled, publish]);
 
     // Where the user is. An operation in flight speaks for itself, so navigation
@@ -131,7 +142,7 @@ export default function useDiscordRPC() {
     useEffect(() => {
         const justFinished = prevOperationRef.current !== null && activeOperation === null;
         prevOperationRef.current = activeOperation;
-        if (!isStartedRef.current || activeOperation) return;
+        if (activeOperation) return;
         // An import/export that just ended has published its own outcome
         // ("Export Finished!") and restores the idle status itself — stepping on
         // it here would make the result flash by for a single frame.
@@ -172,9 +183,9 @@ export default function useDiscordRPC() {
         void publish(activity);
     }, [activePage, settingsOpen, menuOpen, activeOperation, publish]);
 
-    // A toggle must show on the profile now, not at the next page change.
+    // A toggle must show on the profile — and in the preview card — now, not at
+    // the next page change.
     useEffect(() => {
-        if (!isStartedRef.current) return;
         void publish(lastActivityRef.current);
     }, [showButtons, showMiniIcons, showElapsed, publish]);
 
@@ -206,4 +217,28 @@ export function useDiscordRPCStatus() {
     }, []);
 
     return status;
+}
+
+/**
+ * The app's real name and art, straight from Discord's public endpoints, so the
+ * preview shows the picture friends will actually see rather than a local
+ * stand-in. Resolved once per run in Rust; offline simply yields nothing and the
+ * preview falls back to the bundled logo.
+ */
+export function useDiscordAppInfo() {
+    const [info, setInfo] = useState<DiscordAppInfo | null>(null);
+
+    useEffect(() => {
+        let alive = true;
+        invoke<DiscordAppInfo>("discord_rpc_app_info")
+            .then((i) => {
+                if (alive) setInfo(i);
+            })
+            .catch(() => {});
+        return () => {
+            alive = false;
+        };
+    }, []);
+
+    return info;
 }

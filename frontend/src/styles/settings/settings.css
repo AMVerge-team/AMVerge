@@ -1291,3 +1291,120 @@
         animation: none;
     }
 }
+
+
+/* Activity card, laid out the way Discord draws it on a profile: art on the
+   left with the small badge notched into its corner, three text lines on the
+   right, buttons underneath. The palette is Discord's own so the preview reads
+   as "their surface", not ours. */
+.discord-preview {
+    margin-bottom: 12px;
+    padding: 14px;
+    border: 1px solid rgb(255 255 255 / 0.08);
+    border-radius: 10px;
+    background: #232428;
+    transition: opacity 0.15s ease;
+}
+
+/* Presence off: still shown, because the point is to preview what turning it
+   back on would publish. */
+.discord-preview--dim {
+    opacity: 0.45;
+}
+
+.discord-preview-heading {
+    margin: 0 0 10px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.55);
+}
+
+.discord-preview-body {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.discord-preview-art {
+    position: relative;
+    flex: 0 0 auto;
+    width: 54px;
+    height: 54px;
+}
+
+.discord-preview-large {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.discord-preview-small {
+    position: absolute;
+    right: -5px;
+    bottom: -5px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+    /* the ring is what separates the badge from the art behind it */
+    border: 2px solid #232428;
+    background: #232428;
+}
+
+.discord-preview-lines {
+    min-width: 0;
+    line-height: 1.3;
+}
+
+.discord-preview-name {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #f2f3f5;
+}
+
+/* Every line is one line: Discord truncates rather than wraps, and a preview
+   that wrapped would promise room that does not exist. */
+.discord-preview-line {
+    margin: 0;
+    font-size: 0.78rem;
+    color: rgb(255 255 255 / 0.72);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.discord-preview-elapsed {
+    font-variant-numeric: tabular-nums;
+    color: rgb(255 255 255 / 0.55);
+}
+
+.discord-preview-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.discord-preview-button {
+    flex: 1 1 0;
+    padding: 7px 10px;
+    border: 1px solid rgb(255 255 255 / 0.12);
+    border-radius: 4px;
+    background: #4e5058;
+    color: #f2f3f5;
+    font-size: 0.78rem;
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.discord-preview-empty {
+    margin: 10px 0 0;
+    font-size: 0.78rem;
+    color: rgb(255 255 255 / 0.5);
+}

@@ -39,6 +39,12 @@ const DEFAULT_LARGE_TEXT: &str = "AMVerge";
 const DISCORD_URL: &str = "https://discord.gg/asJkqwqb";
 const WEBSITE_URL: &str = "https://amverge.app/";
 
+/// Public, unauthenticated endpoints: the app's name and the art assets keyed by
+/// the very names the activity references. The settings preview uses them so it
+/// shows the picture Discord will actually draw, not a local stand-in.
+const API: &str = "https://discord.com/api";
+const CDN: &str = "https://cdn.discordapp.com";
+
 /// Discord's own cap: one activity per 15 s, extra ones are dropped in silence.
 const THROTTLE: Duration = Duration::from_secs(15);
 /// Re-publish the current activity this often; a dead pipe surfaces here.
@@ -107,6 +113,8 @@ enum Cmd {
 pub struct DiscordRPCState {
     tx: Mutex<Option<Sender<Cmd>>>,
     status: Arc<Mutex<DiscordRpcStatus>>,
+    /// Resolved once per run — the art does not change under the user's feet.
+    app_info: Mutex<Option<DiscordAppInfo>>,
 }
 
 impl DiscordRPCState {
@@ -122,9 +130,10 @@ impl DiscordRPCState {
        TAURI COMMANDS
    ========================= */
 
-/// Turn the presence on, spawning the worker on first use.
-#[tauri::command]
-pub async fn start_discord_rpc(app: AppHandle, state: State<'_, DiscordRPCState>) -> Result<(), String> {
+/// Start the worker on first use and hand back a way to talk to it. The worker
+/// runs even when the presence is switched off: it still tracks what *would* be
+/// published, which is what the settings preview renders.
+fn ensure_worker(app: &AppHandle, state: &DiscordRPCState, cmd: Cmd) -> Result<(), String> {
     let mut guard = state.tx.lock().map_err(|e| e.to_string())?;
     if guard.is_none() {
         let (tx, rx) = std::sync::mpsc::channel();
@@ -137,21 +146,29 @@ pub async fn start_discord_rpc(app: AppHandle, state: State<'_, DiscordRPCState>
         *guard = Some(tx);
     }
     if let Some(tx) = guard.as_ref() {
-        let _ = tx.send(Cmd::Enable);
+        let _ = tx.send(cmd);
     }
     Ok(())
+}
+
+/// Turn the presence on, spawning the worker on first use.
+#[tauri::command]
+pub async fn start_discord_rpc(app: AppHandle, state: State<'_, DiscordRPCState>) -> Result<(), String> {
+    ensure_worker(&app, &state, Cmd::Enable)
 }
 
 /// Push the activity the user should be seen doing. Cheap and non-blocking:
 /// the worker owns the timing.
 #[tauri::command]
 pub async fn update_discord_rpc(
+    app: AppHandle,
     state: State<'_, DiscordRPCState>,
     data: Value,
 ) -> Result<(), String> {
     let update: PresenceUpdate = serde_json::from_value(data).map_err(|e| e.to_string())?;
-    state.send(Cmd::Set(Box::new(update)));
-    Ok(())
+    // Accepted even with the presence off — the preview has to keep up with the
+    // app either way, and the worker only connects once enabled.
+    ensure_worker(&app, &state, Cmd::Set(Box::new(update)))
 }
 
 /// Turn the presence off and drop it from the profile. The worker stays alive so
@@ -184,6 +201,83 @@ pub fn shutdown(app: &AppHandle) {
     std::thread::sleep(Duration::from_millis(150));
 }
 
+/// Name and art of the Discord application, as Discord itself reports them.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct DiscordAppInfo {
+    pub name: String,
+    /// Asset key (`amverge_logo`, `edit_icon_new`, …) → CDN url.
+    pub assets: std::collections::HashMap<String, String>,
+    /// The application icon, used when an activity names no asset.
+    pub icon: Option<String>,
+}
+
+/// Resolve the app's name and art once per run. Offline is not a failure: the
+/// preview falls back to the bundled logo, which is what Discord would show
+/// anyway if an asset were missing.
+#[tauri::command]
+pub async fn discord_rpc_app_info(
+    state: State<'_, DiscordRPCState>,
+) -> Result<DiscordAppInfo, String> {
+    if let Some(cached) = state.app_info.lock().ok().and_then(|c| c.clone()) {
+        return Ok(cached);
+    }
+
+    let http = reqwest::Client::builder()
+        .timeout(Duration::from_secs(8))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let rpc: Value = http
+        .get(format!("{API}/v10/applications/{APP_ID}/rpc"))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?
+        .json()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let mut info = DiscordAppInfo {
+        name: rpc
+            .get("name")
+            .and_then(Value::as_str)
+            .unwrap_or(DEFAULT_LARGE_TEXT)
+            .to_string(),
+        assets: std::collections::HashMap::new(),
+        icon: rpc
+            .get("icon")
+            .and_then(Value::as_str)
+            .map(|hash| format!("{CDN}/app-icons/{APP_ID}/{hash}.png?size=160")),
+    };
+
+    // Art assets are a separate, also public, listing. Missing them is survivable
+    // — the icon covers the large image and the small badge simply drops.
+    if let Ok(resp) = http
+        .get(format!("{API}/v9/oauth2/applications/{APP_ID}/assets"))
+        .send()
+        .await
+    {
+        if let Ok(assets) = resp.json::<Value>().await {
+            for asset in assets.as_array().unwrap_or(&Vec::new()) {
+                let (Some(name), Some(id)) = (
+                    asset.get("name").and_then(Value::as_str),
+                    asset.get("id").and_then(Value::as_str),
+                ) else {
+                    continue;
+                };
+                info.assets.insert(
+                    name.to_string(),
+                    format!("{CDN}/app-assets/{APP_ID}/{id}.png?size=160"),
+                );
+            }
+        }
+    }
+
+    if let Ok(mut cache) = state.app_info.lock() {
+        *cache = Some(info.clone());
+    }
+    Ok(info)
+}
+
 /* =========================
           WORKER
    ========================= */
@@ -203,6 +297,12 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRpcStatus>
     let mut last_sent: Option<Instant> = None;
     let mut retry_at: Option<Instant> = None;
     let mut retry_delay = RECONNECT_MIN;
+    // `Some(label)` once Discord said READY; `None` while unconnected.
+    let mut signed_in: Option<Option<String>> = None;
+    let mut last_error: Option<String> = None;
+    // The activity moved, so the settings preview needs a fresh snapshot even
+    // when the connection itself did not budge.
+    let mut dirty = true;
 
     loop {
         // Block until something happens, then drain: a burst of updates should
@@ -221,6 +321,7 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRpcStatus>
                         enabled = true;
                         retry_at = Some(Instant::now());
                         retry_delay = RECONNECT_MIN;
+                        dirty = true;
                     }
                 }
                 Cmd::Disable => {
@@ -228,15 +329,11 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRpcStatus>
                     if let Some(mut c) = client.take() {
                         c.close();
                     }
+                    signed_in = None;
+                    last_error = None;
                     last_sent = None;
                     pending = false;
-                    // The settings screen reads its status from here; leaving it
-                    // on "connected" after the switch went off would be a lie.
-                    publish(
-                        &app,
-                        &status,
-                        snapshot(false, None, None, &desired, started_at),
-                    );
+                    dirty = true;
                 }
                 Cmd::Set(update) => {
                     // Identical payloads arrive on every store change; sending
@@ -244,6 +341,7 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRpcStatus>
                     if desired.as_ref() != Some(&update) {
                         desired = Some(*update);
                         pending = true;
+                        dirty = true;
                     }
                 }
                 Cmd::Shutdown => {
@@ -255,7 +353,6 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRpcStatus>
             if let Some(mut c) = client.take() {
                 c.close();
             }
-            publish(&app, &status, snapshot(false, None, None, &desired, started_at));
             break;
         }
 
@@ -267,18 +364,23 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRpcStatus>
                 Ok(c) => {
                     retry_delay = RECONNECT_MIN;
                     retry_at = None;
+                    signed_in = Some(c.user.as_ref().and_then(|u| u.label()));
+                    last_error = None;
                     client = Some(c);
                     // First presence right away — waiting for the next page
                     // change would leave the profile blank for minutes.
                     pending = true;
                     last_sent = None;
-                    let user = client.as_ref().and_then(|c| c.user.as_ref()).and_then(|u| u.label());
-                    publish(&app, &status, snapshot(true, Some(user), None, &desired, started_at));
+                    dirty = true;
                 }
                 Err(e) => {
                     retry_at = Some(now + retry_delay);
                     retry_delay = (retry_delay * 2).min(RECONNECT_MAX);
-                    publish(&app, &status, snapshot(true, None, Some(e), &desired, started_at));
+                    signed_in = None;
+                    if last_error.as_deref() != Some(e.as_str()) {
+                        last_error = Some(e);
+                        dirty = true;
+                    }
                 }
             }
         }
@@ -298,15 +400,38 @@ fn worker(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRpcStatus>
                         // The pipe is gone (Discord quit, or it hung up). Drop it
                         // and let the backoff bring the presence back.
                         client = None;
+                        signed_in = None;
+                        last_error = Some(e);
                         last_sent = None;
                         retry_at = Some(Instant::now() + retry_delay);
                         retry_delay = (retry_delay * 2).min(RECONNECT_MAX);
-                        publish(&app, &status, snapshot(enabled, None, Some(e), &desired, started_at));
+                        dirty = true;
                     }
                 }
             }
         }
+
+        if dirty {
+            dirty = false;
+            let _ = app.emit(
+                STATUS_EVENT,
+                store_status(
+                    &status,
+                    DiscordRpcStatus {
+                        enabled,
+                        connected: signed_in.is_some(),
+                        user: signed_in.clone().flatten(),
+                        error: last_error.clone(),
+                        activity: desired.as_ref().map(|u| build_activity(u, started_at)),
+                    },
+                ),
+            );
+        }
     }
+
+    // Leaving the worker means the app is closing: say so once, so a settings
+    // screen still mounted does not keep claiming a live connection.
+    let _ = app.emit(STATUS_EVENT, store_status(&status, DiscordRpcStatus::default()));
 }
 
 /* =========================
@@ -363,34 +488,14 @@ fn build_activity(update: &PresenceUpdate, started_at: u64) -> Value {
     activity
 }
 
-fn snapshot(
-    enabled: bool,
-    user: Option<Option<String>>,
-    error: Option<String>,
-    desired: &Option<PresenceUpdate>,
-    started_at: u64,
+/// Keep the snapshot the `discord_rpc_status` command reads in sync with the one
+/// going out on the event, so a screen that mounts late sees the same thing.
+fn store_status(
+    status: &Arc<Mutex<DiscordRpcStatus>>,
+    next: DiscordRpcStatus,
 ) -> DiscordRpcStatus {
-    DiscordRpcStatus {
-        enabled,
-        connected: user.is_some() && error.is_none(),
-        user: user.flatten(),
-        error,
-        activity: desired.as_ref().map(|u| build_activity(u, started_at)),
-    }
-}
-
-/// Store the status and tell the UI, but only when something actually changed —
-/// a failed reconnect fires every couple of seconds and must stay silent.
-fn publish(app: &AppHandle, status: &Arc<Mutex<DiscordRpcStatus>>, next: DiscordRpcStatus) {
     if let Ok(mut current) = status.lock() {
-        let changed = current.enabled != next.enabled
-            || current.connected != next.connected
-            || current.user != next.user
-            || current.error != next.error;
         *current = next.clone();
-        if !changed {
-            return;
-        }
     }
-    let _ = app.emit(STATUS_EVENT, next);
+    next
 }
