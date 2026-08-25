@@ -530,15 +530,6 @@ export default function useImportExport(props?: ImportExportProps) {
       useAppStateStore.getState().setImportedVideoPath(file);
       useAppStateStore.getState().setVideoIsHEVC(null);
       setImportToken(Date.now().toString());
-      props?.onRPCUpdate?.({
-        type: "update",
-        details: `Detecting: ${generalSettings.rpcShowFilename ? fileNameFromPath(file) : "Video"}`,
-        state: "Processing Video",
-        large_image: "amverge_logo",
-        small_image: generalSettings.rpcShowMiniIcons ? "loading_icon_new" : undefined,
-        small_text: generalSettings.rpcShowMiniIcons ? "Detecting..." : undefined,
-      });
-
       const { episodeEntry, sceneCount } = await runImportPipeline(file, episodeId, true);
 
       // replace (not duplicate) the entry the streaming listener may have added.
@@ -797,15 +788,6 @@ export default function useImportExport(props?: ImportExportProps) {
       let mergedFiles: string[] = [];
 
       try {
-      props?.onRPCUpdate?.({
-        type: "update",
-        details: `Exporting ${selected.length} clips`,
-        state: "Saving Progress",
-        large_image: "amverge_logo",
-        small_image: generalSettings.rpcShowMiniIcons ? "save_icon_new" : undefined,
-        small_text: generalSettings.rpcShowMiniIcons ? "Exporting..." : undefined,
-      });
-
       // 1. Export each clip on its own (no merge).
       let clipFiles: string[] = [];
       try {
@@ -901,17 +883,6 @@ export default function useImportExport(props?: ImportExportProps) {
         small_text: generalSettings.rpcShowMiniIcons ? "Done" : undefined,
       });
 
-      setTimeout(() => {
-        props?.onRPCUpdate?.({
-          type: "update",
-          details: "Editing Episode",
-          state: "Ready",
-          large_image: "amverge_logo",
-          small_image: generalSettings.rpcShowMiniIcons ? "edit_icon_new" : undefined,
-          small_text: generalSettings.rpcShowMiniIcons ? "Editing" : undefined,
-        });
-      }, 10000);
-
       } catch (err) {
         const message = typeof err === "string"
           ? err
@@ -961,15 +932,6 @@ export default function useImportExport(props?: ImportExportProps) {
           ? getRecommendedContainerForCodec(activeProfile.codec)
           : preferredFormat;
 
-      props?.onRPCUpdate?.({
-        type: "update",
-        details: `Exporting ${selected.length} clips`,
-        state: "Saving Progress",
-        large_image: "amverge_logo",
-        small_image: generalSettings.rpcShowMiniIcons ? "save_icon_new" : undefined,
-        small_text: generalSettings.rpcShowMiniIcons ? "Exporting..." : undefined,
-      });
-
       if (mergeEnabled) {
         const mergeBase = (selected[0]?.originalName || "episode").replace(/\.[^./\\]+$/, "");
         const rawBase = mergeFileName || (mergeBase + "_merged");
@@ -1013,16 +975,6 @@ export default function useImportExport(props?: ImportExportProps) {
         small_text: generalSettings.rpcShowMiniIcons ? "Done" : undefined,
       });
 
-      setTimeout(() => {
-        props?.onRPCUpdate?.({
-          type: "update",
-          details: "Editing Episode",
-          state: "Ready",
-          large_image: "amverge_logo",
-          small_image: generalSettings.rpcShowMiniIcons ? "edit_icon_new" : undefined,
-          small_text: generalSettings.rpcShowMiniIcons ? "Editing" : undefined,
-        });
-      }, 10000);
     } catch (err) {
       const message = typeof err === "string"
         ? err
