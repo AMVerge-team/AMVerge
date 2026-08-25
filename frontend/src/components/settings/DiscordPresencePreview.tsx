@@ -6,6 +6,7 @@ import {
   type DiscordActivity,
   type DiscordAppInfo,
 } from "../../hooks/useDiscordRPC";
+import Tooltip from "../common/Tooltip";
 import localLogo from "../../assets/amverge-logo.png";
 
 /** "07:12" / "1:02:33" — the shape of Discord's own session timer. */
@@ -24,8 +25,8 @@ function resolveAsset(info: DiscordAppInfo | null, key: string | undefined) {
 /**
  * Clickable when the activity carries a url for this element, inert otherwise.
  *
- * The url rides along as a plain `title`, the way a browser announces any link:
- * it is the one thing hovering can say that looking cannot.
+ * The destination shows on hover — the one thing hovering can say that looking
+ * cannot — through the app's own tooltip rather than the browser's pale box.
  */
 function Linked({
   url,
@@ -38,14 +39,15 @@ function Linked({
 }) {
   if (!url) return <div className={className}>{children}</div>;
   return (
-    <button
-      type="button"
-      className={`${className} discord-preview-linked`}
-      title={url}
-      onClick={() => void open(url).catch(() => {})}
-    >
-      {children}
-    </button>
+    <Tooltip content={url} maxWidth={320}>
+      <button
+        type="button"
+        className={`${className} discord-preview-linked`}
+        onClick={() => void open(url).catch(() => {})}
+      >
+        {children}
+      </button>
+    </Tooltip>
   );
 }
 
