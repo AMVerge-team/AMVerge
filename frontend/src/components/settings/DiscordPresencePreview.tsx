@@ -21,7 +21,12 @@ function resolveAsset(info: DiscordAppInfo | null, key: string | undefined) {
   return key ? info?.assets?.[key] ?? null : null;
 }
 
-/** Clickable when the activity carries a url for this element, inert otherwise. */
+/**
+ * Clickable when the activity carries a url for this element, inert otherwise.
+ *
+ * The url rides along as a plain `title`, the way a browser announces any link:
+ * it is the one thing hovering can say that looking cannot.
+ */
 function Linked({
   url,
   className,
@@ -36,6 +41,7 @@ function Linked({
     <button
       type="button"
       className={`${className} discord-preview-linked`}
+      title={url}
       onClick={() => void open(url).catch(() => {})}
     >
       {children}
