@@ -1373,12 +1373,14 @@
 }
 
 /* Clickable here too, so the preview shows where the links actually land. */
+/* Strips the button chrome and nothing else. `font: inherit` belongs nowhere
+   near here: this rule sits after .discord-preview-line, so it would win and
+   pull the display face down from the card instead of leaving the line on the
+   UI face - the text visibly changed shape the moment a link was enabled. */
 .discord-preview-linked {
     padding: 0;
     border: none;
     background: none;
-    font: inherit;
-    color: inherit;
     text-align: left;
     cursor: pointer;
 }
@@ -1402,8 +1404,14 @@ button.discord-preview-line:focus-visible {
     border-color: rgb(var(--accent-rgb) / 0.7);
 }
 
+/* Room for the tallest the card ever gets - the name plus three lines - so
+   toggling the elapsed timer, or moving between statuses that carry a
+   different number of lines, does not make the panel jump. The parts are
+   spelled out rather than hard-coded to a pixel total: they are the same
+   values .discord-preview-name and .discord-preview-line declare below. */
 .discord-preview-lines {
     min-width: 0;
+    min-height: calc(20px + 2px + 3 * 0.8rem * 1.35);
 }
 
 
