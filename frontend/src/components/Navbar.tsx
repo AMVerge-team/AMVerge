@@ -82,8 +82,7 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
     };
 
     const isTransNet = sceneDetectionMethod === "transnetv2_gpu";
-    const gpuName = aiStatus?.gpuName;
-    const isCudaReady = aiStatus?.torchVariant?.includes("cu") || (aiStatus?.hasNvidiaGpu && isTransNet);
+    const isCudaReady = aiStatus?.torchVariant?.includes("cu") || (aiStatus?.gpuAvailable && isTransNet);
 
     return (
         <div className="navbar" data-tauri-drag-region>
@@ -159,7 +158,7 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
                 <Tooltip
                     content={
                         isTransNet
-                            ? `TransNetV2 (AI GPU Detection) • ${gpuName || "CUDA Enabled"}`
+                            ? "TransNetV2 (AI GPU Detection) • CUDA Enabled"
                             : "Keyframe Detection (Fast CPU Demux) • Click to open Settings"
                     }
                     placement="bottom"

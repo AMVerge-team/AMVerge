@@ -326,7 +326,7 @@ export default function ExportSection() {
         {showContainerSetting && (
           <SettingRow
             label="Container"
-            description="The file format: MP4, MKV, or MOV."
+            description="The file format: MP4 or MOV."
             control={
               <Dropdown
                 className="settings-wide-dropdown"
