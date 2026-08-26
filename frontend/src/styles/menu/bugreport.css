@@ -126,16 +126,24 @@
     box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.2);
 }
 
-.bugreport-field input[type="file"] {
-    width: 100%;
-    color: rgba(255, 255, 255, 0.75);
-    font-size: 0.82rem;
-    font-family: inherit;
-    padding: 2px 0;
+/* The native file input is driven by our own button, so it never shows. */
+.bugreport-file-input {
+    display: none;
 }
 
-.bugreport-field input[type="file"]::file-selector-button {
-    margin-right: 10px;
+.bugreport-file-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.bugreport-file-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    white-space: nowrap;
     border: 1px solid rgba(255, 255, 255, 0.15);
     background: rgba(255, 255, 255, 0.06);
     color: #ffffff;
@@ -148,9 +156,18 @@
     transition: all 0.15s ease;
 }
 
-.bugreport-field input[type="file"]::file-selector-button:hover {
+.bugreport-file-btn:hover {
     background: rgba(255, 255, 255, 0.12);
     border-color: rgba(255, 255, 255, 0.3);
+}
+
+.bugreport-file-status {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
 }
 
 .bugreport-dropdown {
@@ -223,4 +240,60 @@
     opacity: 0.5;
     cursor: not-allowed;
     box-shadow: none;
+}
+
+/* The panel's busy icons (auto-fill, submit) carry .spin, which had no rule. */
+.bugreport-panel .spin {
+    animation: spin 0.9s linear infinite;
+}
+
+/* PC Specs auto-fill: the button sits on the label's line so it never steals
+   width from the input under it. */
+.bugreport-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+}
+
+.bugreport-autofill-btn {
+    display: inline-flex;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.07);
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.bugreport-autofill-btn:hover:not(:disabled) {
+    background: rgba(var(--accent-rgb), 0.22);
+    border-color: rgba(var(--accent-rgb), 0.55);
+    transform: translateY(-1px);
+}
+
+.bugreport-autofill-btn.discord:hover:not(:disabled) {
+    background: rgba(88, 101, 242, 0.28);
+    border-color: rgba(88, 101, 242, 0.65);
+}
+
+.bugreport-autofill-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.bugreport-field-error {
+    margin: 0;
+    color: #f87171;
+    font-size: 0.75rem;
+    line-height: 1.4;
 }

@@ -30,6 +30,7 @@ fn main() {
         .manage(ActiveInstall::default())
         .invoke_handler(tauri::generate_handler![
             commands::bug_report::submit_bug_report,
+            commands::system_specs::detect_pc_specs,
             commands::deps::ai_env_status,
             commands::deps::install_ai_pack,
             commands::deps::abort_ai_install,

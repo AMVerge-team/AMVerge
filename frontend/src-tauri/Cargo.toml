@@ -28,6 +28,12 @@ sha2 = "0.10"
 hex = "0.4"
 uuid = { version = "1", features = ["v4"] }
 
+# Reading the machine's own specs: the registry answers in a millisecond where
+# WMI's video adapter query takes nine seconds.
+[target.'cfg(windows)'.dependencies]
+winreg = "0.55"
+windows-sys = { version = "0.61", features = ["Win32_System_SystemInformation"] }
+
 [profile.release]
 codegen-units = 1
 lto = true
