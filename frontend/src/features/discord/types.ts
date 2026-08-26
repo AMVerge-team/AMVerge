@@ -31,7 +31,10 @@ export type DiscordActivity = {
 export type DiscordRPCStatus = {
     enabled: boolean;
     connected: boolean;
+    /** Display name, what Discord shows first. */
     user: string | null;
+    /** The @handle you type in Discord's search bar — always lowercase. */
+    user_handle: string | null;
     error: string | null;
     activity: DiscordActivity | null;
 };

@@ -31,7 +31,10 @@ use worker::Cmd;
 pub struct DiscordRpcStatus {
     pub enabled: bool,
     pub connected: bool,
+    /// Display name, for the settings screen.
     pub user: Option<String>,
+    /// The @handle, for anything the user hands to someone else.
+    pub user_handle: Option<String>,
     pub error: Option<String>,
     /// The exact activity that would be published right now. The preview renders
     /// this instead of rebuilding it, so the two cannot drift.
