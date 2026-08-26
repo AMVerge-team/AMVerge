@@ -40,11 +40,22 @@ pub struct DiscordUser {
 }
 
 impl DiscordUser {
+    /// What the account calls itself — the display name Discord shows first.
     pub fn label(&self) -> Option<String> {
         self.global_name
             .as_ref()
             .filter(|s| !s.is_empty())
             .or_else(|| self.username.as_ref().filter(|s| !s.is_empty()))
+            .cloned()
+    }
+
+    /// The handle you type in Discord's search bar to add someone. Always
+    /// lowercase, and unlike the display name it identifies the account.
+    pub fn handle(&self) -> Option<String> {
+        self.username
+            .as_ref()
+            .filter(|s| !s.is_empty())
+            .or_else(|| self.global_name.as_ref().filter(|s| !s.is_empty()))
             .cloned()
     }
 }

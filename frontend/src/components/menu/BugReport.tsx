@@ -1,6 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-shell";
-import { useEffect, useMemo, useState, type SubmitEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type SubmitEvent,
+} from "react";
 import {
   getConsoleLogsSnapshot,
   serializeConsoleLogs,
@@ -8,6 +15,8 @@ import {
   type ConsoleEntry,
 } from "../../utils/appConsole";
 import Dropdown, { type DropdownOption } from "../common/Dropdown";
+import Tooltip from "../common/Tooltip";
+import { useDiscordRPCStatus } from "../../hooks/useDiscordRPC";
 import {
   FaBug,
   FaPaperPlane,
@@ -18,6 +27,7 @@ import {
   FaDiscord,
   FaGithub,
   FaInfoCircle,
+  FaMicrochip,
 } from "react-icons/fa";
 
 const ENABLE_SUBMIT_COOLDOWN = false;
@@ -116,6 +126,41 @@ type BugReportResponse = {
   reportId?: string;
 };
 
+type AutofillButtonProps = {
+  icon: ReactNode;
+  label: string;
+  tooltip: string;
+  onClick: () => void;
+  disabled?: boolean;
+  /** `discord` tints the hover with the brand colour. */
+  variant?: "discord";
+};
+
+/** The "fill this field for me" button that rides on a field's label line. */
+function AutofillButton({
+  icon,
+  label,
+  tooltip,
+  onClick,
+  disabled,
+  variant,
+}: AutofillButtonProps) {
+  return (
+    // 420: the default cap wraps both of these hints onto a second line.
+    <Tooltip placement="top-end" maxWidth={420} content={tooltip}>
+      <button
+        type="button"
+        className={`bugreport-autofill-btn${variant ? ` ${variant}` : ""}`}
+        onClick={onClick}
+        disabled={disabled}
+      >
+        {icon}
+        {label}
+      </button>
+    </Tooltip>
+  );
+}
+
 export default function BugReport() {
   const [bugType, setBugType] = useState("Issue with video");
   const [issueText, setIssueText] = useState("");
@@ -124,6 +169,10 @@ export default function BugReport() {
   const [screenShots, setScreenshots] = useState<FileList | null>(null);
   const [videoReference, setVideoReference] = useState("");
   const [logs, setLogs] = useState<ConsoleEntry[]>(() => getConsoleLogsSnapshot());
+  const [isDetectingSpecs, setIsDetectingSpecs] = useState(false);
+  const [specsError, setSpecsError] = useState<string | null>(null);
+  const [issueError, setIssueError] = useState<string | null>(null);
+  const [contactError, setContactError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
@@ -131,6 +180,12 @@ export default function BugReport() {
     readLastSubmittedAt()
   );
   const [nowTs, setNowTs] = useState(() => Date.now());
+  const discordStatus = useDiscordRPCStatus();
+  // The handle, not the display name: a display name cannot be searched for,
+  // and it carries capitals the account itself does not have.
+  const discordUser = discordStatus?.user_handle ?? discordStatus?.user ?? null;
+  const screenshotInputRef = useRef<HTMLInputElement | null>(null);
+  const issueTextRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     return subscribeToConsoleLogs(setLogs);
@@ -164,13 +219,49 @@ export default function BugReport() {
 
   const isCooldownActive = cooldownRemainingMs > 0;
 
+  const screenshotLabel = useMemo(() => {
+    const files = screenShots ? Array.from(screenShots) : [];
+    if (files.length === 0) return "No screenshot selected";
+    if (files.length === 1) return files[0].name;
+    return `${files.length} screenshots selected`;
+  }, [screenShots]);
+
+  async function onAutoFillSpecs() {
+    setSpecsError(null);
+
+    try {
+      setIsDetectingSpecs(true);
+      const specs = await invoke<string>("detect_pc_specs");
+      setPCSpecs(specs);
+    } catch (err) {
+      console.error(err);
+      setSpecsError("Could not read your specs. Please type them in.");
+    } finally {
+      setIsDetectingSpecs(false);
+    }
+  }
+
+  function onFillDiscordContact() {
+    if (!discordUser) {
+      setContactError(
+        "Discord isn't connected. Turn Rich Presence on in Settings, or type your username."
+      );
+      return;
+    }
+
+    setContactError(null);
+    setContact(discordUser);
+  }
+
   async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setSubmitError(null);
     setSubmitSuccess(null);
+    setIssueError(null);
 
     if (!issueText.trim()) {
-      setSubmitError("Please describe the issue before submitting.");
+      setIssueError("Please describe the issue before submitting.");
+      issueTextRef.current?.focus();
       return;
     }
 
@@ -224,9 +315,14 @@ export default function BugReport() {
 
       setSubmitSuccess(res.message || "Bug report submitted successfully.");
       setIssueText("");
+      setIssueError(null);
       setPCSpecs("");
       setContact("");
+      setContactError(null);
       setScreenshots(null);
+      if (screenshotInputRef.current) {
+        screenshotInputRef.current.value = "";
+      }
       setVideoReference("");
       if (ENABLE_SUBMIT_COOLDOWN) {
         const submittedAt = Date.now();
@@ -285,7 +381,10 @@ export default function BugReport() {
         </div>
       </div>
 
-      <form onSubmit={onSubmit} className="bugreport-grid">
+      {/* noValidate: the browser's own "field required" bubble is written in the
+          system's language, which pops French wording into an English app. We
+          check the fields ourselves and say it in our own words. */}
+      <form onSubmit={onSubmit} className="bugreport-grid" noValidate>
         {/* Left Column Card: Issue Description */}
         <div className="about-card bugreport-card-main">
           <div className="about-card-header">
@@ -312,12 +411,18 @@ export default function BugReport() {
             </label>
             <textarea
               id="issue-text"
+              ref={issueTextRef}
               rows={6}
               value={issueText}
               placeholder="What happened, what did you expect, and how can we reproduce it?"
-              onChange={(e) => setIssueText(e.target.value)}
-              required
+              onChange={(e) => {
+                setIssueText(e.target.value);
+                if (issueError) setIssueError(null);
+              }}
+              aria-required="true"
+              aria-invalid={issueError ? "true" : undefined}
             />
+            {issueError && <p className="bugreport-field-error">{issueError}</p>}
           </div>
         </div>
 
@@ -351,9 +456,18 @@ export default function BugReport() {
               <h4>System & Contact (Optional)</h4>
             </div>
             <div className="bugreport-field">
-              <label htmlFor="pc-specs" className="bugreport-label">
-                PC Specs
-              </label>
+              <div className="bugreport-label-row">
+                <label htmlFor="pc-specs" className="bugreport-label">
+                  PC Specs
+                </label>
+                <AutofillButton
+                  icon={isDetectingSpecs ? <FaSpinner className="spin" /> : <FaMicrochip />}
+                  label={isDetectingSpecs ? "Reading this PC..." : "Fill with my PC specs"}
+                  tooltip="Fills in this computer's OS, CPU, RAM and GPU"
+                  onClick={() => void onAutoFillSpecs()}
+                  disabled={isDetectingSpecs}
+                />
+              </div>
               <input
                 id="pc-specs"
                 type="text"
@@ -361,19 +475,37 @@ export default function BugReport() {
                 placeholder="e.g. RTX 3080, Win 11"
                 onChange={(e) => setPCSpecs(e.target.value)}
               />
+              {specsError && <p className="bugreport-field-error">{specsError}</p>}
             </div>
 
             <div className="bugreport-field">
-              <label htmlFor="contact" className="bugreport-label">
-                Contact
-              </label>
+              <div className="bugreport-label-row">
+                <label htmlFor="contact" className="bugreport-label">
+                  Contact
+                </label>
+                <AutofillButton
+                  icon={<FaDiscord />}
+                  label="Fill with my Discord"
+                  tooltip={
+                    discordUser
+                      ? "Fills in your Discord username"
+                      : "Needs Discord Rich Presence on and Discord running"
+                  }
+                  onClick={onFillDiscordContact}
+                  variant="discord"
+                />
+              </div>
               <input
                 id="contact"
                 type="text"
                 value={contact}
                 placeholder="Discord username / email"
-                onChange={(e) => setContact(e.target.value)}
+                onChange={(e) => {
+                  setContact(e.target.value);
+                  if (contactError) setContactError(null);
+                }}
               />
+              {contactError && <p className="bugreport-field-error">{contactError}</p>}
             </div>
           </div>
 
@@ -386,8 +518,26 @@ export default function BugReport() {
               <h4>Screenshots & Submit</h4>
             </div>
             <div className="bugreport-field">
+              {/* The native file input labels itself in the system's language,
+                  which leaves French wording in an English app. Our own button
+                  drives the hidden input instead. */}
+              <div className="bugreport-file-row">
+                <button
+                  type="button"
+                  className="bugreport-file-btn"
+                  onClick={() => screenshotInputRef.current?.click()}
+                >
+                  <FaImage />
+                  Choose screenshots
+                </button>
+                <Tooltip content={screenShots?.length ? screenshotLabel : ""}>
+                  <span className="bugreport-file-status">{screenshotLabel}</span>
+                </Tooltip>
+              </div>
               <input
                 id="screenshots"
+                ref={screenshotInputRef}
+                className="bugreport-file-input"
                 type="file"
                 multiple
                 accept="image/*"

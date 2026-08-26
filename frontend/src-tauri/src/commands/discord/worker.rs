@@ -10,7 +10,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use tauri::{AppHandle, Emitter};
 
-use crate::utils::discord_ipc::{DiscordIpc, CLOSED};
+use crate::utils::discord_ipc::{DiscordIpc, DiscordUser, CLOSED};
 
 use super::activity::{build_activity, PresenceUpdate, APP_ID};
 use super::DiscordRpcStatus;
@@ -48,8 +48,9 @@ pub(super) fn run(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRp
     let mut last_sent: Option<Instant> = None;
     let mut retry_at: Option<Instant> = None;
     let mut retry_delay = RECONNECT_MIN;
-    // `Some(label)` once Discord said READY; `None` while unconnected.
-    let mut signed_in: Option<Option<String>> = None;
+    // `Some` once Discord said READY, `None` while unconnected; the inner
+    // option is the account it named, which a client can leave out.
+    let mut signed_in: Option<Option<DiscordUser>> = None;
     let mut last_error: Option<String> = None;
     // The activity moved, so the settings preview needs a fresh snapshot even
     // when the connection itself did not budge.
@@ -125,7 +126,7 @@ pub(super) fn run(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRp
                 Ok(c) => {
                     retry_delay = RECONNECT_MIN;
                     retry_at = None;
-                    signed_in = Some(c.user.as_ref().and_then(|u| u.label()));
+                    signed_in = Some(c.user.clone());
                     last_error = None;
                     client = Some(c);
                     // First presence right away: waiting for the next page change
@@ -180,7 +181,8 @@ pub(super) fn run(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRp
                     DiscordRpcStatus {
                         enabled,
                         connected: signed_in.is_some(),
-                        user: signed_in.clone().flatten(),
+                        user: signed_in.as_ref().and_then(|u| u.as_ref()?.label()),
+                        user_handle: signed_in.as_ref().and_then(|u| u.as_ref()?.handle()),
                         error: last_error.clone(),
                         activity: desired.as_ref().map(|u| build_activity(u, started_at)),
                     },
