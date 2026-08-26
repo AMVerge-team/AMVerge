@@ -55,17 +55,22 @@ export default function useDiscordRPC() {
     const episodes = useEpisodePanelRuntimeStore((s) => s.episodes);
     const episodeNamesById = useEpisodePanelMetadataStore((s) => s.episodeNamesById);
 
-    // Same precedence the rest of the app uses to name an episode.
+    // Same precedence the rest of the app uses to name an episode, then the
+    // extension comes off whichever name won.
+    //
+    // Stripping only the path was not enough: `displayName` is set at import to
+    // `originalName || fileNameFromPath(file)`, both of which keep the container,
+    // and it outranks the path — so the card kept saying "… .mp4".
     const episodeName = useMemo(() => {
         if (!openedEpisodeId) return null;
         const episode = episodes.find((e) => e.id === openedEpisodeId);
         if (!episode) return null;
-        return (
+        const named =
             episodeNamesById[episode.id] ||
             episode.displayName ||
-            (episode.videoPath ? mediaName(episode.videoPath) : null) ||
-            `Episode ${episode.id}`
-        );
+            episode.videoPath ||
+            `Episode ${episode.id}`;
+        return mediaName(named);
     }, [openedEpisodeId, episodes, episodeNamesById]);
 
     // Settings read inside callbacks that must not be re-created on every flip.
