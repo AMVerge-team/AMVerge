@@ -83,6 +83,7 @@
     width: 2rem;
     min-width: 2rem;
     margin-right: 15px;
+    flex: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -238,4 +239,8 @@
 .settings-gear-button:hover {
     transform: rotate(35deg);
     filter: drop-shadow(0 0 6px rgb(var(--accent-rgb) / 0.7));
+}
+
+.panel-toggle-button.episode-panel-toggle {
+    margin-right: 8px;
 }

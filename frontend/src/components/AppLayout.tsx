@@ -65,32 +65,32 @@ export default function AppLayout({
         }}
       >
         <Navbar {...navbarProps} />
-        {sidebarEnabled && (
-          <div className="window-body">
-            <Sidebar />
-            <div
-              className="divider sidebar-splitter"
-              onPointerDown={dividerProps.onPointerDown}
-              role="separator"
-              aria-orientation="vertical"
-              aria-label="Resize sidebar"
-              tabIndex={-1}
-            >
-              <span className="subdivider" />
-              <span className="subdivider" />
-            </div>
-            <div className="content-wrapper">
-              {children}
-            </div>
+        {/* One window-body for both states. Two sibling branches meant toggling
+            the sidebar unmounted one subtree and mounted the other, remounting
+            the whole page - the grid rebuilt every tile and replayed its
+            entrance animation. Keeping content-wrapper in a fixed slot lets
+            React reconcile it in place, so only the sidebar comes and goes. */}
+        <div className="window-body">
+          {sidebarEnabled ? (
+            <>
+              <Sidebar />
+              <div
+                className="divider sidebar-splitter"
+                onPointerDown={dividerProps.onPointerDown}
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Resize sidebar"
+                tabIndex={-1}
+              >
+                <span className="subdivider" />
+                <span className="subdivider" />
+              </div>
+            </>
+          ) : null}
+          <div className="content-wrapper">
+            {children}
           </div>
-        )}
-        {!sidebarEnabled && (
-          <div className="window-body">
-            <div className="content-wrapper">
-              {children}
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </main>
   );

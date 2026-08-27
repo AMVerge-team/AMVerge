@@ -482,8 +482,6 @@ function App() {
       }
       sidebarEnabled={sidebarEnabled}
       navbarProps={{
-        setSidebarEnabled,
-        sidebarEnabled,
         userHasHEVC,
         videoIsHEVC: useAppStateStore(s => s.videoIsHEVC),
       }}

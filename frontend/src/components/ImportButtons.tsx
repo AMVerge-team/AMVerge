@@ -17,6 +17,8 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
   const setGridPreview = useUIStateStore((s: any) => s.setGridPreview);
   const previewCollapsed = useUIStateStore((s: any) => s.previewCollapsed);
   const setPreviewCollapsed = useUIStateStore((s: any) => s.setPreviewCollapsed);
+  const sidebarEnabled = useUIStateStore((s: any) => s.sidebarEnabled);
+  const setSidebarEnabled = useUIStateStore((s: any) => s.setSidebarEnabled);
   const openedEpisodeId = useEpisodePanelRuntimeStore((s) => s.openedEpisodeId);
   const { onImportClick } = useImportExport();
 
@@ -38,6 +40,26 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
       <main className="clips-import">
         {showImportControls && (
           <div className="import-buttons-container">
+            {/* Left end of the row, over the panel it controls - the mirror of
+                the preview toggle at the far right. */}
+            <Tooltip content={sidebarEnabled ? "Hide episode panel" : "Show episode panel"}>
+              <button
+                type="button"
+                className={`import-button panel-toggle-button episode-panel-toggle${sidebarEnabled ? " active" : ""}`}
+                onClick={() => setSidebarEnabled(!sidebarEnabled)}
+                aria-label={sidebarEnabled ? "Hide episode panel" : "Show episode panel"}
+                aria-pressed={sidebarEnabled}
+              >
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <path d="M9 3v18" />
+                  {sidebarEnabled && (
+                    <rect x="3.9" y="4.9" width="4.2" height="14.2" rx="1" fill="currentColor" stroke="none" />
+                  )}
+                </svg>
+              </button>
+            </Tooltip>
+
             <button onClick={onImportClick}
                     className="import-button"
                     disabled={importBusy}

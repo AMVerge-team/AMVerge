@@ -8,12 +8,10 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { applyWindowSize, readWinSize, rememberWinSize } from "../utils/windowSize";
 
 type NavbarProps = {
-    setSidebarEnabled: (val: boolean | ((prev: boolean) => boolean)) => void
-    sidebarEnabled: boolean
     userHasHEVC: boolean
     videoIsHEVC: boolean | null
 }
-export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProps ) {
+export default function Navbar({}: NavbarProps) {
     const cols = useUIStateStore((s: any) => s.cols);
     const setCols = useUIStateStore((s: any) => s.setCols);
     const pinned = useUIStateStore((s: any) => s.pinned);
@@ -69,18 +67,6 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
     return (
         <div className="navbar" data-tauri-drag-region>
             <div className="left-nav" data-tauri-drag-region>
-                <Tooltip content={sidebarEnabled ? "Hide sidebar" : "Show sidebar"} side="bottom">
-                    <svg
-                        onClick={() => setSidebarEnabled(prev => !prev)}
-                        width="24" height="24" viewBox="0 0 24 24"
-                        fill="none" xmlns="http://www.w3.org/2000/svg"
-                        role="button"
-                        aria-label={sidebarEnabled ? "Hide sidebar" : "Show sidebar"}
-                        style={{ transform: sidebarEnabled ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
-                    >
-                        <path d="M9 6l6 6-6 6" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                </Tooltip>
                 <h1 data-tauri-drag-region><span>AMV</span>erge</h1>
                 <Tooltip content="Join AMVerge Discord" side="bottom">
                 <a
