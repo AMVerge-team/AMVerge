@@ -19,6 +19,7 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
   const setPreviewCollapsed = useUIStateStore((s: any) => s.setPreviewCollapsed);
   const sidebarEnabled = useUIStateStore((s: any) => s.sidebarEnabled);
   const setSidebarEnabled = useUIStateStore((s: any) => s.setSidebarEnabled);
+  const previewSplitPct = useUIStateStore((s: any) => s.previewSplitPct);
   const openedEpisodeId = useEpisodePanelRuntimeStore((s) => s.openedEpisodeId);
   const { onImportClick } = useImportExport();
 
@@ -37,7 +38,20 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
   };
 
   return (
-      <main className="clips-import">
+      <main
+        className="clips-import"
+        // Reserve the preview pane's width so the toggle at the end of this row
+        // lands over the grid's right edge, and slides with the divider. With
+        // the pane collapsed the grid is full width and no reserve is needed.
+        // The 280px floor mirrors .right-pane's min-width: past that point the
+        // pane stops shrinking while the percentage keeps going, and without it
+        // the button carried on sliding after the divider had visibly stopped.
+        style={
+          previewCollapsed
+            ? undefined
+            : { paddingRight: `calc(max(280px, ${100 - previewSplitPct}%) + 10px)` }
+        }
+      >
         {showImportControls && (
           <div className="import-buttons-container">
             {/* Left end of the row, over the panel it controls - the mirror of

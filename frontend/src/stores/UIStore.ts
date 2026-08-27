@@ -16,6 +16,9 @@ export type UIState = {
     quickMenuOpen: boolean;
     commandPaletteOpen: boolean;
     previewCollapsed: boolean;
+    /** Grid's share of the split, in percent. The import row reads it too, to
+     *  keep the preview toggle above the grid's right edge. */
+    previewSplitPct: number;
     pinned: boolean;
 };
 
@@ -43,6 +46,7 @@ export type UIStateStore = UIState & {
     setQuickMenuOpen: (open: boolean) => void;
     setCommandPaletteOpen: (open: boolean) => void;
     setPreviewCollapsed: (collapsed: boolean) => void;
+    setPreviewSplitPct: (pct: number) => void;
     togglePinned: () => void;
 };
 
@@ -64,6 +68,7 @@ export const DEFAULT_UI_STATE: UIState = {
     quickMenuOpen: false,
     commandPaletteOpen: false,
     previewCollapsed: false,
+    previewSplitPct: 65,
     pinned: false,
 };
 
@@ -121,6 +126,7 @@ export const useUIStateStore = create<UIStateStore>()(
             setQuickMenuOpen: (quickMenuOpen) => set({ quickMenuOpen }),
             setCommandPaletteOpen: (commandPaletteOpen) => set({ commandPaletteOpen }),
             setPreviewCollapsed: (previewCollapsed) => set({ previewCollapsed }),
+            setPreviewSplitPct: (previewSplitPct) => set({ previewSplitPct }),
             togglePinned: () => set((state) => ({ pinned: !state.pinned })),
         }),
         {
@@ -133,6 +139,7 @@ export const useUIStateStore = create<UIStateStore>()(
                 cols: state.cols,
                 sidebarEnabled: state.sidebarEnabled,
                 previewCollapsed: state.previewCollapsed,
+                previewSplitPct: state.previewSplitPct,
                 // always-on-top outlives a restart; the Tauri window state does not,
                 // so Navbar re-applies it on mount
                 pinned: state.pinned,

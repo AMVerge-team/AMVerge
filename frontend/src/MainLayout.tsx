@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import ClipsContainer from "./components/clipsGrid/ClipsContainer";
 import PreviewContainer from "./components/previewPanel/PreviewContainer";
 import { useAppStateStore } from "./stores/appStore";
@@ -21,7 +21,10 @@ export default function MainLayout({
     intro?: boolean;
     active?: boolean;
 }) {
-    const [leftWidth, setLeftWidth] = useState(65);
+    // In the store, not local state: the import row above reads it to park the
+    // preview toggle over the grid's right edge.
+    const leftWidth = useUIStateStore(s => s.previewSplitPct);
+    const setLeftWidth = useUIStateStore(s => s.setPreviewSplitPct);
     // Shared by both MainLayout instances (episodes + scenepacks) and persisted, so the
     // pane stays where it was left across navigation and restarts.
     const previewCollapsed = useUIStateStore(s => s.previewCollapsed);
