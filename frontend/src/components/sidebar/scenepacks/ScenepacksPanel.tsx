@@ -96,18 +96,28 @@ export function ScenepacksPanel() {
   const [searchQuery, setSearchQuery] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<{ kind: "scenepack" | "folder"; id: string; name: string } | null>(null);
 
+  // contextmenu as well as click: a right-click fires no click event, so a menu
+  // opened elsewhere would otherwise sit on screen next to this one.
   useEffect(() => {
     if (!contextMenu) return;
     const close = () => setContextMenu(null);
-    window.addEventListener("click", close, { once: true });
-    return () => window.removeEventListener("click", close);
+    window.addEventListener("click", close);
+    window.addEventListener("contextmenu", close);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("contextmenu", close);
+    };
   }, [contextMenu]);
 
   useEffect(() => {
     if (!panelContextMenu) return;
     const close = () => setPanelContextMenu(null);
-    window.addEventListener("click", close, { once: true });
-    return () => window.removeEventListener("click", close);
+    window.addEventListener("click", close);
+    window.addEventListener("contextmenu", close);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("contextmenu", close);
+    };
   }, [panelContextMenu]);
 
   const handleSelectScenepack = useCallback((id: string) => {

@@ -10,7 +10,7 @@ import { LazyClipProps } from "./types.ts"
 import { DownloadButton } from "./DownloadButton.tsx";
 import Tooltip from "../common/Tooltip.tsx";
 import { useWebpPreview } from "./useWebpPreview.ts";
-import { FaCheck, FaPlus, FaLayerGroup, FaTrashAlt } from "react-icons/fa";
+import { FaCheck, FaPlus, FaTrashAlt } from "react-icons/fa";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { selectOverlayOpen, useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore, useThemeSettingsStore } from "../../stores/settingsStore.ts";
@@ -819,7 +819,17 @@ export const LazyClip = memo(function LazyClip({
       style={appearDelayMs !== null ? { ["--appear-delay" as any]: `${appearDelayMs}ms` } : undefined}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
-      onContextMenu={(e) => onClipContextMenu?.(e, clip)}
+      onContextMenu={(e) => {
+        // Adding to a pack is a right-click now; the Scenepacks page keeps its
+        // own menu (remove from pack), which ClipsContainer owns.
+        if (activePage === "home" && scenepacksEnabled) {
+          e.preventDefault();
+          e.stopPropagation();
+          setScenepackMenu({ x: e.clientX, y: e.clientY });
+          return;
+        }
+        onClipContextMenu?.(e, clip);
+      }}
       draggable={activePage === "scenepacks"}
       onDragStart={(e) => {
         if (activePage !== "scenepacks") return;
@@ -1081,31 +1091,6 @@ export const LazyClip = memo(function LazyClip({
 
           {showDownloadButton && (
             <DownloadButton tone={downloadTone} onClick={() => onDownloadClip(clip)} />
-          )}
-
-          {activePage === "home" && scenepacksEnabled && (
-            <Tooltip content="Add to Scenepack">
-              <button
-                className="clip-add-to-scenepack"
-                // lets an open picker tell its own button apart from the one on
-                // the tile next door, which it has to close for
-                data-scenepack-anchor={clip.id}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setScenepackMenu((prev) => (prev ? null : { x: e.clientX, y: e.clientY }));
-                }}
-                // dblclick is its own event and does not inherit the stopped
-                // clicks beneath it, so without this a second press would also
-                // toggle the tile's selection.
-                onDoubleClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                aria-label="Add to Scenepack"
-              >
-                <FaLayerGroup />
-              </button>
-            </Tooltip>
           )}
 
           {scenepackMenu && (

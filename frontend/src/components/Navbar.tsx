@@ -2,10 +2,8 @@ import { useEffect, useState } from "react";
 import Tooltip from "./common/Tooltip";
 import { useUIStateStore } from "../stores/UIStore";
 import { useAppStateStore } from "../stores/appStore";
-import { useGeneralSettingsStore } from "../stores/settingsStore";
 import { useAiDepsStore } from "../stores/aiDepsStore";
 import { open } from "@tauri-apps/plugin-shell";
-import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { applyWindowSize, readWinSize, rememberWinSize } from "../utils/windowSize";
 
@@ -23,9 +21,6 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
 
     const clips = useAppStateStore(s => s.clips);
     const selectedClips = useAppStateStore(s => s.selectedClips);
-    const episodesPath = useGeneralSettingsStore(s => s.episodesPath);
-    const sceneDetectionMethod = useGeneralSettingsStore(s => s.sceneDetectionMethod);
-    const aiStatus = useAiDepsStore(s => s.status);
     const refreshAiStatus = useAiDepsStore(s => s.refresh);
 
     const [isMaximized, setIsMaximized] = useState(false);
@@ -70,27 +65,6 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
     const handleMinimize = () => void getCurrentWindow().minimize();
     const handleToggleMaximize = () => void getCurrentWindow().toggleMaximize();
     const handleClose = () => void getCurrentWindow().close();
-
-    const handleOpenStorage = async () => {
-        if (episodesPath) {
-            try {
-                await invoke("reveal_in_file_manager", { path: episodesPath });
-            } catch (err) {
-                console.warn("Could not reveal storage path:", err);
-            }
-        }
-    };
-
-    const isTransNet = sceneDetectionMethod === "transnetv2_gpu";
-    // TransNetV2's own device picker tries cuda, then mps, then cpu — so GPU
-    // accel isn't just an NVIDIA/CUDA question, it also covers Apple Silicon.
-    const gpuBackend: "cuda" | "mps" | null =
-        aiStatus?.torchVariant?.includes("cu") || (aiStatus?.gpuAvailable && isTransNet)
-            ? "cuda"
-            : aiStatus?.mpsAvailable
-                ? "mps"
-                : null;
-    const isGpuReady = gpuBackend !== null;
 
     return (
         <div className="navbar" data-tauri-drag-region>
@@ -162,49 +136,6 @@ export default function Navbar({ setSidebarEnabled, sidebarEnabled }: NavbarProp
             </div>
 
             <div className="window-controls" data-tauri-drag-region>
-                {/* Engine / AI Detection & GPU Pill */}
-                <Tooltip
-                    content={
-                        isTransNet
-                            ? `TransNetV2 (AI GPU Detection) • ${
-                                gpuBackend === "cuda"
-                                    ? "CUDA Enabled"
-                                    : gpuBackend === "mps"
-                                        ? "Apple GPU (MPS) Enabled"
-                                        : "GPU Unavailable, Falling Back to CPU"
-                              }`
-                            : "Keyframe Detection (Fast CPU Demux) • Click to open Settings"
-                    }
-                    placement="bottom"
-                >
-                    <div
-                        className={`navbar-engine-pill ${isTransNet ? "ai" : "keyframe"}`}
-                        onClick={() => useUIStateStore.getState().openSettings("general")}
-                        role="button"
-                        tabIndex={0}
-                    >
-                        <span className={`engine-dot ${isTransNet ? "active" : ""}`} />
-                        <span className="engine-label">
-                            {isTransNet ? (isGpuReady ? "TransNetV2 (GPU)" : "TransNetV2 (CPU)") : "Keyframe Detection"}
-                        </span>
-                    </div>
-                </Tooltip>
-
-                {episodesPath && (
-                    <Tooltip content="Open episodes storage folder" placement="bottom">
-                        <button
-                            type="button"
-                            className="window-control folder-btn"
-                            onClick={handleOpenStorage}
-                            aria-label="Open episodes storage folder"
-                        >
-                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                            </svg>
-                        </button>
-                    </Tooltip>
-                )}
-
                 <Tooltip content={pinned ? "Unpin window" : "Keep window on top"} placement="bottom-end">
                     <button
                         type="button"

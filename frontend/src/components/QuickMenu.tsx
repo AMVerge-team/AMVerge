@@ -79,9 +79,9 @@ export default function QuickMenu() {
               <FaSearch aria-hidden="true" />
             </div>
             <div className="quick-menu-card-body">
-              <span className="quick-menu-card-title">Search & Spotlight</span>
+              <span className="quick-menu-card-title">Search</span>
               <span className="quick-menu-card-desc">
-                Instant search across episodes, scenepacks, settings, and commands
+                Search across episodes, scenepacks, settings, and commands
               </span>
             </div>
           </button>

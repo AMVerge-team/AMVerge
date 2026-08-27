@@ -99,11 +99,17 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   }, [clipMenu, setSelectedClips, setFocusedClip, setFocusedClipId]);
 
   // Any click elsewhere dismisses the menu, same as the episode panel's.
+  // contextmenu counts too: a right-click fires no click event, so without it
+  // opening another menu elsewhere would leave this one on screen beside it.
   useEffect(() => {
     if (!clipMenu) return;
     const close = () => setClipMenu(null);
-    window.addEventListener("click", close, { once: true });
-    return () => window.removeEventListener("click", close);
+    window.addEventListener("click", close);
+    window.addEventListener("contextmenu", close);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("contextmenu", close);
+    };
   }, [clipMenu]);
 
   const episodeVideoPreview = useMemo(() => {

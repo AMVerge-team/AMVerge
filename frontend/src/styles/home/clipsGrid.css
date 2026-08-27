@@ -372,7 +372,7 @@
         transform: scale(1);
     }
 }
-
+ 
 .clip-original-timestamp {
     position: absolute;
     bottom: var(--clip-overlay-inset);
