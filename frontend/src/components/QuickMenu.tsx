@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
-import { FaBars, FaCog, FaTimes, FaDiscord, FaGithub, FaSearch } from "react-icons/fa";
+import { FaBars, FaCalendarAlt, FaCog, FaTimes, FaDiscord, FaGithub, FaSearch } from "react-icons/fa";
 import Tooltip from "./common/Tooltip";
 import { useUIStateStore } from "../stores/UIStore";
 
@@ -12,6 +12,7 @@ export default function QuickMenu() {
   const open = useUIStateStore((s) => s.quickMenuOpen);
   const setQuickMenuOpen = useUIStateStore((s) => s.setQuickMenuOpen);
   const openMenu = useUIStateStore((s) => s.openMenu);
+  const setActivePage = useUIStateStore((s) => s.setActivePage);
   const openSettings = useUIStateStore((s) => s.openSettings);
   const setCommandPaletteOpen = useUIStateStore((s: any) => s.setCommandPaletteOpen);
 
@@ -101,6 +102,25 @@ export default function QuickMenu() {
               <span className="quick-menu-card-title">Menu</span>
               <span className="quick-menu-card-desc">
                 About, Update Logs, Console, Credits, and Bug Reports
+              </span>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            className="quick-menu-card"
+            onClick={() => {
+              setQuickMenuOpen(false);
+              setActivePage("events");
+            }}
+          >
+            <div className="quick-menu-card-icon">
+              <FaCalendarAlt aria-hidden="true" />
+            </div>
+            <div className="quick-menu-card-body">
+              <span className="quick-menu-card-title">Events</span>
+              <span className="quick-menu-card-desc">
+                Community contests, collabs, and jams — or host your own
               </span>
             </div>
           </button>

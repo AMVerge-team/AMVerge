@@ -17,9 +17,17 @@ const COLLAPSE_AT_PERCENT = 90;
 export default function MainLayout({
     intro = false,
     active = true,
+    left,
+    previewIdle = false,
 }: {
     intro?: boolean;
     active?: boolean;
+    /** Replaces the clip grid in the left pane. Events fills it with its own grid. */
+    left?: React.ReactNode;
+    /** Keeps the preview pane mounted, sized, and collapsible as the user left
+     *  it, but showing nothing — the Events page has no clip to preview, and
+     *  whatever was playing has to stop. */
+    previewIdle?: boolean;
 }) {
     // In the store, not local state: the import row above reads it to park the
     // preview toggle over the grid's right edge.
@@ -88,7 +96,7 @@ export default function MainLayout({
                     className={`left-pane ${intro ? "app-intro" : ""}`}
                     style={{ width: previewCollapsed ? "100%" : `${leftWidth}%`, ...(intro ? { ["--intro-delay" as any]: "80ms" } : {}) }}
                 >
-                    <ClipsContainer />
+                    {left ?? <ClipsContainer />}
                 </div>
 
                 {!previewCollapsed && (
@@ -107,9 +115,9 @@ export default function MainLayout({
                     aria-hidden={previewCollapsed}
                 >
                     <PreviewContainer
-                        sourceClip={focusedClip}
-                        sourceClipThumbnail={focusedClipThumbnail}
-                        active={active && !previewCollapsed}
+                        sourceClip={previewIdle ? null : focusedClip}
+                        sourceClipThumbnail={previewIdle ? null : focusedClipThumbnail}
+                        active={!previewIdle && active && !previewCollapsed}
                     />
                 </div>
             </div>

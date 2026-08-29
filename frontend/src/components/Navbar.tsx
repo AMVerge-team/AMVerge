@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { FaBars } from "react-icons/fa";
 import Tooltip from "./common/Tooltip";
+import { MAX_EVENT_COLUMNS } from "./events/EventsBrowser";
 import { useUIStateStore } from "../stores/UIStore";
 import { useAppStateStore } from "../stores/appStore";
 import { useAiDepsStore } from "../stores/aiDepsStore";
@@ -16,6 +18,8 @@ export default function Navbar({}: NavbarProps) {
     const setCols = useUIStateStore((s: any) => s.setCols);
     const pinned = useUIStateStore((s: any) => s.pinned);
     const togglePinned = useUIStateStore((s: any) => s.togglePinned);
+    const openMenu = useUIStateStore((s) => s.openMenu);
+    const activePage = useUIStateStore((s) => s.activePage);
 
     const clips = useAppStateStore(s => s.clips);
     const selectedClips = useAppStateStore(s => s.selectedClips);
@@ -49,7 +53,10 @@ export default function Navbar({}: NavbarProps) {
         void getCurrentWindow().setAlwaysOnTop(pinned).catch(() => {});
     }, [pinned]);
 
-    const handleSmaller = () => setCols(Math.min(cols + 1, 9));
+    // The events grid caps at fewer columns than the clip grid, so the zoom
+    // control stops where that page actually stops rather than appearing dead.
+    const maxCols = activePage === "events" ? MAX_EVENT_COLUMNS : 9;
+    const handleSmaller = () => setCols(Math.min(cols + 1, maxCols));
     const handleBigger = () => setCols(Math.max(cols - 1, 1));
 
     const handleTogglePin = () => {
@@ -67,6 +74,16 @@ export default function Navbar({}: NavbarProps) {
     return (
         <div className="navbar" data-tauri-drag-region>
             <div className="left-nav" data-tauri-drag-region>
+                <Tooltip content="Menu" side="bottom">
+                    <button
+                        type="button"
+                        className="navbar-menu-btn"
+                        onClick={openMenu}
+                        aria-label="Menu"
+                    >
+                        <FaBars aria-hidden="true" />
+                    </button>
+                </Tooltip>
                 <h1 data-tauri-drag-region><span>AMV</span>erge</h1>
                 <Tooltip content="Join AMVerge Discord" side="bottom">
                 <a

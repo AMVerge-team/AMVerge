@@ -9,6 +9,9 @@ import SettingsModal from "./components/settings/SettingsModal";
 import QuickMenu from "./components/QuickMenu";
 import CommandPalette from "./components/CommandPalette";
 import MenuModal from "./components/menu/MenuModal";
+import EventsPage from "./pages/EventsPage";
+import HostEventModal from "./components/events/HostEventModal";
+import DenialNoticeModal from "./components/events/DenialNoticeModal";
 import ScenepacksPage from "./pages/ScenepacksPage";
 import ImportTerminal from "./components/ImportTerminal";
 import BgProgressBar from "./components/BgProgressBar";
@@ -22,6 +25,7 @@ import useDragDropImport from "./hooks/useDragDropImport";
 import useImportExport from "./hooks/useImportExport";
 import useStartupUpdateNotification from "./hooks/useStartupUpdateNotification";
 import useExtensionSync from "./hooks/useExtensionSync";
+import useDiscordAuth from "./hooks/useDiscordAuth";
 
 import { remapClipPaths, remapPathRoot } from "./utils/episodeUtils";
 import { useScenePreviewStore } from "./stores/scenePreviewStore";
@@ -125,6 +129,9 @@ function App() {
   const [showStartupNotification, setShowStartupNotification] = useState(false);
   const startupUpdateNotification = useStartupUpdateNotification();
   useExtensionSync();
+  // Mounted at app level: the browser round-trip can finish after the events
+  // modal is closed, and the result still has to land somewhere.
+  useDiscordAuth();
 
   const parseThumbnailProgress = (message: string): { done: number; total: number } | null => {
     const match = message.match(/generating thumbnails\.\.\.\s*(\d+)\s*\/\s*(\d+)/i);
@@ -496,10 +503,13 @@ function App() {
           <HomePage />
         </div>
         {activePage === "scenepacks" && scenepacksEnabled && <ScenepacksPage />}
+        {activePage === "events" && <EventsPage />}
       </div>
       <QuickMenu />
       <CommandPalette />
       <MenuModal />
+      <HostEventModal />
+      <DenialNoticeModal />
       <SettingsModal
         onGeneralSettingsReset={handleResetGeneralSettings}
         onEpisodesPathChanged={remapEpisodePaths}

@@ -13,4 +13,7 @@
     --bg-accent: #001a00;
     --app-font: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     --app-font-adjust: none;
+    /* Plain UI face for text the font picker must not restyle: dates, counts,
+       and other places where a display font costs legibility. */
+    --ui-font: Arial, Helvetica, sans-serif;
 }

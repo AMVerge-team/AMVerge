@@ -28,8 +28,19 @@ fn main() {
         .manage(ExportAbortState::default())
         .manage(ActiveFfmpegPids::default())
         .manage(ActiveInstall::default())
+        .manage(commands::auth::DiscordAuthState::default())
         .invoke_handler(tauri::generate_handler![
             commands::bug_report::submit_bug_report,
+            commands::auth::begin_discord_login,
+            commands::auth::cancel_discord_login,
+            commands::auth::discord_session,
+            commands::auth::discord_logout,
+            commands::events::fetch_events,
+            commands::events::fetch_my_events,
+            commands::events::submit_event_request,
+            commands::events::update_event_request,
+            commands::events::delete_event_request,
+            commands::events::acknowledge_event_denial,
             commands::system_specs::detect_pc_specs,
             commands::deps::ai_env_status,
             commands::deps::install_ai_pack,
