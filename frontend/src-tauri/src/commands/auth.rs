@@ -20,7 +20,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
 
-use super::backend::{api_url, http_client, read_config_var};
+use super::backend::{api_base_url, api_url, http_client, read_config_var};
 
 const BUILD_DISCORD_APP_CLIENT_ID: Option<&str> = option_env!("AMVERGE_DISCORD_APP_CLIENT_ID");
 
@@ -135,8 +135,20 @@ impl DiscordAuthState {
     }
 }
 
+/// Session tokens are signed by the server that issued them, so one from a
+/// local API is meaningless to production and vice versa. Scoping the
+/// credential to its API host keeps a development build and a release build
+/// from overwriting each other's session and presenting the wrong token —
+/// which the server can only report as an invalid signature.
+fn keyring_account() -> String {
+    match api_base_url() {
+        Ok(base) => format!("{KEYRING_ACCOUNT}@{base}"),
+        Err(_) => KEYRING_ACCOUNT.to_string(),
+    }
+}
+
 fn keyring_entry() -> Result<keyring::Entry, String> {
-    keyring::Entry::new(KEYRING_SERVICE, KEYRING_ACCOUNT)
+    keyring::Entry::new(KEYRING_SERVICE, &keyring_account())
         .map_err(|e| format!("Credential store is unavailable: {e}"))
 }
 
@@ -159,6 +171,14 @@ fn clear_session() {
         // A missing entry is the desired end state either way.
         let _ = entry.delete_credential();
     }
+}
+
+/// Drops a session the server has refused. A stored token the API will not
+/// accept — because it was signed by a different deployment, or its secret was
+/// rotated — is worse than none: every request fails until it is cleared, and
+/// the app has no way to explain why.
+pub fn discard_rejected_session() {
+    clear_session();
 }
 
 /// Bearer token for the authenticated event routes. Lives in this process only.

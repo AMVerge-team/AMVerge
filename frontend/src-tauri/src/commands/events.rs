@@ -7,7 +7,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::auth::session_token;
+use super::auth::{discard_rejected_session, session_token};
 use super::backend::{api_base_url, api_url, http_client};
 
 #[derive(Debug, Serialize)]
@@ -163,6 +163,17 @@ async fn send_submission(
     let parsed = response.json::<ApiEventBody>().await.ok();
 
     if !status.is_success() {
+        // A refused token would fail every subsequent request too, so drop it
+        // and let the user sign in again rather than leaving them stuck.
+        if status == reqwest::StatusCode::UNAUTHORIZED {
+            discard_rejected_session();
+            return Ok(EventMutationResponse {
+                ok: false,
+                message: Some("Your sign-in has expired. Sign in with Discord again.".to_string()),
+                event: None,
+            });
+        }
+
         return Ok(EventMutationResponse {
             ok: false,
             message: Some(
@@ -203,6 +214,17 @@ async fn post_or_delete(url: String, method: reqwest::Method) -> Result<EventMut
     let parsed = response.json::<ApiEventBody>().await.ok();
 
     if !status.is_success() {
+        // A refused token would fail every subsequent request too, so drop it
+        // and let the user sign in again rather than leaving them stuck.
+        if status == reqwest::StatusCode::UNAUTHORIZED {
+            discard_rejected_session();
+            return Ok(EventMutationResponse {
+                ok: false,
+                message: Some("Your sign-in has expired. Sign in with Discord again.".to_string()),
+                event: None,
+            });
+        }
+
         return Ok(EventMutationResponse {
             ok: false,
             message: Some(
@@ -236,6 +258,15 @@ pub async fn delete_event_request(event_id: String) -> Result<EventMutationRespo
 pub async fn acknowledge_event_denial(event_id: String) -> Result<EventMutationResponse, String> {
     post_or_delete(
         api_url(&format!("/api/events/{event_id}/denial-seen"))?,
+        reqwest::Method::POST,
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn acknowledge_event_approval(event_id: String) -> Result<EventMutationResponse, String> {
+    post_or_delete(
+        api_url(&format!("/api/events/{event_id}/approval-seen"))?,
         reqwest::Method::POST,
     )
     .await

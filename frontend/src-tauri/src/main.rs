@@ -41,6 +41,7 @@ fn main() {
             commands::events::update_event_request,
             commands::events::delete_event_request,
             commands::events::acknowledge_event_denial,
+            commands::events::acknowledge_event_approval,
             commands::system_specs::detect_pc_specs,
             commands::deps::ai_env_status,
             commands::deps::install_ai_pack,

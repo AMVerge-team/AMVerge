@@ -135,7 +135,11 @@ export default function EventsBrowser() {
 
   // Collapsed sections, by title. Not persisted: a fold is a "get this out of
   // the way for now" gesture, not a setting.
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  //
+  // "Your events" starts folded because the page is primarily for browsing what
+  // the community is running; a host's own drafts and submissions are a small
+  // aside they can open when they want it.
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["Your events"]));
   const toggleSection = (title: string) =>
     setCollapsed((previous) => {
       const next = new Set(previous);

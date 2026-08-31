@@ -41,6 +41,10 @@ export function acknowledgeEventDenial(eventId: string): Promise<EventMutationRe
   return invoke<EventMutationResult>("acknowledge_event_denial", { eventId });
 }
 
+export function acknowledgeEventApproval(eventId: string): Promise<EventMutationResult> {
+  return invoke<EventMutationResult>("acknowledge_event_approval", { eventId });
+}
+
 /** Returns the Discord authorize URL to open in the system browser. */
 export function beginDiscordLogin(): Promise<string> {
   return invoke<string>("begin_discord_login");

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { open } from "@tauri-apps/plugin-shell";
 
 import {
+  acknowledgeEventApproval,
   acknowledgeEventDenial,
   beginDiscordLogin,
   cancelDiscordLogin,
@@ -68,6 +69,7 @@ export type EventsStore = EventsState & {
   saveEvent: (submission: EventSubmission) => Promise<{ ok: boolean; message: string | null }>;
   deleteEvent: (eventId: string) => Promise<{ ok: boolean; message: string | null }>;
   dismissDenialNotice: () => void;
+  dismissApprovalNotice: () => void;
 };
 
 const INITIAL_STATE: EventsState = {
@@ -235,6 +237,24 @@ export const useEventsStore = create<EventsStore>()((set, get) => ({
 
     for (const event of unseen) {
       void acknowledgeEventDenial(event.id).catch(() => {});
+    }
+  },
+
+  /** The approval counterpart, same one-shot behaviour as the denial notice. */
+  dismissApprovalNotice: () => {
+    const unseen = get().mine.filter(
+      (event) => event.status === "approved" && event.approvalSeen === false
+    );
+    if (unseen.length === 0) return;
+
+    set({
+      mine: get().mine.map((event) =>
+        event.status === "approved" ? { ...event, approvalSeen: true } : event
+      ),
+    });
+
+    for (const event of unseen) {
+      void acknowledgeEventApproval(event.id).catch(() => {});
     }
   },
 }));

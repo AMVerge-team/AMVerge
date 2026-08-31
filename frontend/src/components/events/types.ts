@@ -31,6 +31,8 @@ export type CommunityEvent = {
   denialReason?: string | null;
   /** Whether the host has already been shown this denial. */
   denialSeen?: boolean;
+  /** False when a moderator has approved it and the host has not been told. */
+  approvalSeen?: boolean;
   pendingRevision?: EventSubmission | null;
 };
 

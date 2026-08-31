@@ -12,6 +12,7 @@ import MenuModal from "./components/menu/MenuModal";
 import EventsPage from "./pages/EventsPage";
 import HostEventModal from "./components/events/HostEventModal";
 import DenialNoticeModal from "./components/events/DenialNoticeModal";
+import ApprovalNoticeModal from "./components/events/ApprovalNoticeModal";
 import ScenepacksPage from "./pages/ScenepacksPage";
 import ImportTerminal from "./components/ImportTerminal";
 import BgProgressBar from "./components/BgProgressBar";
@@ -510,6 +511,7 @@ function App() {
       <MenuModal />
       <HostEventModal />
       <DenialNoticeModal />
+      <ApprovalNoticeModal />
       <SettingsModal
         onGeneralSettingsReset={handleResetGeneralSettings}
         onEpisodesPathChanged={remapEpisodePaths}
