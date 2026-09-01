@@ -3,6 +3,7 @@ import { FaCheckCircle } from "react-icons/fa";
 
 import ModalShell from "../common/ModalShell";
 import { useEventsStore } from "../../stores/eventsStore";
+import { useUIStateStore } from "../../stores/UIStore";
 
 /**
  * The approval counterpart to `DenialNoticeModal`. A host should not have to
@@ -14,6 +15,7 @@ export default function ApprovalNoticeModal() {
   const mine = useEventsStore((s) => s.mine);
   const dismiss = useEventsStore((s) => s.dismissApprovalNotice);
   const openDetail = useEventsStore((s) => s.openDetail);
+  const setActivePage = useUIStateStore((s) => s.setActivePage);
 
   const approved = useMemo(
     () => mine.filter((event) => event.status === "approved" && event.approvalSeen === false),
@@ -55,6 +57,9 @@ export default function ApprovalNoticeModal() {
             className="event-host-btn"
             onClick={() => {
               dismiss();
+              // The notice can appear from any page, so navigate as well as
+              // select — setting the detail alone shows nothing from Home.
+              setActivePage("events");
               openDetail(first.id);
             }}
           >

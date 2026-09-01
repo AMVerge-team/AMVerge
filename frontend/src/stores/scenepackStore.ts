@@ -14,6 +14,8 @@ export type ScenepacksStore = ScenepacksState & {
   addScenepack: (name: string, folderId: string | null) => string;
   removeScenepack: (id: string) => void;
   renameScenepack: (id: string, name: string) => void;
+  /** Pass null to fall back to the first clip's thumbnail. */
+  setScenepackThumbnail: (id: string, thumbnail: string | null) => void;
   addClipToScenepack: (scenepackId: string, clip: ScenepackClip) => void;
   removeClipFromScenepack: (scenepackId: string, episodeId: string, sceneIndex: number) => void;
   removeClipFromScenepackByIndex: (scenepackId: string, index: number) => void;
@@ -74,6 +76,13 @@ export const useScenepacksStore = create<ScenepacksStore>()(
         set((s) => ({
           scenepacks: s.scenepacks.map((sp) =>
             sp.id === id ? { ...sp, name } : sp
+          ),
+        })),
+
+      setScenepackThumbnail: (id, thumbnail) =>
+        set((s) => ({
+          scenepacks: s.scenepacks.map((sp) =>
+            sp.id === id ? { ...sp, thumbnail } : sp
           ),
         })),
 

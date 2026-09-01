@@ -21,6 +21,7 @@ import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
 import { clipExportSpecs } from "../../features/export/clipSpecs.ts";
 import { deliverExportedFiles } from "../../features/export/deliverExports.ts";
 import { useScenepacksStore } from "../../stores/scenepackStore.ts";
+import { useContextMenuStore } from "../../stores/contextMenuStore.ts";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
 import { removeClipsFromScenepack } from "../../utils/scenepackStorage.ts";
 import type { ClipItem } from "../../types/domain.ts";
@@ -59,6 +60,12 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   // Right-clicking a clip that is part of the current selection acts on the
   // whole selection; right-clicking outside it acts on that one clip only
   // (and makes it the selection, so the highlight matches what will go).
+  // Another menu claimed the slot, so this one is stale.
+  const activeContextMenu = useContextMenuStore((s) => s.activeMenu);
+  useEffect(() => {
+    if (activeContextMenu !== "scenepack-clip") setClipMenu(null);
+  }, [activeContextMenu]);
+
   const handleClipContextMenu = useCallback(
     (event: React.MouseEvent, clip: ClipItem) => {
       if (activePage !== "scenepacks") return;
@@ -73,6 +80,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
 
       if (!inSelection) setSelectedClips(new Set([clip.id]));
 
+      useContextMenuStore.getState().openContextMenu("scenepack-clip");
       setClipMenu({ x: event.clientX, y: event.clientY, targets });
     },
     [activePage, setSelectedClips],
@@ -558,6 +566,22 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
               style={{ left: clipMenu.x, top: clipMenu.y }}
               onClick={(e) => e.stopPropagation()}
             >
+              {clipMenu.targets.length === 1 && clipMenu.targets[0].thumbnail && (
+                <button
+                  className="episode-context-menu-item"
+                  onClick={() => {
+                    const packId = useScenepacksStore.getState().openedScenepackId;
+                    const thumbnail = clipMenu.targets[0].thumbnail;
+                    if (packId && thumbnail) {
+                      useScenepacksStore.getState().setScenepackThumbnail(packId, thumbnail);
+                    }
+                    setClipMenu(null);
+                  }}
+                >
+                  Set as Scenepack thumbnail
+                </button>
+              )}
+
               <button
                 className="episode-context-menu-item"
                 onClick={() => void handleDeleteFromScenepack()}

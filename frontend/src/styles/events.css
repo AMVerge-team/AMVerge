@@ -51,10 +51,40 @@
     font-size: 1.05rem;
 }
 
-/* .refresh-button carries its own margin for the import row; here the row's
-   gap already provides the spacing. */
+/* The import row's buttons carry their own margins for that layout. Here the
+   row's 8px gap is the only spacing, so every control is evenly spaced instead
+   of the panel toggle sitting further from its neighbour than the rest. */
 .events-toolbar-row .refresh-button {
     margin-left: 0;
+}
+
+.events-toolbar-row .panel-toggle-button {
+    margin-right: 0;
+    margin-left: 0;
+}
+
+/* The base `.info-button` is a small accent circle sized to sit beside a
+   settings label. In this row it should read as one of the toolbar's own
+   buttons, so it takes the same square chrome as the refresh button. */
+.events-toolbar-row .info-button {
+    width: 2rem;
+    height: 2rem;
+    flex-shrink: 0;
+    border: 1px solid rgb(var(--accent-rgb) / 0.9);
+    border-radius: 10px;
+    background: rgba(15, 0, 0, 0.1);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    color: #fff;
+    font-size: 15px;
+    transition: border 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.events-toolbar-row .info-button:hover {
+    background: rgba(15, 0, 0, 0.1);
+    box-shadow: 0 0 15px rgb(var(--accent-rgb) / 0.4);
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 /* Pushed to the right end of the row, mirroring the episode panel toggle on
@@ -489,6 +519,56 @@
     min-width: 0;
 }
 
+/* Top-right of the tile, opposite the EC/HC badge. Only shown for the visit in
+   which the event was first seen. */
+.event-card-new {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #e23b3b;
+    color: #fff;
+    font-family: var(--ui-font);
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+/* A status badge shares that corner, so it sits below when both are present. */
+.event-card-new + .event-card-status {
+    top: 32px;
+}
+
+/* Marks the viewer's own live event in a list that mixes theirs with everyone
+   else's. Shares the top-right corner with NEW!, which never applies to an
+   event you host, so the two cannot collide. */
+.event-card-approved {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgb(var(--accent-rgb) / 0.9);
+    color: #06210f;
+    font-family: var(--ui-font);
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+.event-detail-approved {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    color: #86ff86;
+    font-family: var(--ui-font);
+    font-size: 0.84rem;
+}
+
 .event-card-type {
     position: absolute;
     top: 8px;
@@ -719,14 +799,62 @@
     font-family: var(--ui-font);
 }
 
+/* ---- Delete confirmation ---- */
+.delete-event-notice code {
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-family: var(--ui-font);
+    font-weight: 700;
+}
+
+.delete-event-input {
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    font-family: var(--ui-font);
+    font-size: 0.9rem;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.delete-event-input:focus {
+    outline: none;
+    border-color: #ff6b6b;
+    box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
+}
+
+.delete-event-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* Stays visibly inert until the phrase matches, so the state of the guard is
+   never ambiguous. */
+.delete-event-notice .event-danger-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
 .approval-notice-icon {
     font-size: 2rem;
     color: #86ff86;
 }
 
-.approval-notice-list li {
-    border-color: rgb(var(--accent-rgb) / 0.35);
-    background: rgb(var(--accent-rgb) / 0.08);
+/* The element carries both classes, and the denial rule is defined later with
+   equal specificity — so this has to name both to win on specificity rather
+   than on source order. */
+.denial-notice-list.approval-notice-list li {
+    border-color: rgb(var(--accent-rgb) / 0.4);
+    background: rgb(var(--accent-rgb) / 0.1);
+}
+
+.denial-notice-list.approval-notice-list .denial-notice-title {
+    color: #fff;
 }
 
 .approval-notice-detail {

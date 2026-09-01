@@ -1,5 +1,5 @@
 import { open } from "@tauri-apps/plugin-shell";
-import { FaArrowLeft, FaCalendarAlt, FaDiscord, FaEdit, FaTrash, FaTrophy } from "react-icons/fa";
+import { FaArrowLeft, FaCalendarAlt, FaCheckCircle, FaDiscord, FaEdit, FaTrash, FaTrophy } from "react-icons/fa";
 
 import RichText from "./RichText";
 import {
@@ -8,6 +8,7 @@ import {
   formatDateTimeShort,
   formatDuration,
   hasEnded,
+  isLive,
   hostAvatarUrl,
   statusLabel,
 } from "./format";
@@ -68,6 +69,14 @@ export default function EventDetail({ event, onBack, onEdit, onDelete, preview =
         </div>
       )}
 
+      {/* `onEdit` is only passed for an event the signed-in user hosts, so it
+          doubles as the ownership test without threading the profile down. */}
+      {onEdit && isLive(event) && !event.pendingRevision && (
+        <p className="event-detail-approved">
+          <FaCheckCircle aria-hidden="true" /> Your event was approved and is live.
+        </p>
+      )}
+
       {event.pendingRevision && (
         <p className="event-detail-revision">
           Your edit is waiting for review. The version below stays public until it is approved.
@@ -82,7 +91,7 @@ export default function EventDetail({ event, onBack, onEdit, onDelete, preview =
           <span className="event-detail-fact-value">
             {event.eventType === "hour"
               ? `${formatDateTimeShort(event.startsAt)} · ${formatDuration(event)}`
-              : `${formatDateTimeShort(event.startsAt)} → ${formatDateTimeShort(event.endsAt)}`}
+              : `${formatDateTimeShort(event.startsAt)} - ${formatDateTimeShort(event.endsAt)}`}
           </span>
         </div>
         <div>

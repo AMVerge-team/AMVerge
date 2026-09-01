@@ -64,6 +64,31 @@ body.is-resizing-sidebar {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    /* Anchors the unread badge, which overhangs the button's corner. */
+    position: relative;
+    overflow: visible;
+}
+
+/* Unread count, in the style of a chat app's ping. Sits over the button's
+   top-right corner and is purely informational, so it never takes the click. */
+.sidebar-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 4px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    background: #e23b3b;
+    color: #fff;
+    font-family: var(--ui-font);
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 15px;
+    text-align: center;
+    pointer-events: none;
+    box-shadow: 0 0 0 2px var(--sidebar-bg, #0d0d0d);
 }
 
 .sidebar-button > .sidebar-nav-button svg {
@@ -272,7 +297,9 @@ body.is-resizing-sidebar {
     height: 24px;
     color: var(--accent);
     background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    /* Transparent rather than absent, so gaining the outline on hover does not
+       shift the button by a pixel. */
+    border: 1px solid transparent;
     border-radius: 6px;
     font-size: 11px;
     cursor: pointer;
@@ -293,12 +320,15 @@ body.is-resizing-sidebar {
     transform: translateY(0);
 }
 
+/* Opening or selecting an episode brings the button up to full opacity so it is
+   reachable, but leaves it unoutlined. The outline belongs to hovering the
+   button itself, which is the only state that means "you are about to press
+   this". */
 .episode-panel-row:hover .episode-panel-import-icon,
 .episode-panel-row.is-open .episode-panel-import-icon,
 .episode-panel-row.is-focused .episode-panel-import-icon,
 .episode-panel-row.is-multi-selected .episode-panel-import-icon {
     opacity: 1;
-    border-color: rgba(var(--accent-rgb), 0.35);
 }
 
 .episode-panel-count {

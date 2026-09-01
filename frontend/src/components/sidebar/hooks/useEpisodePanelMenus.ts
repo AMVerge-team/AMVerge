@@ -1,5 +1,6 @@
 // menu and modal state hook for the Episode Panel. Owns context menus, text modals, confirm modals, and close behavior.
 import { useEffect, useRef, useState } from "react";
+import { useContextMenuStore } from "../../../stores/contextMenuStore";
 import type React from "react";
 import type {
   ConfirmModalState,
@@ -36,6 +37,9 @@ export default function useEpisodePanelMenus({
   onRenameEpisode,
   onRenameFolder,
 }: UseEpisodePanelMenusArgs) {
+  const claimMenu = useContextMenuStore((s) => s.openContextMenu);
+  const activeMenu = useContextMenuStore((s) => s.activeMenu);
+
   const [contextMenu, setContextMenu] = useState<EpisodeContextMenuState | null>(null);
   const [folderContextMenu, setFolderContextMenu] = useState<FolderContextMenuState | null>(null);
   const [panelContextMenu, setPanelContextMenu] = useState<PanelContextMenuState | null>(null);
@@ -89,6 +93,14 @@ export default function useEpisodePanelMenus({
     }, 0);
   }, [textModal]);
 
+  // Another menu took the slot, so whatever this panel had open is stale.
+  useEffect(() => {
+    if (activeMenu === "episode-panel-item" || activeMenu === "episode-panel-empty") return;
+    setContextMenu(null);
+    setFolderContextMenu(null);
+    setPanelContextMenu(null);
+  }, [activeMenu]);
+
   const openContextMenu = (episodeId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -104,6 +116,7 @@ export default function useEpisodePanelMenus({
 
     onSelectEpisode(episodeId);
 
+    claimMenu("episode-panel-item");
     setContextMenu({
       episodeId,
       x: e.clientX,
@@ -122,6 +135,7 @@ export default function useEpisodePanelMenus({
 
     onSelectFolder(folderId);
 
+    claimMenu("episode-panel-item");
     setFolderContextMenu({
       folderId,
       x: e.clientX,
@@ -140,6 +154,7 @@ export default function useEpisodePanelMenus({
     setTextModal(null);
     setConfirmModal(null);
 
+    claimMenu("episode-panel-empty");
     setPanelContextMenu({
       x: e.clientX,
       y: e.clientY,

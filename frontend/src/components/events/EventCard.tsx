@@ -2,7 +2,7 @@ import { FaCalendarAlt, FaTrash, FaTrophy } from "react-icons/fa";
 
 import Tooltip from "../common/Tooltip";
 
-import { countdownLabel, eventTypeBadge, eventTypeLabel, formatSchedule, hasEnded, hostAvatarUrl, statusLabel } from "./format";
+import { countdownLabel, eventTypeBadge, eventTypeLabel, formatSchedule, hasEnded, isLive, hostAvatarUrl, statusLabel } from "./format";
 import type { CommunityEvent } from "./types";
 
 type EventCardProps = {
@@ -12,13 +12,17 @@ type EventCardProps = {
   preview?: boolean;
   /** Shows a delete control. Only passed for events the signed-in host may remove. */
   onDelete?: (id: string) => void;
+  /** Flags an event the user has not seen before, for this visit only. */
+  isNew?: boolean;
+  /** True when the signed-in user hosts this event. */
+  isOwn?: boolean;
 };
 
 /**
  * Grid tile. Kept presentational so the host form can preview a draft through
  * the same component the grid uses — a mockup would drift.
  */
-export default function EventCard({ event, onOpen, preview = false, onDelete }: EventCardProps) {
+export default function EventCard({ event, onOpen, preview = false, onDelete, isNew = false, isOwn = false }: EventCardProps) {
   const ended = hasEnded(event);
   const avatar = hostAvatarUrl(event);
   const countdown = countdownLabel(event);
@@ -37,6 +41,10 @@ export default function EventCard({ event, onOpen, preview = false, onDelete }: 
         <span className="event-card-type" title={eventTypeLabel(event)}>
           {eventTypeBadge(event)}
         </span>
+        {isNew && <span className="event-card-new">NEW!</span>}
+        {/* Marks the viewer's own live events apart from everyone else's in a
+            list that mixes both. */}
+        {isOwn && isLive(event) && <span className="event-card-approved">APPROVED</span>}
         {status && <span className={`event-card-status is-${status.tone}`}>{status.text}</span>}
       </div>
 

@@ -27,6 +27,7 @@ import useImportExport from "./hooks/useImportExport";
 import useStartupUpdateNotification from "./hooks/useStartupUpdateNotification";
 import useExtensionSync from "./hooks/useExtensionSync";
 import useDiscordAuth from "./hooks/useDiscordAuth";
+import useEventsWatch from "./hooks/useEventsWatch";
 
 import { remapClipPaths, remapPathRoot } from "./utils/episodeUtils";
 import { useScenePreviewStore } from "./stores/scenePreviewStore";
@@ -133,6 +134,9 @@ function App() {
   // Mounted at app level: the browser round-trip can finish after the events
   // modal is closed, and the result still has to land somewhere.
   useDiscordAuth();
+  // Polls in the background so a newly approved event badges the sidebar
+  // without the user opening the page first.
+  useEventsWatch();
 
   const parseThumbnailProgress = (message: string): { done: number; total: number } | null => {
     const match = message.match(/generating thumbnails\.\.\.\s*(\d+)\s*\/\s*(\d+)/i);

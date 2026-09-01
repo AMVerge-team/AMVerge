@@ -16,6 +16,7 @@ import { selectOverlayOpen, useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore, useThemeSettingsStore } from "../../stores/settingsStore.ts";
 import { usePreviewTranscode } from "../../features/preview/usePreviewTranscode.ts";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
+import { useContextMenuStore } from "../../stores/contextMenuStore.ts";
 import { cancelIdle, scheduleIdle } from "../../utils/idle.ts";
 import { AddToScenepackModal } from "./AddToScenepackModal.tsx";
 import { ScenepackPickerMenu } from "./ScenepackPickerMenu.tsx";
@@ -91,6 +92,13 @@ export const LazyClip = memo(function LazyClip({
   const [showScenepackModal, setShowScenepackModal] = useState(false);
   // where the tile's Scenepack picker opened, or null when it is closed
   const [scenepackMenu, setScenepackMenu] = useState<{ x: number; y: number } | null>(null);
+
+  // Another menu claimed the slot, so this tile's menu is stale. Without this a
+  // right-click in a side panel left the clip menu hanging open beside it.
+  const activeContextMenu = useContextMenuStore((s) => s.activeMenu);
+  useEffect(() => {
+    if (activeContextMenu !== "clip-scenepack-picker") setScenepackMenu(null);
+  }, [activeContextMenu]);
   const [dragOver, setDragOver] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const thumbnailRef = useRef<HTMLImageElement | null>(null);
@@ -825,6 +833,7 @@ export const LazyClip = memo(function LazyClip({
         if (activePage === "home" && scenepacksEnabled) {
           e.preventDefault();
           e.stopPropagation();
+          useContextMenuStore.getState().openContextMenu("clip-scenepack-picker");
           setScenepackMenu({ x: e.clientX, y: e.clientY });
           return;
         }

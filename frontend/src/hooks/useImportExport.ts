@@ -786,6 +786,9 @@ export default function useImportExport(props?: ImportExportProps) {
       const finalSavePath = `${dir}${sep}${baseName}.${format}`;
 
       let mergedFiles: string[] = [];
+      // Per-clip parts to remove once the merged outputs exist. Tracked out
+      // here so the `finally` can still clean up after a failed pass.
+      let partFiles: string[] = [];
 
       try {
       // 1. Export each clip on its own (no merge).
@@ -802,6 +805,9 @@ export default function useImportExport(props?: ImportExportProps) {
           audioLanguage: generalSettings.previewAudioLanguage,
         });
         if (clipFiles.length === 0) throw new Error("Export produced no files.");
+        // Recorded now rather than after the passes: a pass that throws must
+        // still leave these on the cleanup list.
+        partFiles = [...clipFiles];
       } finally {
         setLoading(false);
         setActiveOperation(null);
@@ -858,19 +864,10 @@ export default function useImportExport(props?: ImportExportProps) {
         );
       }
 
-      // 4. Drop the per-clip parts; only the merged outputs are wanted on disk.
-      const intermediates = [
-        ...clipFiles,
-        ...passOutputs.interpolated,
-        ...passOutputs.deadframes,
-      ];
-      if (intermediates.length > 0) {
-        try {
-          await invoke("delete_export_intermediates", { dir, paths: intermediates });
-        } catch (err) {
-          console.warn("Failed to clean up export intermediates:", err);
-        }
-      }
+      // Cleanup happens in the `finally` below, so a pass that fails partway
+      // does not leave the folder full of parts.
+      partFiles = [...clipFiles, ...passOutputs.interpolated, ...passOutputs.deadframes];
+
 
       await deliverExportedFiles(mergedFiles);
 
@@ -901,6 +898,34 @@ export default function useImportExport(props?: ImportExportProps) {
           useAppStateStore.getState().setProgressMsg("");
         }, 8000);
         return;
+      } finally {
+        // Only once a merged file exists. If the merge itself failed, the
+        // per-clip parts are all the user has left and deleting them would
+        // throw away the export entirely.
+        if (mergedFiles.length > 0) {
+          // A pass can fail after writing some of its outputs, so the derived
+          // names are swept too; the command ignores paths that are not there.
+          const orphans = partFiles.flatMap((file) => {
+            const dot = file.lastIndexOf(".");
+            if (dot <= 0) return [];
+            const stem = file.slice(0, dot);
+            const ext = file.slice(dot);
+            return [
+              `${stem}${PASS_SUFFIX.deadframes}${ext}`,
+              `${stem}${PASS_SUFFIX.interpolation}${ext}`,
+              `${stem}_df_tmp${ext}`,
+            ];
+          });
+
+          const paths = Array.from(new Set([...partFiles, ...orphans]));
+          if (paths.length > 0) {
+            try {
+              await invoke("delete_export_intermediates", { dir, paths });
+            } catch (err) {
+              console.warn("Failed to clean up export intermediates:", err);
+            }
+          }
+        }
       }
 
       // 5. Any remaining passes (depth/deadframes) run on the merged file.

@@ -82,6 +82,7 @@ fn main() {
             commands::cache::clear_episode_panel_cache,
             commands::scenepacks::materialize_scenepack_clips,
             commands::scenepacks::delete_scenepack_clip_files,
+            commands::scenepacks::save_scenepack_thumbnail,
             commands::scenepacks::delete_scenepack_storage,
             commands::scenepacks::clear_scenepacks_storage,
             commands::settings::save_background_image,

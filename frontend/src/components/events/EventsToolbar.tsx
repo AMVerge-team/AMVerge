@@ -2,14 +2,15 @@ import { FaCalendarPlus, FaDiscord, FaSearch, FaSignOutAlt, FaSyncAlt, FaTimes }
 
 import Dropdown, { type DropdownOption } from "../common/Dropdown";
 import Tooltip from "../common/Tooltip";
+import InfoButton from "../common/InfoButton";
 import { useEventsStore, type EventFilter, type EventSort } from "../../stores/eventsStore";
 import { useUIStateStore } from "../../stores/UIStore";
 
 const FILTER_OPTIONS: DropdownOption<EventFilter>[] = [
   { value: "all", label: "All events", description: "Everything, running or finished" },
-  { value: "active", label: "Active & upcoming", description: "Hide events that already ended" },
-  { value: "past", label: "Past only", description: "Events that have finished" },
   { value: "mine", label: "My events", description: "Events you host, including ones in review" },
+  { value: "hc", label: "HC only", description: "Hour Challenges only" },
+  { value: "ec", label: "EC only", description: "Long Contests only" },
 ];
 
 const SORT_OPTIONS: DropdownOption<EventSort>[] = [
@@ -79,6 +80,51 @@ export default function EventsToolbar() {
           <FaCalendarPlus aria-hidden="true" />
           Host Event
         </button>
+
+        <InfoButton title="Community Events">
+          <p>
+            The community is big, and editing contests get lost in the noise. This page
+            gathers them in one place so editors can find opportunities worth entering,
+            and hosts reach the people most likely to show up. Better turnout makes for
+            better events, and events that go well encourage the next person to run one.
+          </p>
+
+          <h4>Hour Challenge (HC)</h4>
+          <p>
+            A short, fixed window. Editors get a set number of hours, usually on a single
+            day, to make an edit from start to finish. These are lower commitment and I personally
+            love participating in these (-crptk)
+          </p>
+
+          <h4>Editing Contest (EC)</h4>
+          <p>
+            A longer format that runs at least a day and often much more. There is room to
+            plan and refine, usually less rules and restrictions, and the prizes tend to be
+            bigger.
+          </p>
+
+          <h4>Hosting an event</h4>
+          <ol>
+            <li>Sign in with Discord using the Login button so you can manage the event going forward. 
+              All logins are done through Discord's official API, so we have no access to your data.
+            </li>
+            <li>Press Host Event and pick the format: HC for a timed contest, EC for a longer contest.</li>
+            <li>
+              Fill in the title, cover image, description, dates, and an invite to the
+              Discord server where the event actually happens. Add a prize pool if there
+              is one.
+            </li>
+            <li>
+              Send it for review. A moderator checks every submission before it goes live,
+              which usually takes a short while.
+            </li>
+            <li>
+              You will get a notice once it is approved. After that you can still correct
+              the dates, invite link, or prize pool yourself; changing the title,
+              description, or cover sends it back for another quick review.
+            </li>
+          </ol>
+        </InfoButton>
 
         <Tooltip content="Refresh events">
           <button

@@ -91,6 +91,59 @@
 }
 
 /* Scenepack row thumbnail */
+/* ---- Change Thumbnail modal ---- */
+.scenepack-thumb-drop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 170px;
+    margin: 12px 0;
+    padding: 16px;
+    border: 1px dashed rgb(255 255 255 / 0.2);
+    border-radius: 10px;
+    background: rgb(0 0 0 / 0.3);
+    color: rgb(255 255 255 / 0.7);
+    font-family: inherit;
+    font-size: 0.86rem;
+    text-align: center;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.scenepack-thumb-drop:hover:not(:disabled),
+.scenepack-thumb-drop.is-dragging {
+    border-color: var(--accent);
+    background: rgb(var(--accent-rgb) / 0.08);
+}
+
+.scenepack-thumb-drop:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.scenepack-thumb-icon {
+    font-size: 1.8rem;
+    color: rgb(255 255 255 / 0.3);
+}
+
+/* Contained rather than cropped, so the whole image is visible while choosing. */
+.scenepack-thumb-preview {
+    max-width: 100%;
+    max-height: 110px;
+    border-radius: 8px;
+    object-fit: contain;
+}
+
+.scenepack-thumb-hint {
+    color: rgb(255 255 255 / 0.4);
+    font-family: var(--ui-font);
+    font-size: 0.74rem;
+}
+
 .scenepack-thumbnail {
   width: 22px;
   height: 22px;

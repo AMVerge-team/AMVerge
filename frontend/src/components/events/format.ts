@@ -144,6 +144,15 @@ export function needsDeleteConfirmation(event: CommunityEvent): boolean {
   return !hasEnded(event);
 }
 
+/**
+ * Whether an event is publicly live. The public list omits `status` altogether
+ * and only ever contains approved events, so an absent status means approved —
+ * checking `status === "approved"` misses every card in the public sections.
+ */
+export function isLive(event: CommunityEvent): boolean {
+  return event.status !== "pending" && event.status !== "denied";
+}
+
 export function hasEnded(event: CommunityEvent, now = Date.now()): boolean {
   const end = parse(event.endsAt)?.getTime();
   return end !== undefined && end < now;

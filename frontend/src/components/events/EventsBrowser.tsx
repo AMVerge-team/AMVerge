@@ -3,11 +3,13 @@ import { FaChevronDown } from "react-icons/fa";
 
 import EventCard from "./EventCard";
 import EventDetail from "./EventDetail";
+import DeleteEventModal from "./DeleteEventModal";
 import {
   canDelete,
   compareEvents,
   dedupeById,
   hasEnded,
+  isLive,
   matchesSearch,
   needsDeleteConfirmation,
 } from "./format";
@@ -31,6 +33,8 @@ function Section({
   onDelete,
   collapsed,
   onToggle,
+  highlighted,
+  ownId,
 }: {
   title: string;
   events: CommunityEvent[];
@@ -40,6 +44,8 @@ function Section({
   onDelete: (event: CommunityEvent) => void;
   collapsed: boolean;
   onToggle: (title: string) => void;
+  highlighted: Set<string>;
+  ownId: string | undefined;
 }) {
   if (events.length === 0) return null;
 
@@ -73,6 +79,8 @@ function Section({
               event={event}
               onOpen={onOpen}
               onDelete={deletable(event) ? () => onDelete(event) : undefined}
+              isNew={highlighted.has(event.id)}
+              isOwn={Boolean(ownId) && event.hostDiscordId === ownId}
             />
           ))}
         </div>
@@ -133,13 +141,24 @@ export default function EventsBrowser() {
 
   const deleteEvent = useEventsStore((s) => s.deleteEvent);
 
+  // Ids to flag NEW! for this visit. Captured once on mount: marking them seen
+  // clears the sidebar badge straight away, while the flags stay readable until
+  // the user leaves and comes back.
+  const markEventsSeen = useEventsStore((s) => s.markEventsSeen);
+  const highlightedEventIds = useEventsStore((s) => s.highlightedEventIds);
+  const highlighted = useMemo(() => new Set(highlightedEventIds), [highlightedEventIds]);
+
+  useEffect(() => {
+    markEventsSeen();
+  }, [markEventsSeen, active]);
+
   // Collapsed sections, by title. Not persisted: a fold is a "get this out of
   // the way for now" gesture, not a setting.
   //
-  // "Your events" starts folded because the page is primarily for browsing what
-  // the community is running; a host's own drafts and submissions are a small
+  // "Requested events" starts folded: the page is primarily for browsing what
+  // the community is running, and a host's own pending submissions are a small
   // aside they can open when they want it.
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["Your events"]));
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["Requested events"]));
   const toggleSection = (title: string) =>
     setCollapsed((previous) => {
       const next = new Set(previous);
@@ -148,48 +167,65 @@ export default function EventsBrowser() {
       return next;
     });
 
-  // Deleting is irreversible, so anything still upcoming or running is
-  // confirmed first. A finished event is only clearing history and goes
-  // straight away.
+  // Deletion is graded by how much is at stake. A live event has people
+  // relying on it, so it asks for a typed phrase; an unreviewed one is a quick
+  // confirm; a finished one is only clearing history and goes straight away.
+  const [pendingDelete, setPendingDelete] = useState<CommunityEvent | null>(null);
+
   const requestDelete = (event: CommunityEvent) => {
-    if (needsDeleteConfirmation(event) && !window.confirm("Are you sure you want to delete this event?")) {
+    if (!needsDeleteConfirmation(event)) {
+      void deleteEvent(event.id);
       return;
     }
+
+    if (isLive(event)) {
+      setPendingDelete(event);
+      return;
+    }
+
+    if (window.confirm("Are you sure you want to delete this event?")) {
+      void deleteEvent(event.id);
+    }
+  };
+
+  const confirmDelete = (event: CommunityEvent) => {
+    setPendingDelete(null);
     void deleteEvent(event.id);
   };
 
   const sections = useMemo(() => {
+    const ownId = profile?.id;
+
+    /** The filter applies to every section, so it lives in one predicate. */
+    const passesFilter = (event: CommunityEvent) => {
+      if (filter === "mine") return Boolean(ownId) && event.hostDiscordId === ownId;
+      if (filter === "hc") return event.eventType === "hour";
+      if (filter === "ec") return event.eventType === "contest";
+      return true;
+    };
+
     const matching = (list: CommunityEvent[]) =>
       dedupeById(list)
         .filter((event) => matchesSearch(event, search))
+        .filter(passesFilter)
         .sort((a, b) => compareEvents(a, b, sort));
 
-    if (filter === "mine") {
-      return [{ title: "Your events", events: matching(mine) }];
-    }
+    // Submissions still waiting on a moderator, plus any that were denied.
+    // Once approved an event graduates to the public sections, so it leaves
+    // this one rather than being listed twice.
+    const requested = matching(mine).filter((event) => event.status !== "approved");
 
-    if (filter === "past") {
-      return [{ title: "Past", events: matching(past) }];
-    }
-
-    // "mine" entries that are still awaiting review are not in the public
-    // lists, so they are surfaced separately rather than lost.
-    const ownPending = matching(mine).filter((event) => event.status !== "approved");
+    // Includes the user's own approved events: this is "what the community is
+    // running", and hiding yours leaves the page looking empty when you host
+    // most of what is on.
     const activeSection = matching(active).filter((event) => !hasEnded(event));
 
-    if (filter === "active") {
-      return [
-        { title: "Your events", events: ownPending },
-        { title: "Active & Upcoming", events: activeSection },
-      ];
-    }
-
     return [
-      { title: "Your events", events: ownPending },
+      { title: "Requested events", events: requested },
       { title: "Active & Upcoming", events: activeSection },
       { title: "Past", events: matching(past) },
     ];
-  }, [active, past, mine, search, filter, sort]);
+  }, [active, past, mine, search, filter, sort, profile?.id]);
 
   const detailEvent = useMemo(() => {
     if (!detailId) return null;
@@ -209,6 +245,12 @@ export default function EventsBrowser() {
             canDelete(detailEvent, profile?.id) ? () => requestDelete(detailEvent) : undefined
           }
         />
+
+        <DeleteEventModal
+          event={pendingDelete}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={confirmDelete}
+        />
       </div>
     );
   }
@@ -226,9 +268,11 @@ export default function EventsBrowser() {
             ? `No events match "${search.trim()}".`
             : filter === "mine"
               ? "You are not hosting any events yet."
-              : filter === "past"
-                ? "No events have finished yet."
-                : "Nothing running right now. Host the first one."}
+              : filter === "hc"
+                ? "No hour challenges right now."
+                : filter === "ec"
+                  ? "No long contests right now."
+                  : "Nothing running right now. Host the first one."}
         </p>
       )}
 
@@ -244,8 +288,16 @@ export default function EventsBrowser() {
             onDelete={requestDelete}
             collapsed={collapsed.has(section.title)}
             onToggle={toggleSection}
+            highlighted={highlighted}
+            ownId={profile?.id}
           />
         ))}
+
+      <DeleteEventModal
+        event={pendingDelete}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

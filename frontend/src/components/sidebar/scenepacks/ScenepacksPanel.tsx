@@ -12,6 +12,8 @@ import { revealScenepackStorage } from "../../../utils/scenepackStorage";
 import { useGeneralSettingsStore } from "../../../stores/settingsStore";
 import { useUIStateStore } from "../../../stores/UIStore";
 import type { ScenepackEntry, ScenepackFolder } from "../../../types/domain";
+import ScenepackThumbnailModal from "./ScenepackThumbnailModal";
+import { useContextMenuStore } from "../../../stores/contextMenuStore";
 
 function useScenepackStructure(scenepacks: ScenepackEntry[], folders: ScenepackFolder[]) {
   return useMemo(() => {
@@ -41,6 +43,14 @@ function useScenepackStructure(scenepacks: ScenepackEntry[], folders: ScenepackF
   }, [scenepacks, folders]);
 }
 
+/**
+ * A pack's own cover if one was set, otherwise the first clip's thumbnail —
+ * which is the default, and what every pack had before covers existed.
+ */
+function scenepackCover(pack: ScenepackEntry): string | null {
+  return pack.thumbnail ?? pack.clips[0]?.thumbnail ?? null;
+}
+
 export function ScenepacksPanel() {
   const panelRef = useRef<HTMLDivElement | null>(null);
   const clickGestureRef = useRef<{ key: string | null; ts: number }>({ key: null, ts: 0 });
@@ -60,6 +70,7 @@ export function ScenepacksPanel() {
     addScenepack,
     removeScenepack,
     renameScenepack,
+    setScenepackThumbnail,
     addScenepackFolder,
     moveScenepackToFolder,
     removeScenepackFolder,
@@ -81,6 +92,19 @@ export function ScenepacksPanel() {
   const [contextMenu, setContextMenu] = useState<{ id: string; kind: "scenepack" | "folder"; x: number; y: number } | null>(null);
   // right-click on the panel's empty space, like the episode panel's
   const [panelContextMenu, setPanelContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [thumbnailModal, setThumbnailModal] = useState<string | null>(null);
+
+  const claimMenu = useContextMenuStore((s) => s.openContextMenu);
+  const activeContextMenu = useContextMenuStore((s) => s.activeMenu);
+
+  // Another menu took the slot, so whatever this panel had open is stale.
+  useEffect(() => {
+    if (activeContextMenu === "scenepack-panel-item" || activeContextMenu === "scenepack-panel-empty") {
+      return;
+    }
+    setContextMenu(null);
+    setPanelContextMenu(null);
+  }, [activeContextMenu]);
 
   // the folder (or the root) currently under a dragged pack
   const [dropTarget, setDropTarget] = useState<string | "root" | null>(null);
@@ -318,13 +342,14 @@ export function ScenepacksPanel() {
           e.preventDefault();
           e.stopPropagation();
           setPanelContextMenu(null);
+          claimMenu("scenepack-panel-item");
           setContextMenu({ id: sp.id, kind: "scenepack", x: e.clientX, y: e.clientY });
         }}
       >
-        {sp.clips.length > 0 && sp.clips[0].thumbnail ? (
+        {scenepackCover(sp) ? (
           <img
             className="scenepack-thumbnail"
-            src={convertFileSrc(sp.clips[0].thumbnail)}
+            src={convertFileSrc(scenepackCover(sp) as string)}
             draggable={false}
             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
           />
@@ -388,6 +413,7 @@ export function ScenepacksPanel() {
             e.stopPropagation();
             handleSelectFolder(folder.id);
             setPanelContextMenu(null);
+            claimMenu("scenepack-panel-item");
             setContextMenu({ id: folder.id, kind: "folder", x: e.clientX, y: e.clientY });
           }}
         >
@@ -497,6 +523,7 @@ export function ScenepacksPanel() {
             if (e.target !== e.currentTarget) return;
             e.preventDefault();
             setContextMenu(null);
+            claimMenu("scenepack-panel-empty");
             setPanelContextMenu({ x: e.clientX, y: e.clientY });
           }}
         >
@@ -559,6 +586,17 @@ export function ScenepacksPanel() {
               </div>
             </div>
           </div>
+        )}
+
+        {thumbnailModal && (
+          <ScenepackThumbnailModal
+            scenepackId={thumbnailModal}
+            currentThumbnail={
+              scenepacks.find((sp) => sp.id === thumbnailModal)?.thumbnail ?? null
+            }
+            onClose={() => setThumbnailModal(null)}
+            onSaved={(thumbnail) => setScenepackThumbnail(thumbnailModal, thumbnail)}
+          />
         )}
 
         {renameModal && (
@@ -673,6 +711,17 @@ export function ScenepacksPanel() {
               }}
             >
               Rename
+            </button>
+
+            <button
+              type="button"
+              className="episode-context-menu-item"
+              onClick={() => {
+                setThumbnailModal(contextMenu.id);
+                setContextMenu(null);
+              }}
+            >
+              Change Thumbnail
             </button>
 
             <button

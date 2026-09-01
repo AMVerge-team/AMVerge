@@ -3,6 +3,7 @@ import { FaEdit, FaExclamationTriangle } from "react-icons/fa";
 
 import ModalShell from "../common/ModalShell";
 import { useEventsStore } from "../../stores/eventsStore";
+import { useUIStateStore } from "../../stores/UIStore";
 
 /**
  * Shown once when a moderator denies one of the host's events, so a denial is
@@ -13,6 +14,7 @@ export default function DenialNoticeModal() {
   const mine = useEventsStore((s) => s.mine);
   const dismiss = useEventsStore((s) => s.dismissDenialNotice);
   const openHostForm = useEventsStore((s) => s.openHostForm);
+  const setActivePage = useUIStateStore((s) => s.setActivePage);
 
   const denied = useMemo(
     () => mine.filter((event) => event.status === "denied" && event.denialSeen === false),
@@ -63,6 +65,7 @@ export default function DenialNoticeModal() {
             className="event-host-btn"
             onClick={() => {
               dismiss();
+              setActivePage("events");
               openHostForm(first.id);
             }}
           >
