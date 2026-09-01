@@ -787,24 +787,31 @@ export default function useImportExport(props?: ImportExportProps) {
 
       let mergedFiles: string[] = [];
 
+      // The per-clip parts are staged in a scratch folder, so the folder the
+      // user picked only ever receives merged results. Nothing to clean up
+      // there afterwards, and a pass that fails midway leaves it untouched.
+      const stagingDir = await invoke<string>("create_export_staging_dir");
+      const stagingSep = stagingDir.includes("\\") ? "\\" : "/";
+
+      // One loading span for every phase. Toggling it per phase unmounted the
+      // import terminal in between, which threw away the log lines it had
+      // collected and left the next phase starting from an empty panel.
+      setActiveOperation("export");
+      setLoading(true);
+
       try {
       // 1. Export each clip on its own (no merge).
       let clipFiles: string[] = [];
-      try {
-        setActiveOperation("export");
-        setLoading(true);
+      {
         clipFiles = await invoke<string[]>("export_clips", {
           clips: clipArray,
-          savePath: `${dir}${sep}${baseName}_####.${format}`,
+          savePath: `${stagingDir}${stagingSep}${baseName}_####.${format}`,
           mergeEnabled: false,
           exportOptions,
           audioTrack: generalSettings.previewAudioStreamIndex,
           audioLanguage: generalSettings.previewAudioLanguage,
         });
         if (clipFiles.length === 0) throw new Error("Export produced no files.");
-      } finally {
-        setLoading(false);
-        setActiveOperation(null);
       }
 
       const remuxOptions: ExportOptionsPayload = {
@@ -817,21 +824,13 @@ export default function useImportExport(props?: ImportExportProps) {
         parallelExports: 1,
       };
 
-      const mergeInto = async (inputs: string[], savePath: string) => {
-        try {
-          setActiveOperation("export");
-          setLoading(true);
-          return await invoke<string[]>("export_clips", {
-            clips: inputs.map((input) => ({ input })),
-            savePath,
-            mergeEnabled: true,
-            exportOptions: remuxOptions,
-          });
-        } finally {
-          setLoading(false);
-          setActiveOperation(null);
-        }
-      };
+      const mergeInto = async (inputs: string[], savePath: string) =>
+        invoke<string[]>("export_clips", {
+          clips: inputs.map((input) => ({ input })),
+          savePath,
+          mergeEnabled: true,
+          exportOptions: remuxOptions,
+        });
 
       // 2. Merge the untouched clips: this is the plain export, and it keeps the
       // name the user chose. Passes never overwrite it.
@@ -858,19 +857,6 @@ export default function useImportExport(props?: ImportExportProps) {
         );
       }
 
-      // 4. Drop the per-clip parts; only the merged outputs are wanted on disk.
-      const intermediates = [
-        ...clipFiles,
-        ...passOutputs.interpolated,
-        ...passOutputs.deadframes,
-      ];
-      if (intermediates.length > 0) {
-        try {
-          await invoke("delete_export_intermediates", { dir, paths: intermediates });
-        } catch (err) {
-          console.warn("Failed to clean up export intermediates:", err);
-        }
-      }
 
       await deliverExportedFiles(mergedFiles);
 
@@ -901,6 +887,18 @@ export default function useImportExport(props?: ImportExportProps) {
           useAppStateStore.getState().setProgressMsg("");
         }, 8000);
         return;
+      } finally {
+        setLoading(false);
+        setActiveOperation(null);
+
+        // The whole staging folder goes, whatever happened. Nothing in it was a
+        // deliverable, and the merged outputs were written straight to the
+        // user's folder.
+        try {
+          await invoke("delete_export_staging_dir", { dir: stagingDir });
+        } catch (err) {
+          console.warn("Failed to remove export staging folder:", err);
+        }
       }
 
       // 5. Any remaining passes (depth/deadframes) run on the merged file.

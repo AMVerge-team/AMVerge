@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "npm run fetch:uv && dotenv -e ../.env -- tauri dev",
-    "tauri:build": "dotenv -e ../.env -- tauri build"
+    "tauri:build": "dotenv -e ../.env.production -- tauri build"
   },
   "dependencies": {
     "@tauri-apps/api": "~2.10.1",

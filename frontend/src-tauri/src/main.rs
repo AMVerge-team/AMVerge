@@ -28,8 +28,20 @@ fn main() {
         .manage(ExportAbortState::default())
         .manage(ActiveFfmpegPids::default())
         .manage(ActiveInstall::default())
+        .manage(commands::auth::DiscordAuthState::default())
         .invoke_handler(tauri::generate_handler![
             commands::bug_report::submit_bug_report,
+            commands::auth::begin_discord_login,
+            commands::auth::cancel_discord_login,
+            commands::auth::discord_session,
+            commands::auth::discord_logout,
+            commands::events::fetch_events,
+            commands::events::fetch_my_events,
+            commands::events::submit_event_request,
+            commands::events::update_event_request,
+            commands::events::delete_event_request,
+            commands::events::acknowledge_event_denial,
+            commands::events::acknowledge_event_approval,
             commands::system_specs::detect_pc_specs,
             commands::deps::ai_env_status,
             commands::deps::install_ai_pack,
@@ -47,6 +59,8 @@ fn main() {
             commands::export::run_export_pass,
             commands::export::abort_export,
             commands::export::delete_export_intermediates,
+            commands::export::create_export_staging_dir,
+            commands::export::delete_export_staging_dir,
             commands::export::detect_nvidia_encoder_profile,
             commands::export::detect_gpu_encoder_capabilities,
             commands::export::fast_merge,
@@ -70,6 +84,7 @@ fn main() {
             commands::cache::clear_episode_panel_cache,
             commands::scenepacks::materialize_scenepack_clips,
             commands::scenepacks::delete_scenepack_clip_files,
+            commands::scenepacks::save_scenepack_thumbnail,
             commands::scenepacks::delete_scenepack_storage,
             commands::scenepacks::clear_scenepacks_storage,
             commands::settings::save_background_image,

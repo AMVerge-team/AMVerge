@@ -210,6 +210,70 @@ pub async fn delete_scenepack_clip_files(
     Ok(())
 }
 
+/// Copies a chosen image into the scenepack's own storage folder and returns
+/// the stored path.
+///
+/// The picked file could be anywhere — a download, a temp folder, a removable
+/// drive — and the panel keeps only a path, so pointing at the original would
+/// leave a broken thumbnail the moment that file moved. Animated formats are
+/// copied byte for byte rather than re-encoded, so a GIF still animates.
+#[tauri::command]
+pub async fn save_scenepack_thumbnail(
+    app: AppHandle,
+    scenepack_id: String,
+    source_path: String,
+    custom_path: Option<String>,
+) -> Result<String, String> {
+    let source = std::path::Path::new(&source_path);
+    if !source.exists() {
+        return Err("That image no longer exists.".to_string());
+    }
+
+    let extension = source
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.to_ascii_lowercase())
+        .unwrap_or_else(|| "png".to_string());
+
+    if !matches!(extension.as_str(), "png" | "jpg" | "jpeg" | "webp" | "gif") {
+        return Err("Thumbnail must be a PNG, JPEG, WebP, or GIF image.".to_string());
+    }
+
+    let id = sanitize_episode_cache_id(&scenepack_id)?;
+    let pack_dir = resolve_scenepacks_storage_dir(&app, custom_path.as_deref())?.join(id);
+    std::fs::create_dir_all(&pack_dir)
+        .map_err(|e| format!("Failed to create scenepack folder: {e}"))?;
+
+    // A changing filename per save, so the webview's image cache cannot keep
+    // showing the previous thumbnail after it is replaced.
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let destination = pack_dir.join(format!("cover_{stamp}.{extension}"));
+
+    std::fs::copy(source, &destination).map_err(|e| format!("Failed to save thumbnail: {e}"))?;
+
+    // Drop any previous cover, so replacing one repeatedly does not accumulate.
+    if let Ok(entries) = std::fs::read_dir(&pack_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path == destination {
+                continue;
+            }
+            let is_cover = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.starts_with("cover_"));
+            if is_cover {
+                let _ = std::fs::remove_file(path);
+            }
+        }
+    }
+
+    Ok(destination.to_string_lossy().to_string())
+}
+
 /// Remove a whole Scenepack's storage folder — called when the pack itself is
 /// deleted.
 #[tauri::command]

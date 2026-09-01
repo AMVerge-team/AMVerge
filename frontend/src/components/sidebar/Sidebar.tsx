@@ -5,12 +5,14 @@ import { ScenepacksPanel } from "./scenepacks/ScenepacksPanel";
 import { useUIStateStore } from "../../stores/UIStore";
 
 export default function Sidebar() {
-  const activePage = useUIStateStore((s) => s.activePage);
+  // panelPage, not activePage: the Events page has no panel of its own and
+  // leaves whichever one was already open in place.
+  const panelPage = useUIStateStore((s) => s.panelPage);
 
   return (
     <div className="sidebar-container">
       <SidebarNav />
-      {activePage === "scenepacks" ? <ScenepacksPanel /> : <EpisodePanel />}
+      {panelPage === "scenepacks" ? <ScenepacksPanel /> : <EpisodePanel />}
     </div>
   );
 }

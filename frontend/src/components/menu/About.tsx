@@ -50,7 +50,7 @@ export default function About() {
         <div className="about-card">
           <div className="about-card-header">
             <span className="about-card-icon"><FaWrench /></span>
-            <h4>Fast-Track Workflow</h4>
+            <h4>Fast Workflow</h4>
           </div>
           <ol className="about-card-steps">
             <li>
@@ -62,7 +62,7 @@ export default function About() {
             <li>
               <span className="step-num">2</span>
               <div>
-                <strong>Select:</strong> Skim the grid and click the scenes you need. Use <code>Shift + Click</code> for ranges or <code>Ctrl + Click</code> for individual clips.
+                <strong>Select:</strong> Skim the grid and select the scenes you need. Use <code>Shift + Click</code> for ranges or <code>Ctrl + Click</code> for individual clips.
               </div>
             </li>
             <li>
@@ -96,6 +96,10 @@ export default function About() {
             <div className="shortcut-row">
               <span className="shortcut-key">{IS_MAC ? "Cmd + Scroll" : "Ctrl + Scroll"}</span>
               <span className="shortcut-desc">Adjust the number of grid columns</span>
+            </div>
+            <div className="shortcut-row">
+              <span className="shortcut-key">Esc</span>
+              <span className="shortcut-desc">Open quick navigation, or close what is open</span>
             </div>
           </div>
         </div>

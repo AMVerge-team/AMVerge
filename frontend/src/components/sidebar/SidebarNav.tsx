@@ -1,21 +1,23 @@
-// sidebar navigation buttons. Handles switching between top-level pages like Home and Menu
+// sidebar navigation buttons. Handles switching between top-level pages like Home and Scenepacks
 import type { IconType } from "react-icons";
-import { FaBars, FaHome, FaLayerGroup } from "react-icons/fa";
+import { FaCalendarAlt, FaHome, FaLayerGroup } from "react-icons/fa";
 import type { Page } from "./types";
 import Tooltip from "../common/Tooltip";
 import { useUIStateStore } from "../../stores/UIStore";
 import { useGeneralSettingsStore } from "../../stores/settingsStore";
+import { selectNewEventIds, useEventsStore } from "../../stores/eventsStore";
 
 const allButtons: { name: string; page: Page; icon: IconType; featureKey?: string }[] = [
   { name: "Home", page: "home", icon: FaHome },
   { name: "Scenepacks", page: "scenepacks", icon: FaLayerGroup, featureKey: "scenepacks" },
+  { name: "Community Events", page: "events", icon: FaCalendarAlt },
 ];
 
 export default function SidebarNav() {
   const activePage = useUIStateStore(s => s.activePage);
   const setActivePage = useUIStateStore(s => s.setActivePage);
   const scenepacksEnabled = useGeneralSettingsStore(s => s.scenepacksEnabled);
-  const openMenu = useUIStateStore(s => s.openMenu);
+  const newEventCount = useEventsStore(s => selectNewEventIds(s).length);
 
   return (
     <div className="menu-buttons">
@@ -42,24 +44,17 @@ export default function SidebarNav() {
                 aria-label={button.name}
               >
                 <Icon aria-hidden="true" />
+                {button.page === "events" && newEventCount > 0 && (
+                  <span className="sidebar-badge" aria-label={`${newEventCount} new events`}>
+                    {newEventCount > 9 ? "9+" : newEventCount}
+                  </span>
+                )}
               </button>
             </div>
           </Tooltip>
         );
       })}
 
-      <Tooltip content="Menu" side="right">
-        <div className="sidebar-button">
-          <button
-            type="button"
-            className="sidebar-nav-button"
-            onClick={openMenu}
-            aria-label="Menu"
-          >
-            <FaBars aria-hidden="true" />
-          </button>
-        </div>
-      </Tooltip>
     </div>
   );
 }

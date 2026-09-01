@@ -91,7 +91,12 @@ export default function EpisodePanelContextMenus({
                 Delete {multiSelectedIds.size} episodes
               </button>
 
-              <div className="episode-context-menu-separator" />
+              {/* Only worth a divider when there is a folder list under it;
+                  with no folders it was a rule hanging off the bottom of the
+                  menu with nothing to separate. */}
+              {episodeFolders.length > 0 && (
+                <div className="episode-context-menu-separator" />
+              )}
 
               {episodeFolders.map((folder) => (
                 <button

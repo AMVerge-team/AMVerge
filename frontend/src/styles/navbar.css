@@ -50,6 +50,33 @@
     color: var(--accent);
 }
 
+/* Sits where the episode-panel arrow used to, left of the wordmark. */
+.navbar-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.85);
+    opacity: 0.85;
+    padding: 5px;
+    margin-right: 4px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: opacity 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.navbar-menu-btn:hover {
+    opacity: 1;
+    color: var(--accent);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.navbar-menu-btn svg {
+    width: 17px;
+    height: 17px;
+}
+
 .discord-link {
     display: inline-flex;
     align-items: center;

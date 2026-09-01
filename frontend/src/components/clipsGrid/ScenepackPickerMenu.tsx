@@ -31,6 +31,10 @@ export function ScenepackPickerMenu({
 }: ScenepackPickerMenuProps) {
   const scenepacks = useScenepacksStore((s) => s.scenepacks);
   const scenepackFolders = useScenepacksStore((s) => s.scenepackFolders);
+  // Only set while viewing a pack, which is the only place "use this clip as
+  // the cover" has a pack to apply to.
+  const openedScenepackId = useScenepacksStore((s) => s.openedScenepackId);
+  const setScenepackThumbnail = useScenepacksStore((s) => s.setScenepackThumbnail);
 
   const leaveTimerRef = useRef<number | null>(null);
 
@@ -182,6 +186,22 @@ export function ScenepackPickerMenu({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
+      {openedScenepackId && clip.thumbnail && (
+        <>
+          <button
+            type="button"
+            className="episode-context-menu-item"
+            onClick={() => {
+              setScenepackThumbnail(openedScenepackId, clip.thumbnail);
+              onClose();
+            }}
+          >
+            Set as Scenepack thumbnail
+          </button>
+          <div className="episode-context-menu-separator" />
+        </>
+      )}
+
       {/* only the packs scroll — "New Scenepack…" stays reachable however many
           packs there are */}
       <div className="scenepack-picker-list">

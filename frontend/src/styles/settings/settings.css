@@ -1080,6 +1080,24 @@
     line-height: 1.45;
 }
 
+/* Step lists in an explainer, matching the body copy above them. */
+.info-modal-body ol,
+.info-modal-body ul {
+    margin: 0 0 10px;
+    padding-left: 20px;
+    color: rgb(255 255 255 / 0.72);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.info-modal-body li {
+    margin-bottom: 6px;
+}
+
+.info-modal-body li::marker {
+    color: var(--accent);
+}
+
 /* --------------------
    FONT PICKER
 -------------------- */

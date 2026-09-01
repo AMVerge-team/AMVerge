@@ -1,8 +1,11 @@
+pub mod auth;
+pub mod backend;
 pub mod bug_report;
 pub mod cache;
 pub mod deps;
 pub mod discord;
 pub mod editor_import;
+pub mod events;
 pub mod export;
 pub mod extension_sync;
 pub mod models;

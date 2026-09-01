@@ -26,6 +26,12 @@ use crate::utils::process::apply_no_window;
 pub struct PreviewAudioStream {
     pub audio_stream_index: u32,
     pub label: String,
+    /// Just the language name ("English"), for a picker that only needs to say
+    /// which language a track is in.
+    pub language_label: String,
+    /// The track's own title, which is what tells two tracks in the same
+    /// language apart. Empty when the stream is untitled.
+    pub title: String,
     /// Raw ffprobe language tag ("eng"), empty when the stream is untagged.
     pub language: String,
 }
@@ -828,6 +834,8 @@ pub async fn get_audio_streams(app: AppHandle, video_path: String) -> Result<Vec
         out.push(PreviewAudioStream {
             audio_stream_index: audio_order_index as u32,
             label,
+            language_label: language.clone(),
+            title: title.clone(),
             language: language_raw.trim().to_lowercase(),
         });
     }

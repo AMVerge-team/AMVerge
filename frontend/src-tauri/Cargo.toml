@@ -26,7 +26,11 @@ dotenvy = "0.15"
 hmac = "0.12"
 sha2 = "0.10"
 hex = "0.4"
+base64 = "0.22"
 uuid = { version = "1", features = ["v4"] }
+# Discord session tokens live in the OS credential store (Credential Manager on
+# Windows, Keychain on macOS) rather than anywhere the webview can read.
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
 
 # Reading the machine's own specs: the registry answers in a millisecond where
 # WMI's video adapter query takes nine seconds.

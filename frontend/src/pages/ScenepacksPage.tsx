@@ -98,7 +98,6 @@ export default function ScenepacksPage() {
     <GridPageLayout
       active={!overlayOpen}
       showImportControls={false}
-      infoText={openedScenepack?.name ?? null}
     />
   );
 }

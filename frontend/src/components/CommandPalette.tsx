@@ -26,6 +26,7 @@ import {
   FaCodeBranch,
   FaDiscord,
   FaGithub,
+  FaCalendarAlt,
 } from "react-icons/fa";
 import { useUIStateStore } from "../stores/UIStore";
 import { useEpisodePanelRuntimeStore, useEpisodePanelMetadataStore } from "../stores/episodeStore";
@@ -462,6 +463,24 @@ export default function CommandPalette() {
 
     // 5. SYSTEM & MENU
     items.push(
+      {
+        id: "community-events",
+        category: "menu",
+        title: "Community Events",
+        subtitle: "Browse contests, collabs, and jams — or host your own",
+        badge: "Community",
+        icon: FaCalendarAlt,
+        action: () => {
+          setCommandPaletteOpen(false);
+          setActivePage("events");
+        },
+        preview: {
+          metaTags: ["Contests", "Collabs", "Jams"],
+          metaLine1: "Community Events",
+          description: "Events hosted by the AMVerge community, reviewed before they appear.",
+          shortcut: "↵ Open",
+        },
+      },
       {
         id: "menu-console",
         category: "menu",

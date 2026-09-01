@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Page } from "../components/sidebar/types";
+import type { ClipPage, Page } from "../components/sidebar/types";
 
 export type UIState = {
     cols: number;
@@ -10,6 +10,9 @@ export type UIState = {
     dividerOffsetPx: number;
     isDragging: boolean;
     activePage: Page;
+    /** Last clip page visited. The Events page has no panel of its own, so the
+     *  sidebar keeps showing whichever panel was up before the user left. */
+    panelPage: ClipPage;
     settingsTab: string;
     settingsOpen: boolean;
     menuOpen: boolean;
@@ -62,6 +65,7 @@ export const DEFAULT_UI_STATE: UIState = {
     dividerOffsetPx: 0,
     isDragging: false,
     activePage: "home",
+    panelPage: "home",
     settingsTab: "general",
     settingsOpen: false,
     menuOpen: false,
@@ -112,9 +116,15 @@ export const useUIStateStore = create<UIStateStore>()(
                 })),
             setIsDragging: (isDragging) => set({ isDragging }),
             setActivePage: (activePage) =>
-                set((state) => ({
-                    activePage: typeof activePage === "function" ? activePage(state.activePage) : activePage,
-                })),
+                set((state) => {
+                    const next =
+                        typeof activePage === "function" ? activePage(state.activePage) : activePage;
+                    // Events borrows whichever panel was already up, so it must
+                    // not overwrite the remembered one.
+                    return next === "events"
+                        ? { activePage: next }
+                        : { activePage: next, panelPage: next };
+                }),
             setSettingsTab: (settingsTab) => set({ settingsTab }),
             openSettings: (tab) =>
                 set(tab

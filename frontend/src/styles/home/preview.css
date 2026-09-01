@@ -1090,3 +1090,14 @@
         gap: 8px;
     }
 }
+
+/* Language options carry no icon, so the profile dropdown's reserved icon
+   column just left a gap in front of every entry. One column, no gutter. */
+.audio-stream-select .dropdown-item-content,
+.audio-stream-select .dropdown-value.rich .dropdown-item-content {
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+        "label"
+        "desc" !important;
+    column-gap: 0 !important;
+}
