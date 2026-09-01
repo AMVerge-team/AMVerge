@@ -28,6 +28,10 @@ import {
 type PreviewAudioStream = {
   audioStreamIndex: number;
   label: string;
+  /** Just the language name, e.g. "English". */
+  languageLabel: string;
+  /** The track's own title, which is what tells two same-language tracks apart. */
+  title: string;
   language: string;
 };
 
@@ -100,7 +104,11 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     () =>
       audioStreams.map((stream) => ({
         value: stream.audioStreamIndex,
-        label: stream.label,
+        // The language alone: the full track description made the closed
+        // picker a wall of codec detail. The title still identifies a track
+        // when two share a language, so it moves to the option's description.
+        label: stream.languageLabel || stream.label,
+        description: stream.title || undefined,
       })),
     [audioStreams]
   );
@@ -448,6 +456,9 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                     );
                   }}
                   preferredDirection="up"
+                  // The closed picker shows the language only; the track title
+                  // stays in the open list where it is needed to choose.
+                  showTriggerDescription={false}
                   disabled={audioStreamOptions.length === 0 || webpPreviewMode}
                 />
               </div>
