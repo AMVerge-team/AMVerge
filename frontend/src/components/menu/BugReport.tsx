@@ -17,6 +17,7 @@ import {
 import Dropdown, { type DropdownOption } from "../common/Dropdown";
 import Tooltip from "../common/Tooltip";
 import { useDiscordRPCStatus } from "../../hooks/useDiscordRPC";
+import { useEventsStore } from "../../stores/eventsStore";
 import {
   FaBug,
   FaPaperPlane,
@@ -181,9 +182,16 @@ export default function BugReport() {
   );
   const [nowTs, setNowTs] = useState(() => Date.now());
   const discordStatus = useDiscordRPCStatus();
+  // The signed-in account from Community Events, which is a real authenticated
+  // identity rather than whatever Rich Presence happens to be reporting. It is
+  // preferred so the field fills for anyone signed in, whether or not they run
+  // Rich Presence at all.
+  const eventsProfile = useEventsStore((state) => state.profile);
+
   // The handle, not the display name: a display name cannot be searched for,
   // and it carries capitals the account itself does not have.
-  const discordUser = discordStatus?.user_handle ?? discordStatus?.user ?? null;
+  const discordUser =
+    eventsProfile?.username ?? discordStatus?.user_handle ?? discordStatus?.user ?? null;
   const screenshotInputRef = useRef<HTMLInputElement | null>(null);
   const issueTextRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -244,7 +252,7 @@ export default function BugReport() {
   function onFillDiscordContact() {
     if (!discordUser) {
       setContactError(
-        "Discord isn't connected. Turn Rich Presence on in Settings, or type your username."
+        "Discord isn't connected. Sign in on the Events page or turn on Rich Presence, or type your username."
       );
       return;
     }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FaBold } from "react-icons/fa";
 
 import Tooltip from "../common/Tooltip";
-import { FONT_TO_SIZE, SIZE_TO_FONT, renderInto, serializeRoot } from "./editorDom";
+import { SIZE_TO_FONT, readActiveFormat, renderInto, serializeRoot } from "./editorDom";
 import type { TextSize } from "./descriptionMarkup";
 
 const SIZE_BUTTONS: { size: TextSize; label: string; title: string }[] = [
@@ -36,6 +36,17 @@ export default function DescriptionEditor({
   // throw the caret back to the start.
   const lastSerialized = useRef<string>("");
 
+  /**
+   * A format applied with the caret collapsed is *pending*: the browser holds
+   * it and only creates an element once something is typed. Until then the DOM
+   * still describes the old formatting, so the buttons would not light up until
+   * the host started typing. This remembers the intent, and is dropped as soon
+   * as the caret moves or the text materialises it.
+   */
+  const pendingRef = useRef<
+    { size: TextSize | null; bold: boolean; node: Node | null; offset: number } | null
+  >(null);
+
   const [boldActive, setBoldActive] = useState(false);
   // null when the selection spans more than one size, so no button claims to be
   // the current one.
@@ -46,10 +57,31 @@ export default function DescriptionEditor({
     const editor = editorRef.current;
     if (!editor || document.activeElement !== editor) return;
 
-    setBoldActive(document.queryCommandState("bold"));
-    // Returns "" for a mixed selection, which is exactly the case where nothing
-    // should be highlighted.
-    setActiveSize(FONT_TO_SIZE[document.queryCommandValue("fontSize")] ?? null);
+    // Read from our own DOM rather than queryCommandValue, which answers with
+    // a different scale on WebKit than on Chromium and made the size buttons
+    // highlight the wrong one on macOS.
+    const { bold, size } = readActiveFormat(editor);
+
+    // Keep a pending format only while the caret has not moved off the spot it
+    // was applied at. Any real movement means the intent is stale.
+    const selection = window.getSelection();
+    const pending = pendingRef.current;
+    const stillThere =
+      pending !== null &&
+      selection !== null &&
+      selection.isCollapsed &&
+      selection.anchorNode === pending.node &&
+      selection.anchorOffset === pending.offset;
+
+    if (stillThere) {
+      setBoldActive(pending.bold);
+      setActiveSize(pending.size);
+      return;
+    }
+
+    pendingRef.current = null;
+    setBoldActive(bold);
+    setActiveSize(size);
   }, []);
 
   // selectionchange is the only event that fires for caret moves made with the
@@ -83,7 +115,13 @@ export default function DescriptionEditor({
     onChange(markup);
   };
 
-  const runCommand = (command: string, argument?: string) => {
+  /** Typing turns a pending style into real markup, so the DOM takes over. */
+  const handleInput = () => {
+    pendingRef.current = null;
+    pushChange();
+  };
+
+  const runCommand = (command: string, argument?: string, intendedSize?: TextSize) => {
     const editor = editorRef.current;
     if (!editor) return;
 
@@ -93,6 +131,23 @@ export default function DescriptionEditor({
     document.execCommand("styleWithCSS", false, "false");
     document.execCommand(command, false, argument);
     pushChange();
+
+    // With a collapsed caret nothing has changed in the DOM yet, so record what
+    // was asked for and show it straight away rather than after the first
+    // keystroke.
+    const selection = window.getSelection();
+    if (selection?.isCollapsed) {
+      const current = readActiveFormat(editor);
+      pendingRef.current = {
+        size: intendedSize ?? current.size,
+        bold: command === "bold" ? !boldActive : current.bold,
+        node: selection.anchorNode,
+        offset: selection.anchorOffset,
+      };
+    } else {
+      pendingRef.current = null;
+    }
+
     syncFormatState();
   };
 
@@ -124,7 +179,7 @@ export default function DescriptionEditor({
               type="button"
               className={`event-format-button event-format-size-${size}${activeSize === size ? " is-active" : ""}`}
               onMouseDown={(mouseEvent) => mouseEvent.preventDefault()}
-              onClick={() => runCommand("fontSize", SIZE_TO_FONT[size])}
+              onClick={() => runCommand("fontSize", SIZE_TO_FONT[size], size)}
               aria-pressed={activeSize === size}
               aria-label={title}
             >
@@ -148,7 +203,7 @@ export default function DescriptionEditor({
           role="textbox"
           aria-multiline="true"
           aria-label="Description"
-          onInput={pushChange}
+          onInput={handleInput}
           onBlur={pushChange}
           onKeyDown={(keyEvent) => {
             if ((keyEvent.ctrlKey || keyEvent.metaKey) && keyEvent.key.toLowerCase() === "b") {

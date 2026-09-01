@@ -105,3 +105,62 @@ export function renderInto(root: HTMLElement, markup: string): void {
     root.appendChild(block);
   }
 }
+
+/**
+ * What the caret or selection is currently formatted as, read from the DOM
+ * rather than from `queryCommandValue`.
+ *
+ * `queryCommandValue("fontSize")` is not consistent between engines: Chromium
+ * answers with the legacy 1-7 scale that `execCommand` accepts, while WebKit
+ * commonly answers with a pixel size. Since the app runs on WebView2 on Windows
+ * and WKWebView on macOS, reading the elements we produced ourselves is the
+ * only answer that means the same thing on both.
+ *
+ * Returns `size: null` when the selection spans more than one size, so no
+ * button claims to be the current one.
+ */
+export function readActiveFormat(editor: HTMLElement): { bold: boolean; size: TextSize | null } {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return { bold: false, size: null };
+
+  const sizeAt = (node: Node | null): TextSize | null => {
+    let current: Node | null = node;
+
+    while (current && current !== editor) {
+      if (current instanceof HTMLElement) {
+        if (isTextSize(current.dataset.size)) return current.dataset.size;
+        if (current.tagName === "FONT") {
+          const mapped = FONT_TO_SIZE[current.getAttribute("size") ?? ""];
+          if (mapped) return mapped;
+        }
+      }
+      current = current.parentNode;
+    }
+
+    // Nothing wrapping it means the editor's own size, which is "md".
+    return "md";
+  };
+
+  const boldAt = (node: Node | null): boolean => {
+    let current: Node | null = node;
+
+    while (current && current !== editor) {
+      if (current instanceof HTMLElement) {
+        if (current.tagName === "B" || current.tagName === "STRONG") return true;
+        const weight = current.style.fontWeight;
+        if (weight === "bold" || Number(weight) >= 600) return true;
+      }
+      current = current.parentNode;
+    }
+
+    return false;
+  };
+
+  const anchorSize = sizeAt(selection.anchorNode);
+  const focusSize = selection.isCollapsed ? anchorSize : sizeAt(selection.focusNode);
+
+  return {
+    bold: boldAt(selection.anchorNode),
+    size: anchorSize === focusSize ? anchorSize : null,
+  };
+}

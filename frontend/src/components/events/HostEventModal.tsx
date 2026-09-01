@@ -132,6 +132,9 @@ export default function HostEventModal() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Cleared on unmount and on reopen, so a pending auto-close can never fire
+  // against a form the host has already returned to.
+  const closeTimerRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const editing = useMemo(
@@ -139,15 +142,44 @@ export default function HostEventModal() {
     [editingId, mine]
   );
 
-  // Reset on every open so a previous draft never leaks into a new submission,
-  // and load the event being edited into the fields.
+  // Which target the form currently holds: the event id being edited, or
+  // "new". `editing` is derived from the `mine` array, so it becomes a fresh
+  // object every time that list refetches — keying off the id instead means a
+  // background refresh cannot reset a form the host is in the middle of.
+  const populatedFor = useRef<string | null>(null);
+
+  // Transient UI, reset when the form opens or changes target. Deliberately not
+  // keyed on `editing`: a refetch used to land here and wipe the error the host
+  // had just been shown, which is why a rate limit message vanished instantly.
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      populatedFor.current = null;
+      return;
+    }
 
     setError("");
     setMessage("");
+    setSubmitting(false);
     setThumbnail(null);
     setPreviewMode("tile");
+
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }, [open, editingId]);
+
+  // Fill the fields once per target. Waits for the event to arrive when the
+  // list is still loading, then leaves the form alone.
+  useEffect(() => {
+    if (!open) return;
+
+    const target = editingId ?? "__new__";
+    if (populatedFor.current === target) return;
+    // Editing something not in `mine` yet: wait rather than blanking the form.
+    if (editingId && !editing) return;
+
+    populatedFor.current = target;
 
     if (editing) {
       setForm({
@@ -163,7 +195,16 @@ export default function HostEventModal() {
     } else {
       setForm(EMPTY_FORM);
     }
-  }, [open, editing]);
+  }, [open, editingId, editing]);
+
+  // A close scheduled after a successful submit must not fire once this
+  // component is gone.
+  useEffect(
+    () => () => {
+      if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
+    },
+    []
+  );
 
   const setField = <K extends keyof FormState>(field: K, value: FormState[K]) => {
     setForm((previous) => ({ ...previous, [field]: value }));
@@ -187,7 +228,9 @@ export default function HostEventModal() {
 
   const thumbnailDataUrl = thumbnail
     ? `data:${thumbnail.mimeType};base64,${thumbnail.dataBase64}`
-    : editing?.thumbnailUrl ?? null;
+    // An event still in review has no public thumbnail URL, so its cover comes
+    // inline on the host's own copy. Approved ones use the cacheable URL.
+    : editing?.thumbnailDataUrl ?? editing?.thumbnailUrl ?? null;
 
   // The preview renders through the real EventCard and EventDetail, so what the
   // host sees here cannot drift from what the grid will show.
@@ -285,6 +328,10 @@ export default function HostEventModal() {
   };
 
   const handleSubmit = async () => {
+    // A second click while the first is still in flight would submit the event
+    // twice; the disabled button alone does not cover Enter in a field.
+    if (submitting) return;
+
     const problem = validate();
     if (problem) {
       setError(problem);
@@ -308,18 +355,26 @@ export default function HostEventModal() {
       thumbnail,
     });
 
-    setSubmitting(false);
-
     if (!result.ok) {
+      setSubmitting(false);
       setError(result.message || "Could not submit the event.");
       return;
     }
 
+    // Deliberately stays disabled: the submission succeeded, so the form must
+    // not accept another one. The confirmation shows briefly, then the modal
+    // closes itself rather than leaving the host to work out that Cancel is
+    // now the way out.
     setMessage(
       editing
         ? "Edit submitted. It goes live once a moderator approves it."
         : "Submitted. Your event appears once a moderator approves it."
     );
+
+    closeTimerRef.current = window.setTimeout(() => {
+      closeTimerRef.current = null;
+      closeHostForm();
+    }, 1600);
   };
 
   return (

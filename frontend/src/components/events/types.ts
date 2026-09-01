@@ -24,6 +24,9 @@ export type CommunityEvent = {
   hasThumbnail: boolean;
   /** Absolute by the time it reaches the webview; Rust rewrites it. */
   thumbnailUrl: string | null;
+  /** Inline copy of an unapproved event's cover, for its host's edit form. The
+   *  public thumbnail route serves approved events only. */
+  thumbnailDataUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   /** Only present on the host's own events. */
