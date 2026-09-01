@@ -786,9 +786,12 @@ export default function useImportExport(props?: ImportExportProps) {
       const finalSavePath = `${dir}${sep}${baseName}.${format}`;
 
       let mergedFiles: string[] = [];
-      // Per-clip parts to remove once the merged outputs exist. Tracked out
-      // here so the `finally` can still clean up after a failed pass.
-      let partFiles: string[] = [];
+
+      // The per-clip parts are staged in a scratch folder, so the folder the
+      // user picked only ever receives merged results. Nothing to clean up
+      // there afterwards, and a pass that fails midway leaves it untouched.
+      const stagingDir = await invoke<string>("create_export_staging_dir");
+      const stagingSep = stagingDir.includes("\\") ? "\\" : "/";
 
       try {
       // 1. Export each clip on its own (no merge).
@@ -798,16 +801,13 @@ export default function useImportExport(props?: ImportExportProps) {
         setLoading(true);
         clipFiles = await invoke<string[]>("export_clips", {
           clips: clipArray,
-          savePath: `${dir}${sep}${baseName}_####.${format}`,
+          savePath: `${stagingDir}${stagingSep}${baseName}_####.${format}`,
           mergeEnabled: false,
           exportOptions,
           audioTrack: generalSettings.previewAudioStreamIndex,
           audioLanguage: generalSettings.previewAudioLanguage,
         });
         if (clipFiles.length === 0) throw new Error("Export produced no files.");
-        // Recorded now rather than after the passes: a pass that throws must
-        // still leave these on the cleanup list.
-        partFiles = [...clipFiles];
       } finally {
         setLoading(false);
         setActiveOperation(null);
@@ -864,10 +864,6 @@ export default function useImportExport(props?: ImportExportProps) {
         );
       }
 
-      // Cleanup happens in the `finally` below, so a pass that fails partway
-      // does not leave the folder full of parts.
-      partFiles = [...clipFiles, ...passOutputs.interpolated, ...passOutputs.deadframes];
-
 
       await deliverExportedFiles(mergedFiles);
 
@@ -899,32 +895,13 @@ export default function useImportExport(props?: ImportExportProps) {
         }, 8000);
         return;
       } finally {
-        // Only once a merged file exists. If the merge itself failed, the
-        // per-clip parts are all the user has left and deleting them would
-        // throw away the export entirely.
-        if (mergedFiles.length > 0) {
-          // A pass can fail after writing some of its outputs, so the derived
-          // names are swept too; the command ignores paths that are not there.
-          const orphans = partFiles.flatMap((file) => {
-            const dot = file.lastIndexOf(".");
-            if (dot <= 0) return [];
-            const stem = file.slice(0, dot);
-            const ext = file.slice(dot);
-            return [
-              `${stem}${PASS_SUFFIX.deadframes}${ext}`,
-              `${stem}${PASS_SUFFIX.interpolation}${ext}`,
-              `${stem}_df_tmp${ext}`,
-            ];
-          });
-
-          const paths = Array.from(new Set([...partFiles, ...orphans]));
-          if (paths.length > 0) {
-            try {
-              await invoke("delete_export_intermediates", { dir, paths });
-            } catch (err) {
-              console.warn("Failed to clean up export intermediates:", err);
-            }
-          }
+        // The whole staging folder goes, whatever happened. Nothing in it was a
+        // deliverable, and the merged outputs were written straight to the
+        // user's folder.
+        try {
+          await invoke("delete_export_staging_dir", { dir: stagingDir });
+        } catch (err) {
+          console.warn("Failed to remove export staging folder:", err);
         }
       }
 

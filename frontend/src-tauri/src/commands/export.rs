@@ -522,6 +522,49 @@ pub async fn abort_export(abort_state: State<'_, ExportAbortState>) -> Result<St
 
 /// Delete the per-clip files an export produced once the merged output exists.
 /// Only removes files sitting directly in `dir`, so a bad path can never reach
+/// A scratch folder for the per-clip parts a merged export builds from.
+///
+/// Interpolation has to run clip by clip, so a merged export with that pass
+/// enabled must cut the clips before it can join them. Those parts are nobody's
+/// deliverable, so they are staged here instead of in the folder the user
+/// picked, which then only ever receives the merged result.
+#[tauri::command]
+pub async fn create_export_staging_dir() -> Result<String, String> {
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+
+    let dir = std::env::temp_dir().join(format!("amverge_merge_{}_{}", std::process::id(), stamp));
+    std::fs::create_dir_all(&dir).map_err(|e| format!("Failed to create staging folder: {e}"))?;
+
+    Ok(dir.to_string_lossy().to_string())
+}
+
+/// Removes a staging folder created above. Refuses anything that is not one of
+/// ours inside the system temp directory, so a bad path cannot delete a tree
+/// that matters.
+#[tauri::command]
+pub async fn delete_export_staging_dir(dir: String) -> Result<(), String> {
+    let path = std::path::PathBuf::from(&dir);
+
+    let is_ours = path.starts_with(std::env::temp_dir())
+        && path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .is_some_and(|n| n.starts_with("amverge_merge_"));
+
+    if !is_ours {
+        return Err("Refusing to remove a folder outside export staging.".to_string());
+    }
+
+    if path.exists() {
+        let _ = std::fs::remove_dir_all(&path);
+    }
+
+    Ok(())
+}
+
 /// outside the export folder the user picked.
 #[tauri::command]
 pub async fn delete_export_intermediates(dir: String, paths: Vec<String>) -> Result<(), String> {
@@ -536,4 +579,44 @@ pub async fn delete_export_intermediates(dir: String, paths: Vec<String>) -> Res
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod staging_tests {
+    /// Mirrors the guard in `delete_export_staging_dir`.
+    fn is_ours(path: &std::path::Path) -> bool {
+        path.starts_with(std::env::temp_dir())
+            && path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.starts_with("amverge_merge_"))
+    }
+
+    #[test]
+    fn accepts_only_our_own_staging_folders() {
+        let ours = std::env::temp_dir().join("amverge_merge_123_456");
+        assert!(is_ours(&ours), "a folder we created must be removable");
+
+        // Anything else must be refused, however it is dressed up.
+        for bad in [
+            std::env::temp_dir().join("something_else"),
+            std::env::temp_dir(),
+            std::path::PathBuf::from(r"C:\Windows"),
+            std::path::PathBuf::from("/"),
+            std::path::PathBuf::from(r"D:\Videosmverge_merge_123"),
+        ] {
+            assert!(!is_ours(&bad), "must refuse {}", bad.display());
+        }
+    }
+
+    #[test]
+    fn created_dir_is_ours_and_removable() {
+        let dir = std::env::temp_dir().join(format!("amverge_merge_test_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("part_0000.mp4"), b"x").unwrap();
+
+        assert!(is_ours(&dir));
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert!(!dir.exists(), "staging folder and its contents are gone");
+    }
 }
