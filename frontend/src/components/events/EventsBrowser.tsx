@@ -104,6 +104,10 @@ export default function EventsBrowser() {
   const sort = useEventsStore((s) => s.sort);
   const detailId = useEventsStore((s) => s.detailId);
   const profile = useEventsStore((s) => s.profile);
+  // Sign-in is started from the toolbar, which has nowhere to report a failure,
+  // so the error surfaces here. Without this a misconfigured build makes the
+  // Login button look like it does nothing at all.
+  const loginError = useEventsStore((s) => s.loginError);
   // Same column count the navbar zoom and ctrl+wheel drive for the clip grid,
   // capped for this page's wider cards.
   const cols = useUIStateStore((s) => Math.min(MAX_EVENT_COLUMNS, Math.max(1, s.cols)));
@@ -260,6 +264,7 @@ export default function EventsBrowser() {
   return (
     <div className="events-pane" ref={paneRef}>
       {error && <p className="events-error">{error}</p>}
+      {loginError && <p className="events-error">{loginError}</p>}
       {loading && <p className="events-empty">Loading events...</p>}
 
       {!loading && total === 0 && (

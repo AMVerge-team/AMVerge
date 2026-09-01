@@ -30,6 +30,12 @@ jobs:
       # Bundle the published CLI wheel (dev extra pulls PyInstaller). No torch —
       # the AI extras are installed at runtime into the app-managed uv venv.
       AMVERGE_CLI_INSTALL_SPEC: "amverge[edge,discord,dev]"
+      # Events + Discord sign-in, baked in at compile time via option_env!.
+      # Held as repository secrets so the backend host is not published in the
+      # repo. Note both values are still readable from any shipped binary, so
+      # this narrows who stumbles on them, not who can determine them.
+      AMVERGE_API_BASE_URL: ${{ secrets.AMVERGE_API_BASE_URL }}
+      AMVERGE_DISCORD_APP_CLIENT_ID: ${{ secrets.AMVERGE_DISCORD_APP_CLIENT_ID }}
 
     steps:
       - name: Checkout repo

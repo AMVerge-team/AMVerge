@@ -59,12 +59,32 @@ cd ../backend
 pip install -r requirements.txt
 ```
 
+Copy the environment file:
+
+```bash
+cp .env.example .env
+```
+
+PowerShell: `Copy-Item .env.example .env`
+
+This one step is easy to miss. Without it the app still builds and runs, but
+anything that talks to the AMVerge API reports **"AMVerge API endpoint is not
+configured on this build"**, and the Discord sign-in button does nothing. That
+is the missing `.env`, not a broken checkout.
+
+The defaults point at a local backend. For UI work that is usually enough. To
+work against the hosted API instead, ask a maintainer for the API URL and the
+desktop Discord client id — those are not published in the repo. Submitting a
+bug report additionally needs a signing key from a maintainer.
+
 Run development build:
 
 ```bash
-cd ../frontend
-npm run tauri dev
+cd frontend
+npm run tauri:dev
 ```
+
+Use `tauri:dev`, not `tauri dev` — the script loads `.env` before starting.
 
 ---
 
