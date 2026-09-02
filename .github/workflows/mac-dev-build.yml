@@ -17,6 +17,15 @@ jobs:
       # Held as repository secrets so the backend host is not published in the
       # repo. Note both values are still readable from any shipped binary, so
       # this narrows who stumbles on them, not who can determine them.
+      #
+      # Bug reports are signed, so a build without these reports "endpoint is
+      # not configured" and refuses to send. All four already exist as repo
+      # secrets; this workflow simply was not passing them through.
+      AMVERGE_BUG_REPORT_API_URL: ${{ secrets.AMVERGE_BUG_REPORT_API_URL }}
+      AMVERGE_BUG_REPORT_API_KEY: ${{ secrets.AMVERGE_BUG_REPORT_API_KEY }}
+      AMVERGE_BUG_REPORT_KEY_ID: ${{ secrets.AMVERGE_BUG_REPORT_KEY_ID }}
+      AMVERGE_BUG_REPORT_SIGNING_SECRET: ${{ secrets.AMVERGE_BUG_REPORT_SIGNING_SECRET }}
+      AMVERGE_NOTIFICATIONS_API_URL: ${{ secrets.AMVERGE_NOTIFICATIONS_API_URL }}
       AMVERGE_API_BASE_URL: ${{ secrets.AMVERGE_API_BASE_URL }}
       AMVERGE_DISCORD_APP_CLIENT_ID: ${{ secrets.AMVERGE_DISCORD_APP_CLIENT_ID }}
     strategy:
