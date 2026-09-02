@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useAppStateStore } from "../stores/appStore";
 import { useEpisodePanelRuntimeStore, useEpisodePanelMetadataStore } from "../stores/episodeStore";
 import { useGeneralSettingsStore } from "../stores/settingsStore";
+import { useUIStateStore } from "../stores/UIStore";
 
 /**
  * opens an episode by id. Store-level (reads via getState) so lightweight
@@ -27,6 +28,11 @@ export function openEpisodeById(episodeId: string) {
 	episodeMetadataState.setLastOpenedEpisodeId(episodeId);
 	appState.setImportedVideoPath(selectedEpisode.videoPath);
 	appState.setImportToken(Date.now().toString());
+
+	// The panel is visible from the Events page too, where opening an episode
+	// otherwise loaded it behind a page that does not show clips and looked like
+	// nothing happened. `handleOpenScenepack` does the same for its panel.
+	useUIStateStore.getState().setActivePage("home");
 
 	startTransition(() => {
 		appState.setClips(selectedEpisode.clips);
