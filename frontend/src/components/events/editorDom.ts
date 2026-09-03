@@ -1,12 +1,12 @@
 import { parseRichText, type TextSize } from "./descriptionMarkup";
 
 /**
- * Bridge between the editable DOM and our restricted markup.
+ * bridge between the editable DOM and our restricted markup
  *
  * `serializeRoot` is the security boundary: the editor's DOM may contain
  * whatever the browser or a paste produced, but only bold and the three known
- * sizes survive the trip out. Everything else — tags, attributes, event
- * handlers, urls — collapses to plain text, so what gets stored and rendered in
+ * sizes survive the trip out. everything else (tags, attributes, event
+ * handlers, urls) collapses to plain text, so what gets stored and rendered in
  * other people's apps can never be markup.
  */
 
@@ -26,7 +26,7 @@ function serialize(node: Node, bold: boolean, size: TextSize): string {
   if (!(node instanceof HTMLElement)) return "";
   if (node.tagName === "BR") return "\n";
 
-  // Never read the contents of an element that carries code rather than text.
+  // never read the contents of an element that carries code rather than text
   if (node.tagName === "SCRIPT" || node.tagName === "STYLE") return "";
 
   let nextBold = bold;
@@ -44,9 +44,9 @@ function serialize(node: Node, bold: boolean, size: TextSize): string {
   const isBlock = node.tagName === "DIV" || node.tagName === "P";
   const children = Array.from(node.childNodes);
 
-  // A block's trailing <br> is the browser's filler for an empty or final line,
-  // not a line break the host typed. Counting it as well as the block's own
-  // newline turned every blank line into two.
+  // a block's trailing <br> is the browser's filler for an empty or final line,
+  // not a line break the host typed. counting it as well as the block's own
+  // newline turned every blank line into two
   const last = children[children.length - 1];
   if (isBlock && last instanceof HTMLElement && last.tagName === "BR") {
     children.pop();
@@ -59,7 +59,7 @@ function serialize(node: Node, bold: boolean, size: TextSize): string {
     if (nextBold !== bold) inner = `**${inner}**`;
   }
 
-  // contentEditable wraps each line in its own block element.
+  // contentEditable wraps each line in its own block element
   return isBlock ? `${inner}\n` : inner;
 }
 
@@ -68,11 +68,11 @@ export function serializeRoot(root: HTMLElement): string {
     .map((child) => serialize(child, false, "md"))
     .join("");
 
-  // The last block contributes a trailing newline that was never typed.
+  // the last block contributes a trailing newline that was never typed
   return text.replace(/\n$/, "");
 }
 
-/** Paints markup into the editor as real formatted nodes, never via innerHTML. */
+/** paints markup into the editor as real formatted nodes, never via innerHTML */
 export function renderInto(root: HTMLElement, markup: string): void {
   root.replaceChildren();
 
@@ -107,16 +107,16 @@ export function renderInto(root: HTMLElement, markup: string): void {
 }
 
 /**
- * What the caret or selection is currently formatted as, read from the DOM
- * rather than from `queryCommandValue`.
+ * what the caret or selection is currently formatted as, read from the DOM
+ * rather than from `queryCommandValue`
  *
  * `queryCommandValue("fontSize")` is not consistent between engines: Chromium
  * answers with the legacy 1-7 scale that `execCommand` accepts, while WebKit
- * commonly answers with a pixel size. Since the app runs on WebView2 on Windows
+ * commonly answers with a pixel size. since the app runs on WebView2 on Windows
  * and WKWebView on macOS, reading the elements we produced ourselves is the
- * only answer that means the same thing on both.
+ * only answer that means the same thing on both
  *
- * Returns `size: null` when the selection spans more than one size, so no
+ * returns `size: null` when the selection spans more than one size, so no
  * button claims to be the current one.
  */
 export function readActiveFormat(editor: HTMLElement): { bold: boolean; size: TextSize | null } {
@@ -137,7 +137,7 @@ export function readActiveFormat(editor: HTMLElement): { bold: boolean; size: Te
       current = current.parentNode;
     }
 
-    // Nothing wrapping it means the editor's own size, which is "md".
+    // nothing wrapping it means the editor's own size, which is "md"
     return "md";
   };
 

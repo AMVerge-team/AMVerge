@@ -1,4 +1,4 @@
-// episode Panel modal renderer. Displays text input modals and confirmation modals.
+// episode Panel modal renderer. displays text input modals and confirmation modals
 import type React from "react";
 import type { ConfirmModalState, TextModalState } from "../types";
 

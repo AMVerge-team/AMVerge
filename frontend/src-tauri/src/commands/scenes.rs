@@ -67,7 +67,7 @@ fn build_manifest_from_backend_payload(
 
     // always derive the persisted clip list from the final scenes so the
     // manifest captures each scene's cut clip_path/clip_mode (the streamed
-    // INITIAL_CLIPS_READY event intentionally carries null paths for first paint).
+    // INITIAL_CLIPS_READY event intentionally carries null paths for first paint)
     let source_name = Path::new(video_path)
         .file_name()
         .and_then(|x| x.to_str())
@@ -99,8 +99,8 @@ fn build_manifest_from_backend_payload(
                 .unwrap_or("")
                 .to_string();
 
-            // static jpg poster path from the backend (video-mode). Falls back to
-            // the source video for webp/legacy payloads that don't emit one.
+            // static jpg poster path from the backend (video-mode). falls back to
+            // the source video for webp/legacy payloads that don't emit one
             let thumbnail = scene
                 .get("thumbnail")
                 .and_then(|v| v.as_str())
@@ -149,10 +149,10 @@ fn build_manifest_from_backend_payload(
     Ok(manifest)
 }
 
-/// Build a preliminary manifest from the streamed INITIAL_CLIPS_READY payload,
-/// written the moment scenes are detected (before any clip is cut). Clip paths
+/// build a preliminary manifest from the streamed INITIAL_CLIPS_READY payload,
+/// written the moment scenes are detected (before any clip is cut). clip paths
 /// are null here; the final manifest written at process end carries the real
-/// cut paths/modes. Shape matches the final manifest so any early reader works.
+/// cut paths/modes. shape matches the final manifest so any early reader works
 fn build_preliminary_manifest(
     initial_clips_json: &str,
     video_path: &str,
@@ -237,7 +237,7 @@ pub async fn detect_scenes(
         .clone()
         .unwrap_or_else(|| "transnetv2_gpu".to_string());
     // TransNetV2 lives in the optional AI env; every other method runs on the
-    // bundled sidecar.
+    // bundled sidecar
     let needs_ai = method == "transnetv2_gpu";
 
     let mut cmd = if needs_ai {
@@ -294,7 +294,7 @@ pub async fn detect_scenes(
     let stderr_accum_for_thread = Arc::clone(&stderr_accum);
 
     // cloned so the stderr thread can write a preliminary manifest as soon as
-    // scenes are streamed (INITIAL_CLIPS_READY), independent of the final write.
+    // scenes are streamed (INITIAL_CLIPS_READY), independent of the final write
     let output_dir_for_thread = output_dir.clone();
     let video_path_for_thread = video_path.clone();
     let episode_cache_id_for_thread = episode_cache_id.clone();
@@ -318,10 +318,10 @@ pub async fn detect_scenes(
                 let msg = parts.next().unwrap_or("").to_string();
 
                 if let Ok(p) = p_str.parse::<u8>() {
-                    // drive the progress bar only. The PROGRESS lines are NOT echoed
-                    // to the console stream — at ~hundreds per import they swamped the
+                    // drive the progress bar only. the PROGRESS lines are NOT echoed
+                    // to the console stream, at ~hundreds per import they swamped the
                     // console tab (and log store) with no tracking value; percent is
-                    // carried by this event, not the text line.
+                    // carried by this event, not the text line
                     let _ = app_for_stderr.emit(
                         "scene_progress",
                         ProgressPayload {
@@ -339,7 +339,7 @@ pub async fn detect_scenes(
                     },
                 );
                 // persist a preliminary manifest the moment scenes are known, so
-                // the episode has a lookup on disk before any clip is cut.
+                // the episode has a lookup on disk before any clip is cut
                 match build_preliminary_manifest(
                     clips_json,
                     &video_path_for_thread,
@@ -536,7 +536,7 @@ pub async fn load_episode_manifest(
     let content = fs::read_to_string(&manifest_path)
         .map_err(|e| format!("Failed to read manifest '{}': {e}", manifest_path.to_string_lossy()))?;
 
-    // validate JSON shape at read time so frontend always receives parseable content.
+    // validate JSON shape at read time so frontend always receives parseable content
     let _: Value = serde_json::from_str(&content)
         .map_err(|e| format!("Manifest is not valid JSON: {e}"))?;
 
@@ -552,7 +552,7 @@ pub async fn abort_detect_scenes(sidecar_state: State<'_, ActiveSidecar>) -> Res
         .take();
 
     // drop the child handle so detect_scenes' wait path sees None and exits cleanly.
-    // dropping closes the pipes but does not kill the process — the kill below does that.
+    // dropping closes the pipes but does not kill the process, the kill below does that
     {
         let mut lock = sidecar_state.child.lock().map_err(|e| e.to_string())?;
         *lock = None;
@@ -577,7 +577,7 @@ pub async fn abort_detect_scenes(sidecar_state: State<'_, ActiveSidecar>) -> Res
     .map_err(|e| format!("taskkill task panicked: {e}"))??;
 
     // use negative PID to kill the entire process group, which includes any
-    // ffmpeg child processes spawned by the Python backend.
+    // ffmpeg child processes spawned by the Python backend
     #[cfg(not(windows))]
     let result = tokio::task::spawn_blocking(move || {
         Command::new("kill")

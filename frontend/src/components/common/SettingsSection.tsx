@@ -13,8 +13,8 @@ export default function SettingsSection({
   title,
   children,
 }: SettingsSectionProps) {
-  // Open unless the user has collapsed this one before - the store only records
-  // sections they actually toggled, so an absent entry means "never touched".
+  // open unless the user has collapsed this one before - the store only records
+  // sections they actually toggled, so an absent entry means "never touched"
   const open = useSettingsSectionsStore((state) => state.openSections[id] ?? true);
   const setSectionOpen = useSettingsSectionsStore((state) => state.setSectionOpen);
 

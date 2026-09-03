@@ -5,8 +5,8 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const MINUTE_STEP = 5;
 
 /**
- * The value is the same `YYYY-MM-DDTHH:mm` local string a `datetime-local`
- * input produces, so everything downstream is unchanged — only the picker UI
+ * the value is the same `YYYY-MM-DDTHH:mm` local string a `datetime-local`
+ * input produces, so everything downstream is unchanged, only the picker UI
  * differs.
  */
 function parseValue(value: string): Date | null {
@@ -30,7 +30,7 @@ function sameDay(a: Date, b: Date): boolean {
   );
 }
 
-/** Six rows of seven, so the grid never changes height as months change. */
+/** six rows of seven, so the grid never changes height as months change */
 function monthGrid(view: Date): Date[] {
   const first = new Date(view.getFullYear(), view.getMonth(), 1);
   const start = new Date(first);
@@ -54,8 +54,8 @@ export default function DateTimePicker({
   onChange: (value: string) => void;
   id?: string;
   placeholder?: string;
-  /** Earliest selectable day. Defaults to today; the end field passes the start
-   *  date so an end before the start cannot be picked at all. */
+  /** earliest selectable day. defaults to today; the end field passes the start
+   *  date so an end before the start cannot be picked at all */
   minDate?: Date;
 }) {
   const selected = parseValue(value);
@@ -64,8 +64,8 @@ export default function DateTimePicker({
   const [view, setView] = useState<Date>(() => selected ?? new Date());
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Reopening on an existing value should land on that month, not last month
-  // the user happened to browse to.
+  // reopening on an existing value should land on that month, not last month
+  // the user happened to browse to
   useEffect(() => {
     if (open && selected) setView(new Date(selected.getFullYear(), selected.getMonth(), 1));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,8 +85,8 @@ export default function DateTimePicker({
     };
 
     document.addEventListener("pointerdown", onPointerDown);
-    // Capture phase: the modal closes on Escape too, and the picker should be
-    // what closes first.
+    // capture phase: the modal closes on Escape too, and the picker should be
+    // what closes first
     document.addEventListener("keydown", onKeyDown, true);
     return () => {
       document.removeEventListener("pointerdown", onPointerDown);
@@ -97,8 +97,8 @@ export default function DateTimePicker({
   const days = useMemo(() => monthGrid(view), [view]);
   const today = new Date();
   // Events cannot be scheduled into the past, and an end cannot precede its
-  // start. Compared at day granularity so the boundary day itself stays
-  // available.
+  // start. compared at day granularity so the boundary day itself stays
+  // available
   const floor = minDate && minDate > today ? minDate : today;
   const earliestDay = new Date(floor.getFullYear(), floor.getMonth(), floor.getDate());
 
@@ -106,8 +106,8 @@ export default function DateTimePicker({
 
   const pickDay = (day: Date) => {
     const next = new Date(day);
-    // Keep whatever time was already chosen; a fresh pick starts at midday,
-    // which is a likelier intent than midnight.
+    // keep whatever time was already chosen; a fresh pick starts at midday,
+    // which is a likelier intent than midnight
     next.setHours(selected?.getHours() ?? 12, selected?.getMinutes() ?? 0, 0, 0);
     commit(next);
   };
@@ -123,8 +123,8 @@ export default function DateTimePicker({
 
   const minuteOptions = useMemo(() => {
     const steps = Array.from({ length: 60 / MINUTE_STEP }, (_, i) => i * MINUTE_STEP);
-    // An event edited from an older value may sit off the step grid; keep its
-    // exact minute selectable rather than silently rounding it.
+    // an event edited from an older value may sit off the step grid; keep its
+    // exact minute selectable rather than silently rounding it
     const current = selected?.getMinutes();
     if (current !== undefined && !steps.includes(current)) {
       steps.push(current);

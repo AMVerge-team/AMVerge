@@ -26,8 +26,8 @@ export function formatDateRange(startsAt: string, endsAt: string): string {
 }
 
 /**
- * Date and time with the year dropped when it is the current one, which is the
- * common case. Keeps a range readable in the narrow detail pane, where the full
+ * date and time with the year dropped when it is the current one, which is the
+ * common case. keeps a range readable in the narrow detail pane, where the full
  * form ran to two lines.
  */
 export function formatDateTimeShort(value: string): string {
@@ -51,7 +51,7 @@ export function formatTime(value: string): string {
 }
 
 /**
- * An hour contest happens at a time, not across a range, so it reads as one
+ * an hour contest happens at a time, not across a range, so it reads as one
  * date and start time rather than two dates that would both say the same day.
  */
 export function formatSchedule(event: CommunityEvent): string {
@@ -61,7 +61,7 @@ export function formatSchedule(event: CommunityEvent): string {
   return formatDateRange(event.startsAt, event.endsAt);
 }
 
-/** Human duration for an hour contest, e.g. "4 hours". */
+/** human duration for an hour contest, e.g. "4 hours" */
 export function formatDuration(event: CommunityEvent): string {
   const hours = event.durationHours || 1;
   return hours === 1 ? "1 hour" : `${hours} hours`;
@@ -74,7 +74,7 @@ export function eventTypeLabel(event: CommunityEvent): string {
 }
 
 /**
- * Short form for the tile badge. An hour contest carries its length, so a
+ * short form for the tile badge. an hour contest carries its length, so a
  * four-hour one reads "4HC" and a full-day one "24HC".
  */
 export function eventTypeBadge(event: CommunityEvent): string {
@@ -92,7 +92,7 @@ export function formatDateTime(value: string): string {
 }
 
 /**
- * Days until an event starts or ends, whichever it is waiting on. Returns null
+ * days until an event starts or ends, whichever it is waiting on. returns null
  * once the event is over.
  */
 export function countdownLabel(event: CommunityEvent): string | null {
@@ -114,7 +114,7 @@ export function countdownLabel(event: CommunityEvent): string | null {
 }
 
 /**
- * Review status, shown only on a host's own events — public listings are
+ * review status, shown only on a host's own events; public listings are
  * approved by definition, so they carry no badge.
  */
 export function statusLabel(
@@ -127,16 +127,16 @@ export function statusLabel(
 }
 
 /**
- * Whether the signed-in host may remove this event. A live approved event is
- * off limits — people are relying on it — so only one awaiting review, denied,
- * or already finished can go. Mirrors the server's rule.
+ * whether the signed-in host may remove this event. a live approved event is
+ * off limits (people are relying on it), so only one awaiting review, denied,
+ * or already finished can go. mirrors the server's rule.
  */
 export function canDelete(event: CommunityEvent, hostDiscordId: string | undefined): boolean {
   return Boolean(hostDiscordId) && event.hostDiscordId === hostDiscordId;
 }
 
 /**
- * Whether removing this event should be confirmed first. A finished event is
+ * whether removing this event should be confirmed first. a finished event is
  * just clearing history, so it goes straight away; anything still to come or
  * still running is a decision worth pausing on.
  */
@@ -145,8 +145,8 @@ export function needsDeleteConfirmation(event: CommunityEvent): boolean {
 }
 
 /**
- * Whether an event is publicly live. The public list omits `status` altogether
- * and only ever contains approved events, so an absent status means approved —
+ * whether an event is publicly live. the public list omits `status` altogether
+ * and only ever contains approved events, so an absent status means approved
  * checking `status === "approved"` misses every card in the public sections.
  */
 export function isLive(event: CommunityEvent): boolean {
@@ -159,7 +159,7 @@ export function hasEnded(event: CommunityEvent, now = Date.now()): boolean {
 }
 
 /**
- * Free-text match over the fields a person would search by. Host name is
+ * free-text match over the fields a person would search by. host name is
  * included so "who is running anything right now" is answerable.
  */
 export function matchesSearch(event: CommunityEvent, query: string): boolean {
@@ -172,8 +172,8 @@ export function matchesSearch(event: CommunityEvent, query: string): boolean {
 }
 
 /**
- * Prize pool is free text ("$100", "1,000 USD + Nitro"), so sorting reads the
- * first number out of it. Anything with no number sorts as no prize rather than
+ * prize pool is free text ("$100", "1,000 USD + Nitro"), so sorting reads the
+ * first number out of it. anything with no number sorts as no prize rather than
  * as zero, which keeps unprized events out of the middle of the order.
  */
 export function prizeAmount(event: CommunityEvent): number | null {
@@ -186,7 +186,7 @@ export function prizeAmount(event: CommunityEvent): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-/** Comparator for the grid's sort control. */
+/** comparator for the grid's sort control */
 export function compareEvents(
   a: CommunityEvent,
   b: CommunityEvent,
@@ -202,7 +202,7 @@ export function compareEvents(
   const right = prizeAmount(b);
 
   // Events without a prize always sit at the end, whichever direction is asked
-  // for — they are not "cheapest", they are absent.
+  // for: they are not "cheapest", they are absent
   if (left === null && right === null) return 0;
   if (left === null) return 1;
   if (right === null) return -1;
@@ -210,7 +210,7 @@ export function compareEvents(
   return sort === "prize-desc" ? right - left : left - right;
 }
 
-/** De-duplicates by id, since a host's own event also appears in the public lists. */
+/** de-duplicates by id, since a host's own event also appears in the public lists */
 export function dedupeById(events: CommunityEvent[]): CommunityEvent[] {
   const seen = new Set<string>();
   return events.filter((event) => {

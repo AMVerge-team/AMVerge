@@ -1,7 +1,7 @@
-// shared sidebar types. Defines props, menu state, modal state, drag/drop state, and page types.
+// shared sidebar types. defines props, menu state, modal state, drag/drop state, and page types
 import type React from "react";
 
-/** Pages that browse clips and drive which panel the sidebar shows. */
+/** pages that browse clips and drive which panel the sidebar shows */
 export type ClipPage = "home" | "scenepacks";
 
 export type Page = ClipPage | "events";

@@ -54,7 +54,7 @@ export default function EpisodeRow({
 
   // import method is fixed per episode, but episodes imported before the field
   // existed don't carry it - infer those from whether their clips have cut video
-  // files, the same rule the grid uses to pick its preview mode.
+  // files, the same rule the grid uses to pick its preview mode
   const isWebpEpisode =
     episode.importMethod === "webp_files" ||
     (episode.importMethod === undefined &&

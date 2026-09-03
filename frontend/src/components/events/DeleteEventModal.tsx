@@ -4,12 +4,12 @@ import { FaExclamationTriangle, FaTrash } from "react-icons/fa";
 import ModalShell from "../common/ModalShell";
 import type { CommunityEvent } from "./types";
 
-/** Typed exactly, case included. A near miss is treated as a miss. */
+/** typed exactly, case included. a near miss is treated as a miss */
 const CONFIRM_PHRASE = "I'm sure";
 
 /**
- * Guards deletion of an event that is already live. People are relying on it,
- * and a stray click on a grid tile is far too cheap a way to take it down — so
+ * guards deletion of an event that is already live. people are relying on it,
+ * and a stray click on a grid tile is far too cheap a way to take it down, so
  * this one asks for the phrase to be typed rather than for a button press.
  */
 export default function DeleteEventModal({
@@ -23,8 +23,8 @@ export default function DeleteEventModal({
 }) {
   const [typed, setTyped] = useState("");
 
-  // Clear between events, so a phrase typed for one deletion can never carry
-  // over and pre-arm the next.
+  // clear between events, so a phrase typed for one deletion can never carry
+  // over and pre-arm the next
   useEffect(() => {
     setTyped("");
   }, [event?.id]);
@@ -52,8 +52,8 @@ export default function DeleteEventModal({
           placeholder={CONFIRM_PHRASE}
           aria-label={`Type ${CONFIRM_PHRASE} to confirm`}
           autoFocus
-          // Autocorrect would happily "fix" the apostrophe and leave the phrase
-          // looking right while never matching.
+          // autocorrect would happily "fix" the apostrophe and leave the phrase
+          // looking right while never matching
           autoCapitalize="off"
           autoCorrect="off"
           spellCheck={false}

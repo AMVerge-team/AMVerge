@@ -1,4 +1,4 @@
-// menu and modal state hook for the Episode Panel. Owns context menus, text modals, confirm modals, and close behavior.
+// menu and modal state hook for the Episode Panel. owns context menus, text modals, confirm modals, and close behavior
 import { useEffect, useRef, useState } from "react";
 import { useContextMenuStore } from "../../../stores/contextMenuStore";
 import type React from "react";
@@ -93,7 +93,7 @@ export default function useEpisodePanelMenus({
     }, 0);
   }, [textModal]);
 
-  // Another menu took the slot, so whatever this panel had open is stale.
+  // another menu took the slot, so whatever this panel had open is stale
   useEffect(() => {
     if (activeMenu === "episode-panel-item" || activeMenu === "episode-panel-empty") return;
     setContextMenu(null);

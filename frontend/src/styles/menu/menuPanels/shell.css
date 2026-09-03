@@ -1,0 +1,128 @@
+.menu-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    width: 100%;
+}
+
+.menu-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding-top: 16px;
+    padding-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    container-type: inline-size;
+}
+
+.menu-nav {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    padding: 0 8px;
+    box-sizing: border-box;
+}
+
+.menu-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.88rem;
+    font-weight: 500;
+    font-family: inherit;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.menu-nav-icon {
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    opacity: 0.85;
+}
+
+.menu-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+}
+
+.menu-nav-btn.active {
+    background: rgba(var(--accent-rgb), 0.15);
+    color: var(--accent);
+    border-color: rgba(var(--accent-rgb), 0.5);
+    font-weight: 600;
+}
+
+.menu-nav-btn.active .menu-nav-icon {
+    color: var(--accent);
+    opacity: 1;
+}
+
+.menu-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    width: 100%;
+    overflow: hidden;
+    padding: 0 12px 12px 12px;
+    box-sizing: border-box;
+}
+
+.menu-section {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.panel {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(12, 12, 14, 0.65);
+    backdrop-filter: blur(16px);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.menu-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.about-panel,
+.credits-panel,
+.patchnotes-panel,
+.bugreport-panel {
+    overflow-y: auto !important;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--accent-rgb) / 0.34) rgb(255 255 255 / 0.02);
+    padding: 20px 24px;
+    gap: 16px;
+}

@@ -7,8 +7,8 @@ const MAX_LOGS = 200;
 
 type Stage = "confirm" | "installing" | "done" | "error";
 
-/// Resolver for the promise `ensurePack` handed out. Kept outside the store —
-/// it is control flow, not renderable state.
+/// resolver for the promise `ensurePack` handed out. kept outside the store
+/// it is control flow, not renderable state
 let pendingResolve: ((installed: boolean) => void) | null = null;
 
 function settle(installed: boolean) {
@@ -19,10 +19,9 @@ function settle(installed: boolean) {
 
 export type AiDepsStore = {
   status: AiEnvStatus | null;
-  /// A status refresh is in flight (first load shows nothing rather than a lie).
+  /// a status refresh is in flight (first load shows nothing rather than a lie)
   loading: boolean;
 
-  // Install modal
   open: boolean;
   pack: AiPackId | null;
   stage: Stage;
@@ -33,19 +32,19 @@ export type AiDepsStore = {
   error: string | null;
 
   refresh: () => Promise<AiEnvStatus | null>;
-  /// Resolves true when `id` is installed and the caller may proceed. Opens the
-  /// confirm dialog when it isn't, and resolves false if the user declines.
+  /// resolves true when `id` is installed and the caller may proceed. opens the
+  /// confirm dialog when it isn't, and resolves false if the user declines
   ensurePack: (id: AiPackId) => Promise<boolean>;
   startInstall: () => Promise<void>;
-  /// Re-resolve every installed pack against the CUDA index. For an env that
-  /// ended up on a CPU torch despite the machine having an NVIDIA GPU.
+  /// re-resolve every installed pack against the CUDA index. for an env that
+  /// ended up on a CPU torch despite the machine having an NVIDIA GPU
   repairGpu: () => Promise<void>;
   cancel: () => void;
   close: () => void;
   minimize: () => void;
   openModal: () => void;
 
-  // Driven by the Tauri event listeners in AiInstallModal.
+  // driven by the Tauri event listeners in AiInstallModal
   applyProgress: (percent: number, indeterminate: boolean, message: string) => void;
   pushLog: (line: string) => void;
 };
@@ -79,10 +78,10 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
   ensurePack: async (id) => {
     const status = get().status ?? (await get().refresh());
     if (status?.packs?.[id]) return true;
-    // Dev builds run against the CLI checkout's venv; nothing to provision.
+    // dev builds run against the CLI checkout's venv; nothing to provision
     if (status && !status.managed) return true;
 
-    // A second request while the dialog is open joins the first one.
+    // a second request while the dialog is open joins the first one
     if (get().open && get().pack === id) {
       return new Promise<boolean>((resolve) => {
         const previous = pendingResolve;
@@ -114,9 +113,9 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
     const { pack, status } = get();
     if (!pack) return;
 
-    // Driven by the hardware, not by whatever variant happens to be installed.
-    // Preferring the installed variant made a CPU torch sticky: once anything
-    // pulled in a CPU wheel, every later pack kept reinstalling CPU.
+    // driven by the hardware, not by whatever variant happens to be installed.
+    // preferring the installed variant made a CPU torch sticky: once anything
+    // pulled in a CPU wheel, every later pack kept reinstalling CPU
     const gpu = Boolean(status?.gpuAvailable);
     set({
       stage: "installing",
@@ -158,9 +157,9 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
     );
     if (installed.length === 0 || !status?.gpuAvailable) return;
 
-    // One call is enough: the backend resolves the requested pack together with
+    // one call is enough: the backend resolves the requested pack together with
     // every pack already installed, so a single run puts the whole environment
-    // on the CUDA wheels.
+    // on the CUDA wheels
     settle(false);
     set({
       open: true,

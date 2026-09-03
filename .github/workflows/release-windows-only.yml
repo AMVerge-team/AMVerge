@@ -24,7 +24,7 @@ jobs:
       AMVERGE_BUG_REPORT_API_KEY: ${{ secrets.AMVERGE_BUG_REPORT_API_KEY }}
       AMVERGE_BUG_REPORT_KEY_ID: ${{ secrets.AMVERGE_BUG_REPORT_KEY_ID }}
       AMVERGE_BUG_REPORT_SIGNING_SECRET: ${{ secrets.AMVERGE_BUG_REPORT_SIGNING_SECRET }}
-      # Bundle the published CLI wheel (dev extra pulls PyInstaller). No torch —
+      # Bundle the published CLI wheel (dev extra pulls PyInstaller). No torch
       # the AI extras are installed at runtime into the app-managed uv venv.
       AMVERGE_CLI_INSTALL_SPEC: "amverge[edge,discord,dev]"
       # Events + Discord sign-in, baked in at compile time via option_env!.

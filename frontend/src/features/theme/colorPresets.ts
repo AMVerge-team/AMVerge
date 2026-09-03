@@ -1,5 +1,5 @@
 /**
- * theme colour presets.
+ * theme colour presets
  *
  * each accent ships with the background gradient designed to sit under it, so
  * picking an accent preset applies both. the pair is the source of truth for
@@ -31,7 +31,7 @@ export const GRADIENT_PRESET_COLORS = COLOR_PRESETS.map((p) => p.gradient);
 
 const eq = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
-/** the preset an accent belongs to, or null for a custom colour. */
+/** the preset an accent belongs to, or null for a custom colour */
 export function findAccentPreset(accent: string): ColorPreset | null {
   return COLOR_PRESETS.find((p) => eq(p.accent, accent)) ?? null;
 }

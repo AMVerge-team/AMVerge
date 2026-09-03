@@ -1,7 +1,3 @@
-/* --------------------
-   ABOUT
--------------------- */
-
 .about-content {
     flex: 1 1 auto;
     overflow-y: auto;
@@ -31,7 +27,7 @@
 .about-content ol {
     margin-left: 1.5em;
     margin-bottom: 1em;
-    
+
 }
 
 .about-section p {
@@ -43,4 +39,3 @@
     font-size: 15px;
     margin: 0;
 }
-

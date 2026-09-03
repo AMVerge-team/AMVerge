@@ -22,11 +22,11 @@ import type {
 } from "../components/events/types";
 
 /**
- * Not persisted: the event list is server state and the Discord session lives in
+ * not persisted: the event list is server state and the Discord session lives in
  * the OS credential store, so there is nothing here worth carrying across a
  * restart.
  */
-/** Which slice of the catalogue the grid is showing. */
+/** Which slice of the catalogue the grid is showing */
 export type EventFilter = "all" | "mine" | "hc" | "ec";
 
 export type EventSort = "date-asc" | "date-desc" | "prize-desc" | "prize-asc";
@@ -42,10 +42,10 @@ export type EventsState = {
   filter: EventFilter;
   sort: EventSort;
 
-  /** Event shown in the detail view, by id. */
+  /** event shown in the detail view, by id */
   detailId: string | null;
   hostFormOpen: boolean;
-  /** Set while the host form is editing one of the user's own events. */
+  /** Set while the host form is editing one of the user's own events */
   editingId: string | null;
 
   profile: DiscordProfile | null;
@@ -53,15 +53,15 @@ export type EventsState = {
   loginError: string | null;
 
   /**
-   * Approved events the user has already been shown, so a badge only ever
-   * counts genuinely new ones. Persisted; everything else here is server state
+   * approved events the user has already been shown, so a badge only ever
+   * counts genuinely new ones. persisted; everything else here is server state
    * or session state.
    */
   seenEventIds: string[];
-  /** False until the first successful load establishes the baseline. */
+  /** false until the first successful load establishes the baseline */
   hasSeededSeenEvents: boolean;
   /**
-   * Ids to mark NEW! for the current visit. Filled when the page opens and
+   * ids to mark NEW! for the current visit. filled when the page opens and
    * deliberately not persisted, so the flags clear on the next visit even
    * though the ids stay in `seenEventIds`.
    */
@@ -90,12 +90,12 @@ export type EventsStore = EventsState & {
   markEventsSeen: () => void;
 };
 
-/** Plenty for any realistic catalogue, and bounds the persisted payload. */
+/** plenty for any realistic catalogue, and bounds the persisted payload */
 const SEEN_ID_LIMIT = 500;
 
 /**
- * Events a badge could plausibly count: approved and not yet finished. A host's
- * own submissions are excluded — being told your own event is new is noise.
+ * Events a badge could plausibly count: approved and not yet finished. a host's
+ * own submissions are excluded: being told your own event is new is noise.
  */
 function visibleEventIds(state: Pick<EventsState, "active" | "profile">): string[] {
   return state.active
@@ -103,7 +103,7 @@ function visibleEventIds(state: Pick<EventsState, "active" | "profile">): string
     .map((event) => event.id);
 }
 
-/** Ids that are visible but not yet seen. Drives the sidebar badge. */
+/** ids that are visible but not yet seen. drives the sidebar badge */
 export function selectNewEventIds(state: EventsState): string[] {
   const seen = new Set(state.seenEventIds);
   return visibleEventIds(state).filter((id) => !seen.has(id));
@@ -138,8 +138,8 @@ export const useEventsStore = create<EventsStore>()(
   setFilter: (filter) => set({ filter }),
   setSort: (sort) => set({ sort }),
 
-  /** Background refresh: same fetch, but never touches `loading` or `error`,
-   *  so a poll cannot flash the grid or surface a transient network blip. */
+  /** background refresh: same fetch, but never touches `loading` or `error`,
+   *  so a poll cannot flash the grid or surface a transient network blip */
   refreshEvents: async () => {
     try {
       const [active, past] = await Promise.all([fetchEvents("active"), fetchEvents("past")]);
@@ -156,7 +156,7 @@ export const useEventsStore = create<EventsStore>()(
 
       if (get().profile) await get().loadMine();
     } catch {
-      // A failed poll just means the next one tries again.
+      // a failed poll just means the next one tries again
     }
   },
 
@@ -179,8 +179,8 @@ export const useEventsStore = create<EventsStore>()(
 
       set({ active: active.events, past: past.events, loading: false, error: null });
 
-      // A fresh install has seen nothing, which would badge the whole existing
-      // catalogue as new. Treat the first successful load as the baseline.
+      // a fresh install has seen nothing, which would badge the whole existing
+      // catalogue as new. treat the first successful load as the baseline
       if (!get().hasSeededSeenEvents) {
         set({
           hasSeededSeenEvents: true,
@@ -202,8 +202,8 @@ export const useEventsStore = create<EventsStore>()(
       const result = await fetchMyEvents();
       set({ mine: result.ok ? result.events : [] });
     } catch {
-      // The host's own list is supplementary; a failure here must not blank the
-      // public grid the user came for.
+      // the host's own list is supplementary; a failure here must not blank the
+      // public grid the user came for
       set({ mine: [] });
     }
   },
@@ -278,13 +278,13 @@ export const useEventsStore = create<EventsStore>()(
     try {
       const result = await deleteEventRequest(eventId);
 
-      // Refetch either way: on success to drop the row, on failure because the
-      // list was probably stale to begin with.
+      // refetch either way: on success to drop the row, on failure because the
+      // list was probably stale to begin with
       await Promise.all([get().loadEvents(), get().loadMine()]);
 
       if (!result.ok) return { ok: false, message: result.message };
 
-      // The detail view may be showing the event that just went away.
+      // the detail view may be showing the event that just went away
       if (get().detailId === eventId) set({ detailId: null });
       return { ok: true, message: null };
     } catch (err) {
@@ -293,7 +293,7 @@ export const useEventsStore = create<EventsStore>()(
   },
 
   /**
-   * Marks every unseen denial as seen. Local state updates immediately so the
+   * marks every unseen denial as seen. local state updates immediately so the
    * notice cannot reappear while the server call is in flight.
    */
   dismissDenialNotice: () => {
@@ -313,7 +313,7 @@ export const useEventsStore = create<EventsStore>()(
     }
   },
 
-  /** The approval counterpart, same one-shot behaviour as the denial notice. */
+  /** the approval counterpart, same one-shot behaviour as the denial notice */
   dismissApprovalNotice: () => {
     const unseen = get().mine.filter(
       (event) => event.status === "approved" && event.approvalSeen === false
@@ -332,7 +332,7 @@ export const useEventsStore = create<EventsStore>()(
   },
 
   /**
-   * Called when the events page opens. Everything currently new is highlighted
+   * called when the events page opens. everything currently new is highlighted
    * for this visit and simultaneously recorded as seen, so the sidebar badge
    * clears immediately while the NEW! flags stay readable until the user
    * leaves and comes back.
@@ -348,16 +348,16 @@ export const useEventsStore = create<EventsStore>()(
 
     set({
       highlightedEventIds: fresh,
-      // Bounded so a long-lived install cannot grow this without limit; ids
-      // that fall off are old events no longer in any list.
+      // bounded so a long-lived install cannot grow this without limit; ids
+      // that fall off are old events no longer in any list
       seenEventIds: Array.from(seen).slice(-SEEN_ID_LIMIT),
     });
   },
     }),
     {
       name: "amverge.events.v1",
-      // Only the seen set is worth carrying across a restart. Event lists are
-      // server state, and highlights are meant to last one visit.
+      // only the seen set is worth carrying across a restart. event lists are
+      // server state, and highlights are meant to last one visit
       partialize: (state) => ({
         seenEventIds: state.seenEventIds,
         hasSeededSeenEvents: state.hasSeededSeenEvents,

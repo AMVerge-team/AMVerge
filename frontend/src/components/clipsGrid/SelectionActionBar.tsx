@@ -15,9 +15,9 @@ export function SelectionActionBar() {
   const scenepacksEnabled = useGeneralSettingsStore((s) => s.scenepacksEnabled);
   const [showModal, setShowModal] = useState(false);
 
-  // Add-to-Scenepack only makes sense from the Home/episode grid — a
+  // add-to-Scenepack only makes sense from the Home/episode grid, a
   // Scenepack's own clips are already materialized copies, not something to
-  // re-add — and never when the feature itself is off.
+  // re-add, and never when the feature itself is off
   if (selectedClips.size === 0 || activePage !== "home" || !scenepacksEnabled) return null;
 
   return (

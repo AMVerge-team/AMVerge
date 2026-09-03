@@ -8,11 +8,7 @@ function resolveSetterValue<T>(prev: T, value: SetterValue<T>): T {
   return typeof value === "function" ? (value as (current: T) => T)(prev) : value;
 }
 
-/* =========================
-      GENERAL APP STATES
-   ========================= */
 export type AppState = {
-  // app core state
   focusedClip: string | null;
   focusedClipId: string | null;
   selectedClips: Set<string>;
@@ -21,18 +17,17 @@ export type AppState = {
   userHasHEVC: boolean;
   importedVideoPath: string | null;
   
-  // app loading and progress state
   loading: boolean;
   // which CLI operation the loading overlay is showing (drives its header/command
-  // line). null when idle.
+  // line). null when idle
   activeOperation: "import" | "export" | null;
   progress: number;
   progressMsg: string;
   bgProgress: { done: number; total: number } | null;
   bgImportProgress: { done: number; total: number } | null;
-  // background phase-2 re-encode progress. Kept separate from bgProgress so it
-  // does NOT count as "import busy" — re-encodes run in the background and must
-  // not block starting a new import.
+  // background phase-2 re-encode progress. kept separate from bgProgress so it
+  // does NOT count as "import busy": re-encodes run in the background and must
+  // not block starting a new import
   reencodeProgress: { done: number; total: number } | null;
   importToken: string;
   batchTotal: number;

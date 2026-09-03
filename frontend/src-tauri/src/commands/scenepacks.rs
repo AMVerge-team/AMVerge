@@ -11,11 +11,11 @@ use crate::utils::logging::{console_log, sanitize_for_console};
 use crate::utils::paths::{resolve_scenepacks_storage_dir, sanitize_episode_cache_id};
 use crate::utils::sidecar::amverge_command;
 
-/// One clip to materialize into a Scenepack's own storage. Either an
+/// one clip to materialize into a Scenepack's own storage. either an
 /// already-cut clip file to copy in (video mode) or a `[start_sec, end_sec]`
-/// range to cut from a source episode (webp mode) — mirrors `ClipSpec` in
+/// range to cut from a source episode (webp mode): mirrors `ClipSpec` in
 /// `export.rs`: snake_case fields, sent as-is from the frontend into the CLI's
-/// `--inputs-json`.
+/// `--inputs-json`
 #[derive(Deserialize, Serialize)]
 pub(crate) struct MaterializeClipSpec {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -39,11 +39,11 @@ pub struct MaterializedClip {
     pub error: Option<String>,
 }
 
-/// Cut/copy a batch of clips into `<scene_packs>/<scenepack_id>/`, each as a
-/// standalone .mp4 + poster .jpg. This is what makes a Scenepack independent
-/// of episode storage — deleting the source episode can never touch these
-/// copies — and lets every Scenepack clip load like a normal pre-cut video
-/// clip instead of needing a per-episode WebP cache lookup.
+/// cut/copy a batch of clips into `<scene_packs>/<scenepack_id>/`, each as a
+/// standalone .mp4 + poster .jpg. this is what makes a Scenepack independent
+/// of episode storage, deleting the source episode can never touch these
+/// copies, and lets every Scenepack clip load like a normal pre-cut video
+/// clip instead of needing a per-episode WebP cache lookup
 #[tauri::command]
 pub async fn materialize_scenepack_clips(
     app: AppHandle,
@@ -59,9 +59,9 @@ pub async fn materialize_scenepack_clips(
     let out_dir = resolve_scenepacks_storage_dir(&app, custom_path.as_deref())?.join(id);
     std::fs::create_dir_all(&out_dir).map_err(|e| e.to_string())?;
 
-    // A per-call name, not a per-process one: two adds started close together
+    // a per-call name, not a per-process one: two adds started close together
     // shared a single path, so the second wrote its list over the first before
-    // that CLI had read it — and the first pack received the wrong clip.
+    // that CLI had read it, and the first pack received the wrong clip
     let inputs_path = std::env::temp_dir().join(format!(
         "amverge_materialize_{}_{}.json",
         std::process::id(),
@@ -184,10 +184,10 @@ pub async fn materialize_scenepack_clips(
     })
 }
 
-/// Remove specific materialized clip files (mp4+jpg pairs) from a Scenepack's
-/// storage — called when a clip is removed from the pack. Only deletes files
+/// remove specific materialized clip files (mp4+jpg pairs) from a Scenepack's
+/// storage, called when a clip is removed from the pack. only deletes files
 /// that actually live inside that pack's own folder, regardless of what path
-/// the caller passes in.
+/// the caller passes in
 #[tauri::command]
 pub async fn delete_scenepack_clip_files(
     app: AppHandle,
@@ -210,13 +210,13 @@ pub async fn delete_scenepack_clip_files(
     Ok(())
 }
 
-/// Copies a chosen image into the scenepack's own storage folder and returns
+/// copies a chosen image into the scenepack's own storage folder and returns
 /// the stored path.
 ///
-/// The picked file could be anywhere — a download, a temp folder, a removable
-/// drive — and the panel keeps only a path, so pointing at the original would
-/// leave a broken thumbnail the moment that file moved. Animated formats are
-/// copied byte for byte rather than re-encoded, so a GIF still animates.
+/// the picked file could be anywhere, a download, a temp folder, a removable
+/// drive, and the panel keeps only a path, so pointing at the original would
+/// leave a broken thumbnail the moment that file moved. animated formats are
+/// copied byte for byte rather than re-encoded, so a GIF still animates
 #[tauri::command]
 pub async fn save_scenepack_thumbnail(
     app: AppHandle,
@@ -244,8 +244,8 @@ pub async fn save_scenepack_thumbnail(
     std::fs::create_dir_all(&pack_dir)
         .map_err(|e| format!("Failed to create scenepack folder: {e}"))?;
 
-    // A changing filename per save, so the webview's image cache cannot keep
-    // showing the previous thumbnail after it is replaced.
+    // a changing filename per save, so the webview's image cache cannot keep
+    // showing the previous thumbnail after it is replaced
     let stamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_millis())
@@ -254,7 +254,7 @@ pub async fn save_scenepack_thumbnail(
 
     std::fs::copy(source, &destination).map_err(|e| format!("Failed to save thumbnail: {e}"))?;
 
-    // Drop any previous cover, so replacing one repeatedly does not accumulate.
+    // drop any previous cover, so replacing one repeatedly does not accumulate
     if let Ok(entries) = std::fs::read_dir(&pack_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
@@ -274,8 +274,8 @@ pub async fn save_scenepack_thumbnail(
     Ok(destination.to_string_lossy().to_string())
 }
 
-/// Remove a whole Scenepack's storage folder — called when the pack itself is
-/// deleted.
+/// remove a whole Scenepack's storage folder, called when the pack itself is
+/// deleted
 #[tauri::command]
 pub async fn delete_scenepack_storage(
     app: AppHandle,
@@ -290,13 +290,13 @@ pub async fn delete_scenepack_storage(
     Ok(())
 }
 
-/// Remove ALL Scenepacks' storage — the "Clear Scenepack Storage" settings
+/// remove ALL Scenepacks' storage, the "Clear Scenepack Storage" settings
 /// button, and what runs if the user opts to delete their Scenepacks when
-/// disabling the feature. Unlike `clear_episode_panel_cache`, this wipes
+/// disabling the feature. unlike `clear_episode_panel_cache`, this wipes
 /// `scene_packs/` outright rather than filtering child-by-child: that folder
 /// is created and populated by AMVerge alone, never a user-chosen location
 /// that might hold unrelated files, so there's nothing else in there to
-/// preserve.
+/// preserve
 #[tauri::command]
 pub async fn clear_scenepacks_storage(
     app: AppHandle,

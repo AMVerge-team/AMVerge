@@ -39,7 +39,7 @@ function placeholder(title: string, index: number): CommunityEvent {
 }
 
 /**
- * Shows the draft tile as it will actually sit in the grid: real neighbours
+ * shows the draft tile as it will actually sit in the grid: real neighbours
  * around it, clipped and faded at the edges so the frame reads as a window onto
  * the page rather than a card floating on its own.
  */
@@ -49,8 +49,8 @@ export default function EventPreviewStage({ draft }: { draft: CommunityEvent }) 
     []
   );
 
-  // Four before and four after puts the draft in the middle cell of a 3-wide
-  // grid, so it is surrounded on every side.
+  // four before and four after puts the draft in the middle cell of a 3-wide
+  // grid, so it is surrounded on every side
   const before = placeholders.slice(0, 4);
   const after = placeholders.slice(4);
 

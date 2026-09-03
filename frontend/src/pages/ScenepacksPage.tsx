@@ -53,8 +53,8 @@ export default function ScenepacksPage() {
       s.setImportedVideoPath(prevVideoPathRef.current);
       s.setImportToken(Date.now().toString());
       s.setFocusedClip(null);
-      // Selection is by clip id and the ids differ per page, so anything still
-      // selected here would keep inflating the episode grid's "N selected".
+      // selection is by clip id and the ids differ per page, so anything still
+      // selected here would keep inflating the episode grid's "N selected"
       s.setSelectedClips(new Set());
     };
   }, []);
@@ -65,15 +65,15 @@ export default function ScenepacksPage() {
     store.setClips(sp ? sp.clips.map((c, i) => scenepackClipToClipItem(sp.id, c, i)) : []);
     store.setImportedVideoPath(null);
     store.setImportToken(Date.now().toString());
-    // Entering a pack (or switching packs) starts with a clean selection —
-    // ids from the episode grid don't refer to anything here.
+    // entering a pack (or switching packs) starts with a clean selection
+    // ids from the episode grid don't refer to anything here
     store.setSelectedClips(new Set());
     store.setFocusedClip(null);
   }, [openedScenepackId]);
 
-  // Clips still being cut into this pack, drawn from their episode copy so the
-  // tile is not blank while it waits. They are not in the pack yet — they land
-  // in the store proper once the CLI has produced their own file.
+  // clips still being cut into this pack, drawn from their episode copy so the
+  // tile is not blank while it waits. they are not in the pack yet; they land
+  // in the store proper once the CLI has produced their own file
   const pending = useScenepackPendingStore((s) => s.pending);
   const pendingClips = useMemo<ClipItem[]>(() => {
     if (!openedScenepackId) return [];

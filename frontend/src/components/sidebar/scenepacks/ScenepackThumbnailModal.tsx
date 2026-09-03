@@ -8,8 +8,8 @@ import { useGeneralSettingsStore } from "../../../stores/settingsStore";
 const ACCEPTED = ["png", "jpg", "jpeg", "webp", "gif"];
 
 /**
- * Sets a Scenepack's cover image. Accepts a drop or a file picker, and takes
- * GIFs as-is so an animated cover keeps animating — the file is copied into the
+ * sets a Scenepack's cover image. accepts a drop or a file picker, and takes
+ * GIFs as-is so an animated cover keeps animating; the file is copied into the
  * pack's own storage rather than referenced where it lies.
  */
 export default function ScenepackThumbnailModal({
@@ -23,7 +23,7 @@ export default function ScenepackThumbnailModal({
   onClose: () => void;
   onSaved: (thumbnail: string | null) => void;
 }) {
-  // Same storage root the other scenepack commands resolve against.
+  // same storage root the other scenepack commands resolve against
   const episodesPath = useGeneralSettingsStore((s) => s.episodesPath);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -41,8 +41,8 @@ export default function ScenepackThumbnailModal({
     return () => document.removeEventListener("keydown", onKeyDown, true);
   }, [onClose]);
 
-  // The webview's own drop event carries no filesystem path, so the file has to
-  // come from Tauri's drag-drop event instead.
+  // the webview's own drop event carries no filesystem path, so the file has to
+  // come from Tauri's drag-drop event instead
   useEffect(() => {
     let cancelled = false;
 

@@ -9,7 +9,7 @@ import {
 import Tooltip from "../common/Tooltip";
 import localLogo from "../../assets/amverge-logo.png";
 
-/** "07:12" / "1:02:33" — the shape of Discord's own session timer. */
+/** "07:12" / "1:02:33": the shape of Discord's own session timer */
 function formatElapsed(startSec: number, nowSec: number) {
   const total = Math.max(0, nowSec - startSec);
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -23,10 +23,10 @@ function resolveAsset(info: DiscordAppInfo | null, key: string | undefined) {
 }
 
 /**
- * Clickable when the activity carries a url for this element, inert otherwise.
+ * clickable when the activity carries a url for this element, inert otherwise
  *
- * The destination shows on hover — the one thing hovering can say that looking
- * cannot — through the app's own tooltip rather than the browser's pale box.
+ * the destination shows on hover (the one thing hovering can say that looking
+ * cannot) through the app's own tooltip rather than the browser's pale box.
  */
 function Linked({
   url,
@@ -52,10 +52,10 @@ function Linked({
 }
 
 /**
- * The activity card as it appears on a Discord profile, rendering the exact
- * payload Rust would publish (`status.activity`) rather than rebuilding it.
+ * the activity card as it appears on a Discord profile, rendering the exact
+ * payload Rust would publish (`status.activity`) rather than rebuilding it
  *
- * The lines and art are clickable here as they are on the profile, so where a
+ * the lines and art are clickable here as they are on the profile, so where a
  * link lands can be checked without leaving Settings.
  */
 export default function DiscordPresencePreview({
@@ -78,8 +78,8 @@ export default function DiscordPresencePreview({
     return () => clearInterval(id);
   }, [start]);
 
-  // Falls back the way Discord itself does: named asset, then app icon, then the
-  // bundled logo when the machine is offline.
+  // falls back the way Discord itself does: named asset, then app icon, then the
+  // bundled logo when the machine is offline
   const largeUrl = resolveAsset(info, activity?.assets?.large_image) ?? info?.icon ?? null;
   const smallUrl = resolveAsset(info, activity?.assets?.small_image);
   useEffect(() => setLargeBroken(false), [largeUrl]);

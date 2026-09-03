@@ -14,34 +14,18 @@ import {
   type ExportProfileIcon,
 } from "../../../features/export/profiles";
 import { renderProfileIcon } from "../../../features/export/profileIconUtils";
-
-const FEATURED_PROFILE_ICONS_KEY = "amverge.featuredProfileIcons";
-const MAX_INLINE_VISIBLE_ICON_COUNT = 8;
-const MAX_FEATURED_ICONS = 8;
-
-const INLINE_DEFAULT_ICONS: ExportProfileIcon[] = [
-  "video",
-  "remux",
-  "h264",
-  "h265",
-  "prores",
-];
-
-const ICON_FILE_EXTENSIONS = [
-  "png",
-  "jpg",
-  "jpeg",
-  "webp",
-  "gif",
-  "bmp",
-  "tif",
-  "tiff",
-];
-
-type PersistedFeaturedIcons = {
-  builtIn: ExportProfileIcon[];
-  custom: string[];
-};
+import {
+  getCurrentInlineVisibleIconCount,
+  getInlineVisibleIconCount,
+  ICON_FILE_EXTENSIONS,
+  INLINE_DEFAULT_ICONS,
+  MAX_FEATURED_ICONS,
+  normalizeIconPath,
+  readPersistedFeaturedIcons,
+  selectFeaturedIcons,
+  stampIconPath,
+  writePersistedFeaturedIcons,
+} from "./profileIcons";
 
 type CropModalPayload = {
   x: number;
@@ -62,26 +46,6 @@ type ProfileIconPickerProps = {
   removeCustomProfileIcon: (iconPath: string) => void;
   updateActiveProfile: (changes: Partial<ExportProfile>) => void;
 };
-
-function normalizeIconPath(path: string | null | undefined): string {
-  return (path || "").split("?")[0];
-}
-
-function stampIconPath(path: string): string {
-  return `${normalizeIconPath(path)}?t=${Date.now()}`;
-}
-
-function getInlineVisibleIconCount(viewportWidth: number): number {
-  if (viewportWidth <= 960) return 5;
-  if (viewportWidth <= 1160) return 6;
-  if (viewportWidth <= 1360) return 7;
-  return MAX_INLINE_VISIBLE_ICON_COUNT;
-}
-
-function getCurrentInlineVisibleIconCount(): number {
-  if (typeof window === "undefined") return MAX_INLINE_VISIBLE_ICON_COUNT;
-  return getInlineVisibleIconCount(window.innerWidth);
-}
 
 function ProfileIconGlyph({
   icon,
@@ -152,59 +116,16 @@ export default function ProfileIconPicker({
     [normalizedCustomProfileIcons]
   );
 
-  const saveFeaturedIcons = (
-    nextBuiltIn: ExportProfileIcon[],
-    nextCustom: string[]
-  ) => {
-    const builtInSeen = new Set<ExportProfileIcon>();
-    const customSeen = new Set<string>();
-    const validBuiltIn: ExportProfileIcon[] = [];
-    const validCustom: string[] = [];
-
-    for (const icon of nextBuiltIn) {
-      if (!availableIconSet.has(icon) || builtInSeen.has(icon)) continue;
-
-      builtInSeen.add(icon);
-      validBuiltIn.push(icon);
-
-      if (validBuiltIn.length >= MAX_FEATURED_ICONS) break;
-    }
-
-    const remainingSlots = Math.max(0, MAX_FEATURED_ICONS - validBuiltIn.length);
-
-    for (const rawPath of nextCustom) {
-      const normalizedPath = normalizeIconPath(rawPath);
-
-      if (
-        !normalizedPath ||
-        !normalizedCustomProfileIconSet.has(normalizedPath) ||
-        customSeen.has(normalizedPath)
-      ) {
-        continue;
-      }
-
-      customSeen.add(normalizedPath);
-      validCustom.push(normalizedPath);
-
-      if (validCustom.length >= remainingSlots) break;
-    }
-
-    setFeaturedIcons(validBuiltIn);
-    setFeaturedCustomIcons(validCustom);
-
-    try {
-      const payload: PersistedFeaturedIcons = {
-        builtIn: validBuiltIn,
-        custom: validCustom,
-      };
-
-      window.localStorage.setItem(
-        FEATURED_PROFILE_ICONS_KEY,
-        JSON.stringify(payload)
-      );
-    } catch {
-      // ignore storage failures and keep in-memory state.
-    }
+  const saveFeaturedIcons = (nextBuiltIn: ExportProfileIcon[], nextCustom: string[]) => {
+    const picked = selectFeaturedIcons(
+      nextBuiltIn,
+      nextCustom,
+      availableIconSet,
+      normalizedCustomProfileIconSet
+    );
+    setFeaturedIcons(picked.builtIn);
+    setFeaturedCustomIcons(picked.custom);
+    writePersistedFeaturedIcons(picked);
   };
 
   const inlineVisibleIconItems = useMemo(() => {
@@ -289,64 +210,18 @@ export default function ProfileIconPicker({
   }, []);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(FEATURED_PROFILE_ICONS_KEY);
-      if (!raw) return;
-
-      const parsed = JSON.parse(raw) as PersistedFeaturedIcons | ExportProfileIcon[];
-
-      const parsedBuiltIn = Array.isArray(parsed)
-        ? parsed
-        : parsed && typeof parsed === "object" && Array.isArray(parsed.builtIn)
-          ? parsed.builtIn
-          : [];
-
-      const parsedCustom =
-        !Array.isArray(parsed) &&
-        parsed &&
-        typeof parsed === "object" &&
-        Array.isArray(parsed.custom)
-          ? parsed.custom
-          : [];
-
-      const builtInSeen = new Set<ExportProfileIcon>();
-      const customSeen = new Set<string>();
-      const validBuiltIn: ExportProfileIcon[] = [];
-      const validCustom: string[] = [];
-
-      for (const icon of parsedBuiltIn) {
-        if (!availableIconSet.has(icon) || builtInSeen.has(icon)) continue;
-
-        builtInSeen.add(icon);
-        validBuiltIn.push(icon);
-
-        if (validBuiltIn.length >= MAX_FEATURED_ICONS) break;
-      }
-
-      const remainingSlots = Math.max(0, MAX_FEATURED_ICONS - validBuiltIn.length);
-
-      for (const iconPath of parsedCustom) {
-        const normalizedPath = normalizeIconPath(iconPath);
-
-        if (
-          !normalizedPath ||
-          !normalizedCustomProfileIconSet.has(normalizedPath) ||
-          customSeen.has(normalizedPath)
-        ) {
-          continue;
-        }
-
-        customSeen.add(normalizedPath);
-        validCustom.push(normalizedPath);
-
-        if (validCustom.length >= remainingSlots) break;
-      }
-
-      setFeaturedIcons(validBuiltIn);
-      setFeaturedCustomIcons(validCustom);
-    } catch {
-      // ignore invalid persisted values.
-    }
+    const stored = readPersistedFeaturedIcons();
+    // nothing persisted: leave whatever is in memory alone, since a failed write
+    // must not wipe the user's pins
+    if (stored.builtIn.length === 0 && stored.custom.length === 0) return;
+    const picked = selectFeaturedIcons(
+      stored.builtIn,
+      stored.custom,
+      availableIconSet,
+      normalizedCustomProfileIconSet
+    );
+    setFeaturedIcons(picked.builtIn);
+    setFeaturedCustomIcons(picked.custom);
   }, [availableIconSet, normalizedCustomProfileIconSet]);
 
   useEffect(() => {

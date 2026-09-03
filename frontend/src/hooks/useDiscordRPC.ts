@@ -24,11 +24,11 @@ export type {
 
 const STATUS_EVENT = "discord_rpc_status";
 
-/** How long an announced outcome ("Export finished") outranks the live status. */
+/** how long an announced outcome ("Export finished") outranks the live status */
 const OUTCOME_HOLD_MS = 12_000;
 
 /**
- * Drives the Discord Rich Presence. Rust owns the connection, the reconnects and
+ * drives the Discord Rich Presence. Rust owns the connection, the reconnects and
  * Discord's one-update-per-15s cap, so this hook only says *what* to show.
  */
 export default function useDiscordRPC() {
@@ -55,12 +55,12 @@ export default function useDiscordRPC() {
     const episodes = useEpisodePanelRuntimeStore((s) => s.episodes);
     const episodeNamesById = useEpisodePanelMetadataStore((s) => s.episodeNamesById);
 
-    // Same precedence the rest of the app uses to name an episode, then the
+    // same precedence the rest of the app uses to name an episode, then the
     // extension comes off whichever name won.
     //
-    // Stripping only the path was not enough: `displayName` is set at import to
+    // stripping only the path was not enough: `displayName` is set at import to
     // `originalName || fileNameFromPath(file)`, both of which keep the container,
-    // and it outranks the path — so the card kept saying "… .mp4".
+    // and it outranks the path, so the card kept saying "… .mp4"
     const episodeName = useMemo(() => {
         if (!openedEpisodeId) return null;
         const episode = episodes.find((e) => e.id === openedEpisodeId);
@@ -73,16 +73,16 @@ export default function useDiscordRPC() {
         return mediaName(named);
     }, [openedEpisodeId, episodes, episodeNamesById]);
 
-    // Settings read inside callbacks that must not be re-created on every flip.
+    // Settings read inside callbacks that must not be re-created on every flip
     const flagsRef = useRef({ showMiniIcons, showElapsed, showLinks });
     flagsRef.current = { showMiniIcons, showElapsed, showLinks };
-    // An announced outcome holds the card briefly; without it the derived status
-    // would overwrite "Export finished" in the same frame it was announced.
+    // an announced outcome holds the card briefly; without it the derived status
+    // would overwrite "Export finished" in the same frame it was announced
     const holdUntilRef = useRef(0);
     const lastActivityRef = useRef<RPCActivity | null>(null);
 
     /**
-     * Sent even when the presence is off: Rust only connects once enabled, but
+     * sent even when the presence is off: Rust only connects once enabled, but
      * keeps tracking what *would* be published, for the preview card.
      */
     const publish = useCallback(async (activity: RPCActivity) => {
@@ -106,8 +106,8 @@ export default function useDiscordRPC() {
     }, []);
 
     /**
-     * Announce an outcome the state cannot express — an export that finished or
-     * failed. It outranks the derived status for a few seconds, then the live
+     * announce an outcome the state cannot express: an export that finished or
+     * failed. it outranks the derived status for a few seconds, then the live
      * one takes back over on its own.
      */
     const updateRPC = useCallback(
@@ -124,7 +124,7 @@ export default function useDiscordRPC() {
         [publish]
     );
 
-    // The Rust worker survives a stop, so switching back on reconnects at once.
+    // the Rust worker survives a stop, so switching back on reconnects at once
     useEffect(() => {
         const command = enabled ? "start_discord_rpc" : "stop_discord_rpc";
         invoke(command).catch((err) => console.error(`Failed to run ${command}:`, err));
@@ -164,15 +164,15 @@ export default function useDiscordRPC() {
         ]
     );
 
-    // Publish whenever the derived status changes, or a display toggle does.
-    // Rust drops identical payloads, so an over-eager render costs nothing.
+    // publish whenever the derived status changes, or a display toggle does.
+    // Rust drops identical payloads, so an over-eager render costs nothing
     useEffect(() => {
         const wait = holdUntilRef.current - Date.now();
         if (wait <= 0) {
             void publish(activity);
             return;
         }
-        // An outcome is on screen; take over the moment its hold expires.
+        // an outcome is on screen; take over the moment its hold expires
         const id = setTimeout(() => void publish(activity), wait);
         return () => clearTimeout(id);
     }, [activity, publish, showMiniIcons, showElapsed, showLinks]);
@@ -180,7 +180,7 @@ export default function useDiscordRPC() {
     return { updateRPC };
 }
 
-/** Live connection state; only listens, never publishes. */
+/** live connection state; only listens, never publishes */
 export function useDiscordRPCStatus() {
     const [status, setStatus] = useState<DiscordRPCStatus | null>(null);
 
@@ -204,8 +204,8 @@ export function useDiscordRPCStatus() {
 }
 
 /**
- * The app's real name and art from Discord's public endpoints, so the preview
- * shows what friends see. Offline yields nothing and the card falls back to the
+ * the app's real name and art from Discord's public endpoints, so the preview
+ * shows what friends see. offline yields nothing and the card falls back to the
  * bundled logo.
  */
 export function useDiscordAppInfo() {

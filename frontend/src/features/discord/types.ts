@@ -1,7 +1,7 @@
-// The shapes crossing the Tauri bridge for Rich Presence. Mirrors of the
-// Rust payloads: change one side and this one has to follow.
+// the shapes crossing the Tauri bridge for Rich Presence. mirrors of the
+// Rust payloads: change one side and this one has to follow
 
-/** What a caller describes: the activity itself, without the display toggles. */
+/** what a caller describes: the activity itself, without the display toggles */
 export type RPCActivity = {
     details?: string;
     state?: string;
@@ -10,7 +10,7 @@ export type RPCActivity = {
     small_text?: string;
 };
 
-/** The activity payload Discord receives, mirrored for the settings preview. */
+/** the activity payload Discord receives, mirrored for the settings preview */
 export type DiscordActivity = {
     details?: string;
     details_url?: string;
@@ -27,22 +27,22 @@ export type DiscordActivity = {
     timestamps?: { start?: number };
 };
 
-/** Mirror of the Rust `DiscordRpcStatus` payload. */
+/** mirror of the Rust `DiscordRpcStatus` payload */
 export type DiscordRPCStatus = {
     enabled: boolean;
     connected: boolean;
-    /** Display name, what Discord shows first. */
+    /** display name, what Discord shows first */
     user: string | null;
-    /** The @handle you type in Discord's search bar — always lowercase. */
+    /** the @handle you type in Discord's search bar, always lowercase */
     user_handle: string | null;
     error: string | null;
     activity: DiscordActivity | null;
 };
 
-/** Mirror of the Rust `DiscordAppInfo` payload. */
+/** mirror of the Rust `DiscordAppInfo` payload */
 export type DiscordAppInfo = {
     name: string;
-    /** Asset key (`amverge_logo`, `edit_icon_new`, …) → CDN url. */
+    /** asset key (`amverge_logo`, `edit_icon_new`, …) → CDN url */
     assets: Record<string, string>;
     icon: string | null;
 };

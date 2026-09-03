@@ -22,7 +22,7 @@ export default function PostExportPassesModal() {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [logs, minimized]);
 
-  // auto-close a short while after everything finishes with no errors.
+  // auto-close a short while after everything finishes with no errors
   useEffect(() => {
     if (!active || !finished || errors.length > 0) return;
     const t = window.setTimeout(() => usePassRunStore.getState().close(), 2500);

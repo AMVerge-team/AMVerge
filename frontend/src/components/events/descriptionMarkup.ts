@@ -1,15 +1,15 @@
 /**
- * A deliberately tiny markup for event descriptions: bold and three text sizes.
+ * a deliberately tiny markup for event descriptions: bold and three text sizes
  *
- * Descriptions are written by community members and rendered in everyone else's
- * app, so no HTML is ever stored or injected. The text is parsed into plain
+ * descriptions are written by community members and rendered in everyone else's
+ * app, so no HTML is ever stored or injected. the text is parsed into plain
  * data here and rendered as React elements, which means an unrecognised or
  * malformed tag can only ever come out as literal text.
  */
 
 export type TextSize = "sm" | "md" | "lg";
 
-/** The only sizes accepted; anything else is treated as literal text. */
+/** the only sizes accepted; anything else is treated as literal text */
 export const TEXT_SIZES: TextSize[] = ["sm", "md", "lg"];
 
 export type RichSpan = {
@@ -18,14 +18,14 @@ export type RichSpan = {
   size: TextSize;
 };
 
-/** One line of spans. Blank lines survive as empty arrays. */
+/** one line of spans. blank lines survive as empty arrays */
 export type RichLine = RichSpan[];
 
 const TOKEN = /\*\*|\[size=(sm|md|lg)\]|\[\/size\]/g;
 
 /**
- * Parses the markup into lines of styled spans. Unclosed markers simply stay
- * open to the end of the text rather than failing — a half-typed description
+ * parses the markup into lines of styled spans. unclosed markers simply stay
+ * open to the end of the text rather than failing, a half-typed description
  * still has to render while the host is editing it.
  */
 export function parseRichText(source: string): RichLine[] {
@@ -58,8 +58,8 @@ export function parseRichText(source: string): RichLine[] {
 
   push(source.slice(cursor));
 
-  // Split into lines afterwards so a style can span a line break, the way it
-  // reads in the editor.
+  // split into lines afterwards so a style can span a line break, the way it
+  // reads in the editor
   const lines: RichLine[] = [[]];
   for (const span of spans) {
     const parts = span.text.split("\n");
@@ -72,7 +72,7 @@ export function parseRichText(source: string): RichLine[] {
   return lines;
 }
 
-/** Plain text with the markup stripped, for previews and search. */
+/** plain text with the markup stripped, for previews and search */
 export function stripRichText(source: string): string {
   return source.replace(TOKEN, "");
 }
@@ -80,8 +80,8 @@ export function stripRichText(source: string): string {
 export type Edit = { value: string; selectionStart: number; selectionEnd: number };
 
 /**
- * Wraps the current selection in a marker pair, or inserts an empty pair at the
- * caret. Returns the new text and where the selection should land.
+ * wraps the current selection in a marker pair, or inserts an empty pair at the
+ * caret. returns the new text and where the selection should land.
  */
 export function wrapSelection(
   value: string,
@@ -105,7 +105,7 @@ const SIZE_OPEN = /\[size=(sm|md|lg)\]/g;
 const SIZE_CLOSE = /\[\/size\]/g;
 const SIZE_OPEN_AT_END = /\[size=(sm|md|lg)\]$/;
 
-/** With an empty selection, act on the whole line the caret sits in. */
+/** with an empty selection, act on the whole line the caret sits in */
 function selectionOrLine(value: string, start: number, end: number): [number, number] {
   if (start !== end) return [start, end];
 
@@ -115,10 +115,10 @@ function selectionOrLine(value: string, start: number, end: number): [number, nu
 }
 
 /**
- * Grows the range to swallow marker pairs that sit immediately outside it.
+ * grows the range to swallow marker pairs that sit immediately outside it
  *
- * After a wrap the selection covers only the inner text, so without this the
- * next press cannot see the markers it just added and would wrap them again —
+ * after a wrap the selection covers only the inner text, so without this the
+ * next press cannot see the markers it just added and would wrap them again
  * which is exactly how `[size=lg][size=lg]…` used to accumulate.
  */
 function expandOverMarkers(
@@ -142,11 +142,11 @@ function expandOverMarkers(
 }
 
 /**
- * Applies a size to the selection, replacing any size already on it rather than
- * nesting another pair around it. Pressing a size button repeatedly therefore
- * settles on that size instead of stacking `[size=lg][size=lg]…`.
+ * applies a size to the selection, replacing any size already on it rather than
+ * nesting another pair around it. pressing a size button repeatedly therefore
+ * settles on that size instead of stacking `[size=lg][size=lg]…`
  *
- * With nothing selected it retags the whole enclosing block, which is what the
+ * with nothing selected it retags the whole enclosing block, which is what the
  * button appears to promise when the caret is just sitting in the text.
  */
 export function applySize(
@@ -170,13 +170,13 @@ export function applySize(
 
   const stripped = selected.replace(SIZE_OPEN, "").replace(SIZE_CLOSE, "");
 
-  // Nothing to tag. Without this, pressing a size button on an empty line left
-  // a stray `[size=sm][/size]` sitting in the text.
+  // nothing to tag. without this, pressing a size button on an empty line left
+  // a stray `[size=sm][/size]` sitting in the text
   if (!stripped) {
     return { value, selectionStart, selectionEnd };
   }
 
-  // "md" is the default, so it clears the tag rather than adding a redundant one.
+  // "md" is the default, so it clears the tag rather than adding a redundant one
   const wrapped = size === "md" ? stripped : `[size=${size}]${stripped}[/size]`;
   const offset = size === "md" ? 0 : `[size=${size}]`.length;
 
@@ -187,7 +187,7 @@ export function applySize(
   };
 }
 
-/** Toggles bold across the selection instead of nesting another `**` pair. */
+/** toggles bold across the selection instead of nesting another `**` pair */
 export function applyBold(value: string, selectionStart: number, selectionEnd: number): Edit {
   const [lineStart, lineEnd] = selectionOrLine(value, selectionStart, selectionEnd);
   const [start, end] = expandOverMarkers(
@@ -202,7 +202,7 @@ export function applyBold(value: string, selectionStart: number, selectionEnd: n
   const selected = value.slice(start, end);
   const after = value.slice(end);
 
-  // Same guard as applySize: never leave an empty `****` behind.
+  // same guard as applySize: never leave an empty `****` behind
   if (!selected) {
     return { value, selectionStart, selectionEnd };
   }

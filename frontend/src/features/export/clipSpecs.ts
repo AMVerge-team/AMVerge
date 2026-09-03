@@ -1,10 +1,10 @@
 import type { ClipItem } from "../../types/domain";
 
-/** Matches Rust's `ClipSpec` (commands/export.rs) — `export_clips` rejects bare paths. */
+/** matches Rust's `ClipSpec` (commands/export.rs): `export_clips` rejects bare paths */
 export type ClipExportSpec = { input: string; start_sec?: number; end_sec?: number };
 
 /**
- * What a clip contributes to an export: its own cut file when it has one, the
+ * what a clip contributes to an export: its own cut file when it has one, the
  * parts of a merged clip, or the source video plus an in/out pair for clips that
  * only exist as a range over it (WebP import mode).
  */

@@ -14,9 +14,6 @@ import {
     type PostExportPassKind,
 } from "../features/export/postPasses";
 
-/*====================
-    GENERAL SETTINGS 
-=====================*/
 export type ExportFormat = "mp4" | "mov" | "xml";
 export type SceneDetectionMethod = "transnetv2_gpu" | "keyframe_detection";
 export type importMethod = "video_files" | "webp_files";
@@ -46,15 +43,17 @@ export type GeneralSettings = {
     audioPlaybackHover: boolean;
     previewAudioEnabled: boolean;
     previewAudioStreamIndex: number | null;
-    /** Language tag of the chosen track, resolved per clip at export time. */
+    /** language tag of the chosen track, resolved per clip at export time */
     previewAudioLanguage: string | null;
     playbackVolume: number;
+    /** shared with the preview player's mute button, so it survives a clip switch */
+    playbackMuted: boolean;
     discordRPCEnabled: boolean;
     rpcShowFilename: boolean;
     rpcShowMiniIcons: boolean;
-    /** Show the "elapsed" timer Discord counts from app launch. */
+    /** show the "elapsed" timer Discord counts from app launch */
     rpcShowElapsed: boolean;
-    /** Make the presence card's lines and art open the site / the server. */
+    /** make the presence card's lines and art open the site / the server */
     rpcShowLinks: boolean;
     sceneDetectionMethod: SceneDetectionMethod;
     importMethod: importMethod;
@@ -83,6 +82,7 @@ export type GeneralSettingsStore = GeneralSettings & {
     setPreviewAudioStreamIndex: (index: number | null) => void;
     setPreviewAudioLanguage: (language: string | null) => void;
     setPlaybackVolume: (volume: number) => void;
+    setPlaybackMuted: (muted: boolean) => void;
     setDiscordRPCEnabled: (enabled: boolean) => void;
     setRpcShowFilename: (enabled: boolean) => void;
     setRpcShowMiniIcons: (enabled: boolean) => void;
@@ -116,13 +116,14 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     previewAudioStreamIndex: null,
     previewAudioLanguage: null,
     playbackVolume: 0.2,
+    playbackMuted: false,
     discordRPCEnabled: true,
     rpcShowFilename: true,
     rpcShowMiniIcons: true,
     rpcShowElapsed: true,
     rpcShowLinks: true,
-    // Keyframe detection works on a fresh install; TransNetV2 needs the
-    // optional AI pack, which the user opts into from Settings.
+    // keyframe detection works on a fresh install; TransNetV2 needs the
+    // optional AI pack, which the user opts into from Settings
     sceneDetectionMethod: "keyframe_detection",
     importMethod: "video_files",
     previewTranscodeMode: "hevc",
@@ -244,6 +245,7 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                         : { previewAudioStreamIndex: index }
                 ),
             setPlaybackVolume: (volume) => set({ playbackVolume: volume }),
+            setPlaybackMuted: (muted) => set({ playbackMuted: muted }),
             setDiscordRPCEnabled: (enabled) =>
                 set({ discordRPCEnabled: enabled }),
             setRpcShowFilename: (enabled) =>
@@ -327,9 +329,6 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
     )
 );
 
-/*====================
-    THEME SETTINGS 
-=====================*/
 import { convertFileSrc } from "@tauri-apps/api/core";
 
 export type ThemeSettings = {
@@ -498,15 +497,15 @@ export function applyThemeSettings(settings: ThemeSettings) {
     root.style.setProperty("--clip-tile-aspect", clipTileAspect);
     body.style.setProperty("--clip-tile-aspect", clipTileAspect);
 
-    // UI font from the Appearance picker, falling back to the default stack.
+    // UI font from the Appearance picker, falling back to the default stack
     const appFont = settings.appFontFamily
         ? `"${settings.appFontFamily}", ${DEFAULT_FONT_STACK}`
         : DEFAULT_FONT_STACK;
     root.style.setProperty("--app-font", appFont);
     body.style.setProperty("--app-font", appFont);
 
-    // Most fonts render much larger than the pixel default at the same px size,
-    // so a custom pick gets normalized by x-height. "none" leaves Jersey 10 be.
+    // most fonts render much larger than the pixel default at the same px size,
+    // so a custom pick gets normalized by x-height. "none" leaves Jersey 10 be
     const fontAdjust = settings.appFontFamily
         ? String(settings.appFontAdjust ?? 0.47)
         : "none";

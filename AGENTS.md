@@ -1,4 +1,4 @@
-# AMVerge v2 — AI Agent Guide
+# AMVerge v2: AI Agent Guide
 
 > Target: `V2_BRANCH` (Tauri v2 + React + AMVerge-CLI)
 > Last updated: 2026-08-06
@@ -199,7 +199,7 @@ frontend/
         logging.rs                  # console_log emission to frontend
         paths.rs                    # Path sanitization, cache ID helpers
         process.rs                  # CREATE_NO_WINDOW flag for Windows
-        sidecar.rs                  # amverge_command — CLI resolution (dev/prod)
+        sidecar.rs                  # amverge_command: CLI resolution (dev/prod)
 ```
 
 ---
@@ -462,8 +462,8 @@ All ffmpeg processes:
 **Codecs:** h264, h265, AV1, ProRes (LT/422/HQ/4444/XQ), CineForm, DNxHR, uncompressed
 
 **Hardware encoders (auto-detect):**
-- NVIDIA NVENC (h264_nvenc, hevc_nvenc, av1_nvenc) — up to 12 parallel
-- AMD AMF, Intel QSV, VideoToolbox, VAAPI — parallel limit 1
+- NVIDIA NVENC (h264_nvenc, hevc_nvenc, av1_nvenc): up to 12 parallel
+- AMD AMF, Intel QSV, VideoToolbox, VAAPI: parallel limit 1
 
 **Export workflows:**
 - `remux` → stream-copy, fallback to re-encode
@@ -529,24 +529,24 @@ App starts → main.tsx: maybeCheckForUpdatesOnStartup()
 
 ## Key Gotchas
 
-1. **CLI sidecar is external** — `AMVerge-CLI` is a separate Git repo. Dev mode expects it at `../AMVerge-CLI/`. Prod bundles it via PyInstaller.
+1. **CLI sidecar is external**: `AMVerge-CLI` is a separate Git repo. Dev mode expects it at `../AMVerge-CLI/`. Prod bundles it via PyInstaller.
 
-2. **Discord RPC is disabled** — `start_discord_rpc` and `update_discord_rpc` are no-ops. Only `stop_discord_rpc` actually works (kills old process).
+2. **Discord RPC is disabled**: `start_discord_rpc` and `update_discord_rpc` are no-ops. Only `stop_discord_rpc` actually works (kills old process).
 
-3. **Episode cache is immutable after import** — clips are generated once and cached. To re-detect scenes, delete the episode cache first.
+3. **Episode cache is immutable after import**: clips are generated once and cached. To re-detect scenes, delete the episode cache first.
 
-4. **Stderr protocol is the primary IPC** — all real-time progress from the CLI comes via stderr. Stdout is only for final JSON result.
+4. **Stderr protocol is the primary IPC**: all real-time progress from the CLI comes via stderr. Stdout is only for final JSON result.
 
-5. **Manifest.json written twice** — preliminary after `INITIAL_CLIPS_READY`, final after process exit. Both contain full state snapshots.
+5. **Manifest.json written twice**: preliminary after `INITIAL_CLIPS_READY`, final after process exit. Both contain full state snapshots.
 
-6. **Windows path length** — editor import copies files from deep cache dirs to flat temp dirs to avoid 260-char path limits.
+6. **Windows path length**: editor import copies files from deep cache dirs to flat temp dirs to avoid 260-char path limits.
 
-7. **Preview proxy locks** — per-clip `AsyncMutex` prevents duplicate transcodes of the same file.
+7. **Preview proxy locks**: per-clip `AsyncMutex` prevents duplicate transcodes of the same file.
 
-8. **Export resilience** — stream-copy first, re-encode on failure. GPU contention → reduce workers by 1 and retry.
+8. **Export resilience**: stream-copy first, re-encode on failure. GPU contention → reduce workers by 1 and retry.
 
-9. **Animated WebP cache** — fingerprinted by SHA-256 of file head/mid/tail bytes. Cache invalidated if source changes.
+9. **Animated WebP cache**: fingerprinted by SHA-256 of file head/mid/tail bytes. Cache invalidated if source changes.
 
-10. **All child processes killed on close** — `on_window_event(CloseRequested)` walks all PID lists and kills every subprocess.
+10. **All child processes killed on close**: `on_window_event(CloseRequested)` walks all PID lists and kills every subprocess.
 
-11. **Dev builds never install AI** — `ai_env_status` reports `managed: false`, and `ensurePack`/`install_ai_pack` short-circuit in dev. AI runs from the CLI checkout's venv; install extras there with `pip install -e .[all]`. A `managed`-mode (production) build shows the real install dialog.
+11. **Dev builds never install AI**: `ai_env_status` reports `managed: false`, and `ensurePack`/`install_ai_pack` short-circuit in dev. AI runs from the CLI checkout's venv; install extras there with `pip install -e .[all]`. A `managed`-mode (production) build shows the real install dialog.

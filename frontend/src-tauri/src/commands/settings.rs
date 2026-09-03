@@ -37,7 +37,7 @@ pub fn move_episodes_to_new_dir(
 
     fs::create_dir_all(&new_path).map_err(|e| format!("Failed to create new directory: {e}"))?;
 
-    // Source folders that were copied but could not be deleted (locked files).
+    // source folders that were copied but could not be deleted (locked files)
     let mut leftovers: Vec<String> = Vec::new();
 
     for entry in
@@ -47,26 +47,26 @@ pub fn move_episodes_to_new_dir(
 
         let src = entry.path();
 
-        // move only folders we created. The old directory may be a location the
+        // move only folders we created. the old directory may be a location the
         // user picked themselves and filled with unrelated files; relocating
-        // those along with the cache would move data that isn't ours.
+        // those along with the cache would move data that isn't ours
         if !is_episode_cache_dir(&src) {
             continue;
         }
 
         let dest = new_path.join(entry.file_name());
 
-        // Fast path: same volume, nothing holding the files open.
+        // fast path: same volume, nothing holding the files open
         if fs::rename(&src, &dest).is_ok() {
             continue;
         }
 
-        // Slow path: copy everything first, and only then try to delete the
-        // source. The delete is deliberately best-effort — the grid keeps the
+        // slow path: copy everything first, and only then try to delete the
+        // source. the delete is deliberately best-effort, the grid keeps the
         // clips it is displaying open in the WebView, so a file can be locked
-        // (os error 32) at any moment. Failing hard here used to abort
+        // (os error 32) at any moment. failing hard here used to abort
         // `remove_dir_all` mid-way, which had already deleted part of the
-        // episode: the copy survived, but the source was gutted.
+        // episode: the copy survived, but the source was gutted
         if src.is_dir() {
             let mut options = fs_extra::dir::CopyOptions::new();
             options.copy_inside = true;
@@ -99,11 +99,11 @@ pub fn move_episodes_to_new_dir(
     Ok(old_path_string)
 }
 
-/// Delete a moved-from path, retrying briefly. Windows releases a file handle
+/// delete a moved-from path, retrying briefly. Windows releases a file handle
 /// slightly after the WebView drops the element that held it, so a couple of
-/// short retries turn most "file in use" failures into a clean delete. Returns
-/// false when the path survived — the caller treats that as a leftover to clean
-/// up later, never as a reason to abort.
+/// short retries turn most "file in use" failures into a clean delete. returns
+/// false when the path survived, the caller treats that as a leftover to clean
+/// up later, never as a reason to abort
 fn remove_with_retries(path: &Path) -> bool {
     for attempt in 0..5 {
         let result = if path.is_dir() {
@@ -527,7 +527,7 @@ pub fn reveal_in_file_manager(file_path: String) -> Result<(), String> {
     }
 
     let path = fs::canonicalize(&raw_path).unwrap_or(raw_path.clone());
-    // Strip Windows extended-length path prefix "\\?\" as explorer.exe does not recognize it
+    // strip Windows extended-length path prefix "\\?\" as explorer.exe does not recognize it
     let path_string = path
         .to_string_lossy()
         .replace(r"\\?\", "")

@@ -115,7 +115,7 @@ fn main() {
 }
 
 fn kill_all_child_processes(app: &tauri::AppHandle) {
-    // kill active export ffmpeg processes.
+    // kill active export ffmpeg processes
     let export_state = app.state::<ExportAbortState>();
     export_state.abort_requested.store(true, Ordering::SeqCst);
     let export_pids: Vec<u32> = export_state
@@ -169,7 +169,7 @@ fn kill_all_child_processes(app: &tauri::AppHandle) {
             .output();
     }
 
-    // Kill an in-flight dependency install (uv + its download children)
+    // kill an in-flight dependency install (uv + its download children)
     let install_pid = app
         .state::<ActiveInstall>()
         .pid
@@ -187,7 +187,7 @@ fn kill_all_child_processes(app: &tauri::AppHandle) {
             .output();
     }
 
-    // Clear the Discord presence before the process goes away, so no ghost
-    // "playing AMVerge" is left on the profile.
+    // clear the Discord presence before the process goes away, so no ghost
+    // "playing AMVerge" is left on the profile
     commands::discord::shutdown(app);
 }

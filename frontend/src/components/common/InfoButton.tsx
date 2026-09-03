@@ -8,7 +8,7 @@ type InfoButtonProps = {
   children: ReactNode;
 };
 
-/** Small "i" beside a setting label that opens a short explainer. */
+/** small "i" beside a setting label that opens a short explainer */
 export default function InfoButton({ title, children }: InfoButtonProps) {
   const [open, setOpen] = useState(false);
 

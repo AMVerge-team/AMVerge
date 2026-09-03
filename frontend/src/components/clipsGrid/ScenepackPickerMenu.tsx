@@ -7,20 +7,20 @@ import type { ClipItem, ScenepackEntry } from "../../types/domain";
 type ScenepackPickerMenuProps = {
   clip: ClipItem;
   episodeId: string;
-  /** Where the menu opens — the click that spawned it. */
+  /** where the menu opens, the click that spawned it */
   anchor: { x: number; y: number };
   onClose: () => void;
-  /** Opens the full modal, which is where a new Scenepack gets named. */
+  /** opens the full modal, which is where a new Scenepack gets named */
   onCreateNew: () => void;
 };
 
 /**
- * Picks the Scenepack a clip goes into, right on the tile.
+ * picks the Scenepack a clip goes into, right on the tile
  *
- * Adding used to mean opening a modal, choosing a pack, waiting for the clip to
- * be cut, and being thrown onto the Scenepacks page. Sorting a grid is a
+ * adding used to mean opening a modal, choosing a pack, waiting for the clip to
+ * be cut, and being thrown onto the Scenepacks page. sorting a grid is a
  * repetitive job, so this does the same work in one click and leaves you where
- * you were — the modal is still there for naming a new pack.
+ * you were, the modal is still there for naming a new pack.
  */
 export function ScenepackPickerMenu({
   clip,
@@ -31,29 +31,29 @@ export function ScenepackPickerMenu({
 }: ScenepackPickerMenuProps) {
   const scenepacks = useScenepacksStore((s) => s.scenepacks);
   const scenepackFolders = useScenepacksStore((s) => s.scenepackFolders);
-  // Only set while viewing a pack, which is the only place "use this clip as
-  // the cover" has a pack to apply to.
+  // only set while viewing a pack, which is the only place "use this clip as
+  // the cover" has a pack to apply to
   const openedScenepackId = useScenepacksStore((s) => s.openedScenepackId);
   const setScenepackThumbnail = useScenepacksStore((s) => s.setScenepackThumbnail);
 
   const leaveTimerRef = useRef<number | null>(null);
 
   // onClose comes from a tile that re-renders constantly (hover, playback,
-  // preview state), so it is read through a ref. Depending on it directly tore
+  // preview state), so it is read through a ref. depending on it directly tore
   // the listeners down and rebuilt them on every one of those renders, which is
-  // what left the menu stuck open.
+  // what left the menu stuck open
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
-  // Anything that means "I am done here" closes it: a press outside, Escape,
-  // or the window losing focus.
+  // anything that means "I am done here" closes it: a press outside, Escape,
+  // or the window losing focus
   useEffect(() => {
     const onPointerDown = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
       if (target?.closest(".scenepack-picker-menu")) return;
-      // Only THIS tile's button is exempt, so it can toggle its own menu shut.
-      // Matching every tile's button meant pressing a neighbour's left this one
-      // hanging around until the pointer-leave timer got round to it.
+      // only THIS tile's button is exempt, so it can toggle its own menu shut.
+      // matching every tile's button meant pressing a neighbour's left this one
+      // hanging around until the pointer-leave timer got round to it
       const anchorEl = target?.closest("[data-scenepack-anchor]") as HTMLElement | null;
       if (anchorEl?.dataset.scenepackAnchor === clip.id) return;
       onCloseRef.current();
@@ -63,10 +63,10 @@ export function ScenepackPickerMenu({
     };
 
     const onBlur = () => onCloseRef.current();
-    // The menu is placed in window coordinates, so a scroll UNDER it leaves it
-    // pointing at nothing, and it goes at once — no easing, no timer. Scrolling
+    // the menu is placed in window coordinates, so a scroll UNDER it leaves it
+    // pointing at nothing, and it goes at once, no easing, no timer. scrolling
     // the pack list inside it is the opposite of leaving, so those events are
-    // let through; without that the list could never be scrolled at all.
+    // let through; without that the list could never be scrolled at all
     const onScroll = (e: Event) => {
       const target = e.target as Element | null;
       if (target?.closest?.(".scenepack-picker-menu")) return;
@@ -95,9 +95,9 @@ export function ScenepackPickerMenu({
     };
   }, []);
 
-  // Moving the pointer away closes it too. The grace period is short — just
+  // moving the pointer away closes it too. the grace period is short, just
   // enough that clipping a corner on the way in does not dismiss it, not enough
-  // to read as the menu lingering.
+  // to read as the menu lingering
   const handleMouseLeave = () => {
     if (leaveTimerRef.current !== null) window.clearTimeout(leaveTimerRef.current);
     leaveTimerRef.current = window.setTimeout(() => onCloseRef.current(), 150);
@@ -110,9 +110,9 @@ export function ScenepackPickerMenu({
     }
   };
 
-  // The click point is only a starting position: measured once mounted, the
+  // the click point is only a starting position: measured once mounted, the
   // menu is pulled back inside the window and flipped above the cursor when
-  // there is no room below it.
+  // there is no room below it
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [placement, setPlacement] = useState({ left: anchor.x, top: anchor.y });
 
@@ -141,8 +141,8 @@ export function ScenepackPickerMenu({
     return ids;
   }, [scenepacks, episodeId, sceneIndex]);
 
-  // Grouped by folder so a long list stays readable; packs outside any folder
-  // come first, since those are the ones a quick pass tends to use.
+  // grouped by folder so a long list stays readable; packs outside any folder
+  // come first, since those are the ones a quick pass tends to use
   const groups = useMemo(() => {
     const known = new Map(scenepackFolders.map((f) => [f.id, f.name]));
     const root: ScenepackEntry[] = [];
@@ -166,17 +166,17 @@ export function ScenepackPickerMenu({
     ].filter((g) => g.packs.length > 0);
   }, [scenepacks, scenepackFolders]);
 
-  // Starts the add and closes. The cutting happens in the background and the
-  // clip shows up in the pack as a placeholder until its file exists.
+  // starts the add and closes. the cutting happens in the background and the
+  // clip shows up in the pack as a placeholder until its file exists
   const handlePick = (pack: ScenepackEntry) => {
     addClipsToScenepack([clip], pack.id, episodeId);
     onClose();
   };
 
   // portalled to <body>: this mounts from inside a clip tile, and
-  // `.clip-wrapper:hover` applies a transform — which makes the tile the
+  // `.clip-wrapper:hover` applies a transform, which makes the tile the
   // containing block for any `position: fixed` descendant, so without the
-  // portal the menu would be trapped inside the tile's own bounds.
+  // portal the menu would be trapped inside the tile's own bounds
   return createPortal(
     <div
       ref={menuRef}
@@ -202,7 +202,7 @@ export function ScenepackPickerMenu({
         </>
       )}
 
-      {/* only the packs scroll — "New Scenepack…" stays reachable however many
+      {/* only the packs scroll, "New Scenepack…" stays reachable however many
           packs there are */}
       <div className="scenepack-picker-list">
       {groups.map((group) => (

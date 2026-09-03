@@ -9,8 +9,8 @@ import type {
 
 
 /**
- * Thin wrappers over the Rust commands. The webview's CSP blocks every remote
- * host, so this is the only way events reach the app — and it keeps the session
+ * thin wrappers over the Rust commands. the webview's CSP blocks every remote
+ * host, so this is the only way events reach the app, and it keeps the session
  * token on the Rust side, where the webview cannot read it.
  */
 
@@ -45,7 +45,7 @@ export function acknowledgeEventApproval(eventId: string): Promise<EventMutation
   return invoke<EventMutationResult>("acknowledge_event_approval", { eventId });
 }
 
-/** Returns the Discord authorize URL to open in the system browser. */
+/** returns the Discord authorize URL to open in the system browser */
 export function beginDiscordLogin(): Promise<string> {
   return invoke<string>("begin_discord_login");
 }

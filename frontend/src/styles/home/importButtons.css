@@ -1,7 +1,3 @@
-/* --------------------
-      TOP BUTTONS
--------------------- */
-
 .clips-import {
     display: flex;
     flex-direction: row;
@@ -24,12 +20,6 @@
     align-items: center;
 }
 
-/* With the import controls hidden (Scenepacks), the panel toggle is the only
-   thing left in this row. The container's 5rem minimum then held open far more
-   width than the button needs, and its right padding and the button's own
-   margin sat on top of that — together far wider than the 8px that separates
-   the buttons on every other page. The minimum exists to keep the import row
-   from collapsing, which does not apply when the only child is fixed width. */
 .import-buttons-container:has(> .panel-toggle-button:only-child) {
     min-width: 0;
     padding-right: 0;
@@ -54,8 +44,8 @@
 }
 
 #file-button {
-    transition: border 0.2s ease, 
-                box-shadow 0.2s ease, 
+    transition: border 0.2s ease,
+                box-shadow 0.2s ease,
                 color 0.2s ease;
 }
 
@@ -66,7 +56,6 @@
     color: var(--accent);
 }
 
-/* Square icon button, same chrome as the import button */
 .refresh-button {
     width: 2rem;
     min-width: 2rem;
@@ -92,8 +81,6 @@
     cursor: not-allowed;
 }
 
-/* Square icon button, same chrome again — this one is a toggle, so it also has
-   an on state rather than only a hover. */
 .panel-toggle-button {
     width: 2rem;
     min-width: 2rem;
@@ -209,21 +196,18 @@
     transform: rotate(45deg) translateY(-1px) translateX(-1px);
 }
 
-
-
 .info-bar {
     height: 3%;
     width: 100%;
     display: flex;
     align-items: center;
     padding-left: 8px;
-    /* room for the gear, which is pinned rather than laid out in this row */
+
     padding-right: 40px;
 }
 
 .info-bar-filename {
-    /* nowrap makes the full name this item's minimum width, so without room to
-       shrink a long filename pushes the gear past the right edge */
+
     flex: 0 1 auto;
     min-width: 0;
     font-size: 0.75rem;
@@ -233,9 +217,7 @@
     text-overflow: ellipsis;
     user-select: text;
 }
-/* Pinned to the viewport corner: in the info bar's flow it was at the mercy of
-   whatever else the row (or the panes above it) sized itself to. The floating
-   progress cards clear it at bottom: 64px. */
+
 .settings-gear-button {
     position: fixed;
     right: 14px;

@@ -38,7 +38,7 @@ function formatConsoleArgs(args: unknown[]): string {
 
     const value = rest[restIndex++];
     if (token === "%c") {
-      // CSS styling token used by browser console; ignore style value in log text.
+      // CSS styling token used by browser console; ignore style value in log text
       return "";
     }
     if (value === undefined) return token;

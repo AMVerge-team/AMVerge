@@ -4,7 +4,7 @@ import { FaBars, FaCog, FaTimes, FaDiscord, FaGithub, FaSearch } from "react-ico
 import Tooltip from "./common/Tooltip";
 import { useUIStateStore } from "../stores/UIStore";
 
-/** Dialogs that own Escape themselves - the quick menu stays out of their way. */
+/** dialogs that own Escape themselves - the quick menu stays out of their way */
 const BLOCKING_OVERLAYS =
   ".episode-modal-overlay, .crop-modal-overlay, .pxm-overlay, .startup-notification-overlay";
 

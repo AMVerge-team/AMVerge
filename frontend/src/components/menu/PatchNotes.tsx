@@ -8,7 +8,7 @@ type ReleaseSummary = {
   body: string;
 };
 
-// Vite import glob to bundle all full update files from updates/*.md
+// vite import glob to bundle all full update files from updates/*.md
 const updateDocFiles = import.meta.glob("../../../../updates/*.md", {
   query: "?raw",
   eager: true,
@@ -17,7 +17,7 @@ const updateDocFiles = import.meta.glob("../../../../updates/*.md", {
 export default function PatchNotes() {
   const [selectedDocVersion, setSelectedDocVersion] = useState<string | null>(null);
 
-  // Parse main summary list directly from CHANGELOG.md
+  // parse main summary list directly from CHANGELOG.md
   const releases = useMemo<ReleaseSummary[]>(() => {
     const sections: ReleaseSummary[] = [];
     const lines = changelog.split("\n");
@@ -66,7 +66,7 @@ export default function PatchNotes() {
     return map;
   }, []);
 
-  // First release (latest) open by default, older ones closed
+  // first release (latest) open by default, older ones closed
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     releases.forEach((r, idx) => {
@@ -84,7 +84,7 @@ export default function PatchNotes() {
 
   const getFullDocForVersion = (versionStr: string) => {
     const normalized = versionStr.toLowerCase().replace(/[^a-z0-9.]/g, "");
-    // Try exact match or prefix match (e.g. "v2.0.0 (Beta)" -> "v2.0.0")
+    // try exact match or prefix match (e.g. "v2.0.0 (Beta)" -> "v2.0.0")
     for (const [key, doc] of Object.entries(fullDocsByVersion)) {
       if (normalized.startsWith(key) || key.startsWith(normalized)) {
         return doc;
@@ -93,7 +93,6 @@ export default function PatchNotes() {
     return null;
   };
 
-  // If user selected a full update log view:
   if (selectedDocVersion) {
     const docData = getFullDocForVersion(selectedDocVersion);
 

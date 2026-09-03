@@ -38,8 +38,8 @@ export default function DependenciesSection() {
     await useAiDepsStore.getState().ensurePack(packId);
   };
 
-  // A removed pack leaves its settings pointing at something that is no longer
-  // there, so they fall back rather than failing later mid-import or mid-export.
+  // a removed pack leaves its settings pointing at something that is no longer
+  // there, so they fall back rather than failing later mid-import or mid-export
   const resetSettingsFor = (packId: AiPackId | "all") => {
     const settings = useGeneralSettingsStore.getState();
     if (packId === "ml" || packId === "all") {
@@ -89,8 +89,8 @@ export default function DependenciesSection() {
         plannedTorchVariant(status) === "cuda" ? "GPU / CUDA" : "CPU"
       } build`;
 
-  // An NVIDIA machine running the CPU wheel: everything still works, just many
-  // times slower. Offer the swap rather than making the user wipe the whole env.
+  // an NVIDIA machine running the CPU wheel: everything still works, just many
+  // times slower. offer the swap rather than making the user wipe the whole env
   const gpuRepairAvailable = Boolean(
     status?.envReady && status?.gpuAvailable && status?.torchVariant === "cpu",
   );

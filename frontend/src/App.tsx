@@ -40,8 +40,8 @@ import { applyThemeSettings, useGeneralSettingsStore, useThemeSettingsStore } fr
 import { useEpisodePanelRuntimeStore } from "./stores/episodeStore";
 
 /**
- * Shove the sidebar divider left of this and the sidebar folds away, the same
- * gesture the preview pane answers to on the other side of the grid. Sits well
+ * shove the sidebar divider left of this and the sidebar folds away, the same
+ * gesture the preview pane answers to on the other side of the grid. sits well
  * under the 220px minimum width, so brushing the stop does not dismiss it.
  */
 const SIDEBAR_COLLAPSE_BELOW_PX = 140;
@@ -60,8 +60,8 @@ function App() {
   const webpLoadDone = useWebpLoadingStore((s) => s.done);
   const webpLoadTotalRaw = useWebpLoadingStore((s) => s.total);
   const webpDismissed = useWebpLoadingStore((s) => s.dismissed);
-  // Closing the card hides the preview counter for the rest of this episode;
-  // the queue keeps filling the cache in the background.
+  // closing the card hides the preview counter for the rest of this episode;
+  // the queue keeps filling the cache in the background
   const webpLoadTotal = webpDismissed ? 0 : webpLoadTotalRaw;
 
   const aiStage = useAiDepsStore((s) => s.stage);
@@ -85,12 +85,10 @@ function App() {
   const importToken = useAppStateStore((s) => s.importToken);
 
 
-  // refs
   const windowWrapperRef = useRef<HTMLDivElement | null>(null);
   const userHasHEVC = useAppStateStore((s) => s.userHasHEVC);
   const abortedRef = useRef(false);
 
-  // UI state
   const scenepacksEnabled = useGeneralSettingsStore((s) => s.scenepacksEnabled);
   const themeSettings = useThemeSettingsStore();
 
@@ -102,8 +100,8 @@ function App() {
 
   const handleResetGeneralSettings = async () => {
     try {
-      // Release the clip files the grid holds open, or Windows blocks the move
-      // of anything currently on screen.
+      // release the clip files the grid holds open, or Windows blocks the move
+      // of anything currently on screen
       useAppStateStore.getState().setClips([]);
       useAppStateStore.getState().setSelectedClips(new Set());
       await new Promise((resolve) => setTimeout(resolve, 250));
@@ -131,11 +129,11 @@ function App() {
   const [showStartupNotification, setShowStartupNotification] = useState(false);
   const startupUpdateNotification = useStartupUpdateNotification();
   useExtensionSync();
-  // Mounted at app level: the browser round-trip can finish after the events
-  // modal is closed, and the result still has to land somewhere.
+  // mounted at app level: the browser round-trip can finish after the events
+  // modal is closed, and the result still has to land somewhere
   useDiscordAuth();
-  // Polls in the background so a newly approved event badges the sidebar
-  // without the user opening the page first.
+  // polls in the background so a newly approved event badges the sidebar
+  // without the user opening the page first
   useEventsWatch();
 
   const parseThumbnailProgress = (message: string): { done: number; total: number } | null => {
@@ -149,7 +147,6 @@ function App() {
     return { done: Math.max(0, done), total };
   };
 
-  // persisted UI state
   const sidebarWidthPx = useUIStateStore(s => s.sidebarWidthPx);
   const setSidebarWidthPx = useUIStateStore(s => s.setSidebarWidthPx);
 
@@ -173,13 +170,13 @@ function App() {
       const maxWidth = Math.max(minWidth, Math.floor(rect.width * 0.6));
       const proposed = Math.round(ev.clientX - rect.left);
 
-      // Past the last stop the sidebar folds away, live. The listeners sit on the
+      // past the last stop the sidebar folds away, live. the listeners sit on the
       // window rather than on the divider, so the drag survives the divider
-      // unmounting and pulling back right brings the sidebar straight back — the
-      // gesture is undoable without letting go.
+      // unmounting and pulling back right brings the sidebar straight back, the
+      // gesture is undoable without letting go
       if (proposed < SIDEBAR_COLLAPSE_BELOW_PX) {
-        // Hand the pointer back before the divider unmounts underneath it, so the
-        // moves keep reaching the window listeners and the fold stays undoable.
+        // hand the pointer back before the divider unmounts underneath it, so the
+        // moves keep reaching the window listeners and the fold stays undoable
         if (divider.hasPointerCapture(pointerId)) {
           divider.releasePointerCapture(pointerId);
         }
@@ -230,7 +227,6 @@ function App() {
     useAppStateStore.getState().setImportToken(Date.now().toString());
   };
 
-  // import/export
   const { updateRPC } = useDiscordRPC();
 
   const { handleImport, handleBatchImport } = useImportExport({
@@ -238,7 +234,6 @@ function App() {
     onRPCUpdate: updateRPC
   });
 
-  // app-level hooks
   useHEVCSupport();
 
   useDragDropImport({
@@ -263,7 +258,7 @@ function App() {
   const bgActive =
     !!(bgProgress || bgImportProgress || reencodeProgress) || webpLoadTotal > 0;
   const [importUiActive, setImportUiActive] = useState(false);
-  // null = follow auto behaviour; true/false = user's explicit minimize choice.
+  // null = follow auto behaviour; true/false = user's explicit minimize choice
   const [minimizeOverride, setMinimizeOverride] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -281,7 +276,7 @@ function App() {
   }, [loading, bgActive]);
 
   // auto-minimize once the heavy phase (scene detect + first clip cuts) is done
-  // and only background thumbnail/reencode/preview work remains.
+  // and only background thumbnail/reencode/preview work remains
   const autoMinimized = !loading && bgActive;
   const overlayMinimized = minimizeOverride !== null ? minimizeOverride : autoMinimized;
 
@@ -295,7 +290,6 @@ function App() {
     useWebpLoadingStore.getState().dismiss();
   }
 
-  // effects
   useEffect(() => {
     applyThemeSettings(themeSettings);
   }, [themeSettings]);
@@ -388,9 +382,9 @@ function App() {
   }, [importedVideoPath, importToken, setVideoIsHEVC]);
 
   useEffect(() => {
-    // Every clip page renders a .main-layout-wrapper and only the active one has
+    // every clip page renders a .main-layout-wrapper and only the active one has
     // height (the others sit behind display:none), so the visible one is what
-    // the sidebar divider aligns to - whichever page is showing.
+    // the sidebar divider aligns to - whichever page is showing
     const visibleWrapper = () =>
       Array.from(document.querySelectorAll<HTMLElement>(".main-layout-wrapper"))
         .find((el) => el.getBoundingClientRect().height > 0) ?? null;

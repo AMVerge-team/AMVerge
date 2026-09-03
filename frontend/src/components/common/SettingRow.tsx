@@ -4,7 +4,7 @@ type SettingRowProps = {
   label: string;
   description: ReactNode;
   control: ReactNode;
-  /** Optional explainer rendered beside the label (see InfoButton). */
+  /** optional explainer rendered beside the label (see InfoButton) */
   info?: ReactNode;
 };
 

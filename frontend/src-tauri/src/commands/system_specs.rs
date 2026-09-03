@@ -1,13 +1,13 @@
-//! One-click PC specs for the bug report form.
+//! one-click PC specs for the bug report form.
 //!
-//! Reports are only useful when we know what the app was running on, so the
-//! form offers to fill the field itself. We collect the four lines that
-//! actually explain a bug — OS, CPU, RAM, GPU — and nothing that identifies
+//! reports are only useful when we know what the app was running on, so the
+//! form offers to fill the field itself. we collect the four lines that
+//! actually explain a bug (OS, CPU, RAM, GPU) and nothing that identifies
 //! the machine or its owner.
 //!
 //! Windows answers straight from the registry. WMI knows all of this too, but
 //! `Win32_VideoController` alone takes nine seconds on a laptop with two GPUs,
-//! and a button that hangs that long reads as broken.
+//! and a button that hangs that long reads as broken
 
 #[cfg(target_os = "macos")]
 use std::process::Command;
@@ -17,18 +17,18 @@ use winreg::enums::{HKEY_LOCAL_MACHINE, KEY_READ};
 #[cfg(windows)]
 use winreg::RegKey;
 
-/// Where Windows keeps the display adapters, one subkey per driver.
+/// where Windows keeps the display adapters, one subkey per driver
 #[cfg(windows)]
 const DISPLAY_CLASS_KEY: &str =
     r"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}";
 
-/// The build that turned Windows 10 into Windows 11. `ProductName` was never
-/// updated for it, so every Windows 11 still calls itself 10 in the registry.
+/// the build that turned Windows 10 into Windows 11. `ProductName` was never
+/// updated for it, so every Windows 11 still calls itself 10 in the registry
 #[cfg(windows)]
 const FIRST_WINDOWS_11_BUILD: u32 = 22000;
 
-/// Hardware names come with trademark noise and padded spaces
-/// ("AMD Radeon(TM) Graphics", "AMD Ryzen 7 6800H     ").
+/// hardware names come with trademark noise and padded spaces
+/// ("AMD Radeon(TM) Graphics", "AMD Ryzen 7 6800H     ")
 fn tidy(value: &str) -> String {
     value
         .replace("(R)", "")
@@ -54,7 +54,7 @@ fn join_summary(parts: Vec<String>) -> Result<String, String> {
     Ok(parts.join(" | "))
 }
 
-/// Bytes as the whole gigabytes a user would say out loud, empty when unknown.
+/// bytes as the whole gigabytes a user would say out loud, empty when unknown
 #[cfg(any(windows, target_os = "macos"))]
 fn format_ram_gb(gb: f64) -> String {
     let rounded = gb.round() as u64;
@@ -80,7 +80,7 @@ fn reg_string(key: &RegKey, name: &str) -> Option<String> {
         .filter(|value| !value.is_empty())
 }
 
-/// "Windows 11 Pro 25H2 (build 26200.9168)", as far as the registry can tell.
+/// "Windows 11 Pro 25H2 (build 26200.9168)", as far as the registry can tell
 #[cfg(windows)]
 fn windows_edition() -> String {
     let Some(key) = reg_key(r"SOFTWARE\Microsoft\Windows NT\CurrentVersion") else {
@@ -98,7 +98,7 @@ fn windows_edition() -> String {
         return String::new();
     }
 
-    // "25H2" — the name users and changelogs actually use for a release.
+    // "25H2": the name users and changelogs actually use for a release
     if let Some(release) =
         reg_string(&key, "DisplayVersion").or_else(|| reg_string(&key, "ReleaseId"))
     {
@@ -109,7 +109,7 @@ fn windows_edition() -> String {
         return name;
     }
 
-    // UBR is the patch level: 26200.9168 pins the exact Windows the bug hit.
+    // UBR is the patch level: 26200.9168 pins the exact Windows the bug hit
     match key.get_value::<u32, _>("UBR") {
         Ok(ubr) => format!("{name} (build {build}.{ubr})"),
         Err(_) => format!("{name} (build {build})"),
@@ -123,14 +123,14 @@ fn windows_cpu() -> String {
         .unwrap_or_default()
 }
 
-/// Installed sticks, not the memory Windows leaves visible: the visible total
+/// installed sticks, not the memory Windows leaves visible: the visible total
 /// hides what the hardware reserves, and a 32 GB machine reporting 28 GB reads
-/// like a wrong answer.
+/// like a wrong answer
 #[cfg(windows)]
 fn windows_ram() -> String {
     let mut kilobytes: u64 = 0;
     // SAFETY: the call only writes the u64 we hand it, and reports failure
-    // through its return value rather than the buffer.
+    // through its return value rather than the buffer
     let ok = unsafe {
         windows_sys::Win32::System::SystemInformation::GetPhysicallyInstalledSystemMemory(
             &mut kilobytes,
@@ -143,8 +143,8 @@ fn windows_ram() -> String {
     format_ram_gb(kilobytes as f64 / 1024.0 / 1024.0)
 }
 
-/// Every display adapter with a driver, integrated ones included. Microsoft's
-/// own fallback adapter is not hardware, so it stays out.
+/// every display adapter with a driver, integrated ones included. microsoft's
+/// own fallback adapter is not hardware, so it stays out
 #[cfg(windows)]
 fn windows_gpus() -> String {
     let Some(class_key) = reg_key(DISPLAY_CLASS_KEY) else {
@@ -178,7 +178,7 @@ fn collect_specs() -> Result<String, String> {
     ])
 }
 
-/// A command's trimmed stdout, or nothing when it fails or says nothing.
+/// a command's trimmed stdout, or nothing when it fails or says nothing
 #[cfg(target_os = "macos")]
 fn read_command(program: &str, args: &[&str]) -> Option<String> {
     let output = Command::new(program).args(args).output().ok()?;
@@ -195,7 +195,7 @@ fn read_command(program: &str, args: &[&str]) -> Option<String> {
 }
 
 /// macOS keeps the display hardware in `system_profiler`, one "Chipset Model"
-/// line per adapter. Apple Silicon reports its integrated GPU there too.
+/// line per adapter. Apple Silicon reports its integrated GPU there too
 #[cfg(target_os = "macos")]
 fn macos_gpu_names() -> String {
     let Some(report) = read_command("system_profiler", &["SPDisplaysDataType"]) else {
@@ -246,8 +246,8 @@ fn collect_specs() -> Result<String, String> {
     )])
 }
 
-/// Fills the bug report's PC Specs field. The user stays free to edit or clear
-/// whatever comes back.
+/// fills the bug report's PC Specs field. the user stays free to edit or clear
+/// whatever comes back
 #[tauri::command]
 pub async fn detect_pc_specs() -> Result<String, String> {
     tokio::task::spawn_blocking(collect_specs)

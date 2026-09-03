@@ -1,6 +1,3 @@
-/* --------------------
-   NAVBAR & TITLEBAR CHROME
--------------------- */
 .navbar {
     display: flex;
     align-items: center;
@@ -15,7 +12,7 @@
     z-index: 100;
 }
 
-.navbar svg { 
+.navbar svg {
     width: 22px;
     height: 22px;
     color: white;
@@ -30,7 +27,7 @@
 .navbar h1 {
     margin: 0;
     font-size: 26px;
-    /* h1 defaults to bold; the wordmark wants the font's lightest real weight */
+
     font-weight: 400;
     letter-spacing: 0.5px;
     line-height: 1;
@@ -50,7 +47,6 @@
     color: var(--accent);
 }
 
-/* Sits where the episode-panel arrow used to, left of the wordmark. */
 .navbar-menu-btn {
     display: inline-flex;
     align-items: center;
@@ -105,7 +101,6 @@
     color: var(--accent);
 }
 
-/* CENTER: SEGMENTED GRID ZOOM PILL */
 .navbar-center {
     display: flex;
     align-items: center;
@@ -157,7 +152,6 @@
     transition: all 0.2s ease;
 }
 
-
 .zoom-label {
     font-size: 0.88rem;
     font-weight: 500;
@@ -194,7 +188,6 @@
     box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.4);
 }
 
-/* ENGINE / AI DETECTION & GPU PILL */
 .navbar-engine-pill {
     display: inline-flex;
     align-items: center;
@@ -243,7 +236,6 @@
     white-space: nowrap;
 }
 
-/* WINDOW CONTROLS: MODERN FLOATING PILL BUTTONS */
 .window-controls {
     display: flex;
     align-items: center;
@@ -310,13 +302,6 @@
     display: block;
 }
 
-/* TITLEBAR DRAG REGION
-   Tauri reads `data-tauri-drag-region` off the mousedown target itself, without
-   walking up the tree: any element sitting on top of the titlebar swallows the
-   drag unless it carries the attribute too. The labels below are pure text, so
-   rather than tagging every span they are taken out of hit-testing and the
-   drag falls through to their container. The real controls keep their pointer
-   events — a titlebar is not draggable by its own buttons. */
 .navbar h1 span,
 .zoom-label,
 .navbar-selection-badge > * {

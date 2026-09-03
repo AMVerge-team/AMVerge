@@ -55,8 +55,8 @@ function buildJobs(
       });
     }
     if (passes.interpolation.enabled) {
-      // Dead frames first, then interpolate on top of that. Keeping the copy
-      // just means writing it to its final name and not deleting it after.
+      // dead frames first, then interpolate on top of that. keeping the copy
+      // just means writing it to its final name and not deleting it after
       const keepDeadframes = passes.deadframes.exportCopy;
       const deadframesOut = keepDeadframes ? path(PASS_SUFFIX.deadframes) : path("_df_tmp");
       const output = path(PASS_SUFFIX.interpolation);
@@ -81,8 +81,8 @@ function buildJobs(
 }
 
 /**
- * run all enabled post-export passes on the given export output files. Drives
- * the pass-run modal store and forwards CLI progress/preview/log events. Passes
+ * run all enabled post-export passes on the given export output files. drives
+ * the pass-run modal store and forwards CLI progress/preview/log events. passes
  * run sequentially; stop is honored between and within jobs.
  */
 export async function runPostExportPasses(
@@ -91,9 +91,9 @@ export async function runPostExportPasses(
 ): Promise<{ interpolated: string[]; deadframes: string[] }> {
   if (outputs.length === 0 || !anyPassEnabled(passes)) return { interpolated: [], deadframes: [] };
 
-  // Depth and interpolation run on the optional AI env. It is normally in place
+  // depth and interpolation run on the optional AI env. it is normally in place
   // (the settings toggle installs it), but a removed pack or a settings file
-  // from another machine would otherwise surface as a failed pass here.
+  // from another machine would otherwise surface as a failed pass here
   const effective: PostExportPasses = { ...passes };
   const skipped: string[] = [];
   const skipNote = (packId: "depth" | "interpolation") =>
@@ -117,7 +117,7 @@ export async function runPostExportPasses(
 
   const store = usePassRunStore.getState();
   store.begin(jobs.length);
-  // After begin(), which clears the log.
+  // after begin(), which clears the log
   skipped.forEach((line) => store.pushLog(line));
 
   const unlisteners = await Promise.all([

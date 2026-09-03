@@ -5,7 +5,7 @@ import type { EpisodeEntry, EpisodeFolder } from "../types/domain";
 const MAX_PERSISTED_EPISODE_BYTES = 3_500_000;
 
 function estimateUtf8Bytes(text: string): number {
-    // TextEncoder gives a consistent UTF-8 byte estimate for localStorage payload sizing.
+    // TextEncoder gives a consistent UTF-8 byte estimate for localStorage payload sizing
     return new TextEncoder().encode(text).length;
 }
 
@@ -30,9 +30,6 @@ function trimEpisodesForPersistence(episodes: EpisodeEntry[]): EpisodeEntry[] {
     return kept;
 }
 
-/* =========================
-    EPISODE PANEL RUNTIME
-   ========================= */
 export type EpisodePanelRuntimeState = {
     episodes: EpisodeEntry[];
     selectedEpisodeId: string | null;
@@ -105,9 +102,6 @@ export const useEpisodePanelRuntimeStore = create<EpisodePanelRuntimeStore>()(
     )
 );
 
-/* =========================
-    EPISODE PANEL METADATA
-   ========================= */
 export type EpisodePanelMetadataState = {
     episodeFolders: EpisodeFolder[];
     episodeNamesById: Record<string, string>;

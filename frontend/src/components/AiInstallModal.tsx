@@ -17,7 +17,7 @@ function formatDuration(sec: number): string {
 }
 
 /**
- * Confirm-then-install dialog for the optional AI dependencies. Opened by
+ * confirm-then-install dialog for the optional AI dependencies. opened by
  * `useAiDepsStore.ensurePack` whenever a locked feature is picked; the caller's
  * promise resolves once the pack is installed or the user declines.
  */
@@ -55,8 +55,8 @@ export default function AiInstallModal() {
     }
   }, [stage]);
 
-  // One set of listeners for the app's lifetime — installs are serialized by the
-  // backend, so there is only ever one stream to follow.
+  // one set of listeners for the app's lifetime, installs are serialized by the
+  // backend, so there is only ever one stream to follow
   useEffect(() => {
     const unlisteners = [
       listen<{ pack: string; percent: number; indeterminate: boolean; message: string }>(
@@ -85,7 +85,6 @@ export default function AiInstallModal() {
   const install = () => void useAiDepsStore.getState().startInstall();
   const cancel = () => useAiDepsStore.getState().cancel();
 
-  // Compute ETA if progress is non-zero
   let etaText = "Calculating…";
   if (stage === "installing") {
     if (percent > 3 && elapsed > 2) {
@@ -96,7 +95,7 @@ export default function AiInstallModal() {
     }
   }
 
-  // Extract speed (e.g. "24.5MB/s" or "12.3 MiB/s") and size (e.g. "450MB / 2.7GB") if present
+  // extract speed (e.g. "24.5MB/s" or "12.3 MiB/s") and size (e.g. "450MB / 2.7GB") if present
   let speedText: string | null = null;
   let transferredText: string | null = null;
 

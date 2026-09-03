@@ -3,9 +3,9 @@ import { FaChevronDown } from "react-icons/fa";
 import Tooltip from "../common/Tooltip";
 import { useThemeSettingsStore } from "../../stores/settingsStore";
 
-// Shown immediately and with no permission prompt: common Windows/macOS faces
-// plus popular downloads, filtered to the ones actually installed. The full
-// system list needs the Local Font Access API, which requires a user gesture.
+// shown immediately and with no permission prompt: common Windows/macOS faces
+// plus popular downloads, filtered to the ones actually installed. the full
+// system list needs the Local Font Access API, which requires a user gesture
 const CURATED_FONTS = [
   "Arial", "Arial Black", "Bahnschrift", "Calibri", "Cambria", "Candara",
   "Comic Sans MS", "Consolas", "Constantia", "Corbel", "Courier New", "Ebrima",
@@ -24,8 +24,8 @@ const CURATED_FONTS = [
 
 let detectCtx: CanvasRenderingContext2D | null | undefined;
 
-// A missing family falls back to the generic base and measures identically, so
-// a width difference against both bases means the font is installed.
+// a missing family falls back to the generic base and measures identically, so
+// a width difference against both bases means the font is installed
 function isFontInstalled(family: string): boolean {
   if (detectCtx === undefined) {
     detectCtx = document.createElement("canvas").getContext("2d");

@@ -10,7 +10,7 @@ jobs:
     env:
       TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
       TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-      # Bundle the published CLI wheel (dev extra pulls PyInstaller). No torch —
+      # Bundle the published CLI wheel (dev extra pulls PyInstaller). No torch
       # the AI extras are installed at runtime into the app-managed uv venv.
       AMVERGE_CLI_INSTALL_SPEC: "amverge[edge,discord,dev]"
       # Events + Discord sign-in, baked in at compile time via option_env!.

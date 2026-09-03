@@ -304,7 +304,7 @@ pub(super) async fn abort_export_inner(
     {
         let _ = tokio::task::spawn_blocking(move || {
             for pid in pids {
-                // negative PID kills the entire process group (ffmpeg + any children).
+                // negative PID kills the entire process group (ffmpeg + any children)
                 let _ = Command::new("kill")
                     .args(["-9", &format!("-{pid}")])
                     .output();

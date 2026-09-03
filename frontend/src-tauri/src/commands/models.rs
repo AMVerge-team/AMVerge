@@ -1,8 +1,8 @@
 //! AI model weight management (depth + interpolation).
 //!
-//! Thin bridge over the CLI's `amverge models --json` command. The CLI is the
+//! thin bridge over the CLI's `amverge models --json` command. the CLI is the
 //! single source of truth for the registries and the download/delete logic; this
-//! module only spawns it, parses its JSON stdout, and surfaces errors.
+//! module only spawns it, parses its JSON stdout, and surfaces errors
 
 use std::io::{BufRead, Read};
 use std::process::Stdio;
@@ -14,7 +14,7 @@ use tauri::AppHandle;
 use crate::utils::logging::console_log;
 use crate::utils::sidecar::{amverge_ai_command, amverge_exe_name};
 
-/// One model row from the CLI.
+/// one model row from the CLI
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModelInfo {
@@ -26,15 +26,15 @@ pub struct ModelInfo {
     #[serde(default)]
     pub size_bytes: u64,
     pub downloaded: bool,
-    /// Short human name for the variant, e.g. "Small".
+    /// short human name for the variant, e.g. "Small"
     #[serde(default)]
     pub label: String,
-    /// One line on the trade-off this variant makes.
+    /// one line on the trade-off this variant makes
     #[serde(default)]
     pub summary: String,
 }
 
-/// The `amverge models --json` listing payload (only depth + interpolation).
+/// the `amverge models --json` listing payload (only depth + interpolation)
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModelsListPayload {
@@ -44,7 +44,7 @@ pub struct ModelsListPayload {
     pub interpolation: Vec<ModelInfo>,
 }
 
-/// Result of a download/delete action.
+/// Result of a download/delete action
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModelsActionResult {
@@ -54,15 +54,15 @@ pub struct ModelsActionResult {
     pub message: String,
 }
 
-/// The CLI wraps a single action's result in `{"result": {...}}`.
+/// the CLI wraps a single action's result in `{"result": {...}}`
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ModelsActionResultEnvelope {
     result: ModelsActionResult,
 }
 
-/// Run `amverge models <args>`, streaming stderr to the console, and return the
-/// stdout (the JSON payload) together with the collected stderr lines.
+/// run `amverge models <args>`, streaming stderr to the console, and return the
+/// stdout (the JSON payload) together with the collected stderr lines
 fn run_models(app: &AppHandle, args: &[&str]) -> Result<(String, Vec<String>), String> {
     let mut cmd = amverge_ai_command(app)?;
     cmd.args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
@@ -127,14 +127,14 @@ fn run_models(app: &AppHandle, args: &[&str]) -> Result<(String, Vec<String>), S
     Ok((stdout, stderr_lines))
 }
 
-/// Pulls the JSON payload out of the CLI's stdout.
+/// pulls the JSON payload out of the CLI's stdout.
 ///
-/// The whole of stdout used to be handed to the parser, which meant a single
-/// stray line broke it. The download path imports torch and the depth stack,
+/// the whole of stdout used to be handed to the parser, which meant a single
+/// stray line broke it. the download path imports torch and the depth stack,
 /// and libraries in that tree print notices on import, so a download could
 /// finish on disk while the app reported a parse failure and left the row
-/// reading "not downloaded" — the next click then appeared to be the one that
-/// worked. Scanning back from the end finds the payload whatever precedes it.
+/// reading "not downloaded": the next click then appeared to be the one that
+/// worked. scanning back from the end finds the payload whatever precedes it
 fn parse_models_json<T: serde::de::DeserializeOwned>(stdout: &str) -> Result<T, String> {
     if let Ok(parsed) = serde_json::from_str::<T>(stdout.trim()) {
         return Ok(parsed);
@@ -156,7 +156,7 @@ fn parse_models_json<T: serde::de::DeserializeOwned>(stdout: &str) -> Result<T, 
     ))
 }
 
-/// List all depth + interpolation models with their download status and size.
+/// list all depth + interpolation models with their download status and size
 #[tauri::command]
 pub async fn list_models(app: AppHandle) -> Result<ModelsListPayload, String> {
     let app_for_task = app.clone();
@@ -168,7 +168,7 @@ pub async fn list_models(app: AppHandle) -> Result<ModelsListPayload, String> {
     .map_err(|e| format!("list_models task panicked: {e}"))?
 }
 
-/// Download one model weight by key.
+/// download one model weight by key
 #[tauri::command]
 pub async fn download_model(app: AppHandle, key: String) -> Result<ModelsActionResult, String> {
     let app_for_task = app.clone();
@@ -182,7 +182,7 @@ pub async fn download_model(app: AppHandle, key: String) -> Result<ModelsActionR
     .map_err(|e| format!("download_model task panicked: {e}"))?
 }
 
-/// Delete one model weight by key.
+/// delete one model weight by key
 #[tauri::command]
 pub async fn delete_model(app: AppHandle, key: String) -> Result<ModelsActionResult, String> {
     let app_for_task = app.clone();
@@ -209,8 +209,8 @@ mod models_json_tests {
 
     #[test]
     fn reads_json_after_library_noise() {
-        // The shape that broke downloads: the ML stack prints on import, so the
-        // payload is the last line rather than the whole of stdout.
+        // the shape that broke downloads: the ML stack prints on import, so the
+        // payload is the last line rather than the whole of stdout
         let stdout = concat!(
             "xFormers not available\n",
             "UserWarning: torch was compiled without flash attention\n",

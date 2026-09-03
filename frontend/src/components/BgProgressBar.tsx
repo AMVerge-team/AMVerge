@@ -16,8 +16,8 @@ type BgProgress = {
   aiLabel?: string;
   onAiClick?: () => void;
   onClose: () => void;
-  /** Render inline (no fixed positioning, drag, or header) so a parent can
-   * attach it below the minimized loading card. */
+  /** render inline (no fixed positioning, drag, or header) so a parent can
+   * attach it below the minimized loading card */
   attached?: boolean;
 };
 
@@ -121,7 +121,7 @@ export default function BgProgressBar({
   };
 
   // attached mode flows inside a parent card: no fixed positioning, no drag,
-  // and no header (the parent card owns the title + controls).
+  // and no header (the parent card owns the title + controls)
   const anchoredStyle = attached
     ? undefined
     : position

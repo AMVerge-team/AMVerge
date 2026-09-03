@@ -8,19 +8,19 @@ import type { CommunityEvent } from "./types";
 type EventCardProps = {
   event: CommunityEvent;
   onOpen?: (id: string) => void;
-  /** Rendered inside the host form's preview, where it must not be clickable. */
+  /** rendered inside the host form's preview, where it must not be clickable */
   preview?: boolean;
-  /** Shows a delete control. Only passed for events the signed-in host may remove. */
+  /** shows a delete control. only passed for events the signed-in host may remove */
   onDelete?: (id: string) => void;
-  /** Flags an event the user has not seen before, for this visit only. */
+  /** flags an event the user has not seen before, for this visit only */
   isNew?: boolean;
-  /** True when the signed-in user hosts this event. */
+  /** true when the signed-in user hosts this event */
   isOwn?: boolean;
 };
 
 /**
- * Grid tile. Kept presentational so the host form can preview a draft through
- * the same component the grid uses — a mockup would drift.
+ * grid tile. kept presentational so the host form can preview a draft through
+ * the same component the grid uses, a mockup would drift.
  */
 export default function EventCard({ event, onOpen, preview = false, onDelete, isNew = false, isOwn = false }: EventCardProps) {
   const ended = hasEnded(event);
@@ -83,8 +83,8 @@ export default function EventCard({ event, onOpen, preview = false, onDelete, is
     return <div className={className}>{body}</div>;
   }
 
-  // The delete control sits outside the card button rather than inside it —
-  // a button inside a button is invalid and swallows the click.
+  // the delete control sits outside the card button rather than inside it
+  // a button inside a button is invalid and swallows the click
   return (
     <div className="event-card-slot">
       <button type="button" className={className} onClick={() => onOpen?.(event.id)}>

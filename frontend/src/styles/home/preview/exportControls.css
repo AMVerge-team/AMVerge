@@ -1,0 +1,492 @@
+.export-panel {
+    width: 100%;
+    max-width: 650px;
+    margin-top: 20px;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+        "header"
+        "profile"
+        "path"
+        "options"
+        "button";
+    gap: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 20;
+    container-type: inline-size;
+    container-name: exportPanel;
+}
+
+.export-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 8px;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    grid-area: header;
+}
+
+.header-icon {
+    color: var(--accent);
+    font-size: 1.2rem;
+    opacity: 0.9;
+}
+
+.export-title {
+    font-size: 1.1rem;
+    color: var(--accent);
+    letter-spacing: 2px;
+    font-weight: 500;
+}
+
+.export-settings-row {
+    display: flex;
+    align-items: flex-start;
+    grid-area: profile;
+}
+
+.export-setting-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+.export-profile-group {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+}
+
+.export-label {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.label-icon {
+    color: var(--accent);
+    font-size: 0.85rem;
+    opacity: 0.6;
+}
+
+.export-profile-select,
+.export-format-select {
+    width: 100% !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+.export-profile-select.open {
+    z-index: 4500;
+}
+
+.export-profile-select .dropdown-trigger,
+.export-format-select .dropdown-trigger {
+    min-height: 36px !important;
+    height: auto !important;
+    padding: 4px 10px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
+}
+
+.export-profile-select .dropdown-trigger:hover,
+.export-format-select .dropdown-trigger:hover {
+    border-color: rgba(var(--accent-rgb), 0.5) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.export-profile-select .dropdown-value,
+.export-format-select .dropdown-value {
+    letter-spacing: 1px !important;
+}
+
+.export-profile-select .dropdown-item-content,
+.export-profile-select .dropdown-value.rich .dropdown-item-content {
+    display: grid !important;
+    grid-template-columns: 36px 1fr !important;
+    grid-template-areas:
+        "icon label"
+        "icon desc" !important;
+    column-gap: 12px !important;
+    row-gap: 2px !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+
+.export-profile-select .dropdown-item-main {
+    display: contents !important;
+}
+
+.export-profile-select .dropdown-item-icon,
+.export-profile-select .dropdown-value.rich .dropdown-item-icon {
+    grid-area: icon !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    align-self: center !important;
+    justify-self: center !important;
+    border-radius: 6px !important;
+    background: rgba(var(--accent-rgb), 0.1) !important;
+    border: 1px solid rgba(var(--accent-rgb), 0.28) !important;
+    color: var(--accent) !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+}
+
+.export-profile-select .dropdown-item-icon svg,
+.export-profile-select .dropdown-value.rich .dropdown-item-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+    display: block !important;
+}
+
+.export-profile-select .dropdown-item-icon .codec-badge,
+.export-profile-select .dropdown-value.rich .dropdown-item-icon .codec-badge {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    height: 100% !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.5px !important;
+    color: var(--accent) !important;
+}
+
+.export-profile-select .dropdown-item-label,
+.export-profile-select .dropdown-value.rich .dropdown-item-label {
+    grid-area: label !important;
+    font-size: 0.85rem !important;
+    letter-spacing: 0.5px !important;
+    line-height: 1.2 !important;
+    font-weight: 500 !important;
+    color: #ffffff !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.export-profile-select .dropdown-item-description,
+.export-profile-select .dropdown-value.rich .dropdown-item-description {
+    grid-area: desc !important;
+    font-size: 0.72rem !important;
+    color: rgba(255, 255, 255, 0.55) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    letter-spacing: 0.2px !important;
+    line-height: 1.2 !important;
+}
+
+.export-profile-select .dropdown-item {
+    padding: 8px 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    transition: background 0.15s ease !important;
+}
+
+.export-profile-select .dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.export-profile-select .dropdown-item.active {
+    background: rgba(var(--accent-rgb), 0.15) !important;
+}
+
+.export-profile-select .dropdown-item.active .dropdown-item-label {
+    color: var(--accent) !important;
+}
+
+.export-profile-select .dropdown-item.active,
+.export-format-select .dropdown-item.active {
+    color: var(--selector-active-fg) !important;
+}
+
+.export-profile-select .dropdown-item.active .dropdown-item-icon {
+    background: rgb(0 240 122 / 0.12) !important;
+    border-color: rgb(0 240 122 / 0.38) !important;
+    color: var(--selector-active-fg) !important;
+}
+
+.export-profile-select .dropdown-menu {
+    max-height: 168px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--accent-rgb), 0.55) rgba(255, 255, 255, 0.06);
+}
+
+.export-profile-select .dropdown-menu::-webkit-scrollbar {
+    width: 8px;
+}
+
+.export-profile-select .dropdown-menu::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 999px;
+}
+
+.export-profile-select .dropdown-menu::-webkit-scrollbar-thumb {
+    background: rgba(var(--accent-rgb), 0.55);
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+.export-profile-select .dropdown-menu::-webkit-scrollbar-thumb:hover {
+    background: rgba(var(--accent-rgb), 0.75);
+}
+
+.export-path-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    grid-area: path;
+}
+
+.export-dir-row {
+    display: flex;
+    gap: 4px;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+}
+
+.export-dir-input {
+    flex: 1;
+    min-width: 0;
+    height: 36px;
+    padding: 0 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: white;
+    font-family: inherit;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.export-dir-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0px 4px;
+}
+
+.davinci-export-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 32px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.2s ease, filter 0.2s ease;
+}
+
+.davinci-export-toggle:hover {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.davinci-export-toggle.is-active {
+    color: var(--accent);
+    filter: drop-shadow(0 0 6px rgb(var(--accent-rgb) / 0.45));
+}
+
+.merge-clips-label {
+    width: 72px;
+    min-width: 72px;
+    height: 36px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    line-height: 1.05;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.7px;
+    color: rgba(255, 255, 255, 0.72);
+    text-align: center;
+    user-select: none;
+}
+
+.audio-stream-select {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.audio-stream-field {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.audio-stream-label {
+    width: 30px;
+    min-width: 40px;
+    height: 36px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    line-height: 1.05;
+    font-size: 14px;
+    font-weight: 300;
+    letter-spacing: 0.7px;
+    color: rgb(255, 255, 255);
+    text-align: center;
+    user-select: none;
+    margin-right: 2px;
+}
+
+.export-dir-input:focus {
+    border-color: var(--accent);
+}
+
+.export-dir-browse {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(var(--accent-rgb), 0.3) !important;
+    border-radius: 8px !important;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    transition: all 0.2s ease !important;
+}
+
+.export-dir-browse:hover {
+    background: var(--accent) !important;
+    color: black !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 15px rgba(var(--accent-rgb), 0.3);
+}
+
+.export-options-row {
+    grid-area: options;
+    width: 100%;
+}
+
+.export-main-anchor {
+    grid-area: button;
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+.export-main-button {
+    width: 100%;
+    height: 42px;
+    margin-top: 4px;
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+}
+
+.btn-icon {
+    font-size: 1rem;
+}
+
+.export-main-button:not(:disabled):hover {
+    background: var(--accent);
+    color: black;
+    transform: translateY(-2px);
+    box-shadow: 0 0 25px rgba(var(--accent-rgb), 0.4);
+}
+
+.export-main-button:not(:disabled):active {
+    transform: translateY(0);
+    background: rgba(var(--accent-rgb), 0.8);
+}
+
+.export-main-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    filter: saturate(0.65);
+    box-shadow: none;
+}
+
+@container exportPanel (min-width: 520px) {
+    .export-panel {
+        grid-template-columns: 1fr 130px;
+        grid-template-areas:
+            "header header"
+            "profile button"
+            "path button"
+            "options button";
+        gap: 10px 14px;
+    }
+
+    .export-main-button {
+        height: 100%;
+        margin-top: 0;
+        flex-direction: column;
+        justify-content: center;
+        gap: 8px;
+        font-size: 0.95rem;
+        text-align: center;
+        padding: 8px;
+    }
+
+    .export-main-button .btn-icon {
+        font-size: 1.6rem;
+        margin-bottom: 2px;
+    }
+}
+
+.export-panel .checkbox-row {
+    height: 36px;
+    margin-right: 0;
+}
+
+.export-panel .checkbox-row p {
+    font-size: 16px;
+    color: white;
+    opacity: 0.9;
+    letter-spacing: 0.8px;
+}
+
+.export-panel .custom-checkbox {
+    width: 22px;
+    height: 22px;
+}
+
+.export-panel .custom-checkbox>.checkmark {
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+}

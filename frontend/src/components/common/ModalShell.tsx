@@ -12,7 +12,7 @@ type ModalShellProps = {
 };
 
 /**
- * Full-screen overlay shared by the settings and menu modals. The frame paints
+ * full-screen overlay shared by the settings and menu modals. the frame paints
  * on the click; its contents mount a frame later, so a heavy panel never delays
  * the overlay appearing.
  */
@@ -46,9 +46,9 @@ export default function ModalShell({
   return (
     <div
       className="app-modal-overlay"
-      // Target check rather than stopPropagation on the panel: stopping the
+      // target check rather than stopPropagation on the panel: stopping the
       // synthetic event also stops the native one, which document-level
-      // outside-click handlers (dropdowns) rely on.
+      // outside-click handlers (dropdowns) rely on
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
