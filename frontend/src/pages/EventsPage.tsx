@@ -37,7 +37,7 @@ export default function EventsPage() {
       <EventsToolbar />
 
       <div className="main-layout-wrapper">
-        <MainLayout left={<EventsBrowser />} previewIdle />
+        <MainLayout left={<EventsBrowser />} previewIdle fullWidth />
 
         <div className="info-bar">
           <Tooltip content="Settings">

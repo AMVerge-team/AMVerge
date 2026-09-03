@@ -17,6 +17,10 @@ type ModelInfo = {
   file: string;
   sizeBytes: number;
   downloaded: boolean;
+  /** Short variant name, e.g. "Small". Empty for models without one. */
+  label?: string;
+  /** One line on the trade-off this variant makes. */
+  summary?: string;
 };
 
 type ModelsList = {
@@ -54,7 +58,6 @@ const ALLOWED_INTERPOLATION_KEYS = new Set(
 export default function AiModelsSection() {
   const aiStatus = useAiDepsStore((s) => s.status);
   const [models, setModels] = useState<ModelsList | null>(null);
-  const [loading, setLoading] = useState(false);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,15 +65,12 @@ export default function AiModelsSection() {
   const interpInstalled = isPackInstalled(aiStatus, "interpolation");
 
   const load = useCallback(async () => {
-    setLoading(true);
     try {
       const data = await invoke<ModelsList>("list_models");
       setModels(data);
       setError(null);
     } catch (err) {
       setError(String(err));
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -115,7 +115,9 @@ export default function AiModelsSection() {
           control={
             installed ? (
               <span className="settings-value" style={{ width: "auto", fontSize: "0.85rem", opacity: 0.8 }}>
-                {list.length} model{list.length === 1 ? "" : "s"}
+                {models === null
+                  ? "Loading models…"
+                  : `${list.length} model${list.length === 1 ? "" : "s"}`}
               </span>
             ) : (
               <span className="aid-state">Not available</span>
@@ -150,13 +152,47 @@ export default function AiModelsSection() {
           transition: "border-color 0.15s ease",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
-          <span style={{ fontWeight: 600, fontSize: "0.92rem", color: "#ffffff", letterSpacing: "0.3px" }}>
-            {model.name}
-          </span>
-          <span style={{ fontSize: "0.78rem", color: "rgba(255, 255, 255, 0.45)", fontFamily: "monospace" }}>
-            {model.sizeBytes > 0 ? formatBytes(model.sizeBytes) : "—"}
-          </span>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+            <span style={{ fontWeight: 600, fontSize: "0.92rem", color: "#ffffff", letterSpacing: "0.3px" }}>
+              {model.name}
+            </span>
+            {model.label && (
+              <span
+                style={{
+                  padding: "1px 7px",
+                  borderRadius: 999,
+                  background: "rgb(var(--accent-rgb) / 0.14)",
+                  border: "1px solid rgb(var(--accent-rgb) / 0.3)",
+                  color: "var(--accent)",
+                  fontSize: "0.7rem",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                }}
+              >
+                {model.label}
+              </span>
+            )}
+            <span style={{ fontSize: "0.78rem", color: "rgba(255, 255, 255, 0.45)", fontFamily: "monospace" }}>
+              {model.sizeBytes > 0 ? formatBytes(model.sizeBytes) : "—"}
+            </span>
+          </div>
+
+          {/* What the variant costs and buys, so the choice is not three names
+              that differ only by a letter. */}
+          {model.summary && (
+            <p
+              style={{
+                margin: "3px 0 0",
+                fontFamily: "var(--ui-font)",
+                fontSize: "0.76rem",
+                lineHeight: 1.35,
+                color: "rgba(255, 255, 255, 0.5)",
+              }}
+            >
+              {model.summary}
+            </p>
+          )}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -206,9 +242,6 @@ export default function AiModelsSection() {
       {renderGroup("depth")}
       {renderGroup("interpolation")}
 
-      {loading && (
-        <p className="setting-description" style={{ marginTop: 8 }}>Loading model list…</p>
-      )}
       {error ? <p className="pxm-errors" style={{ marginTop: 8 }}>{error}</p> : null}
     </>
   );

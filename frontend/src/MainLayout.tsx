@@ -19,11 +19,16 @@ export default function MainLayout({
     active = true,
     left,
     previewIdle = false,
+    fullWidth = false,
 }: {
     intro?: boolean;
     active?: boolean;
     /** Replaces the clip grid in the left pane. Events fills it with its own grid. */
     left?: React.ReactNode;
+    /** Drops the preview pane and its divider entirely, rather than collapsing
+     *  them. Pages with nothing to preview have no use for either, and leaving
+     *  a foldable pane behind only offers a control that does nothing. */
+    fullWidth?: boolean;
     /** Keeps the preview pane mounted, sized, and collapsible as the user left
      *  it, but showing nothing — the Events page has no clip to preview, and
      *  whatever was playing has to stop. */
@@ -94,12 +99,12 @@ export default function MainLayout({
             <div className="split-layout" style={{ flex: 1, minHeight: 0 }}>
                 <div
                     className={`left-pane ${intro ? "app-intro" : ""}`}
-                    style={{ width: previewCollapsed ? "100%" : `${leftWidth}%`, ...(intro ? { ["--intro-delay" as any]: "80ms" } : {}) }}
+                    style={{ width: fullWidth || previewCollapsed ? "100%" : `${leftWidth}%`, ...(intro ? { ["--intro-delay" as any]: "80ms" } : {}) }}
                 >
                     {left ?? <ClipsContainer />}
                 </div>
 
-                {!previewCollapsed && (
+                {!fullWidth && !previewCollapsed && (
                     <div className="divider" onMouseDown={startHorizontalResize}>
                         <span className="subdivider" />
                         <span className="subdivider" />
@@ -108,7 +113,9 @@ export default function MainLayout({
 
                 {/* Kept mounted while collapsed: the pane holds the export settings, and
                     `active={false}` is what actually stops the player — `display: none`
-                    alone does not. */}
+                    alone does not. Unmounted outright in full-width mode, which is the
+                    one case where nothing on the page can ever need it. */}
+                {!fullWidth && (
                 <div
                     className={`right-pane ${previewCollapsed ? "collapsed" : ""} ${intro ? "app-intro" : ""}`}
                     style={{ width: previewCollapsed ? 0 : `${100 - leftWidth}%`, ...(intro ? { ["--intro-delay" as any]: "180ms" } : {}) }}
@@ -120,6 +127,7 @@ export default function MainLayout({
                         active={!previewIdle && active && !previewCollapsed}
                     />
                 </div>
+                )}
             </div>
         </div>
     )

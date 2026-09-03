@@ -52,11 +52,12 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
             : { paddingRight: `calc(max(280px, ${100 - previewSplitPct}%) + 10px)` }
         }
       >
-        {showImportControls && (
-          <div className="import-buttons-container">
-            {/* Left end of the row, over the panel it controls - the mirror of
-                the preview toggle at the far right. */}
-            <Tooltip content={sidebarEnabled ? "Hide episode panel" : "Show episode panel"}>
+        <div className="import-buttons-container">
+          {/* Left end of the row, over the panel it controls - the mirror of
+              the preview toggle at the far right. Rendered on every clip page:
+              it belongs to the sidebar, not to importing, so hiding the import
+              controls must not take it away. */}
+          <Tooltip content={sidebarEnabled ? "Hide episode panel" : "Show episode panel"}>
               <button
                 type="button"
                 className={`import-button panel-toggle-button episode-panel-toggle${sidebarEnabled ? " active" : ""}`}
@@ -74,6 +75,8 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
               </button>
             </Tooltip>
 
+          {showImportControls && (
+            <>
             <button onClick={onImportClick}
                     className="import-button"
                     disabled={importBusy}
@@ -98,8 +101,9 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
                 </button>
               </span>
             </Tooltip>
-          </div>
-        )}
+            </>
+          )}
+        </div>
         <div className="grid-checkboxes">
           <div className="selectable-checkboxes">
             <div className="checkbox-row">

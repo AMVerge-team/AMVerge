@@ -24,6 +24,21 @@
     align-items: center;
 }
 
+/* With the import controls hidden (Scenepacks), the panel toggle is the only
+   thing left in this row. The container's 5rem minimum then held open far more
+   width than the button needs, and its right padding and the button's own
+   margin sat on top of that — together far wider than the 8px that separates
+   the buttons on every other page. The minimum exists to keep the import row
+   from collapsing, which does not apply when the only child is fixed width. */
+.import-buttons-container:has(> .panel-toggle-button:only-child) {
+    min-width: 0;
+    padding-right: 0;
+}
+
+.import-buttons-container > .panel-toggle-button:only-child {
+    margin-right: 0;
+}
+
 .import-button {
     width: 8rem;
     height: 2rem;

@@ -26,6 +26,12 @@ pub struct ModelInfo {
     #[serde(default)]
     pub size_bytes: u64,
     pub downloaded: bool,
+    /// Short human name for the variant, e.g. "Small".
+    #[serde(default)]
+    pub label: String,
+    /// One line on the trade-off this variant makes.
+    #[serde(default)]
+    pub summary: String,
 }
 
 /// The `amverge models --json` listing payload (only depth + interpolation).
@@ -121,14 +127,42 @@ fn run_models(app: &AppHandle, args: &[&str]) -> Result<(String, Vec<String>), S
     Ok((stdout, stderr_lines))
 }
 
+/// Pulls the JSON payload out of the CLI's stdout.
+///
+/// The whole of stdout used to be handed to the parser, which meant a single
+/// stray line broke it. The download path imports torch and the depth stack,
+/// and libraries in that tree print notices on import, so a download could
+/// finish on disk while the app reported a parse failure and left the row
+/// reading "not downloaded" — the next click then appeared to be the one that
+/// worked. Scanning back from the end finds the payload whatever precedes it.
+fn parse_models_json<T: serde::de::DeserializeOwned>(stdout: &str) -> Result<T, String> {
+    if let Ok(parsed) = serde_json::from_str::<T>(stdout.trim()) {
+        return Ok(parsed);
+    }
+
+    for line in stdout.lines().rev() {
+        let trimmed = line.trim();
+        if !trimmed.starts_with('{') {
+            continue;
+        }
+        if let Ok(parsed) = serde_json::from_str::<T>(trimmed) {
+            return Ok(parsed);
+        }
+    }
+
+    Err(format!(
+        "amverge models returned no readable JSON. Output was: {}",
+        stdout.trim().chars().take(300).collect::<String>()
+    ))
+}
+
 /// List all depth + interpolation models with their download status and size.
 #[tauri::command]
 pub async fn list_models(app: AppHandle) -> Result<ModelsListPayload, String> {
     let app_for_task = app.clone();
     tokio::task::spawn_blocking(move || -> Result<ModelsListPayload, String> {
         let (stdout, _stderr) = run_models(&app_for_task, &["models", "--json"])?;
-        serde_json::from_str(&stdout)
-            .map_err(|e| format!("amverge models returned invalid JSON: {e}"))
+        parse_models_json::<ModelsListPayload>(&stdout)
     })
     .await
     .map_err(|e| format!("list_models task panicked: {e}"))?
@@ -141,8 +175,7 @@ pub async fn download_model(app: AppHandle, key: String) -> Result<ModelsActionR
     tokio::task::spawn_blocking(move || -> Result<ModelsActionResult, String> {
         let (stdout, _stderr) =
             run_models(&app_for_task, &["models", "--json", "--download", &key])?;
-        let envelope: ModelsActionResultEnvelope = serde_json::from_str(&stdout)
-            .map_err(|e| format!("amverge models returned invalid JSON: {e}"))?;
+        let envelope: ModelsActionResultEnvelope = parse_models_json(&stdout)?;
         Ok(envelope.result)
     })
     .await
@@ -156,10 +189,55 @@ pub async fn delete_model(app: AppHandle, key: String) -> Result<ModelsActionRes
     tokio::task::spawn_blocking(move || -> Result<ModelsActionResult, String> {
         let (stdout, _stderr) =
             run_models(&app_for_task, &["models", "--json", "--delete", &key])?;
-        let envelope: ModelsActionResultEnvelope = serde_json::from_str(&stdout)
-            .map_err(|e| format!("amverge models returned invalid JSON: {e}"))?;
+        let envelope: ModelsActionResultEnvelope = parse_models_json(&stdout)?;
         Ok(envelope.result)
     })
     .await
     .map_err(|e| format!("delete_model task panicked: {e}"))?
+}
+
+#[cfg(test)]
+mod models_json_tests {
+    use super::*;
+
+    #[test]
+    fn reads_clean_json() {
+        let payload: ModelsListPayload =
+            parse_models_json(r#"{"depth":[],"interpolation":[]}"#).unwrap();
+        assert!(payload.depth.is_empty());
+    }
+
+    #[test]
+    fn reads_json_after_library_noise() {
+        // The shape that broke downloads: the ML stack prints on import, so the
+        // payload is the last line rather than the whole of stdout.
+        let stdout = concat!(
+            "xFormers not available\n",
+            "UserWarning: torch was compiled without flash attention\n",
+            r#"{"result":{"ok":true,"action":"download","key":"vits","message":"Downloaded: vits"}}"#,
+            "\n",
+        );
+
+        let envelope: ModelsActionResultEnvelope = parse_models_json(stdout).unwrap();
+        assert!(envelope.result.ok);
+        assert_eq!(envelope.result.key, "vits");
+    }
+
+    #[test]
+    fn reads_json_followed_by_trailing_noise() {
+        let stdout = concat!(
+            r#"{"result":{"ok":true,"action":"delete","key":"vitb","message":"Deleted: vitb"}}"#,
+            "\nSome trailing chatter\n",
+        );
+
+        let envelope: ModelsActionResultEnvelope = parse_models_json(stdout).unwrap();
+        assert_eq!(envelope.result.action, "delete");
+    }
+
+    #[test]
+    fn error_quotes_the_output_when_nothing_parses() {
+        let result = parse_models_json::<ModelsListPayload>("Traceback (most recent call last):");
+        let message = result.err().expect("must fail");
+        assert!(message.contains("Traceback"), "error should quote the output: {message}");
+    }
 }
