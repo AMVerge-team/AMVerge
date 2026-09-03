@@ -2,9 +2,9 @@ import { create } from "zustand";
 
 const MAX_LOGS = 200;
 
-// UI state for the post-export passes modal. The runner
+// UI state for the post-export passes modal. the runner
 // (features/export/runPostExportPasses) drives it; the modal reflects it and
-// signals stop via `stopRequested`.
+// signals stop via `stopRequested`
 export type PassRunStore = {
   active: boolean;
   minimized: boolean;

@@ -10,12 +10,12 @@ type GridPageLayoutProps = {
   active: boolean;
   intro?: boolean;
   showImportControls?: boolean;
-  /** Left side of the info bar - episode filename, or the scenepack's name. */
+  /** left side of the info bar - episode filename, or the scenepack's name */
   infoText?: ReactNode;
 };
 
 /**
- * The shell both clip pages share: import row, split grid/preview layout with
+ * the shell both clip pages share: import row, split grid/preview layout with
  * its divider, and the info bar. Scenepacks and episodes differ only in what
  * fills the grid, so they render the same frame around it.
  */

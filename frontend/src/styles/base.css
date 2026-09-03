@@ -1,13 +1,8 @@
-/* --------------------
-   UNIVERSAL STYLING
--------------------- */
-
-/* disable all text highlighting */
 * {
     -webkit-user-select: none;
-    -moz-user-select: none; 
+    -moz-user-select: none;
     -ms-user-select: none;
-    user-select: none; 
+    user-select: none;
 }
 
 *,
@@ -18,7 +13,7 @@
 
 body {
     background-color: #000;
-    /* Theme gradient. */
+
     background-image: linear-gradient(160deg, #000000 50%, var(--bg-accent) 100%);
     background-size: cover;
     background-position: center;
@@ -28,10 +23,7 @@ body {
     overflow: hidden;
     font-family: var(--app-font);
     font-size-adjust: var(--app-font-adjust, none);
-    /* Jersey 10 ships a single weight, so every bold request was being faked by
-       the renderer - smeared pixels, and the reason it read badly. With
-       synthesis off, a bold request falls back to the real weight instead. Fonts
-       that do ship a bold (the UI face used for descriptions) still use it. */
+
     font-synthesis-weight: none;
 }
 
@@ -69,7 +61,6 @@ body::before {
     pointer-events: none;
 }
 
-/* all buttons */
 .buttons {
     height: 30px;
     width: 100px;

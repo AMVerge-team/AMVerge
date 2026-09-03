@@ -1,0 +1,395 @@
+.export-settings-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    transform: translateZ(0);
+}
+
+.export-setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-width: 0;
+    height: auto;
+    min-height: 40px;
+}
+
+.export-setting-row .setting-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.export-setting-row .settings-label {
+    min-width: 0;
+}
+
+.export-setting-row .settings-control {
+    min-width: 0;
+    flex: 0 0 auto;
+    justify-content: flex-end;
+}
+
+.export-setting-row .settings-control.export-setting-control {
+    height: auto;
+}
+
+.export-setting-row .settings-control.export-setting-control > .custom-dropdown,
+.export-setting-row .settings-control.export-setting-control > .font-picker,
+.export-setting-row .settings-control.export-setting-control > .settings-text-input,
+.export-setting-row .settings-control.export-setting-control > .settings-number-input {
+    width: min(560px, 100%);
+    min-width: 0;
+}
+
+.export-setting-row .custom-checkbox {
+    width: 25px;
+    min-width: 25px;
+    flex: 0 0 auto;
+    margin-right: 0;
+}
+
+.export-setting-row .settings-control button {
+    white-space: nowrap;
+}
+
+.setting-description {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.2;
+    letter-spacing: 0.5px;
+    color: rgb(255 255 255 / 0.6);
+
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+.settings-row .settings-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.export-setting-description a {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+.export-setting-control {
+    min-width: 0;
+    justify-content: flex-end;
+    height: auto;
+}
+
+.export-profile-actions-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-left: 0px;
+    margin-top: -2px;
+    margin-bottom: 16px;
+}
+
+.export-setting-block {
+
+    margin: 0 0 16px;
+}
+
+.settings-section-divider {
+    height: 1px;
+    margin: 18px 0 10px;
+    background: rgb(255 255 255 / 0.08);
+}
+
+.settings-collapsible {
+    margin-bottom: 4px;
+}
+
+.settings-collapsible-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: auto;
+    padding: 12px 4px 8px;
+    border: none;
+    background: transparent;
+    color: white;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.settings-collapsible-header:hover .settings-collapsible-title,
+.settings-collapsible-header:hover .settings-collapsible-chevron {
+    filter: brightness(1.25);
+}
+
+.settings-collapsible-title {
+    flex: 0 0 auto;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.settings-collapsible-chevron {
+    font-size: 0.8rem;
+    color: rgb(255 255 255 / 0.5);
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.settings-collapsible.is-open .settings-collapsible-chevron {
+    transform: rotate(180deg);
+}
+
+.settings-collapsible-body {
+    padding: 0 4px 12px;
+}
+
+.settings-subheading {
+    margin: 0 0 2px;
+    color: var(--accent);
+    font-size: 1rem;
+}
+
+.settings-subheading-desc {
+    margin: 0 0 8px;
+    color: rgb(255 255 255 / 0.5);
+    font-size: 0.82rem;
+}
+
+.pass-config {
+    margin: 0 0 6px 14px;
+    padding-left: 12px;
+    border-left: 2px solid rgb(var(--accent-rgb) / 0.3);
+}
+
+.pass-subheading {
+    margin: 12px 0 2px;
+    color: rgb(var(--accent-rgb) / 0.85);
+    font-size: 0.85rem;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+}
+
+.pass-number-input {
+    width: 90px;
+}
+
+.settings-text-input,
+.settings-number-input {
+    height: 32px;
+    width: 100%;
+    padding: 0 10px;
+    border: 1px solid rgb(255 255 255 / 0.16);
+    border-radius: 8px;
+    background: rgb(255 255 255 / 0.08);
+    color: white;
+    font-family: inherit;
+    font-size: 20px;
+    letter-spacing: 0.2px;
+    outline: none;
+}
+
+.settings-number-input {
+    width: 70px;
+    text-align: center;
+}
+
+.settings-text-input:focus,
+.settings-number-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 10px rgb(var(--accent-rgb) / 0.24);
+}
+
+.settings-wide-dropdown {
+    width: 100%;
+}
+
+.settings-wide-dropdown,
+.settings-wide-dropdown .dropdown-trigger,
+.settings-wide-dropdown .dropdown-value,
+.settings-wide-dropdown .dropdown-item-content {
+    min-width: 0;
+}
+
+.export-profile-dropdown {
+    width: min(450px, 100%);
+}
+
+.export-profile-dropdown .dropdown-trigger {
+    min-height: 58px;
+    height: auto;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: linear-gradient(94deg, rgb(255 255 255 / 0.07) 0%, rgb(255 255 255 / 0.03) 100%);
+    border: 1px solid rgb(255 255 255 / 0.2);
+}
+
+.export-profile-dropdown .dropdown-trigger:hover {
+    border-color: rgb(255 255 255 / 0.32);
+    background: linear-gradient(94deg, rgb(255 255 255 / 0.1) 0%, rgb(255 255 255 / 0.05) 100%);
+}
+
+.export-profile-dropdown .dropdown-value.rich {
+    display: flex;
+    align-items: center;
+}
+
+.export-profile-dropdown .dropdown-value.rich .dropdown-item-content {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    grid-template-areas:
+        "icon label"
+        "icon desc";
+    column-gap: 10px;
+    row-gap: 1px;
+    align-items: center;
+}
+
+.export-profile-dropdown .dropdown-value.rich .dropdown-item-main {
+    display: contents;
+}
+
+.export-profile-dropdown .dropdown-value.rich .dropdown-item-icon {
+    grid-area: icon;
+    align-self: center;
+    justify-self: center;
+}
+
+.export-profile-dropdown .dropdown-value.rich .dropdown-item-label {
+    grid-area: label;
+}
+
+.export-profile-dropdown .dropdown-value.rich .dropdown-item-description {
+    grid-area: desc;
+}
+
+.export-profile-dropdown .dropdown-item {
+    padding: 7px 10px;
+}
+
+.export-profile-dropdown .dropdown-item-main {
+    display: contents;
+}
+
+.export-profile-dropdown .dropdown-item-content {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr);
+    grid-template-areas:
+        "icon label"
+        "icon desc";
+    column-gap: 8px;
+    row-gap: 2px;
+    align-items: center;
+}
+
+.export-profile-dropdown .dropdown-item-label {
+    grid-area: label;
+    font-size: 0.5rem;
+    text-transform: none;
+    letter-spacing: 0.5px;
+}
+
+.export-profile-dropdown .dropdown-item-description {
+    grid-area: desc;
+    font-size: 0.68rem;
+    color: rgb(255 255 255 / 0.64);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.export-profile-dropdown .dropdown-item-icon {
+    grid-area: icon;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+    justify-self: center;
+    padding: 0;
+    border-radius: 9px;
+    font-size: 0.5rem;
+    color: rgb(212 187 255 / 0.95);
+    border: 1px solid rgb(206 176 255 / 0.35);
+    background: rgb(184 146 255 / 0.12);
+}
+
+.export-profile-dropdown .dropdown-item-icon svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+
+.export-profile-dropdown .dropdown-item.active .dropdown-item-icon {
+    color: rgb(212 187 255 / 0.95);
+    border-color: rgb(206 176 255 / 0.52);
+    background: rgb(184 146 255 / 0.2);
+}
+
+.settings-wide-dropdown .dropdown-menu {
+    max-height: none;
+    overflow-y: hidden;
+}
+
+.export-settings-panel .settings-wide-dropdown .dropdown-menu {
+    left: auto;
+    right: 0;
+    width: max-content;
+    min-width: 100%;
+    max-width: min(92vw, 560px);
+}
+
+.export-settings-panel .settings-wide-dropdown .dropdown-item-content:not(.has-description) .dropdown-item-label {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.2;
+}
+
+.export-settings-panel .settings-wide-dropdown .dropdown-value:not(.rich),
+.export-settings-panel .settings-wide-dropdown .dropdown-item-label {
+    font-size: 1rem;
+    text-transform: none;
+    letter-spacing: 0.35px;
+}
+
+.export-profile-action {
+    width: auto;
+    min-width: 120px;
+    height: 30px;
+    margin: 0;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 15px;
+    border-color: white;
+    background: rgba(15, 0, 0, 0.35);
+    color: white;
+}
+
+.export-profile-action:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgb(var(--accent-rgb) / 0.16);
+    color: var(--accent);
+}
+
+.export-profile-action:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+}

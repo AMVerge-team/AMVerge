@@ -12,9 +12,9 @@ const SIZE_BUTTONS: { size: TextSize; label: string; title: string }[] = [
 ];
 
 /**
- * What-you-see editor for event descriptions. Formatting shows as formatting
+ * what-you-see editor for event descriptions. formatting shows as formatting
  * while typing rather than as raw markers, but what leaves this component is
- * still the restricted markup from `descriptionMarkup.ts` — no HTML is ever
+ * still the restricted markup from `descriptionMarkup.ts`: no HTML is ever
  * stored or sent, so a description cannot become markup in anyone else's app.
  */
 export default function DescriptionEditor({
@@ -31,16 +31,16 @@ export default function DescriptionEditor({
   placeholder?: string;
 }) {
   const editorRef = useRef<HTMLDivElement | null>(null);
-  // What we last handed upward. Used to tell our own edits apart from a value
+  // what we last handed upward. used to tell our own edits apart from a value
   // arriving from outside, so typing never triggers a re-render that would
-  // throw the caret back to the start.
+  // throw the caret back to the start
   const lastSerialized = useRef<string>("");
 
   /**
-   * A format applied with the caret collapsed is *pending*: the browser holds
-   * it and only creates an element once something is typed. Until then the DOM
+   * a format applied with the caret collapsed is *pending*: the browser holds
+   * it and only creates an element once something is typed. until then the DOM
    * still describes the old formatting, so the buttons would not light up until
-   * the host started typing. This remembers the intent, and is dropped as soon
+   * the host started typing. this remembers the intent, and is dropped as soon
    * as the caret moves or the text materialises it.
    */
   const pendingRef = useRef<
@@ -49,21 +49,21 @@ export default function DescriptionEditor({
 
   const [boldActive, setBoldActive] = useState(false);
   // null when the selection spans more than one size, so no button claims to be
-  // the current one.
+  // the current one
   const [activeSize, setActiveSize] = useState<TextSize | null>("md");
 
-  /** Reads what the caret or selection is currently sitting inside. */
+  /** reads what the caret or selection is currently sitting inside */
   const syncFormatState = useCallback(() => {
     const editor = editorRef.current;
     if (!editor || document.activeElement !== editor) return;
 
-    // Read from our own DOM rather than queryCommandValue, which answers with
+    // read from our own DOM rather than queryCommandValue, which answers with
     // a different scale on WebKit than on Chromium and made the size buttons
-    // highlight the wrong one on macOS.
+    // highlight the wrong one on macOS
     const { bold, size } = readActiveFormat(editor);
 
-    // Keep a pending format only while the caret has not moved off the spot it
-    // was applied at. Any real movement means the intent is stale.
+    // keep a pending format only while the caret has not moved off the spot it
+    // was applied at. any real movement means the intent is stale
     const selection = window.getSelection();
     const pending = pendingRef.current;
     const stillThere =
@@ -85,7 +85,7 @@ export default function DescriptionEditor({
   }, []);
 
   // selectionchange is the only event that fires for caret moves made with the
-  // keyboard, the mouse, and by the format commands alike.
+  // keyboard, the mouse, and by the format commands alike
   useEffect(() => {
     document.addEventListener("selectionchange", syncFormatState);
     return () => document.removeEventListener("selectionchange", syncFormatState);
@@ -106,7 +106,7 @@ export default function DescriptionEditor({
     const markup = serializeRoot(editor);
 
     if (markup.length > maxLength) {
-      // Put back the last accepted state rather than storing an over-long value.
+      // put back the last accepted state rather than storing an over-long value
       renderInto(editor, lastSerialized.current);
       return;
     }
@@ -115,7 +115,7 @@ export default function DescriptionEditor({
     onChange(markup);
   };
 
-  /** Typing turns a pending style into real markup, so the DOM takes over. */
+  /** typing turns a pending style into real markup, so the DOM takes over */
   const handleInput = () => {
     pendingRef.current = null;
     pushChange();
@@ -126,15 +126,15 @@ export default function DescriptionEditor({
     if (!editor) return;
 
     editor.focus();
-    // Ask for <font size> rather than inline CSS, which is the form the
-    // serializer can map back to our three sizes.
+    // ask for <font size> rather than inline CSS, which is the form the
+    // serializer can map back to our three sizes
     document.execCommand("styleWithCSS", false, "false");
     document.execCommand(command, false, argument);
     pushChange();
 
-    // With a collapsed caret nothing has changed in the DOM yet, so record what
+    // with a collapsed caret nothing has changed in the DOM yet, so record what
     // was asked for and show it straight away rather than after the first
-    // keystroke.
+    // keystroke
     const selection = window.getSelection();
     if (selection?.isCollapsed) {
       const current = readActiveFormat(editor);
@@ -160,8 +160,8 @@ export default function DescriptionEditor({
           <button
             type="button"
             className={`event-format-button${boldActive ? " is-active" : ""}`}
-            // Without this the button steals focus on mousedown, collapsing the
-            // selection before the command ever runs.
+            // without this the button steals focus on mousedown, collapsing the
+            // selection before the command ever runs
             onMouseDown={(mouseEvent) => mouseEvent.preventDefault()}
             onClick={() => runCommand("bold")}
             aria-pressed={boldActive}
@@ -212,9 +212,9 @@ export default function DescriptionEditor({
             }
           }}
           onPaste={(pasteEvent) => {
-            // Paste as plain text: whatever formatting came from elsewhere is
+            // paste as plain text: whatever formatting came from elsewhere is
             // not ours to interpret, and pasting live HTML in here is exactly
-            // what this editor exists to avoid.
+            // what this editor exists to avoid
             pasteEvent.preventDefault();
             const text = pasteEvent.clipboardData.getData("text/plain");
             document.execCommand("insertText", false, text);

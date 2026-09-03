@@ -1,10 +1,10 @@
 /**
  * "contest" runs between two dates the host picks. "hour" is a single scheduled
- * slot — the host gives one time and the server derives the one-hour window.
+ * slot: the host gives one time and the server derives the one-hour window.
  */
 export type EventType = "contest" | "hour";
 
-/** Shape returned by the AMVerge API, passed straight through by Rust. */
+/** shape returned by the AMVerge API, passed straight through by Rust */
 export type CommunityEvent = {
   id: string;
   title: string;
@@ -12,29 +12,29 @@ export type CommunityEvent = {
   discordInviteUrl: string;
   prizePool: string | null;
   eventType: EventType;
-  /** How many hours an hour contest runs. Ignored for a contest. */
+  /** how many hours an hour contest runs. ignored for a contest */
   durationHours: number;
   startsAt: string;
   endsAt: string;
   hostDiscordId: string;
   hostUsername: string | null;
   hostAvatarHash: string | null;
-  /** Only set on a local draft, where the avatar is known but its hash is not. */
+  /** only set on a local draft, where the avatar is known but its hash is not */
   hostAvatarUrl?: string | null;
   hasThumbnail: boolean;
-  /** Absolute by the time it reaches the webview; Rust rewrites it. */
+  /** absolute by the time it reaches the webview; Rust rewrites it */
   thumbnailUrl: string | null;
-  /** Inline copy of an unapproved event's cover, for its host's edit form. The
-   *  public thumbnail route serves approved events only. */
+  /** inline copy of an unapproved event's cover, for its host's edit form. the
+   *  public thumbnail route serves approved events only */
   thumbnailDataUrl?: string | null;
   createdAt: string;
   updatedAt: string;
-  /** Only present on the host's own events. */
+  /** only present on the host's own events */
   status?: "pending" | "approved" | "denied";
   denialReason?: string | null;
-  /** Whether the host has already been shown this denial. */
+  /** whether the host has already been shown this denial */
   denialSeen?: boolean;
-  /** False when a moderator has approved it and the host has not been told. */
+  /** false when a moderator has approved it and the host has not been told */
   approvalSeen?: boolean;
   pendingRevision?: EventSubmission | null;
 };
@@ -50,15 +50,15 @@ export type EventSubmission = {
   discordInviteUrl: string;
   prizePool: string | null;
   eventType: EventType;
-  /** 1-24. Only meaningful for an hour contest. */
+  /** 1-24. only meaningful for an hour contest */
   durationHours: number;
   startsAt: string;
-  /** Ignored by the server for hour contests, which derive their own end. */
+  /** ignored by the server for hour contests, which derive their own end */
   endsAt: string;
   thumbnail?: EventThumbnail | null;
 };
 
-/** What the webview is allowed to know about the signed-in user. */
+/** what the webview is allowed to know about the signed-in user */
 export type DiscordProfile = {
   id: string;
   username: string;

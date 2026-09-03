@@ -23,14 +23,14 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
   const openedEpisodeId = useEpisodePanelRuntimeStore((s) => s.openedEpisodeId);
   const { onImportClick } = useImportExport();
 
-  // drives the one-shot spin animation on the refresh icon.
+  // drives the one-shot spin animation on the refresh icon
   const [refreshSpinning, setRefreshSpinning] = useState(false);
 
   const hasSelection = selectedClips.size > 0;
   const importBusy = loading || Boolean(bgProgress) || Boolean(bgImportProgress);
 
   // re-opens the current episode: fresh import token, cleared selection/focus,
-  // remounted tiles — same reset as switching away and back, without leaving.
+  // remounted tiles, same reset as switching away and back, without leaving
   const handleRefreshEpisode = () => {
     if (!openedEpisodeId || importBusy) return;
     setRefreshSpinning(true);
@@ -40,12 +40,12 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
   return (
       <main
         className="clips-import"
-        // Reserve the preview pane's width so the toggle at the end of this row
-        // lands over the grid's right edge, and slides with the divider. With
+        // reserve the preview pane's width so the toggle at the end of this row
+        // lands over the grid's right edge, and slides with the divider. with
         // the pane collapsed the grid is full width and no reserve is needed.
-        // The 280px floor mirrors .right-pane's min-width: past that point the
+        // the 280px floor mirrors .right-pane's min-width: past that point the
         // pane stops shrinking while the percentage keeps going, and without it
-        // the button carried on sliding after the divider had visibly stopped.
+        // the button carried on sliding after the divider had visibly stopped
         style={
           previewCollapsed
             ? undefined

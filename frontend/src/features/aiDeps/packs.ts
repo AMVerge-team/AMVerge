@@ -1,16 +1,16 @@
-// Optional AI dependency packs.
+// optional AI dependency packs.
 //
-// The installer ships everything that runs on ffmpeg/opencv. Anything that needs
+// the installer ships everything that runs on ffmpeg/opencv. anything that needs
 // torch is installed on demand into an app-managed Python env (see
-// src-tauri/src/commands/deps.rs). This module is the single source of truth for
-// what a pack is called, what it unlocks, and how big the download is — the
-// gating UI, the confirm dialog and the Dependencies tab all read it.
+// src-tauri/src/commands/deps.rs). this module is the single source of truth for
+// what a pack is called, what it unlocks, and how big the download is; the
+// gating UI, the confirm dialog and the Dependencies tab all read it
 
 export type AiPackId = "ml" | "depth" | "interpolation" | "upscale";
 
 export type TorchVariant = "cuda" | "cpu";
 
-/** Mirrors `AiEnvStatus` in src-tauri/src/commands/deps.rs. */
+/** mirrors `AiEnvStatus` in src-tauri/src/commands/deps.rs */
 export type AiEnvStatus = {
   envReady: boolean;
   uvAvailable: boolean;
@@ -21,21 +21,21 @@ export type AiEnvStatus = {
   bundledCliVersion: string | null;
   gpuAvailable: boolean;
   /** Apple Silicon: torch's MPS backend works without a special wheel, so this
-   *  holds even when `gpuAvailable`/`torchVariant` (both NVIDIA-only) don't. */
+   *  holds even when `gpuAvailable`/`torchVariant` (both NVIDIA-only) don't */
   mpsAvailable: boolean;
   envSizeBytes: number;
-  /// False in dev builds, where the CLI checkout's venv is used as-is.
+  /// false in dev builds, where the CLI checkout's venv is used as-is
   managed: boolean;
 };
 
 export type AiPack = {
   id: AiPackId;
-  /// What the user knows the feature as.
+  /// what the user knows the feature as
   label: string;
-  /// Named in the "You don't have ___ installed" prompt.
+  /// named in the "You don't have ___ installed" prompt
   dependencyName: string;
   description: string;
-  /// Rough download for the pack's own wheels, torch excluded (MB).
+  /// rough download for the pack's own wheels, torch excluded (MB)
   extraSizeMb: number;
 };
 
@@ -72,8 +72,8 @@ export const AI_PACKS: Record<AiPackId, AiPack> = {
   },
 };
 
-/// Packs surfaced in the UI today. Upscaling has no screen yet, so it is
-/// registered but not listed.
+/// packs surfaced in the UI today. upscaling has no screen yet, so it is
+/// registered but not listed
 export const VISIBLE_PACK_IDS: AiPackId[] = ["ml", "depth", "interpolation"];
 
 const TORCH_SIZE_MB: Record<TorchVariant, number> = {
@@ -85,15 +85,15 @@ export function isPackInstalled(status: AiEnvStatus | null, id: AiPackId): boole
   return Boolean(status?.packs?.[id]);
 }
 
-/// Which torch build a fresh install would pull: CUDA when an NVIDIA GPU is
-/// present, otherwise the small CPU wheel. An env that already has torch keeps
-/// what it has, so later packs never re-download it.
+/// which torch build a fresh install would pull: CUDA when an NVIDIA GPU is
+/// present, otherwise the small CPU wheel. an env that already has torch keeps
+/// what it has, so later packs never re-download it
 export function plannedTorchVariant(status: AiEnvStatus | null): TorchVariant {
   if (status?.torchVariant) return status.torchVariant;
   return status?.gpuAvailable ? "cuda" : "cpu";
 }
 
-/// Estimated download for installing `id` right now, in MB.
+/// estimated download for installing `id` right now, in MB
 export function estimateDownloadMb(status: AiEnvStatus | null, id: AiPackId): number {
   const variant = plannedTorchVariant(status);
   const torchPresent = Boolean(status?.torchVersion) && status?.torchVariant === variant;

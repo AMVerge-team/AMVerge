@@ -1,8 +1,8 @@
-//! The application's name and art, as Discord itself reports them.
+//! the application's name and art, as Discord itself reports them.
 //!
-//! Both endpoints are public and unauthenticated. The settings preview uses
+//! both endpoints are public and unauthenticated. the settings preview uses
 //! them so it draws the picture Discord will actually draw, not a local
-//! stand-in.
+//! stand-in
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -19,13 +19,13 @@ const TIMEOUT: Duration = Duration::from_secs(8);
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct DiscordAppInfo {
     pub name: String,
-    /// Asset key (`amverge_logo`, `edit_icon_new`, …) → CDN url.
+    /// asset key (`amverge_logo`, `edit_icon_new`, …) → CDN url
     pub assets: HashMap<String, String>,
-    /// The application icon, used when an activity names no asset.
+    /// the application icon, used when an activity names no asset
     pub icon: Option<String>,
 }
 
-/// Offline is not a failure: the preview falls back to the bundled logo.
+/// offline is not a failure: the preview falls back to the bundled logo
 pub(super) async fn fetch() -> Result<DiscordAppInfo, String> {
     let http = reqwest::Client::builder()
         .timeout(TIMEOUT)
@@ -54,8 +54,8 @@ pub(super) async fn fetch() -> Result<DiscordAppInfo, String> {
             .map(|hash| format!("{CDN}/app-icons/{APP_ID}/{hash}.png?size=160")),
     };
 
-    // A separate, also public listing. Missing it is survivable: the icon covers
-    // the large image and the small badge simply drops.
+    // a separate, also public listing. missing it is survivable: the icon covers
+    // the large image and the small badge simply drops
     if let Ok(resp) = http
         .get(format!("{API}/v9/oauth2/applications/{APP_ID}/assets"))
         .send()

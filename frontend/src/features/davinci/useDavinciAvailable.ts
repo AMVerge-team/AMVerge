@@ -3,11 +3,11 @@ import { useGeneralSettingsStore } from "../../stores/settingsStore";
 import { detectDavinciResolve } from "./resolveImport";
 
 /**
- * Whether the DaVinci Resolve export target may be offered: the feature is on in
- * Settings and Resolve is installed.
+ * whether the DaVinci Resolve export target may be offered: the feature is on in
+ * Settings and Resolve is installed
  *
- * Nothing on disk separates Resolve Free from Studio (same install path, same
- * executable metadata, same fusionscript.dll), so this gates on "installed" — a
+ * nothing on disk separates Resolve Free from Studio (same install path, same
+ * executable metadata, same fusionscript.dll), so this gates on "installed": a
  * Free install fails at import time with the Studio requirement spelled out.
  */
 export function useDavinciAvailable(): boolean {

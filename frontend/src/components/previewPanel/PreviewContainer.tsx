@@ -28,9 +28,9 @@ import {
 type PreviewAudioStream = {
   audioStreamIndex: number;
   label: string;
-  /** Just the language name, e.g. "English". */
+  /** just the language name, e.g. "English" */
   languageLabel: string;
-  /** The track's own title, which is what tells two same-language tracks apart. */
+  /** the track's own title, which is what tells two same-language tracks apart */
   title: string;
   language: string;
 };
@@ -39,8 +39,8 @@ type PreviewContainerProps = {
   sourceClip: string | null;
   sourceClipThumbnail: string | null;
   onTimeUpdate?: (time: number) => void;
-  /** False when this preview belongs to a mounted-but-hidden page; the video
-   * player is skipped so two pages can't play the same clip's audio at once. */
+  /** false when this preview belongs to a mounted-but-hidden page; the video
+   * player is skipped so two pages can't play the same clip's audio at once */
   active?: boolean;
 };
 
@@ -79,7 +79,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const previewMethod = openedEpisode?.importMethod ?? importMethod;
   // Scenepack clips are materialized video files no matter which import method
   // produced the episode they came from, so the episode's method says nothing
-  // about them. Asking it left a WebP-imported pack previewing as a still.
+  // about them. asking it left a WebP-imported pack previewing as a still
   const activePageForPreview = useUIStateStore(s => s.activePage);
   const webpPreviewMode =
     activePageForPreview === "scenepacks" ? false : previewMethod === "webp_files";
@@ -104,9 +104,9 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     () =>
       audioStreams.map((stream) => ({
         value: stream.audioStreamIndex,
-        // The language alone: the full track description made the closed
-        // picker a wall of codec detail. The title still identifies a track
-        // when two share a language, so it moves to the option's description.
+        // the language alone: the full track description made the closed
+        // picker a wall of codec detail. the title still identifies a track
+        // when two share a language, so it moves to the option's description
         label: stream.languageLabel || stream.label,
         description: stream.title || undefined,
       })),
@@ -116,7 +116,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const hasSelectedClips = selectedClips.size > 0;
 
   // subscribe to only the focused clip's preview so unrelated WebP results
-  // streaming in from the grid queue don't re-render the preview panel.
+  // streaming in from the grid queue don't re-render the preview panel
   const previewImageSrc = useScenePreviewStore(s =>
     focusedClipId ? (s.animatedByClipId[focusedClipId] ?? null) : null
   );
@@ -128,8 +128,8 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const hasSource = !!props.sourceClip && !!sourceClipObj;
   const previewVideoSrc = sourceClipObj?.clipPath || props.sourceClip;
 
-  // A non-default Preview Language needs the chosen audio track remuxed in; the
-  // default (index 0 / null) plays straight from the cut clip's default track.
+  // a non-default Preview Language needs the chosen audio track remuxed in; the
+  // default (index 0 / null) plays straight from the cut clip's default track
   const selectedMappedAudioStreamIndex =
     previewAudioStreamIndex !== null && previewAudioStreamIndex > 0 ? previewAudioStreamIndex : null;
   const [languageProxySrc, setLanguageProxySrc] = React.useState<string | null>(null);
@@ -137,7 +137,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const { needed: needsPreviewTranscode, preset: transcodePreset } = usePreviewTranscode();
 
   // build the proxy this clip needs: a playable codec and/or the chosen audio
-  // track. webp previews are images, so this is video mode only.
+  // track. webp previews are images, so this is video mode only
   React.useEffect(() => {
     setLanguageProxySrc(null);
     if (webpPreviewMode) return;
@@ -163,18 +163,18 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   ]);
 
   // while a transcode is pending the raw clip would render black, so hold the
-  // player on the proxy path and let it mount once ffmpeg finishes.
+  // player on the proxy path and let it mount once ffmpeg finishes
   const playableVideoSrc = needsPreviewTranscode
     ? languageProxySrc
     : (languageProxySrc ?? previewVideoSrc);
 
-  // source-anchored time window for the focused scene (mirrors the grid's WebP window).
+  // source-anchored time window for the focused scene (mirrors the grid's WebP window)
   const sourcePath = sourceClipObj ? (sourceClipObj.originalPath || sourceClipObj.src) : null;
   const sceneStart = sourceClipObj?.startSec ?? 0;
   const sceneRawEnd = sourceClipObj?.endSec ?? (sceneStart + 2);
   const sceneEnd = Math.min(sceneRawEnd > sceneStart ? sceneRawEnd : sceneStart + 2, sceneStart + 2.5);
 
-  // generate the animated WebP for the focused clip on demand (never play the original video).
+  // generate the animated WebP for the focused clip on demand (never play the original video)
   React.useEffect(() => {
     if (!webpPreviewMode) return;
     if (!focusedClipId || !sourcePath || previewImageSrc) return;
@@ -210,9 +210,9 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     }
   }, [showMergeNameModal]);
 
-  // One clip per source episode, capped: clips from the same episode carry the
+  // one clip per source episode, capped: clips from the same episode carry the
   // same tracks, and probing every clip in a large pack spawns an ffprobe per
-  // clip all at once.
+  // clip all at once
   const scenepackProbeKey = React.useMemo(() => {
     if (activePageForPreview !== "scenepacks") return "";
     const seen = new Set<string>();
@@ -246,9 +246,9 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     )
       .then((results) => {
         if (cancelled) return;
-        // Union by language: clips can order their tracks differently, so the
-        // index is only meaningful per file. Export resolves the language again
-        // against each clip.
+        // union by language: clips can order their tracks differently, so the
+        // index is only meaningful per file. export resolves the language again
+        // against each clip
         const byLanguage = new Map<string, PreviewAudioStream>();
         for (const streams of results) {
           for (const stream of streams ?? []) {
@@ -456,8 +456,8 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                     );
                   }}
                   preferredDirection="up"
-                  // The closed picker shows the language only; the track title
-                  // stays in the open list where it is needed to choose.
+                  // the closed picker shows the language only; the track title
+                  // stays in the open list where it is needed to choose
                   showTriggerDescription={false}
                   disabled={audioStreamOptions.length === 0 || webpPreviewMode}
                 />

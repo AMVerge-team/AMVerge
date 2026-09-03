@@ -17,9 +17,9 @@ type ModelInfo = {
   file: string;
   sizeBytes: number;
   downloaded: boolean;
-  /** Short variant name, e.g. "Small". Empty for models without one. */
+  /** short variant name, e.g. "Small". empty for models without one */
   label?: string;
-  /** One line on the trade-off this variant makes. */
+  /** one line on the trade-off this variant makes */
   summary?: string;
 };
 
@@ -52,8 +52,8 @@ const ALLOWED_INTERPOLATION_KEYS = new Set(
 );
 
 /**
- * AI model weight manager. Lists depth + interpolation models from the CLI and
- * lets the user download or delete them. Filtered to active export settings models.
+ * AI model weight manager. lists depth + interpolation models from the CLI and
+ * lets the user download or delete them. filtered to active export settings models.
  */
 export default function AiModelsSection() {
   const aiStatus = useAiDepsStore((s) => s.status);
@@ -174,7 +174,7 @@ export default function AiModelsSection() {
               </span>
             )}
             <span style={{ fontSize: "0.78rem", color: "rgba(255, 255, 255, 0.45)", fontFamily: "monospace" }}>
-              {model.sizeBytes > 0 ? formatBytes(model.sizeBytes) : "—"}
+              {model.sizeBytes > 0 ? formatBytes(model.sizeBytes) : "-"}
             </span>
           </div>
 

@@ -2,9 +2,9 @@
  * useWebpPreview.ts
  *
  * all WebP-preview-mode logic for a clip tile, kept separate from the video
- * playback logic in LazyClip. Owns the static thumbnail state, the animated
+ * playback logic in LazyClip. owns the static thumbnail state, the animated
  * WebP source, and the viewport/hover demand reporting that drives WebP
- * generation. Returns only what the tile needs to render its WebP layers.
+ * generation. returns only what the tile needs to render its WebP layers.
  */
 import { useCallback, useEffect, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -14,8 +14,8 @@ import { cancelIdle, scheduleIdle, type IdleHandle } from "../../utils/idle";
 
 const WEBP_THUMBNAIL_CACHE = new Map<string, string>();
 // cache keys include the importToken, so every episode (re)open adds a fresh set
-// of entries and the old ones would otherwise live for the whole session. Cap it
-// and evict oldest-inserted first so memory stays bounded over long sessions.
+// of entries and the old ones would otherwise live for the whole session. cap it
+// and evict oldest-inserted first so memory stays bounded over long sessions
 const WEBP_THUMBNAIL_CACHE_MAX = 400;
 
 function cacheWebpThumbnail(key: string, dataUrl: string) {
@@ -30,14 +30,14 @@ function cacheWebpThumbnail(key: string, dataUrl: string) {
   WEBP_THUMBNAIL_CACHE.set(key, dataUrl);
 }
 
-/** Extract a static JPEG from a WebP's first frame as a flicker-free base layer.
+/** extract a static JPEG from a WebP's first frame as a flicker-free base layer
  *
- * `enabled` is the tile's viewport visibility. The grid mounts every clip (there
+ * `enabled` is the tile's viewport visibility. the grid mounts every clip (there
  * is no virtualizer), so without this gate a 900-scene episode kicks off ~900
  * simultaneous animated-WebP decodes plus a canvas draw and JPEG encode each.
- * That is enough to take the WebView2 renderer down, which closes the window
- * with no error. Cached extractions are still served instantly, on or off
- * screen. */
+ * that is enough to take the WebView2 renderer down, which closes the window
+ * with no error. cached extractions are still served instantly, on or off
+ * screen */
 function useWebpThumbnail(webpSrc: string | undefined, enabled: boolean): string | null {
   const [thumbnail, setThumbnail] = useState<string | null>(
     () => (webpSrc ? (WEBP_THUMBNAIL_CACHE.get(webpSrc) ?? null) : null)
@@ -57,7 +57,7 @@ function useWebpThumbnail(webpSrc: string | undefined, enabled: boolean): string
       if (cancelled) return;
       // defer the synchronous decode + JPEG encode out of the current frame: a
       // batch of WebPs can resolve near-simultaneously mid-scroll, and running
-      // toDataURL inline for each would stall input handling.
+      // toDataURL inline for each would stall input handling
       idleHandle = scheduleIdle(() => {
         if (cancelled) return;
         try {
@@ -71,7 +71,7 @@ function useWebpThumbnail(webpSrc: string | undefined, enabled: boolean): string
           cacheWebpThumbnail(webpSrc, dataUrl);
           setThumbnail(dataUrl);
         } catch {
-          // canvas tainted or decode failed — no thumbnail extracted
+          // canvas tainted or decode failed, no thumbnail extracted
         }
       });
     };
@@ -80,7 +80,7 @@ function useWebpThumbnail(webpSrc: string | undefined, enabled: boolean): string
       cancelled = true;
       img.onload = null;
       // drop the decoder's reference too: an abandoned in-flight <img> keeps the
-      // partially decoded animation alive until GC.
+      // partially decoded animation alive until GC
       img.src = "";
       if (idleHandle !== null) cancelIdle(idleHandle);
     };
@@ -110,7 +110,7 @@ type UseWebpPreviewArgs = {
   ) => void;
 };
 
-/** The animated-WebP encode job for a clip, or null if it has no source. */
+/** the animated-WebP encode job for a clip, or null if it has no source */
 export function buildWebpJob(
   clip: { originalPath?: string; src: string; startSec?: number; endSec?: number },
   episodeCacheId: string | null
@@ -154,9 +154,9 @@ export function useWebpPreview({
   const [thumbnailLoaded, setThumbnailLoaded] = useState(false);
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
 
-  // request scene preview assets using viewport and hover priority.
+  // request scene preview assets using viewport and hover priority
   useEffect(() => {
-    // video-preview mode never generates WebPs — scenes are shown as video clips.
+    // video-preview mode never generates WebPs, scenes are shown as video clips
     if (videoPreviewMode || isVideoMode) {
       reportWebpDemand(clip.id, null);
       return;
@@ -186,9 +186,9 @@ export function useWebpPreview({
       },
     });
 
-    // Tiles come and go as the window scrolls, so unmounting drops back to
+    // tiles come and go as the window scrolls, so unmounting drops back to
     // background priority rather than withdrawing - the grid registers every
-    // clip, and cancelling here would shrink the loading total as you scroll.
+    // clip, and cancelling here would shrink the loading total as you scroll
     return () => {
       reportWebpDemand(clip.id, {
         isVisible: false,
@@ -219,7 +219,7 @@ export function useWebpPreview({
     episodeId,
   ]);
 
-  // keep thumbnail rendering resilient: reset load state when source changes.
+  // keep thumbnail rendering resilient: reset load state when source changes
   useEffect(() => {
     setThumbnailSrc(displayThumbnailPath);
     setThumbnailLoaded(false);
@@ -227,7 +227,7 @@ export function useWebpPreview({
   }, [displayThumbnailPath, importToken]);
 
   // when a WebP becomes available, clear a prior thumbnailFailed so the img
-  // can retry using the WebP path instead of the original clip thumbnail.
+  // can retry using the WebP path instead of the original clip thumbnail
   useEffect(() => {
     if (previewWebpPath) setThumbnailFailed(false);
   }, [previewWebpPath]);

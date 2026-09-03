@@ -20,7 +20,7 @@ function PresencePanel({ enabled }: { enabled: boolean }) {
         : "Connected to Discord.";
     } else {
       tone = "waiting";
-      text = "Waiting for Discord — open the app and this connects on its own.";
+      text = "Waiting for Discord - open the app and this connects on its own.";
     }
   }
 

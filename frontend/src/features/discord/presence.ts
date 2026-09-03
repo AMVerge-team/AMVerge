@@ -1,21 +1,21 @@
-// What the presence should say, given what the app is doing. A pure
+// what the presence should say, given what the app is doing. a pure
 // function on purpose: no stores, no effects, so the rules can be read
-// and changed in one place.
+// and changed in one place
 import type { RPCActivity } from "./types";
 
 const fileName = (path: string) => path.split(/[/\\]/).pop() || path;
 
-/** Container extensions this app actually imports. */
+/** container extensions this app actually imports */
 const MEDIA_EXT =
     /\.(mp4|mkv|mov|avi|webm|m4v|wmv|flv|mpg|mpeg|ts|mts|m2ts|webp|gif|png|jpe?g)$/i;
 
 /**
- * The media's name as a person would say it: no folders, no extension. Matching
+ * the media's name as a person would say it: no folders, no extension. matching
  * a known list rather than "a short tail after a dot" keeps "My.Show.S01" whole.
  */
 export const mediaName = (path: string) => fileName(path).replace(MEDIA_EXT, "");
 
-/** Everything the presence is derived from, gathered in one place. */
+/** everything the presence is derived from, gathered in one place */
 export type PresenceInput = {
     showFilename: boolean;
     activePage: string;
@@ -33,9 +33,9 @@ export type PresenceInput = {
 };
 
 /**
- * The presence, computed from what the app is actually doing.
+ * the presence, computed from what the app is actually doing
  *
- * Derived rather than pushed: the old code announced a status at nine moments
+ * derived rather than pushed: the old code announced a status at nine moments
  * scattered through the import/export pipeline and then let it rot, so the card
  * kept saying "Detecting" long after detection ended and never named the file
  * being worked on.
@@ -59,10 +59,10 @@ export function derivePresence(input: PresenceInput): RPCActivity {
 
     const percent = Math.min(100, Math.max(0, Math.round(progress)));
 
-    // Work in flight outranks everything: it is what the user is doing.
+    // work in flight outranks everything: it is what the user is doing
     if (activeOperation === "import") {
-        // The file being imported, NOT the episode still open in the panel —
-        // during a single import that one names the previous video.
+        // the file being imported, NOT the episode still open in the panel
+        // during a single import that one names the previous video
         const source = batchCurrentFile || importedVideoPath;
         const target = source ? mediaName(source) : null;
         const details = showFilename && target ? `Detecting: ${target}` : "Detecting scenes";

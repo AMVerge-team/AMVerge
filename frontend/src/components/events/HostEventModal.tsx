@@ -18,14 +18,14 @@ import EventPreviewStage from "./EventPreviewStage";
 import { useEventsStore } from "../../stores/eventsStore";
 import type { CommunityEvent, EventThumbnail, EventType } from "./types";
 
-// Mirrors the server's limits so the host is told before the round trip.
+// mirrors the server's limits so the host is told before the round trip
 const TITLE_MAX = 120;
 const DESCRIPTION_MAX = 4000;
-// Digits only; the leading $ is added on submit and is not editable.
+// digits only; the leading $ is added on submit and is not editable
 const PRIZE_DIGITS_MAX = 9;
 const INVITE_MAX = 200;
-// Matches AMVERGE_MAX_EVENT_THUMBNAIL_BYTES on the server. Sized for animated
-// GIF covers, which are far heavier than a still image.
+// matches AMVERGE_MAX_EVENT_THUMBNAIL_BYTES on the server. sized for animated
+// GIF covers, which are far heavier than a still image
 const MAX_THUMBNAIL_BYTES = 10 * 1024 * 1024;
 const MAX_THUMBNAIL_MB = Math.round(MAX_THUMBNAIL_BYTES / (1024 * 1024));
 const ALLOWED_THUMBNAIL_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
@@ -64,7 +64,7 @@ const HOUR_MS = 60 * 60 * 1000;
 
 type PreviewMode = "tile" | "detail";
 
-/** `datetime-local` wants `YYYY-MM-DDTHH:mm` in local time, not an ISO string. */
+/** `datetime-local` wants `YYYY-MM-DDTHH:mm` in local time, not an ISO string */
 function toLocalInputValue(iso: string): string {
   const parsed = new Date(iso);
   if (Number.isNaN(parsed.getTime())) return "";
@@ -80,7 +80,7 @@ function toIso(localValue: string): string | null {
 }
 
 /**
- * Same allowlist the server enforces. Checking here too means a typo is caught
+ * same allowlist the server enforces. checking here too means a typo is caught
  * before the submission is spent against the rate limit.
  */
 function isValidDiscordInvite(value: string): boolean {
@@ -132,8 +132,8 @@ export default function HostEventModal() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  // Cleared on unmount and on reopen, so a pending auto-close can never fire
-  // against a form the host has already returned to.
+  // cleared on unmount and on reopen, so a pending auto-close can never fire
+  // against a form the host has already returned to
   const closeTimerRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -142,15 +142,15 @@ export default function HostEventModal() {
     [editingId, mine]
   );
 
-  // Which target the form currently holds: the event id being edited, or
+  // which target the form currently holds: the event id being edited, or
   // "new". `editing` is derived from the `mine` array, so it becomes a fresh
-  // object every time that list refetches — keying off the id instead means a
-  // background refresh cannot reset a form the host is in the middle of.
+  // object every time that list refetches; keying off the id instead means a
+  // background refresh cannot reset a form the host is in the middle of
   const populatedFor = useRef<string | null>(null);
 
-  // Transient UI, reset when the form opens or changes target. Deliberately not
+  // transient UI, reset when the form opens or changes target. deliberately not
   // keyed on `editing`: a refetch used to land here and wipe the error the host
-  // had just been shown, which is why a rate limit message vanished instantly.
+  // had just been shown, which is why a rate limit message vanished instantly
   useEffect(() => {
     if (!open) {
       populatedFor.current = null;
@@ -169,14 +169,14 @@ export default function HostEventModal() {
     }
   }, [open, editingId]);
 
-  // Fill the fields once per target. Waits for the event to arrive when the
-  // list is still loading, then leaves the form alone.
+  // fill the fields once per target. waits for the event to arrive when the
+  // list is still loading, then leaves the form alone
   useEffect(() => {
     if (!open) return;
 
     const target = editingId ?? "__new__";
     if (populatedFor.current === target) return;
-    // Editing something not in `mine` yet: wait rather than blanking the form.
+    // editing something not in `mine` yet: wait rather than blanking the form
     if (editingId && !editing) return;
 
     populatedFor.current = target;
@@ -197,8 +197,8 @@ export default function HostEventModal() {
     }
   }, [open, editingId, editing]);
 
-  // A close scheduled after a successful submit must not fire once this
-  // component is gone.
+  // a close scheduled after a successful submit must not fire once this
+  // component is gone
   useEffect(
     () => () => {
       if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
@@ -211,7 +211,7 @@ export default function HostEventModal() {
   };
 
   /**
-   * Moving the start past the end would leave the form in a state the host has
+   * moving the start past the end would leave the form in a state the host has
    * to notice and fix, so the end follows it to a day later instead.
    */
   const setStartsAt = (next: string) => {
@@ -228,20 +228,20 @@ export default function HostEventModal() {
 
   const thumbnailDataUrl = thumbnail
     ? `data:${thumbnail.mimeType};base64,${thumbnail.dataBase64}`
-    // An event still in review has no public thumbnail URL, so its cover comes
-    // inline on the host's own copy. Approved ones use the cacheable URL.
+    // an event still in review has no public thumbnail URL, so its cover comes
+    // inline on the host's own copy. approved ones use the cacheable URL
     : editing?.thumbnailDataUrl ?? editing?.thumbnailUrl ?? null;
 
-  // The preview renders through the real EventCard and EventDetail, so what the
-  // host sees here cannot drift from what the grid will show.
+  // the preview renders through the real EventCard and EventDetail, so what the
+  // host sees here cannot drift from what the grid will show
   const draftHours = Math.min(
     MAX_HOURS,
     Math.max(MIN_HOURS, Number.parseInt(form.durationHours, 10) || MIN_HOURS)
   );
 
   const draftStartsAt = toIso(form.startsAt) ?? new Date().toISOString();
-  // Hour contests derive their end server-side; mirroring it here keeps the
-  // preview honest about what will actually be stored.
+  // hour contests derive their end server-side; mirroring it here keeps the
+  // preview honest about what will actually be stored
   const draftEndsAt =
     form.eventType === "hour"
       ? new Date(new Date(draftStartsAt).getTime() + draftHours * HOUR_MS).toISOString()
@@ -328,8 +328,8 @@ export default function HostEventModal() {
   };
 
   const handleSubmit = async () => {
-    // A second click while the first is still in flight would submit the event
-    // twice; the disabled button alone does not cover Enter in a field.
+    // a second click while the first is still in flight would submit the event
+    // twice; the disabled button alone does not cover Enter in a field
     if (submitting) return;
 
     const problem = validate();
@@ -361,10 +361,10 @@ export default function HostEventModal() {
       return;
     }
 
-    // Deliberately stays disabled: the submission succeeded, so the form must
-    // not accept another one. The confirmation shows briefly, then the modal
+    // deliberately stays disabled: the submission succeeded, so the form must
+    // not accept another one. the confirmation shows briefly, then the modal
     // closes itself rather than leaving the host to work out that Cancel is
-    // now the way out.
+    // now the way out
     setMessage(
       editing
         ? "Edit submitted. It goes live once a moderator approves it."
@@ -602,9 +602,9 @@ export default function HostEventModal() {
                     inputMode="numeric"
                     maxLength={PRIZE_DIGITS_MAX}
                     value={form.prizePool}
-                    // Digits only. Everything else — currency symbols, words,
-                    // and above all links — is stripped as it is typed, which
-                    // is what makes this field safe to edit without review.
+                    // digits only. everything else (currency symbols, words,
+                    // and above all links) is stripped as it is typed, which
+                    // is what makes this field safe to edit without review
                     onChange={(changeEvent) =>
                       setField("prizePool", changeEvent.target.value.replace(/\D/g, ""))
                     }

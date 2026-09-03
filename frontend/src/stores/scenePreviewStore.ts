@@ -9,7 +9,7 @@ export type ScenePreviewStore = {
   animatedByClipId: Record<string, string>;
   setAnimated: (clipId: string, path: string) => void;
   /**
-   * merge many clip→path entries in a single update. Used by the disk-cache
+   * merge many clip→path entries in a single update. used by the disk-cache
    * prime so a freshly opened episode publishes a whole chunk of results in one
    * commit (one O(n) copy, one render pass) instead of N spread/render cycles.
    */

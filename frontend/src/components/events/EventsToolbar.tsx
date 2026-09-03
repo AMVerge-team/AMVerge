@@ -26,6 +26,9 @@ const SORT_OPTIONS: DropdownOption<EventSort>[] = [
  * its controls line up with the grid's right edge as the divider moves.
  */
 export default function EventsToolbar() {
+  const previewCollapsed = useUIStateStore((s) => s.previewCollapsed);
+  const setPreviewCollapsed = useUIStateStore((s) => s.setPreviewCollapsed);
+  const previewSplitPct = useUIStateStore((s) => s.previewSplitPct);
   const sidebarEnabled = useUIStateStore((s) => s.sidebarEnabled);
   const setSidebarEnabled = useUIStateStore((s) => s.setSidebarEnabled);
 
@@ -47,6 +50,11 @@ export default function EventsToolbar() {
   return (
     <main
       className="clips-import events-toolbar-shell"
+      style={
+        previewCollapsed
+          ? undefined
+          : { paddingRight: `calc(max(280px, ${100 - previewSplitPct}%) + 10px)` }
+      }
     >
       <div className="events-toolbar-rows">
         <div className="import-buttons-container events-toolbar-row">
@@ -100,7 +108,7 @@ export default function EventsToolbar() {
             <li>Sign in with Discord using the Login button so you can manage the event going forward. 
               All logins are done through Discord's official API, so we have no access to your data.
             </li>
-            <li>Press Host Event and pick the format: HC for a timed contest, EC for a longer contest.</li>
+            <li>Press Host Event and pick the format: HC for a timedj contest, EC for a longer contest.</li>
             <li>
               Fill in the title, cover image, description, dates, and an invite to the
               Discord server where the event actually happens. Add a prize pool if there
@@ -162,6 +170,27 @@ export default function EventsToolbar() {
             </button>
           )}
 
+          {/* Last in the row, so it sits over the pane it controls. */}
+          <Tooltip
+            content={previewCollapsed ? "Show preview panel" : "Hide preview panel"}
+            placement="bottom-end"
+          >
+            <button
+              type="button"
+              className={`import-button panel-toggle-button${previewCollapsed ? "" : " active"}`}
+              onClick={() => setPreviewCollapsed(!previewCollapsed)}
+              aria-label={previewCollapsed ? "Show preview panel" : "Hide preview panel"}
+              aria-pressed={!previewCollapsed}
+            >
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M15 3v18" />
+                {!previewCollapsed && (
+                  <rect x="15.9" y="4.9" width="4.2" height="14.2" rx="1" fill="currentColor" stroke="none" />
+                )}
+              </svg>
+            </button>
+          </Tooltip>
         </div>
       </div>
 

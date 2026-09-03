@@ -1,4 +1,4 @@
-// drag/drop hook for the Episode Panel. Handles pointer dragging, drop target detection, and move commits.
+// drag/drop hook for the Episode Panel. handles pointer dragging, drop target detection, and move commits
 import { useRef, useState } from "react";
 import type {
   EpisodePanelProps,

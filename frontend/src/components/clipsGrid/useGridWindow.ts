@@ -2,12 +2,12 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 
 type GridWindowArgs = {
   scrollRef: React.RefObject<HTMLElement | null>;
-  /** State, not a ref: the grid remounts on import, and the observers have to
-   *  rebind to the new element when it does. */
+  /** state, not a ref: the grid remounts on import, and the observers have to
+   *  rebind to the new element when it does */
   gridEl: HTMLDivElement | null;
   itemCount: number;
   columns: number;
-  /** Rows kept mounted above and below the viewport. */
+  /** rows kept mounted above and below the viewport */
   overscanRows?: number;
 };
 
@@ -18,13 +18,13 @@ export type GridWindow = {
   padBottom: number;
 };
 
-/** Rows rendered before the first measurement lands. */
+/** rows rendered before the first measurement lands */
 const SEED_ROWS = 4;
 
 /**
  * Windows a uniform CSS grid: only the rows near the viewport stay mounted, and
  * the rest is replaced by padding on the grid itself (padding adds no extra gap,
- * unlike spacer children). An episode with a thousand scenes mounts a few dozen
+ * unlike spacer children). an episode with a thousand scenes mounts a few dozen
  * tiles instead of a thousand IntersectionObservers and video elements.
  */
 export function useGridWindow({
@@ -41,8 +41,8 @@ export function useGridWindow({
     padBottom: 0,
   });
 
-  // Measured once per layout: row pitch (tile + gap), the grid's offset inside
-  // the scroller, and the grid's own padding before we start adding to it.
+  // measured once per layout: row pitch (tile + gap), the grid's offset inside
+  // the scroller, and the grid's own padding before we start adding to it
   const rowPitchRef = useRef(0);
   const gridTopRef = useRef(0);
   const basePadRef = useRef<number | null>(null);
@@ -122,15 +122,15 @@ export function useGridWindow({
     });
   }, [update]);
 
-  // Re-measure whenever the layout inputs change; tile height follows column
-  // count and container width, so both invalidate the pitch.
+  // re-measure whenever the layout inputs change; tile height follows column
+  // count and container width, so both invalidate the pitch
   useLayoutEffect(() => {
     if (measure()) {
       update();
       return;
     }
-    // Nothing to measure yet - the pitch comes from a rendered tile, so an empty
-    // window can never measure its way out. Seed a first batch to break that.
+    // nothing to measure yet - the pitch comes from a rendered tile, so an empty
+    // window can never measure its way out. seed a first batch to break that
     if (itemCount > 0) {
       setWindow((prev) => {
         const seedEnd = Math.min(itemCount, SEED_ROWS * Math.max(1, columns));

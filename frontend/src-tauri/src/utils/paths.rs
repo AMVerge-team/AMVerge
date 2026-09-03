@@ -2,10 +2,10 @@ use std::path::{Path, PathBuf};
 
 use tauri::{AppHandle, Manager};
 
-/// The configured storage root: `custom_path` if the user set one, otherwise
+/// the configured storage root: `custom_path` if the user set one, otherwise
 /// `app_data_dir/episodes`. `episodes_storage/` and `scene_packs/` are separate
-/// subfolders beneath this root — see `resolve_episodes_storage_dir` and
-/// `resolve_scenepacks_storage_dir`.
+/// subfolders beneath this root, see `resolve_episodes_storage_dir` and
+/// `resolve_scenepacks_storage_dir`
 pub fn resolve_storage_root(app: &AppHandle, custom_path: Option<&str>) -> Result<PathBuf, String> {
     match custom_path.map(str::trim) {
         Some(p) if !p.is_empty() => Ok(PathBuf::from(p)),
@@ -17,14 +17,14 @@ pub fn resolve_storage_root(app: &AppHandle, custom_path: Option<&str>) -> Resul
     }
 }
 
-/// Where per-episode data (manifest, cut clips, WebP cache) lives. Kept in its
+/// where per-episode data (manifest, cut clips, WebP cache) lives. kept in its
 /// own subfolder, separate from `scene_packs/`, so a Scenepack's materialized
-/// copies never share storage with — or get deleted alongside — episode data.
+/// copies never share storage with, or get deleted alongside, episode data
 pub fn resolve_episodes_storage_dir(app: &AppHandle, custom_path: Option<&str>) -> Result<PathBuf, String> {
     Ok(resolve_storage_root(app, custom_path)?.join("episodes_storage"))
 }
 
-/// Where Scenepacks' own materialized clip copies live.
+/// where Scenepacks' own materialized clip copies live
 pub fn resolve_scenepacks_storage_dir(app: &AppHandle, custom_path: Option<&str>) -> Result<PathBuf, String> {
     Ok(resolve_storage_root(app, custom_path)?.join("scene_packs"))
 }
@@ -44,16 +44,16 @@ pub fn dir_name_only(p: &Path) -> String {
     p.to_string_lossy().to_string()
 }
 
-/// True when `path` is a directory AMVerge created for an episode.
+/// true when `path` is a directory AMVerge created for an episode.
 ///
-/// The episodes directory is user-chosen, so it is routinely a folder that also
-/// holds files AMVerge did not create. Moving or clearing the cache must touch
-/// only our own folders — everything else in there belongs to the user.
+/// the episodes directory is user-chosen, so it is routinely a folder that also
+/// holds files AMVerge did not create. moving or clearing the cache must touch
+/// only our own folders, everything else in there belongs to the user.
 ///
 /// `manifest.json` is the ownership marker: every episode gets one written into
 /// its folder once detection finishes, for both the video-file and WebP import
-/// methods. Matching on the folder *name* would not work, since episode ids are
-/// ordinary `[A-Za-z0-9_-]` strings that any user folder could match.
+/// methods. matching on the folder *name* would not work, since episode ids are
+/// ordinary `[A-Za-z0-9_-]` strings that any user folder could match
 pub fn is_episode_cache_dir(path: &Path) -> bool {
     path.is_dir() && path.join("manifest.json").is_file()
 }

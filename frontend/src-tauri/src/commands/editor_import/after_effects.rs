@@ -1,4 +1,5 @@
 use super::*;
+use std::process::Command;
 
 #[cfg(target_os = "windows")]
 fn build_after_effects_media_import_jsx(media_paths: &[String]) -> String {
@@ -139,7 +140,7 @@ pub(super) async fn import_into_after_effects(
 
         // use UI automation instead of AfterFX -r scripting because some AE
         // installations intermittently report "scripting plugin is not installed"
-        // for command-line script execution.
+        // for command-line script execution
         let script_path = write_temp_script(
             "amverge_afterfx_import_ui",
             "ps1",

@@ -14,14 +14,14 @@ export type ScenepacksStore = ScenepacksState & {
   addScenepack: (name: string, folderId: string | null) => string;
   removeScenepack: (id: string) => void;
   renameScenepack: (id: string, name: string) => void;
-  /** Pass null to fall back to the first clip's thumbnail. */
+  /** pass null to fall back to the first clip's thumbnail */
   setScenepackThumbnail: (id: string, thumbnail: string | null) => void;
   addClipToScenepack: (scenepackId: string, clip: ScenepackClip) => void;
   removeClipFromScenepack: (scenepackId: string, episodeId: string, sceneIndex: number) => void;
   removeClipFromScenepackByIndex: (scenepackId: string, index: number) => void;
-  /** Batch form of the above. Removing indexes one at a time would shift every
+  /** batch form of the above. removing indexes one at a time would shift every
    * later index after the first splice, so a multi-select delete has to filter
-   * against the whole set in one pass. */
+   * against the whole set in one pass */
   removeClipsFromScenepackByIndexes: (scenepackId: string, indexes: number[]) => void;
   reorderScenepackClips: (scenepackId: string, fromIndex: number, toIndex: number) => void;
   moveScenepackToFolder: (scenepackId: string, folderId: string | null) => void;

@@ -1,0 +1,119 @@
+.info-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: 1px solid rgb(var(--accent-rgb) / 0.5);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--accent);
+    font-size: 8px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.info-button:hover {
+    background: var(--accent);
+    color: black;
+}
+
+.info-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgb(0 0 0 / 0.6);
+    animation: app-modal-fade 0.1s ease;
+}
+
+.info-modal {
+    display: flex;
+    flex-direction: column;
+    width: min(560px, 100%);
+    max-height: min(680px, 100%);
+    border: 1px solid rgb(var(--accent-rgb) / 0.35);
+    border-radius: 14px;
+    background: rgb(8 8 10 / 0.98);
+    box-shadow: 0 20px 50px rgb(0 0 0 / 0.55);
+
+    font-family: Arial, Helvetica, sans-serif;
+    animation: app-modal-rise 0.12s ease;
+}
+
+.info-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px 10px;
+    border-bottom: 1px solid rgb(255 255 255 / 0.08);
+}
+
+.info-modal-title {
+    margin: 0;
+    color: var(--accent);
+    font-size: 1.1rem;
+}
+
+.info-modal-close {
+    padding: 4px;
+    border: none;
+    background: transparent;
+    color: rgb(255 255 255 / 0.55);
+    font-size: 1rem;
+    line-height: 0;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.info-modal-close:hover {
+    color: var(--accent);
+}
+
+.info-modal-body {
+    overflow-y: auto;
+    padding: 4px 18px 18px;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--accent-rgb) / 0.42) transparent;
+}
+
+.info-modal-body h4 {
+    margin: 16px 0 6px;
+    color: white;
+    font-size: 1rem;
+}
+
+.info-modal-body h4:first-child {
+    margin-top: 8px;
+}
+
+.info-modal-body p {
+    margin: 0 0 10px;
+    color: rgb(255 255 255 / 0.72);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.info-modal-body ol,
+.info-modal-body ul {
+    margin: 0 0 10px;
+    padding-left: 20px;
+    color: rgb(255 255 255 / 0.72);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.info-modal-body li {
+    margin-bottom: 6px;
+}
+
+.info-modal-body li::marker {
+    color: var(--accent);
+}

@@ -1,8 +1,8 @@
 use super::*;
 
-// The Python bridge lives in its own file rather than being string-built in
+// the Python bridge lives in its own file rather than being string-built in
 // Rust: it is the only Resolve-specific logic in the app, and keeping it
-// readable is what makes it patchable (or deletable) on its own.
+// readable is what makes it patchable (or deletable) on its own
 const IMPORT_SCRIPT_TEMPLATE: &str = include_str!("resolve_import.py");
 
 #[derive(serde::Serialize)]
@@ -11,11 +11,11 @@ pub struct DavinciDetection {
     pub path: Option<String>,
 }
 
-/// Whether DaVinci Resolve is installed at all. Free and Studio share the same
+/// whether DaVinci Resolve is installed at all. free and Studio share the same
 /// install path, executable metadata and `fusionscript.dll`, so nothing on disk
-/// tells the two editions apart — only an actual scripting connection does, and
-/// that needs Resolve running. Detection therefore gates on "installed", and a
-/// Free install surfaces as an explicit error at import time.
+/// tells the two editions apart; only an actual scripting connection does, and
+/// that needs Resolve running. detection therefore gates on "installed", and a
+/// Free install surfaces as an explicit error at import time
 #[tauri::command]
 pub fn detect_davinci_resolve() -> DavinciDetection {
     match davinci_install_path() {
@@ -30,8 +30,8 @@ pub fn detect_davinci_resolve() -> DavinciDetection {
     }
 }
 
-/// Send clip files straight to Resolve: Media Pool, then appended to the current
-/// timeline (a new one at the clip's frame rate if no timeline is open).
+/// send clip files straight to Resolve: Media Pool, then appended to the current
+/// timeline (a new one at the clip's frame rate if no timeline is open)
 #[tauri::command]
 pub async fn import_clips_to_davinci(
     app: AppHandle,
@@ -59,8 +59,8 @@ fn davinci_install_path() -> Option<PathBuf> {
 
     #[cfg(target_os = "macos")]
     {
-        // The installer puts the bundle in its own folder; older installs and
-        // manual copies sit straight in /Applications.
+        // the installer puts the bundle in its own folder; older installs and
+        // manual copies sit straight in /Applications
         [
             "/Applications/DaVinci Resolve/DaVinci Resolve.app",
             "/Applications/DaVinci Resolve.app",
@@ -77,12 +77,12 @@ fn davinci_install_path() -> Option<PathBuf> {
     }
 }
 
-/// Official Resolve scripting environment, per platform. Without it the Python
+/// official Resolve scripting environment, per platform. without it the Python
 /// module falls back to its own hardcoded defaults, which miss any install that
 /// is not in the stock location.
 ///
 /// Windows sets this inline in `run_python_script`, where it also has to prepend
-/// Resolve's folder to PATH for `fusionscript.dll`'s dependencies.
+/// Resolve's folder to PATH for `fusionscript.dll`'s dependencies
 #[cfg(not(target_os = "windows"))]
 pub(super) fn apply_resolve_script_env(cmd: &mut Command) {
     let Some(install) = davinci_install_path() else {
@@ -99,7 +99,7 @@ pub(super) fn apply_resolve_script_env(cmd: &mut Command) {
 
     #[cfg(all(unix, not(target_os = "macos")))]
     let (api_dir, lib_path) = {
-        // install points at <root>/bin/resolve.
+        // install points at <root>/bin/resolve
         let root = install
             .parent()
             .and_then(|p| p.parent())
@@ -123,7 +123,7 @@ pub(super) fn apply_resolve_script_env(cmd: &mut Command) {
     cmd.env("PYTHONPATH", python_path.join(":"));
 }
 
-/// Media Pool only — used by the export-profile editor import path.
+/// Media Pool only, used by the export-profile editor import path
 pub(super) async fn import_into_davinci_resolve(
     app: &AppHandle,
     media_paths: &[String],
@@ -132,8 +132,8 @@ pub(super) async fn import_into_davinci_resolve(
     run_davinci_import(app, media_paths, abort_requested, false).await
 }
 
-/// Media Pool + append to the current (or a freshly created) timeline — used by
-/// the clip-selection bar.
+/// Media Pool + append to the current (or a freshly created) timeline, used by
+/// the clip-selection bar
 pub(super) async fn import_clips_into_timeline(
     app: &AppHandle,
     media_paths: &[String],

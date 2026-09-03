@@ -22,10 +22,10 @@ pub use types::{
     ExportOptionsPayload, GpuEncoderCapabilitiesPayload, NvidiaEncoderDetectionPayload,
 };
 
-/// One clip to export. `input` is a pre-cut clip file exported whole (video
+/// one clip to export. `input` is a pre-cut clip file exported whole (video
 /// mode); when `start_sec`/`end_sec` are present, `input` is a source episode
-/// and that range is cut from it (webp mode). Serialized as-is into the CLI's
-/// `--inputs-json`.
+/// and that range is cut from it (webp mode). serialized as-is into the CLI's
+/// `--inputs-json`
 #[derive(serde::Deserialize, serde::Serialize)]
 pub(crate) struct ClipSpec {
     input: String,
@@ -49,8 +49,8 @@ impl Drop for ExportAbortGuard {
     }
 }
 
-/// Reject a resolved save path whose final component contains separators /
-/// parent refs — prevents path-traversal via a user-supplied merge filename.
+/// reject a resolved save path whose final component contains separators /
+/// parent refs; prevents path-traversal via a user-supplied merge filename
 fn validate_save_path_filename(path: &std::path::Path) -> Result<(), String> {
     let file_name = path
         .file_name()
@@ -78,8 +78,8 @@ fn normalize_save_path(save_path: &str) -> Result<PathBuf, String> {
     Ok(path)
 }
 
-/// Map the profile workflow to the CLI `--codec`. Remux → stream copy; encode →
-/// the profile's codec (the CLI validates codec/container compatibility).
+/// Map the profile workflow to the CLI `--codec`. remux → stream copy; encode →
+/// the profile's codec (the CLI validates codec/container compatibility)
 fn codec_for(options: Option<&ExportOptionsPayload>) -> String {
     match options {
         Some(o) if o.workflow().contains("remux") => "copy".to_string(),
@@ -88,9 +88,9 @@ fn codec_for(options: Option<&ExportOptionsPayload>) -> String {
     }
 }
 
-/// Drive the AMVerge CLI to export the selected clips. Replaces the former
+/// drive the AMVerge CLI to export the selected clips. replaces the former
 /// in-process Rust ffmpeg pipeline: spawns `amverge export --ipc`, forwards its
-/// progress to the UI, and returns the produced file paths.
+/// progress to the UI, and returns the produced file paths
 #[tauri::command]
 pub async fn export_clips(
     app: AppHandle,
@@ -118,7 +118,7 @@ pub async fn export_clips(
     }
 
     // preflight: every input clip must still exist (the working folder can be
-    // wiped between import and export).
+    // wiped between import and export)
     {
         let mut missing: Vec<String> = Vec::new();
         for clip in &clips {
@@ -181,7 +181,7 @@ pub async fn export_clips(
         ),
     );
 
-    // the CLI reads the input clip list from a temp JSON file.
+    // the CLI reads the input clip list from a temp JSON file
     let inputs_path = std::env::temp_dir().join(format!("amverge_export_{}.json", std::process::id()));
     std::fs::write(
         &inputs_path,
@@ -237,7 +237,7 @@ pub async fn export_clips(
     let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
     let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
 
-    // stderr thread: forward PROGRESS to the UI; surface CLI logs to the console.
+    // stderr thread: forward PROGRESS to the UI; surface CLI logs to the console
     let app_for_err = app.clone();
     let stderr_accum = Arc::new(Mutex::new(String::new()));
     let stderr_accum_thread = Arc::clone(&stderr_accum);
@@ -255,7 +255,7 @@ pub async fn export_clips(
                     let _ = app_for_err.emit("scene_progress", ProgressPayload { percent: p, message: msg });
                 }
             } else if line.starts_with("CLIP_READY|") {
-                // per-clip completion; the export UI tracks the aggregate bar only.
+                // per-clip completion; the export UI tracks the aggregate bar only
             } else if !line.trim().is_empty() {
                 console_log("EXPORT|cli", &sanitize_for_console(&line));
             }
@@ -285,7 +285,7 @@ pub async fn export_clips(
         return Err("Export canceled.".to_string());
     }
 
-    // the CLI prints a final JSON summary to stdout in --ipc mode.
+    // the CLI prints a final JSON summary to stdout in --ipc mode
     if let Ok(payload) = serde_json::from_str::<Value>(stdout_string.trim()) {
         if let Some(err) = payload.get("error").and_then(|e| e.as_object()) {
             let msg = err.get("message").and_then(|m| m.as_str()).unwrap_or("export failed");
@@ -316,8 +316,8 @@ pub async fn export_clips(
 }
 
 /// Map a pass id to its CLI subcommand and whether it needs the optional AI env.
-/// Dead frames is opencv-only, so it runs on the bundled sidecar; depth and
-/// interpolation need torch.
+/// dead frames is opencv-only, so it runs on the bundled sidecar; depth and
+/// interpolation need torch
 fn pass_cli_command(pass: &str) -> Result<(&'static str, bool), String> {
     match pass {
         "depth" => Ok(("depth-map", true)),
@@ -327,11 +327,11 @@ fn pass_cli_command(pass: &str) -> Result<(&'static str, bool), String> {
     }
 }
 
-/// Run one post-export pass (`depth`/`deadframes`/`interpolate`) on `input_path`
-/// via `amverge <cmd> <input> -o <output> --ipc [args]`. Streams `PROGRESS|` and
+/// run one post-export pass (`depth`/`deadframes`/`interpolate`) on `input_path`
+/// via `amverge <cmd> <input> -o <output> --ipc [args]`. streams `PROGRESS|` and
 /// `PREVIEW_FRAME|` as `pass_progress`/`pass_preview` events, other lines as
-/// `pass_log`. Reuses the export abort state so `abort_export` stops it. Returns
-/// the output path on success.
+/// `pass_log`. reuses the export abort state so `abort_export` stops it. returns
+/// the output path on success
 #[tauri::command]
 pub async fn run_export_pass(
     app: AppHandle,
@@ -520,14 +520,14 @@ pub async fn abort_export(abort_state: State<'_, ExportAbortState>) -> Result<St
     ops::abort_export_inner(abort_state).await
 }
 
-/// Delete the per-clip files an export produced once the merged output exists.
-/// Only removes files sitting directly in `dir`, so a bad path can never reach
+/// delete the per-clip files an export produced once the merged output exists.
+/// only removes files sitting directly in `dir`, so a bad path can never reach
 /// A scratch folder for the per-clip parts a merged export builds from.
 ///
-/// Interpolation has to run clip by clip, so a merged export with that pass
-/// enabled must cut the clips before it can join them. Those parts are nobody's
+/// interpolation has to run clip by clip, so a merged export with that pass
+/// enabled must cut the clips before it can join them. those parts are nobody's
 /// deliverable, so they are staged here instead of in the folder the user
-/// picked, which then only ever receives the merged result.
+/// picked, which then only ever receives the merged result
 #[tauri::command]
 pub async fn create_export_staging_dir() -> Result<String, String> {
     let stamp = std::time::SystemTime::now()
@@ -541,9 +541,9 @@ pub async fn create_export_staging_dir() -> Result<String, String> {
     Ok(dir.to_string_lossy().to_string())
 }
 
-/// Removes a staging folder created above. Refuses anything that is not one of
+/// removes a staging folder created above. refuses anything that is not one of
 /// ours inside the system temp directory, so a bad path cannot delete a tree
-/// that matters.
+/// that matters
 #[tauri::command]
 pub async fn delete_export_staging_dir(dir: String) -> Result<(), String> {
     let path = std::path::PathBuf::from(&dir);
@@ -565,7 +565,7 @@ pub async fn delete_export_staging_dir(dir: String) -> Result<(), String> {
     Ok(())
 }
 
-/// outside the export folder the user picked.
+/// outside the export folder the user picked
 #[tauri::command]
 pub async fn delete_export_intermediates(dir: String, paths: Vec<String>) -> Result<(), String> {
     let dir_path = std::path::PathBuf::from(&dir);
@@ -583,7 +583,7 @@ pub async fn delete_export_intermediates(dir: String, paths: Vec<String>) -> Res
 
 #[cfg(test)]
 mod staging_tests {
-    /// Mirrors the guard in `delete_export_staging_dir`.
+    /// mirrors the guard in `delete_export_staging_dir`
     fn is_ours(path: &std::path::Path) -> bool {
         path.starts_with(std::env::temp_dir())
             && path
@@ -597,7 +597,7 @@ mod staging_tests {
         let ours = std::env::temp_dir().join("amverge_merge_123_456");
         assert!(is_ours(&ours), "a folder we created must be removable");
 
-        // Anything else must be refused, however it is dressed up.
+        // anything else must be refused, however it is dressed up
         for bad in [
             std::env::temp_dir().join("something_else"),
             std::env::temp_dir(),

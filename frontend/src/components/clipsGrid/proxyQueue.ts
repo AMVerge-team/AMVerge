@@ -19,14 +19,12 @@ export default function useViewportAwareProxyQueue() {
   const proxyDeferredRef = useRef<Map<string, DeferredProxy>>(new Map());
 
   // prevents multiple ffmpeg proxy jobs from running at once.
-  // running more than one can freeze low-end machines.
+  // running more than one can freeze low-end machines
   const proxyProcessingRef = useRef(false);
 
-  // tracks demand for proxies (order, priority, recency)
   const proxyDemandRef = useRef<Map<string, ProxyDemand>>(new Map());
   const proxyDemandSeqRef = useRef(0);
 
-  // only one proxy generation in flight at a time
   const proxyInFlightClipRef = useRef<string | null>(null);
 
   // pick the next clip that should get a proxy (prioritize hovered/visible)
@@ -66,7 +64,6 @@ export default function useViewportAwareProxyQueue() {
     return best?.clipPath ?? null;
   }, []);
 
-  // main loop: process proxy requests one at a time
   const processProxyQueue = useCallback(async () => {
     if (proxyProcessingRef.current) return;
     proxyProcessingRef.current = true;
@@ -76,7 +73,6 @@ export default function useViewportAwareProxyQueue() {
         const clipPath = pickNextProxyClip();
         if (!clipPath) break;
 
-        // use cached proxy if available
         const cached = proxyCacheRef.current.get(clipPath);
         if (cached) {
           const deferred = proxyDeferredRef.current.get(clipPath);
@@ -93,7 +89,7 @@ export default function useViewportAwareProxyQueue() {
         try {
           proxyInFlightClipRef.current = clipPath;
           // read the quality at dispatch time so a settings change applies to
-          // everything still queued without re-subscribing this long-lived loop.
+          // everything still queued without re-subscribing this long-lived loop
           const preset =
             PREVIEW_TRANSCODE_PRESETS[
               useGeneralSettingsStore.getState().previewTranscodeQuality
@@ -137,7 +133,6 @@ export default function useViewportAwareProxyQueue() {
 
       proxyDeferredRef.current.set(clipPath, { promise, resolve, reject });
 
-      // mark demand for this proxy (priority if hovered)
       const seq = ++proxyDemandSeqRef.current;
       const existingDemand = proxyDemandRef.current.get(clipPath);
       proxyDemandRef.current.set(clipPath, {
@@ -158,7 +153,7 @@ export default function useViewportAwareProxyQueue() {
       if (!demand) {
         proxyDemandRef.current.delete(clipPath);
 
-        // if this was enqueued but scrolled offscreen before processing, cancel it.
+        // if this was enqueued but scrolled offscreen before processing, cancel it
         const deferred = proxyDeferredRef.current.get(clipPath);
         if (
           deferred &&

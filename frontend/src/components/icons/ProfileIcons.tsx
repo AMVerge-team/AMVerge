@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 
 // shared props for all profile icon components.
-// works for both SVG-based and text-based badge icons.
+// works for both SVG-based and text-based badge icons
 export type ProfileIconProps = {
   className?: string;
   style?: CSSProperties;
@@ -11,7 +11,7 @@ export type ProfileIconProps = {
 /*  SVG icons – generic workflow + editor logos                        */
 /* ------------------------------------------------------------------ */
 
-/** Camera/clapperboard – generic "video export" profiles. */
+/** camera/clapperboard – generic "video export" profiles */
 export function IconVideo({ className, style }: ProfileIconProps) {
   return (
     <svg className={className} style={style} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -24,7 +24,7 @@ export function IconVideo({ className, style }: ProfileIconProps) {
   );
 }
 
-/** Double chevron – stream copy / remux. */
+/** double chevron – stream copy / remux */
 export function IconRemux({ className, style }: ProfileIconProps) {
   return (
     <svg className={className} style={style} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -34,7 +34,7 @@ export function IconRemux({ className, style }: ProfileIconProps) {
   );
 }
 
-/** Premiere Pro – brand logo path. */
+/** Premiere Pro – brand logo path */
 export function IconPremiere({ className, style }: ProfileIconProps) {
   return (
     <svg className={className} style={style} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -46,7 +46,7 @@ export function IconPremiere({ className, style }: ProfileIconProps) {
   );
 }
 
-/** After Effects – brand logo path. */
+/** after Effects – brand logo path */
 export function IconAfterEffects({ className, style }: ProfileIconProps) {
   return (
     <svg className={className} style={style} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -58,7 +58,7 @@ export function IconAfterEffects({ className, style }: ProfileIconProps) {
   );
 }
 
-/** DaVinci Resolve – brand logo path. */
+/** DaVinci Resolve – brand logo path */
 export function IconResolve({ className, style }: ProfileIconProps) {
   return (
     <svg className={className} style={style} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -70,7 +70,7 @@ export function IconResolve({ className, style }: ProfileIconProps) {
   );
 }
 
-/** CapCut – brand logo path (no gray border). */
+/** CapCut – brand logo path (no gray border) */
 export function IconCapCut({ className, style }: ProfileIconProps) {
   return (
     <svg className={className} style={style} viewBox="0 0 512 509.659" xmlns="http://www.w3.org/2000/svg">
@@ -101,32 +101,32 @@ const badgeStyle: CSSProperties = {
   userSelect: "none",
 };
 
-/** H.264 codec badge. */
+/** h.264 codec badge */
 export function IconH264({ className, style }: ProfileIconProps) {
   return <span className={`codec-badge ${className || ""}`} style={{ ...badgeStyle, fontSize: "11px", ...style }}>264</span>;
 }
 
-/** H.265 / HEVC codec badge. */
+/** h.265 / HEVC codec badge */
 export function IconH265({ className, style }: ProfileIconProps) {
   return <span className={`codec-badge ${className || ""}`} style={{ ...badgeStyle, fontSize: "11px", ...style }}>265</span>;
 }
 
-/** ProRes codec badge. */
+/** ProRes codec badge */
 export function IconProRes({ className, style }: ProfileIconProps) {
   return <span className={`codec-badge ${className || ""}`} style={{ ...badgeStyle, fontSize: "10.5px", letterSpacing: "0.02em", ...style }}>PR</span>;
 }
 
-/** DNxHR codec badge. */
+/** DNxHR codec badge */
 export function IconDNxHR({ className, style }: ProfileIconProps) {
   return <span className={`codec-badge ${className || ""}`} style={{ ...badgeStyle, fontSize: "9px", letterSpacing: "0.01em", ...style }}>DNx</span>;
 }
 
-/** Uncompressed badge. */
+/** uncompressed badge */
 export function IconUncompressed({ className, style }: ProfileIconProps) {
   return <span className={`codec-badge ${className || ""}`} style={{ ...badgeStyle, fontSize: "9px", letterSpacing: "0.02em", ...style }}>UNC</span>;
 }
 
-/** Custom user-provided icon slot. */
+/** custom user-provided icon slot */
 export function IconCustom({ className, style }: ProfileIconProps) {
   return (
     <svg className={className} style={style} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

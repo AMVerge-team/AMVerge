@@ -1,4 +1,4 @@
-// sidebar navigation buttons. Handles switching between top-level pages like Home and Scenepacks
+// sidebar navigation buttons. handles switching between top-level pages like Home and Scenepacks
 import type { IconType } from "react-icons";
 import { FaCalendarAlt, FaHome, FaLayerGroup } from "react-icons/fa";
 import type { Page } from "./types";

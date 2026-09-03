@@ -17,21 +17,21 @@ interface ImportTerminalProps {
   batchDone: number;
   batchCurrentFile: string;
   onAbort: () => void;
-  /** Which CLI operation this overlay is showing (drives the command header). */
+  /** which CLI operation this overlay is showing (drives the command header) */
   operation?: "import" | "export";
-  /** Video file name for the synthesized command header line. */
+  /** video file name for the synthesized command header line */
   commandLabel?: string;
-  /** Scene detection method for the synthesized command line (e.g. keyframe_detection). */
+  /** scene detection method for the synthesized command line (e.g. keyframe_detection) */
   detectionMethod?: string;
-  /** Import method for the synthesized command line (video_files / webp_files). */
+  /** import method for the synthesized command line (video_files / webp_files) */
   importMethod?: string;
-  /** Collapsed into a small draggable card with the progress bar attached. */
+  /** collapsed into a small draggable card with the progress bar attached */
   minimized?: boolean;
-  /** Toggle between the centered terminal and the minimized card. */
+  /** toggle between the centered terminal and the minimized card */
   onToggleMinimize?: () => void;
-  /** Dismiss the minimized card (abort + clear background progress). */
+  /** dismiss the minimized card (abort + clear background progress) */
   onClose?: () => void;
-  /** BgProgressBar (in `attached` mode) rendered below the minimized card. */
+  /** BgProgressBar (in `attached` mode) rendered below the minimized card */
   bgBar?: ReactNode;
 }
 
@@ -55,13 +55,13 @@ interface ClipReadyEvent {
   clip_mode: string;
 }
 
-// braille spinner frames — same family the rich CLI progress uses in a real TTY.
+// braille spinner frames, same family the rich CLI progress uses in a real TTY
 const SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const BAR_WIDTH = 30;
 const MAX_LINES = 500;
 
 // Rust re-emits every PROGRESS| event as a "PROGRESS xx% - msg" console line.
-// those are represented by the live bar, so keep them out of the scroll log.
+// those are represented by the live bar, so keep them out of the scroll log
 const isProgressEcho = (msg: string) => /^PROGRESS\s+\d/.test(msg.trim());
 
 function fileNameOf(p: string): string {
@@ -101,8 +101,8 @@ export default function ImportTerminal({
   const startedRef = useRef<number>(Date.now());
   const headerPushedRef = useRef(false);
 
-  // minimized-card drag state. The card floats free of the dark backdrop so the
-  // grid stays visible while thumbnails/reencodes stream in behind it.
+  // minimized-card drag state. the card floats free of the dark backdrop so the
+  // grid stays visible while thumbnails/reencodes stream in behind it
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [cardPos, setCardPos] = useState<{ x: number; y: number } | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -126,7 +126,7 @@ export default function ImportTerminal({
 
   const handleCardPointerDown: PointerEventHandler<HTMLDivElement> = (event) => {
     if (event.button !== 0) return;
-    // don't start a drag when a control (expand/close) is pressed.
+    // don't start a drag when a control (expand/close) is pressed
     if ((event.target as HTMLElement).closest("button")) return;
     const el = cardRef.current;
     if (!el) return;
@@ -160,8 +160,8 @@ export default function ImportTerminal({
     });
   };
 
-  // seed the synthesized command header once. Guarded so React StrictMode's
-  // double-invoked mount effect can't push it twice.
+  // seed the synthesized command header once. guarded so React StrictMode's
+  // double-invoked mount effect can't push it twice
   useEffect(() => {
     if (headerPushedRef.current) return;
     headerPushedRef.current = true;
@@ -175,7 +175,7 @@ export default function ImportTerminal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // stream CLI stderr lines + clip/phase events while the import runs.
+  // stream CLI stderr lines + clip/phase events while the import runs
   useEffect(() => {
     const unlisteners: UnlistenFn[] = [];
     let disposed = false;
@@ -213,7 +213,7 @@ export default function ImportTerminal({
     };
   }, []);
 
-  // spinner + elapsed timer tick.
+  // spinner + elapsed timer tick
   useEffect(() => {
     const spin = window.setInterval(
       () => setSpinnerFrame((f) => (f + 1) % SPINNER.length),
@@ -229,7 +229,7 @@ export default function ImportTerminal({
     };
   }, []);
 
-  // keep the newest line in view (whichever body — full or mini — is mounted).
+  // keep the newest line in view (whichever body, full or mini, is mounted)
   useLayoutEffect(() => {
     for (const body of [bodyRef.current, miniBodyRef.current]) {
       if (body) body.scrollTop = body.scrollHeight;
@@ -243,10 +243,10 @@ export default function ImportTerminal({
   const done = clamped >= 100;
 
   // batch import (multiple videos). batchDone is the 0-based index of the video
-  // being processed, so it's also the count already finished.
+  // being processed, so it's also the count already finished
   const isBatch = batchTotal > 1;
   const currentVideoNum = Math.min(batchDone + 1, batchTotal);
-  // smooth overall progress: finished videos + the current one's fraction.
+  // smooth overall progress: finished videos + the current one's fraction
   const overallPct = isBatch
     ? Math.round(((batchDone + clamped / 100) / batchTotal) * 100)
     : clamped;

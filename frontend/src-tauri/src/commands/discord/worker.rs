@@ -1,8 +1,8 @@
-//! The thread that owns the connection.
+//! the thread that owns the connection.
 //!
-//! Everything with a clock in it lives here: the reconnect backoff, Discord's
-//! one-activity-per-15s cap, and the poll that notices a client going away. The
-//! UI never waits on any of it — it pushes a [`Cmd`] and returns.
+//! everything with a clock in it lives here: the reconnect backoff, Discord's
+//! one-activity-per-15s cap, and the poll that notices a client going away. the
+//! UI never waits on any of it; it pushes a [`Cmd`] and returns
 
 use std::sync::mpsc::{Receiver, RecvTimeoutError};
 use std::sync::{Arc, Mutex};
@@ -15,10 +15,10 @@ use crate::utils::discord_ipc::{DiscordIpc, DiscordUser, CLOSED};
 use super::activity::{build_activity, PresenceUpdate, APP_ID};
 use super::DiscordRpcStatus;
 
-/// Discord's own cap: one activity per 15 s, extra ones are dropped in silence.
+/// Discord's own cap: one activity per 15 s, extra ones are dropped in silence
 const THROTTLE: Duration = Duration::from_secs(15);
-/// Re-publish this often, so a presence Discord dropped on its own comes back
-/// without waiting for the user to navigate. A dead pipe is caught by `poll`.
+/// re-publish this often, so a presence Discord dropped on its own comes back
+/// without waiting for the user to navigate. a dead pipe is caught by `poll`
 const HEARTBEAT: Duration = Duration::from_secs(60);
 const RECONNECT_MIN: Duration = Duration::from_secs(2);
 const RECONNECT_MAX: Duration = Duration::from_secs(60);
@@ -34,8 +34,8 @@ pub(super) enum Cmd {
 }
 
 pub(super) fn run(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRpcStatus>>) {
-    // Counted from app start, like a game session: from the last page change it
-    // would reset every few seconds.
+    // counted from app start, like a game session: from the last page change it
+    // would reset every few seconds
     let started_at = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
@@ -49,19 +49,19 @@ pub(super) fn run(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRp
     let mut retry_at: Option<Instant> = None;
     let mut retry_delay = RECONNECT_MIN;
     // `Some` once Discord said READY, `None` while unconnected; the inner
-    // option is the account it named, which a client can leave out.
+    // option is the account it named, which a client can leave out
     let mut signed_in: Option<Option<DiscordUser>> = None;
     let mut last_error: Option<String> = None;
-    // The activity moved, so the settings preview needs a fresh snapshot even
-    // when the connection itself did not budge.
+    // the activity moved, so the settings preview needs a fresh snapshot even
+    // when the connection itself did not budge
     let mut dirty = true;
 
     loop {
-        // Drain after the first: a burst of updates collapses into the last.
+        // drain after the first: a burst of updates collapses into the last
         let first = match rx.recv_timeout(TICK) {
             Ok(cmd) => Some(cmd),
             Err(RecvTimeoutError::Timeout) => None,
-            // The state was dropped — the app is gone.
+            // the state was dropped; the app is gone
             Err(RecvTimeoutError::Disconnected) => break,
         };
         let mut stopping = false;
@@ -87,8 +87,8 @@ pub(super) fn run(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRp
                     dirty = true;
                 }
                 Cmd::Set(update) => {
-                    // Identical payloads arrive on every store change; sending
-                    // them would burn the 15 s window for nothing.
+                    // identical payloads arrive on every store change; sending
+                    // them would burn the 15 s window for nothing
                     if desired.as_ref() != Some(&update) {
                         desired = Some(*update);
                         pending = true;
@@ -129,8 +129,8 @@ pub(super) fn run(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRp
                     signed_in = Some(c.user.clone());
                     last_error = None;
                     client = Some(c);
-                    // First presence right away: waiting for the next page change
-                    // would leave the profile blank for minutes.
+                    // first presence right away: waiting for the next page change
+                    // would leave the profile blank for minutes
                     pending = true;
                     last_sent = None;
                     dirty = true;
@@ -159,7 +159,7 @@ pub(super) fn run(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRp
                         last_sent = Some(Instant::now());
                     }
                     Err(e) => {
-                        // Let the backoff bring the presence back.
+                        // let the backoff bring the presence back
                         client = None;
                         signed_in = None;
                         last_error = Some(e);
@@ -191,12 +191,12 @@ pub(super) fn run(app: AppHandle, rx: Receiver<Cmd>, status: Arc<Mutex<DiscordRp
         }
     }
 
-    // The app is closing: say so once, so a settings screen still mounted does
-    // not keep claiming a live connection.
+    // the app is closing: say so once, so a settings screen still mounted does
+    // not keep claiming a live connection
     let _ = app.emit(STATUS_EVENT, store_status(&status, DiscordRpcStatus::default()));
 }
 
-/// Keeps what the command reads in sync with what goes out on the event.
+/// keeps what the command reads in sync with what goes out on the event
 fn store_status(status: &Arc<Mutex<DiscordRpcStatus>>, next: DiscordRpcStatus) -> DiscordRpcStatus {
     if let Ok(mut current) = status.lock() {
         *current = next.clone();

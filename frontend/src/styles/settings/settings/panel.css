@@ -1,0 +1,207 @@
+.settings-window-status {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin: 0 6px 2px;
+    font-size: 14px;
+    color: rgb(255 255 255 / 0.7);
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    height: 40px;
+}
+
+.settings-label {
+    font-size: 22px;
+}
+
+.settings-label.compact {
+    font-size: 18px;
+    color: rgb(255 255 255 / 0.78);
+}
+
+.settings-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+
+    height: 100%;
+}
+
+.settings-control > .image-input {
+    width: 200px;
+}
+
+.settings-control > button {
+    margin: 0;
+}
+.settings-value {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 70px;
+    font-size: 18px;
+    color: rgb(255 255 255 / 0.8);
+}
+
+.settings-control input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    width: 120px;
+}
+
+.settings-control input[type="range"]::-webkit-slider-runnable-track {
+    background: rgba(255, 255, 255, 0.1);
+    height: 6px;
+    border-radius: 3px;
+}
+
+.settings-control input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    margin-top: -5px;
+    background-color: var(--accent);
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--accent);
+}
+
+.settings-control input[type="range"]:focus::-webkit-slider-runnable-track {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.settings-path-value {
+    display: flex;
+    align-items: center;
+
+    min-width: 0;
+    max-width: 360px;
+
+    height: 30px;
+    margin-bottom: 5px;
+    padding: 0 8px;
+
+    font-size: 0.8rem;
+    font-family: inherit;
+    color: rgba(255, 255, 255, 0.75);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    box-sizing: border-box;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.settings-path-value:hover {
+    border-color: rgba(255,255,255,0.35);
+}
+
+.settings-select {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.85);
+    padding: 6px 12px;
+    font-size: 16px;
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.settings-select:hover {
+    border-color: rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.settings-select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 8px var(--accent-low-alpha, rgba(255, 255, 255, 0.1));
+}
+
+.settings-select option {
+    background: #1a1a1a;
+    color: white;
+}
+
+.settings-tab-content {
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    padding-right: 0;
+    padding-bottom: 6px;
+    margin-left: 6px;
+    margin-right: 6px;
+}
+
+.settings-tab-content > .panel.settings-panel {
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-top: 0;
+    padding-right: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--accent-rgb) / 0.42) rgb(255 255 255 / 0.02);
+}
+
+.settings-tab-content > .panel.settings-panel > h3 {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    margin: 0 -8px 4px -12px;
+    padding: 12px 12px 24px;
+    pointer-events: none;
+    background: linear-gradient(to bottom,
+            rgb(0 0 0 / 0.96) 0%,
+            rgb(0 0 0 / 0.9) 45%,
+            rgb(0 0 0 / 0) 100%);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+}
+
+.settings-tab-content > .panel.settings-panel::-webkit-scrollbar {
+    width: 8px;
+}
+
+.settings-tab-content > .panel.settings-panel::-webkit-scrollbar-track {
+    background: rgb(255 255 255 / 0.02);
+    border-radius: 10px;
+}
+
+.settings-tab-content > .panel.settings-panel::-webkit-scrollbar-thumb {
+    background: rgb(var(--accent-rgb) / 0.34);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+.settings-tab-content > .panel.settings-panel::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--accent-rgb) / 0.52);
+}
+
+.settings-tab-content > .panel.settings-panel > .about-content {
+    overflow: visible;
+
+    flex: 0 0 auto;
+}
+
+.settings-tab-content > .panel {
+    margin-right: 0;
+    margin-left: 0;
+    margin-bottom: 0;
+}

@@ -133,11 +133,11 @@ type AutofillButtonProps = {
   tooltip: string;
   onClick: () => void;
   disabled?: boolean;
-  /** `discord` tints the hover with the brand colour. */
+  /** `discord` tints the hover with the brand colour */
   variant?: "discord";
 };
 
-/** The "fill this field for me" button that rides on a field's label line. */
+/** the "fill this field for me" button that rides on a field's label line */
 function AutofillButton({
   icon,
   label,
@@ -147,7 +147,7 @@ function AutofillButton({
   variant,
 }: AutofillButtonProps) {
   return (
-    // 420: the default cap wraps both of these hints onto a second line.
+    // 420: the default cap wraps both of these hints onto a second line
     <Tooltip placement="top-end" maxWidth={420} content={tooltip}>
       <button
         type="button"
@@ -182,14 +182,14 @@ export default function BugReport() {
   );
   const [nowTs, setNowTs] = useState(() => Date.now());
   const discordStatus = useDiscordRPCStatus();
-  // The signed-in account from Community Events, which is a real authenticated
-  // identity rather than whatever Rich Presence happens to be reporting. It is
+  // the signed-in account from Community Events, which is a real authenticated
+  // identity rather than whatever Rich Presence happens to be reporting. it is
   // preferred so the field fills for anyone signed in, whether or not they run
-  // Rich Presence at all.
+  // Rich Presence at all
   const eventsProfile = useEventsStore((state) => state.profile);
 
-  // The handle, not the display name: a display name cannot be searched for,
-  // and it carries capitals the account itself does not have.
+  // the handle, not the display name: a display name cannot be searched for,
+  // and it carries capitals the account itself does not have
   const discordUser =
     eventsProfile?.username ?? discordStatus?.user_handle ?? discordStatus?.user ?? null;
   const screenshotInputRef = useRef<HTMLInputElement | null>(null);
@@ -342,7 +342,6 @@ export default function BugReport() {
             submittedAt.toString()
           );
         } catch {
-          // ignore
         }
       }
     } catch (err) {

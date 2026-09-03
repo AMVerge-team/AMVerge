@@ -13,10 +13,10 @@ export type ClipItem = {
   clipPath?: string;
   clipMode?: string;
   episodeId?: string;
-  // Scenepack clips only: the ORIGINAL source type before materialization —
+  // Scenepack clips only: the ORIGINAL source type before materialization
   // every Scenepack clip gets its own clipPath (a materialized copy) once
   // added, so clipPath presence alone can no longer tell video-mode and
-  // webp-mode clips apart the way it does for Home-page clips.
+  // webp-mode clips apart the way it does for Home-page clips
   sourceKind?: "video" | "webp";
 };
 
@@ -63,7 +63,7 @@ export type ScenepackEntry = {
   createdAt: number;
   clips: ScenepackClip[];
   /**
-   * Cover image for the panel tile. Unset falls back to the first clip's
+   * cover image for the panel tile. unset falls back to the first clip's
    * thumbnail, which is the sensible default and what every existing pack has.
    */
   thumbnail?: string | null;

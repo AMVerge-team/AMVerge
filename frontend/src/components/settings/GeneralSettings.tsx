@@ -1,9 +1,7 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import {
-  importMethod,
   PreviewTranscodeMode,
-  PreviewTranscodeQuality,
   SceneDetectionMethod,
   useGeneralSettingsStore,
 } from "../../stores/settingsStore";
@@ -11,7 +9,7 @@ import { useAppStateStore } from "../../stores/appStore";
 import { useUIStateStore } from "../../stores/UIStore";
 import { useEffect, useState} from "react";
 import SettingRow from "../common/SettingRow";
-import Dropdown, { type DropdownOption } from "../common/Dropdown";
+import Dropdown from "../common/Dropdown";
 import SettingsSection from "../common/SettingsSection";
 import InfoButton from "../common/InfoButton";
 import Tooltip from "../common/Tooltip";
@@ -20,57 +18,13 @@ import { clearScenepacksStorage } from "../../utils/scenepackStorage";
 import { useScenepacksStore } from "../../stores/scenepackStore";
 import { useAiDepsStore } from "../../stores/aiDepsStore";
 import { isPackInstalled } from "../../features/aiDeps/packs";
-
-const SCENE_DETECTION_OPTIONS: DropdownOption<SceneDetectionMethod>[] = [
-  {
-    value: "transnetv2_gpu",
-    label: "AI Scene Detection",
-    description: "The most accurate way to find scene cuts. Uses AI.",
-  },
-  {
-    value: "keyframe_detection",
-    label: "Keyframe Detection",
-    description: "Fast, and works on any PC. Cuts at keyframes.",
-  },
-];
-
-const PREVIEW_METHOD_OPTIONS: DropdownOption<importMethod>[] = [
-  {
-    value: "video_files",
-    label: "Video Files",
-    description: "Cuts a real video clip per scene. Hover to play it.",
-  },
-  {
-    value: "webp_files",
-    label: "WebP Files",
-    description: "Makes small animated previews instead of video clips.",
-  },
-];
-
-const PREVIEW_TRANSCODE_MODE_OPTIONS: DropdownOption<PreviewTranscodeMode>[] = [
-  {
-    value: "off",
-    label: "Off",
-    description: "Play clips as they are. Needs HEVC support on this PC.",
-  },
-  {
-    value: "hevc",
-    label: "HEVC Only",
-    description: "Only re-encode when the source is HEVC.",
-  },
-  {
-    value: "always",
-    label: "Always",
-    description: "Re-encode every preview, whatever the source is.",
-  },
-];
-
-const PREVIEW_TRANSCODE_QUALITY_OPTIONS: DropdownOption<PreviewTranscodeQuality>[] = [
-  { value: "360p", label: "360p", description: "Smallest and fastest to generate." },
-  { value: "480p", label: "480p", description: "Balanced. Recommended." },
-  { value: "720p", label: "720p", description: "Sharper previews, slower to generate." },
-  { value: "1080p", label: "1080p", description: "Full detail. Slowest, largest cache." },
-];
+import {
+  PREVIEW_METHOD_OPTIONS,
+  PREVIEW_TRANSCODE_MODE_OPTIONS,
+  PREVIEW_TRANSCODE_QUALITY_OPTIONS,
+  SCENE_DETECTION_OPTIONS,
+} from "./general/options";
+import { ConfirmModal } from "./general/ConfirmModal";
 
 type GeneralSettingsProps = {
   onGeneralSettingsReset: () => void;
@@ -160,8 +114,8 @@ export default function GeneralSettings({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [showDisableScenepacksConfirm]);
 
-  // Turning Scenepacks off with packs still saved asks what to do with them
-  // first; turning it on is immediate.
+  // turning Scenepacks off with packs still saved asks what to do with them
+  // first; turning it on is immediate
   const handleToggleScenepacksEnabled = (enabled: boolean) => {
     if (!enabled && scenepacksCount > 0) {
       setShowDisableScenepacksConfirm(true);
@@ -194,15 +148,15 @@ export default function GeneralSettings({
     }
   };
 
-  // TransNetV2 needs the optional `ml` pack. Prompt at the point of choice
-  // rather than failing later, mid-import.
+  // TransNetV2 needs the optional `ml` pack. prompt at the point of choice
+  // rather than failing later, mid-import
   const aiStatus = useAiDepsStore((s) => s.status);
   const mlInstalled = isPackInstalled(aiStatus, "ml");
 
   const handleSceneDetectionChange = async (method: SceneDetectionMethod) => {
     if (method === "transnetv2_gpu" && !mlInstalled) {
       const installed = await useAiDepsStore.getState().ensurePack("ml");
-      if (!installed) return; // declined — keep the current method
+      if (!installed) return; // declined, keep the current method
     }
     setSceneDetectionMethod(method);
   };
@@ -219,9 +173,9 @@ export default function GeneralSettings({
         setLoading(true);
 
         try {
-          // Every clip tile in the grid keeps its file open in the WebView, and
-          // Windows refuses to delete a file that is in use. Drop the grid and
-          // let the browser release the handles before touching the files.
+          // every clip tile in the grid keeps its file open in the WebView, and
+          // Windows refuses to delete a file that is in use. drop the grid and
+          // let the browser release the handles before touching the files
           useAppStateStore.getState().setClips([]);
           useAppStateStore.getState().setSelectedClips(new Set());
           await new Promise((resolve) => setTimeout(resolve, 250));
@@ -572,150 +526,67 @@ export default function GeneralSettings({
         </SettingsSection>
 
         {showFactoryResetConfirm && (
-          <div
-            className="episode-modal-overlay"
-            onMouseDown={() => setShowFactoryResetConfirm(false)}
-          >
-            <div className="episode-modal" onMouseDown={(e) => e.stopPropagation()}>
-              <div className="episode-modal-title">Factory Reset</div>
-              <div className="episode-modal-message">{factoryResetConfirmation}</div>
-              <div className="episode-modal-actions">
-                <button
-                  type="button"
-                  className="episode-modal-btn"
-                  onClick={() => setShowFactoryResetConfirm(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="episode-modal-btn primary"
-                  onClick={() => {
-                    setShowFactoryResetConfirm(false);
-                    void onGeneralSettingsReset();
-                  }}
-                >
-                  Reset
-                </button>
-              </div>
-            </div>
-          </div>
+          <ConfirmModal
+            title="Factory Reset"
+            message={factoryResetConfirmation}
+            confirmLabel="Reset"
+            onClose={() => setShowFactoryResetConfirm(false)}
+            onConfirm={() => {
+              setShowFactoryResetConfirm(false);
+              void onGeneralSettingsReset();
+            }}
+          />
         )}
 
         {showClearPanelConfirm && (
-          <div
-            className="episode-modal-overlay"
-            onMouseDown={() => {
-              if (!clearingPanel) setShowClearPanelConfirm(false);
-            }}
-          >
-            <div className="episode-modal" onMouseDown={(e) => e.stopPropagation()}>
-              <div className="episode-modal-title">Clear Episode Storage</div>
-              <div className="episode-modal-message">{clearPanelConfirmation}</div>
-              <div className="episode-modal-actions">
-                <button
-                  type="button"
-                  className="episode-modal-btn"
-                  onClick={() => setShowClearPanelConfirm(false)}
-                  disabled={clearingPanel}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="episode-modal-btn primary"
-                  onClick={() => {
-                    void handleClearEpisodePanel();
-                  }}
-                  disabled={clearingPanel}
-                >
-                  {clearingPanel ? "Clearing..." : "Clear Episode Storage"}
-                </button>
-              </div>
-            </div>
-          </div>
+          <ConfirmModal
+            title="Clear Episode Storage"
+            message={clearPanelConfirmation}
+            confirmLabel={clearingPanel ? "Clearing..." : "Clear Episode Storage"}
+            busy={clearingPanel}
+            onClose={() => setShowClearPanelConfirm(false)}
+            onConfirm={() => void handleClearEpisodePanel()}
+          />
         )}
 
         {showClearScenepacksConfirm && (
-          <div
-            className="episode-modal-overlay"
-            onMouseDown={() => {
-              if (!clearingScenepacks) setShowClearScenepacksConfirm(false);
-            }}
-          >
-            <div className="episode-modal" onMouseDown={(e) => e.stopPropagation()}>
-              <div className="episode-modal-title">Clear Scenepack Storage</div>
-              <div className="episode-modal-message">{clearScenepacksConfirmation}</div>
-              <div className="episode-modal-actions">
-                <button
-                  type="button"
-                  className="episode-modal-btn"
-                  onClick={() => setShowClearScenepacksConfirm(false)}
-                  disabled={clearingScenepacks}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="episode-modal-btn primary"
-                  onClick={() => {
-                    void handleClearScenepacks();
-                  }}
-                  disabled={clearingScenepacks}
-                >
-                  {clearingScenepacks ? "Clearing..." : "Clear Scenepack Storage"}
-                </button>
-              </div>
-            </div>
-          </div>
+          <ConfirmModal
+            title="Clear Scenepack Storage"
+            message={clearScenepacksConfirmation}
+            confirmLabel={clearingScenepacks ? "Clearing..." : "Clear Scenepack Storage"}
+            busy={clearingScenepacks}
+            onClose={() => setShowClearScenepacksConfirm(false)}
+            onConfirm={() => void handleClearScenepacks()}
+          />
         )}
 
         {showDisableScenepacksConfirm && (
-          <div
-            className="episode-modal-overlay"
-            onMouseDown={() => setShowDisableScenepacksConfirm(false)}
-          >
-            <div className="episode-modal" onMouseDown={(e) => e.stopPropagation()}>
-              <div className="episode-modal-title">Disable Scenepacks</div>
-              <div className="episode-modal-message">
-                You have {scenepacksCount} Scenepack{scenepacksCount !== 1 ? "s" : ""}. Would you like to delete
-                {scenepacksCount !== 1 ? " them" : " it"} too, or just disable the feature and keep
-                {scenepacksCount !== 1 ? " them" : " it"} for later?
-              </div>
-              <div className="episode-modal-actions">
-                <button
-                  type="button"
-                  className="episode-modal-btn"
-                  onClick={() => setShowDisableScenepacksConfirm(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="episode-modal-btn"
-                  onClick={() => {
-                    setGeneralSettings((prev) => ({ ...prev, scenepacksEnabled: false }));
-                    setShowDisableScenepacksConfirm(false);
-                  }}
-                >
-                  Keep Scenepacks
-                </button>
-                <button
-                  type="button"
-                  className="episode-modal-btn primary"
-                  onClick={() => {
-                    setGeneralSettings((prev) => ({ ...prev, scenepacksEnabled: false }));
-                    setShowDisableScenepacksConfirm(false);
-                    void clearScenepacksStorage().catch((err) =>
-                      window.alert("Failed to clear Scenepack storage: " + String(err))
-                    );
-                  }}
-                >
-                  Delete Scenepacks
-                </button>
-              </div>
-            </div>
-          </div>
+          <ConfirmModal
+            title="Disable Scenepacks"
+            message={
+              <>
+                You have {scenepacksCount} Scenepack{scenepacksCount !== 1 ? "s" : ""}. Would you
+                like to delete{scenepacksCount !== 1 ? " them" : " it"} too, or just disable the
+                feature and keep{scenepacksCount !== 1 ? " them" : " it"} for later?
+              </>
+            }
+            confirmLabel="Delete Scenepacks"
+            secondary={{
+              label: "Keep Scenepacks",
+              onClick: () => {
+                setGeneralSettings((prev) => ({ ...prev, scenepacksEnabled: false }));
+                setShowDisableScenepacksConfirm(false);
+              },
+            }}
+            onClose={() => setShowDisableScenepacksConfirm(false)}
+            onConfirm={() => {
+              setGeneralSettings((prev) => ({ ...prev, scenepacksEnabled: false }));
+              setShowDisableScenepacksConfirm(false);
+              void clearScenepacksStorage().catch((err) =>
+                window.alert("Failed to clear Scenepack storage: " + String(err))
+              );
+            }}
+          />
         )}
       </div>
     </section>

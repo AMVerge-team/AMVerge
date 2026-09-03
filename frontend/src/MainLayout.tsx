@@ -4,13 +4,13 @@ import PreviewContainer from "./components/previewPanel/PreviewContainer";
 import { useAppStateStore } from "./stores/appStore";
 import { useUIStateStore } from "./stores/UIStore";
 
-/** Drag the divider past this share of the width and the preview pane folds away. */
+/** drag the divider past this share of the width and the preview pane folds away */
 const COLLAPSE_AT_PERCENT = 90;
 
 /**
  * `active` is false for a MainLayout whose page is mounted but hidden. HomePage
  * stays mounted behind `display: none` so its grid survives navigation, and the
- * Scenepacks page renders a second MainLayout of its own — both read the same
+ * Scenepacks page renders a second MainLayout of its own, both read the same
  * clip store, so both preview players would load the same clip and play its
  * audio at once. `display: none` does not stop media playback.
  */
@@ -23,23 +23,23 @@ export default function MainLayout({
 }: {
     intro?: boolean;
     active?: boolean;
-    /** Replaces the clip grid in the left pane. Events fills it with its own grid. */
+    /** replaces the clip grid in the left pane. Events fills it with its own grid */
     left?: React.ReactNode;
-    /** Drops the preview pane and its divider entirely, rather than collapsing
-     *  them. Pages with nothing to preview have no use for either, and leaving
-     *  a foldable pane behind only offers a control that does nothing. */
+    /** drops the preview pane and its divider entirely, rather than collapsing
+     *  them. pages with nothing to preview have no use for either, and leaving
+     *  a foldable pane behind only offers a control that does nothing */
     fullWidth?: boolean;
-    /** Keeps the preview pane mounted, sized, and collapsible as the user left
-     *  it, but showing nothing — the Events page has no clip to preview, and
-     *  whatever was playing has to stop. */
+    /** keeps the preview pane mounted, sized, and collapsible as the user left
+     *  it, but showing nothing, the Events page has no clip to preview, and
+     *  whatever was playing has to stop */
     previewIdle?: boolean;
 }) {
-    // In the store, not local state: the import row above reads it to park the
-    // preview toggle over the grid's right edge.
+    // in the store, not local state: the import row above reads it to park the
+    // preview toggle over the grid's right edge
     const leftWidth = useUIStateStore(s => s.previewSplitPct);
     const setLeftWidth = useUIStateStore(s => s.setPreviewSplitPct);
-    // Shared by both MainLayout instances (episodes + scenepacks) and persisted, so the
-    // pane stays where it was left across navigation and restarts.
+    // shared by both MainLayout instances (episodes + scenepacks) and persisted, so the
+    // pane stays where it was left across navigation and restarts
     const previewCollapsed = useUIStateStore(s => s.previewCollapsed);
     const setPreviewCollapsed = useUIStateStore(s => s.setPreviewCollapsed);
     const focusedClip = useAppStateStore(s => s.focusedClip);
@@ -71,9 +71,9 @@ export default function MainLayout({
         const onMouseMove = (ev: MouseEvent) => {
             const delta = ev.clientX - startX;
             const newPercent = ((startLeftWidth + delta) / totalWidth) * 100;
-            // Shoving the divider past the last stop folds the pane away, live. The
+            // shoving the divider past the last stop folds the pane away, live. the
             // listeners sit on the window, so the drag survives the divider unmounting
-            // and pulling back left brings the pane straight back.
+            // and pulling back left brings the pane straight back
             if (newPercent >= COLLAPSE_AT_PERCENT) {
                 setPreviewCollapsed(true);
                 return;
@@ -112,7 +112,7 @@ export default function MainLayout({
                 )}
 
                 {/* Kept mounted while collapsed: the pane holds the export settings, and
-                    `active={false}` is what actually stops the player — `display: none`
+                    `active={false}` is what actually stops the player, `display: none`
                     alone does not. Unmounted outright in full-width mode, which is the
                     one case where nothing on the page can ever need it. */}
                 {!fullWidth && (

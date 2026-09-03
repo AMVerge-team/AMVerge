@@ -26,7 +26,7 @@ function parseVersionParts(version: string): number[] {
   return parts;
 }
 
-// returns: -1 if current < latest, 0 if equal, 1 if current > latest.
+// returns: -1 if current < latest, 0 if equal, 1 if current > latest
 function compareVersions(currentVersion: string, latestVersion: string): number {
   const currentParts = parseVersionParts(currentVersion);
   const latestParts = parseVersionParts(latestVersion);

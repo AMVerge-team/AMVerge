@@ -103,7 +103,7 @@ pub(super) async fn import_into_premier_pro(
     }
 }
 
-/// Execute the editor UI-import PowerShell script and return the result.
+/// execute the editor UI-import PowerShell script and return the result
 #[cfg(target_os = "windows")]
 pub(super) fn build_premier_pro_ui_import_ps(media_paths: &[String]) -> String {
     let project_ready_expr = "($titleLower -match '\\.prproj') -or (($titleLower -match 'premiere') -and ($title -match '\\s[-–—]\\s') -and ($titleLower -notmatch 'home|accueil|learn|importer|import'))";

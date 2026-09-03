@@ -3,7 +3,7 @@ use tauri::{AppHandle, Emitter};
 use crate::payloads::ConsoleLogPayload;
 
 pub fn sanitize_for_console(s: &str) -> String {
-    // keep it single-line and screenshot friendly.
+    // keep it single-line and screenshot friendly
     s.replace('\r', " ").replace('\n', " ")
 }
 

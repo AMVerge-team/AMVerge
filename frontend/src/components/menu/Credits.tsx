@@ -43,7 +43,7 @@ export default function Credits() {
                                     src={`https://github.com/${member.username}.png?size=96`}
                                     alt={member.name}
                                     onError={(e) => {
-                                        // Fallback to initials if offline or image load fails
+                                        // fallback to initials if offline or image load fails
                                         e.currentTarget.style.display = 'none';
                                     }}
                                 />

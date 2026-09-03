@@ -18,8 +18,8 @@ impl Default for ActiveSidecar {
     }
 }
 
-/// The in-flight optional-AI-dependency install (a `uv` process tree).
-/// Cloned into the blocking install task, so every field is shared.
+/// the in-flight optional-AI-dependency install (a `uv` process tree).
+/// cloned into the blocking install task, so every field is shared
 #[derive(Default, Clone)]
 pub struct ActiveInstall {
     pub pid: Arc<Mutex<Option<u32>>>,
@@ -28,8 +28,8 @@ pub struct ActiveInstall {
 }
 
 impl ActiveInstall {
-    /// Claim the install slot. Only one install may run at a time — a second
-    /// one would fight the first over the same venv.
+    /// claim the install slot. only one install may run at a time, a second
+    /// one would fight the first over the same venv
     pub fn begin(&self) -> Result<(), String> {
         if self.running.swap(true, Ordering::SeqCst) {
             return Err("Another dependency install is already running.".to_string());
@@ -52,7 +52,7 @@ impl ActiveInstall {
     }
 }
 
-/// Per-output-path locks that serialize duplicate proxy/WebP encode requests
+/// per-output-path locks that serialize duplicate proxy/WebP encode requests
 pub type ProxyLockMap = Arc<AsyncMutex<HashMap<String, Arc<AsyncMutex<()>>>>>;
 
 #[derive(Default)]
@@ -60,7 +60,7 @@ pub struct PreviewProxyLocks {
     pub inner: ProxyLockMap,
 }
 
-/// Caps how many preview proxies may run libx264 at the same time
+/// caps how many preview proxies may run libx264 at the same time
 pub struct PreviewTranscodeSlots {
     pub semaphore: Arc<tokio::sync::Semaphore>,
     pub threads_per_encode: usize,
@@ -81,8 +81,8 @@ impl Default for PreviewTranscodeSlots {
     }
 }
 
-/// Discord Rich Presence lives with its worker thread, not here — the presence
-/// is an IPC connection, no longer a child process.
+/// Discord Rich Presence lives with its worker thread, not here, the presence
+/// is an IPC connection, no longer a child process
 pub use crate::commands::discord::DiscordRPCState;
 
 #[derive(Default)]

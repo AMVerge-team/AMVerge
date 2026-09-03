@@ -38,10 +38,6 @@
     flex-direction: column;
 }
 
-/* --------------------
-      LAYOUT SPLIT
--------------------- */
-
 .split-layout {
     display: flex;
     flex: 1;
@@ -74,9 +70,6 @@
     min-width: 280px;
 }
 
-/* Folded away by the divider. `display: none` rather than a zero width, which the
-   min-width above would override. The pane stays mounted, so the export settings
-   keep their state. */
 .right-pane.collapsed {
     display: none;
 }
@@ -92,7 +85,6 @@
     align-self: center;
 }
 
-/* Align sidebar divider vertically with main divider */
 .divider.sidebar-splitter {
     transform: translateY(var(--amverge-divider-offset, 0px));
 }
@@ -102,4 +94,3 @@
     width: 1px;
     height: 100%;
 }
-

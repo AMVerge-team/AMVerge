@@ -1,18 +1,18 @@
-//! Minimal Discord IPC client — one named pipe (Windows) or unix socket, framed
+//! minimal Discord IPC client, one named pipe (Windows) or unix socket, framed
 //! JSON, no external crate.
 //!
-//! Four rules the protocol will not forgive:
+//! four rules the protocol will not forgive:
 //!
 //! * Discord listens on `discord-ipc-0` … `-9`; Stable, PTB and Canary each hold
 //!   their own, so probe 0→9 and keep the first that answers.
 //! * A frame is `[opcode u32 LE][len u32 LE][utf8 JSON]`, written in a **single**
-//!   write — a split header and body interleave on a Windows pipe and break the
+//!   write, a split header and body interleave on a Windows pipe and break the
 //!   connection.
 //! * `3 PING` must be answered with `4 PONG` carrying the nonce verbatim, or
 //!   Discord hangs up.
 //! * Reads must be buffered: a chunk can split a frame or carry several.
 //!
-//! Discord not running is the nominal case, not a failure.
+//! Discord not running is the nominal case, not a failure
 
 use std::io::{Read, Write};
 
@@ -25,14 +25,14 @@ const OP_PING: u32 = 3;
 const OP_PONG: u32 = 4;
 
 const PIPE_COUNT: u8 = 10;
-/// A frame larger than this is a desync, not a message.
+/// a frame larger than this is a desync, not a message
 const MAX_FRAME_LEN: u32 = 1024 * 1024;
-/// Frames read while waiting for a specific reply (pings, events we ignore).
+/// frames read while waiting for a specific reply (pings, events we ignore)
 const MAX_SKIPPED_FRAMES: usize = 32;
 
 pub const CLOSED: &str = "connection closed by Discord";
 
-/// The Discord account the client is signed in as, for the settings screen.
+/// the Discord account the client is signed in as, for the settings screen
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct DiscordUser {
     pub username: Option<String>,
@@ -40,7 +40,7 @@ pub struct DiscordUser {
 }
 
 impl DiscordUser {
-    /// What the account calls itself — the display name Discord shows first.
+    /// what the account calls itself, the display name Discord shows first
     pub fn label(&self) -> Option<String> {
         self.global_name
             .as_ref()
@@ -49,8 +49,8 @@ impl DiscordUser {
             .cloned()
     }
 
-    /// The handle you type in Discord's search bar to add someone. Always
-    /// lowercase, and unlike the display name it identifies the account.
+    /// the handle you type in Discord's search bar to add someone. always
+    /// lowercase, and unlike the display name it identifies the account
     pub fn handle(&self) -> Option<String> {
         self.username
             .as_ref()
@@ -79,7 +79,7 @@ impl Transport {
         #[cfg(unix)]
         {
             // Discord follows the XDG runtime dir; inside Flatpak/Snap it nests
-            // the sockets one level down.
+            // the sockets one level down
             let base = std::env::var("XDG_RUNTIME_DIR")
                 .or_else(|_| std::env::var("TMPDIR"))
                 .unwrap_or_else(|_| "/tmp".to_string());
@@ -91,8 +91,8 @@ impl Transport {
                     .join(format!("discord-ipc-{index}"));
                 match std::os::unix::net::UnixStream::connect(path) {
                     Ok(sock) => {
-                        // A socket that accepts but never answers must not wedge
-                        // the worker thread for good.
+                        // a socket that accepts but never answers must not wedge
+                        // the worker thread for good
                         let _ =
                             sock.set_read_timeout(Some(std::time::Duration::from_secs(10)));
                         return Ok(Transport::Socket(sock));
@@ -136,7 +136,7 @@ impl Write for Transport {
     }
 }
 
-/// Bytes readable on a named pipe, or `None` once it is broken.
+/// bytes readable on a named pipe, or `None` once it is broken
 #[cfg(windows)]
 fn peek_named_pipe(file: &std::fs::File) -> Option<u32> {
     use std::os::windows::io::AsRawHandle;
@@ -154,7 +154,7 @@ fn peek_named_pipe(file: &std::fs::File) -> Option<u32> {
     }
 
     let mut available: u32 = 0;
-    // Null buffer of size 0: ask how much is queued, copy nothing.
+    // null buffer of size 0: ask how much is queued, copy nothing
     let ok = unsafe {
         PeekNamedPipe(
             file.as_raw_handle() as *mut std::ffi::c_void,
@@ -174,13 +174,13 @@ fn peek_named_pipe(file: &std::fs::File) -> Option<u32> {
 
 pub struct DiscordIpc {
     transport: Transport,
-    /// Bytes read from the pipe but not yet framed.
+    /// bytes read from the pipe but not yet framed
     buf: Vec<u8>,
     pub user: Option<DiscordUser>,
 }
 
 impl DiscordIpc {
-    /// `Err` means "no Discord here right now" — retry later.
+    /// `Err` means "no Discord here right now": retry later
     pub fn connect(app_id: &str) -> Result<Self, String> {
         let mut last = "Discord is not running".to_string();
         for index in 0..PIPE_COUNT {
@@ -198,8 +198,8 @@ impl DiscordIpc {
             };
             match client.handshake(app_id) {
                 Ok(()) => return Ok(client),
-                // The pipe exists but is not a usable Discord (another program
-                // squatting the name, a client still booting) — try the next.
+                // the pipe exists but is not a usable Discord (another program
+                // squatting the name, a client still booting): try the next
                 Err(e) => last = e,
             }
         }
@@ -226,20 +226,20 @@ impl DiscordIpc {
         Ok(())
     }
 
-    /// Publish an activity, or clear the presence with `None`.
+    /// publish an activity, or clear the presence with `None`
     pub fn set_activity(&mut self, activity: Option<Value>) -> Result<(), String> {
         self.set_activity_raw(activity).map(|_| ())
     }
 
-    /// Same, but hands back Discord's reply — the echo is the only way to see
-    /// which fields the client kept and which it dropped without a word.
+    /// same, but hands back Discord's reply, the echo is the only way to see
+    /// which fields the client kept and which it dropped without a word
     pub fn set_activity_raw(&mut self, activity: Option<Value>) -> Result<Value, String> {
         let nonce = uuid::Uuid::new_v4().to_string();
         self.write_frame(
             OP_FRAME,
             &json!({
                 "cmd": "SET_ACTIVITY",
-                // `pid` is mandatory; a null activity is how Discord clears one.
+                // `pid` is mandatory; a null activity is how Discord clears one
                 "args": { "pid": std::process::id(), "activity": activity },
                 "nonce": nonce,
             }),
@@ -258,8 +258,8 @@ impl DiscordIpc {
         Ok(reply)
     }
 
-    /// Clear the presence before the pipe dies, so no stale "playing AMVerge"
-    /// lingers on the profile.
+    /// clear the presence before the pipe dies, so no stale "playing AMVerge"
+    /// lingers on the profile
     pub fn close(&mut self) {
         let _ = self.set_activity(None);
         let _ = self.write_frame(OP_CLOSE, &json!({}));
@@ -315,11 +315,11 @@ impl DiscordIpc {
         }
     }
 
-    /// Service the pipe without blocking; `false` once the connection is gone.
+    /// service the pipe without blocking; `false` once the connection is gone.
     ///
-    /// Without this, Discord quitting goes unnoticed until the next write, and a
-    /// ping sits unanswered just as long — which is itself grounds for Discord to
-    /// hang up on us.
+    /// without this, Discord quitting goes unnoticed until the next write, and a
+    /// ping sits unanswered just as long, which is itself grounds for Discord to
+    /// hang up on us
     pub fn poll(&mut self) -> bool {
         loop {
             match self.fill_nonblocking() {
@@ -347,7 +347,7 @@ impl DiscordIpc {
     fn fill_nonblocking(&mut self) -> Result<usize, String> {
         let Transport::Pipe(file) = &self.transport;
         // PeekNamedPipe is the sanctioned way to look at a blocking pipe without
-        // consuming or waiting; PIPE_NOWAIT would change every other read here.
+        // consuming or waiting; PIPE_NOWAIT would change every other read here
         let available = peek_named_pipe(file).ok_or(CLOSED)?;
         if available == 0 {
             return Ok(0);
@@ -369,7 +369,7 @@ impl DiscordIpc {
             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => Ok(0),
             Err(e) => Err(e.to_string()),
         };
-        // Back to blocking: every other read here expects to wait.
+        // back to blocking: every other read here expects to wait
         let Transport::Socket(sock) = &self.transport;
         let _ = sock.set_nonblocking(false);
         outcome

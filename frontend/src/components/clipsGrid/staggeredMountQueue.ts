@@ -13,15 +13,11 @@ type StaggerDemand = {
 
 
 export function useStaggeredMountQueue(delayMs = 50) {
-  // tracks which tiles want to mount and their order
   const demandRef = useRef<Map<string, StaggerDemand>>(new Map());
-  // interval for ticking through the queue
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // prevents multiple schedules
   const startScheduledRef = useRef(false);
   const startTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // processes one tile per tick (lowest order first)
   const tick = useCallback(() => {
     if (demandRef.current.size === 0) {
       if (intervalRef.current !== null) {
@@ -46,7 +42,6 @@ export function useStaggeredMountQueue(delayMs = 50) {
     entry.onReady();
   }, []);
 
-  // starts the interval for processing the queue
   const startProcessing = useCallback(() => {
     startScheduledRef.current = false;
     if (intervalRef.current !== null) return;

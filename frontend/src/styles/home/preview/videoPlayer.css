@@ -1,0 +1,164 @@
+.video-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.video-frame {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+}
+
+.video-frame>video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.video-frame>.controls {
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 0.75rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    background: rgb(60 60 60 / 0.4);
+    backdrop-filter: blur(2px);
+    pointer-events: none;
+}
+
+.video-wrapper:hover .controls {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.controls .time-display {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    white-space: nowrap;
+    user-select: none;
+    pointer-events: none;
+}
+
+.controls button {
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    cursor: pointer;
+}
+
+.controls button:hover {
+    transform: scale(1.05);
+    filter:
+        drop-shadow(0 0 4px var(--accent)) drop-shadow(0 0 12px rgb(var(--accent-rgb) / 0.6));
+}
+
+.controls .volume-control {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: none;
+}
+
+.controls .volume-popup {
+    position: absolute;
+    bottom: calc(100% + 0.35rem);
+    left: 50%;
+    z-index: 5;
+    width: 1.30rem;
+    height: 5.5rem;
+    border-radius: 20px;
+    background: rgb(20 20 20 / 0.72);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgb(var(--accent-rgb) / 0.35);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateX(-50%) translateY(0.35rem) scale(0.96);
+    transform-origin: bottom center;
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease,
+        visibility 0s linear 0.18s;
+}
+
+.controls .volume-control.open .volume-popup {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0) scale(1);
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease,
+        visibility 0s;
+}
+
+.controls .volume-slider {
+    position: absolute;
+    top: 48%;
+    left: 41%;
+    width: 4.5rem;
+    height: 0.25rem;
+    border-radius: 999px;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    transform: translate(-50%, -50%) rotate(-90deg);
+    background:
+        linear-gradient(to right,
+            var(--accent) 0%,
+            var(--accent) var(--volume-fill, 100%),
+            rgb(255 255 255 / 0.28) var(--volume-fill, 100%),
+            rgb(255 255 255 / 0.28) 100%);
+}
+
+.controls .volume-slider::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    box-shadow: 0 0 4px rgb(var(--accent-rgb) / 0.8);
+    transition: transform 0.12s ease;
+}
+
+.controls .volume-slider::-moz-range-thumb {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    box-shadow: 0 0 4px rgb(var(--accent-rgb) / 0.8);
+    transition: transform 0.12s ease;
+}
+
+.controls .volume-slider:hover::-webkit-slider-thumb {
+    transform: scale(1.25);
+}
+
+.controls .volume-slider:hover::-moz-range-thumb {
+    transform: scale(1.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .controls .volume-popup,
+    .controls .volume-control.open .volume-popup {
+        transition: none;
+    }
+}

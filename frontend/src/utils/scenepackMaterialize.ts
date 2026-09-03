@@ -16,9 +16,9 @@ export type MaterializeResult = {
 };
 
 /**
- * Cuts (or copies) each clip into the Scenepack's own storage folder and
+ * cuts (or copies) each clip into the Scenepack's own storage folder and
  * returns ready-to-store ScenepackClip entries pointing at the materialized
- * copies. This is what makes a pack self-contained — its clips no longer
+ * copies. this is what makes a pack self-contained; its clips no longer
  * reference episode storage at all, so it survives that episode being
  * deleted, and (since a materialized clip always has a clipPath) it renders
  * exactly like a video-mode clip: no per-episode WebP cache lookups.
@@ -79,8 +79,8 @@ export async function materializeClipsForScenepack(
       clipPath: result.clipPath,
       thumbnail: result.thumbnailPath ?? clip.thumbnail,
       // record the ORIGINAL mode before materialization gives every clip its
-      // own clipPath — otherwise a webp-sourced clip becomes indistinguishable
-      // from a video-sourced one once both have a materialized file.
+      // own clipPath; otherwise a webp-sourced clip becomes indistinguishable
+      // from a video-sourced one once both have a materialized file
       sourceKind: clip.clipPath ? "video" : "webp",
     });
   });

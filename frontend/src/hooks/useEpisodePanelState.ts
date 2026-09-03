@@ -7,8 +7,8 @@ import { useGeneralSettingsStore } from "../stores/settingsStore";
 import { useUIStateStore } from "../stores/UIStore";
 
 /**
- * opens an episode by id. Store-level (reads via getState) so lightweight
- * components — e.g. the grid refresh button — can trigger an open/re-open
+ * opens an episode by id. store-level (reads via getState) so lightweight
+ * components (e.g. the grid refresh button) can trigger an open/re-open
  * without subscribing to the full stores through useEpisodePanelState.
  */
 export function openEpisodeById(episodeId: string) {
@@ -29,9 +29,9 @@ export function openEpisodeById(episodeId: string) {
 	appState.setImportedVideoPath(selectedEpisode.videoPath);
 	appState.setImportToken(Date.now().toString());
 
-	// The panel is visible from the Events page too, where opening an episode
+	// the panel is visible from the Events page too, where opening an episode
 	// otherwise loaded it behind a page that does not show clips and looked like
-	// nothing happened. `handleOpenScenepack` does the same for its panel.
+	// nothing happened. `handleOpenScenepack` does the same for its panel
 	useUIStateStore.getState().setActivePage("home");
 
 	startTransition(() => {
@@ -41,12 +41,11 @@ export function openEpisodeById(episodeId: string) {
 
 export default function useEpisodePanelState() {
 	// getState, not a subscription: only actions are used here, and subscribing
-	// re-rendered the whole episode panel on every import progress tick.
+	// re-rendered the whole episode panel on every import progress tick
 	const appState = useAppStateStore.getState();
 	const episodeRuntimeState = useEpisodePanelRuntimeStore();
 	const episodeMetadataState = useEpisodePanelMetadataStore();
 
-	// handlers
 	const handleSelectEpisode = (episodeId: string) => {
 		episodeRuntimeState.setSelectedEpisodeId(episodeId);
 		episodeRuntimeState.setSelectedFolderId(null);
@@ -98,7 +97,7 @@ export default function useEpisodePanelState() {
 			const moving = byId.get(folderId);
 			if (!moving) return prev;
 
-			// prevent cycles: cannot move a folder into itself or any of its descendants.
+			// prevent cycles: cannot move a folder into itself or any of its descendants
 			if (parentFolderId) {
 				let cursor: string | null = parentFolderId;
 				while (cursor) {
@@ -120,11 +119,10 @@ export default function useEpisodePanelState() {
 
 			if (insertIndex === -1) {
 				if (parentFolderId === null) {
-					// insert at the start of root folders.
 					insertIndex = remaining.findIndex((f) => (f.parentId ?? null) === null);
 					if (insertIndex === -1) insertIndex = 0;
 				} else {
-					// insert at the start of the parent's children if present, else right after the parent.
+					// insert at the start of the parent's children if present, else right after the parent
 					insertIndex = remaining.findIndex((f) => (f.parentId ?? null) === parentFolderId);
 					if (insertIndex === -1) {
 						const parentIndex = indexOf(parentFolderId);
@@ -181,15 +179,15 @@ export default function useEpisodePanelState() {
 		episodeRuntimeState.setEpisodes(() => {
 			const result: EpisodeEntry[] = [];
 
-			// root episodes (shown after folders in the UI).
+			// root episodes (shown after folders in the UI)
 			result.push(...(episodesByFolder.get(null) ?? []));
 
-			// episodes for every folder in depth-first order.
+			// episodes for every folder in depth-first order
 			for (const folder of sortedFolders) {
 				result.push(...(episodesByFolder.get(folder.id) ?? []));
 			}
 
-			// any stray episodes with unknown folderId (shouldn't happen) keep at end.
+			// any stray episodes with unknown folderId (shouldn't happen) keep at end
 			for (const [key, list] of episodesByFolder) {
 				if (key === null) continue;
 				if (sortedFolders.some((f) => f.id === key)) continue;
@@ -231,7 +229,7 @@ export default function useEpisodePanelState() {
 			episodeMetadataState.setLastOpenedEpisodeId(null);
 		}
 		// drop the persisted display name / folder assignment too, otherwise they
-		// linger in local storage keyed to an episode that no longer exists.
+		// linger in local storage keyed to an episode that no longer exists
 		episodeMetadataState.removeEpisodeMetadata(episodeId);
 
 		if (wasOpenedEpisode) {
@@ -244,8 +242,8 @@ export default function useEpisodePanelState() {
 
 		// the episode id IS its cache folder name (see buildEpisodeCacheId), so
 		// removing the entry from the panel without this left the cut clips,
-		// posters and proxies on disk forever. Read the path at call time rather
-		// than subscribing — this hook is used by the whole episode panel.
+		// posters and proxies on disk forever. read the path at call time rather
+		// than subscribing; this hook is used by the whole episode panel
 		try {
 			await invoke("delete_episode_cache", {
 				episodeCacheId: episodeId,
@@ -253,7 +251,7 @@ export default function useEpisodePanelState() {
 			});
 		} catch (err) {
 			// the panel entry is already gone; surface the disk failure without
-			// putting the episode back, since the user asked for it to be removed.
+			// putting the episode back, since the user asked for it to be removed
 			console.error("[episode] failed to delete cache folder", { episodeId, err });
 		}
 	};

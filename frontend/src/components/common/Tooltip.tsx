@@ -22,7 +22,7 @@ import { createPortal } from "react-dom";
 export type TooltipSide = "top" | "bottom" | "left" | "right";
 export type TooltipAlign = "start" | "center" | "end";
 
-/** The twelve side/align pairs, written the way floating UI kits name them. */
+/** the twelve side/align pairs, written the way floating UI kits name them */
 export type TooltipPlacement =
   | TooltipSide
   | `${TooltipSide}-${Exclude<TooltipAlign, "center">}`;
@@ -38,13 +38,13 @@ function splitPlacement(placement: TooltipPlacement): [TooltipSide, TooltipAlign
 }
 
 type TooltipGroup = {
-  /** Hover time before a tooltip opens. */
+  /** hover time before a tooltip opens */
   delay: number;
-  /** Grace time before a tooltip closes once the pointer leaves. */
+  /** grace time before a tooltip closes once the pointer leaves */
   closeDelay: number;
   /**
-   * Window after a tooltip closes during which the next one opens instantly.
-   * This is what makes a row of icon buttons feel like one surface: the first
+   * window after a tooltip closes during which the next one opens instantly.
+   * this is what makes a row of icon buttons feel like one surface: the first
    * hover waits, hopping between neighbours does not.
    */
   timeout: number;
@@ -55,16 +55,16 @@ const DEFAULT_GROUP: TooltipGroup = {
   delay: 600,
   closeDelay: 0,
   timeout: 400,
-  // Module-level ref: without a provider every tooltip in the app still shares
-  // one hop window, which is the behaviour you want by default.
+  // module-level ref: without a provider every tooltip in the app still shares
+  // one hop window, which is the behaviour you want by default
   lastClosedAt: { current: 0 },
 };
 
 const TooltipGroupContext = createContext<TooltipGroup>(DEFAULT_GROUP);
 
 /**
- * Optional wrapper that retunes the hover timings of the tooltips below it (a
- * dense toolbar may want a shorter delay). Tooltips work without it.
+ * optional wrapper that retunes the hover timings of the tooltips below it (a
+ * dense toolbar may want a shorter delay). tooltips work without it.
  */
 export function TooltipProvider({
   delay = DEFAULT_GROUP.delay,
@@ -96,41 +96,41 @@ const OPPOSITE: Record<TooltipSide, TooltipSide> = {
   right: "left",
 };
 
-/** Keeps the arrow off the rounded corners when the bubble gets shifted. */
+/** keeps the arrow off the rounded corners when the bubble gets shifted */
 const ARROW_INSET = 14;
 /**
- * Sideways slide the bubble may take before the perpendicular axis is tried
- * instead. Past it the bubble hangs off to one side of its trigger — beside it
+ * sideways slide the bubble may take before the perpendicular axis is tried
+ * instead. past it the bubble hangs off to one side of its trigger: beside it
  * reads far better, which is what puts a corner button's tooltip next to it
  * rather than above and pushed inwards.
  */
 const SHIFT_TOLERANCE = 12;
 /**
- * A left/right placement may squeeze the bubble down to this width — it wraps
- * onto more lines instead of being rejected. Below it the text is shredded into
+ * a left/right placement may squeeze the bubble down to this width; it wraps
+ * onto more lines instead of being rejected. below it the text is shredded into
  * a column, so the bubble goes back above or below the trigger.
  */
 const MIN_SIDE_WIDTH = 120;
-/** Matches the closing animation in styles/common/tooltip.css. */
+/** matches the closing animation in styles/common/tooltip.css */
 const CLOSE_MS = 110;
 
 type Placement = {
   left: number;
   top: number;
   side: TooltipSide;
-  /** Arrow offset along the bubble cross axis, in px from its top/left edge. */
+  /** arrow offset along the bubble cross axis, in px from its top/left edge */
   arrow: number;
-  /** Width the bubble may take on this side, once the window is accounted for. */
+  /** width the bubble may take on this side, once the window is accounted for */
   cap: number;
 };
 
-/** A placement plus what it cost, so the candidates can be compared. */
+/** a placement plus what it cost, so the candidates can be compared */
 type Candidate = Placement & {
-  /** Room available on this side of the trigger. */
+  /** room available on this side of the trigger */
   room: number;
-  /** How far the bubble had to slide along its cross axis to stay on screen. */
+  /** how far the bubble had to slide along its cross axis to stay on screen */
   shift: number;
-  /** Whether the bubble fits on this side at all. */
+  /** whether the bubble fits on this side at all */
   fitsSide: boolean;
 };
 
@@ -138,7 +138,7 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-/** Lays the bubble out on one given side and reports what that placement cost. */
+/** lays the bubble out on one given side and reports what that placement cost */
 function candidateFor(
   side: TooltipSide,
   anchor: DOMRect,
@@ -150,10 +150,10 @@ function candidateFor(
   padding: number
 ): Candidate {
   // clientWidth/Height, not innerWidth/Height: the latter counts the scrollbar,
-  // which a fixed element cannot be laid out under. Using it leaves phantom
-  // room on the scrollbar side — enough to make a right-hand trigger look like
+  // which a fixed element cannot be laid out under. using it leaves phantom
+  // room on the scrollbar side, which is enough to make a right-hand trigger look like
   // it barely fits above, while its mirror on the left flips beside as it
-  // should. The collision box has to be the same box the browser lays out in.
+  // should. the collision box has to be the same box the browser lays out in
   const vw = document.documentElement.clientWidth;
   const vh = document.documentElement.clientHeight;
 
@@ -174,13 +174,13 @@ function candidateFor(
           ? anchor.left
           : vw - anchor.right;
 
-  // Beside the trigger the bubble is free to wrap narrower; above or below it
-  // only has to clear the window's own edges.
+  // beside the trigger the bubble is free to wrap narrower; above or below it
+  // only has to clear the window's own edges
   const cap = vertical
     ? crossViewport - padding * 2
     : room - sideOffset - padding;
-  // Height cannot be squeezed — text just wraps taller — so a top/bottom
-  // placement still has to fit outright.
+  // height cannot be squeezed (text just wraps taller), so a top/bottom
+  // placement still has to fit outright
   const fitsSide = vertical
     ? room >= mainSize + sideOffset + padding
     : cap >= Math.min(width, MIN_SIDE_WIDTH);
@@ -222,10 +222,10 @@ function candidateFor(
 }
 
 /**
- * Three collision behaviours, in order of preference: keep the requested side;
+ * three collision behaviours, in order of preference: keep the requested side;
  * flip to the opposite one when it has no room; and, when the surviving side
  * only fits by sliding the bubble well off its trigger, cross over to the
- * perpendicular axis — a button parked in a corner gets its tooltip beside it,
+ * perpendicular axis: a button parked in a corner gets its tooltip beside it,
  * arrow pointing straight back at it, instead of hanging above and inwards.
  */
 function computePlacement(
@@ -245,8 +245,8 @@ function computePlacement(
 
   if (!chosen.fitsSide) {
     const flipped = pick(OPPOSITE[side]);
-    // Flip only when it helps: in a viewport too small for either side, staying
-    // put and shifting reads better than a bubble that keeps jumping.
+    // flip only when it helps: in a viewport too small for either side, staying
+    // put and shifting reads better than a bubble that keeps jumping
     if (flipped.fitsSide || flipped.room > chosen.room) chosen = flipped;
   }
 
@@ -256,7 +256,7 @@ function computePlacement(
     const squarer = perpendicular
       .map(pick)
       .filter((c) => c.fitsSide && c.shift <= SHIFT_TOLERANCE)
-      // Least sliding first, then the side with the most room to breathe.
+      // least sliding first, then the side with the most room to breathe
       .sort((a, b) => a.shift - b.shift || b.room - a.room)[0];
     if (squarer) chosen = squarer;
   }
@@ -279,7 +279,7 @@ function mergeRefs<T>(...refs: (Ref<T> | undefined)[]) {
   };
 }
 
-/** The subset of trigger props the tooltip reads back and chains onto. */
+/** the subset of trigger props the tooltip reads back and chains onto */
 type TriggerProps = {
   ref?: Ref<HTMLElement>;
   "aria-describedby"?: string;
@@ -291,35 +291,35 @@ type TriggerProps = {
 };
 
 export type TooltipProps = {
-  /** Bubble contents. An empty value disables the tooltip. */
+  /** bubble contents. an empty value disables the tooltip */
   content: ReactNode;
-  /** The trigger. A single element is cloned; anything else gets a wrapper. */
+  /** the trigger. a single element is cloned; anything else gets a wrapper */
   children: ReactNode;
   /**
-   * Side and alignment in one word — `"bottom-end"` is `side="bottom"` plus
-   * `align="end"`. Wins over `side`/`align` when both are given.
+   * side and alignment in one word: `"bottom-end"` is `side="bottom"` plus
+   * `align="end"`. wins over `side`/`align` when both are given.
    */
   placement?: TooltipPlacement;
   side?: TooltipSide;
   align?: TooltipAlign;
-  /** Gap between trigger and bubble, arrow included. */
+  /** gap between trigger and bubble, arrow included */
   sideOffset?: number;
   alignOffset?: number;
-  /** Minimum distance kept from the window edges. */
+  /** minimum distance kept from the window edges */
   collisionPadding?: number;
-  /** Overrides the group hover delay for this tooltip only. */
+  /** overrides the group hover delay for this tooltip only */
   delay?: number;
   closeDelay?: number;
   disabled?: boolean;
-  /** `accent` tints the frame with the theme colour, for hints worth noticing. */
+  /** `accent` tints the frame with the theme colour, for hints worth noticing */
   variant?: "default" | "accent";
   className?: string;
   maxWidth?: number;
 };
 
 /**
- * Hover/focus tooltip, portalled to `body` so it escapes the panes' `overflow`
- * and stacking contexts. Wrap any element:
+ * hover/focus tooltip, portalled to `body` so it escapes the panes' `overflow`
+ * and stacking contexts. wrap any element:
  *
  * ```tsx
  * <Tooltip content="Export the selected clips">
@@ -327,8 +327,8 @@ export type TooltipProps = {
  * </Tooltip>
  * ```
  *
- * The trigger is cloned rather than wrapped, so no extra box lands in the
- * layout — the element must accept a `ref` and the pointer/focus handlers (an
+ * the trigger is cloned rather than wrapped, so no extra box lands in the
+ * layout: the element must accept a `ref` and the pointer/focus handlers (an
  * intrinsic tag, or a component forwarding its props to one).
  */
 export default function Tooltip({
@@ -358,7 +358,7 @@ export default function Tooltip({
     disabled || content === null || content === undefined || content === "";
 
   const [open, setOpen] = useState(false);
-  // `mounted` outlives `open` by one closing animation.
+  // `mounted` outlives `open` by one closing animation
   const [mounted, setMounted] = useState(false);
   const [placement, setPlacement] = useState<Placement | null>(null);
 
@@ -371,7 +371,7 @@ export default function Tooltip({
   const id = useId();
 
   /**
-   * Hover timers only. The unmount timer is deliberately left alone: a hide
+   * hover timers only. the unmount timer is deliberately left alone: a hide
    * that lands while one is already pending (pointer leaves, then Escape or a
    * window blur) must not cancel the unmount it will then decline to reschedule.
    */
@@ -405,7 +405,7 @@ export default function Tooltip({
       const commit = () => {
         if (!openRef.current) return;
         openRef.current = false;
-        // Stamped on close so the next trigger can skip its delay.
+        // stamped on close so the next trigger can skip its delay
         group.lastClosedAt.current = Date.now();
         setOpen(false);
         unmountTimer.current = window.setTimeout(() => {
@@ -442,8 +442,8 @@ export default function Tooltip({
       const anchor = anchorRef.current;
       const popup = popupRef.current;
       if (!anchor || !popup) return;
-      // A trigger inside a list that just unmounted would otherwise leave the
-      // bubble stranded over the layout.
+      // a trigger inside a list that just unmounted would otherwise leave the
+      // bubble stranded over the layout
       if (!anchor.isConnected) {
         hide(true);
         return;
@@ -463,10 +463,10 @@ export default function Tooltip({
         );
       };
 
-      // First pass at the bubble's natural width picks a side. If that side is
-      // narrower than the bubble — a corner trigger in a cramped window — the
+      // first pass at the bubble's natural width picks a side. if that side is
+      // narrower than the bubble (a corner trigger in a cramped window), the
       // text wraps into what fits there and the placement is redone at the new
-      // size, rather than the bubble being pushed back above the trigger.
+      // size, rather than the bubble being pushed back above the trigger
       let next = measure(maxWidth);
       const limit = Math.min(next.cap, maxWidth);
       if (limit < popup.offsetWidth) next = { ...measure(limit), cap: limit };
@@ -476,7 +476,7 @@ export default function Tooltip({
 
     update();
 
-    // Capture phase: the panes and the clip grid scroll, not the window.
+    // capture phase: the panes and the clip grid scroll, not the window
     const onViewportChange = () => {
       if (frame) return;
       frame = requestAnimationFrame(() => {
@@ -508,7 +508,7 @@ export default function Tooltip({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") hide(true);
     };
-    // Alt-tabbing away leaves the pointer nowhere, so no `pointerleave` fires.
+    // alt-tabbing away leaves the pointer nowhere, so no `pointerleave` fires
     const onWindowBlur = () => hide(true);
     document.addEventListener("keydown", onKeyDown, true);
     window.addEventListener("blur", onWindowBlur);
@@ -535,7 +535,7 @@ export default function Tooltip({
     "aria-describedby": mounted ? id : childProps["aria-describedby"],
     onPointerEnter: (e: ReactPointerEvent<HTMLElement>) => {
       childProps.onPointerEnter?.(e);
-      // Touch has no hover: a tap would flash the bubble and eat the tap.
+      // touch has no hover: a tap would flash the bubble and eat the tap
       if (e.pointerType !== "touch") scheduleOpen();
     },
     onPointerLeave: (e: ReactPointerEvent<HTMLElement>) => {
@@ -548,8 +548,8 @@ export default function Tooltip({
     },
     onFocus: (e: ReactFocusEvent<HTMLElement>) => {
       childProps.onFocus?.(e);
-      // Keyboard focus only: a click already focuses the button, and its
-      // tooltip was just dismissed by the pointer press.
+      // keyboard focus only: a click already focuses the button, and its
+      // tooltip was just dismissed by the pointer press
       if (e.target.matches(":focus-visible")) show();
     },
     onBlur: (e: ReactFocusEvent<HTMLElement>) => {
@@ -579,11 +579,11 @@ export default function Tooltip({
             style={{
               left: `${placement?.left ?? 0}px`,
               top: `${placement?.top ?? 0}px`,
-              // The cap the bubble was measured at, so React's render matches
-              // the width the placement was computed from.
+              // the cap the bubble was measured at, so React's render matches
+              // the width the placement was computed from
               maxWidth: `${Math.min(placement?.cap ?? maxWidth, maxWidth)}px`,
-              // First paint is a measuring pass: the bubble is laid out at 0,0
-              // to be measured, then placed within the same commit.
+              // first paint is a measuring pass: the bubble is laid out at 0,0
+              // to be measured, then placed within the same commit
               visibility: placement ? undefined : "hidden",
             }}
           >
@@ -598,7 +598,7 @@ export default function Tooltip({
   );
 }
 
-/** 20x10 pointer: the fill sits under the bubble edge, the liner continues its border. */
+/** 20x10 pointer: the fill sits under the bubble edge, the liner continues its border */
 function TooltipArrow() {
   return (
     <svg width="20" height="10" viewBox="0 0 20 10" fill="none">

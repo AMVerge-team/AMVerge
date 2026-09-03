@@ -12,7 +12,7 @@ The grid is built to handle lots of video clips efficiently, even on lower-end m
 
 ## Why Lazy Loading and Proxying?
 
-Browsers and hardware have limits. If you try to mount and play dozens of videos at once, you'll quickly run into performance issues—lag, dropped frames, or even browser crashes. Lazy loading means we only use resources for what's actually on screen. Proxying is essential for compatibility: not all users have HEVC support, so we generate and use H.264 proxies on demand.
+Browsers and hardware have limits. If you try to mount and play dozens of videos at once, you'll quickly run into performance issues, lag, dropped frames, or even browser crashes. Lazy loading means we only use resources for what's actually on screen. Proxying is essential for compatibility: not all users have HEVC support, so we generate and use H.264 proxies on demand.
 
 ## How It Works (Under the Hood)
 

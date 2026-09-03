@@ -1,4 +1,4 @@
-// main Episode Panel coordinator. Wires together structure, menus, drag/drop, keyboard shortcuts, and UI sections.
+// main Episode Panel coordinator. wires together structure, menus, drag/drop, keyboard shortcuts, and UI sections
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FaSearch, FaTimes, FaVideo } from "react-icons/fa";
@@ -211,7 +211,6 @@ export default function EpisodePanel() {
       try {
         baseStorage = await invoke<string>("get_default_episodes_dir");
       } catch {
-        // ignore
       }
     }
 
@@ -226,7 +225,6 @@ export default function EpisodePanel() {
       }
     }
 
-    // Check if any clip has an absolute path on disk
     const firstClip = ep.clips?.[0];
     const samplePath = firstClip?.clipPath || firstClip?.src || firstClip?.thumbnail;
 
@@ -242,7 +240,6 @@ export default function EpisodePanel() {
       }
     }
 
-    // Fallback: reveal the original video file if present
     if (ep.videoPath) {
       try {
         await invoke("reveal_in_file_manager", { filePath: ep.videoPath });

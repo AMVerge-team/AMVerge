@@ -1,0 +1,152 @@
+.font-picker {
+    position: relative;
+    width: 100%;
+    min-width: 220px;
+}
+
+.font-picker-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid rgb(255 255 255 / 0.15);
+    border-radius: 8px;
+    background: rgb(0 0 0 / 0.3);
+    color: inherit;
+    font-size: 18px;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.font-picker-trigger:hover {
+    border-color: rgb(var(--accent-rgb) / 0.5);
+    background: rgb(255 255 255 / 0.06);
+}
+
+.font-picker-caret {
+    flex: none;
+    font-size: 12px;
+    opacity: 0.6;
+    transition: transform 0.15s ease;
+}
+
+.font-picker-caret.open {
+    transform: rotate(180deg);
+}
+
+.font-picker-body {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: auto;
+    right: 0;
+    z-index: 1000;
+    width: max(100%, 320px);
+    max-width: calc(100vw - 48px);
+    padding: 8px;
+    border: 1px solid rgb(255 255 255 / 0.15);
+    border-radius: 8px;
+    background: rgb(20 20 20 / 0.97);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 32px rgb(0 0 0 / 0.5);
+    animation: dropdown-fade-in 0.2s ease-out;
+}
+
+.font-picker-search-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.font-picker-search {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 10px;
+    border: 1px solid rgb(255 255 255 / 0.15);
+    border-radius: 8px;
+    background: rgb(0 0 0 / 0.3);
+    color: inherit;
+    font-family: var(--app-font);
+    box-sizing: border-box;
+}
+
+.font-picker-search:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.font-picker-load-all {
+    width: auto;
+    padding: 0 12px;
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+.font-picker-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 2px;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--accent-rgb) / 0.42) transparent;
+}
+
+.font-picker-option {
+    padding: 6px 10px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    font-size: 18px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.font-picker-option:hover {
+    background: rgb(255 255 255 / 0.06);
+}
+
+.font-picker-option.active {
+    border-color: var(--accent);
+    background: rgb(var(--accent-rgb) / 0.15);
+    color: var(--accent);
+}
+
+.font-picker-empty {
+    margin: 0;
+    padding: 10px;
+    opacity: 0.7;
+}
+
+.setting-description,
+.dropdown-item-description,
+.settings-collapsible-body .setting-description,
+.about-hero-subtitle,
+.quick-menu-card-desc,
+.about-card-list,
+.about-card-steps,
+.about-card-text,
+.about-author-note,
+.shortcut-desc,
+.console-header p,
+.member-role,
+.patchnotes-markdown-content,
+.patchnotes-detail-card,
+.patchnotes-collapsible-body,
+.bugreport-help,
+.bugreport-alt-text,
+.bugreport-label,
+.bugreport-field input[type="text"],
+.bugreport-field input[type="url"],
+.bugreport-field textarea,
+.discord-preview-heading,
+.discord-preview-line,
+.discord-preview-empty {
+    font-family: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
+    font-size-adjust: none;
+}

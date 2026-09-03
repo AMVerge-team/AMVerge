@@ -1,0 +1,267 @@
+.event-datetime-input {
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.35);
+    color: #fff;
+    font-family: var(--ui-font);
+    font-size: 0.84rem;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.event-datetime-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgb(var(--accent-rgb) / 0.2);
+}
+
+.event-datetime-input::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.55;
+    cursor: pointer;
+}
+
+.event-datetime-input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
+.event-datetime {
+    position: relative;
+}
+
+.event-datetime-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.35);
+    color: #fff;
+    font-family: var(--ui-font);
+    font-size: 0.84rem;
+    text-align: left;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.event-datetime-trigger:hover,
+.event-datetime-trigger.is-open {
+    border-color: var(--accent);
+}
+
+.event-datetime-trigger.is-open {
+    box-shadow: 0 0 0 2px rgb(var(--accent-rgb) / 0.2);
+}
+
+.event-datetime-trigger svg {
+    color: rgba(255, 255, 255, 0.5);
+    flex-shrink: 0;
+}
+
+.event-datetime-trigger .is-placeholder {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.event-datetime-popover {
+    position: absolute;
+    z-index: 20;
+    bottom: calc(100% + 6px);
+    left: 0;
+    width: 268px;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: #0d0d0d;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+    font-family: var(--ui-font);
+}
+
+.event-datetime-month {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: #fff;
+    font-size: 0.86rem;
+}
+
+.event-datetime-nav {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.event-datetime-nav:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.event-datetime-weekdays,
+.event-datetime-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.event-datetime-weekdays span {
+    text-align: center;
+    padding: 4px 0;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.7rem;
+}
+
+.event-datetime-day {
+    aspect-ratio: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: none;
+    color: rgba(255, 255, 255, 0.85);
+    font-family: inherit;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.event-datetime-day:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.event-datetime-day.is-outside {
+    color: rgba(255, 255, 255, 0.25);
+}
+
+.event-datetime-day.is-today {
+    border-color: rgb(var(--accent-rgb) / 0.5);
+}
+
+.event-datetime-day.is-selected {
+    background: var(--selector-active-bg);
+    border-color: var(--selector-active-border);
+    color: var(--selector-active-fg);
+    font-weight: 700;
+}
+
+.event-datetime-day:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+}
+
+.event-datetime-day:disabled:hover {
+    background: none;
+}
+
+.event-datetime-time {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.event-datetime-select {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 30px;
+    padding: 0 6px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+}
+
+.event-datetime-select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.event-datetime-colon {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.event-datetime-meridiem {
+    display: flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.event-datetime-meridiem-option {
+    padding: 3px 8px;
+    border: none;
+    border-radius: 4px;
+    background: none;
+    color: rgba(255, 255, 255, 0.55);
+    font-family: inherit;
+    font-size: 0.74rem;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+
+.event-datetime-meridiem-option.is-selected {
+    background: var(--selector-active-bg);
+    color: var(--selector-active-fg);
+}
+
+.event-datetime-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.event-datetime-link {
+    border: none;
+    background: none;
+    color: rgba(255, 255, 255, 0.55);
+    font-family: inherit;
+    font-size: 0.78rem;
+    cursor: pointer;
+    padding: 0;
+}
+
+.event-datetime-link:hover {
+    color: var(--accent);
+}
+
+.event-datetime-done {
+    margin-left: auto;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    background: rgb(var(--accent-rgb) / 0.16);
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+
+.event-datetime-done:hover {
+    background: rgb(var(--accent-rgb) / 0.3);
+}

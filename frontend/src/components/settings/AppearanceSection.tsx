@@ -157,7 +157,7 @@ export default function AppearanceSection({
                     const preset = findAccentPreset(newColor);
                     // a preset carries its own gradient, so apply the pair.
                     // custom colours only move the gradient while it is still
-                    // app-chosen, so a hand-picked one is never overwritten.
+                    // app-chosen, so a hand-picked one is never overwritten
                     const nextGradient = preset
                       ? preset.gradient
                       : isPresetGradient(prev.backgroundGradientColor) ||

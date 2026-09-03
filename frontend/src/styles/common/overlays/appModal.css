@@ -1,0 +1,79 @@
+@media (prefers-reduced-motion: reduce) {
+    .quick-menu-overlay,
+    .spotlight-pro-container {
+        animation: none;
+    }
+}
+
+.app-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgb(0 0 0 / 0.62);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    animation: app-modal-fade 0.1s ease;
+}
+
+.app-modal {
+    position: relative;
+    width: min(1180px, 100%);
+    height: min(880px, 100%);
+    border: 1px solid rgb(255 255 255 / 0.15);
+    border-radius: 14px;
+    background: rgb(0 0 0 / 0.72);
+    box-shadow: 0 24px 60px rgb(0 0 0 / 0.55);
+    overflow: hidden;
+
+    contain: paint;
+    animation: app-modal-rise 0.12s ease;
+}
+
+.app-modal-close {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    z-index: 20;
+    padding: 6px;
+    border: none;
+    background: transparent;
+    color: rgb(255 255 255 / 0.55);
+    font-size: 1.1rem;
+    line-height: 0;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.app-modal-close:hover {
+    color: var(--accent);
+}
+
+@keyframes app-modal-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes app-modal-rise {
+    from { opacity: 0; transform: translateY(8px) scale(0.99); }
+    to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .app-modal-overlay,
+    .app-modal {
+        animation: none;
+    }
+}
+
+.quick-menu-dialog .about-hero-title {
+    letter-spacing: 1px;
+}
+
+.quick-menu-card-title,
+.quick-menu-footer-btn {
+    letter-spacing: 1px;
+}

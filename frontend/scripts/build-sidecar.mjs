@@ -178,7 +178,7 @@ async function main() {
   }
 
   if (previousConfig !== null && previousConfig !== buildConfig && ownsVenv) {
-    console.log("Install spec changed since the last build — recreating the build venv.");
+    console.log("Install spec changed since the last build, recreating the build venv.");
     await fs.rm(buildVenvDir, { recursive: true, force: true });
   } else if (previousConfig !== null && previousConfig !== buildConfig) {
     console.warn(

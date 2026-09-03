@@ -37,7 +37,7 @@
 .header-icon {
     font-size: 1.2rem;
     color: var(--accent);
-    margin-top: -2px; /* Nudge up to match font baseline */
+    margin-top: -2px;
 }
 
 .crop-modal-header h3 {

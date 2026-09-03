@@ -1,7 +1,3 @@
-/* --------------------
-   CLIPS CONTAINER
--------------------- */
-
 .clips-container {
     --selection-bar-height: 34px;
     flex: 1;
@@ -60,7 +56,7 @@
 
 .clip-wrapper.focused {
     z-index: 15;
-    /* border: 3px solid var(--accent); */
+
 }
 
 .clip-wrapper.focused::after {
@@ -140,7 +136,6 @@
     box-shadow: 0 0 15px white;
 }
 
-/* Selection Checkbox (Top-Right) */
 .clip-selection-wrapper {
     position: absolute;
     top: var(--clip-overlay-inset);
@@ -243,8 +238,6 @@
     margin: 0;
 }
 
-/* Holds the corner slot. The button itself stays in this box's flow so the two
-   share one rect, which is what the tooltip anchors to. */
 .clip-download-anchor {
     position: absolute;
     top: calc(var(--clip-overlay-inset));
@@ -372,7 +365,7 @@
         transform: scale(1);
     }
 }
- 
+
 .clip-original-timestamp {
     position: absolute;
     bottom: var(--clip-overlay-inset);
@@ -389,13 +382,6 @@
     letter-spacing: 0.5px;
 }
 
-/* Selection action bar (appears above grid when clips selected). Sticky so it
-   stays anchored at the top of the scrollable grid, the same way the Import
-   Episode / Preview All header stays pinned above it. */
-/* Floats over the grid rather than sitting above it: sticky keeps it pinned
-   while scrolling, and the negative bottom margin cancels the row it would
-   otherwise push the tiles down by. Side margins line its left edge up with the
-   Import button and keep the right edge clear of the scrollbar. */
 .selection-action-bar {
   display: flex;
   align-items: center;

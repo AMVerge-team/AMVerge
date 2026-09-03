@@ -39,9 +39,9 @@ export default function PostExportPassesSection() {
   const update = useGeneralSettingsStore((s) => s.updatePostExportPasses);
   const { depth, deadframes, interpolation } = passes;
 
-  // Depth and interpolation need torch (dead frames is opencv-only and ships
-  // with the app). Offer the install when the pass is switched on, so the
-  // dependency is in place long before an export runs.
+  // depth and interpolation need torch (dead frames is opencv-only and ships
+  // with the app). offer the install when the pass is switched on, so the
+  // dependency is in place long before an export runs
   const aiStatus = useAiDepsStore((s) => s.status);
 
   const enableGatedPass = async (packId: AiPackId, enabled: boolean) => {

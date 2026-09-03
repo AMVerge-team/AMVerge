@@ -67,10 +67,10 @@ export function AddToScenepackModal({ clip, episodeId, onClose }: AddToScenepack
   };
 
   // portalled to <body>: this modal mounts from inside a clip tile, and
-  // `.clip-wrapper:hover` applies a transform — which makes the tile the
+  // `.clip-wrapper:hover` applies a transform, which makes the tile the
   // containing block for any `position: fixed` descendant, so without the
   // portal the "full-screen" overlay renders squeezed into the tile's own
-  // bounds instead of the viewport.
+  // bounds instead of the viewport
   return createPortal(
     <div className="episode-modal-overlay" onClick={onClose}>
       <div className="episode-modal" onClick={(e) => e.stopPropagation()} onKeyDown={handleKeyDown}>

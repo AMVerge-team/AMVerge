@@ -2,7 +2,7 @@
 //
 // Stage the `uv` binary the app ships as a Tauri resource. At runtime the Rust
 // side uses it to provision the optional AI Python environment (standalone
-// CPython + torch + the amverge AI extras) under app data — see
+// CPython + torch + the amverge AI extras) under app data, see
 // src-tauri/src/commands/deps.rs. Nothing here is needed to build the sidecar;
 // this is purely the runtime installer.
 
@@ -56,7 +56,7 @@ function downloadUrl(triple) {
 }
 
 // Windows ships bsdtar at System32\tar.exe, which reads .zip. Whatever `tar` is
-// first on PATH may be GNU tar (Git for Windows), which cannot — so name the
+// first on PATH may be GNU tar (Git for Windows), which cannot, so name the
 // system one explicitly.
 function tarBinary() {
   if (process.platform !== "win32") return "tar";
@@ -116,7 +116,7 @@ async function main() {
         return;
       }
     } catch {
-      // Not staged yet — fall through and download.
+      // Not staged yet, fall through and download.
     }
   }
 

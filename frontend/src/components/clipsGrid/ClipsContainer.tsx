@@ -1,7 +1,7 @@
 /**
  * ClipsContainer.tsx
  *
- * main grid container for displaying video clips. Handles layout, selection logic, and passes props to each tile (LazyClip).
+ * main grid container for displaying video clips. handles layout, selection logic, and passes props to each tile (LazyClip).
  * optimized for performance with lazy loading, proxying, and staggered mounting.
  */
 import { startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -35,8 +35,8 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   const setSelectedClips = useAppStateStore((state) => state.setSelectedClips);
   const setLoading = useAppStateStore((state) => state.setLoading);
 
-  // Right-click menu for Scenepack clips. `targets` is resolved at open time so
-  // the label and the action can never disagree about what gets deleted.
+  // right-click menu for Scenepack clips. `targets` is resolved at open time so
+  // the label and the action can never disagree about what gets deleted
   const [clipMenu, setClipMenu] = useState<{
     x: number;
     y: number;
@@ -45,22 +45,22 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
 
   const defaultCols = useUIStateStore((state) => state.cols);
   const activePage = useUIStateStore((state) => state.activePage);
-  // subscribe only to the settings field used during render. Reading the whole
-  // settings store here re-rendered the entire grid on any settings change.
+  // subscribe only to the settings field used during render. reading the whole
+  // settings store here re-rendered the entire grid on any settings change
   const episodesPath = useGeneralSettingsStore((state) => state.episodesPath);
   const openedEpisodeId = useEpisodePanelRuntimeStore((state) => state.openedEpisodeId);
   const episodes = useEpisodePanelRuntimeStore((state) => state.episodes);
 
   const activeCols = cols ?? defaultCols;
 
-  // preview mode is a per-episode property fixed at import time — NOT the global
-  // import-method setting. Legacy episodes without a stored method are inferred
-  // from whether their clips have cut video paths. Memoized so the O(n) clip scan
+  // preview mode is a per-episode property fixed at import time, NOT the global
+  // import-method setting. legacy episodes without a stored method are inferred
+  // from whether their clips have cut video paths. memoized so the O(n) clip scan
   // doesn't run on every scroll-driven re-render.
-  // Right-clicking a clip that is part of the current selection acts on the
+  // right-clicking a clip that is part of the current selection acts on the
   // whole selection; right-clicking outside it acts on that one clip only
   // (and makes it the selection, so the highlight matches what will go).
-  // Another menu claimed the slot, so this one is stale.
+  // another menu claimed the slot, so this one is stale
   const activeContextMenu = useContextMenuStore((s) => s.activeMenu);
   useEffect(() => {
     if (activeContextMenu !== "scenepack-clip") setClipMenu(null);
@@ -95,7 +95,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     if (!scenepackId) return;
 
     // sceneIndex is the clip's position in the pack (ScenepacksPage assigns it
-    // from the array index), which is what the store removes by.
+    // from the array index), which is what the store removes by
     await removeClipsFromScenepack(
       scenepackId,
       menu.targets.map((c) => ({ index: c.sceneIndex ?? 0, clipPath: c.clipPath })),
@@ -106,9 +106,9 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     setFocusedClipId(null);
   }, [clipMenu, setSelectedClips, setFocusedClip, setFocusedClipId]);
 
-  // Any click elsewhere dismisses the menu, same as the episode panel's.
+  // any click elsewhere dismisses the menu, same as the episode panel's.
   // contextmenu counts too: a right-click fires no click event, so without it
-  // opening another menu elsewhere would leave this one on screen beside it.
+  // opening another menu elsewhere would leave this one on screen beside it
   useEffect(() => {
     if (!clipMenu) return;
     const close = () => setClipMenu(null);
@@ -122,8 +122,8 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
 
   const episodeVideoPreview = useMemo(() => {
     // Scenepacks aren't an episode: every clip in one is a materialized video
-    // file, whatever the episode it was taken from used. Reading the (possibly
-    // still-open) episode's method here showed WebP-sourced pack clips as stills.
+    // file, whatever the episode it was taken from used. reading the (possibly
+    // still-open) episode's method here showed WebP-sourced pack clips as stills
     if (activePage === "scenepacks") return true;
 
     const openedEpisode = episodes.find((e) => e.id === openedEpisodeId);
@@ -143,16 +143,16 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   // staggered mount queue: mounts videos one at a time in grid preview
   const { reportStaggerDemand } = useStaggeredMountQueue();
 
-  // Register every clip in the episode, not just the tiles currently mounted:
+  // register every clip in the episode, not just the tiles currently mounted:
   // the queue works through offscreen demand in its own lane, and the loading
   // count has to be the episode's total rather than however far you scrolled.
-  // Tiles still raise their own entry's priority while visible or hovered.
+  // tiles still raise their own entry's priority while visible or hovered
   useEffect(() => {
     if (episodeVideoPreview) return;
-    // Read, don't subscribe: results stream in constantly and the grid must not
-    // re-render for each. Clips that already have a preview are skipped so they
+    // read, don't subscribe: results stream in constantly and the grid must not
+    // re-render for each. clips that already have a preview are skipped so they
     // never enter the loading count - counting them made the total shrink as you
-    // scrolled, when their tile mounted and withdrew the demand.
+    // scrolled, when their tile mounted and withdrew the demand
     const resolved = useScenePreviewStore.getState().animatedByClipId;
     for (let index = 0; index < clips.length; index++) {
       const clip = clips[index];
@@ -163,24 +163,23 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     }
   }, [clips, episodeVideoPreview, openedEpisodeId, reportWebpDemand]);
 
-  // calculate number of columns for the grid
   const gridColumns = loading
     ? activeCols
     : Math.max(1, Math.min(activeCols, clips.length));
 
   // cap + center the grid (not each tile) so tiles fill their columns
-  // edge-to-edge instead of shrinking to a fixed max and leaving gaps. Width
+  // edge-to-edge instead of shrinking to a fixed max and leaving gaps. width
   // scales with the column count; a single-column view keeps a tighter cap for
-  // one big preview. The grid only centers once the window exceeds this width.
+  // one big preview. the grid only centers once the window exceeds this width
   const gridMaxWidth = gridColumns <= 1
     ? "920px"
     : `${gridColumns * 640 + (gridColumns - 1) * 15}px`;
 
   const handleDownloadSingleClip = useCallback(async (clip: (typeof clips)[number]) => {
     try {
-      // read settings at call time so this callback stays referentially stable —
+      // read settings at call time so this callback stays referentially stable
       // it's passed to every tile, so depending on the settings object would
-      // re-render the whole grid whenever any setting changed.
+      // re-render the whole grid whenever any setting changed
       const settings = useGeneralSettingsStore.getState();
       const activeProfile = settings.exportProfiles.find(
         (candidate) => candidate.id === settings.activeExportProfileId
@@ -237,10 +236,9 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
       const state = useAppStateStore.getState();
       // read clips from the store at click time rather than closing over them, so
       // this callback stays stable across clip patches (streaming import) and
-      // doesn't re-render every memoized tile each time a clip updates.
+      // doesn't re-render every memoized tile each time a clip updates
       const currentClips = state.clips;
 
-      // shift-click: select a range of clips
       if (isShift) {
         const anchorIndex = state.focusedClipId
           ? currentClips.findIndex((c) => c.id === state.focusedClipId)
@@ -255,7 +253,6 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
         return;
       }
 
-      // ctrl/Cmd-click: toggle selection state for this clip
       if (isCtrlOrCmd) {
         startTransition(() => {
           setSelectedClips((prev) => {
@@ -288,7 +285,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     [setSelectedClips]
   );
 
-  // handles double-click on a clip tile (toggle export selection — checkmark only)
+  // handles double-click on a clip tile (toggle export selection, checkmark only)
   const handleClipDoubleClick = useCallback(
     (clipId: string, _clipSrc: string, _index: number, _e: React.MouseEvent<HTMLDivElement>) => {
       startTransition(() => {
@@ -324,8 +321,8 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
 
   // the grid stays mounted while another page is open (so nothing regenerates on
   // return), but the browser can drop a scroll container's offset while it's
-  // display:none. Track the live scroll position and restore it when the home
-  // page becomes visible again so you keep your place.
+  // display:none. track the live scroll position and restore it when the home
+  // page becomes visible again so you keep your place
   const lastScrollTopRef = useRef(0);
   useEffect(() => {
     const el = containerRef.current;
@@ -345,8 +342,8 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   }, [activePage]);
 
   // preserve scroll position across loading-state toggles that don't come from
-  // an import (e.g. exporting). When importToken changes we still want the
-  // scroll-to-top behaviour below.
+  // an import (e.g. exporting). when importToken changes we still want the
+  // scroll-to-top behaviour below
   const savedScrollRef = useRef<number | null>(null);
   const prevLoadingRef = useRef(loading);
   useEffect(() => {
@@ -356,10 +353,10 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
       return;
     }
     if (loading && !prevLoadingRef.current) {
-      // loading just started — remember where we were so we can restore.
+      // loading just started, remember where we were so we can restore
       savedScrollRef.current = el.scrollTop;
     } else if (!loading && prevLoadingRef.current && savedScrollRef.current !== null) {
-      // loading finished — restore scroll after the grid re-renders.
+      // loading finished, restore scroll after the grid re-renders
       const target = savedScrollRef.current;
       savedScrollRef.current = null;
       requestAnimationFrame(() => {
@@ -370,20 +367,20 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   }, [loading]);
 
   useEffect(() => {
-    // new import - discard any pending scroll restore and go to the top.
+    // new import - discard any pending scroll restore and go to the top
     savedScrollRef.current = null;
     containerRef.current?.scrollTo({ top: 0 });
     resetWebpQueue();
     // every fresh episode view (open / import / refresh / startup auto-open)
-    // starts with Preview All disabled.
+    // starts with Preview All disabled
     useUIStateStore.getState().setGridPreview(false);
   }, [importToken, resetWebpQueue]);
 
   // entrance animation: tiles fade in top-left → bottom-right when an episode
-  // opens (importToken changes, including app startup auto-open). The class is
-  // only applied during a short window and then removed — CSS animations replay
+  // opens (importToken changes, including app startup auto-open). the class is
+  // only applied during a short window and then removed, CSS animations replay
   // when a display:none ancestor becomes visible again, so leaving the class on
-  // would re-run the fade every time the user returns to the home page.
+  // would re-run the fade every time the user returns to the home page
   const [tilesAppearing, setTilesAppearing] = useState(true);
   useEffect(() => {
     setTilesAppearing(true);
@@ -392,7 +389,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   }, [importToken]);
 
   // diagonal stagger: delay grows with (row + col), so the wave sweeps from the
-  // top-left tile to the bottom-right. Capped so huge grids finish promptly.
+  // top-left tile to the bottom-right. capped so huge grids finish promptly
   const appearDelayFor = useCallback(
     (index: number) => {
       if (!tilesAppearing) return null;
@@ -408,8 +405,8 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     // job carries its own episodeCacheId (clip.episodeId) instead of relying on
     // the shared queue context. Scenepacks always fully remounts on page switch
     // (unlike Home, which stays alive via display:none), so the in-memory queue
-    // cache never survives a reopen — this batched disk lookup is what keeps a
-    // reopen fast instead of re-encoding every clip from scratch.
+    // cache never survives a reopen, this batched disk lookup is what keeps a
+    // reopen fast instead of re-encoding every clip from scratch
     if (activePage === "scenepacks") {
       if (clips.length === 0) return;
 
@@ -439,7 +436,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     }
 
     // the WebP disk-cache prime only applies to WebP-preview episodes; video
-    // episodes show cut clips and never touch the WebP cache.
+    // episodes show cut clips and never touch the WebP cache
     if (episodeVideoPreview) {
       return;
     }
@@ -447,9 +444,9 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     if (!openedEpisodeId || clips.length === 0) return;
 
     // on an episode switch, `openedEpisodeId` updates one render before the
-    // transition-deferred `clips` do. Clip ids are `${episodeId}_${sceneIndex}`,
+    // transition-deferred `clips` do. clip ids are `${episodeId}_${sceneIndex}`,
     // so a leading-id mismatch means these clips still belong to the previous
-    // episode — skip the throwaway cache lookup until `clips` catches up.
+    // episode, skip the throwaway cache lookup until `clips` catches up
     if (!clips[0].id.startsWith(openedEpisodeId)) return;
 
     const jobs = clips

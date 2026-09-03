@@ -6,9 +6,9 @@ import { useEventsStore } from "../../stores/eventsStore";
 import { useUIStateStore } from "../../stores/UIStore";
 
 /**
- * The approval counterpart to `DenialNoticeModal`. A host should not have to
+ * the approval counterpart to `DenialNoticeModal`. a host should not have to
  * keep checking whether their event went live, so approval is announced the
- * same way a denial is — once, and marked seen server-side so it does not
+ * same way a denial is, once, and marked seen server-side so it does not
  * reappear on the next launch or on another machine.
  */
 export default function ApprovalNoticeModal() {
@@ -57,8 +57,8 @@ export default function ApprovalNoticeModal() {
             className="event-host-btn"
             onClick={() => {
               dismiss();
-              // The notice can appear from any page, so navigate as well as
-              // select — setting the detail alone shows nothing from Home.
+              // the notice can appear from any page, so navigate as well as
+              // select, setting the detail alone shows nothing from Home
               setActivePage("events");
               openDetail(first.id);
             }}

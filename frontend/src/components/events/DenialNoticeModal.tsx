@@ -6,8 +6,8 @@ import { useEventsStore } from "../../stores/eventsStore";
 import { useUIStateStore } from "../../stores/UIStore";
 
 /**
- * Shown once when a moderator denies one of the host's events, so a denial is
- * not something they have to go looking for. Dismissing marks it seen
+ * shown once when a moderator denies one of the host's events, so a denial is
+ * not something they have to go looking for. dismissing marks it seen
  * server-side, so it does not reappear on the next launch or another machine.
  */
 export default function DenialNoticeModal() {

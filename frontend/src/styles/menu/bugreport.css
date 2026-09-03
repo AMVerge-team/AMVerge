@@ -1,6 +1,3 @@
-/* ---------------------
-        BUG REPORTS
------------------------- */
 .bugreport-panel {
     overflow-y: auto;
     scrollbar-width: thin;
@@ -49,8 +46,6 @@
     height: 100%;
 }
 
-/* The submit card takes the slack, so the column reaches the bottom of the row
-   without stretching the two short cards above it out of shape. */
 .bugreport-side-col > .about-card:last-child {
     flex: 1 1 auto;
 }
@@ -126,7 +121,6 @@
     box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.2);
 }
 
-/* The native file input is driven by our own button, so it never shows. */
 .bugreport-file-input {
     display: none;
 }
@@ -242,13 +236,10 @@
     box-shadow: none;
 }
 
-/* The panel's busy icons (auto-fill, submit) carry .spin, which had no rule. */
 .bugreport-panel .spin {
     animation: spin 0.9s linear infinite;
 }
 
-/* PC Specs auto-fill: the button sits on the label's line so it never steals
-   width from the input under it. */
 .bugreport-label-row {
     display: flex;
     align-items: center;

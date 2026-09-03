@@ -1,9 +1,3 @@
-/* --------------------
-   TOOLTIP
--------------------- */
-
-/* Fallback wrapper for a trigger that is not a single element (raw text, a
-   fragment): the tooltip needs a real box to measure. */
 .tooltip-anchor {
     display: inline-flex;
     align-items: center;
@@ -12,17 +6,14 @@
 .tooltip-popup {
     --tooltip-bg: rgb(8 8 10 / 0.96);
     --tooltip-border: rgb(255 255 255 / 0.16);
-    /* Slide direction, set per side below and consumed by the animations. */
+
     --tooltip-slide-x: 0px;
     --tooltip-slide-y: 0px;
 
     position: fixed;
-    /* Above the settings/menu modals (9000) and the import terminal (12000). */
+
     z-index: 20000;
-    /* Intrinsic width, capped by the inline `max-width`. Without it a fixed box
-       shrinks to the space left of the window edge, so a bubble measured at 0,0
-       re-wraps once placed near the right edge — taller than the height its
-       position was computed from, and it lands on top of its own trigger. */
+
     width: max-content;
     padding: 5px 10px 4px;
     border: 1px solid var(--tooltip-border);
@@ -37,14 +28,12 @@
     line-height: 1.35;
     letter-spacing: 0.3px;
     text-align: center;
-    /* A path or a file name has no spaces to break at: max-width alone would
-       just let it run past the bubble. */
+
     overflow-wrap: anywhere;
-    /* Never a hover target of its own — it only ever follows the trigger. */
+
     pointer-events: none;
 }
 
-/* Theme-tinted frame, for hints that should catch the eye. */
 .tooltip-popup.accent {
     --tooltip-border: rgb(var(--accent-rgb) / 0.45);
     box-shadow: 0 10px 26px rgb(0 0 0 / 0.5),
@@ -55,14 +44,6 @@
     fill: rgb(var(--accent-rgb) / 0.45);
 }
 
-/* --------------------
-   ARROW
--------------------- */
-
-/* The SVG points up at rest; each side rotates it and pulls it 8px past the
-   bubble edge, keeping 2px of overlap so the seam never shows. The inline
-   `left`/`top` comes from the placement pass, so the arrow keeps pointing at
-   the trigger even once the bubble has been shifted away from it. */
 .tooltip-arrow {
     position: absolute;
     width: 20px;
@@ -98,12 +79,6 @@
     transform: translateY(-50%) rotate(90deg);
 }
 
-/* --------------------
-   ENTER / EXIT
--------------------- */
-
-/* The bubble grows out of the edge it is anchored to and drifts in from the
-   trigger, the way the app's other overlays rise into place. */
 .tooltip-popup[data-side="top"] {
     transform-origin: bottom center;
     --tooltip-slide-y: 4px;
@@ -165,9 +140,6 @@
     }
 }
 
-/* Wrapper used where a trigger can go `disabled`: the button stops firing
-   pointer events, so the tooltip listens on the element around it. Full-width
-   controls need their wrapper to span the row too. */
 .tooltip-anchor.export-main-anchor {
     display: flex;
     width: 100%;

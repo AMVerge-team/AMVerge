@@ -6,7 +6,7 @@ import { ACCENT_PRESET_COLORS } from "../../features/theme/colorPresets";
 type ColorPickerProps = {
   color: string;
   onChange: (color: string) => void;
-  /** swatches to offer; callers pass the list matching what they edit. */
+  /** swatches to offer; callers pass the list matching what they edit */
   presets?: string[];
 };
 

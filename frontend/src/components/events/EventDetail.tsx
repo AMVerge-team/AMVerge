@@ -18,9 +18,9 @@ type EventDetailProps = {
   event: CommunityEvent;
   onBack?: () => void;
   onEdit?: (id: string) => void;
-  /** Only passed when the signed-in host is allowed to remove this event. */
+  /** only passed when the signed-in host is allowed to remove this event */
   onDelete?: (id: string) => void;
-  /** Rendered inside the host form's preview: no navigation, no outbound link. */
+  /** rendered inside the host form's preview: no navigation, no outbound link */
   preview?: boolean;
 };
 

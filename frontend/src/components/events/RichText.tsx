@@ -3,7 +3,7 @@ import { Fragment } from "react";
 import { parseRichText } from "./descriptionMarkup";
 
 /**
- * Renders event description markup as React elements. Nothing here goes through
+ * renders event description markup as React elements. nothing here goes through
  * `dangerouslySetInnerHTML`, so text a community member wrote cannot become
  * markup in anyone else's app.
  */

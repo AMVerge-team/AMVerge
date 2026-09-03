@@ -1,8 +1,8 @@
-//! Community events: browsing is public, hosting needs a Discord session.
+//! community events: browsing is public, hosting needs a Discord session.
 //!
-//! Every call goes out from Rust. The session token is read from the credential
+//! every call goes out from Rust. the session token is read from the credential
 //! store here and attached as a bearer header, so it never crosses into the
-//! webview.
+//! webview
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -33,9 +33,9 @@ pub struct EventSubmission {
     pub description: String,
     pub discord_invite_url: String,
     pub prize_pool: Option<String>,
-    /// "contest" or "hour"; the server rejects anything else back to "contest".
+    /// "contest" or "hour"; the server rejects anything else back to "contest"
     pub event_type: Option<String>,
-    /// 1-24, only meaningful for an hour contest. The server validates the range.
+    /// 1-24, only meaningful for an hour contest. the server validates the range
     pub duration_hours: Option<u32>,
     pub starts_at: String,
     pub ends_at: String,
@@ -61,10 +61,10 @@ struct ApiEventBody {
     message: Option<String>,
 }
 
-/// The API returns thumbnail links relative to its own host. `img-src` is
-/// unconstrained in the webview, so an absolute URL loads directly — but only
+/// the API returns thumbnail links relative to its own host. `img-src` is
+/// unconstrained in the webview, so an absolute URL loads directly, but only
 /// once we know which host to point it at, which is config the frontend does
-/// not have.
+/// not have
 fn absolutize_thumbnails(base: &str, events: &mut [Value]) {
     for event in events.iter_mut() {
         let Some(object) = event.as_object_mut() else {
@@ -125,7 +125,7 @@ async fn read_events(url: String, token: Option<String>) -> Result<EventsRespons
     })
 }
 
-/// `scope` is "active" or "past"; anything else is rejected by the API.
+/// `scope` is "active" or "past"; anything else is rejected by the API
 #[tauri::command]
 pub async fn fetch_events(scope: Option<String>) -> Result<EventsResponse, String> {
     let scope = match scope.as_deref() {
@@ -136,7 +136,7 @@ pub async fn fetch_events(scope: Option<String>) -> Result<EventsResponse, Strin
     read_events(api_url(&format!("/api/events?scope={scope}"))?, None).await
 }
 
-/// The signed-in host's own events, including ones still awaiting review.
+/// the signed-in host's own events, including ones still awaiting review
 #[tauri::command]
 pub async fn fetch_my_events() -> Result<EventsResponse, String> {
     let token = require_session()?;
@@ -163,8 +163,8 @@ async fn send_submission(
     let parsed = response.json::<ApiEventBody>().await.ok();
 
     if !status.is_success() {
-        // A refused token would fail every subsequent request too, so drop it
-        // and let the user sign in again rather than leaving them stuck.
+        // a refused token would fail every subsequent request too, so drop it
+        // and let the user sign in again rather than leaving them stuck
         if status == reqwest::StatusCode::UNAUTHORIZED {
             discard_rejected_session();
             return Ok(EventMutationResponse {
@@ -214,8 +214,8 @@ async fn post_or_delete(url: String, method: reqwest::Method) -> Result<EventMut
     let parsed = response.json::<ApiEventBody>().await.ok();
 
     if !status.is_success() {
-        // A refused token would fail every subsequent request too, so drop it
-        // and let the user sign in again rather than leaving them stuck.
+        // a refused token would fail every subsequent request too, so drop it
+        // and let the user sign in again rather than leaving them stuck
         if status == reqwest::StatusCode::UNAUTHORIZED {
             discard_rejected_session();
             return Ok(EventMutationResponse {
@@ -243,7 +243,7 @@ async fn post_or_delete(url: String, method: reqwest::Method) -> Result<EventMut
     })
 }
 
-/// Removes one of the host's own events. The server refuses a live approved one.
+/// removes one of the host's own events. the server refuses a live approved one
 #[tauri::command]
 pub async fn delete_event_request(event_id: String) -> Result<EventMutationResponse, String> {
     post_or_delete(
@@ -253,7 +253,7 @@ pub async fn delete_event_request(event_id: String) -> Result<EventMutationRespo
     .await
 }
 
-/// Marks a denial as seen so its notice is shown once, not on every launch.
+/// marks a denial as seen so its notice is shown once, not on every launch
 #[tauri::command]
 pub async fn acknowledge_event_denial(event_id: String) -> Result<EventMutationResponse, String> {
     post_or_delete(

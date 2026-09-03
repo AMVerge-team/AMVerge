@@ -10,8 +10,8 @@ export type UIState = {
     dividerOffsetPx: number;
     isDragging: boolean;
     activePage: Page;
-    /** Last clip page visited. The Events page has no panel of its own, so the
-     *  sidebar keeps showing whichever panel was up before the user left. */
+    /** last clip page visited. the Events page has no panel of its own, so the
+     *  sidebar keeps showing whichever panel was up before the user left */
     panelPage: ClipPage;
     settingsTab: string;
     settingsOpen: boolean;
@@ -19,8 +19,8 @@ export type UIState = {
     quickMenuOpen: boolean;
     commandPaletteOpen: boolean;
     previewCollapsed: boolean;
-    /** Grid's share of the split, in percent. The import row reads it too, to
-     *  keep the preview toggle above the grid's right edge. */
+    /** grid's share of the split, in percent. the import row reads it too, to
+     *  keep the preview toggle above the grid's right edge */
     previewSplitPct: number;
     pinned: boolean;
 };
@@ -53,7 +53,7 @@ export type UIStateStore = UIState & {
     togglePinned: () => void;
 };
 
-/** True while a full-screen modal covers the app, so previews can stand down. */
+/** true while a full-screen modal covers the app, so previews can stand down */
 export const selectOverlayOpen = (state: UIState) =>
     state.settingsOpen || state.menuOpen;
 
@@ -120,7 +120,7 @@ export const useUIStateStore = create<UIStateStore>()(
                     const next =
                         typeof activePage === "function" ? activePage(state.activePage) : activePage;
                     // Events borrows whichever panel was already up, so it must
-                    // not overwrite the remembered one.
+                    // not overwrite the remembered one
                     return next === "events"
                         ? { activePage: next }
                         : { activePage: next, panelPage: next };
