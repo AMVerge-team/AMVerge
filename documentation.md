@@ -202,20 +202,37 @@ The sidebar was split up intentionally so the codebase stays maintainable as fea
 
 # Backend Structure
 
+The Python side is not a folder in this repo. It is a separate package,
+[AMVerge-CLI](https://github.com/AMVerge-team/AMVerge-CLI), which the Rust layer
+shells out to as a subprocess.
+
 ```
-backend/
-├── app.py
-├── scene_scanning.py
-├── utils/
-│   ├── video_utils.py
-│   └── hevc_script.py
-├── bin/
-│   ├── ffmpeg.exe
-│   └── ffprobe.exe
-├── deprecated/
-├── test_scripts/
-└── requirements.txt
+AMVerge-CLI/
+└── amverge/
+    ├── cli.py            Typer entry point (the `amverge` command)
+    ├── pipeline.py       import pipeline: detect, cut, thumbnail
+    ├── commands/         one module per CLI subcommand
+    └── core/
+        ├── detection/    keyframe + TransNetV2 scene detection
+        ├── cutting/      smart cut, ffmpeg segment
+        ├── export/       encode, remux, editor project files
+        ├── codec/        probing, HEVC handling
+        ├── depth/        depth maps
+        ├── interpolation/ RIFE
+        ├── deadframes/   duplicate frame trimming
+        └── infra/        ffmpeg discovery, paths, process helpers
 ```
+
+How the app finds it differs by build:
+
+| Build | Resolves to |
+| --- | --- |
+| Dev (`tauri:dev`) | `<AMVERGE_CLI_DIR>/.venv/{Scripts,bin}/amverge` |
+| Release | a PyInstaller sidecar bundled under the app's resources |
+
+The dev path is why the setup script creates a virtualenv in the CLI checkout
+rather than installing the package globally. See
+`frontend/src-tauri/src/utils/sidecar.rs`.
 
 ---
 
@@ -328,8 +345,8 @@ Check:
 
 Check:
 
-* `backend/`
-* `src-tauri/src/main.rs
+* the [AMVerge-CLI](https://github.com/AMVerge-team/AMVerge-CLI) checkout
+* `src-tauri/src/commands/` (the Rust side that drives it)
 
 ## Working on sidebar behavior
 

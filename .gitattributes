@@ -1,0 +1,10 @@
+# Shell scripts must keep LF endings regardless of the checking-out platform.
+# With core.autocrlf=true (the Windows default) they would otherwise arrive with
+# CRLF, and bash fails on the shebang itself: "bad interpreter: /usr/bin/env
+# bash^M". That breaks setup.sh for every macOS and Linux contributor.
+*.sh text eol=lf
+
+# Batch and PowerShell are the mirror case: cmd.exe needs CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf

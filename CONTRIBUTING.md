@@ -40,44 +40,79 @@ If you plan to work on something, comment on the Issue first so work is not dupl
 
 ## Local Setup
 
-```bash
-git clone <repo-url>
-cd AMVerge
-````
+AMVerge is two repositories. This one is the desktop app (React + Tauri); the
+video work lives in [AMVerge-CLI](https://github.com/AMVerge-team/AMVerge-CLI),
+a Python package the app shells out to. A dev build runs the CLI out of a
+virtualenv in that checkout, so both have to be set up before the app will do
+anything useful.
 
-Install frontend dependencies:
+A script does all of it.
 
-```bash
-cd frontend
-npm install
+### Prerequisites
+
+Install these yourself first; the script checks for them and stops with a list
+if any are missing.
+
+| Tool | Version | Notes |
+| --- | --- | --- |
+| [Git](https://git-scm.com) | any | |
+| [Node.js](https://nodejs.org) | 20+ | ships npm |
+| [Python](https://www.python.org/downloads/) | 3.11+ | the CLI requires it |
+| [Rust](https://rustup.rs) | stable | for Tauri |
+
+Platform extras:
+
+- **Windows** - the WebView2 runtime. Present on Windows 11 and current Windows
+  10; on a stripped or LTSC image install it from
+  [Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/).
+- **macOS** - Xcode command line tools: `xcode-select --install`
+- **Linux** - the Tauri system libraries:
+  ```bash
+  sudo apt install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
+    libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+  ```
+
+### Setup
+
+From the repo root:
+
+```powershell
+# Windows
+.\setup.ps1
 ```
 
-Install backend dependencies:
-
 ```bash
-cd ../backend
-pip install -r requirements.txt
+# macOS / Linux
+./setup.sh
 ```
 
-Copy the environment file:
+That will:
 
-```bash
-cp .env.example .env
+1. Clone AMVerge-CLI beside this repo
+2. Create a virtualenv in that checkout and install the CLI into it, editable
+3. Create `.env` from `.env.example` and point `AMVERGE_CLI_DIR` at the checkout
+4. `npm install` the frontend
+5. Stage the `uv` binary the app uses to provision AI environments
+
+It is safe to re-run. It pulls rather than reclones, reuses an existing
+virtualenv, and never overwrites an existing `.env` - only the one
+`AMVERGE_CLI_DIR` line is rewritten, so your own values survive.
+
+### AI features
+
+The AI packs (TransNetV2 scene detection, depth maps, interpolation) need torch
+and are several GB, so they are not installed by default. Without them the app
+runs normally and only those features report a missing pack.
+
+```powershell
+.\setup.ps1 -Ai
 ```
 
-PowerShell: `Copy-Item .env.example .env`
+```bash
+./setup.sh --ai
+```
 
-This one step is easy to miss. Without it the app still builds and runs, but
-anything that talks to the AMVerge API reports **"AMVerge API endpoint is not
-configured on this build"**, and the Discord sign-in button does nothing. That
-is the missing `.env`, not a broken checkout.
-
-The defaults point at a local backend. For UI work that is usually enough. To
-work against the hosted API instead, ask a maintainer for the API URL and the
-desktop Discord client id, those are not published in the repo. Submitting a
-bug report additionally needs a signing key from a maintainer.
-
-Run development build:
+### Running
 
 ```bash
 cd frontend
@@ -85,6 +120,69 @@ npm run tauri:dev
 ```
 
 Use `tauri:dev`, not `tauri dev`: the script loads `.env` before starting.
+
+The first Rust build takes several minutes. Later runs are cached.
+
+### Secrets
+
+`.env.example` is the full list of what the app reads, with a comment on each
+explaining what breaks without it. The setup script copies it verbatim; you
+fill in what you need.
+
+Everything works against a local backend with the defaults, which is enough for
+most UI and pipeline work. Two things need values a maintainer issues, and both
+fail loudly rather than silently:
+
+| Variable | Needed for |
+| --- | --- |
+| `AMVERGE_DISCORD_APP_CLIENT_ID` | Discord sign-in, hosting community events |
+| `AMVERGE_BUG_REPORT_*` | submitting bug reports |
+
+If you create your own Discord application for local work, register these
+redirect URIs on it exactly:
+
+```txt
+http://127.0.0.1:53421/callback
+http://127.0.0.1:53422/callback
+http://127.0.0.1:53423/callback
+```
+
+Discord matches `redirect_uri` exactly and does not grant loopback the any-port
+allowance, so all three have to be registered - the app falls back through them
+if a port is taken.
+
+### Doing it manually
+
+The script is the supported path, but if you want to understand or reproduce it:
+
+```bash
+# 1. CLI, as a sibling of this repo
+git clone https://github.com/AMVerge-team/AMVerge-CLI.git ../AMVerge-CLI
+cd ../AMVerge-CLI
+python -m venv .venv
+
+# 2. install it into that venv, editable
+.venv/bin/pip install -e .          # Windows: .venv\Scripts\pip install -e .
+
+# 3. back here
+cd ../AMVerge_V2
+cp .env.example .env                # PowerShell: Copy-Item .env.example .env
+# then set AMVERGE_CLI_DIR to the absolute path of the CLI checkout
+
+# 4. frontend
+cd frontend
+npm install
+```
+
+Two things are easy to get wrong here:
+
+- **Install the CLI into the venv, not globally.** A dev build runs
+  `<AMVERGE_CLI_DIR>/.venv/{Scripts,bin}/amverge` by absolute path
+  ([sidecar.rs](frontend/src-tauri/src/utils/sidecar.rs)). A global `pip install`
+  leaves that path empty and every call fails.
+- **Install from the checkout, not PyPI.** The published wheel lags the extras
+  the AI packs expect, so `pip install amverge` gives you a CLI that cannot
+  satisfy them.
 
 ---
 
