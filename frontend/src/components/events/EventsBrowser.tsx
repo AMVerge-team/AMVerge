@@ -208,8 +208,16 @@ export default function EventsBrowser() {
       return true;
     };
 
+    // the public copy of an anonymous event carries no host id, so the owner
+    // would lose the delete control and the "mine" filter on their own event.
+    // their private copy from `mine` still has it, so prefer that where the two
+    // describe the same event
+    const byId = new Map(mine.map((event) => [event.id, event]));
+    const withOwnCopy = (list: CommunityEvent[]) =>
+      list.map((event) => byId.get(event.id) ?? event);
+
     const matching = (list: CommunityEvent[]) =>
-      dedupeById(list)
+      dedupeById(withOwnCopy(list))
         .filter((event) => matchesSearch(event, search))
         .filter(passesFilter)
         .sort((a, b) => compareEvents(a, b, sort));

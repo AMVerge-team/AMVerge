@@ -1,10 +1,11 @@
-import { FaCalendarPlus, FaDiscord, FaSearch, FaSignOutAlt, FaSyncAlt, FaTimes } from "react-icons/fa";
+import { FaBan, FaCalendarPlus, FaDiscord, FaSearch, FaSignOutAlt, FaSyncAlt, FaTimes } from "react-icons/fa";
 
 import Dropdown, { type DropdownOption } from "../common/Dropdown";
 import Tooltip from "../common/Tooltip";
 import InfoButton from "../common/InfoButton";
 import { useEventsStore, type EventFilter, type EventSort } from "../../stores/eventsStore";
 import { useUIStateStore } from "../../stores/UIStore";
+import { formatCooldown, useCooldown } from "./useCooldown";
 
 const FILTER_OPTIONS: DropdownOption<EventFilter>[] = [
   { value: "all", label: "All events", description: "Everything, running or finished" },
@@ -46,6 +47,14 @@ export default function EventsToolbar() {
   const logout = useEventsStore((s) => s.logout);
   const openHostForm = useEventsStore((s) => s.openHostForm);
   const loadEvents = useEventsStore((s) => s.loadEvents);
+  const submitCooldownUntil = useEventsStore((s) => s.submitCooldownUntil);
+  const ban = useEventsStore((s) => s.ban);
+  const openBanNotice = useEventsStore((s) => s.openBanNotice);
+
+  // hosting is rate limited and ban-gated server-side; this only reflects it,
+  // so the button reads as unavailable instead of failing on click
+  const cooldownRemaining = useCooldown(submitCooldownUntil);
+  const isBanned = Boolean(ban?.banned);
 
   return (
     <main
@@ -76,10 +85,31 @@ export default function EventsToolbar() {
           </button>
         </Tooltip>
 
-        <button type="button" className="import-button events-action-button" onClick={() => openHostForm(null)}>
-          <FaCalendarPlus aria-hidden="true" />
-          Host Event
-        </button>
+        <Tooltip
+          content={
+            isBanned
+              ? "You are banned from hosting. Click to see why"
+              : cooldownRemaining > 0
+                ? `You can request another event in ${formatCooldown(cooldownRemaining)}`
+                : "Request a community event"
+          }
+        >
+          {/* a ban leaves the button live so it can explain itself; only the
+              cooldown actually disables it */}
+          <button
+            type="button"
+            className={`import-button events-action-button${isBanned ? " is-banned" : ""}`}
+            onClick={() => (isBanned ? openBanNotice() : openHostForm(null))}
+            disabled={!isBanned && cooldownRemaining > 0}
+          >
+            {isBanned ? <FaBan aria-hidden="true" /> : <FaCalendarPlus aria-hidden="true" />}
+            {isBanned
+              ? "Banned"
+              : cooldownRemaining > 0
+                ? formatCooldown(cooldownRemaining)
+                : "Host Event"}
+          </button>
+        </Tooltip>
 
         <InfoButton title="Community Events">
           <p>
@@ -99,7 +129,7 @@ export default function EventsToolbar() {
           <h4>Editing Contest (EC)</h4>
           <p>
             A longer format that runs at least a day and often much more. There is room to
-            plan and refine, usually less rules and restrictions, and the prizes tend to be
+            plan and refine, usually less restrictions, and the prizes tend to be
             bigger.
           </p>
 

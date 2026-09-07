@@ -81,9 +81,20 @@
 
 .host-event-actions {
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: space-between;
     gap: 8px;
     margin-top: 16px;
+}
+
+/* keeps Cancel and Submit together on the right while the toggle holds the
+   left, without wrapping a second flex container around them */
+.host-event-actions > button {
+    flex: 0 0 auto;
+}
+
+.host-event-actions > button:first-of-type {
+    margin-left: auto;
 }
 
 .host-event-signin {
@@ -255,4 +266,53 @@
     font-family: var(--ui-font);
     font-size: 0.7rem;
     color: rgba(255, 255, 255, 0.5);
+}
+
+/* The sign-in gate is a fraction of the form's content, so the modal is sized
+   to it rather than staying at the full editor's footprint with the prompt
+   floating in the middle of an empty sheet. */
+.app-modal.host-event-modal-signin {
+    width: min(460px, 92vw);
+    height: auto;
+    max-height: min(80vh, 620px);
+}
+
+.host-event-modal-signin .host-event-signin {
+    padding: 28px 24px 32px;
+    gap: 8px;
+}
+
+.host-event-signin h3 {
+    font-size: 1.35rem;
+    margin-bottom: 2px;
+}
+
+/* Two separate statements, so each keeps its own line instead of reflowing into
+   one block that breaks wherever the width lands. Arial for the same reason the
+   ban list uses it: the pixel body font is hard to read at this size. */
+.host-event-signin p {
+    font-family: var(--ui-font);
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.62);
+}
+
+.host-event-signin p + p {
+    margin-top: 2px;
+}
+
+.event-anon-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.event-anon-title {
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.84rem;
+}
+
+.event-anon-toggle:hover .event-anon-title {
+    color: #fff;
 }

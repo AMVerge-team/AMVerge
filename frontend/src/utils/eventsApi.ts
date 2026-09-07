@@ -41,6 +41,10 @@ export function acknowledgeEventDenial(eventId: string): Promise<EventMutationRe
   return invoke<EventMutationResult>("acknowledge_event_denial", { eventId });
 }
 
+export function acknowledgeBanNotice(): Promise<EventMutationResult> {
+  return invoke<EventMutationResult>("acknowledge_ban_notice");
+}
+
 export function acknowledgeEventApproval(eventId: string): Promise<EventMutationResult> {
   return invoke<EventMutationResult>("acknowledge_event_approval", { eventId });
 }

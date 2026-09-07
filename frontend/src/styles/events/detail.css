@@ -364,3 +364,43 @@
     display: flex;
     gap: 8px;
 }
+
+/* A ban is a refusal, not the amber caution the denial notice uses, so the
+   shared icon rule is overridden rather than recoloured for both. */
+.denial-notice-icon.ban-notice-icon {
+    color: #ff6b6b;
+}
+
+/* Two separate statements, so they get their own lines instead of reflowing
+   into one paragraph that breaks wherever the width happens to land. */
+.ban-notice-note {
+    margin: 0;
+}
+
+.ban-notice-note + .ban-notice-note {
+    margin-top: 2px;
+}
+
+/* The reason is the one thing the host has to act on, so it reads as plain
+   white against the red surround rather than as more of the warning colour. */
+.event-detail-denied-reason,
+.denial-notice-reason {
+    color: #fff;
+}
+
+.event-detail-denied-label,
+.denial-notice-reason-label {
+    color: rgba(255, 255, 255, 0.55);
+    font-weight: 600;
+}
+
+/* An anonymous event renders no host element at all, and both rows are
+   space-between, so the remaining item is pinned right rather than sliding over
+   into the gap the host used to hold. */
+.event-detail-buttons {
+    margin-left: auto;
+}
+
+.event-card-footer > .event-card-prize:only-child {
+    margin-left: auto;
+}

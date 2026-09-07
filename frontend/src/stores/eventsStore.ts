@@ -4,6 +4,7 @@ import { open } from "@tauri-apps/plugin-shell";
 
 import {
   acknowledgeEventApproval,
+  acknowledgeBanNotice,
   acknowledgeEventDenial,
   beginDiscordLogin,
   cancelDiscordLogin,
@@ -17,6 +18,7 @@ import {
 } from "../utils/eventsApi";
 import type {
   CommunityEvent,
+  HostBan,
   DiscordProfile,
   EventSubmission,
 } from "../components/events/types";
@@ -66,6 +68,16 @@ export type EventsState = {
    * though the ids stay in `seenEventIds`.
    */
   highlightedEventIds: string[];
+  /**
+   * when the host may submit again, as an epoch millisecond deadline. derived
+   * from the seconds the server sends and this machine's own clock, so a skewed
+   * client clock cannot produce a wrong or negative countdown.
+   */
+  submitCooldownUntil: number | null;
+  /** set while the account is banned from hosting; carries reason and expiry */
+  ban: HostBan | null;
+  /** true while the user is reading why they were banned */
+  banNoticeOpen: boolean;
 };
 
 export type EventsStore = EventsState & {
@@ -86,8 +98,12 @@ export type EventsStore = EventsState & {
   saveEvent: (submission: EventSubmission) => Promise<{ ok: boolean; message: string | null }>;
   deleteEvent: (eventId: string) => Promise<{ ok: boolean; message: string | null }>;
   dismissDenialNotice: () => void;
+  openBanNotice: () => void;
+  dismissBanNotice: () => void;
   dismissApprovalNotice: () => void;
   markEventsSeen: () => void;
+  /** starts the countdown from a server-supplied number of seconds */
+  startSubmitCooldown: (seconds: number) => void;
 };
 
 /** plenty for any realistic catalogue, and bounds the persisted payload */
@@ -127,6 +143,9 @@ const INITIAL_STATE: EventsState = {
   seenEventIds: [],
   hasSeededSeenEvents: false,
   highlightedEventIds: [],
+  submitCooldownUntil: null,
+  ban: null,
+  banNoticeOpen: false,
 };
 
 export const useEventsStore = create<EventsStore>()(
@@ -200,7 +219,14 @@ export const useEventsStore = create<EventsStore>()(
 
     try {
       const result = await fetchMyEvents();
-      set({ mine: result.ok ? result.events : [] });
+      set({
+        mine: result.ok ? result.events : [],
+        submitCooldownUntil:
+          result.ok && result.submitCooldownSeconds
+            ? Date.now() + result.submitCooldownSeconds * 1000
+            : null,
+        ban: result.ban ?? null,
+      });
     } catch {
       // the host's own list is supplementary; a failure here must not blank the
       // public grid the user came for
@@ -238,6 +264,7 @@ export const useEventsStore = create<EventsStore>()(
   },
 
   logout: async () => {
+    set({ submitCooldownUntil: null, ban: null, banNoticeOpen: false });
     await discordLogout();
     set({ profile: null, mine: [], editingId: null, hostFormOpen: false });
   },
@@ -246,6 +273,9 @@ export const useEventsStore = create<EventsStore>()(
   closeDetail: () => set({ detailId: null }),
 
   openHostForm: (editingId = null) => set({ hostFormOpen: true, editingId }),
+
+  startSubmitCooldown: (seconds) =>
+    set({ submitCooldownUntil: seconds > 0 ? Date.now() + seconds * 1000 : null }),
   closeHostForm: () => {
     if (useEventsStore.getState().loginPending) {
       void cancelDiscordLogin().catch(() => {});
@@ -262,6 +292,11 @@ export const useEventsStore = create<EventsStore>()(
         : await submitEventRequest(submission);
 
       if (!result.ok) {
+        // a cooldown refusal carries how long is left, so the button greys out
+        // immediately rather than waiting for the next loadMine
+        if (!editingId && result.retryAfterSeconds) {
+          get().startSubmitCooldown(result.retryAfterSeconds);
+        }
         void get().loadEvents();
         void get().loadMine();
         return { ok: false, message: result.message };
@@ -290,6 +325,23 @@ export const useEventsStore = create<EventsStore>()(
     } catch (err) {
       return { ok: false, message: err instanceof Error ? err.message : String(err) };
     }
+  },
+
+  /** reopens the ban reason on demand, after the one-shot notice was dismissed */
+  openBanNotice: () => set({ banNoticeOpen: true }),
+
+  /**
+   * closes the ban notice and marks it seen, so it appears once rather than on
+   * every launch. local state updates first so it cannot reappear while the
+   * server call is in flight.
+   */
+  dismissBanNotice: () => {
+    const ban = get().ban;
+    set({
+      banNoticeOpen: false,
+      ban: ban ? { ...ban, noticeSeen: true } : null,
+    });
+    if (ban && !ban.noticeSeen) void acknowledgeBanNotice().catch(() => {});
   },
 
   /**
@@ -361,6 +413,12 @@ export const useEventsStore = create<EventsStore>()(
       partialize: (state) => ({
         seenEventIds: state.seenEventIds,
         hasSeededSeenEvents: state.hasSeededSeenEvents,
+        // an absolute deadline, so it stays correct across a restart and the
+        // button is already greyed on the first paint instead of only after
+        // loadMine round-trips. the server is still the authority: loadMine
+        // overwrites this, and a stale value only ever delays a request the
+        // server would have refused anyway
+        submitCooldownUntil: state.submitCooldownUntil,
       }),
     }
   )

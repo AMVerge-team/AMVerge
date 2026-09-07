@@ -1,7 +1,9 @@
+import { useMemo } from "react";
 import { open } from "@tauri-apps/plugin-shell";
 import { FaArrowLeft, FaCalendarAlt, FaCheckCircle, FaDiscord, FaEdit, FaTrash, FaTrophy } from "react-icons/fa";
 
 import RichText from "./RichText";
+import { formatCooldown, useCooldown } from "./useCooldown";
 import {
   countdownLabel,
   eventTypeLabel,
@@ -25,6 +27,13 @@ type EventDetailProps = {
 };
 
 export default function EventDetail({ event, onBack, onEdit, onDelete, preview = false }: EventDetailProps) {
+  // the edit cooldown is per event, so revising one never blocks a fix on
+  // another. anchored to this machine's clock the moment the seconds arrived
+  const editCooldownUntil = useMemo(
+    () => (event.editCooldownSeconds ? Date.now() + event.editCooldownSeconds * 1000 : null),
+    [event.id, event.editCooldownSeconds]
+  );
+  const editCooldown = useCooldown(editCooldownUntil);
   const ended = hasEnded(event);
   const avatar = hostAvatarUrl(event);
   const status = statusLabel(event);
@@ -60,7 +69,10 @@ export default function EventDetail({ event, onBack, onEdit, onDelete, preview =
       {event.status === "denied" && (
         <div className="event-detail-denied">
           <strong>This event was not approved.</strong>
-          <span>{event.denialReason || "No reason was given."}</span>
+          <span className="event-detail-denied-reason">
+            <span className="event-detail-denied-label">Reason:</span>{" "}
+            {event.denialReason || "No reason was given."}
+          </span>
           {onEdit && (
             <span className="event-detail-denied-hint">
               Edit it to address the note above and send it back for review.
@@ -120,14 +132,16 @@ export default function EventDetail({ event, onBack, onEdit, onDelete, preview =
       <RichText value={event.description} className="event-detail-description" />
 
       <div className="event-detail-actions">
-        <span className="event-detail-host">
-          {avatar ? (
-            <img src={avatar} alt="" className="event-card-avatar" draggable={false} />
-          ) : (
-            <span className="event-card-avatar event-card-avatar-empty" aria-hidden="true" />
-          )}
-          Hosted by {event.hostUsername || "Unknown host"}
-        </span>
+        {!event.isAnonymous && (
+          <span className="event-detail-host">
+            {avatar ? (
+              <img src={avatar} alt="" className="event-card-avatar" draggable={false} />
+            ) : (
+              <span className="event-card-avatar event-card-avatar-empty" aria-hidden="true" />
+            )}
+            Hosted by {event.hostUsername || "Unknown host"}
+          </span>
+        )}
 
         <div className="event-detail-buttons">
           {!preview && onDelete && (
@@ -136,9 +150,23 @@ export default function EventDetail({ event, onBack, onEdit, onDelete, preview =
             </button>
           )}
           {!preview && onEdit && (
-            <button type="button" className="event-secondary-btn" onClick={() => onEdit(event.id)}>
+            <button
+              type="button"
+              className="event-secondary-btn"
+              onClick={() => onEdit(event.id)}
+              disabled={editCooldown > 0}
+              title={
+                editCooldown > 0
+                  ? `You can edit this event again in ${formatCooldown(editCooldown)}`
+                  : undefined
+              }
+            >
               <FaEdit aria-hidden="true" />{" "}
-              {event.status === "denied" ? "Edit and resubmit" : "Edit"}
+              {editCooldown > 0
+                ? formatCooldown(editCooldown)
+                : event.status === "denied"
+                  ? "Edit and resubmit"
+                  : "Edit"}
             </button>
           )}
           <button

@@ -57,14 +57,16 @@ export default function EventCard({ event, onOpen, preview = false, onDelete, is
         </div>
 
         <div className="event-card-footer">
-          <span className="event-card-host">
-            {avatar ? (
-              <img src={avatar} alt="" className="event-card-avatar" draggable={false} />
-            ) : (
-              <span className="event-card-avatar event-card-avatar-empty" aria-hidden="true" />
-            )}
-            {event.hostUsername || "Unknown host"}
-          </span>
+          {!event.isAnonymous && (
+            <span className="event-card-host">
+              {avatar ? (
+                <img src={avatar} alt="" className="event-card-avatar" draggable={false} />
+              ) : (
+                <span className="event-card-avatar event-card-avatar-empty" aria-hidden="true" />
+              )}
+              {event.hostUsername || "Unknown host"}
+            </span>
+          )}
 
           {event.prizePool && (
             <span className="event-card-prize">

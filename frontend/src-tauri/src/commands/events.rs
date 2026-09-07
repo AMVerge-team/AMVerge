@@ -16,6 +16,24 @@ pub struct EventsResponse {
     pub ok: bool,
     pub message: Option<String>,
     pub events: Vec<Value>,
+    /// seconds left on the host's submit cooldown, so the app can grey the
+    /// button out before anyone clicks it. only set by `fetch_my_events`
+    pub submit_cooldown_seconds: Option<u64>,
+    /// present when the account is banned from hosting. a struct rather than a
+    /// flag so the app can say why and for how long, and knows whether the user
+    /// has been told yet
+    pub ban: Option<HostBan>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostBan {
+    pub banned: bool,
+    pub banned_until: Option<String>,
+    pub ban_is_permanent: bool,
+    pub ban_reason: Option<String>,
+    /// false while the user still has to be shown the one-shot notice
+    pub notice_seen: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -24,6 +42,9 @@ pub struct EventMutationResponse {
     pub ok: bool,
     pub message: Option<String>,
     pub event: Option<Value>,
+    /// set when the server refused for cooldown, so the app can start the same
+    /// countdown it would have shown had it known beforehand
+    pub retry_after_seconds: Option<u64>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -35,6 +56,9 @@ pub struct EventSubmission {
     pub prize_pool: Option<String>,
     /// "contest" or "hour"; the server rejects anything else back to "contest"
     pub event_type: Option<String>,
+    /// hides the host's name and avatar from the public grid. moderators still
+    /// see who submitted it
+    pub is_anonymous: Option<bool>,
     /// 1-24, only meaningful for an hour contest. the server validates the range
     pub duration_hours: Option<u32>,
     pub starts_at: String,
@@ -53,12 +77,17 @@ pub struct EventThumbnailPayload {
 struct ApiEventsBody {
     events: Option<Vec<Value>>,
     message: Option<String>,
+    #[serde(rename = "submitCooldownSeconds")]
+    submit_cooldown_seconds: Option<u64>,
+    ban: Option<HostBan>,
 }
 
 #[derive(Debug, Deserialize)]
 struct ApiEventBody {
     event: Option<Value>,
     message: Option<String>,
+    #[serde(rename = "retryAfterSeconds")]
+    retry_after_seconds: Option<u64>,
 }
 
 /// the API returns thumbnail links relative to its own host. `img-src` is
@@ -104,17 +133,25 @@ async fn read_events(url: String, token: Option<String>) -> Result<EventsRespons
     let parsed = response.json::<ApiEventsBody>().await.ok();
 
     if !status.is_success() {
+        let message = parsed
+            .and_then(|body| body.message)
+            .unwrap_or_else(|| format!("Events request failed with HTTP {}.", status.as_u16()));
+
         return Ok(EventsResponse {
             ok: false,
-            message: Some(
-                parsed
-                    .and_then(|body| body.message)
-                    .unwrap_or_else(|| format!("Events request failed with HTTP {}.", status.as_u16())),
-            ),
+            message: Some(message.clone()),
             events: Vec::new(),
+            submit_cooldown_seconds: None,
+            ban: None,
         });
     }
 
+    let cooldown = parsed.as_ref().and_then(|body| body.submit_cooldown_seconds);
+    // only a live ban is worth carrying; the server sends the row either way
+    let ban = parsed
+        .as_ref()
+        .and_then(|body| body.ban.clone())
+        .filter(|ban| ban.banned);
     let mut events = parsed.and_then(|body| body.events).unwrap_or_default();
     absolutize_thumbnails(&api_base_url()?, &mut events);
 
@@ -122,6 +159,8 @@ async fn read_events(url: String, token: Option<String>) -> Result<EventsRespons
         ok: true,
         message: None,
         events,
+        submit_cooldown_seconds: cooldown,
+        ban,
     })
 }
 
@@ -161,6 +200,7 @@ async fn send_submission(
 
     let status = response.status();
     let parsed = response.json::<ApiEventBody>().await.ok();
+    let retry_after = parsed.as_ref().and_then(|body| body.retry_after_seconds);
 
     if !status.is_success() {
         // a refused token would fail every subsequent request too, so drop it
@@ -171,6 +211,7 @@ async fn send_submission(
                 ok: false,
                 message: Some("Your sign-in has expired. Sign in with Discord again.".to_string()),
                 event: None,
+                retry_after_seconds: None,
             });
         }
 
@@ -182,6 +223,7 @@ async fn send_submission(
                     .unwrap_or_else(|| format!("Request failed with HTTP {}.", status.as_u16())),
             ),
             event: None,
+            retry_after_seconds: retry_after,
         });
     }
 
@@ -189,6 +231,7 @@ async fn send_submission(
         ok: true,
         message: None,
         event: parsed.and_then(|body| body.event),
+        retry_after_seconds: None,
     })
 }
 
@@ -212,6 +255,7 @@ async fn post_or_delete(url: String, method: reqwest::Method) -> Result<EventMut
 
     let status = response.status();
     let parsed = response.json::<ApiEventBody>().await.ok();
+    let retry_after = parsed.as_ref().and_then(|body| body.retry_after_seconds);
 
     if !status.is_success() {
         // a refused token would fail every subsequent request too, so drop it
@@ -222,6 +266,7 @@ async fn post_or_delete(url: String, method: reqwest::Method) -> Result<EventMut
                 ok: false,
                 message: Some("Your sign-in has expired. Sign in with Discord again.".to_string()),
                 event: None,
+                retry_after_seconds: None,
             });
         }
 
@@ -233,6 +278,7 @@ async fn post_or_delete(url: String, method: reqwest::Method) -> Result<EventMut
                     .unwrap_or_else(|| format!("Request failed with HTTP {}.", status.as_u16())),
             ),
             event: None,
+            retry_after_seconds: retry_after,
         });
     }
 
@@ -240,6 +286,7 @@ async fn post_or_delete(url: String, method: reqwest::Method) -> Result<EventMut
         ok: true,
         message: None,
         event: None,
+        retry_after_seconds: None,
     })
 }
 
@@ -261,6 +308,12 @@ pub async fn acknowledge_event_denial(event_id: String) -> Result<EventMutationR
         reqwest::Method::POST,
     )
     .await
+}
+
+/// marks the ban notice seen so it is shown once, not on every launch
+#[tauri::command]
+pub async fn acknowledge_ban_notice() -> Result<EventMutationResponse, String> {
+    post_or_delete(api_url("/api/events/ban-notice-seen")?, reqwest::Method::POST).await
 }
 
 #[tauri::command]

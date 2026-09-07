@@ -14,9 +14,12 @@ export type CommunityEvent = {
   eventType: EventType;
   /** how many hours an hour contest runs. ignored for a contest */
   durationHours: number;
+  /** hides the host's identity publicly; moderators still see who submitted it */
+  isAnonymous?: boolean;
   startsAt: string;
   endsAt: string;
-  hostDiscordId: string;
+  /** null on an anonymous event unless this is the host's own copy */
+  hostDiscordId: string | null;
   hostUsername: string | null;
   hostAvatarHash: string | null;
   /** only set on a local draft, where the avatar is known but its hash is not */
@@ -37,6 +40,8 @@ export type CommunityEvent = {
   /** false when a moderator has approved it and the host has not been told */
   approvalSeen?: boolean;
   pendingRevision?: EventSubmission | null;
+  /** seconds left before this event may be edited again */
+  editCooldownSeconds?: number | null;
 };
 
 export type EventThumbnail = {
@@ -50,6 +55,8 @@ export type EventSubmission = {
   discordInviteUrl: string;
   prizePool: string | null;
   eventType: EventType;
+  /** hide the host's name and avatar on the public grid */
+  isAnonymous: boolean;
   /** 1-24. only meaningful for an hour contest */
   durationHours: number;
   startsAt: string;
@@ -69,12 +76,28 @@ export type EventsResult = {
   ok: boolean;
   message: string | null;
   events: CommunityEvent[];
+  /** seconds left before the host may submit again. only from fetchMyEvents */
+  submitCooldownSeconds?: number | null;
+  /** present when the account is banned from hosting */
+  ban?: HostBan | null;
+};
+
+/** a live hosting ban, delivered alongside the host's own events */
+export type HostBan = {
+  banned: boolean;
+  bannedUntil: string | null;
+  banIsPermanent: boolean;
+  banReason: string | null;
+  /** false while the one-shot notice still has to be shown */
+  noticeSeen: boolean;
 };
 
 export type EventMutationResult = {
   ok: boolean;
   message: string | null;
   event: CommunityEvent | null;
+  /** set when the server refused the request for cooldown */
+  retryAfterSeconds?: number | null;
 };
 
 export type DiscordLoginEvent = {

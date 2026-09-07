@@ -37,7 +37,11 @@ export default function EventsPage() {
       <EventsToolbar />
 
       <div className="main-layout-wrapper">
-        <MainLayout left={<EventsBrowser />} previewIdle fullWidth />
+        {/* keeps the pane and divider so the split does not jump when moving
+            between Events and the clip pages. `previewIdle` still blanks the
+            player, since there is no clip in context here and a leftover one
+            would keep playing its audio while you browse events */}
+        <MainLayout left={<EventsBrowser />} previewIdle />
 
         <div className="info-bar">
           <Tooltip content="Settings">

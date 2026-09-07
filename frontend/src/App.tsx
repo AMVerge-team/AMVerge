@@ -11,6 +11,7 @@ import CommandPalette from "./components/CommandPalette";
 import MenuModal from "./components/menu/MenuModal";
 import EventsPage from "./pages/EventsPage";
 import HostEventModal from "./components/events/HostEventModal";
+import BanNoticeModal from "./components/events/BanNoticeModal";
 import DenialNoticeModal from "./components/events/DenialNoticeModal";
 import ApprovalNoticeModal from "./components/events/ApprovalNoticeModal";
 import ScenepacksPage from "./pages/ScenepacksPage";
@@ -508,6 +509,7 @@ function App() {
       <CommandPalette />
       <MenuModal />
       <HostEventModal />
+      <BanNoticeModal />
       <DenialNoticeModal />
       <ApprovalNoticeModal />
       <SettingsModal

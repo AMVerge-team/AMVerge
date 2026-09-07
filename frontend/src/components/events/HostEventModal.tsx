@@ -11,6 +11,7 @@ import {
 } from "react-icons/fa";
 
 import ModalShell from "../common/ModalShell";
+import Tooltip from "../common/Tooltip";
 import DateTimePicker from "./DateTimePicker";
 import DescriptionEditor from "./DescriptionEditor";
 import EventDetail from "./EventDetail";
@@ -36,6 +37,7 @@ type FormState = {
   discordInviteUrl: string;
   prizePool: string;
   eventType: EventType;
+  isAnonymous: boolean;
   durationHours: string;
   startsAt: string;
   endsAt: string;
@@ -47,6 +49,7 @@ const EMPTY_FORM: FormState = {
   discordInviteUrl: "",
   prizePool: "",
   eventType: "contest",
+  isAnonymous: false,
   durationHours: "1",
   startsAt: "",
   endsAt: "",
@@ -188,6 +191,7 @@ export default function HostEventModal() {
         discordInviteUrl: editing.discordInviteUrl,
         prizePool: (editing.prizePool ?? "").replace(/\D/g, ""),
         eventType: editing.eventType,
+        isAnonymous: editing.isAnonymous === true,
         durationHours: String(editing.durationHours || MIN_HOURS),
         startsAt: toLocalInputValue(editing.startsAt),
         endsAt: toLocalInputValue(editing.endsAt),
@@ -254,11 +258,14 @@ export default function HostEventModal() {
     discordInviteUrl: form.discordInviteUrl,
     prizePool: form.prizePool ? `$${form.prizePool}` : null,
     eventType: form.eventType,
+    isAnonymous: form.isAnonymous,
     durationHours: draftHours,
     startsAt: draftStartsAt,
     endsAt: draftEndsAt,
-    hostDiscordId: profile?.id ?? "",
-    hostUsername: profile?.username ?? "You",
+    // the preview mirrors what the grid will show, so anonymity hides the host
+    // here too rather than only after submitting
+    hostDiscordId: form.isAnonymous ? null : profile?.id ?? "",
+    hostUsername: form.isAnonymous ? null : profile?.username ?? "You",
     hostAvatarHash: null,
     hostAvatarUrl: profile?.avatarUrl ?? null,
     hasThumbnail: Boolean(thumbnailDataUrl),
@@ -349,6 +356,7 @@ export default function HostEventModal() {
       discordInviteUrl: form.discordInviteUrl.trim(),
       prizePool: form.prizePool ? `$${form.prizePool}` : null,
       eventType: form.eventType,
+      isAnonymous: form.isAnonymous,
       durationHours: draftHours,
       startsAt: draftStartsAt,
       endsAt: draftEndsAt,
@@ -382,13 +390,13 @@ export default function HostEventModal() {
       open={open}
       onClose={closeHostForm}
       label={editing ? "Edit event" : "Host an event"}
-      className="host-event-modal"
+      className={`host-event-modal${profile ? "" : " host-event-modal-signin"}`}
     >
       <div className="host-event-panel">
         <header className="host-event-header">
           <h2>{editing ? "Edit your event" : "Host an event"}</h2>
           <p className="events-subtitle">
-            Every submission is reviewed by a moderator before it appears in the grid.
+            Submissions are reviewed by a moderator before it appears.
           </p>
         </header>
 
@@ -396,10 +404,6 @@ export default function HostEventModal() {
           <div className="host-event-signin">
             <FaDiscord aria-hidden="true" />
             <h3>Sign in with Discord to host</h3>
-            <p>
-              Browsing is open to everyone. Hosting needs an account so the community knows
-              who is running the event.
-            </p>
             <button
               type="button"
               className="event-host-btn"
@@ -617,6 +621,23 @@ export default function HostEventModal() {
               {message && <p className="events-success">{message}</p>}
 
               <div className="host-event-actions">
+                <Tooltip content="Your name and avatar are hidden on the events grid. Moderators still see who submitted it, and you can change this later without another review.">
+                  <label className="event-anon-toggle">
+                    <span className="custom-checkbox">
+                      <input
+                        type="checkbox"
+                        className="checkbox"
+                        checked={form.isAnonymous}
+                        onChange={(changeEvent) =>
+                          setField("isAnonymous", changeEvent.target.checked)
+                        }
+                      />
+                      <span className="checkmark" />
+                    </span>
+                    <span className="event-anon-title">Host anonymously</span>
+                  </label>
+                </Tooltip>
+
                 <button type="button" className="event-secondary-btn" onClick={closeHostForm}>
                   Cancel
                 </button>

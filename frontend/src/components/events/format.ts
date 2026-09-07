@@ -166,7 +166,7 @@ export function matchesSearch(event: CommunityEvent, query: string): boolean {
   const needle = query.trim().toLowerCase();
   if (!needle) return true;
 
-  return [event.title, event.description, event.prizePool, event.hostUsername]
+  return [event.title, event.description, event.prizePool, event.isAnonymous ? null : event.hostUsername]
     .filter((field): field is string => typeof field === "string")
     .some((field) => field.toLowerCase().includes(needle));
 }
@@ -221,7 +221,10 @@ export function dedupeById(events: CommunityEvent[]): CommunityEvent[] {
 }
 
 export function hostAvatarUrl(event: CommunityEvent): string | null {
+  // the host's own copy of an anonymous event still carries their identity, so
+  // the check is on the flag rather than on the fields being absent
+  if (event.isAnonymous) return null;
   if (event.hostAvatarUrl) return event.hostAvatarUrl;
-  if (!event.hostAvatarHash) return null;
+  if (!event.hostAvatarHash || !event.hostDiscordId) return null;
   return `https://cdn.discordapp.com/avatars/${event.hostDiscordId}/${event.hostAvatarHash}.png?size=64`;
 }

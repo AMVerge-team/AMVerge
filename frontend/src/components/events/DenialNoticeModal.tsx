@@ -46,6 +46,7 @@ export default function DenialNoticeModal() {
             <li key={event.id}>
               <span className="denial-notice-title">{event.title}</span>
               <span className="denial-notice-reason">
+                <span className="denial-notice-reason-label">Reason:</span>{" "}
                 {event.denialReason || "No reason was given."}
               </span>
             </li>
