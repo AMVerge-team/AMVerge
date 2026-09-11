@@ -15,6 +15,7 @@ import BanNoticeModal from "./components/events/BanNoticeModal";
 import DenialNoticeModal from "./components/events/DenialNoticeModal";
 import ApprovalNoticeModal from "./components/events/ApprovalNoticeModal";
 import ScenepacksPage from "./pages/ScenepacksPage";
+import SceneScoutPage from "./pages/SceneScoutPage";
 import ImportTerminal from "./components/ImportTerminal";
 import BgProgressBar from "./components/BgProgressBar";
 import StartupNotificationModal, { type StartupNotification } from "./components/StartupNotificationModal";
@@ -107,7 +108,7 @@ function App() {
       useAppStateStore.getState().setSelectedClips(new Set());
       await new Promise((resolve) => setTimeout(resolve, 250));
 
-      const resolvedOldPath = await invoke<string>("move_episodes_to_new_dir", {
+      const resolvedOldPath = await invoke<string>("move_storage_to_new_dir", {
         oldDir: useGeneralSettingsStore.getState().episodesPath,
         newDir: null,
       });
@@ -503,6 +504,7 @@ function App() {
           <HomePage />
         </div>
         {activePage === "scenepacks" && scenepacksEnabled && <ScenepacksPage />}
+        {activePage === "sceneScout" && <SceneScoutPage />}
         {activePage === "events" && <EventsPage />}
       </div>
       <QuickMenu />

@@ -1,0 +1,328 @@
+/* Scene Scout.
+   Reuses the episode panel and import-row classes wherever the layout matches,
+   so the page reads as part of the app rather than a bolt-on. Only what is
+   genuinely new to Scene Scout lives here. */
+
+/* the shell reuses `events-toolbar-shell` and `events-toolbar-row`, which is
+   what makes the info and refresh buttons render like the Events page rather
+   than falling back to their bare defaults. only the height is ours. */
+.scene-scout-toolbar-shell {
+    height: auto;
+    min-height: 60px;
+}
+
+/* Search field ----------------------------------------------------------- */
+
+.scene-scout-search-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    /* takes the slack in the row: the query is a sentence, and the field was
+       cramped when it shared width evenly with the buttons */
+    flex: 1 1 420px;
+    min-width: 0;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid rgb(255 255 255 / 0.12);
+    border-radius: 8px;
+    background: rgb(0 0 0 / 0.35);
+}
+
+.scene-scout-search-field:focus-within {
+    border-color: var(--accent);
+}
+
+.scene-scout-search-icon {
+    flex: 0 0 auto;
+    color: rgb(255 255 255 / 0.45);
+}
+
+.scene-scout-search-field input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #fff;
+    font-family: var(--ui-font);
+    font-size: 0.85rem;
+}
+
+.scene-scout-search-field input::placeholder {
+    color: rgb(255 255 255 / 0.35);
+}
+
+.scene-scout-search-clear,
+.scene-scout-search-go {
+    flex: 0 0 auto;
+    border: none;
+    background: transparent;
+    color: rgb(255 255 255 / 0.55);
+    cursor: pointer;
+}
+
+.scene-scout-search-go {
+    padding: 0 12px;
+    height: 26px;
+    border-radius: 6px;
+    background: rgb(var(--accent-rgb) / 0.18);
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.scene-scout-search-go:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* Settings dropdown ------------------------------------------------------ */
+
+.scene-scout-settings-toggle {
+    gap: 6px;
+}
+
+.scene-scout-settings-toggle.is-open {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.scene-scout-settings-row {
+    display: flex;
+    flex-wrap: wrap;
+    /* the controls sit on a shared baseline while their labels stack above, so
+       the row aligns on the bottom rather than centring mismatched heights */
+    align-items: flex-end;
+    gap: 16px;
+    padding: 10px 12px;
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 8px;
+    background: rgb(0 0 0 / 0.28);
+    font-family: var(--ui-font);
+}
+
+.scene-scout-setting {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: rgb(255 255 255 / 0.6);
+}
+
+/* a checkbox has no label above it, so it is padded down to land on the same
+   line as the dropdown triggers beside it rather than floating at the top */
+.scene-scout-setting-inline {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+}
+
+/* the shared Dropdown brings its own trigger and menu styling; it only needs a
+   sensible width here, since its default stretches to its container */
+.scene-scout-dropdown {
+    min-width: 150px;
+}
+
+.scene-scout-db-filter .scene-scout-db-chips {
+    height: 34px;
+    align-items: center;
+}
+
+.scene-scout-db-filter {
+    flex: 1 1 260px;
+    min-width: 0;
+}
+
+.scene-scout-db-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.scene-scout-db-chip {
+    padding: 3px 10px;
+    border: 1px solid rgb(255 255 255 / 0.15);
+    border-radius: 999px;
+    background: transparent;
+    color: rgb(255 255 255 / 0.6);
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.scene-scout-db-chip.is-active {
+    border-color: var(--accent);
+    background: rgb(var(--accent-rgb) / 0.15);
+    color: var(--accent);
+}
+
+.scene-scout-progress {
+    font-family: var(--ui-font);
+    font-size: 0.78rem;
+    color: var(--accent);
+}
+
+/* Sidebar panel ---------------------------------------------------------- */
+
+/* The panel reuses `eps-container`, `episode-panel`, `episode-panel-row` and
+   `scenepack-search` wholesale, so it inherits the border, scrollbar, header
+   and row states. Only the create field below is genuinely new. */
+
+.scene-scout-create {
+    display: flex;
+    gap: 6px;
+    padding: 4px 10px 8px;
+}
+
+.scene-scout-create input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 30px;
+    padding: 0 8px;
+    border: 1px solid rgb(255 255 255 / 0.15);
+    border-radius: 6px;
+    background: rgb(0 0 0 / 0.4);
+    color: #fff;
+    font-family: var(--ui-font);
+    font-size: 0.8rem;
+}
+
+.scene-scout-create input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.scene-scout-create button {
+    padding: 0 10px;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    background: rgb(var(--accent-rgb) / 0.15);
+    color: var(--accent);
+    font-family: var(--ui-font);
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+
+.scene-scout-panel-error {
+    padding: 0 10px 6px;
+}
+
+/* the label and its chevron are separate children, so the button needs to lay
+   them out rather than relying on the default inline flow, which left the arrow
+   sitting low against the text */
+.scene-scout-settings-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: auto;
+    padding: 0 14px;
+    white-space: nowrap;
+}
+
+.scene-scout-settings-toggle svg {
+    flex: 0 0 auto;
+    font-size: 0.75em;
+    transition: transform 0.15s ease;
+}
+
+.scene-scout-settings-toggle.is-open svg {
+    transform: rotate(180deg);
+}
+
+/* matches the refresh and info buttons, which are the two beside it */
+.scene-scout-settings-toggle {
+    transition: border 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.scene-scout-settings-toggle:hover:not(:disabled) {
+    cursor: pointer;
+    box-shadow: 0 0 15px rgb(var(--accent-rgb) / 0.4);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+}
+
+/* the Custom field replaces the dropdown trigger in place, so it copies the
+   trigger's own box rather than sitting beside it as a second control */
+.scene-scout-topk-input {
+    height: 34px;
+    padding: 6px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.9);
+    font-family: var(--ui-font);
+    font-size: 0.85rem;
+    box-sizing: border-box;
+}
+
+.scene-scout-topk-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* the settings row sets the UI font for its labels, but Preview All is the same
+   control as the Home page's, so it follows the app font the user picked in
+   settings instead */
+.scene-scout-settings-row .checkbox-row > span {
+    font-family: var(--app-font);
+}
+
+/* names a database that already exists on disk, so it can only ever change the
+   sidebar label and never fails */
+.app-modal.scene-scout-name-modal {
+    width: min(420px, 92vw);
+    height: auto;
+    max-height: min(70vh, 480px);
+}
+
+.scene-scout-name-input {
+    width: 100%;
+    max-width: 320px;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid rgb(255 255 255 / 0.15);
+    border-radius: 8px;
+    background: rgb(0 0 0 / 0.4);
+    color: #fff;
+    font-family: var(--ui-font);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.scene-scout-name-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+/* no icon competing for the width, so the label takes the space instead */
+.scene-scout-toolbar-shell .events-action-button {
+    font-size: 1.3rem;
+    padding: 0 18px;
+}
+
+/* a disabled input still paints a normal field, so the whole control is dimmed
+   to match the greyed-out buttons beside it */
+.scene-scout-search-field.is-disabled {
+    opacity: 0.45;
+}
+
+.scene-scout-search-field input:disabled {
+    cursor: not-allowed;
+}
+
+/* the title is the panel's heading, so the credit sits beside it as a footnote
+   rather than competing with it. baseline-aligned so it sits on the same line
+   as the title's text rather than its box */
+.episode-panel-title .scene-scout-credit {
+    margin-left: 6px;
+    font-family: var(--ui-font);
+    font-size: 0.62rem;
+    font-weight: 400;
+    letter-spacing: 0.2px;
+    color: rgb(255 255 255 / 0.35);
+    vertical-align: baseline;
+    white-space: nowrap;
+}

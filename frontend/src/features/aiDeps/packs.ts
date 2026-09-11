@@ -6,7 +6,7 @@
 // what a pack is called, what it unlocks, and how big the download is; the
 // gating UI, the confirm dialog and the Dependencies tab all read it
 
-export type AiPackId = "ml" | "depth" | "interpolation" | "upscale";
+export type AiPackId = "ml" | "depth" | "interpolation" | "upscale" | "scout";
 
 export type TorchVariant = "cuda" | "cpu";
 
@@ -63,6 +63,15 @@ export const AI_PACKS: Record<AiPackId, AiPack> = {
       "Smooths motion by adding frames to each exported file.",
     extraSizeMb: 80,
   },
+  scout: {
+    id: "scout",
+    label: "Scene Scout",
+    dependencyName: "SigLIP 2",
+    description:
+      "Search your indexed episodes by describing a scene instead of naming a file.",
+    // transformers plus the SigLIP 2 weights, which are downloaded on first use
+    extraSizeMb: 900,
+  },
   upscale: {
     id: "upscale",
     label: "Upscaling",
@@ -74,7 +83,7 @@ export const AI_PACKS: Record<AiPackId, AiPack> = {
 
 /// packs surfaced in the UI today. upscaling has no screen yet, so it is
 /// registered but not listed
-export const VISIBLE_PACK_IDS: AiPackId[] = ["ml", "depth", "interpolation"];
+export const VISIBLE_PACK_IDS: AiPackId[] = ["ml", "depth", "interpolation", "scout"];
 
 const TORCH_SIZE_MB: Record<TorchVariant, number> = {
   cuda: 2700,

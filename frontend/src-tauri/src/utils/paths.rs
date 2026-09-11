@@ -6,6 +6,10 @@ use tauri::{AppHandle, Manager};
 /// `app_data_dir/episodes`. `episodes_storage/` and `scene_packs/` are separate
 /// subfolders beneath this root, see `resolve_episodes_storage_dir` and
 /// `resolve_scenepacks_storage_dir`
+pub const EPISODES_DIR_NAME: &str = "episodes_storage";
+pub const SCENEPACKS_DIR_NAME: &str = "scene_packs";
+pub const SCENE_SCOUT_DIR_NAME: &str = "amverge-scene-scout";
+
 pub fn resolve_storage_root(app: &AppHandle, custom_path: Option<&str>) -> Result<PathBuf, String> {
     match custom_path.map(str::trim) {
         Some(p) if !p.is_empty() => Ok(PathBuf::from(p)),
@@ -21,13 +25,35 @@ pub fn resolve_storage_root(app: &AppHandle, custom_path: Option<&str>) -> Resul
 /// own subfolder, separate from `scene_packs/`, so a Scenepack's materialized
 /// copies never share storage with, or get deleted alongside, episode data
 pub fn resolve_episodes_storage_dir(app: &AppHandle, custom_path: Option<&str>) -> Result<PathBuf, String> {
-    Ok(resolve_storage_root(app, custom_path)?.join("episodes_storage"))
+    Ok(resolve_storage_root(app, custom_path)?.join(EPISODES_DIR_NAME))
 }
 
 /// where Scenepacks' own materialized clip copies live
 pub fn resolve_scenepacks_storage_dir(app: &AppHandle, custom_path: Option<&str>) -> Result<PathBuf, String> {
-    Ok(resolve_storage_root(app, custom_path)?.join("scene_packs"))
+    Ok(resolve_storage_root(app, custom_path)?.join(SCENEPACKS_DIR_NAME))
 }
+
+/// where Scene Scout keeps its search databases.
+///
+/// the name is shared with the CLI (`amverge/core/scenescout/paths.py`,
+/// `STORAGE_DIR_NAME`) and is passed to it as `--root`, so the CLI never has to
+/// guess where the app put things. changing it on one side orphans every
+/// database written by the other
+pub fn resolve_scene_scout_storage_dir(app: &AppHandle, custom_path: Option<&str>) -> Result<PathBuf, String> {
+    Ok(resolve_storage_root(app, custom_path)?.join(SCENE_SCOUT_DIR_NAME))
+}
+
+/// every subfolder the app owns beneath the storage root.
+///
+/// a storage relocation walks this list rather than hardcoding one folder, so a
+/// new kind of storage is moved by adding its name here and nothing else. the
+/// root itself is user-chosen and routinely holds unrelated files, which is why
+/// the move is a whitelist and never "everything under the root"
+pub const OWNED_STORAGE_DIRS: &[&str] = &[
+    EPISODES_DIR_NAME,
+    SCENEPACKS_DIR_NAME,
+    SCENE_SCOUT_DIR_NAME,
+];
 
 pub fn file_name_only(s: &str) -> String {
     let p = Path::new(s);

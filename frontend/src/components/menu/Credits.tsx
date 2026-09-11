@@ -16,10 +16,7 @@ export default function Credits() {
             <div className="credits-hero">
                 <h2 className="about-hero-title">The People Behind AMVerge</h2>
                 <p className="about-hero-subtitle">
-                    AMVerge started as one editor's side project and became something the
-                    whole community builds. Nearly every feature here began as someone's
-                    suggestion, bug report, or pull request, and it goes wherever the people
-                    using it push it next.
+                    AMVerge is an open-source collaboration built with by anime editors. It's intended that this is a community tool, not tied to a single creator but rather built up by the community through suggestions, etc
                 </p>
             </div>
 
@@ -43,7 +40,7 @@ export default function Credits() {
                                     src={`https://github.com/${member.username}.png?size=96`}
                                     alt={member.name}
                                     onError={(e) => {
-                                        // fallback to initials if offline or image load fails
+                                        // Fallback to initials if offline or image load fails
                                         e.currentTarget.style.display = 'none';
                                     }}
                                 />

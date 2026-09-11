@@ -37,6 +37,11 @@ pub(crate) const PACKS: &[Pack] = &[
         requires: &["torch", "scipy", "opencv-python-headless"],
     },
     Pack {
+        id: "scout",
+        extra: "scout",
+        requires: &["torch", "transformers", "pillow"],
+    },
+    Pack {
         id: "upscale",
         extra: "upscale",
         requires: &["torch", "spandrel", "onnxruntime"],

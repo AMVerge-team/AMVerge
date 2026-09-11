@@ -10,6 +10,7 @@ import { useClipVideoSource } from "./useClipVideoSource.ts";
 import { useClipVideoElement } from "./useClipVideoElement.ts";
 import { useDownloadTone } from "./useDownloadTone.ts";
 import { formatClipTime } from "./clipFormat.ts";
+import { mediaSrcVersioned } from "../../utils/mediaSrc.ts";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { selectOverlayOpen, useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore, useThemeSettingsStore } from "../../stores/settingsStore.ts";
@@ -344,8 +345,8 @@ export const LazyClip = memo(function LazyClip({
                 src={
                   webp.webpThumbnail ??
                   (webp.hasAnimatedWebp
-                    ? `${convertFileSrc(previewWebpPath!)}?v=${importToken}`
-                    : `${convertFileSrc(webp.thumbnailSrc)}?v=${importToken}`)
+                    ? mediaSrcVersioned(previewWebpPath!, importToken)
+                    : mediaSrcVersioned(webp.thumbnailSrc, importToken))
                 }
                 style={{ opacity: shouldShowThumbnail ? 1 : 0 }}
                 draggable={false}
@@ -362,7 +363,7 @@ export const LazyClip = memo(function LazyClip({
           {isVideoMode && clip.thumbnailReady !== false && !videoThumbFailed && (
             <img
               className="clip"
-              src={`${convertFileSrc(clip.thumbnail)}?v=${importToken}${videoThumbRetry > 0 ? `&r=${videoThumbRetry}` : ""}`}
+              src={`${mediaSrcVersioned(clip.thumbnail, importToken)}${videoThumbRetry > 0 ? `&r=${videoThumbRetry}` : ""}`}
               style={{ opacity: shouldShowThumbnail ? 1 : 0 }}
               draggable={false}
               onError={() => {

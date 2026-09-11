@@ -2,6 +2,7 @@
 import SidebarNav from "./SidebarNav";
 import EpisodePanel from "./episodePanel/EpisodePanel";
 import { ScenepacksPanel } from "./scenepacks/ScenepacksPanel";
+import SceneScoutPanel from "../sceneScout/SceneScoutPanel";
 import { useUIStateStore } from "../../stores/UIStore";
 
 export default function Sidebar() {
@@ -12,7 +13,13 @@ export default function Sidebar() {
   return (
     <div className="sidebar-container">
       <SidebarNav />
-      {panelPage === "scenepacks" ? <ScenepacksPanel /> : <EpisodePanel />}
+      {panelPage === "scenepacks" ? (
+        <ScenepacksPanel />
+      ) : panelPage === "sceneScout" ? (
+        <SceneScoutPanel />
+      ) : (
+        <EpisodePanel />
+      )}
     </div>
   );
 }

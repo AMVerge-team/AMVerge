@@ -180,7 +180,7 @@ export default function GeneralSettings({
           useAppStateStore.getState().setSelectedClips(new Set());
           await new Promise((resolve) => setTimeout(resolve, 250));
 
-          const resolvedOldPath = await invoke<string>("move_episodes_to_new_dir", {
+          const resolvedOldPath = await invoke<string>("move_storage_to_new_dir", {
             oldDir: generalSettings.episodesPath,
             newDir: selected,
           });
