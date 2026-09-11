@@ -21,6 +21,22 @@
     line-height: 1.5;
 }
 
+/* inline override inside a note: an action, but not important enough to sit
+   beside Install as a second button */
+.aid-link-btn {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.aid-link-btn:hover {
+    color: #fff;
+}
+
 .aid-facts {
     display: flex;
     flex-wrap: wrap;

@@ -31,6 +31,7 @@ export default function AiInstallModal() {
   const logs = useAiDepsStore((s) => s.logs);
   const error = useAiDepsStore((s) => s.error);
   const status = useAiDepsStore((s) => s.status);
+  const gpuPreference = useAiDepsStore((s) => s.gpuPreference);
 
   const logRef = useRef<HTMLDivElement | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -79,8 +80,10 @@ export default function AiInstallModal() {
   if (!open || !pack) return null;
 
   const info = AI_PACKS[pack];
-  const sizeMb = estimateDownloadMb(status, pack);
-  const variant = plannedTorchVariant(status);
+  const sizeMb = estimateDownloadMb(status, pack, gpuPreference);
+  const variant = plannedTorchVariant(status, gpuPreference);
+  // "no GPU" is only sayable when the probe actually ran and found none
+  const gpuUndetermined = status?.gpuProbe === "unknown" || Boolean(status?.statusError);
   const close = () => useAiDepsStore.getState().close();
   const install = () => void useAiDepsStore.getState().startInstall();
   const cancel = () => useAiDepsStore.getState().cancel();
@@ -159,11 +162,29 @@ export default function AiInstallModal() {
                   {status?.torchVersion
                     ? `already installed (${status.torchVariant?.toUpperCase()})`
                     : variant === "cuda"
-                      ? "GPU / CUDA (NVIDIA GPU detected)"
-                      : "CPU (no NVIDIA GPU detected)"}
+                      ? gpuPreference === "cuda"
+                        ? "GPU / CUDA (chosen by you)"
+                        : "GPU / CUDA (NVIDIA GPU detected)"
+                      : gpuUndetermined
+                        ? "CPU (couldn't check for an NVIDIA GPU)"
+                        : "CPU (no NVIDIA GPU detected)"}
                 </dd>
               </div>
             </dl>
+            {!status?.torchVersion && variant === "cpu" ? (
+              <p className="aid-note">
+                {gpuUndetermined
+                  ? "AMVerge couldn't run nvidia-smi to check for a GPU, so it's planning the CPU build."
+                  : "No NVIDIA GPU was found, so it's planning the CPU build."}{" "}
+                <button
+                  type="button"
+                  className="aid-link-btn"
+                  onClick={() => useAiDepsStore.getState().setGpuPreference("cuda")}
+                >
+                  Install the GPU build anyway
+                </button>
+              </p>
+            ) : null}
             {status && !status.uvAvailable ? (
               <p className="pxm-errors">
                 The installer component is missing from this build, so AMVerge can't add the
