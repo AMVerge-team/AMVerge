@@ -32,6 +32,7 @@ export default function AiInstallModal() {
   const error = useAiDepsStore((s) => s.error);
   const status = useAiDepsStore((s) => s.status);
   const gpuPreference = useAiDepsStore((s) => s.gpuPreference);
+  const job = useAiDepsStore((s) => s.job);
 
   const logRef = useRef<HTMLDivElement | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -117,10 +118,12 @@ export default function AiInstallModal() {
         <header className="pxm-header">
           <span className="pxm-title">
             {stage === "done"
-              ? `${info.dependencyName} installed`
+              ? job?.done ?? `${info.dependencyName} installed`
               : stage === "error"
-                ? `${info.dependencyName} install failed`
-                : `${info.label}`}
+                ? job
+                  ? `${job.title} failed`
+                  : `${info.dependencyName} install failed`
+                : job?.title ?? info.label}
           </span>
           <div className="pxm-actions">
             {stage === "installing" ? (

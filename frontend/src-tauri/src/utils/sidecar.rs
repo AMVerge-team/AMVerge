@@ -5,27 +5,118 @@ use tauri::{AppHandle, Manager};
 
 use crate::utils::process::apply_no_window;
 
-/// where the app keeps everything it provisions at runtime.
-///
-/// ```text
-/// <app data>/uv-cache   wheel cache (cleaned after a successful install)
-/// <app data>/python     standalone CPython managed by uv
-/// <app data>/pyenv      the optional AI venv (torch + amverge AI extras)
-/// ```
 pub fn app_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
     app.path().app_data_dir().map_err(|e| e.to_string())
 }
 
+/// shared home for the Python runtime, owned by neither the app nor the
+/// extension:
+///
+/// ```text
+/// <local data>/AMVerge/runtime/uv-cache   wheel cache
+/// <local data>/AMVerge/runtime/python     standalone CPython managed by uv
+/// <local data>/AMVerge/runtime/pyenv      the optional AI venv
+/// ```
+///
+/// Local rather than roaming data: the venv runs to several GB, which a roaming
+/// profile would try to sync at logon. Named for the product rather than the
+/// bundle identifier, so the extension can find it without knowing ours.
+pub fn shared_runtime_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    if let Ok(dir) = std::env::var("AMVERGE_RUNTIME_DIR") {
+        if !dir.trim().is_empty() {
+            return Ok(PathBuf::from(dir));
+        }
+    }
+    Ok(app
+        .path()
+        .local_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("AMVerge")
+        .join("runtime"))
+}
+
+/// the runtime actually in use.
+///
+/// An environment already provisioned under the old app-owned location is used
+/// where it stands. A venv records its own absolute path in `pyvenv.cfg` and in
+/// every console script, so moving one breaks it; existing installs keep
+/// working untouched and only new environments land in the shared location.
+pub fn runtime_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(pick_runtime_dir(
+        shared_runtime_dir(app)?,
+        app_data_dir(app).ok(),
+        |root| venv_python_in(root).is_file(),
+    ))
+}
+
+/// shared unless an environment already exists in the legacy location.
+/// `has_env` is injected so the choice can be tested without a filesystem.
+fn pick_runtime_dir<F>(shared: PathBuf, legacy: Option<PathBuf>, has_env: F) -> PathBuf
+where
+    F: Fn(&PathBuf) -> bool,
+{
+    if has_env(&shared) {
+        return shared;
+    }
+    if let Some(legacy) = legacy {
+        if has_env(&legacy) {
+            return legacy;
+        }
+    }
+    shared
+}
+
+fn venv_python_in(runtime_root: &PathBuf) -> PathBuf {
+    venv_bin_dir(&runtime_root.join("pyenv")).join(exe_name("python"))
+}
+
+#[cfg(test)]
+mod runtime_dir_tests {
+    use super::*;
+
+    fn shared() -> PathBuf {
+        PathBuf::from("/local/AMVerge/runtime")
+    }
+    fn legacy() -> PathBuf {
+        PathBuf::from("/roaming/app.amverge")
+    }
+
+    #[test]
+    fn existing_legacy_env_is_used_where_it_stands() {
+        // a venv hardcodes its own path, so moving one would break it
+        let picked = pick_runtime_dir(shared(), Some(legacy()), |root| *root == legacy());
+        assert_eq!(picked, legacy());
+    }
+
+    #[test]
+    fn shared_wins_when_both_exist() {
+        let picked = pick_runtime_dir(shared(), Some(legacy()), |_| true);
+        assert_eq!(picked, shared());
+    }
+
+    #[test]
+    fn new_installs_go_to_shared() {
+        let picked = pick_runtime_dir(shared(), Some(legacy()), |_| false);
+        assert_eq!(picked, shared());
+    }
+
+    #[test]
+    fn missing_legacy_path_is_not_fatal() {
+        let picked = pick_runtime_dir(shared(), None, |_| false);
+        assert_eq!(picked, shared());
+    }
+}
+
 pub fn ai_env_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    Ok(app_data_dir(app)?.join("pyenv"))
+    Ok(runtime_dir(app)?.join("pyenv"))
 }
 
 pub fn uv_python_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    Ok(app_data_dir(app)?.join("python"))
+    Ok(runtime_dir(app)?.join("python"))
 }
 
 pub fn uv_cache_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    Ok(app_data_dir(app)?.join("uv-cache"))
+    Ok(runtime_dir(app)?.join("uv-cache"))
 }
 
 /// `Scripts` on Windows, `bin` everywhere else

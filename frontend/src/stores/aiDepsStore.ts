@@ -38,6 +38,11 @@ export type AiDepsStore = {
   logs: string[];
   error: string | null;
 
+  /// names the operation when it is not "install this pack": the dialog is
+  /// reused for GPU decode, where "TransNetV2 installed" describes neither what
+  /// is running nor what finished. null falls back to the pack's own wording
+  job: { title: string; done: string } | null;
+
   /// user's override for the CUDA/CPU wheel choice, for when the GPU probe is
   /// wrong. persisted, because it has to survive the next install too
   gpuPreference: GpuPreference;
@@ -82,6 +87,7 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
   message: "",
   logs: [],
   error: null,
+  job: null,
 
   refresh: async () => {
     set({ loading: true });
@@ -123,6 +129,7 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
       message: "",
       logs: [],
       error: null,
+      job: null,
     });
 
     return new Promise<boolean>((resolve) => {
@@ -188,13 +195,16 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
       message: "Reinstalling PyTorch with GPU support...",
       logs: [],
       error: null,
+      job: { title: "GPU support", done: "GPU support installed" },
     });
 
     try {
       const next = await invoke<AiEnvStatus>("install_ai_pack", {
         pack: installed[0],
         gpu: true,
-        gpuDecode: get().status?.gpuDecodeInstalled ?? false,
+        // omitted on purpose: a torch repair must not decide the GPU decode
+        // profile, and the backend leaves it as it found it
+        gpuDecode: undefined,
       });
       set({
         status: next,
@@ -235,9 +245,13 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
       indeterminate: true,
       message: enabled
         ? "Rebuilding the AI environment with GPU decode..."
-        : "Rebuilding the AI environment without GPU decode...",
+        : "Removing GPU decode...",
       logs: [],
       error: null,
+      job: {
+        title: enabled ? "Enabling GPU decoding" : "Disabling GPU decoding",
+        done: enabled ? "GPU decoding enabled" : "GPU decoding disabled",
+      },
     });
 
     try {

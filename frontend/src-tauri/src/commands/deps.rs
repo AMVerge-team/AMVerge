@@ -41,7 +41,6 @@ pub async fn install_ai_pack(
     gpu: bool,
     gpu_decode: Option<bool>,
 ) -> Result<AiEnvStatus, String> {
-    let gpu_decode = gpu_decode.unwrap_or(false);
     let target = pack_by_id(&pack)?;
 
     if cfg!(debug_assertions) {

@@ -73,7 +73,8 @@
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.05);
     color: rgba(255, 255, 255, 0.85);
-    font-family: inherit;
+    /* Arial: labels on controls are read, not glanced at like the display type */
+    font-family: var(--ui-font);
     font-size: 12px;
     cursor: pointer;
     transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
@@ -117,8 +118,63 @@
     gap: 10px;
 }
 
+/* scoped to these rows rather than `.settings-value` itself, which the other
+   settings tabs share. version strings and sizes are read, so Arial */
+.aid-pack-row .settings-value {
+    font-family: var(--ui-font);
+    font-size: 12px;
+}
+
+/* on/off switch for a capability that is either present or not, where a button
+   labelled with its own next action reads as ambiguous */
+.aid-switch {
+    position: relative;
+    flex-shrink: 0;
+    width: 40px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.09);
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.aid-switch::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    margin-top: -8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.55);
+    transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.aid-switch[aria-checked='true'] {
+    border-color: rgb(var(--accent-rgb) / 0.9);
+    background: rgb(var(--accent-rgb) / 0.35);
+}
+
+.aid-switch[aria-checked='true']::after {
+    transform: translateX(18px);
+    background: var(--accent);
+}
+
+.aid-switch:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.aid-switch:not(:disabled):hover {
+    border-color: rgb(var(--accent-rgb) / 0.7);
+}
+
 .aid-state {
-    font-size: 0.78rem;
+    font-family: var(--ui-font);
+    font-size: 0.7rem;
     letter-spacing: 0.4px;
     text-transform: uppercase;
     color: rgba(255, 255, 255, 0.45);

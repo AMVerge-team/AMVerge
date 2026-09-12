@@ -6,7 +6,7 @@ use tauri::AppHandle;
 use crate::state::ActiveInstall;
 use crate::utils::logging::{console_log, sanitize_for_console};
 use crate::utils::sidecar::{
-    ai_env_dir, ai_env_python, ai_env_ready, app_data_dir, bundled_cli_version, uv_cache_dir,
+    ai_env_dir, ai_env_python, ai_env_ready, bundled_cli_version, runtime_dir, uv_cache_dir,
 };
 
 use super::packs::{
@@ -33,8 +33,6 @@ pub(crate) fn run_uv_step(
         *lock = Some(child.id());
     }
 
-    // uv writes its progress to stderr and command output to stdout. drain
-    // stdout on its own thread so a full pipe can never deadlock the reader
     let stdout_handle = child.stdout.take().map(|stdout| {
         let app = app.clone();
         let pack = pack.to_string();
@@ -119,20 +117,26 @@ pub(crate) fn install_ai_pack_inner(
     install_state: &ActiveInstall,
     pack: &Pack,
     gpu: bool,
-    gpu_decode: bool,
+    gpu_decode: Option<bool>,
 ) -> Result<(), String> {
     let env_dir = ai_env_dir(app)?;
     let python = ai_env_python(app)?;
-    std::fs::create_dir_all(app_data_dir(app)?).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(runtime_dir(app)?).map_err(|e| e.to_string())?;
+
+    let has_nelux = installed_distributions(app, &python)
+        .map(|d| d.contains_key("nelux"))
+        .unwrap_or(false);
+    let want_nelux = gpu_decode.unwrap_or(has_nelux);
 
     console_log(
         "DEPS|install",
-        &format!("pack={} gpu={gpu} gpu_decode={gpu_decode}", pack.id),
+        &format!(
+            "pack={} gpu={gpu} gpu_decode={want_nelux} (was {has_nelux})",
+            pack.id
+        ),
     );
 
-    // GPU decode needs its own interpreter and CUDA index, so switching between
-    // the two profiles means rebuilding the environment rather than adding to it
-    let wanted_python = if gpu_decode {
+    let wanted_python = if want_nelux {
         AI_ENV_PYTHON_VERSION_GPU_DECODE
     } else {
         AI_ENV_PYTHON_VERSION
@@ -144,9 +148,28 @@ pub(crate) fn install_ai_pack_inner(
     } else {
         None
     };
+
+    // turning GPU decode off is only ever removing Nelux. nothing else in the
+    // environment changes, so there is no resolution to run and nothing to
+    // download; rebuilding for it re-fetched several GB to arrive somewhere
+    // strictly worse
+    if gpu_decode == Some(false) && existing_python.is_some() {
+        if has_nelux {
+            emit_progress(app, pack.id, "packages", 50, true, "Removing GPU decode...");
+            let mut cmd = uv_command(app)?;
+            cmd.arg("pip")
+                .arg("uninstall")
+                .arg("--python")
+                .arg(&python)
+                .arg("nelux");
+            run_uv_step(app, install_state, pack.id, cmd, "Removing GPU decode")?;
+        }
+        emit_progress(app, pack.id, "done", 100, false, "GPU decode removed.");
+        return Ok(());
+    }
     let needs_rebuild = match existing_python.as_deref() {
         None => true,
-        Some(found) => found != wanted_python,
+        Some(found) => want_nelux && found != AI_ENV_PYTHON_VERSION_GPU_DECODE,
     };
 
     // read BEFORE the rebuild empties the env, or every other pack gets dropped
@@ -219,7 +242,7 @@ pub(crate) fn install_ai_pack_inner(
         }
     }
     extras.push(pack.extra);
-    if gpu_decode {
+    if want_nelux {
         extras.push("nelux");
     }
 
@@ -253,14 +276,16 @@ pub(crate) fn install_ai_pack_inner(
         cmd.arg(dist);
     }
 
-    if gpu_decode {
+    if want_nelux {
         cmd.arg(TORCH_PIN_GPU_DECODE);
     }
 
     if gpu {
-        // do NOT add --index-strategy unsafe-best-match: it would pick PyPI's newer
-        // torch over the CUDA index and silently land a CPU wheel
-        cmd.arg("--extra-index-url").arg(if gpu_decode {
+        let on_cuda13 = installed
+            .get("torch")
+            .map(|v| v.contains("+cu13"))
+            .unwrap_or(false);
+        cmd.arg("--extra-index-url").arg(if want_nelux || on_cuda13 {
             TORCH_CUDA_INDEX_GPU_DECODE
         } else {
             TORCH_CUDA_INDEX

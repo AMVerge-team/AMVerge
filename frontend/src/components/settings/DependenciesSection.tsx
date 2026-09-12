@@ -156,17 +156,18 @@ export default function DependenciesSection() {
               }
               control={
                 <div className="aid-pack-row">
-                  <span className="settings-value" style={{ width: "auto" }}>
+                  <span className={`aid-state${gpuDecodeOn ? " installed" : ""}`}>
                     {gpuDecodeOn ? "on" : "off"}
                   </span>
                   <button
                     type="button"
-                    className="aid-btn"
+                    role="switch"
+                    aria-checked={gpuDecodeOn}
+                    aria-label="GPU decode"
+                    className="aid-switch"
                     onClick={() => void useAiDepsStore.getState().setGpuDecode(!gpuDecodeOn)}
                     disabled={busy !== null}
-                  >
-                    {gpuDecodeOn ? "Turn off" : "Turn on"}
-                  </button>
+                  />
                 </div>
               }
             />
@@ -183,7 +184,9 @@ export default function DependenciesSection() {
                 control={
                   <div className="aid-pack-row">
                     <span className={`aid-state${installed ? " installed" : ""}`}>
-                      {installed ? "Installed" : `~${formatSizeMb(estimateDownloadMb(status, packId))}`}
+                      {installed
+                      ? "Installed"
+                      : `~${formatSizeMb(estimateDownloadMb(status, packId, gpuPreference))}`}
                     </span>
                     {installed ? (
                       <button
