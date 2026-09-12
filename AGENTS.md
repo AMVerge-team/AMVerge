@@ -1,7 +1,7 @@
 # AMVerge v2: AI Agent Guide
 
 > Target: `V2_BRANCH` (Tauri v2 + React + AMVerge-CLI)
-> Last updated: 2026-08-06
+> Last updated: 2026-08-11
 
 ## Architecture Overview
 
@@ -527,7 +527,7 @@ App starts → main.tsx: maybeCheckForUpdatesOnStartup()
 
 ---
 
-## Key Gotchas
+## Key Things to Remember
 
 1. **CLI sidecar is external**: `AMVerge-CLI` is a separate Git repo. Dev mode expects it at `../AMVerge-CLI/`. Prod bundles it via PyInstaller.
 
@@ -550,3 +550,5 @@ App starts → main.tsx: maybeCheckForUpdatesOnStartup()
 10. **All child processes killed on close**: `on_window_event(CloseRequested)` walks all PID lists and kills every subprocess.
 
 11. **Dev builds never install AI**: `ai_env_status` reports `managed: false`, and `ensurePack`/`install_ai_pack` short-circuit in dev. AI runs from the CLI checkout's venv; install extras there with `pip install -e .[all]`. A `managed`-mode (production) build shows the real install dialog.
+
+12. **Be sure to keep comments concise**: Use lowercase for all comments and they should all only be one line long. Only add comments where needed.
