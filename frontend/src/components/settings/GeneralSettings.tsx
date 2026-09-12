@@ -400,6 +400,29 @@ export default function GeneralSettings({
 
         <SettingsSection id="general.features" title="Features">
         <SettingRow
+          label="Startup Screen"
+          description="Show the AMVerge logo briefly when the app opens. Click or press any key to skip it."
+          control={
+            <div className="settings-control">
+              <label className="custom-checkbox">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={generalSettings.showStartupSplash}
+                  onChange={(e) =>
+                    setGeneralSettings((prev) => ({
+                      ...prev,
+                      showStartupSplash: e.target.checked,
+                    }))
+                  }
+                />
+                <span className="checkmark"></span>
+              </label>
+            </div>
+          }
+        />
+
+        <SettingRow
           label="Scenepacks"
           description="Enable the Scenepacks feature for grouping clips into themed collections."
           control={

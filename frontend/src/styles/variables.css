@@ -11,6 +11,11 @@
     --app-bg-opacity: 1;
     --app-bg-blur: 0px;
     --bg-accent: #001a00;
+    /* same colour as a triplet, so the gradient's far stop can carry an alpha */
+    --bg-accent-rgb: 0 26 0;
+    /* multiplies every background layer: 0 hides them, 1 shows them at the
+       opacity the user chose. the splash fades this up on the way out */
+    --app-bg-reveal: 1;
     --app-font: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     --app-font-adjust: none;
 

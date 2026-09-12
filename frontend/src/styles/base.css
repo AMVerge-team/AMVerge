@@ -11,10 +11,25 @@
     box-sizing: border-box;
 }
 
+/* registered so it can be transitioned: an unregistered custom property has no
+   type, so the browser snaps between values instead of interpolating */
+@property --app-bg-reveal {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 1;
+}
+
 body {
     background-color: #000;
 
-    background-image: linear-gradient(160deg, #000000 50%, var(--bg-accent) 100%);
+    /* the far stop carries the reveal as its alpha, so at 0 the gradient is
+       plain black over the black background-color and fades up from there */
+    background-image: linear-gradient(
+        160deg,
+        #000000 50%,
+        rgb(var(--bg-accent-rgb) / var(--app-bg-reveal, 1)) 100%
+    );
+    transition: --app-bg-reveal 900ms ease;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -38,7 +53,9 @@ body::before {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    opacity: var(--app-bg-opacity, 1);
+    /* the user's opacity scaled by the reveal, so the image arrives with the
+       gradient rather than being visible behind a black one */
+    opacity: calc(var(--app-bg-opacity, 1) * var(--app-bg-reveal, 1));
     filter: blur(var(--app-bg-blur, 0px));
     z-index: -1;
     pointer-events: none;
@@ -55,7 +72,7 @@ body::before {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: var(--app-bg-opacity, 1);
+    opacity: calc(var(--app-bg-opacity, 1) * var(--app-bg-reveal, 1));
     filter: blur(var(--app-bg-blur, 0px));
     z-index: -1;
     pointer-events: none;

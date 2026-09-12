@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Event, listen } from "@tauri-apps/api/event";
 import { DEFAULT_GENERAL_SETTINGS } from "./stores/settingsStore";
@@ -19,6 +19,7 @@ import SceneScoutPage from "./pages/SceneScoutPage";
 import ImportTerminal from "./components/ImportTerminal";
 import BgProgressBar from "./components/BgProgressBar";
 import StartupNotificationModal, { type StartupNotification } from "./components/StartupNotificationModal";
+import SplashScreen from "./components/SplashScreen";
 import PostExportPassesModal from "./components/PostExportPassesModal";
 import AiInstallModal from "./components/AiInstallModal";
 
@@ -92,6 +93,27 @@ function App() {
   const abortedRef = useRef(false);
 
   const scenepacksEnabled = useGeneralSettingsStore((s) => s.scenepacksEnabled);
+
+  // read once on mount: toggling the setting should not make the splash appear
+  // over an app the user is already using
+  const [splashVisible, setSplashVisible] = useState(
+    () => useGeneralSettingsStore.getState().showStartupSplash,
+  );
+
+  // hide every background layer while the splash is up, so the gradient and any
+  // wallpaper fade in with the app rather than being there all along. before
+  // paint, or the first frame shows the background at full strength
+  useLayoutEffect(() => {
+    if (splashVisible) {
+      document.body.style.setProperty("--app-bg-reveal", "0");
+    }
+  }, []);
+
+  const handleSplashFinished = useCallback(() => {
+    setSplashVisible(false);
+    // the transition on body carries it the rest of the way
+    document.body.style.setProperty("--app-bg-reveal", "1");
+  }, []);
   const themeSettings = useThemeSettingsStore();
 
 
@@ -527,6 +549,7 @@ function App() {
       ) : null}
       <PostExportPassesModal />
       <AiInstallModal />
+      {splashVisible ? <SplashScreen onFinished={handleSplashFinished} /> : null}
       </AppLayout>
   );
 }

@@ -12,6 +12,7 @@
 @import "./common/overlays/quickMenu.css";
 @import "./common/overlays/spotlight.css";
 @import "./common/overlays/appModal.css";
+@import "./common/overlays/splash.css";
 @import "./common/startupNotification.css";
 @import "./common/tooltip.css";
 @import "./home/clipsGrid.css";
