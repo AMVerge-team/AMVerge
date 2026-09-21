@@ -59,7 +59,6 @@ export type GeneralSettings = {
     scenepacksEnabled: boolean;
     davinciResolveEnabled: boolean;
     davinciExportSelected: boolean;
-    showStartupSplash: boolean;
 };
 
 export type GeneralSettingsStore = GeneralSettings & {
@@ -88,7 +87,6 @@ export type GeneralSettingsStore = GeneralSettings & {
     setScenepacksEnabled: (enabled: boolean) => void;
     setDavinciResolveEnabled: (enabled: boolean) => void;
     setDavinciExportSelected: (selected: boolean) => void;
-    setShowStartupSplash: (enabled: boolean) => void;
     resetGeneralSettings: () => void;
     setSceneDetectionMethod: (method: SceneDetectionMethod) => void;
     setImportMethod: (method: importMethod) => void;
@@ -128,7 +126,6 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     scenepacksEnabled: false,
     davinciResolveEnabled: false,
     davinciExportSelected: false,
-    showStartupSplash: true,
 };
 
 export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
@@ -260,9 +257,6 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
             setDavinciExportSelected: (selected) =>
                 set({ davinciExportSelected: selected }),
 
-            setShowStartupSplash: (enabled) =>
-                set({ showStartupSplash: enabled }),
-            
             resetGeneralSettings: () => set(DEFAULT_GENERAL_SETTINGS),
             updatePostExportPasses: (pass, changes) =>
                 set((state) => ({

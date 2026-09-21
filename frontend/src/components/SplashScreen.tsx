@@ -52,7 +52,10 @@ export default function SplashScreen({ onFinished }: SplashScreenProps) {
   return (
     <div className={`splash${leaving ? " splash-leaving" : ""}`} role="presentation">
       <div className="splash-inner">
-        <h1 className="splash-logo">AMVerge</h1>
+        {/* split the same way the navbar does: accent "AMV", white "erge" */}
+        <h1 className="splash-logo">
+          <span>AMV</span>erge
+        </h1>
         <p className="splash-tagline">Scene selection made easy.</p>
       </div>
     </div>

@@ -94,19 +94,13 @@ function App() {
 
   const scenepacksEnabled = useGeneralSettingsStore((s) => s.scenepacksEnabled);
 
-  // read once on mount: toggling the setting should not make the splash appear
-  // over an app the user is already using
-  const [splashVisible, setSplashVisible] = useState(
-    () => useGeneralSettingsStore.getState().showStartupSplash,
-  );
+  const [splashVisible, setSplashVisible] = useState(true);
 
   // hide every background layer while the splash is up, so the gradient and any
   // wallpaper fade in with the app rather than being there all along. before
   // paint, or the first frame shows the background at full strength
   useLayoutEffect(() => {
-    if (splashVisible) {
-      document.body.style.setProperty("--app-bg-reveal", "0");
-    }
+    document.body.style.setProperty("--app-bg-reveal", "0");
   }, []);
 
   const handleSplashFinished = useCallback(() => {

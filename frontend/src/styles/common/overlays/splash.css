@@ -7,20 +7,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    /* the same treatment as the app's own body, so this reads as the app
-       arriving rather than a different surface. `--bg-accent` is whatever
-       background colour the user picked, so it belongs at the far end of a
-       mostly-black gradient, never as a flat fill */
     background-color: #000;
-    background-image:
-        radial-gradient(
-            circle at 50% 44%,
-            rgb(var(--accent-rgb) / 0.10) 0%,
-            transparent 36%
-        ),
-        linear-gradient(160deg, #000000 50%, var(--bg-accent, #000) 100%);
-    /* a splash is decoration, and clicking through it should not land on the UI
-       underneath before it has gone */
+    background-image: radial-gradient(
+        circle at 50% 44%,
+        rgb(var(--accent-rgb) / 0.10) 0%,
+        transparent 36%
+    );
     cursor: default;
     animation: splashBackdropIn 0.35s ease both;
 }
@@ -40,10 +32,14 @@
     font-weight: 400;
     line-height: 1;
     letter-spacing: 1px;
-    /* the accent the user picked, which is the point of showing it here */
-    color: var(--accent);
+    color: #fff;
     text-shadow: 0 0 38px rgb(var(--accent-rgb) / 0.45);
     animation: splashRise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* matches `.navbar span`: accent "AMV", white "erge" */
+.splash-logo span {
+    color: var(--accent);
 }
 
 .splash-tagline {
@@ -52,12 +48,9 @@
     font-size: 13px;
     letter-spacing: 0.4px;
     color: rgb(255 255 255 / 0.62);
-    /* trails the wordmark rather than arriving with it */
     animation: splashRise 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.22s both;
 }
 
-/* exit: the whole thing lifts up and out, which is what "fades back up into the
-   episode opening" asks for */
 .splash-leaving {
     animation: splashOut 0.55s cubic-bezier(0.4, 0, 1, 1) both;
     pointer-events: none;
