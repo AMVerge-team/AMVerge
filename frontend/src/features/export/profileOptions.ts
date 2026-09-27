@@ -16,8 +16,11 @@ export const NVIDIA_ENCODER_SUPPORT_MATRIX_URL =
   "https://developer.nvidia.com/video-encode-decode-support-matrix";
 
 export const EXPORT_WORKFLOW_OPTIONS: { value: ExportWorkflow; label: string }[] = [
-  { value: "video_encode", label: "Export video (re-encode)" },
-  { value: "video_remux", label: "Export video (stream copy / remux)" },
+  { value: "video_encode", label: "Export video (re-encode exact cuts)" },
+  {
+    value: "video_remux",
+    label: "Fast remux (stream copy; container selected from source)",
+  },
 ];
 
 export const EXPORT_CODEC_OPTIONS: { value: ExportCodec; label: string }[] = [

@@ -194,7 +194,12 @@ export default function ImportTerminal({
           pushLine("event", `✓ ${name} · ${clip_mode || "done"}`);
         }),
         listen("phase1_complete", () => {
-          pushLine("event", "phase 1 complete · keyframe clips ready");
+          pushLine(
+            "event",
+            detectionMethod.startsWith("keyframe")
+              ? "keyframe clips ready"
+              : "scenes detected · encoding exact previews"
+          );
         }),
       ]);
 

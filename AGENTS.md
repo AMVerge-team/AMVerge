@@ -3,6 +3,25 @@
 > Target: `V2_BRANCH` (Tauri v2 + React + AMVerge-CLI)
 > Last updated: 2026-08-06
 
+## Cross-Repo Contracts
+
+Sibling repos sit next to this one: `../AMVerge-CLI` (the Python backend this app spawns) and `../AMVerge-Extension` (After Effects CEP panel). Each repo has its own agent, and this agent owns this repo only.
+
+- **Reading** sibling repos needs no prompt. **Editing** them asks the user every time (`.claude/hooks/sibling_edit_guard.py`, PreToolUse, reads `siblings` from `contracts.json`). The hook covers the file-editing tools, not shell commands, so never change a sibling repo through Bash. Path-based `Edit(../...)` permission rules were tried and do not work: they cannot match outside the project root. Only do it for trivial fixes the user approves. Anything else goes through `/handoff`.
+- `.claude/contracts.json` lists the files here that call into or are mirrored by other repos. Keep it current.
+- `.claude/hooks/contract_guard.py` (PostToolUse) reminds you, once per session per contract, when you edit one of those files.
+- The CLI is upstream. If the app needs the CLI to behave differently (new flag, event, JSON field, extra), do not work around it in Rust or TS: run `/handoff AMVerge-CLI` with the request. When a CLI handoff arrives here, adapt the app to it.
+- `/handoff <repo>` writes a brief to `.claude/handoffs/` (gitignored), runs that repo's agent headless in its own checkout (accept-edits, cannot edit other repos, does not commit), and relays its report.
+
+| Contract | Here | Other side |
+|---|---|---|
+| `amverge backend` / `materialize-clips` + IPC events | `commands/scenes.rs`, `commands/scenepacks.rs` | CLI `commands/sidecar/*`, `core/infra/ipc.py` |
+| `amverge export` + `--ipc` post passes | `commands/export.rs`, `commands/export/*` | CLI `commands/export/export.py`, `core/export/engine.py`, `core/infra/preview.py` |
+| `amverge models --json` | `commands/models.rs` | CLI `commands/upscaling/models.py` |
+| `amverge[extras]` install | `commands/deps/*` | CLI `pyproject.toml` |
+| `extension_sync/` dir | `commands/extension_sync.rs`, `src/hooks/useExtensionSync.ts` | Extension (writer not found on `mac-support-v0`) |
+| UI design tokens | `src/styles/*` | Extension `AMVERGE_APP_UI_REFERENCE.md`, `AMVerge/css/*` |
+
 ## Architecture Overview
 
 ```
@@ -355,7 +374,7 @@ useImportExport.ts: handleImport(file)
   │   │     ├─ Read stdout → build final manifest.json
   │   │     └─ On exit: write manifest.json to disk
   │   │
-  │   └─ Resolves on phase1_complete OR process end
+  │   └─ Resolves on phase1_complete OR process end; AI previews continue encoding in the background
   │
   └─ IF importMethod === "webp_files" (blocking):
       └─ await invoke("detect_scenes", ...) → blocks
@@ -372,7 +391,7 @@ User selects clips + clicks Export
   ▼
 useImportExport.ts: handleExport(selectedClips, mergeEnabled)
   ├─ buildExportOptionsPayload(profileId)
-  ├─ clipExportSpecs(clip) → { input, start_sec?, end_sec? }
+  ├─ clipExportSpecs(clip) → episode source range, or a Scenepack's materialized clip
   ├─ invoke("export_clips", { clips, savePath, mergeEnabled, exportOptions })
   │     │
   │     ▼ Rust export.rs
@@ -451,9 +470,9 @@ All ffmpeg processes:
 
 | Method | Description |
 |--------|-------------|
-| `transnetv2_gpu` | PyTorch ML model (GPU accelerated) |
+| `transnetv2_gpu` | PyTorch ML model (GPU accelerated), previews always re-encoded at detected boundaries |
 | `pyscenedetect_cpu` | PySceneDetect library (CPU, adaptive) |
-| `keyframe_detection` | Fast keyframe-based split (no ML) |
+| `keyframe_detection` | Fast stream-copy split at keyframes (no ML) |
 
 ---
 
@@ -543,7 +562,7 @@ App starts → main.tsx: maybeCheckForUpdatesOnStartup()
 
 7. **Preview proxy locks**: per-clip `AsyncMutex` prevents duplicate transcodes of the same file.
 
-8. **Export resilience**: stream-copy first, re-encode on failure. GPU contention → reduce workers by 1 and retry.
+8. **Export modes**: remux profiles use stream copy snapped outward to source keyframes; encode profiles always re-encode source ranges. GPU contention can fall back from GPU to CPU encoding, but never changes a copy export into an encode.
 
 9. **Animated WebP cache**: fingerprinted by SHA-256 of file head/mid/tail bytes. Cache invalidated if source changes.
 

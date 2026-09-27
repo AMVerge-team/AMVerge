@@ -84,7 +84,7 @@ fn davinci_install_path() -> Option<PathBuf> {
 /// Windows sets this inline in `run_python_script`, where it also has to prepend
 /// Resolve's folder to PATH for `fusionscript.dll`'s dependencies
 #[cfg(not(target_os = "windows"))]
-pub(super) fn apply_resolve_script_env(cmd: &mut Command) {
+pub(super) fn apply_resolve_script_env(cmd: &mut std::process::Command) {
     let Some(install) = davinci_install_path() else {
         return;
     };

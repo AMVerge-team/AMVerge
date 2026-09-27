@@ -148,7 +148,7 @@ pub(crate) fn run_python_script(script_path: &Path) -> Result<String, String> {
             .env("PYTHONIOENCODING", "utf-8");
 
         #[cfg(not(target_os = "windows"))]
-        davinci_resolve::apply_resolve_script_env(&mut cmd);
+        super::davinci_resolve::apply_resolve_script_env(&mut cmd);
 
         #[cfg(target_os = "windows")]
         {

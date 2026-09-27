@@ -264,6 +264,10 @@ pub async fn detect_scenes(
         cmd.current_dir(exe_dir);
     }
 
+    // the CLI decides copy vs re-encode per detection method on its own now
+    // (transnetv2 previews are always re-encoded to the exact detected
+    // timestamp; keyframe previews are always stream-copied); nothing to
+    // pass here
     let mut child = cmd
         .arg("backend")
         .arg(&video_path)

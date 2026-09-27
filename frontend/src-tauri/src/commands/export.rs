@@ -22,10 +22,10 @@ pub use types::{
     ExportOptionsPayload, GpuEncoderCapabilitiesPayload, NvidiaEncoderDetectionPayload,
 };
 
-/// one clip to export. `input` is a pre-cut clip file exported whole (video
-/// mode); when `start_sec`/`end_sec` are present, `input` is a source episode
-/// and that range is cut from it (webp mode). serialized as-is into the CLI's
-/// `--inputs-json`
+/// one clip to export. `input` is a pre-cut clip file exported whole when no
+/// range is present; otherwise it is the original source episode and the CLI
+/// applies the selected export mode to that range. serialized as-is into the
+/// CLI's `--inputs-json`
 #[derive(serde::Deserialize, serde::Serialize)]
 pub(crate) struct ClipSpec {
     input: String,

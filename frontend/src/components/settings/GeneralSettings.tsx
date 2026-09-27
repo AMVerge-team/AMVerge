@@ -233,10 +233,9 @@ export default function GeneralSettings({
                   looked at frame by frame. A GPU makes this much faster.
                 </p>
                 <p>
-                  Near the end of an import you may see some clips being re-encoded. Video
-                  can only be split instantly at a keyframe, so any clip whose cut does not
-                  land on one gets rebuilt. That is what makes each clip start exactly where
-                  the AI said the shot changed instead of a moment early or late.
+                  After detection, AMVerge re-encodes the AI scene previews. This makes every
+                  clip start exactly where the AI found the shot change instead of a moment
+                  early or late.
                 </p>
 
                 <h4>Keyframe Detection</h4>
