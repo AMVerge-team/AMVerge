@@ -20,11 +20,13 @@ import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
 import { clipExportSpecs } from "../../features/export/clipSpecs.ts";
 import { deliverExportedFiles } from "../../features/export/deliverExports.ts";
+import { remuxAudioModeForSource, remuxContainerForSource, type ExportSourceStreams } from "../../features/export/remuxPolicy.ts";
 import { useScenepacksStore } from "../../stores/scenepackStore.ts";
 import { useContextMenuStore } from "../../stores/contextMenuStore.ts";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
 import { removeClipsFromScenepack } from "../../utils/scenepackStorage.ts";
 import type { ClipItem } from "../../types/domain.ts";
+import type { ExportContainer } from "../../features/export/profileTypes.ts";
 
 export default function ClipsContainer({ cols }: { cols?: number }) {
   const clips = useAppStateStore((state) => state.clips);
@@ -184,8 +186,19 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
       const activeProfile = settings.exportProfiles.find(
         (candidate) => candidate.id === settings.activeExportProfileId
       ) ?? settings.exportProfiles[0];
-      const format = activeProfile?.container || settings.exportFormat || "mp4";
+      let format: ExportContainer = activeProfile?.container ?? "mp4";
       const fileName = clip.originalName || clip.src.split(/[\\/]/).pop() || "clip";
+      const srcs = clipExportSpecs(clip);
+      const sourcePath = srcs[0]?.input;
+      let source: ExportSourceStreams = { videoCodec: null, audioCodecs: [] };
+      if (activeProfile?.workflow === "video_remux" && sourcePath) {
+        try {
+          source = await invoke<ExportSourceStreams>("probe_export_source_streams", { videoPath: sourcePath });
+        } catch (error) {
+          console.warn("Could not inspect remux source streams", error);
+        }
+        format = remuxContainerForSource(sourcePath, source.videoCodec);
+      }
       const defaultPath = `${fileName}.${format}`;
 
       const savePath = await save({
@@ -197,14 +210,14 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
 
       setLoading(true);
 
-      const srcs = clipExportSpecs(clip);
       const exportOptions = {
         profileId: activeProfile.id,
         workflow: activeProfile.workflow,
         editorTarget: activeProfile.editorTarget,
         codec: activeProfile.codec,
-        audioMode:
-          activeProfile.container === "mov" && activeProfile.audioMode === "flac"
+        audioMode: activeProfile.workflow === "video_remux"
+          ? remuxAudioModeForSource(activeProfile.audioMode, format, source.audioCodecs)
+          : activeProfile.container === "mov" && activeProfile.audioMode === "flac"
             ? "alac"
             : activeProfile.audioMode === "none"
               ? "copy"

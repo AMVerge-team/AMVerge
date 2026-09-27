@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Arc;
 
@@ -17,6 +17,14 @@ use crate::utils::process::apply_no_window;
 pub async fn check_hevc(app: AppHandle, video_path: String) -> Result<bool, String> {
     if video_path.trim().is_empty() {
         return Err("video_path is empty".to_string());
+    }
+
+    // An episode can remain in the panel after its original source was moved
+    // or deleted. HEVC detection only informs browser preview handling, so a
+    // missing source should simply use the safe non-HEVC path, not emit an
+    // alarming ffprobe error whenever that episode is opened.
+    if !Path::new(&video_path).is_file() {
+        return Ok(false);
     }
 
     let video_name = file_name_only(&video_path);

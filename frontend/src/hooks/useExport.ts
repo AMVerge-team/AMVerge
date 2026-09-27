@@ -1,12 +1,14 @@
 import { useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { open, save } from "@tauri-apps/plugin-dialog";
+import { message as showMessage, open, save } from "@tauri-apps/plugin-dialog";
 import { ClipItem } from "../types/domain";
 import { fileNameFromPath } from "../utils/episodeUtils";
 import { runPostExportPasses } from "../features/export/runPostExportPasses";
 import { anyPassEnabled, PASS_SUFFIX, type PostExportPasses } from "../features/export/postPasses";
 import { clipExportSpecs } from "../features/export/clipSpecs";
 import { deliverExportedFiles } from "../features/export/deliverExports";
+import { remuxAudioModeForSource, remuxContainerForSource, type ExportSourceStreams } from "../features/export/remuxPolicy";
+import type { ExportAudioMode } from "../features/export/profileTypes";
 import {
   buildExportOptionsPayload,
   errorMessage,
@@ -47,6 +49,10 @@ export function useExport({ onRPCUpdate }: Params) {
       const message = errorMessage(err);
       console.error(logLabel, err);
       useAppStateStore.getState().setProgressMsg(`Export failed: ${message}`);
+      // The loading terminal is closed in the caller's finally block, so its
+      // status line alone is too easy to miss. Every export failure needs a
+      // durable, user-visible explanation (especially stale-source errors).
+      void showMessage(message, { title: "Export failed", kind: "error" });
       if (notifyRPC) {
         onRPCUpdate?.({
           type: "update",
@@ -74,6 +80,31 @@ export function useExport({ onRPCUpdate }: Params) {
     };
   }, [generalSettings.exportProfiles, generalSettings.activeExportProfileId]);
 
+  const exportContextForClips = useCallback(async (clips: ClipItem[]) => {
+    const context = exportContext();
+    const options = context.exportOptions;
+    if (!options || options.workflow !== "video_remux") return context;
+
+    const sourcePath = clips.flatMap(clipExportSpecs)[0]?.input;
+    if (!sourcePath) return context;
+    let source: ExportSourceStreams = { videoCodec: null, audioCodecs: [] };
+    try {
+      source = await invoke<ExportSourceStreams>("probe_export_source_streams", { videoPath: sourcePath });
+    } catch (error) {
+      // Export remains possible: fall back to the safe MP4 default and let the
+      // CLI's authoritative preflight explain any combination it cannot copy.
+      console.warn("Could not inspect remux source streams", error);
+    }
+    const container = remuxContainerForSource(sourcePath, source.videoCodec);
+    return {
+      format: container,
+      exportOptions: {
+        ...options,
+        audioMode: remuxAudioModeForSource(options.audioMode as ExportAudioMode, container, source.audioCodecs),
+      },
+    };
+  }, [exportContext]);
+
   const runExportClips = useCallback(
     (clips: unknown[], savePath: string, mergeEnabled: boolean, exportOptions?: ExportOptionsPayload) =>
       invoke<string[]>("export_clips", {
@@ -100,7 +131,7 @@ export function useExport({ onRPCUpdate }: Params) {
   const exportMergedWithInterpolation = useCallback(
     async (selected: ClipItem[], dir: string, mergeFileName: string | undefined, passes: PostExportPasses) => {
       const sep = pathSeparatorFor(dir);
-      const { exportOptions, format } = exportContext();
+      const { exportOptions, format } = await exportContextForClips(selected);
       const baseName = mergeBaseName(selected, mergeFileName);
       const finalSavePath = `${dir}${sep}${baseName}.${format}`;
 
@@ -227,7 +258,7 @@ export function useExport({ onRPCUpdate }: Params) {
         setActiveOperation("export");
         setLoading(true);
         const sep = pathSeparatorFor(dir);
-        const { exportOptions, format } = exportContext();
+        const { exportOptions, format } = await exportContextForClips(selected);
         const clipArray = selected.flatMap(clipExportSpecs);
 
         let savePath: string;
@@ -258,7 +289,7 @@ export function useExport({ onRPCUpdate }: Params) {
       persistedState,
       generalSettings.postExportPasses,
       exportMergedWithInterpolation,
-      exportContext,
+      exportContextForClips,
       runExportClips,
       rpcFinished,
       reportFailure,
@@ -275,7 +306,7 @@ export function useExport({ onRPCUpdate }: Params) {
   const handleDownloadSingleClip = useCallback(
     async (clip: ClipItem) => {
       try {
-        const { exportOptions, format } = exportContext();
+        const { exportOptions, format } = await exportContextForClips([clip]);
         const fileName = (clip.originalName || fileNameFromPath(clip.src)).replace(/\.[^./\\]+$/, "");
         const savePath = await save({
           defaultPath: `${fileName}.${format}`,
@@ -296,7 +327,7 @@ export function useExport({ onRPCUpdate }: Params) {
         setActiveOperation(null);
       }
     },
-    [exportContext, runExportClips, reportFailure, setActiveOperation, setLoading]
+    [exportContextForClips, runExportClips, reportFailure, setActiveOperation, setLoading]
   );
 
   return { handleExport, handlePickExportDir, handleDownloadSingleClip };

@@ -403,7 +403,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
         <div className="export-options-row">
           <div className="export-dir-row">
             <div className="export-dir-item">
-              <span className="audio-stream-label" aria-hidden="true">
+              <span className="merge-clips-label" aria-hidden="true">
                 <span>MERGE</span>
                 <span>CLIPS</span>
               </span>

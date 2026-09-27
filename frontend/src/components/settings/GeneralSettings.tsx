@@ -56,6 +56,9 @@ export default function GeneralSettings({
   const [showClearScenepacksConfirm, setShowClearScenepacksConfirm] = useState(false);
   const [clearingScenepacks, setClearingScenepacks] = useState(false);
   const [showDisableScenepacksConfirm, setShowDisableScenepacksConfirm] = useState(false);
+  const defaultEpisodesPathLabel = navigator.userAgent.includes("Mac OS X")
+    ? "Default (Application Support)"
+    : "Default (App Data)";
   const factoryResetConfirmation =
     "This will restore AMVerge to its default settings and move your episode storage folder back to AppData. Any custom settings or storage location changes you made will be reset.";
   const clearPanelConfirmation =
@@ -456,11 +459,11 @@ export default function GeneralSettings({
                 {generalSettings.episodesPath ? "Change" : "Select Path"}
               </button>
               <Tooltip
-                content={generalSettings.episodesPath || "Default (App Data)"}
+                content={generalSettings.episodesPath || defaultEpisodesPathLabel}
                 maxWidth={360}
               >
                 <span className="settings-path-value">
-                  {generalSettings.episodesPath || "Default (App Data)"}
+                  {generalSettings.episodesPath || defaultEpisodesPathLabel}
                 </span>
               </Tooltip>
             </div>

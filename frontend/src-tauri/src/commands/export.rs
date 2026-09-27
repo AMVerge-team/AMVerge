@@ -88,6 +88,24 @@ fn codec_for(options: Option<&ExportOptionsPayload>) -> String {
     }
 }
 
+/// Turn the CLI's structured copy-remux preflight error into a concise UI
+/// message. Older sidecars only provide `message`, so retain that fallback.
+fn cli_error_message(error: &serde_json::Map<String, Value>) -> String {
+    if let Some(message) = error.get("message").and_then(Value::as_str) {
+        return message.to_string();
+    }
+    if error.get("code").and_then(Value::as_str) == Some("copy_container_incompatible") {
+        let stream = error.get("stream_type").and_then(Value::as_str).unwrap_or("stream");
+        let index = error.get("stream_index").and_then(Value::as_str).unwrap_or("?");
+        let codec = error.get("codec").and_then(Value::as_str).unwrap_or("unknown codec");
+        let container = error.get("container").and_then(Value::as_str).unwrap_or("this container");
+        return format!(
+            "Cannot stream-copy {stream} stream {index} ({codec}) into {container}. Choose a compatible container or re-encode that stream."
+        );
+    }
+    "Export failed".to_string()
+}
+
 /// drive the AMVerge CLI to export the selected clips. replaces the former
 /// in-process Rust ffmpeg pipeline: spawns `amverge export --ipc`, forwards its
 /// progress to the UI, and returns the produced file paths
@@ -288,9 +306,9 @@ pub async fn export_clips(
     // the CLI prints a final JSON summary to stdout in --ipc mode
     if let Ok(payload) = serde_json::from_str::<Value>(stdout_string.trim()) {
         if let Some(err) = payload.get("error").and_then(|e| e.as_object()) {
-            let msg = err.get("message").and_then(|m| m.as_str()).unwrap_or("export failed");
-            console_log("ERROR|export_clips", &sanitize_for_console(msg));
-            return Err(msg.to_string());
+            let msg = cli_error_message(err);
+            console_log("ERROR|export_clips", &sanitize_for_console(&msg));
+            return Err(msg);
         }
         let outputs: Vec<String> = payload
             .get("outputs")
@@ -583,6 +601,23 @@ pub async fn delete_export_intermediates(dir: String, paths: Vec<String>) -> Res
 
 #[cfg(test)]
 mod staging_tests {
+    use serde_json::json;
+
+    #[test]
+    fn formats_structured_copy_container_error_for_the_ui() {
+        let error = json!({
+            "code": "copy_container_incompatible",
+            "stream_type": "audio",
+            "stream_index": "1",
+            "codec": "opus",
+            "container": "mov"
+        });
+        assert_eq!(
+            super::cli_error_message(error.as_object().unwrap()),
+            "Cannot stream-copy audio stream 1 (opus) into mov. Choose a compatible container or re-encode that stream."
+        );
+    }
+
     /// mirrors the guard in `delete_export_staging_dir`
     fn is_ours(path: &std::path::Path) -> bool {
         path.starts_with(std::env::temp_dir())

@@ -134,6 +134,27 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     davinciExportSelected: false,
 };
 
+const LEGACY_FAST_REMUX_PROFILE_ID = "remux-fast-mov";
+const LEGACY_FAST_REMUX_PROFILE_NAME = "Fast Remux MOV";
+const AUTO_FAST_REMUX_PROFILE_NAME = "Fast Remux (Auto Container)";
+
+/**
+ * Fast remux now derives its container from the source. Update the shipped
+ * legacy preset's old MOV-specific label without touching user-created
+ * profiles or a user-renamed copy of the preset.
+ */
+export function migrateLegacyFastRemuxProfile(profile: ExportProfile): ExportProfile {
+    if (
+        profile.id !== LEGACY_FAST_REMUX_PROFILE_ID ||
+        profile.workflow !== "video_remux" ||
+        profile.name !== LEGACY_FAST_REMUX_PROFILE_NAME
+    ) {
+        return profile;
+    }
+
+    return { ...profile, name: AUTO_FAST_REMUX_PROFILE_NAME };
+}
+
 export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
     persist(
         (set) => ({
@@ -274,6 +295,20 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
         }),
         {
             name: "amverge.generalSettings.v2",
+            version: 1,
+            migrate: (persistedState, version) => {
+                const persisted = (persistedState || {}) as Partial<GeneralSettings>;
+                if (version >= 1 || !Array.isArray(persisted.exportProfiles)) {
+                    return persisted;
+                }
+
+                return {
+                    ...persisted,
+                    exportProfiles: persisted.exportProfiles.map((profile) =>
+                        migrateLegacyFastRemuxProfile(profile as ExportProfile)
+                    ),
+                };
+            },
             merge: (persistedState, currentState) => {
                 const persisted = (persistedState || {}) as Partial<GeneralSettings>;
 

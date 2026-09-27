@@ -346,16 +346,16 @@
 }
 
 .audio-stream-label {
-    width: 30px;
-    min-width: 40px;
+    width: 64px;
+    min-width: 64px;
     height: 36px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     line-height: 1.05;
-    font-size: 14px;
-    font-weight: 300;
+    font-size: clamp(10px, 1.5cqw, 14px);
+    font-weight: 600;
     letter-spacing: 0.7px;
     color: rgb(255, 255, 255);
     text-align: center;
