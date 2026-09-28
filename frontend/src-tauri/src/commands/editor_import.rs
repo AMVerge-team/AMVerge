@@ -1,6 +1,5 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
 
 use tauri::{AppHandle, State};
 #[cfg(target_os = "windows")]
@@ -11,7 +10,6 @@ use crate::payloads::ProgressPayload;
 use crate::state::EditorImportAbortState;
 #[cfg(target_os = "windows")]
 use crate::utils::logging::console_log;
-use crate::utils::process::apply_no_window;
 
 mod after_effects;
 mod capcut;

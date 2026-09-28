@@ -1,5 +1,4 @@
 use super::*;
-use std::process::Command;
 
 #[cfg(target_os = "windows")]
 fn build_after_effects_media_import_jsx(media_paths: &[String]) -> String {

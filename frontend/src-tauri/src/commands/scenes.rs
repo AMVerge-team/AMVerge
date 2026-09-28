@@ -21,7 +21,6 @@ use crate::utils::paths::{
     clear_files_in_dir, dir_name_only, file_name_only, resolve_episodes_storage_dir,
     sanitize_episode_cache_id,
 };
-use crate::utils::process::apply_no_window;
 use crate::utils::sidecar::{amverge_ai_command, amverge_command, amverge_exe_name};
 
 fn now_unix_seconds() -> u64 {
