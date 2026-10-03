@@ -82,7 +82,9 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   // about them. asking it left a WebP-imported pack previewing as a still
   const activePageForPreview = useUIStateStore(s => s.activePage);
   const webpPreviewMode =
-    activePageForPreview === "scenepacks" ? false : previewMethod === "webp_files";
+    activePageForPreview === "scenepacks" || activePageForPreview === "sceneScout"
+      ? false
+      : previewMethod === "webp_files";
 
   const defaultMergedName = (clips[0]?.originalName || "episode").replace(/\.[^./\\]+$/, "") + "_merged";
   const activeExportProfile = React.useMemo(
@@ -127,6 +129,9 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   );
   const hasSource = !!props.sourceClip && !!sourceClipObj;
   const previewVideoSrc = sourceClipObj?.clipPath || props.sourceClip;
+  const isCutClip = Boolean(sourceClipObj?.clipPath);
+  const sceneStartTime = isCutClip ? undefined : sourceClipObj?.startSec;
+  const sceneEndTime = isCutClip ? undefined : sourceClipObj?.endSec;
 
   // a non-default Preview Language needs the chosen audio track remuxed in; the
   // default (index 0 / null) plays straight from the cut clip's default track
@@ -329,6 +334,9 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                   key={`${playableVideoSrc}-${importToken}`}
                   src={convertFileSrc(playableVideoSrc!)}
                   volume={generalSettings.playbackVolume}
+                  clipId={sourceClipObj?.id}
+                  startTime={sceneStartTime}
+                  endTime={sceneEndTime}
                   onTimeUpdate={props.onTimeUpdate}
                 />
               ) : (

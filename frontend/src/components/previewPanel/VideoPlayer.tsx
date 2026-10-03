@@ -27,10 +27,20 @@ function formatTime(seconds: number): string {
 type VideoPlayerProps = {
   src: string;
   volume: number;
+  clipId?: string;
+  startTime?: number;
+  endTime?: number;
   onTimeUpdate?: (time: number) => void;
 };
 
-export default function VideoPlayer({ src, volume, onTimeUpdate }: VideoPlayerProps) {
+export default function VideoPlayer({
+  src,
+  volume,
+  clipId,
+  startTime,
+  endTime,
+  onTimeUpdate,
+}: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
   const volumeRef = useRef<HTMLDivElement | null>(null);
@@ -221,13 +231,47 @@ export default function VideoPlayer({ src, volume, onTimeUpdate }: VideoPlayerPr
     }
   }, []);
 
+  const hasSceneRange =
+    startTime !== undefined &&
+    endTime !== undefined &&
+    isFinite(startTime) &&
+    isFinite(endTime) &&
+    endTime > startTime;
+
+  const sceneDuration = hasSceneRange ? endTime - startTime : duration;
+  const relativeCurrent = hasSceneRange
+    ? Math.max(0, Math.min(sceneDuration, current - (startTime ?? 0)))
+    : current;
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const target = startTime !== undefined && isFinite(startTime) ? startTime : 0;
+    if (v.readyState >= 1) {
+      try {
+        v.currentTime = target;
+        setCurrent(target);
+        v.play().catch(() => {});
+        setPlaying(true);
+      } catch {}
+    }
+  }, [clipId, startTime]);
+
   const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const v = videoRef.current;
-    if (!v || !isFinite(duration) || duration <= 0) return;
+    if (!v) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const fraction = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-    v.currentTime = fraction * duration;
-  }, [duration]);
+    if (hasSceneRange) {
+      const target = (startTime ?? 0) + fraction * sceneDuration;
+      v.currentTime = target;
+      setCurrent(target);
+    } else if (isFinite(duration) && duration > 0) {
+      const target = fraction * duration;
+      v.currentTime = target;
+      setCurrent(target);
+    }
+  }, [hasSceneRange, startTime, sceneDuration, duration]);
 
   return (
     <div className="video-wrapper">
@@ -239,19 +283,53 @@ export default function VideoPlayer({ src, volume, onTimeUpdate }: VideoPlayerPr
           playsInline
           onClick={togglePlay}
           onLoadedMetadata={(e) => {
-            e.currentTarget.volume = volume;
-            // each clip mounts a fresh element, so carry the mute across rather
-            // than letting the next clip come back at full volume
-            e.currentTarget.muted = muted || volume === 0;
-            setDuration(e.currentTarget.duration);
+            const v = e.currentTarget;
+            v.volume = volume;
+            v.muted = muted || volume === 0;
+            setDuration(v.duration);
+            if (startTime !== undefined && isFinite(startTime) && startTime > 0) {
+              try {
+                v.currentTime = startTime;
+                setCurrent(startTime);
+              } catch {}
+            }
+          }}
+          onCanPlay={(e) => {
+            if (startTime !== undefined && isFinite(startTime) && startTime > 0) {
+              const v = e.currentTarget;
+              if (Math.abs(v.currentTime - startTime) > 0.5) {
+                try {
+                  v.currentTime = startTime;
+                  setCurrent(startTime);
+                } catch {}
+              }
+            }
           }}
           onDurationChange={(e) => setDuration(e.currentTarget.duration)}
           onPlay={() => setPlaying(true)}
           onPause={() => setPlaying(false)}
           onVolumeChange={(e) => syncMuted(e.currentTarget.muted)}
           onTimeUpdate={(e) => {
-            setCurrent(e.currentTarget.currentTime);
-            onTimeUpdate?.(e.currentTarget.currentTime);
+            const v = e.currentTarget;
+            const t = v.currentTime;
+            if (hasSceneRange && t >= endTime!) {
+              const loopTarget = startTime ?? 0;
+              v.currentTime = loopTarget;
+              setCurrent(loopTarget);
+              onTimeUpdate?.(loopTarget);
+              return;
+            }
+            setCurrent(t);
+            onTimeUpdate?.(t);
+          }}
+          onEnded={(e) => {
+            const loopTarget = startTime !== undefined && isFinite(startTime) ? startTime : 0;
+            const v = e.currentTarget;
+            try {
+              v.currentTime = loopTarget;
+              setCurrent(loopTarget);
+              v.play().catch(() => {});
+            } catch {}
           }}
         />
         <div className="controls">
@@ -262,11 +340,14 @@ export default function VideoPlayer({ src, volume, onTimeUpdate }: VideoPlayerPr
           </Tooltip>
 
           <span className="time-display">
-            {formatTime(current)} / {formatTime(duration)}
+            {formatTime(relativeCurrent)} / {formatTime(sceneDuration)}
           </span>
 
           <div className="progress" onClick={handleSeek}>
-            <progress value={current} max={duration > 0 ? duration : 1} />
+            <progress
+              value={relativeCurrent}
+              max={sceneDuration > 0 ? sceneDuration : 1}
+            />
           </div>
 
           <div

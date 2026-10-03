@@ -43,14 +43,20 @@ export default function MainLayout({
     const previewCollapsed = useUIStateStore(s => s.previewCollapsed);
     const setPreviewCollapsed = useUIStateStore(s => s.setPreviewCollapsed);
     const focusedClip = useAppStateStore(s => s.focusedClip);
+    const focusedClipId = useAppStateStore(s => s.focusedClipId);
     const clips = useAppStateStore(s => s.clips);
 
     const focusedClipThumbnail = useMemo(
-        () =>
-            focusedClip
+        () => {
+            if (focusedClipId) {
+                const byId = clips.find((c) => c.id === focusedClipId);
+                if (byId?.thumbnail) return byId.thumbnail;
+            }
+            return focusedClip
                 ? clips.find((c) => c.src === focusedClip)?.thumbnail ?? null
-                : null,
-        [focusedClip, clips]
+                : null;
+        },
+        [focusedClip, focusedClipId, clips]
     );
 
     const resizeCleanupRef = useRef<(() => void) | null>(null);

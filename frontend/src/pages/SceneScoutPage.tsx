@@ -47,6 +47,7 @@ export default function SceneScoutPage() {
       state.setImportedVideoPath(prevVideoPathRef.current);
       state.setImportToken(Date.now().toString());
       state.setFocusedClip(null);
+      state.setFocusedClipId(null);
       // selection is keyed by clip id and the ids differ per page, so anything
       // left selected here would keep inflating the episode grid's count
       state.setSelectedClips(new Set());
@@ -78,6 +79,7 @@ export default function SceneScoutPage() {
     state.setImportToken(Date.now().toString());
     state.setSelectedClips(new Set());
     state.setFocusedClip(null);
+    state.setFocusedClipId(null);
   }, [clips]);
 
   return (
