@@ -71,9 +71,10 @@ export function useClipVideoSource({
 
   // identifies exactly which proxy this tile wants, so a quality or language
   // change rebuilds it instead of reusing a stale file
+  const targetVideoPath = clip.clipPath ?? clip.src;
   const videoProxyKey =
-    isVideoMode && clip.clipPath
-      ? `${clip.clipPath}::${proxyAudioStreamIndex ?? "na"}::${
+    isVideoMode && targetVideoPath
+      ? `${targetVideoPath}::${proxyAudioStreamIndex ?? "na"}::${
           needsPreviewTranscode ? `x264_${transcodePreset.height}p${transcodePreset.crf}` : "copy"
         }`
       : null;

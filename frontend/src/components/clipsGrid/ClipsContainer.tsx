@@ -128,11 +128,9 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     // still-open) episode's method here showed WebP-sourced pack clips as stills
     if (activePage === "scenepacks") return true;
 
-    // Scene Scout results are time ranges in a source video with no cut file of
-    // their own, so they preview as animated WebP. stated rather than left to
-    // the no-episode fallthrough below, which would flip to video mode the
-    // moment a result happened to carry a clipPath
-    if (activePage === "sceneScout") return false;
+    // Scene Scout results are time ranges in a source video with bounded playback,
+    // previewing via HTML5 video directly on hover
+    if (activePage === "sceneScout") return true;
 
     const openedEpisode = episodes.find((e) => e.id === openedEpisodeId);
     return (

@@ -49,7 +49,14 @@ export function hitToClipItem(hit: ScoutHit, index: number): ClipItem {
  * derived from a filename.
  */
 export function scoutCacheId(database: string): string {
-  return `scoutcache_${database.replace(/[^A-Za-z0-9_-]+/g, "_")}`;
+  const sanitized = database.replace(/[^A-Za-z0-9_-]+/g, "_");
+  if (sanitized.length <= 60) return `scoutcache_${sanitized}`;
+  let hash = 0;
+  for (let i = 0; i < database.length; i++) {
+    hash = ((hash << 5) - hash + database.charCodeAt(i)) | 0;
+  }
+  const hashHex = (hash >>> 0).toString(16);
+  return `scout_${hashHex}_${sanitized.slice(-40)}`;
 }
 
 /** Stable per-hit id, so re-running the same search does not remount every tile. */
