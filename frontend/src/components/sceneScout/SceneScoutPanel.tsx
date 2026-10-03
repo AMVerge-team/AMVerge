@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { save } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
 import {
   FaChevronRight,
   FaDatabase,
+  FaFolderOpen,
   FaPlus,
   FaSearch,
   FaSpinner,
@@ -43,6 +44,7 @@ export function SceneScoutPanel() {
   const selectDatabase = useSceneScoutStore((s) => s.selectDatabase);
   const selectVideo = useSceneScoutStore((s) => s.selectVideo);
   const createDatabase = useSceneScoutStore((s) => s.createDatabase);
+  const openExistingDatabase = useSceneScoutStore((s) => s.openExistingDatabase);
   const deleteDatabase = useSceneScoutStore((s) => s.deleteDatabase);
   const renameDatabase = useSceneScoutStore((s) => s.renameDatabase);
   const displayNames = useSceneScoutStore((s) => s.displayNames);
@@ -94,6 +96,30 @@ export function SceneScoutPanel() {
     setNamingPath(picked);
   };
 
+  /** pick an existing database file (.scoutdb, .db, .scdb) and register/open it */
+  const startOpen = async () => {
+    setError("");
+
+    const picked = await open({
+      title: "Open Scene Scout Database",
+      multiple: false,
+      directory: false,
+      filters: [
+        {
+          name: "Scene Scout Database (*.scoutdb, *.db, *.scdb)",
+          extensions: ["scoutdb", "db", "scdb"],
+        },
+        { name: "All Files (*.*)", extensions: ["*"] },
+      ],
+    });
+    if (!picked || typeof picked !== "string") return;
+
+    const result = await openExistingDatabase(picked);
+    if (!result.ok) {
+      setError(result.message || "Could not open the database.");
+    }
+  };
+
   const confirmName = () => {
     if (!namingPath) return;
     const name = draftName.trim();
@@ -112,6 +138,16 @@ export function SceneScoutPanel() {
             <span className="scene-scout-credit">By Mark Shun/Sonicfreak</span>
           </div>
           <div className="episode-panel-actions">
+            <Tooltip content="Open database">
+              <button
+                type="button"
+                className="episode-panel-action icon-only"
+                onClick={() => void startOpen()}
+                aria-label="Open database"
+              >
+                <FaFolderOpen aria-hidden="true" />
+              </button>
+            </Tooltip>
             <Tooltip content="New database">
               <button
                 type="button"

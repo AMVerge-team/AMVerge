@@ -83,3 +83,10 @@ export function scoutUnloadModel(customPath: string | null): Promise<boolean> {
   return invoke<boolean>("scout_unload_model", { customPath });
 }
 
+export function scoutOpenDatabase(
+  path: string,
+  customPath: string | null
+): Promise<ScoutDatabase> {
+  return invoke<ScoutDatabase>("scout_open_database", { path, customPath });
+}
+

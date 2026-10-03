@@ -181,6 +181,7 @@ frontend/
         bug_report.rs               # Bug report submit (HTTP POST, HMAC signed)
         deps.rs                     # AI env (uv venv), pack install/status
         models.rs                   # AI model weights (list/download/delete)
+        scene_scout.rs              # Scene Scout search, add, databases, open, daemon
         discord.rs                  # Discord RPC (currently no-op)
 
         export/                     # Export sub-modules
@@ -284,6 +285,16 @@ frontend/
 | `list_models` | models.rs | Spawn `amverge models --json` → depth + interpolation weights |
 | `download_model` | models.rs | `amverge models --json --download <key>` |
 | `delete_model` | models.rs | `amverge models --json --delete <key>` |
+| `scout_list_databases` | scene_scout.rs | List all databases in root |
+| `scout_database_info` | scene_scout.rs | Fetch info for a single database |
+| `scout_create_database` | scene_scout.rs | Create a new database |
+| `scout_open_database` | scene_scout.rs | Open external database with validation and migration |
+| `scout_delete_database` | scene_scout.rs | Delete database file |
+| `scout_list_videos` | scene_scout.rs | List videos in a database |
+| `scout_status` | scene_scout.rs | Get Scene Scout model and root status |
+| `scout_search` | scene_scout.rs | Query scenes with SigLIP 2 embeddings (daemon or one-shot) |
+| `scout_add_video` | scene_scout.rs | Index video scenes into a database |
+| `scout_unload_model` | scene_scout.rs | Unload model weights from memory |
 
 ---
 
@@ -556,3 +567,5 @@ App starts → main.tsx: maybeCheckForUpdatesOnStartup()
 13. **Scene Scout databases are keyed by absolute path, never name**: `openedDatabase`, `deleteDatabase`, the "Search in" chips, and every `scout*` call pass `database.path`. The CLI's `db_path` sanitizes bare names (spaces become underscores), so passing a name like "My Series" would resolve to `My_Series.scoutdb`, a different file. Names are display-only labels (`displayNames[path]`); the row's open state compares with `samePath`, and `loadDatabases` dedupes the root listing against external paths by normalized path.
 
 14. **Scene Scout in-memory daemon worker**: `scout_search` uses a persistent `amverge scout daemon` process when `keepModelInMemory` is enabled (default: true). Holds SigLIP 2 in CUDA VRAM for sub-50ms searches, automatically offloading to CPU after 300s of inactivity (`gpuStandby`), and terminated on app close via `kill_all_child_processes`.
+
+15. **Scene Scout external databases & migrations**: Users can open external database files (`.scoutdb`, `.db`, `.scdb`) from anywhere via `scout_open_database`. Validates schema structure (`processed_videos`, `scene_embeddings`, `image_embeddings`), automatically migrates legacy schema versions (v0-v2 to v3) with `PRAGMA user_version = 3` for two-way compatibility with `scene-scout-dev`, and tracks external paths in `externalPaths` (persisted in `amverge.scenescout.v1`).

@@ -247,6 +247,18 @@ pub async fn scout_database_info(
 }
 
 #[tauri::command]
+pub async fn scout_open_database(
+    app: AppHandle,
+    path: String,
+    custom_path: Option<String>,
+) -> Result<ScoutDatabase, String> {
+    let root = scout_root(&app, custom_path.as_deref())?;
+    let envelope: DatabaseEnvelope =
+        scout_json(&app, &["open", &path, "--root", &root]).await?;
+    Ok(envelope.database)
+}
+
+#[tauri::command]
 pub async fn scout_list_databases(
     app: AppHandle,
     custom_path: Option<String>,

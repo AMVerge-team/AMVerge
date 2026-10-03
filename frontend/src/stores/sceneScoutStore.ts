@@ -8,6 +8,7 @@ import {
   scoutDeleteDatabase,
   scoutListDatabases,
   scoutListVideos,
+  scoutOpenDatabase,
   scoutSearch,
   scoutStatus,
   scoutUnloadModel,
@@ -62,6 +63,7 @@ type SceneScoutActions = {
   refreshStatus: () => Promise<void>;
   loadDatabases: () => Promise<void>;
   createDatabase: (pathOrName: string) => Promise<{ ok: boolean; message: string | null }>;
+  openExistingDatabase: (filePath: string) => Promise<{ ok: boolean; message: string | null; database?: ScoutDatabase }>;
   renameDatabase: (path: string, displayName: string) => void;
   deleteDatabase: (name: string) => Promise<void>;
   openDatabase: (name: string | null) => Promise<void>;
@@ -209,6 +211,27 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         }
       },
 
+      openExistingDatabase: async (filePath) => {
+        try {
+          const db = await scoutOpenDatabase(filePath, customPath());
+
+          if (!get().status) await get().refreshStatus();
+
+          const root = get().status?.root;
+          const isExternal = !root || !isUnderRoot(db.path, root);
+          if (isExternal && !get().externalPaths.some((p) => samePath(p, db.path))) {
+            set({ externalPaths: [...get().externalPaths, db.path] });
+          }
+
+          await get().loadDatabases();
+          await get().openDatabase(db.path);
+          get().selectDatabase(db.path, "single");
+          return { ok: true, message: null, database: db };
+        } catch (err) {
+          return { ok: false, message: message(err) };
+        }
+      },
+
       /** the label shown in the panel, which is separate from the file name */
       renameDatabase: (path, displayName) =>
         set((state) => ({
@@ -224,10 +247,12 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             delete nextExpanded[name];
             const nextVByDb = { ...state.videosByDatabase };
             delete nextVByDb[name];
+            const nextExternal = state.externalPaths.filter((p) => !samePath(p, name));
             return {
               selectedDatabases: nextSelected,
               expandedDatabases: nextExpanded,
               videosByDatabase: nextVByDb,
+              externalPaths: nextExternal,
               openedDatabase: state.openedDatabase && samePath(state.openedDatabase, name) ? null : state.openedDatabase,
               videos: state.openedDatabase && samePath(state.openedDatabase, name) ? [] : state.videos,
             };

@@ -97,6 +97,7 @@ fn main() {
             commands::settings::move_storage_to_new_dir,
             commands::scene_scout::scout_list_databases,
             commands::scene_scout::scout_database_info,
+            commands::scene_scout::scout_open_database,
             commands::scene_scout::scout_create_database,
             commands::scene_scout::scout_delete_database,
             commands::scene_scout::scout_list_videos,
