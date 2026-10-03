@@ -13,22 +13,47 @@
 
 /* Search field ----------------------------------------------------------- */
 
+.scene-scout-search-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    padding-left: 15px;
+    padding-right: 5px;
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+.scene-scout-search-row > * {
+    width: 100%;
+}
+
 .scene-scout-search-field {
     display: flex;
     align-items: center;
-    gap: 8px;
-    /* takes the slack in the row: the query is a sentence, and the field was
-       cramped when it shared width evenly with the buttons */
-    flex: 1 1 420px;
+    gap: 10px;
+    width: 100%;
+    flex: 1 1 auto;
     min-width: 0;
-    height: 36px;
-    padding: 0 10px;
-    border: 1px solid rgb(255 255 255 / 0.12);
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid rgb(255 255 255 / 0.14);
     border-radius: 8px;
-    background: rgb(0 0 0 / 0.35);
+    background: rgb(0 0 0 / 0.4);
+    transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-.scene-scout-search-field:focus-within {
+.scene-scout-search-field.is-disabled {
+    opacity: 0.55;
+    border-color: rgb(255 255 255 / 0.08);
+    background: rgb(0 0 0 / 0.25);
+}
+
+.scene-scout-search-field.is-disabled input {
+    cursor: not-allowed;
+}
+
+.scene-scout-search-field:focus-within:not(.is-disabled) {
     border-color: var(--accent);
 }
 

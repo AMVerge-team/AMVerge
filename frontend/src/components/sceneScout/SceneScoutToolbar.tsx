@@ -34,6 +34,11 @@ export function SceneScoutToolbar() {
   const indexing = useSceneScoutStore((s) => s.indexing);
   const opened = useSceneScoutStore((s) => s.openedDatabase);
   const databases = useSceneScoutStore((s) => s.databases);
+  const selectedDatabases = useSceneScoutStore((s) => s.selectedDatabases);
+  const selectedVideos = useSceneScoutStore((s) => s.selectedVideos);
+  const selectDatabase = useSceneScoutStore((s) => s.selectDatabase);
+  const selectAllDatabases = useSceneScoutStore((s) => s.selectAllDatabases);
+  const displayNames = useSceneScoutStore((s) => s.displayNames);
   const settings = useSceneScoutStore((s) => s.settings);
   const updateSettings = useSceneScoutStore((s) => s.updateSettings);
   const addVideo = useSceneScoutStore((s) => s.addVideo);
@@ -50,11 +55,31 @@ export function SceneScoutToolbar() {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // indexing writes into one database, so it needs one open. searching spans
-  // every database by default, so it only needs one to exist
-  const noDatabaseOpen = !opened;
-  const noDatabasesAtAll = databases.length === 0;
+  const noDatabaseOpen = !opened && selectedDatabases.length === 0;
+  const hasSelection = selectedDatabases.length > 0 || selectedVideos.length > 0;
   const GATE_HINT = "Please select a Database or Create one on the left panel first.";
+
+  const labelFor = (path: string, fallback: string) => displayNames[path] ?? fallback;
+
+  const searchPlaceholder = useMemo(() => {
+    if (selectedVideos.length > 0) {
+      if (selectedVideos.length === 1) {
+        const vName = selectedVideos[0].split(/[/\\]/).pop() || "selected video";
+        return `Describe a scene to search in "${vName}"...`;
+      }
+      return `Describe a scene to search across ${selectedVideos.length} selected videos...`;
+    }
+    if (selectedDatabases.length > 0) {
+      if (selectedDatabases.length === 1) {
+        const db = databases.find((d) => d.path === selectedDatabases[0] || d.path.toLowerCase() === selectedDatabases[0].toLowerCase());
+        const dbName = db ? labelFor(db.path, db.name) : "selected database";
+        return `Describe a scene to search in "${dbName}"...`;
+      }
+      return `Describe a scene to search across ${selectedDatabases.length} selected databases...`;
+    }
+    return "Select one or more databases or videos on the left to search...";
+  }, [selectedDatabases, selectedVideos, databases, displayNames]);
+
   // sticky, so picking Custom keeps the box open while the field is empty and
   // topK still holds its previous preset value
   // while true the trigger is a text field rather than a dropdown, so the
@@ -96,15 +121,6 @@ export function SceneScoutToolbar() {
 
     const result = await addVideo(picked as string);
     if (!result.ok) setError(result.message || "Could not index that episode.");
-  };
-
-  const toggleDatabase = (name: string) => {
-    const selected = settings.selectedDatabases;
-    updateSettings({
-      selectedDatabases: selected.includes(name)
-        ? selected.filter((n) => n !== name)
-        : [...selected, name],
-    });
   };
 
   return (
@@ -167,40 +183,6 @@ export function SceneScoutToolbar() {
             </button>
           </Tooltip>
 
-          <Tooltip content={noDatabasesAtAll ? GATE_HINT : "Search your indexed episodes"}>
-          <div className={`scene-scout-search-field${noDatabasesAtAll ? " is-disabled" : ""}`}>
-            <FaSearch aria-hidden="true" className="scene-scout-search-icon" />
-            <input
-              type="text"
-              value={query}
-              disabled={noDatabasesAtAll}
-              placeholder="Describe a scene, for example: a girl standing in the rain at night"
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void runSearch();
-              }}
-            />
-            {query && (
-              <button
-                type="button"
-                className="scene-scout-search-clear"
-                onClick={clearResults}
-                aria-label="Clear search"
-              >
-                <FaTimes aria-hidden="true" />
-              </button>
-            )}
-            <button
-              type="button"
-              className="scene-scout-search-go"
-              onClick={() => void runSearch()}
-              disabled={searching || !query.trim() || noDatabasesAtAll}
-            >
-              {searching ? "Searching..." : "Search"}
-            </button>
-          </div>
-          </Tooltip>
-
           <Tooltip content="Search settings">
             <button
               type="button"
@@ -211,6 +193,44 @@ export function SceneScoutToolbar() {
               Options
               <FaChevronDown aria-hidden="true" />
             </button>
+          </Tooltip>
+        </div>
+
+        <div className="scene-scout-search-row">
+          <Tooltip content={hasSelection ? "Search selected database(s) and videos" : "Select one or more databases or videos on the left to search"}>
+            <div className={`scene-scout-search-field${!hasSelection ? " is-disabled" : ""}`}>
+              <FaSearch aria-hidden="true" className="scene-scout-search-icon" />
+              <input
+                type="text"
+                value={query}
+                disabled={!hasSelection}
+                placeholder={searchPlaceholder}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && hasSelection && query.trim() && !searching) {
+                    void runSearch();
+                  }
+                }}
+              />
+              {query && (
+                <button
+                  type="button"
+                  className="scene-scout-search-clear"
+                  onClick={clearResults}
+                  aria-label="Clear search"
+                >
+                  <FaTimes aria-hidden="true" />
+                </button>
+              )}
+              <button
+                type="button"
+                className="scene-scout-search-go"
+                onClick={() => void runSearch()}
+                disabled={searching || !query.trim() || !hasSelection}
+              >
+                {searching ? "Searching..." : "Search"}
+              </button>
+            </div>
           </Tooltip>
         </div>
 
@@ -233,8 +253,6 @@ export function SceneScoutToolbar() {
                     if (e.key === "Enter") commitTopK();
                     if (e.key === "Escape") setEditingTopK(false);
                   }}
-                  // committing on blur too, so clicking away cannot leave the
-                  // control stuck as a text field
                   onBlur={commitTopK}
                 />
               ) : (
@@ -266,8 +284,6 @@ export function SceneScoutToolbar() {
               />
             </div>
 
-            {/* the Home page's own markup, so the label picks up the app font
-                and the 1.5rem sizing rather than this row's UI font */}
             <div className="checkbox-row scene-scout-preview-all">
               <label className="custom-checkbox">
                 <input
@@ -285,23 +301,21 @@ export function SceneScoutToolbar() {
             <div className="scene-scout-setting scene-scout-db-filter">
               <span>Search in</span>
               <div className="scene-scout-db-chips">
-                {/* nothing selected means every database, which is what the CLI
-                    does with no --db flags */}
                 <button
                   type="button"
-                  className={`scene-scout-db-chip${settings.selectedDatabases.length === 0 ? " is-active" : ""}`}
-                  onClick={() => updateSettings({ selectedDatabases: [] })}
+                  className={`scene-scout-db-chip${selectedDatabases.length === databases.length ? " is-active" : ""}`}
+                  onClick={() => selectAllDatabases()}
                 >
                   All
                 </button>
                 {databases.map((database) => (
                   <button
-                    key={database.name}
+                    key={database.path}
                     type="button"
-                    className={`scene-scout-db-chip${settings.selectedDatabases.includes(database.name) ? " is-active" : ""}`}
-                    onClick={() => toggleDatabase(database.name)}
+                    className={`scene-scout-db-chip${selectedDatabases.some((p) => p === database.path || p.toLowerCase() === database.path.toLowerCase()) ? " is-active" : ""}`}
+                    onClick={() => selectDatabase(database.path, "toggle")}
                   >
-                    {database.name}
+                    {labelFor(database.path, database.name)}
                   </button>
                 ))}
               </div>

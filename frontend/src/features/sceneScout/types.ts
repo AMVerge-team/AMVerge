@@ -74,6 +74,8 @@ export type ScoutSearchSettings = {
   includeThumbnails: boolean;
   /** empty means every database. only offered once there is more than one */
   selectedDatabases: string[];
+  /** empty means all videos in selected databases */
+  selectedVideos: string[];
 };
 
 export const DEFAULT_SEARCH_SETTINGS: ScoutSearchSettings = {
@@ -81,6 +83,7 @@ export const DEFAULT_SEARCH_SETTINGS: ScoutSearchSettings = {
   threshold: -1,
   includeThumbnails: true,
   selectedDatabases: [],
+  selectedVideos: [],
 };
 
 /** Sentinel for the Custom entry. Zero is never a real result count, so it can

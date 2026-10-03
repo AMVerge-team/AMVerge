@@ -11,13 +11,16 @@
 //! which is what lets Scene Scout keep working as a standalone tool.
 
 use std::process::Stdio;
+use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 use tokio::io::{AsyncBufReadExt, BufReader};
 
-use crate::utils::paths::resolve_scene_scout_storage_dir;
+use crate::utils::logging::{console_log, emit_console_log, sanitize_for_console};
+use crate::utils::paths::{file_name_only, resolve_scene_scout_storage_dir};
 use crate::utils::sidecar::amverge_ai_command;
+use crate::utils::sidecar::amverge_exe_name;
 
 // ---------------------------------------------------------------------------
 // Wire types. camelCase out, matching the CLI's JSON and the TS types in
@@ -101,6 +104,64 @@ fn scout_root(app: &AppHandle, custom_path: Option<&str>) -> Result<String, Stri
     Ok(dir.to_string_lossy().to_string())
 }
 
+/// Forward a child's stderr to the console, keeping the interesting lines.
+///
+/// Everything a python dependency writes is ours to look at later, but
+/// `PROGRESS|` lines are detector churn with no debug value (the rate that the
+/// backend command found years ago swamps the console), so they are dropped
+/// like the episode path does. The surviving lines are both streamed live and
+/// accumulated so an error can dump the exact stderr that caused it.
+fn forward_stderr(
+    app: &AppHandle,
+    stderr: tokio::process::ChildStderr,
+) -> (tokio::task::JoinHandle<()>, Arc<Mutex<String>>) {
+    let app = app.clone();
+    let accum = Arc::new(Mutex::new(String::new()));
+    let task_accum = Arc::clone(&accum);
+    let handle = tokio::task::spawn(async move {
+        let mut reader = BufReader::new(stderr).lines();
+        while let Ok(Some(line)) = reader.next_line().await {
+            let sanitized = sanitize_for_console(&line);
+            if sanitized.trim().is_empty() || sanitized.starts_with("PROGRESS|") {
+                continue;
+            }
+            if let Ok(mut acc) = task_accum.lock() {
+                acc.push_str(&line);
+                acc.push('\n');
+            }
+            emit_console_log(&app, "python", "log", &sanitized);
+        }
+    });
+    (handle, accum)
+}
+
+/// The app always runs the AI variant, whichever way the subcommand needs it.
+fn scout_pair(app: &AppHandle, args: &[&str]) -> Result<(std::process::Command, String), String> {
+    let mut cmd = amverge_ai_command(app)?;
+    cmd.arg("scout");
+    for arg in args {
+        cmd.arg(arg);
+    }
+    cmd.arg("--json").stderr(Stdio::piped());
+    let argv: Vec<String> = std::iter::once("scout".to_string())
+        .chain(args.iter().map(|s| s.to_string()))
+        .chain(std::iter::once("--json".to_string()))
+        .collect();
+    Ok((cmd, argv.join(",")))
+}
+
+/// Descriptive one-liner for one subcommand, short enough to scan.
+fn scout_spawn_log(verb: &str, argv: &str) {
+    console_log(
+        "SCOUT|spawn",
+        &format!(
+            "verb={verb} mode={} exe={} ai=true args=[{argv}]",
+            if cfg!(debug_assertions) { "dev" } else { "prod" },
+            amverge_exe_name()
+        ),
+    );
+}
+
 /// Run a scout subcommand and parse its single JSON document.
 ///
 /// Uses `amverge_ai_command`: Scene Scout needs the model, which in a release
@@ -109,17 +170,27 @@ async fn scout_json<T: for<'de> Deserialize<'de>>(
     app: &AppHandle,
     args: &[&str],
 ) -> Result<T, String> {
-    let mut cmd = amverge_ai_command(app)?;
-    cmd.arg("scout");
-    for arg in args {
-        cmd.arg(arg);
-    }
-    cmd.arg("--json");
+    let verb = args.first().copied().unwrap_or("scout");
+    let (cmd, argv) = scout_pair(app, args)?;
+    scout_spawn_log(verb, &argv);
 
-    let output = tokio::process::Command::from(cmd)
-        .output()
+    let mut child = tokio::process::Command::from(cmd)
+        .stdout(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to run the AMVerge CLI: {e}"))?;
+
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| "Scene Scout produced no stderr stream.".to_string())?;
+    let (stderr_task, stderr_accum) = forward_stderr(app, stderr);
+
+    let output = child
+        .wait_with_output()
         .await
         .map_err(|e| format!("Failed to run the AMVerge CLI: {e}"))?;
+
+    let _ = stderr_task.await;
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     // the CLI prints one compact document on --json, but a warning from a
@@ -132,11 +203,14 @@ async fn scout_json<T: for<'de> Deserialize<'de>>(
         .unwrap_or_default();
 
     if line.trim().is_empty() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(if stderr.trim().is_empty() {
+        let stderr = stderr_accum
+            .lock()
+            .map(|s| s.trim().to_string())
+            .unwrap_or_default();
+        return Err(if stderr.is_empty() {
             "Scene Scout returned no output.".to_string()
         } else {
-            stderr.trim().to_string()
+            stderr
         });
     }
 
@@ -250,6 +324,8 @@ pub struct ScoutSearchArgs {
     #[serde(default)]
     pub databases: Vec<String>,
     #[serde(default)]
+    pub videos: Vec<String>,
+    #[serde(default)]
     pub top_k: Option<u32>,
     #[serde(default)]
     pub threshold: Option<f64>,
@@ -287,6 +363,11 @@ pub async fn scout_search(
         argv.push(name.clone());
     }
 
+    for video in &args.videos {
+        argv.push("--video".into());
+        argv.push(video.clone());
+    }
+
     if args.include_thumbnails == Some(false) {
         argv.push("--no-thumbnails".into());
     }
@@ -318,23 +399,43 @@ pub async fn scout_add_video(
 ) -> Result<u64, String> {
     let root = scout_root(&app, custom_path.as_deref())?;
 
-    let mut cmd = amverge_ai_command(&app)?;
-    cmd.arg("scout")
-        .arg("add")
-        .arg(&video_path)
-        .arg("--db")
-        .arg(&database)
-        .arg("--root")
-        .arg(&root)
-        .arg("--detector")
-        .arg(detector.as_deref().unwrap_or("keyframe_detection"))
-        .arg("--json");
+    let method = detector.unwrap_or_else(|| "keyframe_detection".to_string());
+    let video_name = file_name_only(&video_path);
+    let db_name = file_name_only(&database);
+
+    console_log(
+        "SCOUT|start",
+        &format!("verb=add video={video_name} db={db_name} detector={method}"),
+    );
+
+    let (cmd, argv) = scout_pair(
+        &app,
+        &[
+            "add",
+            video_path.as_str(),
+            "--db",
+            database.as_str(),
+            "--root",
+            root.as_str(),
+            "--detector",
+            method.as_str(),
+        ],
+    )?;
+    scout_spawn_log("add", &argv);
 
     let mut child = tokio::process::Command::from(cmd)
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| format!("Failed to start indexing: {e}"))?;
+
+    let child_pid = child.id().unwrap_or_default();
+    console_log("SCOUT|pid", &format!("pid={child_pid}"));
+
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| "Indexing produced no stderr stream.".to_string())?;
+    let (stderr_task, stderr_accum) = forward_stderr(&app, stderr);
 
     let stdout = child
         .stdout
@@ -375,13 +476,43 @@ pub async fn scout_add_video(
         .wait()
         .await
         .map_err(|e| format!("Indexing failed to finish: {e}"))?;
+    let _ = stderr_task.await;
 
     if let Some(message) = failure {
+        console_log(
+            "ERROR|scout_add_video",
+            &format!("video={video_name} db={db_name} error={message}"),
+        );
         return Err(message);
     }
     if !status.success() {
-        return Err("Indexing failed. Check the console for details.".to_string());
+        let dump = stderr_accum
+            .lock()
+            .map(|s| s.clone())
+            .unwrap_or_default();
+        console_log(
+            "ERROR|scout_add_video",
+            &format!("video={video_name} exit={status}"),
+        );
+        console_log("ERROR|scout_add_video", "backend_stderr_dump_begin");
+        for l in dump.lines() {
+            let sanitized = sanitize_for_console(l);
+            if !sanitized.trim().is_empty() {
+                emit_console_log(&app, "python", "log", &sanitized);
+            }
+        }
+        console_log("ERROR|scout_add_video", "backend_stderr_dump_end");
+        return Err(if dump.trim().is_empty() {
+            "Indexing failed. Check the console for details.".to_string()
+        } else {
+            dump.trim().to_string()
+        });
     }
+
+    console_log(
+        "SCOUT|end",
+        &format!("verb=add video={video_name} status={status} scenes={scenes}"),
+    );
 
     Ok(scenes)
 }

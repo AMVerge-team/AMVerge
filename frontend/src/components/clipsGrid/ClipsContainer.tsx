@@ -23,12 +23,14 @@ import { deliverExportedFiles } from "../../features/export/deliverExports.ts";
 import { useScenepacksStore } from "../../stores/scenepackStore.ts";
 import { useContextMenuStore } from "../../stores/contextMenuStore.ts";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
+import { useSceneScoutStore } from "../../stores/sceneScoutStore.ts";
 import { removeClipsFromScenepack } from "../../utils/scenepackStorage.ts";
 import type { ClipItem } from "../../types/domain.ts";
 
 export default function ClipsContainer({ cols }: { cols?: number }) {
   const clips = useAppStateStore((state) => state.clips);
   const loading = useAppStateStore((state) => state.loading);
+  const isScoutSearching = useSceneScoutStore((state) => state.searching);
   const importToken = useAppStateStore((state) => state.importToken);
   const setFocusedClip = useAppStateStore((state) => state.setFocusedClip);
   const setFocusedClipId = useAppStateStore((state) => state.setFocusedClipId);
@@ -507,17 +509,11 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     return () => el.removeEventListener("wheel", onWheel);
   }, [colsOverridden, setStoreCols]);
 
+  const showLoadingSkeletons = loading || (activePage === "sceneScout" && isScoutSearching);
+
   return (
     <main className="clips-container" ref={containerRef}>
-      {clips.length === 0 ? (
-        <div className="empty-grid-wrapper">
-          <p id="empty-grid">
-            {activePage === "scenepacks"
-              ? <>No Scenepack opened.<br/>Select one from the sidebar to view its clips.</>
-              : <>No video loaded.<br/>If no clips are displaying, try changing the episode storage path in general settings.</>}
-          </p>
-        </div>
-      ) : loading ? (
+      {showLoadingSkeletons ? (
         <div
           className="clips-grid"
           style={{
@@ -528,6 +524,16 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
           {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="clip-skeleton" />
           ))}
+        </div>
+      ) : clips.length === 0 ? (
+        <div className="empty-grid-wrapper">
+          <p id="empty-grid">
+            {activePage === "scenepacks"
+              ? <>No Scenepack opened.<br/>Select one from the sidebar to view its clips.</>
+              : activePage === "sceneScout"
+              ? <>No scenes found.<br/>Select one or more databases on the left, describe a scene, and press Enter to search.</>
+              : <>No video loaded.<br/>If no clips are displaying, try changing the episode storage path in general settings.</>}
+          </p>
         </div>
       ) : (
         <>

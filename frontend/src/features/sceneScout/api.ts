@@ -58,6 +58,7 @@ export function scoutSearch(
     args: {
       query,
       databases: settings.selectedDatabases,
+      videos: settings.selectedVideos,
       topK: settings.topK,
       threshold: settings.threshold,
       includeThumbnails: settings.includeThumbnails,

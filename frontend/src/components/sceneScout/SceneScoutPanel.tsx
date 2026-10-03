@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 import {
+  FaChevronRight,
   FaDatabase,
   FaPlus,
   FaSearch,
@@ -12,7 +13,7 @@ import {
 
 import ModalShell from "../common/ModalShell";
 import Tooltip from "../common/Tooltip";
-import { useSceneScoutStore } from "../../stores/sceneScoutStore";
+import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
 
 /**
  * Sidebar panel for Scene Scout: the search databases, and what is indexed into
@@ -31,9 +32,16 @@ export function SceneScoutPanel() {
   const databases = useSceneScoutStore((s) => s.databases);
   const opened = useSceneScoutStore((s) => s.openedDatabase);
   const videos = useSceneScoutStore((s) => s.videos);
+  const videosByDatabase = useSceneScoutStore((s) => s.videosByDatabase);
+  const expandedDatabases = useSceneScoutStore((s) => s.expandedDatabases);
+  const selectedDatabases = useSceneScoutStore((s) => s.selectedDatabases);
+  const selectedVideos = useSceneScoutStore((s) => s.selectedVideos);
   const loading = useSceneScoutStore((s) => s.loading);
   const loadDatabases = useSceneScoutStore((s) => s.loadDatabases);
   const openDatabase = useSceneScoutStore((s) => s.openDatabase);
+  const toggleDatabaseExpanded = useSceneScoutStore((s) => s.toggleDatabaseExpanded);
+  const selectDatabase = useSceneScoutStore((s) => s.selectDatabase);
+  const selectVideo = useSceneScoutStore((s) => s.selectVideo);
   const createDatabase = useSceneScoutStore((s) => s.createDatabase);
   const deleteDatabase = useSceneScoutStore((s) => s.deleteDatabase);
   const renameDatabase = useSceneScoutStore((s) => s.renameDatabase);
@@ -101,7 +109,7 @@ export function SceneScoutPanel() {
           <div className="episode-panel-title">
             Scene Scout
             {/* upstream author, credited where the feature actually lives */}
-            <span className="scene-scout-credit">By Mark Shun</span>
+            <span className="scene-scout-credit">By Mark Shun/Sonicfreak</span>
           </div>
           <div className="episode-panel-actions">
             <Tooltip content="New database">
@@ -172,13 +180,43 @@ export function SceneScoutPanel() {
             <div className="episode-panel-empty">No databases match that search.</div>
           ) : (
             visible.map((database) => {
-              const isOpen = database.name === opened;
+              const isExpanded = Boolean(expandedDatabases[database.path]);
+              const isSelected = selectedDatabases.some((p) => samePath(p, database.path));
+              const isMultiSelected = isSelected && selectedDatabases.length > 1;
+              const dbVideos = videosByDatabase[database.path] ?? (samePath(opened, database.path) ? videos : []);
+              const allDbVideoPaths = dbVideos.map((v) => v.filepath);
+
+              let rowClass = "episode-panel-row episode-row";
+              if (isSelected) rowClass += isMultiSelected ? " is-multi-selected is-selected" : " is-selected";
+              if (isExpanded) rowClass += " is-open";
+
               return (
-                <div key={database.name} className="episode-panel-folder">
+                <div key={database.path} className="episode-panel-folder">
                   <div
-                    className={`episode-panel-row episode-row${isOpen ? " is-open is-selected" : ""}`}
-                    onClick={() => void openDatabase(isOpen ? null : database.name)}
+                    className={rowClass}
+                    onClick={(e) => {
+                      const allVisiblePaths = visible.map((d) => d.path);
+                      if (e.ctrlKey || e.metaKey) {
+                        selectDatabase(database.path, "toggle");
+                      } else if (e.shiftKey) {
+                        selectDatabase(database.path, "range", allVisiblePaths);
+                      } else {
+                        selectDatabase(database.path, "single");
+                      }
+                    }}
                   >
+                    <button
+                      type="button"
+                      className={`episode-panel-caret${isExpanded ? " is-expanded" : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void toggleDatabaseExpanded(database.path);
+                      }}
+                      aria-label={isExpanded ? "Collapse database" : "Expand database"}
+                      style={{ marginRight: "6px" }}
+                    >
+                      <FaChevronRight className="episode-panel-caret-icon" />
+                    </button>
                     <FaDatabase
                       className="episode-panel-import-icon"
                       aria-hidden="true"
@@ -193,7 +231,7 @@ export function SceneScoutPanel() {
                         className="episode-panel-import-icon episode-folder-btn"
                         onClick={(e) => {
                           e.stopPropagation();
-                          void deleteDatabase(database.name);
+                          void deleteDatabase(database.path);
                         }}
                         aria-label={`Delete ${database.name}`}
                       >
@@ -202,25 +240,45 @@ export function SceneScoutPanel() {
                     </Tooltip>
                   </div>
 
-                  {isOpen && (
+                  {isExpanded && (
                     <div className="episode-panel-folder-children">
-                      {videos.length === 0 ? (
-                        <div className="episode-panel-empty">
+                      {dbVideos.length === 0 ? (
+                        <div className="episode-panel-empty" style={{ paddingLeft: "32px" }}>
                           Nothing indexed. Use Add Episode above the grid.
                         </div>
                       ) : (
-                        videos.map((video) => (
-                          <div key={video.id} className="episode-panel-row episode-row">
-                            <FaVideo
-                              className="episode-panel-import-icon"
-                              aria-hidden="true"
-                            />
-                            <span className="episode-panel-episode-name">{video.name}</span>
-                            <span className="episode-panel-count">
-                              {video.status === "indexing" ? "..." : video.sceneCount}
-                            </span>
-                          </div>
-                        ))
+                        dbVideos.map((video) => {
+                          const isVideoSelected = selectedVideos.some((vp) => samePath(vp, video.filepath));
+                          let videoRowClass = "episode-panel-row episode-row";
+                          if (isVideoSelected) videoRowClass += " is-focused is-selected";
+
+                          return (
+                            <div
+                              key={video.id}
+                              className={videoRowClass}
+                              style={{ paddingLeft: "32px" }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (e.ctrlKey || e.metaKey) {
+                                  selectVideo(video.filepath, database.path, "toggle");
+                                } else if (e.shiftKey) {
+                                  selectVideo(video.filepath, database.path, "range", allDbVideoPaths);
+                                } else {
+                                  selectVideo(video.filepath, database.path, "single");
+                                }
+                              }}
+                            >
+                              <FaVideo
+                                className="episode-panel-import-icon"
+                                aria-hidden="true"
+                              />
+                              <span className="episode-panel-episode-name">{video.name}</span>
+                              <span className="episode-panel-count">
+                                {video.status === "indexing" ? "..." : video.sceneCount}
+                              </span>
+                            </div>
+                          );
+                        })
                       )}
                     </div>
                   )}
