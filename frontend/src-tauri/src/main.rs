@@ -30,6 +30,7 @@ fn main() {
         .manage(ActiveInstall::default())
         .manage(commands::auth::DiscordAuthState::default())
         .manage(crate::commands::scene_scout::SceneScoutWorkerState::default())
+        .manage(crate::commands::scene_scout::ActiveScoutIndex::default())
         .invoke_handler(tauri::generate_handler![
             commands::bug_report::submit_bug_report,
             commands::auth::begin_discord_login,
@@ -104,6 +105,7 @@ fn main() {
             commands::scene_scout::scout_status,
             commands::scene_scout::scout_search,
             commands::scene_scout::scout_add_video,
+            commands::scene_scout::abort_scout_index,
             commands::scene_scout::scout_unload_model,
             commands::settings::get_default_episodes_dir,
             commands::discord::start_discord_rpc,
@@ -210,4 +212,21 @@ fn kill_all_child_processes(app: &tauri::AppHandle) {
             let _ = session.child.start_kill();
         }
     };
+
+    let scout_index_pid = app
+        .state::<crate::commands::scene_scout::ActiveScoutIndex>()
+        .0
+        .lock()
+        .ok()
+        .and_then(|mut l| l.take());
+    if let Some(pid) = scout_index_pid {
+        #[cfg(not(target_os = "windows"))]
+        let _ = StdCommand::new("kill")
+            .args(["-9", &format!("-{pid}")])
+            .output();
+        #[cfg(target_os = "windows")]
+        let _ = StdCommand::new("taskkill")
+            .args(["/F", "/T", "/PID", &pid.to_string()])
+            .output();
+    }
 }

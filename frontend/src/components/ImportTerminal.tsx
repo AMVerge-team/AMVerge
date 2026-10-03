@@ -17,9 +17,7 @@ interface ImportTerminalProps {
   batchDone: number;
   batchCurrentFile: string;
   onAbort: () => void;
-  /** which CLI operation this overlay is showing (drives the command header) */
-  operation?: "import" | "export";
-  /** video file name for the synthesized command header line */
+  operation?: "import" | "export" | "scout_add";
   commandLabel?: string;
   /** scene detection method for the synthesized command line (e.g. keyframe_detection) */
   detectionMethod?: string;
@@ -168,6 +166,9 @@ export default function ImportTerminal({
     if (operation === "export") {
       const target = commandLabel ? `"${commandLabel}"` : "<clips>";
       pushLine("cmd", `amverge export ${target} --merge`);
+    } else if (operation === "scout_add") {
+      const target = commandLabel ? `"${commandLabel}"` : "<video>";
+      pushLine("cmd", `amverge scout add ${target}`);
     } else {
       const target = commandLabel ? `"${commandLabel}"` : "<video>";
       pushLine("cmd", `amverge backend ${target} ${detectionMethod} ${importMethod}`);
@@ -196,6 +197,25 @@ export default function ImportTerminal({
         listen("phase1_complete", () => {
           pushLine("event", "phase 1 complete · keyframe clips ready");
         }),
+        listen<{ stage: string; done: number; total: number; video?: string | null }>(
+          "scout_progress",
+          (e) => {
+            const { stage, done, total } = e.payload;
+            if (stage === "loading_model") {
+              pushLine("event", "loading SigLIP 2 model weights…");
+            } else if (stage === "detecting") {
+              pushLine("event", "detecting scenes…");
+            } else if (stage === "sampling") {
+              pushLine("event", `sampling ${total} representative frames…`);
+            } else if (stage === "embedding") {
+              if (total > 0 && (done === total || done % Math.max(1, Math.floor(total / 5)) === 0)) {
+                pushLine("event", `embedding scenes ${done}/${total}`);
+              }
+            } else if (stage === "done") {
+              pushLine("event", `indexed ${total} scenes successfully`);
+            }
+          }
+        ),
       ]);
 
       if (disposed) {
@@ -266,7 +286,9 @@ export default function ImportTerminal({
         <div className="lm-head" onPointerDown={handleCardPointerDown}>
           <span className="lm-spinner">{done ? "✓" : SPINNER[spinnerFrame]}</span>
           <span className="lm-title">
-            {isBatch ? "Importing videos" : progressMsg || "Finishing import…"}
+            {isBatch
+              ? (operation === "scout_add" ? "Embedding videos" : "Importing videos")
+              : progressMsg || (operation === "scout_add" ? "Embedding scenes…" : "Finishing import…")}
           </span>
           <div className="lm-actions">
             <Tooltip content="Expand">
@@ -347,7 +369,7 @@ export default function ImportTerminal({
     <div className="loading-overlay">
       <div className="import-terminal" role="log" aria-label="AMVerge CLI output">
         <div className="it-header">
-          <span className="it-title">AMVerge CLI</span>
+          <span className="it-title">{operation === "scout_add" ? "Scene Scout - Indexing" : "AMVerge CLI"}</span>
           {onToggleMinimize ? (
             <Tooltip content="Minimize">
               <button
@@ -386,7 +408,7 @@ export default function ImportTerminal({
 
           {batchTotal > 1 && (
             <div className="it-batch">
-              Cutting videos {batchDone + 1}/{batchTotal} · {batchCurrentFile}
+              {operation === "scout_add" ? "Embedding videos" : "Cutting videos"} {batchDone + 1}/{batchTotal} · {batchCurrentFile}
             </div>
           )}
 

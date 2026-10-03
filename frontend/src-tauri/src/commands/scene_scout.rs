@@ -394,6 +394,9 @@ pub struct SceneScoutWorkerState {
     pub inner: Arc<tokio::sync::Mutex<Option<SceneScoutWorkerSession>>>,
 }
 
+#[derive(Default, Clone)]
+pub struct ActiveScoutIndex(pub Arc<Mutex<Option<u32>>>);
+
 fn spawn_scout_worker(
     app: &AppHandle,
     root: &str,
@@ -593,10 +596,9 @@ pub async fn scout_add_video(
     app: AppHandle,
     database: String,
     video_path: String,
-    // the user's Settings scene-detection choice, passed straight through so
-    // Scene Scout finds the same cuts an import of this episode would
     detector: Option<String>,
     custom_path: Option<String>,
+    active_index: State<'_, ActiveScoutIndex>,
 ) -> Result<u64, String> {
     let root = scout_root(&app, custom_path.as_deref())?;
 
@@ -631,6 +633,9 @@ pub async fn scout_add_video(
 
     let child_pid = child.id().unwrap_or_default();
     console_log("SCOUT|pid", &format!("pid={child_pid}"));
+    if let Ok(mut lock) = active_index.0.lock() {
+        *lock = Some(child_pid);
+    }
 
     let stderr = child
         .stderr
@@ -679,6 +684,10 @@ pub async fn scout_add_video(
         .map_err(|e| format!("Indexing failed to finish: {e}"))?;
     let _ = stderr_task.await;
 
+    if let Ok(mut lock) = active_index.0.lock() {
+        *lock = None;
+    }
+
     if let Some(message) = failure {
         console_log(
             "ERROR|scout_add_video",
@@ -716,4 +725,45 @@ pub async fn scout_add_video(
     );
 
     Ok(scenes)
+}
+
+#[tauri::command]
+pub async fn abort_scout_index(active_index: State<'_, ActiveScoutIndex>) -> Result<(), String> {
+    let pid = active_index.0.lock().map_err(|e| e.to_string())?.take();
+    let Some(pid) = pid else {
+        console_log("SCOUT|abort", "no active scout indexing process to kill");
+        return Ok(());
+    };
+
+    console_log("SCOUT|abort", &format!("killing indexing process tree pid={pid}"));
+
+    #[cfg(windows)]
+    let result = tokio::task::spawn_blocking(move || {
+        let mut cmd = std::process::Command::new("taskkill");
+        crate::utils::process::apply_no_window(&mut cmd);
+        cmd.args(["/F", "/T", "/PID", &pid.to_string()])
+            .output()
+            .map_err(|e| format!("Failed to run taskkill: {e}"))
+    })
+    .await
+    .map_err(|e| format!("taskkill task panicked: {e}"))??;
+
+    #[cfg(not(windows))]
+    let result = tokio::task::spawn_blocking(move || {
+        std::process::Command::new("kill")
+            .args(["-9", &format!("-{pid}")])
+            .output()
+            .map_err(|e| format!("Failed to run kill: {e}"))
+    })
+    .await
+    .map_err(|e| format!("kill task panicked: {e}"))??;
+
+    if result.status.success() {
+        console_log("SCOUT|abort", &format!("killed scout indexing pid={pid} ok"));
+    } else {
+        let stderr = String::from_utf8_lossy(&result.stderr).trim().to_string();
+        console_log("SCOUT|abort", &format!("kill scout indexing pid={pid} failed: {stderr}"));
+    }
+
+    Ok(())
 }

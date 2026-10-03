@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { listen } from "@tauri-apps/api/event";
 
 import {
   scoutAddVideo,
@@ -17,11 +18,13 @@ import {
   DEFAULT_SEARCH_SETTINGS,
   type ScoutDatabase,
   type ScoutHit,
+  type ScoutIndexProgress,
   type ScoutSearchSettings,
   type ScoutStatus,
   type ScoutVideo,
 } from "../features/sceneScout/types";
 import { useAiDepsStore } from "./aiDepsStore";
+import { useAppStateStore } from "./appStore";
 import { useGeneralSettingsStore } from "./settingsStore";
 
 /** The storage root every call has to be told about, read fresh each time. */
@@ -385,12 +388,74 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         const totalVideos = videoPaths.length;
         console.log(`SCOUT|queue starting queue of ${totalVideos} videos`);
 
+        const appState = useAppStateStore.getState();
+        appState.setActiveOperation("scout_add");
+        appState.setLoading(true);
+        appState.setBatchTotal(totalVideos);
+        appState.setBatchDone(0);
+        appState.setProgress(0);
+        appState.setProgressMsg("Initializing Scene Scout…");
+
+        let stopListener: (() => void) | null = null;
+
         try {
+          stopListener = await listen<ScoutIndexProgress>("scout_progress", (e) => {
+            const { stage, done, total } = e.payload;
+            const currentVideo = get().indexing?.video;
+            if (currentVideo) {
+              set({
+                indexing: {
+                  video: currentVideo,
+                  stage,
+                  done,
+                  total,
+                },
+              });
+            }
+
+            if (stage === "loading_model") {
+              appState.setProgressMsg("Loading SigLIP 2 model weights…");
+              appState.setProgress(0);
+              useAppStateStore.setState((s) => ({ ...s, bgProgress: null }));
+            } else if (stage === "detecting") {
+              appState.setProgressMsg("Detecting scenes…");
+              appState.setProgress(10);
+            } else if (stage === "sampling") {
+              appState.setProgressMsg(`Sampling ${total} representative frames…`);
+              appState.setProgress(20);
+            } else if (stage === "embedding") {
+              const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+              const currentProgress = Math.min(100, Math.max(0, 20 + Math.round((pct * 80) / 100)));
+              appState.setProgress(currentProgress);
+              appState.setProgressMsg(`Embedding scenes ${done}/${total} (${pct}%)`);
+              useAppStateStore.setState((s) => ({
+                ...s,
+                bgProgress: { done, total },
+              }));
+            } else if (stage === "done") {
+              appState.setProgress(100);
+              appState.setProgressMsg("Indexed scenes successfully");
+            }
+          });
+
           const detector = useGeneralSettingsStore.getState().sceneDetectionMethod;
           for (let i = 0; i < totalVideos; i++) {
             const videoPath = videoPaths[i];
             const name = videoPath.split(/[/\\]/).pop() || videoPath;
             console.log(`SCOUT|queue [${i + 1}/${totalVideos}] indexing ${name}`);
+            appState.setBatchDone(i);
+            appState.setBatchCurrentFile(name);
+            appState.setProgress(0);
+            appState.setProgressMsg(
+              totalVideos > 1
+                ? `[${i + 1}/${totalVideos}] Starting ${name}…`
+                : `Starting ${name}…`
+            );
+            useAppStateStore.setState((s) => ({
+              ...s,
+              bgProgress: null,
+            }));
+
             set({
               indexing: {
                 video: videoPath,
@@ -399,6 +464,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
                 total: 1,
               },
             });
+
             await scoutAddVideo(database, videoPath, detector, customPath());
             console.log(`SCOUT|queue [${i + 1}/${totalVideos}] completed ${name}`);
           }
@@ -409,7 +475,19 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           console.error("SCOUT|queue error", err);
           return { ok: false, message: message(err) };
         } finally {
+          if (stopListener) {
+            stopListener();
+          }
           set({ indexing: null });
+          useAppStateStore.setState((s) => ({
+            ...s,
+            loading: false,
+            activeOperation: null,
+            bgProgress: null,
+            batchTotal: 0,
+            batchDone: 0,
+            batchCurrentFile: null,
+          }));
         }
       },
 

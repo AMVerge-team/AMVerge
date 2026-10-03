@@ -267,6 +267,7 @@ function App() {
         invoke("abort_detect_scenes"),
         invoke("abort_export"),
         invoke("abort_editor_import"),
+        invoke("abort_scout_index"),
       ]);
     } catch (err) {
       console.error("abort tasks failed:", err);
@@ -295,13 +296,13 @@ function App() {
 
   // auto-minimize once the heavy phase (scene detect + first clip cuts) is done
   // and only background thumbnail/reencode/preview work remains
-  const autoMinimized = !loading && bgActive;
+  const autoMinimized = activeOperation === "scout_add" || (!loading && bgActive);
   const overlayMinimized = minimizeOverride !== null ? minimizeOverride : autoMinimized;
 
   async function handleAbortAndCloseBgProgress() {
-    const { bgProgress: bg, bgImportProgress: bgImport, reencodeProgress: reenc } =
+    const { bgProgress: bg, bgImportProgress: bgImport, reencodeProgress: reenc, activeOperation: op } =
       useAppStateStore.getState();
-    if (bg || bgImport || reenc) {
+    if (bg || bgImport || reenc || op === "scout_add") {
       await handleAbort();
     }
     clearBgProgress();
@@ -472,7 +473,7 @@ function App() {
               <BgProgressBar
                 clipDone={(reencodeProgress ?? bgProgress)?.done ?? 0}
                 clipTotal={(reencodeProgress ?? bgProgress)?.total ?? 0}
-                clipLabel={reencodeProgress ? "Reencoding" : "Processing clips"}
+                clipLabel={activeOperation === "scout_add" ? "Embedding scenes" : reencodeProgress ? "Reencoding" : "Processing clips"}
                 importDone={bgImportProgress?.done ?? 0}
                 importTotal={bgImportProgress?.total ?? 0}
                 webpDone={webpLoadDone}
@@ -486,7 +487,7 @@ function App() {
           <BgProgressBar
             clipDone={(reencodeProgress ?? bgProgress)?.done ?? 0}
             clipTotal={(reencodeProgress ?? bgProgress)?.total ?? 0}
-            clipLabel={reencodeProgress ? "Reencoding" : "Processing clips"}
+            clipLabel={activeOperation === "scout_add" ? "Embedding scenes" : reencodeProgress ? "Reencoding" : "Processing clips"}
             importDone={bgImportProgress?.done ?? 0}
             importTotal={bgImportProgress?.total ?? 0}
             webpDone={webpLoadDone}
