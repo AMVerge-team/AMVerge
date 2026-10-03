@@ -226,7 +226,7 @@ export function SceneScoutToolbar() {
             </button>
           </Tooltip>
 
-          <InfoButton title="Scene Scout">
+          <InfoButton title="Scene Scout Information">
             <p>
               Scene Scout searches your indexed episodes by description rather than
               by filename. Type what you remember of a scene and it finds the
@@ -246,9 +246,9 @@ export function SceneScoutToolbar() {
 
             <h4>Search settings</h4>
             <p>
-              Results controls how many matches come back. Match strength drops
-              anything below a score, which trims weak results out of a large
-              search. Both sit under the search field.
+              Results controls how many matches come back. Min score controls the minimum threshold for the results.
+              Scenes with scores below the threshold are not shown.
+              Scene detection controls which method is used to detect scenes before embeddings are created.
             </p>
           </InfoButton>
 
