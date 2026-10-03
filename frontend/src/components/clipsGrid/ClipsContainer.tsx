@@ -31,6 +31,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   const clips = useAppStateStore((state) => state.clips);
   const loading = useAppStateStore((state) => state.loading);
   const isScoutSearching = useSceneScoutStore((state) => state.searching);
+  const scoutLastQuery = useSceneScoutStore((state) => state.lastQuery);
   const importToken = useAppStateStore((state) => state.importToken);
   const setFocusedClip = useAppStateStore((state) => state.setFocusedClip);
   const setFocusedClipId = useAppStateStore((state) => state.setFocusedClipId);
@@ -529,7 +530,13 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
             {activePage === "scenepacks"
               ? <>No Scenepack opened.<br/>Select one from the sidebar to view its clips.</>
               : activePage === "sceneScout"
-              ? <>No scenes found.<br/>Select one or more databases on the left, describe a scene, and press Enter to search.</>
+              ? (
+                scoutLastQuery ? (
+                  <>No scenes matched your search.<br/>Try lowering the minimum score or changing your search terms.</>
+                ) : (
+                  <>No scenes found.<br/>Select one or more databases on the left, describe a scene, and press Enter to search.</>
+                )
+              )
               : <>No video loaded.<br/>If no clips are displaying, try changing the episode storage path in general settings.</>}
           </p>
         </div>

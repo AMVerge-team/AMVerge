@@ -114,5 +114,22 @@ export function isCustomTopK(topK: number): boolean {
   return !TOP_K_OPTIONS.some((o) => o.value !== CUSTOM_TOP_K && o.value === topK);
 }
 
+export const CUSTOM_THRESHOLD = -999;
 export const MIN_THRESHOLD_PCT = 0;
-export const MAX_THRESHOLD_PCT = 100;
+export const MAX_THRESHOLD_PCT = 99;
+
+export const THRESHOLD_OPTIONS: { value: number; label: string; description: string }[] = [
+  { value: -1, label: "No minimum", description: "Show all results" },
+  { value: 0.05, label: "5%", description: "Very low cutoff" },
+  { value: 0.1, label: "10%", description: "Low cutoff" },
+  { value: 0.15, label: "15%", description: "Fair cutoff" },
+  { value: 0.2, label: "20%", description: "Good cutoff" },
+  { value: 0.3, label: "30%", description: "High cutoff" },
+  { value: CUSTOM_THRESHOLD, label: "Custom", description: "0 to 99%" },
+];
+
+export function isCustomThreshold(threshold: number): boolean {
+  return !THRESHOLD_OPTIONS.some(
+    (o) => o.value !== CUSTOM_THRESHOLD && Math.abs(o.value - threshold) < 0.0001
+  );
+}
