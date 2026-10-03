@@ -9,7 +9,7 @@ import { useClipStagger } from "./useClipStagger.ts";
 import { useClipVideoSource } from "./useClipVideoSource.ts";
 import { useClipVideoElement } from "./useClipVideoElement.ts";
 import { useDownloadTone } from "./useDownloadTone.ts";
-import { formatClipTime, formatClipTimeframe } from "./clipFormat.ts";
+import { formatClipTime, formatClipTimeframe, formatScoreWithConfidence } from "./clipFormat.ts";
 import { mediaSrcVersioned } from "../../utils/mediaSrc.ts";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { selectOverlayOpen, useUIStateStore } from "../../stores/UIStore.ts";
@@ -292,7 +292,7 @@ export const LazyClip = memo(function LazyClip({
     ? [
         clip.originalName,
         `Timeframe: ${formatClipTimeframe(clip.startSec, clip.endSec, true)}`,
-        clip.score !== undefined ? `Match: ${Math.round(clip.score * 100)}%` : null,
+        clip.score !== undefined ? formatScoreWithConfidence(clip.score) : null,
       ]
         .filter(Boolean)
         .join("\n")

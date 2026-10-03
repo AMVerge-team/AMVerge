@@ -27,3 +27,26 @@ export function formatClipTimeframe(
   }
   return `${startStr} - ${endStr}`;
 }
+
+export type ScoreConfidenceTier = "low" | "fair" | "good" | "high" | "very_high";
+
+export interface ScoreConfidence {
+  label: string;
+  tier: ScoreConfidenceTier;
+}
+
+export function getScoreConfidence(score?: number | null): ScoreConfidence | null {
+  if (typeof score !== "number" || isNaN(score)) return null;
+  if (score >= 0.30) return { label: "Very High Confidence", tier: "very_high" };
+  if (score >= 0.24) return { label: "High Confidence", tier: "high" };
+  if (score >= 0.18) return { label: "Good Confidence", tier: "good" };
+  if (score >= 0.12) return { label: "Fair Confidence", tier: "fair" };
+  return { label: "Low Confidence", tier: "low" };
+}
+
+export function formatScoreWithConfidence(score?: number | null): string | null {
+  if (typeof score !== "number" || isNaN(score)) return null;
+  const pct = Math.round(score * 100);
+  const conf = getScoreConfidence(score);
+  return conf ? `Match: ${pct}% (${conf.label})` : `Match: ${pct}%`;
+}
