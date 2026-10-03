@@ -351,3 +351,39 @@
     vertical-align: baseline;
     white-space: nowrap;
 }
+
+.scene-scout-unload-btn {
+    width: auto;
+    height: 34px;
+    margin: 0;
+    padding: 0 14px;
+    font-size: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--app-font);
+    border: 1px solid rgb(var(--accent-rgb) / 0.85);
+    border-radius: 8px;
+    background: rgba(15, 0, 0, 0.15);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    white-space: nowrap;
+}
+
+.scene-scout-unload-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgb(var(--accent-rgb) / 0.18);
+    color: var(--accent);
+    box-shadow: 0 0 15px rgb(var(--accent-rgb) / 0.4);
+}
+
+.scene-scout-unload-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+

@@ -111,6 +111,20 @@ export function SceneScoutToolbar() {
     setEditingTopK(false);
   };
   const [error, setError] = useState("");
+  const [unloading, setUnloading] = useState(false);
+  const [freed, setFreed] = useState(false);
+
+  const handleUnloadModel = async () => {
+    if (unloading) return;
+    setUnloading(true);
+    try {
+      await unloadModel();
+      setFreed(true);
+      setTimeout(() => setFreed(false), 2000);
+    } finally {
+      setUnloading(false);
+    }
+  };
 
   const onAddEpisode = async () => {
     setError("");
@@ -327,16 +341,15 @@ export function SceneScoutToolbar() {
               <span>GPU standby (idle VRAM release)</span>
             </div>
 
-            <div className="scene-scout-setting" style={{ marginTop: "4px" }}>
-              <button
-                type="button"
-                className="events-action-button"
-                style={{ width: "100%", padding: "4px 8px", fontSize: "11px" }}
-                onClick={() => void unloadModel()}
-              >
-                Free Model Memory
-              </button>
-            </div>
+            <button
+              type="button"
+              className="buttons scene-scout-unload-btn"
+              onClick={() => void handleUnloadModel()}
+              disabled={unloading}
+              title="Unload SigLIP 2 model weights from RAM / VRAM"
+            >
+              {unloading ? "Freeing..." : freed ? "Memory Freed" : "Free Model Memory"}
+            </button>
 
             {databases.length > 1 && (
             <div className="scene-scout-setting scene-scout-db-filter">
