@@ -32,12 +32,9 @@ export function hitToClipItem(hit: ScoutHit, index: number): ClipItem {
     sceneIndex: index,
     startSec: hit.startSec,
     endSec: hit.endSec,
+    score: hit.score,
+    database: hit.database,
     sourceKind: "video",
-    // the animated-preview cache is keyed on this. it has to be set and it has
-    // to be scout-specific: left undefined, `buildWebpJob` falls back to
-    // whichever episode happens to be open and writes previews into that
-    // episode's cache. keying it per database also means the same scene
-    // resolves to the same cached preview across searches
     episodeId: scoutCacheId(hit.database),
   };
 }

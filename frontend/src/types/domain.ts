@@ -13,11 +13,9 @@ export type ClipItem = {
   clipPath?: string;
   clipMode?: string;
   episodeId?: string;
-  // Scenepack clips only: the ORIGINAL source type before materialization
-  // every Scenepack clip gets its own clipPath (a materialized copy) once
-  // added, so clipPath presence alone can no longer tell video-mode and
-  // webp-mode clips apart the way it does for Home-page clips
   sourceKind?: "video" | "webp";
+  score?: number;
+  database?: string;
 };
 
 export type EpisodeFolder = {

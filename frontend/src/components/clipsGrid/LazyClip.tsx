@@ -9,7 +9,7 @@ import { useClipStagger } from "./useClipStagger.ts";
 import { useClipVideoSource } from "./useClipVideoSource.ts";
 import { useClipVideoElement } from "./useClipVideoElement.ts";
 import { useDownloadTone } from "./useDownloadTone.ts";
-import { formatClipTime } from "./clipFormat.ts";
+import { formatClipTime, formatClipTimeframe } from "./clipFormat.ts";
 import { mediaSrcVersioned } from "../../utils/mediaSrc.ts";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { selectOverlayOpen, useUIStateStore } from "../../stores/UIStore.ts";
@@ -287,11 +287,23 @@ export const LazyClip = memo(function LazyClip({
     e.stopPropagation();
   };
 
+  const isScout = activePage === "sceneScout";
+  const scoutTooltip = isScout
+    ? [
+        clip.originalName,
+        `Timeframe: ${formatClipTimeframe(clip.startSec, clip.endSec, true)}`,
+        clip.score !== undefined ? `Match: ${Math.round(clip.score * 100)}%` : null,
+      ]
+        .filter(Boolean)
+        .join("\n")
+    : undefined;
+
   return (
     <div
       ref={wrapperRef}
       className={`clip-wrapper ${isFocused ? "focused" : ""} ${isSelected ? "selected" : ""} ${dragOver ? "scenepack-drag-over" : ""} ${appearDelayMs !== null ? "clip-appear" : ""}`}
       style={appearDelayMs !== null ? { ["--appear-delay" as any]: `${appearDelayMs}ms` } : undefined}
+      title={scoutTooltip}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
@@ -441,7 +453,11 @@ export const LazyClip = memo(function LazyClip({
           )}
 
           {showClipTimestamps && clip.startSec !== undefined && (
-            <div className="clip-original-timestamp">{formatClipTime(clip.startSec)}</div>
+            <div className={`clip-original-timestamp${isScout ? " is-timeframe" : ""}`}>
+              {isScout
+                ? formatClipTimeframe(clip.startSec, clip.endSec)
+                : formatClipTime(clip.startSec)}
+            </div>
           )}
 
           {showDownloadButton && (
