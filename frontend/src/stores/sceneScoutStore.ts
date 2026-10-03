@@ -10,6 +10,7 @@ import {
   scoutListVideos,
   scoutSearch,
   scoutStatus,
+  scoutUnloadModel,
 } from "../features/sceneScout/api";
 import {
   DEFAULT_SEARCH_SETTINGS,
@@ -71,6 +72,8 @@ type SceneScoutActions = {
   clearSelection: () => void;
   loadVideos: (name: string) => Promise<void>;
   addVideo: (videoPath: string) => Promise<{ ok: boolean; message: string | null }>;
+  addVideos: (videoPaths: string[]) => Promise<{ ok: boolean; message: string | null }>;
+  unloadModel: () => Promise<void>;
   setQuery: (query: string) => void;
   runSearch: () => Promise<void>;
   clearResults: () => void;
@@ -342,28 +345,54 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       },
 
       addVideo: async (videoPath) => {
+        return get().addVideos([videoPath]);
+      },
+
+      addVideos: async (videoPaths) => {
+        if (!videoPaths.length) return { ok: true, message: null };
         const database = get().openedDatabase || get().selectedDatabases[0];
         if (!database) return { ok: false, message: "Select or open a database first." };
 
-        // indexing needs the model, so offer the install here rather than
-        // letting the CLI fail several seconds in. mirrors how the ml pack
-        // gates AI scene detection in useImportPipeline
         if (!(await useAiDepsStore.getState().ensurePack("scout"))) {
           return { ok: false, message: "Scene Scout needs its AI pack installed." };
         }
 
-        set({ indexing: { video: videoPath, stage: "starting", done: 0, total: 1 } });
+        const totalVideos = videoPaths.length;
+        console.log(`SCOUT|queue starting queue of ${totalVideos} videos`);
+
         try {
-          // Scene Scout indexes with whichever detector the user picked in
-          // Settings, so its scenes match what importing the episode would give
           const detector = useGeneralSettingsStore.getState().sceneDetectionMethod;
-          await scoutAddVideo(database, videoPath, detector, customPath());
+          for (let i = 0; i < totalVideos; i++) {
+            const videoPath = videoPaths[i];
+            const name = videoPath.split(/[/\\]/).pop() || videoPath;
+            console.log(`SCOUT|queue [${i + 1}/${totalVideos}] indexing ${name}`);
+            set({
+              indexing: {
+                video: videoPath,
+                stage: totalVideos > 1 ? `video ${i + 1}/${totalVideos}: starting` : "starting",
+                done: 0,
+                total: 1,
+              },
+            });
+            await scoutAddVideo(database, videoPath, detector, customPath());
+            console.log(`SCOUT|queue [${i + 1}/${totalVideos}] completed ${name}`);
+          }
           await Promise.all([get().loadVideos(database), get().loadDatabases()]);
+          console.log(`SCOUT|queue all ${totalVideos} videos indexed successfully`);
           return { ok: true, message: null };
         } catch (err) {
+          console.error("SCOUT|queue error", err);
           return { ok: false, message: message(err) };
         } finally {
           set({ indexing: null });
+        }
+      },
+
+      unloadModel: async () => {
+        try {
+          await scoutUnloadModel(customPath());
+        } catch (err) {
+          console.error("SCOUT|unload failed", err);
         }
       },
 

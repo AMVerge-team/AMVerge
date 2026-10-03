@@ -62,6 +62,8 @@ export function scoutSearch(
       topK: settings.topK,
       threshold: settings.threshold,
       includeThumbnails: settings.includeThumbnails,
+      keepModelInMemory: settings.keepModelInMemory ?? true,
+      gpuStandby: settings.gpuStandby ?? true,
     },
     customPath,
   });
@@ -76,3 +78,8 @@ export function scoutAddVideo(
 ): Promise<number> {
   return invoke<number>("scout_add_video", { database, videoPath, detector, customPath });
 }
+
+export function scoutUnloadModel(customPath: string | null): Promise<boolean> {
+  return invoke<boolean>("scout_unload_model", { customPath });
+}
+

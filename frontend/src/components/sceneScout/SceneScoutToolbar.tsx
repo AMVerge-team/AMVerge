@@ -41,7 +41,8 @@ export function SceneScoutToolbar() {
   const displayNames = useSceneScoutStore((s) => s.displayNames);
   const settings = useSceneScoutStore((s) => s.settings);
   const updateSettings = useSceneScoutStore((s) => s.updateSettings);
-  const addVideo = useSceneScoutStore((s) => s.addVideo);
+  const addVideos = useSceneScoutStore((s) => s.addVideos);
+  const unloadModel = useSceneScoutStore((s) => s.unloadModel);
   const refresh = useSceneScoutStore((s) => s.refresh);
   const loading = useSceneScoutStore((s) => s.loading);
   const storeError = useSceneScoutStore((s) => s.error);
@@ -114,13 +115,16 @@ export function SceneScoutToolbar() {
   const onAddEpisode = async () => {
     setError("");
     const picked = await open({
-      multiple: false,
+      multiple: true,
       filters: [{ name: "Video", extensions: VIDEO_EXTENSIONS }],
     });
     if (!picked) return;
 
-    const result = await addVideo(picked as string);
-    if (!result.ok) setError(result.message || "Could not index that episode.");
+    const paths = Array.isArray(picked) ? (picked as string[]) : [picked as string];
+    if (paths.length === 0) return;
+
+    const result = await addVideos(paths);
+    if (!result.ok) setError(result.message || "Could not index episode(s).");
   };
 
   return (
@@ -295,6 +299,43 @@ export function SceneScoutToolbar() {
                 <span className="checkmark"></span>
               </label>
               <span>Preview All</span>
+            </div>
+
+            <div className="checkbox-row scene-scout-preview-all">
+              <label className="custom-checkbox">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={settings.keepModelInMemory ?? true}
+                  onChange={(e) => updateSettings({ keepModelInMemory: e.target.checked })}
+                />
+                <span className="checkmark"></span>
+              </label>
+              <span>Keep model in memory</span>
+            </div>
+
+            <div className="checkbox-row scene-scout-preview-all">
+              <label className="custom-checkbox">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={settings.gpuStandby ?? true}
+                  onChange={(e) => updateSettings({ gpuStandby: e.target.checked })}
+                />
+                <span className="checkmark"></span>
+              </label>
+              <span>GPU standby (idle VRAM release)</span>
+            </div>
+
+            <div className="scene-scout-setting" style={{ marginTop: "4px" }}>
+              <button
+                type="button"
+                className="events-action-button"
+                style={{ width: "100%", padding: "4px 8px", fontSize: "11px" }}
+                onClick={() => void unloadModel()}
+              >
+                Free Model Memory
+              </button>
             </div>
 
             {databases.length > 1 && (

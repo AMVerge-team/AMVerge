@@ -552,3 +552,7 @@ App starts → main.tsx: maybeCheckForUpdatesOnStartup()
 11. **Dev builds never install AI**: `ai_env_status` reports `managed: false`, and `ensurePack`/`install_ai_pack` short-circuit in dev. AI runs from the CLI checkout's venv; install extras there with `pip install -e .[all]`. A `managed`-mode (production) build shows the real install dialog.
 
 12. **Be sure to keep comments concise**: Use lowercase for all comments and they should all only be one line long. Only add comments where needed.
+
+13. **Scene Scout databases are keyed by absolute path, never name**: `openedDatabase`, `deleteDatabase`, the "Search in" chips, and every `scout*` call pass `database.path`. The CLI's `db_path` sanitizes bare names (spaces become underscores), so passing a name like "My Series" would resolve to `My_Series.scoutdb`, a different file. Names are display-only labels (`displayNames[path]`); the row's open state compares with `samePath`, and `loadDatabases` dedupes the root listing against external paths by normalized path.
+
+14. **Scene Scout in-memory daemon worker**: `scout_search` uses a persistent `amverge scout daemon` process when `keepModelInMemory` is enabled (default: true). Holds SigLIP 2 in CUDA VRAM for sub-50ms searches, automatically offloading to CPU after 300s of inactivity (`gpuStandby`), and terminated on app close via `kill_all_child_processes`.

@@ -29,6 +29,7 @@ fn main() {
         .manage(ActiveFfmpegPids::default())
         .manage(ActiveInstall::default())
         .manage(commands::auth::DiscordAuthState::default())
+        .manage(crate::commands::scene_scout::SceneScoutWorkerState::default())
         .invoke_handler(tauri::generate_handler![
             commands::bug_report::submit_bug_report,
             commands::auth::begin_discord_login,
@@ -102,6 +103,7 @@ fn main() {
             commands::scene_scout::scout_status,
             commands::scene_scout::scout_search,
             commands::scene_scout::scout_add_video,
+            commands::scene_scout::scout_unload_model,
             commands::settings::get_default_episodes_dir,
             commands::discord::start_discord_rpc,
             commands::discord::update_discord_rpc,
@@ -199,4 +201,12 @@ fn kill_all_child_processes(app: &tauri::AppHandle) {
     // clear the Discord presence before the process goes away, so no ghost
     // "playing AMVerge" is left on the profile
     commands::discord::shutdown(app);
+
+    // kill active Scene Scout daemon worker
+    let scout_worker = app.state::<crate::commands::scene_scout::SceneScoutWorkerState>();
+    if let Ok(mut guard) = scout_worker.inner.try_lock() {
+        if let Some(mut session) = guard.take() {
+            let _ = session.child.start_kill();
+        }
+    };
 }

@@ -14,8 +14,8 @@ use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter};
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tauri::{AppHandle, Emitter, State};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 use crate::utils::logging::{console_log, emit_console_log, sanitize_for_console};
 use crate::utils::paths::{file_name_only, resolve_scene_scout_storage_dir};
@@ -122,7 +122,12 @@ fn forward_stderr(
         let mut reader = BufReader::new(stderr).lines();
         while let Ok(Some(line)) = reader.next_line().await {
             let sanitized = sanitize_for_console(&line);
-            if sanitized.trim().is_empty() || sanitized.starts_with("PROGRESS|") {
+            if sanitized.trim().is_empty()
+                || sanitized.starts_with("PROGRESS|")
+                || sanitized.contains("Loading weights:")
+                || sanitized.contains("Loading checkpoint shards:")
+                || sanitized.contains("Fetching ")
+            {
                 continue;
             }
             if let Ok(mut acc) = task_accum.lock() {
@@ -316,6 +321,110 @@ struct ResultsEnvelope {
     error: Option<String>,
 }
 
+pub struct SceneScoutWorkerSession {
+    pub child: tokio::process::Child,
+    pub stdin: tokio::process::ChildStdin,
+    pub stdout_lines: tokio::io::Lines<tokio::io::BufReader<tokio::process::ChildStdout>>,
+    pub root: String,
+    pub req_id: u64,
+}
+
+impl SceneScoutWorkerSession {
+    pub async fn send_request(
+        &mut self,
+        mut req: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        self.req_id += 1;
+        let id = self.req_id;
+        req["id"] = serde_json::json!(id);
+
+        let line = serde_json::to_string(&req).map_err(|e| e.to_string())?;
+        self.stdin
+            .write_all(line.as_bytes())
+            .await
+            .map_err(|e| format!("Failed to write to daemon stdin: {e}"))?;
+        self.stdin
+            .write_all(b"\n")
+            .await
+            .map_err(|e| format!("Failed to write newline to daemon stdin: {e}"))?;
+        self.stdin
+            .flush()
+            .await
+            .map_err(|e| format!("Failed to flush daemon stdin: {e}"))?;
+
+        while let Some(line) = self
+            .stdout_lines
+            .next_line()
+            .await
+            .map_err(|e| format!("Failed to read line from daemon: {e}"))?
+        {
+            if let Ok(resp) = serde_json::from_str::<serde_json::Value>(&line) {
+                if resp.get("id").and_then(|v| v.as_u64()) == Some(id) {
+                    return Ok(resp);
+                }
+            }
+        }
+        Err("Daemon connection closed unexpectedly".to_string())
+    }
+
+    pub async fn shutdown(&mut self) {
+        let req = serde_json::json!({"action": "shutdown"});
+        let line = serde_json::to_string(&req).unwrap_or_default();
+        let _ = self.stdin.write_all(line.as_bytes()).await;
+        let _ = self.stdin.write_all(b"\n").await;
+        let _ = self.stdin.flush().await;
+        let _ = self.child.kill().await;
+    }
+}
+
+#[derive(Default)]
+pub struct SceneScoutWorkerState {
+    pub inner: Arc<tokio::sync::Mutex<Option<SceneScoutWorkerSession>>>,
+}
+
+fn spawn_scout_worker(
+    app: &AppHandle,
+    root: &str,
+    gpu_standby: bool,
+) -> Result<SceneScoutWorkerSession, String> {
+    console_log(
+        "SCOUT|daemon",
+        &format!("spawning daemon root={root} standby={gpu_standby}"),
+    );
+
+    let mut std_cmd = amverge_ai_command(app)?;
+    std_cmd.arg("scout");
+    std_cmd.arg("daemon");
+    std_cmd.arg("--root");
+    std_cmd.arg(root);
+    if !gpu_standby {
+        std_cmd.arg("--idle-seconds");
+        std_cmd.arg("0");
+    }
+    std_cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
+
+    let mut tokio_cmd = tokio::process::Command::from(std_cmd);
+    let mut child = tokio_cmd
+        .spawn()
+        .map_err(|e| format!("Failed to spawn scout daemon: {e}"))?;
+
+    let stdin = child.stdin.take().ok_or("Failed to open daemon stdin")?;
+    let stdout = child.stdout.take().ok_or("Failed to open daemon stdout")?;
+    let stderr = child.stderr.take().ok_or("Failed to open daemon stderr")?;
+
+    forward_stderr(app, stderr);
+
+    let stdout_lines = BufReader::new(stdout).lines();
+
+    Ok(SceneScoutWorkerSession {
+        child,
+        stdin,
+        stdout_lines,
+        root: root.to_string(),
+        req_id: 0,
+    })
+}
+
 /// Search options, mirroring the app's search settings dropdown.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -331,6 +440,10 @@ pub struct ScoutSearchArgs {
     pub threshold: Option<f64>,
     #[serde(default)]
     pub include_thumbnails: Option<bool>,
+    #[serde(default)]
+    pub keep_model_in_memory: Option<bool>,
+    #[serde(default)]
+    pub gpu_standby: Option<bool>,
 }
 
 #[tauri::command]
@@ -338,10 +451,72 @@ pub async fn scout_search(
     app: AppHandle,
     args: ScoutSearchArgs,
     custom_path: Option<String>,
+    worker_state: State<'_, SceneScoutWorkerState>,
 ) -> Result<Vec<ScoutHit>, String> {
     let root = scout_root(&app, custom_path.as_deref())?;
+    let keep_in_memory = args.keep_model_in_memory.unwrap_or(true);
 
-    // owned strings first: the arg slice borrows them, so they have to outlive it
+    if keep_in_memory {
+        let mut worker_guard = worker_state.inner.lock().await;
+
+        let needs_spawn = match &*worker_guard {
+            Some(session) => session.root != root,
+            None => true,
+        };
+
+        if needs_spawn {
+            if let Some(mut old) = worker_guard.take() {
+                old.shutdown().await;
+            }
+            match spawn_scout_worker(&app, &root, args.gpu_standby.unwrap_or(true)) {
+                Ok(session) => {
+                    *worker_guard = Some(session);
+                }
+                Err(e) => {
+                    console_log(
+                        "SCOUT|daemon",
+                        &format!("failed to spawn daemon: {e}, falling back to CLI"),
+                    );
+                }
+            }
+        }
+
+        if let Some(session) = worker_guard.as_mut() {
+            let req = serde_json::json!({
+                "action": "search",
+                "query": args.query,
+                "databases": args.databases,
+                "videos": args.videos,
+                "top_k": args.top_k.unwrap_or(24),
+                "threshold": args.threshold.unwrap_or(-1.0),
+                "include_thumbnails": args.include_thumbnails.unwrap_or(true),
+            });
+
+            match session.send_request(req).await {
+                Ok(resp) => {
+                    if let Some(err) = resp.get("error").and_then(|v| v.as_str()) {
+                        return Err(err.to_string());
+                    }
+                    if let Some(results) = resp.get("results") {
+                        let hits: Vec<ScoutHit> = serde_json::from_value(results.clone())
+                            .map_err(|e| format!("Failed to parse daemon search results: {e}"))?;
+                        return Ok(hits);
+                    }
+                    return Err("Missing results in daemon response".to_string());
+                }
+                Err(e) => {
+                    console_log(
+                        "SCOUT|daemon",
+                        &format!("daemon request failed: {e}, falling back to CLI"),
+                    );
+                    if let Some(mut old) = worker_guard.take() {
+                        let _ = old.child.kill().await;
+                    }
+                }
+            }
+        }
+    }
+
     let top_k = args.top_k.unwrap_or(24).to_string();
     let threshold = args.threshold.unwrap_or(-1.0).to_string();
 
@@ -356,8 +531,6 @@ pub async fn scout_search(
         threshold,
     ];
 
-    // no --db means "every database", which is what the app's search-all state
-    // sends; naming them explicitly is how a narrowed selection travels
     for name in &args.databases {
         argv.push("--db".into());
         argv.push(name.clone());
@@ -379,6 +552,22 @@ pub async fn scout_search(
         return Err(error);
     }
     Ok(envelope.results)
+}
+
+#[tauri::command]
+pub async fn scout_unload_model(
+    _app: AppHandle,
+    _custom_path: Option<String>,
+    worker_state: State<'_, SceneScoutWorkerState>,
+) -> Result<bool, String> {
+    let mut worker_guard = worker_state.inner.lock().await;
+    if let Some(mut session) = worker_guard.take() {
+        console_log("SCOUT|daemon", "unloading model and terminating daemon");
+        session.shutdown().await;
+        Ok(true)
+    } else {
+        Ok(false)
+    }
 }
 
 /// Index a video, streaming progress to the webview as `scout_progress`.
