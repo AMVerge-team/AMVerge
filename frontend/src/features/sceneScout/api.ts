@@ -69,14 +69,22 @@ export function scoutSearch(
   });
 }
 
-/** Resolves with the number of scenes indexed. Progress arrives on `scout_progress`. */
 export function scoutAddVideo(
   database: string,
   videoPath: string,
   detector: string,
-  customPath: string | null
+  customPath: string | null,
+  keepModelInMemory: boolean = true,
+  gpuStandby: boolean = true
 ): Promise<number> {
-  return invoke<number>("scout_add_video", { database, videoPath, detector, customPath });
+  return invoke<number>("scout_add_video", {
+    database,
+    videoPath,
+    detector,
+    customPath,
+    keepModelInMemory,
+    gpuStandby,
+  });
 }
 
 export function scoutUnloadModel(customPath: string | null): Promise<boolean> {

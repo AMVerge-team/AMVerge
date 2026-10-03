@@ -296,13 +296,13 @@ function App() {
 
   // auto-minimize once the heavy phase (scene detect + first clip cuts) is done
   // and only background thumbnail/reencode/preview work remains
-  const autoMinimized = activeOperation === "scout_add" || activeOperation === "scout_open" || (!loading && bgActive);
+  const autoMinimized = activeOperation === "scout_add" || activeOperation === "scout_open" || activeOperation === "scout_search" || (!loading && bgActive);
   const overlayMinimized = minimizeOverride !== null ? minimizeOverride : autoMinimized;
 
   async function handleAbortAndCloseBgProgress() {
     const { bgProgress: bg, bgImportProgress: bgImport, reencodeProgress: reenc, activeOperation: op } =
       useAppStateStore.getState();
-    if (bg || bgImport || reenc || op === "scout_add" || op === "scout_open") {
+    if (bg || bgImport || reenc || op === "scout_add" || op === "scout_open" || op === "scout_search") {
       await handleAbort();
     }
     clearBgProgress();
@@ -473,7 +473,7 @@ function App() {
               <BgProgressBar
                 clipDone={(reencodeProgress ?? bgProgress)?.done ?? 0}
                 clipTotal={(reencodeProgress ?? bgProgress)?.total ?? 0}
-                clipLabel={activeOperation === "scout_add" ? "Embedding scenes" : reencodeProgress ? "Reencoding" : "Processing clips"}
+                clipLabel={activeOperation === "scout_add" ? "Embedding scenes" : activeOperation === "scout_search" ? "Searching scenes" : reencodeProgress ? "Reencoding" : "Processing clips"}
                 importDone={bgImportProgress?.done ?? 0}
                 importTotal={bgImportProgress?.total ?? 0}
                 webpDone={webpLoadDone}
@@ -487,7 +487,7 @@ function App() {
           <BgProgressBar
             clipDone={(reencodeProgress ?? bgProgress)?.done ?? 0}
             clipTotal={(reencodeProgress ?? bgProgress)?.total ?? 0}
-            clipLabel={activeOperation === "scout_add" ? "Embedding scenes" : reencodeProgress ? "Reencoding" : "Processing clips"}
+            clipLabel={activeOperation === "scout_add" ? "Embedding scenes" : activeOperation === "scout_search" ? "Searching scenes" : reencodeProgress ? "Reencoding" : "Processing clips"}
             importDone={bgImportProgress?.done ?? 0}
             importTotal={bgImportProgress?.total ?? 0}
             webpDone={webpLoadDone}

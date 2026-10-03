@@ -17,7 +17,7 @@ interface ImportTerminalProps {
   batchDone: number;
   batchCurrentFile: string;
   onAbort: () => void;
-  operation?: "import" | "export" | "scout_add" | "scout_open";
+  operation?: "import" | "export" | "scout_add" | "scout_open" | "scout_search";
   commandLabel?: string;
   /** scene detection method for the synthesized command line (e.g. keyframe_detection) */
   detectionMethod?: string;
@@ -291,7 +291,7 @@ export default function ImportTerminal({
           <span className="lm-title">
             {isBatch
               ? (operation === "scout_add" ? "Embedding videos" : "Importing videos")
-              : progressMsg || (operation === "scout_add" ? "Embedding scenes…" : operation === "scout_open" ? "Opening database…" : "Finishing import…")}
+              : progressMsg || (operation === "scout_add" ? "Embedding scenes…" : operation === "scout_open" ? "Opening database…" : operation === "scout_search" ? "Searching scenes…" : "Finishing import…")}
           </span>
           <div className="lm-actions">
             <Tooltip content="Expand">
@@ -377,6 +377,8 @@ export default function ImportTerminal({
               ? "Scene Scout - Indexing"
               : operation === "scout_open"
               ? "Scene Scout - Database"
+              : operation === "scout_search"
+              ? "Scene Scout - Search"
               : "AMVerge CLI"}
           </span>
           {onToggleMinimize ? (

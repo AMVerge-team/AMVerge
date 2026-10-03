@@ -511,7 +511,9 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
               },
             });
 
-            await scoutAddVideo(database, videoPath, detector, customPath());
+            const keepModelInMemory = get().settings.keepModelInMemory ?? true;
+            const gpuStandby = get().settings.gpuStandby ?? true;
+            await scoutAddVideo(database, videoPath, detector, customPath(), keepModelInMemory, gpuStandby);
             console.log(`SCOUT|queue [${i + 1}/${totalVideos}] completed ${name}`);
           }
           await Promise.all([get().loadVideos(database), get().loadDatabases()]);
@@ -557,7 +559,21 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         }
 
         set({ searching: true, error: null });
+        const appState = useAppStateStore.getState();
+        let stopListener: (() => void) | null = null;
+        let cardOpened = false;
+
         try {
+          stopListener = await listen<ScoutIndexProgress>("scout_progress", (e) => {
+            if (e.payload.stage === "loading_model") {
+              cardOpened = true;
+              appState.setActiveOperation("scout_search");
+              appState.setLoading(true);
+              appState.setProgress(0);
+              appState.setProgressMsg("Loading SigLIP 2 model weights…");
+            }
+          });
+
           const searchSettings = {
             ...get().settings,
             selectedDatabases: get().selectedDatabases,
@@ -567,6 +583,15 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           set({ results, lastQuery: query, searching: false });
         } catch (err) {
           set({ searching: false, results: [], error: message(err) });
+        } finally {
+          if (stopListener) {
+            stopListener();
+          }
+          if (cardOpened) {
+            appState.setActiveOperation(null);
+            appState.setLoading(false);
+            appState.setProgressMsg("");
+          }
         }
       },
 

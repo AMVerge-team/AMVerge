@@ -342,10 +342,14 @@ pub struct SceneScoutWorkerSession {
 }
 
 impl SceneScoutWorkerSession {
-    pub async fn send_request(
+    pub async fn send_request_streaming<F>(
         &mut self,
         mut req: serde_json::Value,
-    ) -> Result<serde_json::Value, String> {
+        mut on_progress: F,
+    ) -> Result<serde_json::Value, String>
+    where
+        F: FnMut(serde_json::Value),
+    {
         self.req_id += 1;
         let id = self.req_id;
         req["id"] = serde_json::json!(id);
@@ -372,11 +376,23 @@ impl SceneScoutWorkerSession {
         {
             if let Ok(resp) = serde_json::from_str::<serde_json::Value>(&line) {
                 if resp.get("id").and_then(|v| v.as_u64()) == Some(id) {
+                    if resp.get("status").and_then(|v| v.as_str()) == Some("progress") {
+                        on_progress(resp);
+                        continue;
+                    }
                     return Ok(resp);
                 }
             }
         }
         Err("Daemon connection closed unexpectedly".to_string())
+    }
+
+    #[allow(dead_code)]
+    pub async fn send_request(
+        &mut self,
+        req: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        self.send_request_streaming(req, |_| {}).await
     }
 
     pub async fn shutdown(&mut self) {
@@ -480,6 +496,15 @@ pub async fn scout_search(
         };
 
         if needs_spawn {
+            let _ = app.emit(
+                "scout_progress",
+                serde_json::json!({
+                    "stage": "loading_model",
+                    "done": 0,
+                    "total": 1,
+                    "video": null
+                }),
+            );
             if let Some(mut old) = worker_guard.take() {
                 old.shutdown().await;
             }
@@ -507,7 +532,15 @@ pub async fn scout_search(
                 "include_thumbnails": args.include_thumbnails.unwrap_or(true),
             });
 
-            match session.send_request(req).await {
+            let app_clone = app.clone();
+            match session
+                .send_request_streaming(req, move |val| {
+                    if let Ok(progress) = serde_json::from_value::<ScoutIndexProgress>(val) {
+                        let _ = app_clone.emit("scout_progress", progress);
+                    }
+                })
+                .await
+            {
                 Ok(resp) => {
                     if let Some(err) = resp.get("error").and_then(|v| v.as_str()) {
                         return Err(err.to_string());
@@ -531,6 +564,16 @@ pub async fn scout_search(
             }
         }
     }
+
+    let _ = app.emit(
+        "scout_progress",
+        serde_json::json!({
+            "stage": "loading_model",
+            "done": 0,
+            "total": 1,
+            "video": null
+        }),
+    );
 
     let top_k = args.top_k.unwrap_or(24).to_string();
     let threshold = args.threshold.unwrap_or(-1.0).to_string();
@@ -598,7 +641,10 @@ pub async fn scout_add_video(
     video_path: String,
     detector: Option<String>,
     custom_path: Option<String>,
+    keep_model_in_memory: Option<bool>,
+    gpu_standby: Option<bool>,
     active_index: State<'_, ActiveScoutIndex>,
+    worker_state: State<'_, SceneScoutWorkerState>,
 ) -> Result<u64, String> {
     let root = scout_root(&app, custom_path.as_deref())?;
 
@@ -610,6 +656,92 @@ pub async fn scout_add_video(
         "SCOUT|start",
         &format!("verb=add video={video_name} db={db_name} detector={method}"),
     );
+
+    let keep_in_memory = keep_model_in_memory.unwrap_or(true);
+
+    if keep_in_memory {
+        let mut worker_guard = worker_state.inner.lock().await;
+
+        let needs_spawn = match &*worker_guard {
+            Some(session) => session.root != root,
+            None => true,
+        };
+
+        if needs_spawn {
+            if let Some(mut old) = worker_guard.take() {
+                old.shutdown().await;
+            }
+            match spawn_scout_worker(&app, &root, gpu_standby.unwrap_or(true)) {
+                Ok(session) => {
+                    *worker_guard = Some(session);
+                }
+                Err(e) => {
+                    console_log(
+                        "SCOUT|daemon",
+                        &format!("failed to spawn daemon: {e}, falling back to CLI"),
+                    );
+                }
+            }
+        }
+
+        if let Some(session) = worker_guard.as_mut() {
+            let child_pid = session.child.id().unwrap_or_default();
+            console_log("SCOUT|pid", &format!("pid={child_pid}"));
+            if let Ok(mut lock) = active_index.0.lock() {
+                *lock = Some(child_pid);
+            }
+
+            let req = serde_json::json!({
+                "action": "add",
+                "video": video_path,
+                "database": database,
+                "detector": method,
+            });
+
+            let app_clone = app.clone();
+            let video_path_clone = video_path.clone();
+
+            let res = session
+                .send_request_streaming(req, move |val| {
+                    if let Ok(mut progress) = serde_json::from_value::<ScoutIndexProgress>(val) {
+                        progress.video = Some(video_path_clone.clone());
+                        let _ = app_clone.emit("scout_progress", progress);
+                    }
+                })
+                .await;
+
+            if let Ok(mut lock) = active_index.0.lock() {
+                *lock = None;
+            }
+
+            match res {
+                Ok(resp) => {
+                    if let Some(err) = resp.get("error").and_then(|v| v.as_str()) {
+                        console_log(
+                            "ERROR|scout_add_video",
+                            &format!("video={video_name} db={db_name} error={err}"),
+                        );
+                        return Err(err.to_string());
+                    }
+                    let scenes = resp.get("scenes").and_then(|v| v.as_u64()).unwrap_or(0);
+                    console_log(
+                        "SCOUT|end",
+                        &format!("verb=add video={video_name} scenes={scenes}"),
+                    );
+                    return Ok(scenes);
+                }
+                Err(e) => {
+                    console_log(
+                        "SCOUT|daemon",
+                        &format!("daemon indexing failed: {e}, falling back to CLI"),
+                    );
+                    if let Some(mut old) = worker_guard.take() {
+                        let _ = old.child.kill().await;
+                    }
+                }
+            }
+        }
+    }
 
     let (cmd, argv) = scout_pair(
         &app,
@@ -728,12 +860,23 @@ pub async fn scout_add_video(
 }
 
 #[tauri::command]
-pub async fn abort_scout_index(active_index: State<'_, ActiveScoutIndex>) -> Result<(), String> {
+pub async fn abort_scout_index(
+    active_index: State<'_, ActiveScoutIndex>,
+    worker_state: State<'_, SceneScoutWorkerState>,
+) -> Result<(), String> {
     let pid = active_index.0.lock().map_err(|e| e.to_string())?.take();
     let Some(pid) = pid else {
         console_log("SCOUT|abort", "no active scout indexing process to kill");
         return Ok(());
     };
+
+    let mut worker_guard = worker_state.inner.lock().await;
+    if let Some(session) = worker_guard.as_ref() {
+        if session.child.id() == Some(pid) {
+            worker_guard.take();
+        }
+    }
+    drop(worker_guard);
 
     console_log("SCOUT|abort", &format!("killing indexing process tree pid={pid}"));
 
