@@ -150,6 +150,10 @@
     min-width: 150px;
 }
 
+.scene-scout-dropdown-detection {
+    min-width: 180px;
+}
+
 .scene-scout-db-filter .scene-scout-db-chips {
     height: 34px;
     align-items: center;

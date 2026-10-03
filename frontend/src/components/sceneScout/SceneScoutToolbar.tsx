@@ -8,6 +8,13 @@ import InfoButton from "../common/InfoButton";
 import { useSceneScoutStore } from "../../stores/sceneScoutStore";
 import { useUIStateStore } from "../../stores/UIStore";
 import {
+  useGeneralSettingsStore,
+  type SceneDetectionMethod,
+} from "../../stores/settingsStore";
+import { SCENE_DETECTION_OPTIONS } from "../settings/general/options";
+import { useAiDepsStore } from "../../stores/aiDepsStore";
+import { isPackInstalled } from "../../features/aiDeps/packs";
+import {
   CUSTOM_TOP_K,
   isCustomTopK,
   MAX_TOP_K,
@@ -55,6 +62,19 @@ export function SceneScoutToolbar() {
   const setGridPreview = useUIStateStore((s) => s.setGridPreview);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const sceneDetectionMethod = useGeneralSettingsStore((s) => s.sceneDetectionMethod);
+  const setSceneDetectionMethod = useGeneralSettingsStore((s) => s.setSceneDetectionMethod);
+  const aiStatus = useAiDepsStore((s) => s.status);
+  const mlInstalled = isPackInstalled(aiStatus, "ml");
+
+  const handleSceneDetectionChange = async (method: SceneDetectionMethod) => {
+    if (method === "transnetv2_gpu" && !mlInstalled) {
+      const installed = await useAiDepsStore.getState().ensurePack("ml");
+      if (!installed) return;
+    }
+    setSceneDetectionMethod(method);
+  };
 
   const noDatabaseOpen = !opened && selectedDatabases.length === 0;
   const hasSelection = selectedDatabases.length > 0 || selectedVideos.length > 0;
@@ -298,6 +318,17 @@ export function SceneScoutToolbar() {
                 value={settings.threshold}
                 onChange={(threshold) => updateSettings({ threshold })}
                 className="scene-scout-dropdown"
+                showTriggerDescription={false}
+              />
+            </div>
+
+            <div className="scene-scout-setting">
+              <span>Scene detection</span>
+              <Dropdown
+                options={SCENE_DETECTION_OPTIONS}
+                value={sceneDetectionMethod}
+                onChange={(method) => void handleSceneDetectionChange(method)}
+                className="scene-scout-dropdown scene-scout-dropdown-detection"
                 showTriggerDescription={false}
               />
             </div>
