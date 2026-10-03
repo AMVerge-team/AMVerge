@@ -296,13 +296,13 @@ function App() {
 
   // auto-minimize once the heavy phase (scene detect + first clip cuts) is done
   // and only background thumbnail/reencode/preview work remains
-  const autoMinimized = activeOperation === "scout_add" || (!loading && bgActive);
+  const autoMinimized = activeOperation === "scout_add" || activeOperation === "scout_open" || (!loading && bgActive);
   const overlayMinimized = minimizeOverride !== null ? minimizeOverride : autoMinimized;
 
   async function handleAbortAndCloseBgProgress() {
     const { bgProgress: bg, bgImportProgress: bgImport, reencodeProgress: reenc, activeOperation: op } =
       useAppStateStore.getState();
-    if (bg || bgImport || reenc || op === "scout_add") {
+    if (bg || bgImport || reenc || op === "scout_add" || op === "scout_open") {
       await handleAbort();
     }
     clearBgProgress();

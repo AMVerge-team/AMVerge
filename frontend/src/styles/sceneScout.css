@@ -391,3 +391,17 @@
     box-shadow: none;
 }
 
+.episode-panel-import-icon.episode-delete-btn:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+}
+
+.scene-scout-delete-modal .denial-notice-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 18px;
+}
+

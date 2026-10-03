@@ -17,7 +17,7 @@ interface ImportTerminalProps {
   batchDone: number;
   batchCurrentFile: string;
   onAbort: () => void;
-  operation?: "import" | "export" | "scout_add";
+  operation?: "import" | "export" | "scout_add" | "scout_open";
   commandLabel?: string;
   /** scene detection method for the synthesized command line (e.g. keyframe_detection) */
   detectionMethod?: string;
@@ -169,6 +169,9 @@ export default function ImportTerminal({
     } else if (operation === "scout_add") {
       const target = commandLabel ? `"${commandLabel}"` : "<video>";
       pushLine("cmd", `amverge scout add ${target}`);
+    } else if (operation === "scout_open") {
+      const target = commandLabel ? `"${commandLabel}"` : "<database>";
+      pushLine("cmd", `amverge scout open ${target}`);
     } else {
       const target = commandLabel ? `"${commandLabel}"` : "<video>";
       pushLine("cmd", `amverge backend ${target} ${detectionMethod} ${importMethod}`);
@@ -288,7 +291,7 @@ export default function ImportTerminal({
           <span className="lm-title">
             {isBatch
               ? (operation === "scout_add" ? "Embedding videos" : "Importing videos")
-              : progressMsg || (operation === "scout_add" ? "Embedding scenes…" : "Finishing import…")}
+              : progressMsg || (operation === "scout_add" ? "Embedding scenes…" : operation === "scout_open" ? "Opening database…" : "Finishing import…")}
           </span>
           <div className="lm-actions">
             <Tooltip content="Expand">
@@ -369,7 +372,13 @@ export default function ImportTerminal({
     <div className="loading-overlay">
       <div className="import-terminal" role="log" aria-label="AMVerge CLI output">
         <div className="it-header">
-          <span className="it-title">{operation === "scout_add" ? "Scene Scout - Indexing" : "AMVerge CLI"}</span>
+          <span className="it-title">
+            {operation === "scout_add"
+              ? "Scene Scout - Indexing"
+              : operation === "scout_open"
+              ? "Scene Scout - Database"
+              : "AMVerge CLI"}
+          </span>
           {onToggleMinimize ? (
             <Tooltip content="Minimize">
               <button

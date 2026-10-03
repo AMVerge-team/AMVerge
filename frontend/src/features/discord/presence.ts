@@ -21,7 +21,7 @@ export type PresenceInput = {
     activePage: string;
     settingsOpen: boolean;
     menuOpen: boolean;
-    activeOperation: "import" | "export" | "scout_add" | null;
+    activeOperation: "import" | "export" | "scout_add" | "scout_open" | null;
     progress: number;
     batchDone: number;
     batchTotal: number;
@@ -91,6 +91,15 @@ export function derivePresence(input: PresenceInput): RPCActivity {
             state,
             small_image: "loading_icon_new",
             small_text: "Indexing",
+        };
+    }
+
+    if (activeOperation === "scout_open") {
+        return {
+            details: "Scene Scout",
+            state: "Loading database",
+            small_image: "loading_icon_new",
+            small_text: "Loading",
         };
     }
 

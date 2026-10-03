@@ -4,6 +4,7 @@ import {
   FaChevronRight,
   FaDatabase,
   FaFolderOpen,
+  FaMinus,
   FaPlus,
   FaSearch,
   FaSpinner,
@@ -15,6 +16,7 @@ import {
 import ModalShell from "../common/ModalShell";
 import Tooltip from "../common/Tooltip";
 import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
+import type { ScoutDatabase } from "../../features/sceneScout/types";
 
 /**
  * Sidebar panel for Scene Scout: the search databases, and what is indexed into
@@ -46,15 +48,17 @@ export function SceneScoutPanel() {
   const createDatabase = useSceneScoutStore((s) => s.createDatabase);
   const openExistingDatabase = useSceneScoutStore((s) => s.openExistingDatabase);
   const deleteDatabase = useSceneScoutStore((s) => s.deleteDatabase);
+  const unloadDatabase = useSceneScoutStore((s) => s.unloadDatabase);
   const renameDatabase = useSceneScoutStore((s) => s.renameDatabase);
   const displayNames = useSceneScoutStore((s) => s.displayNames);
 
-  // set once a database file exists, so the modal names something real rather
-  // than collecting a name for a file that may never be created
   const [namingPath, setNamingPath] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isOpening, setIsOpening] = useState(false);
+  const [openingName, setOpeningName] = useState<string | null>(null);
+  const [databaseToDelete, setDatabaseToDelete] = useState<ScoutDatabase | null>(null);
 
   const labelFor = (path: string, fallback: string) => displayNames[path] ?? fallback;
 
@@ -96,7 +100,6 @@ export function SceneScoutPanel() {
     setNamingPath(picked);
   };
 
-  /** pick an existing database file (.scoutdb, .db, .scdb) and register/open it */
   const startOpen = async () => {
     setError("");
 
@@ -114,9 +117,17 @@ export function SceneScoutPanel() {
     });
     if (!picked || typeof picked !== "string") return;
 
-    const result = await openExistingDatabase(picked);
-    if (!result.ok) {
-      setError(result.message || "Could not open the database.");
+    const name = picked.split(/[/\\]/).pop() || picked;
+    setIsOpening(true);
+    setOpeningName(name);
+    try {
+      const result = await openExistingDatabase(picked);
+      if (!result.ok) {
+        setError(result.message || "Could not open the database.");
+      }
+    } finally {
+      setIsOpening(false);
+      setOpeningName(null);
     }
   };
 
@@ -138,14 +149,15 @@ export function SceneScoutPanel() {
             <span className="scene-scout-credit">By Mark Shun/Sonicfreak</span>
           </div>
           <div className="episode-panel-actions">
-            <Tooltip content="Open database">
+            <Tooltip content={isOpening ? "Opening database…" : "Open database"}>
               <button
                 type="button"
                 className="episode-panel-action icon-only"
                 onClick={() => void startOpen()}
+                disabled={isOpening}
                 aria-label="Open database"
               >
-                <FaFolderOpen aria-hidden="true" />
+                {isOpening ? <FaSpinner className="spinner" aria-hidden="true" /> : <FaFolderOpen aria-hidden="true" />}
               </button>
             </Tooltip>
             <Tooltip content="New database">
@@ -215,7 +227,15 @@ export function SceneScoutPanel() {
             // databases at all and must not offer to create the first one
             <div className="episode-panel-empty">No databases match that search.</div>
           ) : (
-            visible.map((database) => {
+            <>
+              {isOpening && openingName && (
+                <div className="episode-panel-row episode-row" style={{ opacity: 0.75, pointerEvents: "none" }}>
+                  <FaSpinner className="episode-panel-import-icon spinner" style={{ animation: "spin 1s linear infinite" }} />
+                  <span className="episode-panel-episode-name">Opening {openingName}…</span>
+                  <span className="episode-panel-count">loading</span>
+                </div>
+              )}
+              {visible.map((database) => {
               const isExpanded = Boolean(expandedDatabases[database.path]);
               const isSelected = selectedDatabases.some((p) => samePath(p, database.path));
               const isMultiSelected = isSelected && selectedDatabases.length > 1;
@@ -261,13 +281,26 @@ export function SceneScoutPanel() {
                       {labelFor(database.path, database.name)}
                     </span>
                     <span className="episode-panel-count">{database.sceneCount}</span>
-                    <Tooltip content="Delete database">
+                    <Tooltip content="Unload database (remove from list)">
                       <button
                         type="button"
                         className="episode-panel-import-icon episode-folder-btn"
                         onClick={(e) => {
                           e.stopPropagation();
-                          void deleteDatabase(database.path);
+                          unloadDatabase(database.path);
+                        }}
+                        aria-label={`Unload ${database.name}`}
+                      >
+                        <FaMinus aria-hidden="true" />
+                      </button>
+                    </Tooltip>
+                    <Tooltip content="Delete database from disk">
+                      <button
+                        type="button"
+                        className="episode-panel-import-icon episode-folder-btn episode-delete-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDatabaseToDelete(database);
                         }}
                         aria-label={`Delete ${database.name}`}
                       >
@@ -320,7 +353,8 @@ export function SceneScoutPanel() {
                   )}
                 </div>
               );
-            })
+            })}
+            </>
           )}
         </div>
       </div>
@@ -355,6 +389,59 @@ export function SceneScoutPanel() {
             <div className="denial-notice-actions">
               <button type="button" className="event-host-btn" onClick={confirmName}>
                 Done
+              </button>
+            </div>
+          </div>
+        </ModalShell>
+      )}
+
+      {databaseToDelete && (
+        <ModalShell
+          open
+          onClose={() => setDatabaseToDelete(null)}
+          label="Delete database"
+          className="scene-scout-delete-modal"
+        >
+          <div className="denial-notice">
+            <FaTrashAlt aria-hidden="true" className="denial-notice-icon" style={{ color: "#ef4444" }} />
+            <h2>Delete Database from System?</h2>
+
+            <p className="events-subtitle ban-notice-note" style={{ color: "rgba(255,255,255,0.85)" }}>
+              Are you sure you want to permanently delete <strong>{databaseToDelete.name}</strong> from your system?
+            </p>
+
+            <div style={{ background: "rgba(0,0,0,0.35)", borderRadius: "8px", padding: "10px 14px", margin: "12px 0", fontSize: "12px", textAlign: "left", wordBreak: "break-all" }}>
+              <div style={{ color: "rgba(255,255,255,0.5)", marginBottom: "4px" }}>File path:</div>
+              <div style={{ fontFamily: "monospace", color: "rgba(255,255,255,0.9)" }}>{databaseToDelete.path}</div>
+              <div style={{ marginTop: "6px", color: "rgba(255,255,255,0.6)" }}>
+                {databaseToDelete.videoCount} {databaseToDelete.videoCount === 1 ? "video" : "videos"} · {databaseToDelete.sceneCount} indexed {databaseToDelete.sceneCount === 1 ? "scene" : "scenes"}
+              </div>
+            </div>
+
+            <p style={{ color: "rgba(239, 68, 68, 0.9)", fontSize: "12px", margin: "6px 0 16px" }}>
+              This will permanently erase the database file and its embeddings from disk. This action cannot be undone. If you only want to remove it from this list, use the minus (-) button instead.
+            </p>
+
+            <div className="denial-notice-actions">
+              <button
+                type="button"
+                className="event-host-btn"
+                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}
+                onClick={() => setDatabaseToDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="event-host-btn"
+                style={{ background: "#ef4444", borderColor: "#ef4444", color: "white" }}
+                onClick={async () => {
+                  const db = databaseToDelete;
+                  setDatabaseToDelete(null);
+                  await deleteDatabase(db.path);
+                }}
+              >
+                Delete Database
               </button>
             </div>
           </div>

@@ -20,7 +20,7 @@ export type AppState = {
   loading: boolean;
   // which CLI operation the loading overlay is showing (drives its header/command
   // line). null when idle
-  activeOperation: "import" | "export" | "scout_add" | null;
+  activeOperation: "import" | "export" | "scout_add" | "scout_open" | null;
   progress: number;
   progressMsg: string;
   bgProgress: { done: number; total: number } | null;
@@ -47,7 +47,7 @@ export type AppStateStore = AppState & {
   setImportedVideoPath: (path: SetterValue<string | null>) => void;
   
   setLoading: (loading: boolean) => void;
-  setActiveOperation: (op: "import" | "export" | "scout_add" | null) => void;
+  setActiveOperation: (op: "import" | "export" | "scout_add" | "scout_open" | null) => void;
   setProgress: (progress: number) => void;
   setProgressMsg: (msg: string) => void;
   setBgImportProgress: (progress: SetterValue<{ done: number; total: number } | null>) => void;

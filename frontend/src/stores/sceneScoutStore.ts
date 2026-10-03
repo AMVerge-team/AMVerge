@@ -58,7 +58,7 @@ type SceneScoutState = {
   /** absolute paths of databases the user saved outside the managed folder.
    *  they never show up in the root listing, so the app has to remember them */
   externalPaths: string[];
-  /** display name per database, keyed by path. defaults to the file name */
+  unloadedPaths: string[];
   displayNames: Record<string, string>;
 };
 
@@ -68,6 +68,7 @@ type SceneScoutActions = {
   createDatabase: (pathOrName: string) => Promise<{ ok: boolean; message: string | null }>;
   openExistingDatabase: (filePath: string) => Promise<{ ok: boolean; message: string | null; database?: ScoutDatabase }>;
   renameDatabase: (path: string, displayName: string) => void;
+  unloadDatabase: (path: string) => void;
   deleteDatabase: (name: string) => Promise<void>;
   openDatabase: (name: string | null) => Promise<void>;
   toggleDatabaseExpanded: (path: string) => Promise<void>;
@@ -105,6 +106,7 @@ const INITIAL: SceneScoutState = {
   error: null,
   settings: DEFAULT_SEARCH_SETTINGS,
   externalPaths: [],
+  unloadedPaths: [],
   displayNames: {},
 };
 
@@ -148,11 +150,8 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         set({ loading: get().databases.length === 0, error: null });
         try {
           const inRoot = await scoutListDatabases(customPath());
+          const filteredRoot = inRoot.filter((db) => !get().unloadedPaths.some((p) => samePath(p, db.path)));
 
-          // databases the user saved elsewhere are asked about one by one, and
-          // a missing one is dropped rather than left as a dead row. an entry
-          // that also turned up in the root listing is the same file twice, so
-          // the root copy wins and it is not re-remembered as external
           const external = await Promise.all(
             get().externalPaths.map((path) =>
               scoutDatabaseInfo(path, customPath()).catch(() => null)
@@ -160,7 +159,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           );
           const alive = external.filter((d): d is NonNullable<typeof d> => d !== null);
 
-          const databases = [...inRoot];
+          const databases = [...filteredRoot];
           const externalOnly: string[] = [];
           for (const db of alive) {
             if (inRoot.some((rootDb) => samePath(rootDb.path, db.path))) continue;
@@ -215,6 +214,11 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       },
 
       openExistingDatabase: async (filePath) => {
+        const appState = useAppStateStore.getState();
+        const baseName = filePath.split(/[/\\]/).pop() || filePath;
+        appState.setActiveOperation("scout_open");
+        appState.setLoading(true);
+        appState.setProgressMsg(`Opening database ${baseName}…`);
         try {
           const db = await scoutOpenDatabase(filePath, customPath());
 
@@ -226,12 +230,22 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             set({ externalPaths: [...get().externalPaths, db.path] });
           }
 
+          if (get().unloadedPaths.some((p) => samePath(p, db.path))) {
+            set({ unloadedPaths: get().unloadedPaths.filter((p) => !samePath(p, db.path)) });
+          }
+
           await get().loadDatabases();
           await get().openDatabase(db.path);
           get().selectDatabase(db.path, "single");
+          appState.setProgressMsg("Database loaded successfully");
+          await new Promise((r) => setTimeout(r, 600));
           return { ok: true, message: null, database: db };
         } catch (err) {
           return { ok: false, message: message(err) };
+        } finally {
+          appState.setActiveOperation(null);
+          appState.setLoading(false);
+          appState.setProgressMsg("");
         }
       },
 
@@ -240,6 +254,36 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         set((state) => ({
           displayNames: { ...state.displayNames, [path]: displayName },
         })),
+
+      unloadDatabase: (path) => {
+        set((state) => {
+          const nextSelected = state.selectedDatabases.filter((p) => !samePath(p, path));
+          const nextExpanded = { ...state.expandedDatabases };
+          delete nextExpanded[path];
+          const nextVByDb = { ...state.videosByDatabase };
+          delete nextVByDb[path];
+          const nextExternal = state.externalPaths.filter((p) => !samePath(p, path));
+
+          const root = state.status?.root;
+          const isUnderManagedRoot = root && isUnderRoot(path, root);
+          const nextUnloaded = isUnderManagedRoot && !state.unloadedPaths.some((p) => samePath(p, path))
+            ? [...state.unloadedPaths, path]
+            : state.unloadedPaths;
+
+          const nextDatabases = state.databases.filter((d) => !samePath(d.path, path));
+
+          return {
+            databases: nextDatabases,
+            selectedDatabases: nextSelected,
+            expandedDatabases: nextExpanded,
+            videosByDatabase: nextVByDb,
+            externalPaths: nextExternal,
+            unloadedPaths: nextUnloaded,
+            openedDatabase: state.openedDatabase && samePath(state.openedDatabase, path) ? null : state.openedDatabase,
+            videos: state.openedDatabase && samePath(state.openedDatabase, path) ? [] : state.videos,
+          };
+        });
+      },
 
       deleteDatabase: async (name) => {
         try {
@@ -251,11 +295,13 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             const nextVByDb = { ...state.videosByDatabase };
             delete nextVByDb[name];
             const nextExternal = state.externalPaths.filter((p) => !samePath(p, name));
+            const nextUnloaded = state.unloadedPaths.filter((p) => !samePath(p, name));
             return {
               selectedDatabases: nextSelected,
               expandedDatabases: nextExpanded,
               videosByDatabase: nextVByDb,
               externalPaths: nextExternal,
+              unloadedPaths: nextUnloaded,
               openedDatabase: state.openedDatabase && samePath(state.openedDatabase, name) ? null : state.openedDatabase,
               videos: state.openedDatabase && samePath(state.openedDatabase, name) ? [] : state.videos,
             };
@@ -552,6 +598,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         selectedDatabases: state.selectedDatabases,
         // the only record that a database outside the managed folder exists
         externalPaths: state.externalPaths,
+        unloadedPaths: state.unloadedPaths,
         displayNames: state.displayNames,
       }),
     }
