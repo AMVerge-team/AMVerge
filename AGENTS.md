@@ -294,6 +294,7 @@ frontend/
 | `scout_status` | scene_scout.rs | Get Scene Scout model and root status |
 | `scout_search` | scene_scout.rs | Query scenes with SigLIP 2 embeddings (daemon or one-shot) |
 | `scout_add_video` | scene_scout.rs | Index video scenes into a database |
+| `abort_scout_index` | scene_scout.rs | Kill active indexing process tree |
 | `scout_unload_model` | scene_scout.rs | Unload model weights from memory |
 
 ---
