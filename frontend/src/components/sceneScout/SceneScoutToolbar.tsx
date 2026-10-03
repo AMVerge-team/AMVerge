@@ -409,13 +409,6 @@ export function SceneScoutToolbar() {
           </div>
         )}
 
-        {indexing && (
-          <div className="scene-scout-progress">
-            {indexing.stage}
-            {indexing.total > 0 ? ` ${indexing.done}/${indexing.total}` : ""}
-          </div>
-        )}
-
         {(error || storeError) && <p className="events-error">{error || storeError}</p>}
       </div>
     </main>

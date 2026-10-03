@@ -186,12 +186,6 @@
     color: var(--accent);
 }
 
-.scene-scout-progress {
-    font-family: var(--ui-font);
-    font-size: 0.78rem;
-    color: var(--accent);
-}
-
 /* Sidebar panel ---------------------------------------------------------- */
 
 /* The panel reuses `eps-container`, `episode-panel`, `episode-panel-row` and
