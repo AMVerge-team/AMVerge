@@ -19,7 +19,8 @@ import {
   isCustomTopK,
   MAX_TOP_K,
   MIN_TOP_K,
-  THRESHOLD_OPTIONS,
+  MIN_THRESHOLD_PCT,
+  MAX_THRESHOLD_PCT,
   TOP_K_OPTIONS,
 } from "../../features/sceneScout/types";
 
@@ -108,6 +109,8 @@ export function SceneScoutToolbar() {
   const [editingTopK, setEditingTopK] = useState(false);
   const [topKDraft, setTopKDraft] = useState("");
 
+  const [thresholdDraft, setThresholdDraft] = useState("");
+
   // a typed number becomes a real entry, so the closed trigger reads "Top 137"
   // rather than the bare word Custom
   const topKOptions = useMemo(() => {
@@ -129,6 +132,21 @@ export function SceneScoutToolbar() {
       });
     }
     setEditingTopK(false);
+  };
+
+  const commitThreshold = () => {
+    const trimmed = thresholdDraft.trim();
+    if (trimmed === "" || trimmed === "-") {
+      updateSettings({ threshold: -1 });
+      setThresholdDraft("");
+      return;
+    }
+    const parsed = Number(trimmed);
+    if (Number.isFinite(parsed)) {
+      const clamped = Math.min(MAX_THRESHOLD_PCT, Math.max(MIN_THRESHOLD_PCT, parsed));
+      updateSettings({ threshold: clamped / 100 });
+    }
+    setThresholdDraft("");
   };
   const [error, setError] = useState("");
   const [unloading, setUnloading] = useState(false);
@@ -312,14 +330,43 @@ export function SceneScoutToolbar() {
             </div>
 
             <div className="scene-scout-setting">
-              <span>Match strength</span>
-              <Dropdown
-                options={THRESHOLD_OPTIONS}
-                value={settings.threshold}
-                onChange={(threshold) => updateSettings({ threshold })}
-                className="scene-scout-dropdown"
-                showTriggerDescription={false}
-              />
+              <span>Min. score %</span>
+              <div className="scene-scout-threshold-input-row">
+                <input
+                  type="number"
+                  className="scene-scout-topk-input"
+                  min={MIN_THRESHOLD_PCT}
+                  max={MAX_THRESHOLD_PCT}
+                  step={1}
+                  placeholder="off"
+                  value={
+                    thresholdDraft !== ""
+                      ? thresholdDraft
+                      : settings.threshold >= 0
+                      ? String(Math.round(settings.threshold * 100))
+                      : ""
+                  }
+                  onChange={(e) => setThresholdDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commitThreshold();
+                    if (e.key === "Escape") setThresholdDraft("");
+                  }}
+                  onBlur={commitThreshold}
+                />
+                {settings.threshold >= 0 && (
+                  <button
+                    type="button"
+                    className="scene-scout-threshold-clear"
+                    title="Remove cutoff (show all results)"
+                    onClick={() => {
+                      updateSettings({ threshold: -1 });
+                      setThresholdDraft("");
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="scene-scout-setting">

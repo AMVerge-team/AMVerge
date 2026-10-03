@@ -286,6 +286,39 @@
     background: rgba(255, 255, 255, 0.12);
 }
 
+.scene-scout-threshold-input-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.scene-scout-threshold-input-row .scene-scout-topk-input {
+    width: 72px;
+}
+
+.scene-scout-threshold-clear {
+    height: 28px;
+    width: 28px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+}
+
+.scene-scout-threshold-clear:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.85);
+}
+
 /* the settings row sets the UI font for its labels, but Preview All is the same
    control as the Home page's, so it follows the app font the user picked in
    settings instead */

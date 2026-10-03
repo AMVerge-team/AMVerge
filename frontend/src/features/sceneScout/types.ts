@@ -114,9 +114,5 @@ export function isCustomTopK(topK: number): boolean {
   return !TOP_K_OPTIONS.some((o) => o.value !== CUSTOM_TOP_K && o.value === topK);
 }
 
-export const THRESHOLD_OPTIONS: { value: number; label: string; description: string }[] = [
-  { value: -1, label: "Show everything", description: "No cutoff, ranked best first" },
-  { value: 0.1, label: "Loose", description: "Drops clearly unrelated" },
-  { value: 0.2, label: "Balanced", description: "Trims weak matches" },
-  { value: 0.3, label: "Strict", description: "Only confident matches" },
-];
+export const MIN_THRESHOLD_PCT = 0;
+export const MAX_THRESHOLD_PCT = 100;
