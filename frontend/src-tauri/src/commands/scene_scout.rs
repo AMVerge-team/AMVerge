@@ -336,6 +336,23 @@ pub async fn scout_list_videos(
 }
 
 #[tauri::command]
+pub async fn scout_delete_video(
+    app: AppHandle,
+    database: String,
+    video_id: i64,
+    custom_path: Option<String>,
+) -> Result<bool, String> {
+    let root = scout_root(&app, custom_path.as_deref())?;
+    let video_id_str = video_id.to_string();
+    let envelope: DeletedEnvelope = scout_json(
+        &app,
+        &["delete-video", &database, "--id", &video_id_str, "--root", &root],
+    )
+    .await?;
+    Ok(envelope.deleted)
+}
+
+#[tauri::command]
 pub async fn scout_status(
     app: AppHandle,
     custom_path: Option<String>,

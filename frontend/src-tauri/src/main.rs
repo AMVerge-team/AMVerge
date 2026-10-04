@@ -102,6 +102,7 @@ fn main() {
             commands::scene_scout::scout_create_database,
             commands::scene_scout::scout_delete_database,
             commands::scene_scout::scout_list_videos,
+            commands::scene_scout::scout_delete_video,
             commands::scene_scout::scout_status,
             commands::scene_scout::scout_search,
             commands::scene_scout::scout_add_video,

@@ -17,7 +17,7 @@ import {
 import ModalShell from "../common/ModalShell";
 import Tooltip from "../common/Tooltip";
 import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
-import type { ScoutDatabase } from "../../features/sceneScout/types";
+import type { ScoutDatabase, ScoutVideo } from "../../features/sceneScout/types";
 
 /**
  * Sidebar panel for Scene Scout: the search databases, and what is indexed into
@@ -41,6 +41,7 @@ export function SceneScoutPanel() {
   const selectedDatabases = useSceneScoutStore((s) => s.selectedDatabases);
   const selectedVideos = useSceneScoutStore((s) => s.selectedVideos);
   const loading = useSceneScoutStore((s) => s.loading);
+  const indexing = useSceneScoutStore((s) => s.indexing);
   const loadDatabases = useSceneScoutStore((s) => s.loadDatabases);
   const openDatabase = useSceneScoutStore((s) => s.openDatabase);
   const toggleDatabaseExpanded = useSceneScoutStore((s) => s.toggleDatabaseExpanded);
@@ -49,6 +50,7 @@ export function SceneScoutPanel() {
   const createDatabase = useSceneScoutStore((s) => s.createDatabase);
   const openExistingDatabase = useSceneScoutStore((s) => s.openExistingDatabase);
   const deleteDatabase = useSceneScoutStore((s) => s.deleteDatabase);
+  const deleteVideo = useSceneScoutStore((s) => s.deleteVideo);
   const unloadDatabase = useSceneScoutStore((s) => s.unloadDatabase);
   const renameDatabase = useSceneScoutStore((s) => s.renameDatabase);
   const displayNames = useSceneScoutStore((s) => s.displayNames);
@@ -61,6 +63,8 @@ export function SceneScoutPanel() {
   const [isOpening, setIsOpening] = useState(false);
   const [openingName, setOpeningName] = useState<string | null>(null);
   const [databaseToDelete, setDatabaseToDelete] = useState<ScoutDatabase | null>(null);
+  const [videoToDelete, setVideoToDelete] = useState<{ video: ScoutVideo; database: ScoutDatabase } | null>(null);
+  const [isDeletingVideo, setIsDeletingVideo] = useState(false);
   const [generatingThumbsDb, setGeneratingThumbsDb] = useState<string | null>(null);
 
   const labelFor = (path: string, fallback: string) => displayNames[path] ?? fallback;
@@ -352,6 +356,7 @@ export function SceneScoutPanel() {
                       ) : (
                         dbVideos.map((video) => {
                           const isVideoSelected = selectedVideos.some((vp) => samePath(vp, video.filepath));
+                          const isVideoIndexing = video.status === "indexing" || (indexing !== null && samePath(indexing.video, video.filepath));
                           let videoRowClass = "episode-panel-row episode-row";
                           if (isVideoSelected) videoRowClass += " is-focused is-selected";
 
@@ -379,6 +384,20 @@ export function SceneScoutPanel() {
                               <span className="episode-panel-count">
                                 {video.status === "indexing" ? "..." : video.sceneCount}
                               </span>
+                              <Tooltip content={isVideoIndexing ? "Cannot delete while indexing" : "Remove video from database"}>
+                                <button
+                                  type="button"
+                                  className="episode-panel-import-icon episode-folder-btn episode-delete-btn"
+                                  disabled={isVideoIndexing}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setVideoToDelete({ video, database });
+                                  }}
+                                  aria-label={`Remove ${video.name} from ${database.name}`}
+                                >
+                                  <FaTrashAlt aria-hidden="true" />
+                                </button>
+                              </Tooltip>
                             </div>
                           );
                         })
@@ -476,6 +495,66 @@ export function SceneScoutPanel() {
                 }}
               >
                 Delete Database
+              </button>
+            </div>
+          </div>
+        </ModalShell>
+      )}
+
+      {videoToDelete && (
+        <ModalShell
+          open
+          onClose={() => !isDeletingVideo && setVideoToDelete(null)}
+          label="Remove video from database"
+          className="scene-scout-delete-modal"
+        >
+          <div className="denial-notice">
+            <FaTrashAlt aria-hidden="true" className="denial-notice-icon" style={{ color: "#ef4444" }} />
+            <h2>Remove Video from Database?</h2>
+
+            <p className="events-subtitle ban-notice-note" style={{ color: "rgba(255,255,255,0.85)" }}>
+              Are you sure you want to remove <strong>{videoToDelete.video.name}</strong> from <strong>{videoToDelete.database.name}</strong>?
+            </p>
+
+            <div style={{ background: "rgba(0,0,0,0.35)", borderRadius: "8px", padding: "10px 14px", margin: "12px 0", fontSize: "12px", textAlign: "left", wordBreak: "break-all" }}>
+              <div style={{ color: "rgba(255,255,255,0.5)", marginBottom: "4px" }}>File path:</div>
+              <div style={{ fontFamily: "monospace", color: "rgba(255,255,255,0.9)" }}>{videoToDelete.video.filepath}</div>
+              <div style={{ marginTop: "6px", color: "rgba(255,255,255,0.6)" }}>
+                {videoToDelete.video.sceneCount} indexed {videoToDelete.video.sceneCount === 1 ? "scene" : "scenes"}
+              </div>
+            </div>
+
+            <p style={{ color: "rgba(239, 68, 68, 0.9)", fontSize: "12px", margin: "6px 0 16px" }}>
+              This will remove the video entry and all its scene embeddings and thumbnails from this database. The video file on your computer will NOT be deleted.
+            </p>
+
+            <div className="denial-notice-actions">
+              <button
+                type="button"
+                className="event-host-btn"
+                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}
+                onClick={() => setVideoToDelete(null)}
+                disabled={isDeletingVideo}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="event-host-btn"
+                style={{ background: "#ef4444", borderColor: "#ef4444", color: "white" }}
+                disabled={isDeletingVideo}
+                onClick={async () => {
+                  const target = videoToDelete;
+                  setIsDeletingVideo(true);
+                  try {
+                    await deleteVideo(target.database.path, target.video.id);
+                    setVideoToDelete(null);
+                  } finally {
+                    setIsDeletingVideo(false);
+                  }
+                }}
+              >
+                {isDeletingVideo ? "Removing..." : "Remove Video"}
               </button>
             </div>
           </div>

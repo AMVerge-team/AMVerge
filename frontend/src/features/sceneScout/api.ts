@@ -45,6 +45,14 @@ export function scoutListVideos(
   return invoke<ScoutVideo[]>("scout_list_videos", { database, customPath });
 }
 
+export function scoutDeleteVideo(
+  database: string,
+  videoId: number,
+  customPath: string | null
+): Promise<boolean> {
+  return invoke<boolean>("scout_delete_video", { database, videoId, customPath });
+}
+
 export function scoutStatus(customPath: string | null): Promise<ScoutStatus> {
   return invoke<ScoutStatus>("scout_status", { customPath });
 }

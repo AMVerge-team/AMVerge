@@ -7,6 +7,7 @@ import {
   scoutCreateDatabase,
   scoutDatabaseInfo,
   scoutDeleteDatabase,
+  scoutDeleteVideo,
   scoutListDatabases,
   scoutListVideos,
   scoutOpenDatabase,
@@ -78,6 +79,7 @@ type SceneScoutActions = {
   selectAllDatabases: () => void;
   clearSelection: () => void;
   loadVideos: (name: string) => Promise<void>;
+  deleteVideo: (databasePath: string, videoId: number) => Promise<void>;
   addVideo: (videoPath: string) => Promise<{ ok: boolean; message: string | null }>;
   addVideos: (videoPaths: string[]) => Promise<{ ok: boolean; message: string | null }>;
   unloadModel: () => Promise<void>;
@@ -416,6 +418,68 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             videosByDatabase: { ...state.videosByDatabase, [name]: [] },
             error: message(err),
           }));
+        }
+      },
+
+      deleteVideo: async (databasePath, videoId) => {
+        try {
+          const currentVideos = get().videosByDatabase[databasePath] || [];
+          const deletedVideo = currentVideos.find((v) => v.id === videoId);
+          const deletedFilePath = deletedVideo?.filepath;
+          const scenesToRemove = deletedVideo?.sceneCount || 0;
+
+          await scoutDeleteVideo(databasePath, videoId, customPath());
+
+          set((state) => {
+            const nextVideos = (state.openedDatabase && samePath(state.openedDatabase, databasePath))
+              ? state.videos.filter((v) => v.id !== videoId)
+              : state.videos;
+
+            const nextDbVideos = (state.videosByDatabase[databasePath] || []).filter((v) => v.id !== videoId);
+            const nextVByDb = {
+              ...state.videosByDatabase,
+              [databasePath]: nextDbVideos,
+            };
+
+            const nextSelectedVideos = deletedFilePath
+              ? state.selectedVideos.filter((vp) => !samePath(vp, deletedFilePath))
+              : state.selectedVideos;
+
+            const nextDatabases = state.databases.map((db) => {
+              if (samePath(db.path, databasePath)) {
+                return {
+                  ...db,
+                  videoCount: Math.max(0, db.videoCount - 1),
+                  sceneCount: Math.max(0, db.sceneCount - scenesToRemove),
+                };
+              }
+              return db;
+            });
+
+            const nextResults = deletedFilePath
+              ? state.results.filter((hit) => !samePath(hit.videoPath, deletedFilePath))
+              : state.results;
+
+            return {
+              videos: nextVideos,
+              videosByDatabase: nextVByDb,
+              selectedVideos: nextSelectedVideos,
+              databases: nextDatabases,
+              results: nextResults,
+            };
+          });
+
+          if (deletedFilePath) {
+            const appClips = useAppStateStore.getState().clips;
+            const filteredClips = appClips.filter((clip) => !samePath(clip.src, deletedFilePath));
+            if (filteredClips.length !== appClips.length) {
+              useAppStateStore.getState().setClips(filteredClips);
+            }
+          }
+
+          await get().loadDatabases();
+        } catch (err) {
+          set({ error: message(err) });
         }
       },
 
