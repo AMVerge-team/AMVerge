@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef } from "react";
-import { listen } from "@tauri-apps/api/event";
 import { FaCog } from "react-icons/fa";
 
 import MainLayout from "../MainLayout";
@@ -9,7 +8,6 @@ import { useAppStateStore } from "../stores/appStore";
 import { useSceneScoutStore } from "../stores/sceneScoutStore";
 import { selectOverlayOpen, useUIStateStore } from "../stores/UIStore";
 import { hitToClipItem } from "../features/sceneScout/hitToClip";
-import type { ScoutIndexProgress } from "../features/sceneScout/types";
 
 /**
  * Search results rendered through the ordinary clip grid.
@@ -25,7 +23,6 @@ export default function SceneScoutPage() {
 
   const results = useSceneScoutStore((s) => s.results);
   const refreshStatus = useSceneScoutStore((s) => s.refreshStatus);
-  const setIndexing = useSceneScoutStore((s) => s.setIndexing);
 
   // the grid is shared with the episode pages, so whatever was in it has to be
   // put back on the way out or leaving Scene Scout would blank the Home grid
@@ -57,18 +54,6 @@ export default function SceneScoutPage() {
   useEffect(() => {
     void refreshStatus();
   }, [refreshStatus]);
-
-  // indexing runs for minutes, so progress is streamed from Rust rather than
-  // polled
-  useEffect(() => {
-    const unlisten = listen<ScoutIndexProgress>("scout_progress", (event) => {
-      const { stage, done, total, video } = event.payload;
-      setIndexing({ video: video ?? "", stage, done, total });
-    });
-    return () => {
-      void unlisten.then((off) => off());
-    };
-  }, [setIndexing]);
 
   const clips = useMemo(() => results.map(hitToClipItem), [results]);
 

@@ -84,7 +84,6 @@ type SceneScoutActions = {
   runSearch: () => Promise<void>;
   clearResults: () => void;
   updateSettings: (changes: Partial<ScoutSearchSettings>) => void;
-  setIndexing: (progress: SceneScoutState["indexing"]) => void;
   refresh: () => Promise<void>;
 };
 
@@ -580,9 +579,9 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             selectedVideos: get().selectedVideos,
           };
           const results = await scoutSearch(query, searchSettings, customPath());
-          set({ results, lastQuery: query, searching: false });
+          set({ results, lastQuery: query });
         } catch (err) {
-          set({ searching: false, results: [], error: message(err) });
+          set({ results: [], error: message(err) });
         } finally {
           if (stopListener) {
             stopListener();
@@ -592,6 +591,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             appState.setLoading(false);
             appState.setProgressMsg("");
           }
+          set({ searching: false });
         }
       },
 
@@ -599,8 +599,6 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
 
       updateSettings: (changes) =>
         set((state) => ({ settings: { ...state.settings, ...changes } })),
-
-      setIndexing: (indexing) => set({ indexing }),
 
       /** re-reads everything from disk, for the toolbar's refresh button */
       refresh: async () => {

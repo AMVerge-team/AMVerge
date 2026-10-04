@@ -220,7 +220,7 @@ export function SceneScoutToolbar() {
               type="button"
               className="import-button events-action-button"
               onClick={() => void onAddEpisode()}
-              disabled={Boolean(indexing) || noDatabaseOpen}
+              disabled={Boolean(indexing) || searching || noDatabaseOpen}
             >
               {indexing ? "Indexing..." : "Add Episode"}
             </button>
@@ -284,11 +284,11 @@ export function SceneScoutToolbar() {
               <input
                 type="text"
                 value={query}
-                disabled={!hasSelection}
+                disabled={!hasSelection || searching || Boolean(indexing)}
                 placeholder={searchPlaceholder}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && hasSelection && query.trim() && !searching) {
+                  if (e.key === "Enter" && hasSelection && query.trim() && !searching && !indexing) {
                     void runSearch();
                   }
                 }}
@@ -307,7 +307,7 @@ export function SceneScoutToolbar() {
                 type="button"
                 className="scene-scout-search-go"
                 onClick={() => void runSearch()}
-                disabled={searching || !query.trim() || !hasSelection}
+                disabled={searching || Boolean(indexing) || !query.trim() || !hasSelection}
               >
                 {searching ? "Searching..." : "Search"}
               </button>
