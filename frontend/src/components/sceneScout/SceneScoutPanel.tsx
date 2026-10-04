@@ -95,16 +95,17 @@ export function SceneScoutPanel() {
     if (!picked) return;
 
     const result = await createDatabase(picked);
-    if (!result.ok) {
+    if (!result.ok || !result.path) {
       setError(result.message || "Could not create the database.");
       return;
     }
 
     // default the label to the file they just named, which is almost always
-    // what they want it called
-    const fileStem = picked.split(/[/\\]/).pop()?.replace(/\.scoutdb$/i, "") ?? "Database";
+    // what they want it called. key by the cli's resolved path so the label
+    // matches the entry in the database list
+    const fileStem = result.path.split(/[/\\]/).pop()?.replace(/\.scoutdb$/i, "") ?? "Database";
     setDraftName(fileStem);
-    setNamingPath(picked);
+    setNamingPath(result.path);
   };
 
   const startOpen = async () => {
