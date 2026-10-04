@@ -78,8 +78,8 @@ export type ScoutSearchSettings = {
   selectedVideos: string[];
   /** keep model weights in memory across searches for instant responses */
   keepModelInMemory?: boolean;
-  /** offload model from GPU to CPU after idle periods to save VRAM */
   gpuStandby?: boolean;
+  dynamicThumbnails?: boolean;
 };
 
 export const DEFAULT_SEARCH_SETTINGS: ScoutSearchSettings = {
@@ -90,6 +90,7 @@ export const DEFAULT_SEARCH_SETTINGS: ScoutSearchSettings = {
   selectedVideos: [],
   keepModelInMemory: true,
   gpuStandby: true,
+  dynamicThumbnails: true,
 };
 
 /** Sentinel for the Custom entry. Zero is never a real result count, so it can

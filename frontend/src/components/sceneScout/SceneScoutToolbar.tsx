@@ -446,6 +446,19 @@ export function SceneScoutToolbar() {
               <span>GPU standby (idle VRAM release)</span>
             </div>
 
+            <div className="checkbox-row scene-scout-preview-all">
+              <label className="custom-checkbox">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={settings.dynamicThumbnails ?? true}
+                  onChange={(e) => updateSettings({ dynamicThumbnails: e.target.checked })}
+                />
+                <span className="checkmark"></span>
+              </label>
+              <span>Dynamic thumbnails (extract on-demand)</span>
+            </div>
+
             <button
               type="button"
               className="buttons scene-scout-unload-btn"

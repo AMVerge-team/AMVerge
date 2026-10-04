@@ -8,21 +8,16 @@ import { useAppStateStore } from "../stores/appStore";
 import { useSceneScoutStore } from "../stores/sceneScoutStore";
 import { selectOverlayOpen, useUIStateStore } from "../stores/UIStore";
 import { hitToClipItem } from "../features/sceneScout/hitToClip";
+import { useScoutThumbnailQueue } from "../features/sceneScout/useScoutThumbnailQueue";
 
-/**
- * Search results rendered through the ordinary clip grid.
- *
- * The page owns no grid of its own: it maps hits into `ClipItem`s and pushes
- * them into the app store, exactly as `ScenepacksPage` does for a pack's clips.
- * That is what gives Scene Scout preview-all, hover playback, grid preview
- * speed, timestamps and the download button without reimplementing any of them.
- */
 export default function SceneScoutPage() {
   const overlayOpen = useUIStateStore(selectOverlayOpen);
   const openSettings = useUIStateStore((s) => s.openSettings);
 
   const results = useSceneScoutStore((s) => s.results);
   const refreshStatus = useSceneScoutStore((s) => s.refreshStatus);
+
+  useScoutThumbnailQueue();
 
   // the grid is shared with the episode pages, so whatever was in it has to be
   // put back on the way out or leaving Scene Scout would blank the Home grid
