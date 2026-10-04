@@ -910,3 +910,63 @@ pub async fn abort_scout_index(
 
     Ok(())
 }
+
+#[tauri::command]
+pub async fn extract_scout_thumbnail_memory(
+    app: AppHandle,
+    video_path: String,
+    timestamp_sec: f64,
+) -> Result<Option<String>, String> {
+    let input_path = std::path::PathBuf::from(&video_path);
+    if !input_path.is_file() {
+        return Ok(None);
+    }
+
+    let ffmpeg = crate::utils::ffmpeg::resolve_bundled_tool(&app, "ffmpeg")?;
+    let seek_time = timestamp_sec.max(0.0);
+
+    let result = tokio::task::spawn_blocking(move || -> Result<Option<String>, String> {
+        use base64::Engine;
+        let mut cmd = std::process::Command::new(&ffmpeg);
+        crate::utils::process::apply_no_window(&mut cmd);
+        #[cfg(not(windows))]
+        {
+            use std::os::unix::process::CommandExt;
+            cmd.process_group(0);
+        }
+
+        cmd.args([
+            "-y",
+            "-ss",
+            &format!("{seek_time:.3}"),
+            "-i",
+            &input_path.to_string_lossy(),
+            "-frames:v",
+            "1",
+            "-an",
+            "-vf",
+            "scale=-2:240:flags=fast_bilinear",
+            "-f",
+            "image2",
+            "-c:v",
+            "mjpeg",
+            "-q:v",
+            "5",
+            "pipe:1",
+        ]);
+        cmd.stdout(std::process::Stdio::piped());
+        cmd.stderr(std::process::Stdio::null());
+
+        let output = cmd.output().map_err(|e| e.to_string())?;
+        if output.status.success() && !output.stdout.is_empty() {
+            let encoded = base64::engine::general_purpose::STANDARD.encode(&output.stdout);
+            Ok(Some(format!("data:image/jpeg;base64,{encoded}")))
+        } else {
+            Ok(None)
+        }
+    })
+    .await
+    .map_err(|e| format!("Thumbnail extraction task panicked: {e}"))??;
+
+    Ok(result)
+}
