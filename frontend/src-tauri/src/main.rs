@@ -108,6 +108,7 @@ fn main() {
             commands::scene_scout::abort_scout_index,
             commands::scene_scout::scout_unload_model,
             commands::scene_scout::extract_scout_thumbnail_memory,
+            commands::scene_scout::scout_generate_thumbnails,
             commands::settings::get_default_episodes_dir,
             commands::discord::start_discord_rpc,
             commands::discord::update_discord_rpc,

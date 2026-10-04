@@ -4,6 +4,7 @@ import {
   FaChevronRight,
   FaDatabase,
   FaFolderOpen,
+  FaImage,
   FaMinus,
   FaPlus,
   FaSearch,
@@ -51,6 +52,7 @@ export function SceneScoutPanel() {
   const unloadDatabase = useSceneScoutStore((s) => s.unloadDatabase);
   const renameDatabase = useSceneScoutStore((s) => s.renameDatabase);
   const displayNames = useSceneScoutStore((s) => s.displayNames);
+  const generateThumbnails = useSceneScoutStore((s) => s.generateThumbnails);
 
   const [namingPath, setNamingPath] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
@@ -59,6 +61,7 @@ export function SceneScoutPanel() {
   const [isOpening, setIsOpening] = useState(false);
   const [openingName, setOpeningName] = useState<string | null>(null);
   const [databaseToDelete, setDatabaseToDelete] = useState<ScoutDatabase | null>(null);
+  const [generatingThumbsDb, setGeneratingThumbsDb] = useState<string | null>(null);
 
   const labelFor = (path: string, fallback: string) => displayNames[path] ?? fallback;
 
@@ -137,6 +140,19 @@ export function SceneScoutPanel() {
     if (name) renameDatabase(namingPath, name);
     setNamingPath(null);
     void openDatabase(namingPath);
+  };
+
+  const handleGenerateThumbnails = async (database: ScoutDatabase) => {
+    setError("");
+    setGeneratingThumbsDb(database.path);
+    try {
+      const res = await generateThumbnails(database.path);
+      if (!res.ok && res.message) {
+        setError(res.message);
+      }
+    } finally {
+      setGeneratingThumbsDb(null);
+    }
   };
 
   return (
@@ -281,6 +297,24 @@ export function SceneScoutPanel() {
                       {labelFor(database.path, database.name)}
                     </span>
                     <span className="episode-panel-count">{database.sceneCount}</span>
+                    <Tooltip content="Generate missing thumbnails into database">
+                      <button
+                        type="button"
+                        className="episode-panel-import-icon episode-folder-btn"
+                        disabled={generatingThumbsDb === database.path}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleGenerateThumbnails(database);
+                        }}
+                        aria-label={`Generate missing thumbnails for ${database.name}`}
+                      >
+                        {generatingThumbsDb === database.path ? (
+                          <FaSpinner className="spinner" style={{ animation: "spin 1s linear infinite" }} />
+                        ) : (
+                          <FaImage aria-hidden="true" />
+                        )}
+                      </button>
+                    </Tooltip>
                     <Tooltip content="Unload database (remove from list)">
                       <button
                         type="button"

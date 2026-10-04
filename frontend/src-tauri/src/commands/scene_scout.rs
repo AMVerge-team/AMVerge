@@ -273,6 +273,24 @@ struct DatabaseEnvelope {
     database: ScoutDatabase,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ScoutGenerateThumbnailsResult {
+    pub done: bool,
+    pub generated: u64,
+    pub database: String,
+}
+
+#[tauri::command]
+pub async fn scout_generate_thumbnails(
+    app: AppHandle,
+    database: String,
+    custom_path: Option<String>,
+) -> Result<ScoutGenerateThumbnailsResult, String> {
+    let root = scout_root(&app, custom_path.as_deref())?;
+    scout_json(&app, &["generate-thumbnails", "--db", &database, "--root", &root]).await
+}
+
 #[tauri::command]
 pub async fn scout_create_database(
     app: AppHandle,

@@ -13,6 +13,7 @@ import {
   scoutSearch,
   scoutStatus,
   scoutUnloadModel,
+  scoutGenerateThumbnails,
 } from "../features/sceneScout/api";
 import {
   DEFAULT_SEARCH_SETTINGS,
@@ -84,6 +85,7 @@ type SceneScoutActions = {
   runSearch: () => Promise<void>;
   clearResults: () => void;
   updateSettings: (changes: Partial<ScoutSearchSettings>) => void;
+  generateThumbnails: (path: string) => Promise<{ ok: boolean; generated: number; message: string | null }>;
   refresh: () => Promise<void>;
 };
 
@@ -599,6 +601,28 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
 
       updateSettings: (changes) =>
         set((state) => ({ settings: { ...state.settings, ...changes } })),
+
+      generateThumbnails: async (path: string) => {
+        try {
+          const appState = useAppStateStore.getState();
+          appState.setActiveOperation("scout_add");
+          appState.setLoading(true);
+          appState.setProgress(0);
+          appState.setProgressMsg("Generating missing database thumbnails...");
+
+          const res = await scoutGenerateThumbnails(path, customPath());
+          await get().loadDatabases();
+          return { ok: true, generated: res.generated, message: null };
+        } catch (err) {
+          return { ok: false, generated: 0, message: message(err) };
+        } finally {
+          const appState = useAppStateStore.getState();
+          appState.setActiveOperation(null);
+          appState.setLoading(false);
+          appState.setProgress(0);
+          appState.setProgressMsg("");
+        }
+      },
 
       /** re-reads everything from disk, for the toolbar's refresh button */
       refresh: async () => {

@@ -98,3 +98,13 @@ export function scoutOpenDatabase(
   return invoke<ScoutDatabase>("scout_open_database", { path, customPath });
 }
 
+export function scoutGenerateThumbnails(
+  database: string,
+  customPath: string | null
+): Promise<{ done: boolean; generated: number; database: string }> {
+  return invoke<{ done: boolean; generated: number; database: string }>(
+    "scout_generate_thumbnails",
+    { database, customPath }
+  );
+}
+
