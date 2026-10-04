@@ -16,6 +16,7 @@ export type ClipItem = {
   sourceKind?: "video" | "webp";
   score?: number;
   database?: string;
+  scoutNeedsThumb?: boolean;
 };
 
 export type EpisodeFolder = {

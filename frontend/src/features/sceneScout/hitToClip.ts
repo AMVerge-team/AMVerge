@@ -1,34 +1,20 @@
 import type { ClipItem } from "../../types/domain";
 import type { ScoutHit } from "./types";
+import { generateScoutPlaceholderSvg } from "./scoutPlaceholder";
+import { formatClipTimeframe } from "../../components/clipsGrid/clipFormat";
 
-/**
- * Turn a search hit into a grid tile.
- *
- * This function is the whole reason Scene Scout gets preview-all, hover
- * playback, grid preview speed, timestamps and the download button without
- * reimplementing any of them: the results render through the same
- * `ClipsContainer` / `LazyClip` the episode grid uses, so every one of those
- * settings already applies. Scenepacks does the same thing in
- * `pages/ScenepacksPage.tsx`.
- *
- * A hit is a *time range in a source video*, not a cut file, so it maps onto the
- * same shape the WebP-mode episode grid uses: `src` is the source video and
- * `startSec`/`endSec` bound the scene. `clipPath` is deliberately left unset;
- * setting it would put the tile in video mode and send it looking for a pre-cut
- * file that Scene Scout never produced.
- */
 export function hitToClipItem(hit: ScoutHit, index: number): ClipItem {
+  const timeframe = formatClipTimeframe(hit.startSec, hit.endSec) ?? "";
+  const name = fileName(hit.videoPath);
   return {
     id: `scout_${hit.database}_${hitKey(hit)}`,
     src: hit.videoPath,
-    // the CLI ships the frame it embedded, so the tile has a real still without
-    // the grid having to decode anything up front
     thumbnail: hit.thumbnailB64
       ? `data:image/jpeg;base64,${hit.thumbnailB64}`
-      : hit.videoPath,
+      : generateScoutPlaceholderSvg(name, timeframe),
     thumbnailReady: true,
     originalPath: hit.videoPath,
-    originalName: fileName(hit.videoPath),
+    originalName: name,
     sceneIndex: index,
     startSec: hit.startSec,
     endSec: hit.endSec,
@@ -36,6 +22,7 @@ export function hitToClipItem(hit: ScoutHit, index: number): ClipItem {
     database: hit.database,
     sourceKind: "video",
     episodeId: scoutCacheId(hit.database),
+    scoutNeedsThumb: !hit.thumbnailB64,
   };
 }
 
