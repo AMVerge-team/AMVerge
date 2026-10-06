@@ -270,7 +270,7 @@ export default function ExportSection() {
         <SettingsSection id="export.workflow" title="Workflow & Encoding">
         <SettingRow
           label="Workflow"
-          description="Re-encode the video, or copy it into a new container."
+          description="Re-encode at exact scene boundaries, or stream-copy with boundaries snapped outward to keyframes."
           control={
             <Dropdown
               className="settings-wide-dropdown"

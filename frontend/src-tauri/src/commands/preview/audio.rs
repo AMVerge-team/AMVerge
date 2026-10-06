@@ -5,7 +5,7 @@ use tauri::AppHandle;
 use crate::utils::ffmpeg::resolve_bundled_tool;
 use crate::utils::process::apply_no_window;
 
-use super::types::PreviewAudioStream;
+use super::types::{ExportSourceStreams, PreviewAudioStream};
 
 pub(crate) fn normalize_language_label(raw: &str) -> String {
     match raw.trim().to_ascii_lowercase().as_str() {
@@ -126,4 +126,58 @@ pub async fn get_audio_streams(app: AppHandle, video_path: String) -> Result<Vec
     }
 
     Ok(out)
+}
+
+/// Probe the source streams before a remux export so the UI can select a
+/// sensible default container/audio mode. The CLI performs the final muxer
+/// preflight, since only it owns the copy-export contract.
+#[tauri::command]
+pub async fn probe_export_source_streams(
+    app: AppHandle,
+    video_path: String,
+) -> Result<ExportSourceStreams, String> {
+    if video_path.trim().is_empty() {
+        return Err("video_path is empty".to_string());
+    }
+
+    let ffprobe = resolve_bundled_tool(&app, "ffprobe")?;
+    let ffprobe_output = tokio::task::spawn_blocking(move || {
+        let mut cmd = Command::new(&ffprobe);
+        apply_no_window(&mut cmd);
+        cmd.args([
+            "-v", "error", "-show_entries", "stream=codec_name,codec_type", "-of", "json", &video_path,
+        ])
+        .output()
+        .map_err(|e| format!("Failed to run ffprobe ({}): {e}", ffprobe.display()))
+    })
+    .await
+    .map_err(|e| format!("ffprobe task panicked: {e}"))??;
+
+    if !ffprobe_output.status.success() {
+        let stderr = String::from_utf8_lossy(&ffprobe_output.stderr).trim().to_string();
+        return Err(if stderr.is_empty() {
+            "ffprobe failed while reading export streams".to_string()
+        } else {
+            format!("ffprobe failed while reading export streams: {stderr}")
+        });
+    }
+
+    let parsed: serde_json::Value = serde_json::from_slice(&ffprobe_output.stdout)
+        .map_err(|e| format!("Failed to parse ffprobe json: {e}"))?;
+    let streams = parsed.get("streams").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+    let mut video_codec = None;
+    let mut audio_codecs = Vec::new();
+    for stream in streams {
+        let codec = stream.get("codec_name").and_then(|v| v.as_str()).map(str::to_ascii_lowercase);
+        match stream.get("codec_type").and_then(|v| v.as_str()) {
+            Some("video") if video_codec.is_none() => video_codec = codec,
+            Some("audio") => {
+                if let Some(codec) = codec {
+                    audio_codecs.push(codec);
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(ExportSourceStreams { video_codec, audio_codecs })
 }

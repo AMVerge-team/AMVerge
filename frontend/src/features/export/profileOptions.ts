@@ -16,8 +16,11 @@ export const NVIDIA_ENCODER_SUPPORT_MATRIX_URL =
   "https://developer.nvidia.com/video-encode-decode-support-matrix";
 
 export const EXPORT_WORKFLOW_OPTIONS: { value: ExportWorkflow; label: string }[] = [
-  { value: "video_encode", label: "Export video (re-encode)" },
-  { value: "video_remux", label: "Export video (stream copy / remux)" },
+  { value: "video_encode", label: "Export video (re-encode exact cuts)" },
+  {
+    value: "video_remux",
+    label: "Fast remux (stream copy; container selected from source)",
+  },
 ];
 
 export const EXPORT_CODEC_OPTIONS: { value: ExportCodec; label: string }[] = [
@@ -37,7 +40,7 @@ export const EXPORT_CODEC_OPTIONS: { value: ExportCodec; label: string }[] = [
 ];
 
 export const EXPORT_AUDIO_OPTIONS: { value: ExportAudioMode; label: string }[] = [
-  { value: "copy", label: "Keep audio copy" },
+  { value: "copy", label: "Copy audio when compatible (auto-select fallback)" },
   { value: "aac", label: "AAC 192 kbps" },
   { value: "aac_320", label: "AAC 320 kbps" },
   { value: "pcm16", label: "PCM 16-bit" },
@@ -47,6 +50,7 @@ export const EXPORT_AUDIO_OPTIONS: { value: ExportAudioMode; label: string }[] =
 ];
 
 export const EXPORT_CONTAINER_OPTIONS: { value: ExportContainer; label: string }[] = [
+  { value: "avi", label: "AVI" },
   { value: "mp4", label: "MP4" },
   { value: "mov", label: "MOV" },
 ];
@@ -220,13 +224,15 @@ export const DEFAULT_EXPORT_PROFILES: ExportProfile[] = [
   },
   {
     id: "remux-fast-mov",
-    name: "Fast Remux MOV",
+    name: "Fast Remux (Auto Container)",
     icon: "remux",
     workflow: "video_remux",
     editorTarget: "none",
     codec: "h264_high",
     audioMode: "copy",
-    container: "mov",
+    // Fast remux derives AVI, MP4, or MOV from the source at export time.
+    // MP4 is only the fallback stored in a profile.
+    container: "mp4",
     mergeEnabled: false,
     hardwareMode: "cpu",
     nvidiaEncoderProfile: "unknown",

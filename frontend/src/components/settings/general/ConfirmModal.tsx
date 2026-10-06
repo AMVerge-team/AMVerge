@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 type Props = {
   title: string;
@@ -22,14 +23,30 @@ export function ConfirmModal({
   busy = false,
   secondary,
 }: Props) {
-  return (
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // These confirmations are opened from a scrollable settings page. Mounting
+    // them at the document root keeps the overlay fixed to the viewport.
+    dialogRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  return createPortal(
     <div
       className="episode-modal-overlay"
       onMouseDown={() => {
         if (!busy) onClose();
       }}
     >
-      <div className="episode-modal" onMouseDown={(e) => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className="episode-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        tabIndex={-1}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         <div className="episode-modal-title">{title}</div>
         <div className="episode-modal-message">{message}</div>
         <div className="episode-modal-actions">
@@ -51,6 +68,7 @@ export function ConfirmModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

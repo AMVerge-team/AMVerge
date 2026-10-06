@@ -56,6 +56,9 @@ export default function GeneralSettings({
   const [showClearScenepacksConfirm, setShowClearScenepacksConfirm] = useState(false);
   const [clearingScenepacks, setClearingScenepacks] = useState(false);
   const [showDisableScenepacksConfirm, setShowDisableScenepacksConfirm] = useState(false);
+  const defaultEpisodesPathLabel = navigator.userAgent.includes("Mac OS X")
+    ? "Default (Application Support)"
+    : "Default (App Data)";
   const factoryResetConfirmation =
     "This will restore AMVerge to its default settings and move your episode storage folder back to AppData. Any custom settings or storage location changes you made will be reset.";
   const clearPanelConfirmation =
@@ -230,10 +233,9 @@ export default function GeneralSettings({
                   looked at frame by frame. A GPU makes this much faster.
                 </p>
                 <p>
-                  Near the end of an import you may see some clips being re-encoded. Video
-                  can only be split instantly at a keyframe, so any clip whose cut does not
-                  land on one gets rebuilt. That is what makes each clip start exactly where
-                  the AI said the shot changed instead of a moment early or late.
+                  After detection, AMVerge re-encodes the AI scene previews. This makes every
+                  clip start exactly where the AI found the shot change instead of a moment
+                  early or late.
                 </p>
 
                 <h4>Keyframe Detection</h4>
@@ -456,11 +458,11 @@ export default function GeneralSettings({
                 {generalSettings.episodesPath ? "Change" : "Select Path"}
               </button>
               <Tooltip
-                content={generalSettings.episodesPath || "Default (App Data)"}
+                content={generalSettings.episodesPath || defaultEpisodesPathLabel}
                 maxWidth={360}
               >
                 <span className="settings-path-value">
-                  {generalSettings.episodesPath || "Default (App Data)"}
+                  {generalSettings.episodesPath || defaultEpisodesPathLabel}
                 </span>
               </Tooltip>
             </div>

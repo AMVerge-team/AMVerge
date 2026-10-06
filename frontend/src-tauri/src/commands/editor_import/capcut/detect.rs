@@ -1,7 +1,4 @@
-use std::path::{Path, PathBuf};
-use std::process::Command;
 
-use crate::utils::process::apply_no_window;
 
 #[cfg(target_os = "windows")]
 pub(super) fn is_capcut_app_process_running() -> bool {

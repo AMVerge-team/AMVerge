@@ -77,6 +77,7 @@ fn main() {
             commands::editor_import::davinci_resolve::import_clips_to_davinci,
             commands::preview::check_hevc,
             commands::preview::get_audio_streams,
+            commands::preview::probe_export_source_streams,
             commands::preview::hover_preview_error,
             commands::preview::ensure_preview_proxy,
             commands::preview::ensure_merged_preview,
