@@ -67,7 +67,7 @@ type SceneScoutState = {
 type SceneScoutActions = {
   refreshStatus: () => Promise<void>;
   loadDatabases: () => Promise<void>;
-  createDatabase: (pathOrName: string) => Promise<{ ok: boolean; message: string | null }>;
+  createDatabase: (pathOrName: string) => Promise<{ ok: boolean; message: string | null; path: string | null }>;
   openExistingDatabase: (filePath: string) => Promise<{ ok: boolean; message: string | null; database?: ScoutDatabase }>;
   renameDatabase: (path: string, displayName: string) => void;
   unloadDatabase: (path: string) => void;
@@ -210,9 +210,9 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           }
 
           await get().loadDatabases();
-          return { ok: true, message: null };
+          return { ok: true, message: null, path: created.path };
         } catch (err) {
-          return { ok: false, message: message(err) };
+          return { ok: false, message: message(err), path: null };
         }
       },
 
