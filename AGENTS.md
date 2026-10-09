@@ -482,7 +482,7 @@ All ffmpeg processes:
 
 | Method | Description |
 |--------|-------------|
-| `transnetv2_gpu` | PyTorch ML model (GPU accelerated), previews always re-encoded at detected boundaries |
+| `transnetv2_gpu` | PyTorch ML model (GPU accelerated); previews of scenes whose start and end sit exactly on closed keyframes are stream-copied (MP4-muxable sources with AAC/MP3 audio only), the rest re-encoded at detected boundaries |
 | `pyscenedetect_cpu` | PySceneDetect library (CPU, adaptive) |
 | `keyframe_detection` | Fast stream-copy split at keyframes (no ML) |
 

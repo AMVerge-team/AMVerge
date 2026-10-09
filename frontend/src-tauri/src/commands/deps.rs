@@ -12,6 +12,8 @@ use tauri::{AppHandle, State};
 
 use crate::state::ActiveInstall;
 use crate::utils::logging::console_log;
+#[cfg(windows)]
+use crate::utils::process::apply_no_window;
 use crate::utils::sidecar::{ai_env_dir, ai_env_python, ai_env_ready, uv_cache_dir, uv_python_dir};
 
 mod install;

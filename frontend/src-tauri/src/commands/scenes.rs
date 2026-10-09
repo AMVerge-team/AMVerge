@@ -21,6 +21,8 @@ use crate::utils::paths::{
     clear_files_in_dir, dir_name_only, file_name_only, resolve_episodes_storage_dir,
     sanitize_episode_cache_id,
 };
+#[cfg(windows)]
+use crate::utils::process::apply_no_window;
 use crate::utils::sidecar::{amverge_ai_command, amverge_command, amverge_exe_name};
 
 fn now_unix_seconds() -> u64 {
@@ -263,10 +265,7 @@ pub async fn detect_scenes(
         cmd.current_dir(exe_dir);
     }
 
-    // the CLI decides copy vs re-encode per detection method on its own now
-    // (transnetv2 previews are always re-encoded to the exact detected
-    // timestamp; keyframe previews are always stream-copied); nothing to
-    // pass here
+    // the CLI picks copy vs re-encode per scene (keyframe-bounded scenes copy, the rest re-encode); nothing to pass here
     let mut child = cmd
         .arg("backend")
         .arg(&video_path)
