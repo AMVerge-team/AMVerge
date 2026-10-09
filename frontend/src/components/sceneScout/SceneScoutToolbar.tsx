@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { open } from "@tauri-apps/plugin-dialog";
 import { FaChevronDown, FaSearch, FaSyncAlt, FaTimes } from "react-icons/fa";
 
@@ -29,6 +31,38 @@ import {
 
 const VIDEO_EXTENSIONS = ["mp4", "mkv", "mov", "avi"];
 
+const OPTIONS_POP_WIDTH = 380;
+
+/** one checkbox row in the options overlay; the whole row toggles */
+function OptionToggle({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string;
+  hint: ReactNode;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <Tooltip content={hint}>
+      <label className="scene-scout-option-toggle">
+        <span className="custom-checkbox">
+          <input
+            type="checkbox"
+            className="checkbox"
+            checked={checked}
+            onChange={(e) => onChange(e.target.checked)}
+          />
+          <span className="checkmark"></span>
+        </span>
+        <span>{label}</span>
+      </label>
+    </Tooltip>
+  );
+}
+
 /**
  * Toolbar for the Scene Scout page: Add Episode, the search field, and the
  * search settings dropdown beneath it.
@@ -47,7 +81,8 @@ export function SceneScoutToolbar() {
   const databases = useSceneScoutStore((s) => s.databases);
   const selectedDatabases = useSceneScoutStore((s) => s.selectedDatabases);
   const selectedVideos = useSceneScoutStore((s) => s.selectedVideos);
-  const selectDatabase = useSceneScoutStore((s) => s.selectDatabase);
+  const addToSearch = useSceneScoutStore((s) => s.addToSearch);
+  const removeFromSearch = useSceneScoutStore((s) => s.removeFromSearch);
   const selectAllDatabases = useSceneScoutStore((s) => s.selectAllDatabases);
   const displayNames = useSceneScoutStore((s) => s.displayNames);
   const settings = useSceneScoutStore((s) => s.settings);
@@ -66,6 +101,42 @@ export function SceneScoutToolbar() {
   const setGridPreview = useUIStateStore((s) => s.setGridPreview);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const optionsBtnRef = useRef<HTMLDivElement>(null);
+  const optionsPopRef = useRef<HTMLDivElement>(null);
+  const [popPos, setPopPos] = useState<{ top: number; left: number } | null>(null);
+
+  // pinned under the Options button but rendered on body, so it overlaps the grid instead of pushing it down
+  useLayoutEffect(() => {
+    if (!settingsOpen) {
+      setPopPos(null);
+      return;
+    }
+    const place = () => {
+      const rect = optionsBtnRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const left = Math.max(8, Math.min(rect.left, window.innerWidth - OPTIONS_POP_WIDTH - 8));
+      setPopPos({ top: rect.bottom + 6, left });
+    };
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [settingsOpen]);
+
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (optionsPopRef.current?.contains(target) || optionsBtnRef.current?.contains(target)) return;
+      setSettingsOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSettingsOpen(false);
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [settingsOpen]);
 
   const sceneDetectionMethod = useGeneralSettingsStore((s) => s.sceneDetectionMethod);
   const setSceneDetectionMethod = useGeneralSettingsStore((s) => s.setSceneDetectionMethod);
@@ -102,7 +173,7 @@ export function SceneScoutToolbar() {
       }
       return `Describe a scene to search across ${selectedDatabases.length} selected databases...`;
     }
-    return "Select one or more databases or videos on the left to search...";
+    return "Add a database to the Searching list on the left to search...";
   }, [selectedDatabases, selectedVideos, databases, displayNames]);
 
   // sticky, so picking Custom keeps the box open while the field is empty and
@@ -264,17 +335,19 @@ export function SceneScoutToolbar() {
             </button>
           </Tooltip>
 
-          <Tooltip content="Search settings">
-            <button
-              type="button"
-              className={`import-button scene-scout-settings-toggle${settingsOpen ? " is-open" : ""}`}
-              onClick={() => setSettingsOpen((prev) => !prev)}
-              aria-expanded={settingsOpen}
-            >
-              Options
-              <FaChevronDown aria-hidden="true" />
-            </button>
-          </Tooltip>
+          <div ref={optionsBtnRef} className="scene-scout-options-anchor">
+            <Tooltip content="Search settings">
+              <button
+                type="button"
+                className={`import-button scene-scout-settings-toggle${settingsOpen ? " is-open" : ""}`}
+                onClick={() => setSettingsOpen((prev) => !prev)}
+                aria-expanded={settingsOpen}
+              >
+                Options
+                <FaChevronDown aria-hidden="true" />
+              </button>
+            </Tooltip>
+          </div>
         </div>
 
         <div className="scene-scout-search-row">
@@ -315,8 +388,15 @@ export function SceneScoutToolbar() {
           </Tooltip>
         </div>
 
-        {settingsOpen && (
-          <div className="scene-scout-settings-row events-toolbar-row">
+        {settingsOpen && popPos && createPortal(
+          <div
+            ref={optionsPopRef}
+            className="scene-scout-options-pop"
+            style={{ top: popPos.top, left: popPos.left, width: OPTIONS_POP_WIDTH }}
+            role="dialog"
+            aria-label="Search options"
+          >
+            <div className="scene-scout-options-grid">
             <div className="scene-scout-setting">
               <span>Results</span>
               {editingTopK ? (
@@ -355,7 +435,7 @@ export function SceneScoutToolbar() {
             </div>
 
             <div className="scene-scout-setting">
-              <span>Min. score %</span>
+              <span>Min score</span>
               {editingThreshold ? (
                 <input
                   type="number"
@@ -397,7 +477,7 @@ export function SceneScoutToolbar() {
             </div>
 
             <div className="scene-scout-setting">
-              <span>Scene detection</span>
+              <span>Detection</span>
               <Dropdown
                 options={SCENE_DETECTION_OPTIONS}
                 value={sceneDetectionMethod}
@@ -406,68 +486,34 @@ export function SceneScoutToolbar() {
                 showTriggerDescription={false}
               />
             </div>
-
-            <div className="checkbox-row scene-scout-preview-all">
-              <label className="custom-checkbox">
-                <input
-                  type="checkbox"
-                  className="checkbox"
-                  checked={gridPreview}
-                  onChange={(e) => setGridPreview(e.target.checked)}
-                />
-                <span className="checkmark"></span>
-              </label>
-              <span>Preview All</span>
             </div>
 
-            <div className="checkbox-row scene-scout-preview-all">
-              <label className="custom-checkbox">
-                <input
-                  type="checkbox"
-                  className="checkbox"
-                  checked={settings.keepModelInMemory ?? true}
-                  onChange={(e) => updateSettings({ keepModelInMemory: e.target.checked })}
-                />
-                <span className="checkmark"></span>
-              </label>
-              <span>Keep model in memory</span>
+            <div className="scene-scout-options-toggles">
+              <OptionToggle
+                label="Preview all"
+                hint="Play every result's preview at once, not only the one you hover"
+                checked={gridPreview}
+                onChange={setGridPreview}
+              />
+              <OptionToggle
+                label="Keep model loaded"
+                hint="Keep the search model running between searches, so only the first search waits for it to load"
+                checked={settings.keepModelInMemory ?? true}
+                onChange={(checked) => updateSettings({ keepModelInMemory: checked })}
+              />
+              <OptionToggle
+                label="Free VRAM when idle"
+                hint="After 5 minutes without a search, move the loaded model off the GPU. The next search takes a moment longer"
+                checked={settings.gpuStandby ?? true}
+                onChange={(checked) => updateSettings({ gpuStandby: checked })}
+              />
+              <OptionToggle
+                label="Fill missing thumbnails"
+                hint="For results with no stored thumbnail, grab a frame from the episode file as they appear"
+                checked={settings.dynamicThumbnails ?? true}
+                onChange={(checked) => updateSettings({ dynamicThumbnails: checked })}
+              />
             </div>
-
-            <div className="checkbox-row scene-scout-preview-all">
-              <label className="custom-checkbox">
-                <input
-                  type="checkbox"
-                  className="checkbox"
-                  checked={settings.gpuStandby ?? true}
-                  onChange={(e) => updateSettings({ gpuStandby: e.target.checked })}
-                />
-                <span className="checkmark"></span>
-              </label>
-              <span>GPU standby (idle VRAM release)</span>
-            </div>
-
-            <div className="checkbox-row scene-scout-preview-all">
-              <label className="custom-checkbox">
-                <input
-                  type="checkbox"
-                  className="checkbox"
-                  checked={settings.dynamicThumbnails ?? true}
-                  onChange={(e) => updateSettings({ dynamicThumbnails: e.target.checked })}
-                />
-                <span className="checkmark"></span>
-              </label>
-              <span>Dynamic thumbnails (extract on-demand)</span>
-            </div>
-
-            <button
-              type="button"
-              className="buttons scene-scout-unload-btn"
-              onClick={() => void handleUnloadModel()}
-              disabled={unloading}
-              title="Unload SigLIP 2 model weights from RAM / VRAM"
-            >
-              {unloading ? "Freeing..." : freed ? "Memory Freed" : "Free Model Memory"}
-            </button>
 
             {databases.length > 1 && (
             <div className="scene-scout-setting scene-scout-db-filter">
@@ -480,20 +526,37 @@ export function SceneScoutToolbar() {
                 >
                   All
                 </button>
-                {databases.map((database) => (
-                  <button
-                    key={database.path}
-                    type="button"
-                    className={`scene-scout-db-chip${selectedDatabases.some((p) => p === database.path || p.toLowerCase() === database.path.toLowerCase()) ? " is-active" : ""}`}
-                    onClick={() => selectDatabase(database.path, "toggle")}
-                  >
-                    {labelFor(database.path, database.name)}
-                  </button>
-                ))}
+                {databases.map((database) => {
+                  const inSearch = selectedDatabases.some((p) => p === database.path || p.toLowerCase() === database.path.toLowerCase());
+                  return (
+                    <button
+                      key={database.path}
+                      type="button"
+                      className={`scene-scout-db-chip${inSearch ? " is-active" : ""}`}
+                      onClick={() => (inSearch ? removeFromSearch([database.path]) : addToSearch([database.path]))}
+                    >
+                      {labelFor(database.path, database.name)}
+                    </button>
+                  );
+                })}
               </div>
             </div>
             )}
-          </div>
+
+            <div className="scene-scout-options-footer">
+              <Tooltip content="Free the RAM / VRAM the search model is using right now">
+                <button
+                  type="button"
+                  className="buttons scene-scout-unload-btn"
+                  onClick={() => void handleUnloadModel()}
+                  disabled={unloading}
+                >
+                  {unloading ? "Unloading..." : freed ? "Unloaded" : "Unload model"}
+                </button>
+              </Tooltip>
+            </div>
+          </div>,
+          document.body
         )}
 
         {(error || storeError) && <p className="events-error">{error || storeError}</p>}

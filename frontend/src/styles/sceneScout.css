@@ -302,6 +302,226 @@
     max-height: min(70vh, 480px);
 }
 
+/* same footprint as the other notice modals; the file path wraps inside it */
+.app-modal.scene-scout-delete-modal {
+    width: min(460px, 92vw);
+    height: auto;
+    max-height: min(80vh, 620px);
+}
+
+/* options overlay: floats over the grid under the Options button instead of pushing the page down */
+.scene-scout-options-anchor {
+    display: inline-flex;
+}
+
+.scene-scout-options-pop {
+    position: fixed;
+    z-index: 1300;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    box-sizing: border-box;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.92);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.55);
+    font-family: var(--ui-font);
+    animation: scene-scout-pop-in 120ms ease-out;
+}
+
+@keyframes scene-scout-pop-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.scene-scout-options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.3fr;
+    gap: 8px;
+}
+
+.scene-scout-options-pop .scene-scout-setting {
+    min-width: 0;
+    gap: 3px;
+    font-size: 11px;
+}
+
+.scene-scout-options-pop .scene-scout-dropdown,
+.scene-scout-options-pop .scene-scout-dropdown-detection {
+    min-width: 0;
+    width: 100%;
+}
+
+.scene-scout-options-pop .dropdown-trigger {
+    min-height: 0;
+    height: 28px;
+    padding: 0 8px;
+    font-size: 11px;
+}
+
+.scene-scout-options-pop .dropdown-item {
+    font-size: 11px;
+}
+
+.scene-scout-options-pop .scene-scout-topk-input {
+    height: 28px;
+    font-size: 11px;
+}
+
+.scene-scout-options-toggles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 12px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.scene-scout-option-toggle {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    padding: 4px 2px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.scene-scout-option-toggle .custom-checkbox {
+    width: 15px;
+    height: 15px;
+    margin-right: 0;
+    flex: 0 0 auto;
+}
+
+.scene-scout-option-toggle .custom-checkbox input:checked + .checkmark::after {
+    width: 4px;
+    height: 7px;
+}
+
+.scene-scout-options-pop .scene-scout-db-filter {
+    flex: none;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.scene-scout-options-pop .scene-scout-db-filter .scene-scout-db-chips {
+    height: auto;
+}
+
+.scene-scout-options-pop .scene-scout-db-chip {
+    padding: 2px 8px;
+    font-size: 11px;
+}
+
+.scene-scout-options-footer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.scene-scout-options-pop .scene-scout-unload-btn {
+    height: 26px;
+    padding: 0 10px;
+    font-size: 11px;
+}
+
+/* searched databases on top, all below; each box is an episode-panel-list so both keep its outline and fade */
+.scene-scout-split {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.scene-scout-db-box {
+    min-height: 72px;
+    transition: border-color 120ms ease;
+}
+
+.scene-scout-db-box + .scene-scout-split-handle + .scene-scout-db-box {
+    flex: 1 1 0;
+}
+
+.scene-scout-split-handle {
+    flex: 0 0 10px;
+    cursor: row-resize;
+    position: relative;
+}
+
+.scene-scout-split-handle::after {
+    content: "";
+    position: absolute;
+    left: 40%;
+    right: 40%;
+    top: 4px;
+    height: 2px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    transition: background 120ms ease;
+}
+
+.scene-scout-split-handle:hover::after,
+.scene-scout-resizing .scene-scout-split-handle::after {
+    background: rgb(var(--accent-rgb) / 0.8);
+}
+
+/* keeps the row-resize cursor and stops text selection while the handle is held */
+body.scene-scout-resizing {
+    cursor: row-resize;
+    user-select: none;
+}
+
+.scene-scout-section-label {
+    padding: 4px 6px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.5;
+}
+
+.scene-scout-drop-hint {
+    padding: 10px 8px;
+    font-size: 12px;
+    opacity: 0.45;
+    text-align: center;
+}
+
+/* rows are dragged by hand, so a drag must not select their text */
+.scene-scout-db-row {
+    user-select: none;
+}
+
+/* already searched: stays listed below, greyed so it reads as picked */
+.scene-scout-db-row.is-in-search {
+    opacity: 0.4;
+}
+
+.scene-scout-drag-ghost {
+    position: fixed;
+    z-index: 10000;
+    pointer-events: none;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgb(0 0 0 / 0.85);
+    border: 1px solid rgb(var(--accent-rgb) / 0.6);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.scene-scout-db-menu .scene-scout-menu-danger {
+    color: #ef4444;
+}
+
+.scene-scout-db-menu .episode-context-menu-item:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
 .scene-scout-name-input {
     width: 100%;
     max-width: 320px;

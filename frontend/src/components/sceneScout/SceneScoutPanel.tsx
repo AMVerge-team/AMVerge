@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import {
   FaChevronRight,
   FaDatabase,
   FaFolderOpen,
   FaImage,
-  FaMinus,
   FaPlus,
   FaSearch,
   FaSpinner,
@@ -17,7 +16,11 @@ import {
 import ModalShell from "../common/ModalShell";
 import Tooltip from "../common/Tooltip";
 import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
+import { useContextMenuStore } from "../../stores/contextMenuStore";
 import type { ScoutDatabase, ScoutVideo } from "../../features/sceneScout/types";
+import { useScoutDbDrag, type ScoutList } from "./useScoutDbDrag";
+
+type DbMenu = { list: ScoutList; paths: string[]; x: number; y: number };
 
 /**
  * Sidebar panel for Scene Scout: the search databases, and what is indexed into
@@ -45,8 +48,13 @@ export function SceneScoutPanel() {
   const loadDatabases = useSceneScoutStore((s) => s.loadDatabases);
   const openDatabase = useSceneScoutStore((s) => s.openDatabase);
   const toggleDatabaseExpanded = useSceneScoutStore((s) => s.toggleDatabaseExpanded);
-  const selectDatabase = useSceneScoutStore((s) => s.selectDatabase);
   const selectVideo = useSceneScoutStore((s) => s.selectVideo);
+  const addToSearch = useSceneScoutStore((s) => s.addToSearch);
+  const removeFromSearch = useSceneScoutStore((s) => s.removeFromSearch);
+  const setActiveDatabase = useSceneScoutStore((s) => s.setActiveDatabase);
+  const loadVideos = useSceneScoutStore((s) => s.loadVideos);
+  const splitPct = useSceneScoutStore((s) => s.panelSplitPct);
+  const setPanelSplitPct = useSceneScoutStore((s) => s.setPanelSplitPct);
   const createDatabase = useSceneScoutStore((s) => s.createDatabase);
   const openExistingDatabase = useSceneScoutStore((s) => s.openExistingDatabase);
   const deleteDatabase = useSceneScoutStore((s) => s.deleteDatabase);
@@ -66,14 +74,54 @@ export function SceneScoutPanel() {
   const [videoToDelete, setVideoToDelete] = useState<{ video: ScoutVideo; database: ScoutDatabase } | null>(null);
   const [isDeletingVideo, setIsDeletingVideo] = useState(false);
   const [generatingThumbsDb, setGeneratingThumbsDb] = useState<string | null>(null);
+  // explorer-style highlight for click, ctrl and shift; separate from which databases are searched
+  const [highlight, setHighlight] = useState<{ list: ScoutList; paths: string[] }>({ list: "all", paths: [] });
+  const [menu, setMenu] = useState<DbMenu | null>(null);
+  // the searching list expands on its own so opening a row there does not also open it below
+  const [searchExpanded, setSearchExpanded] = useState<Record<string, boolean>>({});
+
+  const claimMenu = useContextMenuStore((s) => s.openContextMenu);
+  const activeContextMenu = useContextMenuStore((s) => s.activeMenu);
 
   const labelFor = (path: string, fallback: string) => displayNames[path] ?? fallback;
+  const inSearch = (path: string) => selectedDatabases.some((p) => samePath(p, path));
+  const isHighlighted = (list: ScoutList, path: string) =>
+    highlight.list === list && highlight.paths.some((p) => samePath(p, path));
+  // acts on the whole highlight when the row is part of it, else on that row alone
+  const targetsFor = (list: ScoutList, path: string) => (isHighlighted(list, path) ? highlight.paths : [path]);
+
+  const moveTo = (paths: string[], to: ScoutList) => {
+    if (to === "search") addToSearch(paths.filter((p) => !inSearch(p)));
+    else removeFromSearch(paths);
+  };
+
+  const { dropList, ghost, beginDrag, suppressClickRef } = useScoutDbDrag(moveTo);
 
   useEffect(() => {
     void loadDatabases();
   }, [loadDatabases]);
 
-  // filters the panel's own list. unrelated to searching scenes, which is the
+  // another menu took the slot, so this one is stale
+  useEffect(() => {
+    if (activeContextMenu !== "scene-scout-database") setMenu(null);
+  }, [activeContextMenu]);
+
+  // contextmenu as well as click: a right-click fires no click event
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
+    window.addEventListener("click", close);
+    window.addEventListener("contextmenu", close);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("contextmenu", close);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [menu]);
+
+  // filters the panel's own lists. unrelated to searching scenes, which is the
   // bar above the grid
   const visible = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -82,6 +130,77 @@ export function SceneScoutPanel() {
       labelFor(database.path, database.name).toLowerCase().includes(q)
     );
   }, [databases, searchQuery, displayNames]);
+
+  // in the order they were added, which is the order they move up in
+  const searchVisible = useMemo(
+    () =>
+      selectedDatabases
+        .map((p) => visible.find((d) => samePath(d.path, p)))
+        .filter((d): d is ScoutDatabase => Boolean(d)),
+    [selectedDatabases, visible]
+  );
+
+  const onRowClick = (list: ScoutList, path: string, order: string[]) => (e: React.MouseEvent) => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
+    // the last clicked database is where Add Episode indexes into
+    setActiveDatabase(path);
+    setHighlight((prev) => {
+      const base = prev.list === list ? prev.paths : [];
+      if (e.ctrlKey || e.metaKey) {
+        const has = base.some((p) => samePath(p, path));
+        return { list, paths: has ? base.filter((p) => !samePath(p, path)) : [...base, path] };
+      }
+      if (e.shiftKey && base.length) {
+        const anchor = base[base.length - 1];
+        const a = order.findIndex((p) => samePath(p, anchor));
+        const b = order.findIndex((p) => samePath(p, path));
+        if (a >= 0 && b >= 0) {
+          const range = order.slice(Math.min(a, b), Math.max(a, b) + 1);
+          // anchor stays last so the next shift-click ranges from the same row
+          return { list, paths: [...range.filter((p) => !samePath(p, anchor)), anchor] };
+        }
+      }
+      return { list, paths: [path] };
+    });
+  };
+
+  const openMenu = (list: ScoutList, path: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const paths = targetsFor(list, path);
+    if (!isHighlighted(list, path)) setHighlight({ list, paths: [path] });
+    claimMenu("scene-scout-database");
+    setMenu({ list, paths, x: e.clientX, y: e.clientY });
+  };
+
+  const splitRef = useRef<HTMLDivElement>(null);
+
+  // drag the handle between the two boxes to trade height between them
+  const beginResize = (e: React.PointerEvent) => {
+    if (e.button !== 0 || !splitRef.current) return;
+    e.preventDefault();
+    const rect = splitRef.current.getBoundingClientRect();
+    const onMove = (ev: PointerEvent) => setPanelSplitPct(((ev.clientY - rect.top) / rect.height) * 100);
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      document.body.classList.remove("scene-scout-resizing");
+    };
+    document.body.classList.add("scene-scout-resizing");
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  };
+
+  const toggleSearchExpanded = (path: string) => {
+    const opening = !searchExpanded[path];
+    setSearchExpanded((prev) => ({ ...prev, [path]: opening }));
+    if (opening && !videosByDatabase[path]) void loadVideos(path);
+  };
 
   /** pick a location, create the file, then ask what to call it in the app */
   const startCreate = async () => {
@@ -160,6 +279,153 @@ export function SceneScoutPanel() {
     }
   };
 
+  // episodes are only pickable in the searching list, where picking one narrows the search
+  const renderVideos = (database: ScoutDatabase, pickable: boolean) => {
+    const dbVideos = videosByDatabase[database.path] ?? (samePath(opened, database.path) ? videos : []);
+    const allDbVideoPaths = dbVideos.map((v) => v.filepath);
+    if (dbVideos.length === 0) {
+      return (
+        <div className="episode-panel-empty" style={{ paddingLeft: "32px" }}>
+          Nothing indexed. Use Add Episode above the grid.
+        </div>
+      );
+    }
+    return dbVideos.map((video) => {
+      const isVideoSelected = pickable && selectedVideos.some((vp) => samePath(vp, video.filepath));
+      const isVideoIndexing = video.status === "indexing" || (indexing !== null && samePath(indexing.video, video.filepath));
+      let videoRowClass = "episode-panel-row episode-row";
+      if (isVideoSelected) videoRowClass += " is-focused is-selected";
+
+      return (
+        <div
+          key={video.id}
+          className={videoRowClass}
+          style={{ paddingLeft: "32px" }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!pickable) return;
+            if (e.ctrlKey || e.metaKey) {
+              selectVideo(video.filepath, database.path, "toggle");
+            } else if (e.shiftKey) {
+              selectVideo(video.filepath, database.path, "range", allDbVideoPaths);
+            } else {
+              selectVideo(video.filepath, database.path, "single");
+            }
+          }}
+        >
+          <FaVideo className="episode-panel-import-icon" aria-hidden="true" />
+          <span className="episode-panel-episode-name">{video.name}</span>
+          <span className="episode-panel-count">
+            {video.status === "indexing" ? "..." : video.sceneCount}
+          </span>
+          <Tooltip content={isVideoIndexing ? "Cannot delete while indexing" : "Remove video from database"}>
+            <button
+              type="button"
+              className="episode-panel-import-icon episode-folder-btn episode-delete-btn"
+              disabled={isVideoIndexing}
+              onClick={(e) => {
+                e.stopPropagation();
+                setVideoToDelete({ video, database });
+              }}
+              aria-label={`Remove ${video.name} from ${database.name}`}
+            >
+              <FaTrashAlt aria-hidden="true" />
+            </button>
+          </Tooltip>
+        </div>
+      );
+    });
+  };
+
+  const renderDbRow = (database: ScoutDatabase, list: ScoutList, order: string[]) => {
+    const path = database.path;
+    const isExpanded = list === "search" ? Boolean(searchExpanded[path]) : Boolean(expandedDatabases[path]);
+    const lit = isHighlighted(list, path);
+    // stays in the full list while searched, greyed so it reads as already picked
+    const searched = list === "all" && inSearch(path);
+    const stop = (e: React.SyntheticEvent) => e.stopPropagation();
+
+    let rowClass = "episode-panel-row episode-row scene-scout-db-row";
+    if (lit) rowClass += highlight.paths.length > 1 ? " is-multi-selected is-selected" : " is-selected";
+    if (isExpanded) rowClass += " is-open";
+    if (searched) rowClass += " is-in-search";
+
+    return (
+      <div key={path} className="episode-panel-folder">
+        <div
+          className={rowClass}
+          title={searched ? "Already being searched" : undefined}
+          onPointerDown={beginDrag(list, () => targetsFor(list, path))}
+          onClick={onRowClick(list, path, order)}
+          onDoubleClick={() => moveTo(targetsFor(list, path), list === "all" ? "search" : "all")}
+          onContextMenu={openMenu(list, path)}
+        >
+          <button
+            type="button"
+            className={`episode-panel-caret${isExpanded ? " is-expanded" : ""}`}
+            onPointerDown={stop}
+            onDoubleClick={stop}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (list === "search") toggleSearchExpanded(path);
+              else void toggleDatabaseExpanded(path);
+            }}
+            aria-label={isExpanded ? "Collapse database" : "Expand database"}
+            style={{ marginRight: "6px" }}
+          >
+            <FaChevronRight className="episode-panel-caret-icon" />
+          </button>
+          <FaDatabase className="episode-panel-import-icon" aria-hidden="true" />
+          <span className="episode-panel-episode-name">{labelFor(path, database.name)}</span>
+          <span className="episode-panel-count">{database.sceneCount}</span>
+          {list === "all" && (
+            <>
+              <Tooltip content="Generate missing thumbnails into database">
+                <button
+                  type="button"
+                  className="episode-panel-import-icon episode-folder-btn"
+                  disabled={generatingThumbsDb === path}
+                  onPointerDown={stop}
+                  onDoubleClick={stop}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleGenerateThumbnails(database);
+                  }}
+                  aria-label={`Generate missing thumbnails for ${database.name}`}
+                >
+                  {generatingThumbsDb === path ? (
+                    <FaSpinner className="spinner" style={{ animation: "spin 1s linear infinite" }} />
+                  ) : (
+                    <FaImage aria-hidden="true" />
+                  )}
+                </button>
+              </Tooltip>
+              <Tooltip content="Delete database from disk">
+                <button
+                  type="button"
+                  className="episode-panel-import-icon episode-folder-btn episode-delete-btn"
+                  onPointerDown={stop}
+                  onDoubleClick={stop}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDatabaseToDelete(database);
+                  }}
+                  aria-label={`Delete ${database.name}`}
+                >
+                  <FaTrashAlt aria-hidden="true" />
+                </button>
+              </Tooltip>
+            </>
+          )}
+        </div>
+
+        {isExpanded && (
+          <div className="episode-panel-folder-children">{renderVideos(database, list === "search")}</div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="eps-container">
       <div className="episode-panel">
@@ -218,8 +484,9 @@ export function SceneScoutPanel() {
 
         {error && <p className="events-error scene-scout-panel-error">{error}</p>}
 
+        {databases.length === 0 ? (
         <div className="episode-panel-list">
-          {loading && databases.length === 0 ? (
+          {loading ? (
             <div className="scenepacks-empty-cta">
               <FaSpinner
                 className="scenepack-spinner"
@@ -228,7 +495,7 @@ export function SceneScoutPanel() {
               />
               <span style={{ fontSize: 13, opacity: 0.5 }}>Loading databases...</span>
             </div>
-          ) : databases.length === 0 ? (
+          ) : (
             <div className="scenepacks-empty-cta">
               <FaDatabase style={{ fontSize: 28, opacity: 0.3 }} aria-hidden="true" />
               <span style={{ fontSize: 15, opacity: 0.6 }}>No databases yet</span>
@@ -243,175 +510,139 @@ export function SceneScoutPanel() {
                 Create your first Scene Scout Database
               </button>
             </div>
-          ) : visible.length === 0 ? (
-            // a search that matched nothing, which is not the same as having no
-            // databases at all and must not offer to create the first one
-            <div className="episode-panel-empty">No databases match that search.</div>
-          ) : (
-            <>
-              {isOpening && openingName && (
-                <div className="episode-panel-row episode-row" style={{ opacity: 0.75, pointerEvents: "none" }}>
-                  <FaSpinner className="episode-panel-import-icon spinner" style={{ animation: "spin 1s linear infinite" }} />
-                  <span className="episode-panel-episode-name">Opening {openingName}…</span>
-                  <span className="episode-panel-count">loading</span>
-                </div>
-              )}
-              {visible.map((database) => {
-              const isExpanded = Boolean(expandedDatabases[database.path]);
-              const isSelected = selectedDatabases.some((p) => samePath(p, database.path));
-              const isMultiSelected = isSelected && selectedDatabases.length > 1;
-              const dbVideos = videosByDatabase[database.path] ?? (samePath(opened, database.path) ? videos : []);
-              const allDbVideoPaths = dbVideos.map((v) => v.filepath);
-
-              let rowClass = "episode-panel-row episode-row";
-              if (isSelected) rowClass += isMultiSelected ? " is-multi-selected is-selected" : " is-selected";
-              if (isExpanded) rowClass += " is-open";
-
-              return (
-                <div key={database.path} className="episode-panel-folder">
-                  <div
-                    className={rowClass}
-                    onClick={(e) => {
-                      const allVisiblePaths = visible.map((d) => d.path);
-                      if (e.ctrlKey || e.metaKey) {
-                        selectDatabase(database.path, "toggle");
-                      } else if (e.shiftKey) {
-                        selectDatabase(database.path, "range", allVisiblePaths);
-                      } else {
-                        selectDatabase(database.path, "single");
-                      }
-                    }}
-                  >
-                    <button
-                      type="button"
-                      className={`episode-panel-caret${isExpanded ? " is-expanded" : ""}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void toggleDatabaseExpanded(database.path);
-                      }}
-                      aria-label={isExpanded ? "Collapse database" : "Expand database"}
-                      style={{ marginRight: "6px" }}
-                    >
-                      <FaChevronRight className="episode-panel-caret-icon" />
-                    </button>
-                    <FaDatabase
-                      className="episode-panel-import-icon"
-                      aria-hidden="true"
-                    />
-                    <span className="episode-panel-episode-name">
-                      {labelFor(database.path, database.name)}
-                    </span>
-                    <span className="episode-panel-count">{database.sceneCount}</span>
-                    <Tooltip content="Generate missing thumbnails into database">
-                      <button
-                        type="button"
-                        className="episode-panel-import-icon episode-folder-btn"
-                        disabled={generatingThumbsDb === database.path}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleGenerateThumbnails(database);
-                        }}
-                        aria-label={`Generate missing thumbnails for ${database.name}`}
-                      >
-                        {generatingThumbsDb === database.path ? (
-                          <FaSpinner className="spinner" style={{ animation: "spin 1s linear infinite" }} />
-                        ) : (
-                          <FaImage aria-hidden="true" />
-                        )}
-                      </button>
-                    </Tooltip>
-                    <Tooltip content="Unload database (remove from list)">
-                      <button
-                        type="button"
-                        className="episode-panel-import-icon episode-folder-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          unloadDatabase(database.path);
-                        }}
-                        aria-label={`Unload ${database.name}`}
-                      >
-                        <FaMinus aria-hidden="true" />
-                      </button>
-                    </Tooltip>
-                    <Tooltip content="Delete database from disk">
-                      <button
-                        type="button"
-                        className="episode-panel-import-icon episode-folder-btn episode-delete-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDatabaseToDelete(database);
-                        }}
-                        aria-label={`Delete ${database.name}`}
-                      >
-                        <FaTrashAlt aria-hidden="true" />
-                      </button>
-                    </Tooltip>
-                  </div>
-
-                  {isExpanded && (
-                    <div className="episode-panel-folder-children">
-                      {dbVideos.length === 0 ? (
-                        <div className="episode-panel-empty" style={{ paddingLeft: "32px" }}>
-                          Nothing indexed. Use Add Episode above the grid.
-                        </div>
-                      ) : (
-                        dbVideos.map((video) => {
-                          const isVideoSelected = selectedVideos.some((vp) => samePath(vp, video.filepath));
-                          const isVideoIndexing = video.status === "indexing" || (indexing !== null && samePath(indexing.video, video.filepath));
-                          let videoRowClass = "episode-panel-row episode-row";
-                          if (isVideoSelected) videoRowClass += " is-focused is-selected";
-
-                          return (
-                            <div
-                              key={video.id}
-                              className={videoRowClass}
-                              style={{ paddingLeft: "32px" }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (e.ctrlKey || e.metaKey) {
-                                  selectVideo(video.filepath, database.path, "toggle");
-                                } else if (e.shiftKey) {
-                                  selectVideo(video.filepath, database.path, "range", allDbVideoPaths);
-                                } else {
-                                  selectVideo(video.filepath, database.path, "single");
-                                }
-                              }}
-                            >
-                              <FaVideo
-                                className="episode-panel-import-icon"
-                                aria-hidden="true"
-                              />
-                              <span className="episode-panel-episode-name">{video.name}</span>
-                              <span className="episode-panel-count">
-                                {video.status === "indexing" ? "..." : video.sceneCount}
-                              </span>
-                              <Tooltip content={isVideoIndexing ? "Cannot delete while indexing" : "Remove video from database"}>
-                                <button
-                                  type="button"
-                                  className="episode-panel-import-icon episode-folder-btn episode-delete-btn"
-                                  disabled={isVideoIndexing}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setVideoToDelete({ video, database });
-                                  }}
-                                  aria-label={`Remove ${video.name} from ${database.name}`}
-                                >
-                                  <FaTrashAlt aria-hidden="true" />
-                                </button>
-                              </Tooltip>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            </>
           )}
         </div>
+        ) : (
+        <div className="scene-scout-split" ref={splitRef}>
+          <div
+            data-scout-list="search"
+            className={`episode-panel-list scene-scout-db-box${dropList === "search" ? " is-drop-target-root" : ""}`}
+            style={{ flex: `0 0 calc(${splitPct}% - 5px)` }}
+          >
+            <div className="scene-scout-section-label">Searching · {selectedDatabases.length}</div>
+            {searchVisible.length === 0 ? (
+              <div className="scene-scout-drop-hint">
+                {selectedDatabases.length === 0
+                  ? "Double-click, drag or right-click a database below to search it"
+                  : "No searched databases match that filter."}
+              </div>
+            ) : (
+              searchVisible.map((database) => renderDbRow(database, "search", searchVisible.map((d) => d.path)))
+            )}
+          </div>
+
+          <div
+            className="scene-scout-split-handle"
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Resize lists"
+            onPointerDown={beginResize}
+          />
+
+          <div
+            data-scout-list="all"
+            className={`episode-panel-list scene-scout-db-box${dropList === "all" ? " is-drop-target-root" : ""}`}
+          >
+            <div className="scene-scout-section-label">All databases · {databases.length}</div>
+            {isOpening && openingName && (
+              <div className="episode-panel-row episode-row" style={{ opacity: 0.75, pointerEvents: "none" }}>
+                <FaSpinner className="episode-panel-import-icon spinner" style={{ animation: "spin 1s linear infinite" }} />
+                <span className="episode-panel-episode-name">Opening {openingName}…</span>
+                <span className="episode-panel-count">loading</span>
+              </div>
+            )}
+            {visible.length === 0 ? (
+              // a search that matched nothing, which is not the same as having no databases at all
+              <div className="episode-panel-empty">No databases match that search.</div>
+            ) : (
+              visible.map((database) => renderDbRow(database, "all", visible.map((d) => d.path)))
+            )}
+          </div>
+        </div>
+        )}
       </div>
+
+      {menu && (() => {
+        const n = menu.paths.length;
+        const single = n === 1 ? databases.find((d) => samePath(d.path, menu.paths[0])) ?? null : null;
+        const toAdd = menu.paths.filter((p) => !inSearch(p));
+        const close = () => setMenu(null);
+        return (
+          <div
+            className="episode-context-menu scene-scout-db-menu"
+            style={{ left: menu.x, top: menu.y }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {menu.list === "all" ? (
+              <button
+                type="button"
+                className="episode-context-menu-item"
+                disabled={toAdd.length === 0}
+                onClick={() => {
+                  moveTo(toAdd, "search");
+                  close();
+                }}
+              >
+                {toAdd.length === 0 ? "Already selected" : toAdd.length > 1 ? `Select ${toAdd.length} databases` : "Select this database"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="episode-context-menu-item"
+                onClick={() => {
+                  moveTo(menu.paths, "all");
+                  close();
+                }}
+              >
+                {n > 1 ? `Deselect ${n} databases` : "Deselect this database"}
+              </button>
+            )}
+            {single && (
+              <button
+                type="button"
+                className="episode-context-menu-item"
+                disabled={generatingThumbsDb === single.path}
+                onClick={() => {
+                  void handleGenerateThumbnails(single);
+                  close();
+                }}
+              >
+                Generate missing thumbnails
+              </button>
+            )}
+            <div className="episode-context-menu-separator" />
+            <button
+              type="button"
+              className="episode-context-menu-item"
+              onClick={() => {
+                menu.paths.forEach((p) => unloadDatabase(p));
+                setHighlight({ list: menu.list, paths: [] });
+                close();
+              }}
+            >
+              {n > 1 ? `Remove ${n} databases from list` : "Remove from list"}
+            </button>
+            {single && (
+              <button
+                type="button"
+                className="episode-context-menu-item scene-scout-menu-danger"
+                onClick={() => {
+                  setDatabaseToDelete(single);
+                  close();
+                }}
+              >
+                Delete from disk…
+              </button>
+            )}
+          </div>
+        );
+      })()}
+
+      {ghost && (
+        <div className="scene-scout-drag-ghost" style={{ left: ghost.x + 14, top: ghost.y + 10 }}>
+          {ghost.count > 1 ? `${ghost.count} databases` : "1 database"}
+        </div>
+      )}
 
       {namingPath && (
         <ModalShell
@@ -473,7 +704,7 @@ export function SceneScoutPanel() {
             </div>
 
             <p style={{ color: "rgba(239, 68, 68, 0.9)", fontSize: "12px", margin: "6px 0 16px" }}>
-              This will permanently erase the database file and its embeddings from disk. This action cannot be undone. If you only want to remove it from this list, use the minus (-) button instead.
+              This will permanently erase the database file and its embeddings from disk. This action cannot be undone. If you only want to remove it from this list, right-click it and choose Remove from list instead.
             </p>
 
             <div className="denial-notice-actions">

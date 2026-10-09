@@ -62,6 +62,8 @@ type SceneScoutState = {
   externalPaths: string[];
   unloadedPaths: string[];
   displayNames: Record<string, string>;
+  /** height of the panel's searching box, as a percent of the two boxes together */
+  panelSplitPct: number;
 };
 
 type SceneScoutActions = {
@@ -78,6 +80,10 @@ type SceneScoutActions = {
   selectVideo: (videoPath: string, parentDbPath: string, mode?: "single" | "toggle" | "range", allVideoPaths?: string[]) => void;
   selectAllDatabases: () => void;
   clearSelection: () => void;
+  addToSearch: (paths: string[]) => void;
+  removeFromSearch: (paths: string[]) => void;
+  setActiveDatabase: (path: string | null) => void;
+  setPanelSplitPct: (pct: number) => void;
   loadVideos: (name: string) => Promise<void>;
   deleteVideo: (databasePath: string, videoId: number) => Promise<void>;
   addVideo: (videoPath: string) => Promise<{ ok: boolean; message: string | null }>;
@@ -111,6 +117,7 @@ const INITIAL: SceneScoutState = {
   externalPaths: [],
   unloadedPaths: [],
   displayNames: {},
+  panelSplitPct: 35,
 };
 
 function message(err: unknown): string {
@@ -384,9 +391,9 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         } else {
           nextSelected = [videoPath];
         }
+        // episode picks narrow the search; which databases are searched stays as is
         set({
           selectedVideos: nextSelected,
-          selectedDatabases: [parentDbPath],
           openedDatabase: parentDbPath,
         });
       },
@@ -404,6 +411,31 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           selectedVideos: [],
         });
       },
+
+      addToSearch: (paths) => {
+        const current = get().selectedDatabases;
+        const added = paths.filter((p) => !current.some((c) => samePath(c, p)));
+        if (added.length) set({ selectedDatabases: [...current, ...added] });
+      },
+
+      removeFromSearch: (paths) => {
+        const { selectedDatabases, selectedVideos, videosByDatabase } = get();
+        const removed = (p: string) => paths.some((r) => samePath(r, p));
+        // episode picks inside a database that is no longer searched would filter out everything else
+        const droppedVideos = new Set(
+          Object.entries(videosByDatabase)
+            .filter(([db]) => removed(db))
+            .flatMap(([, vids]) => vids.map((v) => v.filepath.toLowerCase()))
+        );
+        set({
+          selectedDatabases: selectedDatabases.filter((p) => !removed(p)),
+          selectedVideos: selectedVideos.filter((v) => !droppedVideos.has(v.toLowerCase())),
+        });
+      },
+
+      setActiveDatabase: (path) => set({ openedDatabase: path }),
+
+      setPanelSplitPct: (pct) => set({ panelSplitPct: Math.min(85, Math.max(15, pct)) }),
 
       loadVideos: async (name) => {
         try {
@@ -618,6 +650,12 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         const query = get().query.trim();
         if (!query) return;
 
+        // an empty list makes the CLI fall back to every file in the managed folder, which is not what the panel shows
+        if (get().selectedDatabases.length === 0) {
+          set({ error: "Add a database to the Searching list on the left first." });
+          return;
+        }
+
         if (!(await useAiDepsStore.getState().ensurePack("scout"))) {
           set({ error: "Scene Scout needs its AI pack installed." });
           return;
@@ -711,6 +749,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         externalPaths: state.externalPaths,
         unloadedPaths: state.unloadedPaths,
         displayNames: state.displayNames,
+        panelSplitPct: state.panelSplitPct,
       }),
     }
   )
