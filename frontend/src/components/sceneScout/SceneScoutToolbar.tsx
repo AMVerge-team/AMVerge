@@ -1,21 +1,16 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { open } from "@tauri-apps/plugin-dialog";
-import { FaChevronDown, FaSearch, FaSyncAlt, FaTimes } from "react-icons/fa";
+import { FaChevronDown, FaSyncAlt } from "react-icons/fa";
 
 import Dropdown from "../common/Dropdown";
 import Tooltip from "../common/Tooltip";
-import InfoButton from "../common/InfoButton";
 import { useSceneScoutStore } from "../../stores/sceneScoutStore";
 import { useUIStateStore } from "../../stores/UIStore";
-import {
-  useGeneralSettingsStore,
-  type SceneDetectionMethod,
-} from "../../stores/settingsStore";
-import { SCENE_DETECTION_OPTIONS } from "../settings/general/options";
-import { useAiDepsStore } from "../../stores/aiDepsStore";
-import { isPackInstalled } from "../../features/aiDeps/packs";
+import { playHeroFlip } from "../../features/sceneScout/heroTransition";
+import { ScoutSearchField } from "./ScoutSearchField";
+import { ScoutInfoButton } from "./ScoutInfoButton";
+import { useAddEpisodes } from "./useAddEpisodes";
 import {
   CUSTOM_THRESHOLD,
   CUSTOM_TOP_K,
@@ -29,9 +24,7 @@ import {
   TOP_K_OPTIONS,
 } from "../../features/sceneScout/types";
 
-const VIDEO_EXTENSIONS = ["mp4", "mkv", "mov", "avi"];
-
-const OPTIONS_POP_WIDTH = 380;
+const OPTIONS_POP_WIDTH = 300;
 
 /** one checkbox row in the options overlay; the whole row toggles */
 function OptionToggle({
@@ -72,22 +65,18 @@ function OptionToggle({
  */
 export function SceneScoutToolbar() {
   const query = useSceneScoutStore((s) => s.query);
-  const setQuery = useSceneScoutStore((s) => s.setQuery);
   const runSearch = useSceneScoutStore((s) => s.runSearch);
-  const clearResults = useSceneScoutStore((s) => s.clearResults);
   const searching = useSceneScoutStore((s) => s.searching);
   const indexing = useSceneScoutStore((s) => s.indexing);
   const opened = useSceneScoutStore((s) => s.openedDatabase);
   const databases = useSceneScoutStore((s) => s.databases);
   const selectedDatabases = useSceneScoutStore((s) => s.selectedDatabases);
-  const selectedVideos = useSceneScoutStore((s) => s.selectedVideos);
   const addToSearch = useSceneScoutStore((s) => s.addToSearch);
   const removeFromSearch = useSceneScoutStore((s) => s.removeFromSearch);
   const selectAllDatabases = useSceneScoutStore((s) => s.selectAllDatabases);
   const displayNames = useSceneScoutStore((s) => s.displayNames);
   const settings = useSceneScoutStore((s) => s.settings);
   const updateSettings = useSceneScoutStore((s) => s.updateSettings);
-  const addVideos = useSceneScoutStore((s) => s.addVideos);
   const unloadModel = useSceneScoutStore((s) => s.unloadModel);
   const refresh = useSceneScoutStore((s) => s.refresh);
   const loading = useSceneScoutStore((s) => s.loading);
@@ -138,43 +127,10 @@ export function SceneScoutToolbar() {
     };
   }, [settingsOpen]);
 
-  const sceneDetectionMethod = useGeneralSettingsStore((s) => s.sceneDetectionMethod);
-  const setSceneDetectionMethod = useGeneralSettingsStore((s) => s.setSceneDetectionMethod);
-  const aiStatus = useAiDepsStore((s) => s.status);
-  const mlInstalled = isPackInstalled(aiStatus, "ml");
-
-  const handleSceneDetectionChange = async (method: SceneDetectionMethod) => {
-    if (method === "transnetv2_gpu" && !mlInstalled) {
-      const installed = await useAiDepsStore.getState().ensurePack("ml");
-      if (!installed) return;
-    }
-    setSceneDetectionMethod(method);
-  };
-
   const noDatabaseOpen = !opened && selectedDatabases.length === 0;
-  const hasSelection = selectedDatabases.length > 0 || selectedVideos.length > 0;
   const GATE_HINT = "Please select a Database or Create one on the left panel first.";
 
   const labelFor = (path: string, fallback: string) => displayNames[path] ?? fallback;
-
-  const searchPlaceholder = useMemo(() => {
-    if (selectedVideos.length > 0) {
-      if (selectedVideos.length === 1) {
-        const vName = selectedVideos[0].split(/[/\\]/).pop() || "selected video";
-        return `Describe a scene to search in "${vName}"...`;
-      }
-      return `Describe a scene to search across ${selectedVideos.length} selected videos...`;
-    }
-    if (selectedDatabases.length > 0) {
-      if (selectedDatabases.length === 1) {
-        const db = databases.find((d) => d.path === selectedDatabases[0] || d.path.toLowerCase() === selectedDatabases[0].toLowerCase());
-        const dbName = db ? labelFor(db.path, db.name) : "selected database";
-        return `Describe a scene to search in "${dbName}"...`;
-      }
-      return `Describe a scene to search across ${selectedDatabases.length} selected databases...`;
-    }
-    return "Add a database to the Searching list on the left to search...";
-  }, [selectedDatabases, selectedVideos, databases, displayNames]);
 
   // sticky, so picking Custom keeps the box open while the field is empty and
   // topK still holds its previous preset value
@@ -244,7 +200,6 @@ export function SceneScoutToolbar() {
     }
     setEditingThreshold(false);
   };
-  const [error, setError] = useState("");
   const [unloading, setUnloading] = useState(false);
   const [freed, setFreed] = useState(false);
 
@@ -260,20 +215,16 @@ export function SceneScoutToolbar() {
     }
   };
 
-  const onAddEpisode = async () => {
-    setError("");
-    const picked = await open({
-      multiple: true,
-      filters: [{ name: "Video", extensions: VIDEO_EXTENSIONS }],
-    });
-    if (!picked) return;
+  const { startAddEpisodes, modal: addModal, error: addError } = useAddEpisodes();
+  const error = addError;
 
-    const paths = Array.isArray(picked) ? (picked as string[]) : [picked as string];
-    if (paths.length === 0) return;
-
-    const result = await addVideos(paths);
-    if (!result.ok) setError(result.message || "Could not index episode(s).");
-  };
+  // arriving from the centered first-visit layout: slide the bar up from where it was
+  // and fade the controls that were hidden there
+  const searchFieldRef = useRef<HTMLDivElement>(null);
+  const [revealed, setRevealed] = useState(false);
+  useLayoutEffect(() => {
+    if (playHeroFlip(searchFieldRef.current)) setRevealed(true);
+  }, []);
 
   return (
     <main
@@ -290,43 +241,19 @@ export function SceneScoutToolbar() {
             <button
               type="button"
               className="import-button events-action-button"
-              onClick={() => void onAddEpisode()}
+              onClick={() => void startAddEpisodes()}
               disabled={Boolean(indexing) || searching || noDatabaseOpen}
             >
               {indexing ? "Indexing..." : "Add Episode"}
             </button>
           </Tooltip>
 
-          <InfoButton title="Scene Scout Information">
-            <p>
-              Scene Scout searches your indexed episodes by description rather than
-              by filename. Type what you remember of a scene and it finds the
-              closest matches.
-            </p>
-
-            <h4>Getting started</h4>
-            <ol>
-              <li>Create a database in the sidebar. One per series works well.</li>
-              <li>
-                Press Add Episode and pick a video. Indexing watches every scene
-                once and stores a fingerprint of each, which takes a while but
-                only happens once per episode.
-              </li>
-              <li>Search for what you want in plain language.</li>
-            </ol>
-
-            <h4>Search settings</h4>
-            <p>
-              Results controls how many matches come back. Min score controls the minimum threshold for the results.
-              Scenes with scores below the threshold are not shown.
-              Scene detection controls which method is used to detect scenes before embeddings are created.
-            </p>
-          </InfoButton>
+          <ScoutInfoButton />
 
           <Tooltip content="Refresh databases">
             <button
               type="button"
-              className="import-button refresh-button"
+              className={`import-button refresh-button${revealed ? " scene-scout-reveal" : ""}`}
               onClick={() => void refresh()}
               disabled={loading}
               aria-label="Refresh databases"
@@ -335,7 +262,7 @@ export function SceneScoutToolbar() {
             </button>
           </Tooltip>
 
-          <div ref={optionsBtnRef} className="scene-scout-options-anchor">
+          <div ref={optionsBtnRef} className={`scene-scout-options-anchor${revealed ? " scene-scout-reveal" : ""}`}>
             <Tooltip content="Search settings">
               <button
                 type="button"
@@ -351,41 +278,7 @@ export function SceneScoutToolbar() {
         </div>
 
         <div className="scene-scout-search-row">
-          <Tooltip content={hasSelection ? "Search selected database(s) and videos" : "Select one or more databases or videos on the left to search"}>
-            <div className={`scene-scout-search-field${!hasSelection ? " is-disabled" : ""}`}>
-              <FaSearch aria-hidden="true" className="scene-scout-search-icon" />
-              <input
-                type="text"
-                value={query}
-                disabled={!hasSelection || searching || Boolean(indexing)}
-                placeholder={searchPlaceholder}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && hasSelection && query.trim() && !searching && !indexing) {
-                    void runSearch();
-                  }
-                }}
-              />
-              {query && (
-                <button
-                  type="button"
-                  className="scene-scout-search-clear"
-                  onClick={clearResults}
-                  aria-label="Clear search"
-                >
-                  <FaTimes aria-hidden="true" />
-                </button>
-              )}
-              <button
-                type="button"
-                className="scene-scout-search-go"
-                onClick={() => void runSearch()}
-                disabled={searching || Boolean(indexing) || !query.trim() || !hasSelection}
-              >
-                {searching ? "Searching..." : "Search"}
-              </button>
-            </div>
-          </Tooltip>
+          <ScoutSearchField fieldRef={searchFieldRef} />
         </div>
 
         {settingsOpen && popPos && createPortal(
@@ -476,16 +369,6 @@ export function SceneScoutToolbar() {
               )}
             </div>
 
-            <div className="scene-scout-setting">
-              <span>Detection</span>
-              <Dropdown
-                options={SCENE_DETECTION_OPTIONS}
-                value={sceneDetectionMethod}
-                onChange={(method) => void handleSceneDetectionChange(method)}
-                className="scene-scout-dropdown scene-scout-dropdown-detection"
-                showTriggerDescription={false}
-              />
-            </div>
             </div>
 
             <div className="scene-scout-options-toggles">
@@ -494,24 +377,6 @@ export function SceneScoutToolbar() {
                 hint="Play every result's preview at once, not only the one you hover"
                 checked={gridPreview}
                 onChange={setGridPreview}
-              />
-              <OptionToggle
-                label="Keep model loaded"
-                hint="Keep the search model running between searches, so only the first search waits for it to load"
-                checked={settings.keepModelInMemory ?? true}
-                onChange={(checked) => updateSettings({ keepModelInMemory: checked })}
-              />
-              <OptionToggle
-                label="Free VRAM when idle"
-                hint="After 5 minutes without a search, move the loaded model off the GPU. The next search takes a moment longer"
-                checked={settings.gpuStandby ?? true}
-                onChange={(checked) => updateSettings({ gpuStandby: checked })}
-              />
-              <OptionToggle
-                label="Fill missing thumbnails"
-                hint="For results with no stored thumbnail, grab a frame from the episode file as they appear"
-                checked={settings.dynamicThumbnails ?? true}
-                onChange={(checked) => updateSettings({ dynamicThumbnails: checked })}
               />
             </div>
 
@@ -560,6 +425,7 @@ export function SceneScoutToolbar() {
         )}
 
         {(error || storeError) && <p className="events-error">{error || storeError}</p>}
+        {addModal}
       </div>
     </main>
   );

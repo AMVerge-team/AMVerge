@@ -104,10 +104,6 @@
 
 /* Settings dropdown ------------------------------------------------------ */
 
-.scene-scout-settings-toggle {
-    gap: 6px;
-}
-
 .scene-scout-settings-toggle.is-open {
     border-color: var(--accent);
     color: var(--accent);
@@ -259,6 +255,25 @@
     transition: border 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
 }
 
+/* the shared import-button min-width left empty space either side of the label */
+.import-button.scene-scout-settings-toggle {
+    min-width: 0;
+    padding: 0 12px;
+}
+
+/* the row's database and episode icons are labels, not buttons, so they skip the shared button hover */
+.episode-panel-import-icon.scene-scout-row-icon {
+    cursor: inherit;
+}
+
+.episode-panel-import-icon.scene-scout-row-icon:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: transparent;
+    color: var(--accent);
+    box-shadow: none;
+    transform: none;
+}
+
 .scene-scout-settings-toggle:hover:not(:disabled) {
     cursor: pointer;
     box-shadow: 0 0 15px rgb(var(--accent-rgb) / 0.4);
@@ -309,6 +324,235 @@
     max-height: min(80vh, 620px);
 }
 
+/* first-visit layout: logo, actions, search and databases centered in the page */
+.scene-scout-hero {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.scene-scout-hero-inner {
+    width: min(640px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    animation: scene-scout-pop-in 220ms ease-out;
+}
+
+/* the svg's teal shades, rebuilt from the accent so the wordmark follows the theme */
+.scene-scout-logo {
+    --ss-logo-light: color-mix(in srgb, var(--accent) 55%, #ffffff);
+    --ss-logo-base: var(--accent);
+    --ss-logo-mid: color-mix(in srgb, var(--accent) 82%, #000000);
+    --ss-logo-dark: color-mix(in srgb, var(--accent) 70%, #000000);
+    --ss-logo-deep: color-mix(in srgb, var(--accent) 60%, #000000);
+    display: flex;
+    justify-content: center;
+}
+
+.scene-scout-logo-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.scene-scout-hero-logo {
+    width: min(420px, 90%);
+    margin: 0 auto 10px;
+}
+
+.scene-scout-hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.scene-scout-hero-actions .import-button {
+    margin: 0;
+}
+
+.scene-scout-hero-search .scene-scout-search-field {
+    height: 46px;
+}
+
+.scene-scout-hero-dbs {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.22);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+}
+
+.scene-scout-hero-dbs-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.scene-scout-hero-new {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgb(var(--accent-rgb) / 0.5);
+    background: transparent;
+    color: var(--accent);
+    font-family: var(--ui-font);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease;
+}
+
+.scene-scout-hero-new:hover {
+    border-color: var(--accent);
+    background: rgb(var(--accent-rgb) / 0.12);
+}
+
+.scene-scout-hero-db-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.scene-scout-hero-db {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.85);
+    font-family: var(--ui-font);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease;
+}
+
+.scene-scout-hero-db:hover {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.scene-scout-hero-db.is-selected {
+    border-color: rgb(var(--accent-rgb) / 0.7);
+    background: rgb(var(--accent-rgb) / 0.1);
+    color: #fff;
+}
+
+.scene-scout-hero-db-icon {
+    flex: none;
+    color: var(--accent);
+    font-size: 15px;
+}
+
+.scene-scout-hero-db-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.scene-scout-hero-db-count {
+    flex: none;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.scene-scout-hero-empty {
+    padding: 14px 8px;
+    font-size: 12px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.scene-scout-hero-error {
+    margin: 0;
+}
+
+/* controls hidden in the hero fade in once the search bar reaches the top */
+.scene-scout-reveal {
+    animation: scene-scout-reveal-in 360ms ease-out 140ms both;
+}
+
+@keyframes scene-scout-reveal-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+}
+
+/* add episode: pick how scenes are split, every time, preselected to the last choice */
+.app-modal.scene-scout-index-modal {
+    width: min(420px, 92vw);
+    height: auto;
+    max-height: min(80vh, 560px);
+}
+
+.scene-scout-detection-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    margin: 12px 0 16px;
+}
+
+.scene-scout-detection-choice {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.03);
+    color: #fff;
+    font-family: var(--ui-font);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 120ms ease, background 120ms ease;
+}
+
+.scene-scout-detection-choice:hover {
+    border-color: rgb(var(--accent-rgb) / 0.5);
+}
+
+.scene-scout-detection-choice.is-active {
+    border-color: var(--accent);
+    background: rgb(var(--accent-rgb) / 0.12);
+}
+
+.scene-scout-detection-choice-label {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.scene-scout-detection-choice-desc {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.55);
+}
+
 /* options overlay: floats over the grid under the Options button instead of pushing the page down */
 .scene-scout-options-anchor {
     display: inline-flex;
@@ -339,7 +583,7 @@
 
 .scene-scout-options-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1.3fr;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
 }
 

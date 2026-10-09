@@ -81,6 +81,7 @@ fn main() {
             commands::preview::hover_preview_error,
             commands::preview::ensure_preview_proxy,
             commands::preview::ensure_merged_preview,
+            commands::preview::ensure_scene_range_preview,
             commands::preview::generate_scene_webp,
             commands::preview::generate_scene_webp_batch,
             commands::preview::lookup_scene_webp_cache_batch,

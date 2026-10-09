@@ -4,6 +4,7 @@ import { FaCog } from "react-icons/fa";
 import MainLayout from "../MainLayout";
 import Tooltip from "../components/common/Tooltip";
 import SceneScoutToolbar from "../components/sceneScout/SceneScoutToolbar";
+import SceneScoutHero from "../components/sceneScout/SceneScoutHero";
 import { useAppStateStore } from "../stores/appStore";
 import { useSceneScoutStore } from "../stores/sceneScoutStore";
 import { selectOverlayOpen, useUIStateStore } from "../stores/UIStore";
@@ -16,6 +17,11 @@ export default function SceneScoutPage() {
 
   const results = useSceneScoutStore((s) => s.results);
   const refreshStatus = useSceneScoutStore((s) => s.refreshStatus);
+  const heroDismissed = useSceneScoutStore((s) => s.heroDismissed);
+
+  // the grid fades in only on the hero-to-top handoff, not on every tab switch
+  const wasHeroRef = useRef(!heroDismissed);
+  const revealGrid = wasHeroRef.current && heroDismissed;
 
   useScoutThumbnailQueue();
 
@@ -62,11 +68,15 @@ export default function SceneScoutPage() {
     state.setFocusedClipId(null);
   }, [clips]);
 
+  if (!heroDismissed) {
+    return <SceneScoutHero />;
+  }
+
   return (
     <>
       <SceneScoutToolbar />
 
-      <div className="main-layout-wrapper">
+      <div className={`main-layout-wrapper${revealGrid ? " scene-scout-reveal" : ""}`}>
         <MainLayout active={!overlayOpen} />
 
         <div className="info-bar">

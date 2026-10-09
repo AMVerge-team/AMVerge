@@ -299,6 +299,147 @@ pub async fn ensure_preview_proxy(
     Ok(final_path)
 }
 
+/// a small x264 preview of just `[start_sec, end_sec)` of a source video, for
+/// grid tiles that point into a full episode (scene scout results) instead of a
+/// cut clip. lands in the app cache, never beside the user's source file
+#[tauri::command]
+pub async fn ensure_scene_range_preview(
+    app: AppHandle,
+    proxy_locks: State<'_, PreviewProxyLocks>,
+    transcode_slots: State<'_, PreviewTranscodeSlots>,
+    ffmpeg_pids: State<'_, ActiveFfmpegPids>,
+    video_path: String,
+    start_sec: f64,
+    end_sec: f64,
+    preview_height: Option<u32>,
+    preview_crf: Option<u32>,
+) -> Result<String, String> {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    use tauri::Manager;
+
+    let input_path = PathBuf::from(&video_path);
+    if !input_path.is_file() {
+        return Err(format!("Video not found: {}", file_name_only(&video_path)));
+    }
+    if !(end_sec > start_sec) || start_sec < 0.0 {
+        return Err(format!("Invalid range {start_sec}..{end_sec}"));
+    }
+
+    let preview_height = preview_height.unwrap_or(480).clamp(144, 2160);
+    let preview_crf = preview_crf.unwrap_or(32).clamp(0, 51);
+
+    // milliseconds keep the cache key stable against float noise in the times
+    let start_ms = (start_sec * 1000.0).round() as u64;
+    let end_ms = (end_sec * 1000.0).round() as u64;
+    let mut hasher = DefaultHasher::new();
+    video_path.hash(&mut hasher);
+    start_ms.hash(&mut hasher);
+    end_ms.hash(&mut hasher);
+    preview_height.hash(&mut hasher);
+    preview_crf.hash(&mut hasher);
+    let hash = hasher.finish();
+
+    let cache_dir = app
+        .path()
+        .app_cache_dir()
+        .map_err(|e| format!("No cache directory: {e}"))?
+        .join("scene_range_previews");
+    std::fs::create_dir_all(&cache_dir).map_err(|e| format!("Failed to create preview cache: {e}"))?;
+    let preview_path = cache_dir.join(format!("{hash:016x}.mp4"));
+    let preview_tmp_path = cache_dir.join(format!("{hash:016x}.tmp.mp4"));
+
+    let lock_key = preview_path.to_string_lossy().to_string();
+    let clip_lock = {
+        let mut map = proxy_locks.inner.lock().await;
+        map.retain(|_, v| Arc::strong_count(v) > 1);
+        map.entry(lock_key)
+            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
+            .clone()
+    };
+    let _guard = clip_lock.lock().await;
+
+    if let Ok(meta) = std::fs::metadata(&preview_path) {
+        if meta.is_file() && meta.len() > 0 {
+            return Ok(preview_path.to_string_lossy().to_string());
+        }
+    }
+
+    // same slot pool as the clip proxies, so a grid of scout tiles cannot run more encodes than an episode grid
+    let encode_threads = transcode_slots.threads_per_encode;
+    let _transcode_slot = transcode_slots
+        .semaphore
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(|e| format!("Preview transcode queue closed: {e}"))?;
+
+    let ffmpeg = resolve_bundled_tool(&app, "ffmpeg")?;
+    let _ = std::fs::remove_file(&preview_tmp_path);
+
+    let input = input_path.clone();
+    let output = preview_tmp_path.clone();
+    let pids = ffmpeg_pids.pids.clone();
+    let duration = end_sec - start_sec;
+
+    let ffmpeg_output = tokio::task::spawn_blocking(move || {
+        let mut cmd = Command::new(&ffmpeg);
+        apply_no_window(&mut cmd);
+        #[cfg(not(windows))]
+        cmd.process_group(0);
+        // input-side seek is frame accurate when re-encoding and skips decoding everything before the scene
+        cmd.args(["-y", "-ss", &format!("{start_sec:.3}"), "-i"]);
+        cmd.arg(&input);
+        cmd.args(["-t", &format!("{duration:.3}")]);
+        cmd.args(["-map", "0:v:0", "-map", "0:a:0?"]);
+        cmd.args(["-c:v", "libx264"]);
+        cmd.args(["-vf", &format!("scale=-2:'min({preview_height},ih)'")]);
+        cmd.args(["-g", "1"]);
+        cmd.args(["-preset", "veryfast"]);
+        cmd.args(["-threads", &encode_threads.to_string()]);
+        cmd.args(["-crf", &preview_crf.to_string()]);
+        cmd.args(["-pix_fmt", "yuv420p"]);
+        cmd.args(["-c:a", "aac", "-b:a", "128k", "-ac", "2", "-ar", "48000"]);
+        cmd.args(["-movflags", "+faststart"]);
+        cmd.arg(&output);
+
+        let child = cmd
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| format!("Failed to run ffmpeg: {e}"))?;
+        let pid = child.id();
+        if let Ok(mut l) = pids.lock() { l.push(pid); }
+        let result = child.wait_with_output().map_err(|e| format!("Failed waiting for ffmpeg: {e}"))?;
+        if let Ok(mut l) = pids.lock() { l.retain(|p| *p != pid); }
+        Ok::<std::process::Output, String>(result)
+    })
+    .await
+    .map_err(|e| format!("ffmpeg task panicked: {e}"))??;
+
+    if !ffmpeg_output.status.success() {
+        let _ = std::fs::remove_file(&preview_tmp_path);
+        let stderr = String::from_utf8_lossy(&ffmpeg_output.stderr).trim().to_string();
+        let tail: String = stderr.chars().rev().take(600).collect::<Vec<_>>().into_iter().rev().collect();
+        console_log("ERROR|range_preview", &format!("{}: {tail}", file_name_only(&video_path)));
+        return Err("FFmpeg range preview failed".to_string());
+    }
+
+    let meta = std::fs::metadata(&preview_tmp_path).map_err(|e| e.to_string())?;
+    if meta.len() == 0 {
+        let _ = std::fs::remove_file(&preview_tmp_path);
+        return Err("Range preview produced empty file".to_string());
+    }
+
+    if let Err(e) = std::fs::rename(&preview_tmp_path, &preview_path) {
+        std::fs::copy(&preview_tmp_path, &preview_path)
+            .map_err(|copy_err| format!("Failed to publish range preview (rename={e}, copy={copy_err})"))?;
+        let _ = std::fs::remove_file(&preview_tmp_path);
+    }
+
+    Ok(preview_path.to_string_lossy().to_string())
+}
+
 #[tauri::command]
 pub async fn ensure_merged_preview(
     app: AppHandle,

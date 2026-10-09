@@ -20,6 +20,9 @@ type Params = {
   videoRef: RefObject<HTMLVideoElement | null>;
   requestProxySequential: LazyClipProps["requestProxySequential"];
   reportProxyDemand: LazyClipProps["reportProxyDemand"];
+  /** set for a tile that points into a full source video (scene scout) instead of a cut clip */
+  rangeStart?: number;
+  rangeEnd?: number;
 };
 
 function restartPlayback(videoRef: RefObject<HTMLVideoElement | null>) {
@@ -49,10 +52,14 @@ export function useClipVideoSource({
   videoRef,
   requestProxySequential,
   reportProxyDemand,
+  rangeStart,
+  rangeEnd,
 }: Params) {
   const originalPath = clip.src;
   const [effectiveSrc, setEffectiveSrc] = useState(clip.src);
   const [videoProxy, setVideoProxy] = useState<{ key: string; path: string } | null>(null);
+  const [rangeProxy, setRangeProxy] = useState<{ key: string; path: string } | null>(null);
+  const [rangeFailedKey, setRangeFailedKey] = useState<string | null>(null);
 
   // refs, not state: these guard against a second request starting in the same
   // tick, so the write has to land synchronously
@@ -79,6 +86,14 @@ export function useClipVideoSource({
         }`
       : null;
   const videoProxySrc = videoProxy && videoProxy.key === videoProxyKey ? videoProxy.path : null;
+
+  // a short x264 cut of just the scene, so a tile never decodes the whole source episode
+  const rangeKey =
+    isVideoMode && !clip.clipPath && clip.src && rangeStart !== undefined && rangeEnd !== undefined && rangeEnd > rangeStart
+      ? `${clip.src}::${rangeStart}::${rangeEnd}::${transcodePreset.height}p${transcodePreset.crf}`
+      : null;
+  const rangeProxySrc = rangeProxy && rangeProxy.key === rangeKey ? rangeProxy.path : null;
+  const rangeFailed = rangeKey !== null && rangeFailedKey === rangeKey;
 
   const mergedSrcsKey = clip.mergedSrcs
     ? `${clip.mergedSrcs.join("|")}::audio:${previewAudioStreamIndex ?? "default"}`
@@ -199,6 +214,32 @@ export function useClipVideoSource({
     staggerReady,
   ]);
 
+  // same gate as the cut-clip proxy above: hover, or this tile's turn in preview-all
+  useEffect(() => {
+    if (!rangeKey || rangeProxySrc || rangeFailed) return;
+    if (!isHovered && !(gridPreview && staggerReady)) return;
+
+    const requestedKey = rangeKey;
+    let cancelled = false;
+    invoke<string>("ensure_scene_range_preview", {
+      videoPath: clip.src,
+      startSec: rangeStart,
+      endSec: rangeEnd,
+      previewHeight: transcodePreset.height,
+      previewCrf: transcodePreset.crf,
+    })
+      .then((path) => {
+        if (!cancelled && path) setRangeProxy({ key: requestedKey, path });
+      })
+      .catch((err) => {
+        console.warn("scene range preview failed", err);
+        if (!cancelled) setRangeFailedKey(requestedKey);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [rangeKey, rangeProxySrc, rangeFailed, clip.src, rangeStart, rangeEnd, transcodePreset, isHovered, gridPreview, staggerReady]);
+
   // WebP mode proxies the source video instead
   useEffect(() => {
     if (isVideoMode) return;
@@ -269,6 +310,8 @@ export function useClipVideoSource({
     effectiveSrc,
     setEffectiveSrc,
     videoProxySrc,
+    rangeProxySrc,
+    rangeFailed,
     needsPreviewTranscode,
     proxyInFlightRef,
     ensurePreviewProxyPath,

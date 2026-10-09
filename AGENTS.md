@@ -279,6 +279,7 @@ frontend/
 | `hover_preview_error` | preview.rs | Log hover preview errors |
 | `ensure_preview_proxy` | preview.rs | Transcode to x264 proxy (480p, CRF 32) |
 | `ensure_merged_preview` | preview.rs | Concat multiple proxies |
+| `ensure_scene_range_preview` | preview.rs | 480p x264 cut of one `[start, end]` range of a source video, cached in app cache (Scene Scout tiles) |
 | `generate_scene_webp` | preview.rs | Single animated/still WebP (libwebp) |
 | `generate_scene_webp_batch` | preview.rs | Batch WebP (max 8 concurrent) |
 | `lookup_scene_webp_cache_batch` | preview.rs | Disk cache check (no encode) |
@@ -590,4 +591,6 @@ App starts → main.tsx: maybeCheckForUpdatesOnStartup()
 
 15. **Scene Scout external databases & migrations**: Users can open external database files (`.scoutdb`, `.db`, `.scdb`) from anywhere via `scout_open_database`. Validates schema structure (`processed_videos`, `scene_embeddings`, `image_embeddings`), automatically migrates legacy schema versions (v0-v2 to v3) with `PRAGMA user_version = 3` for two-way compatibility with `scene-scout-dev`, and tracks external paths in `externalPaths` (persisted in `amverge.scenescout.v1`).
 
-16. **Scene Scout video hover previews**: Search results are uncut scenes bounded by `[startSec, endSec]`. `LazyClip` mounts `<video>` on hover (when `isUncutScene`), seeking to `startSec` and looping via `handleTimeUpdate` and `handleEnded` in `useClipVideoElement`. When unhovered, the video pauses, clears `src`, and releases the decoder synchronously, restoring the static thumbnail instantly.
+16. **Scene Scout video previews**: Search results are uncut scenes bounded by `[startSec, endSec]` inside the full source episode (`clip.database` set). On hover or a preview-all stagger turn, `useClipVideoSource` requests `ensure_scene_range_preview`, a short 480p x264 cut of just that range, and `LazyClip` plays it like any cut clip. Never mount a `<video>` on the raw source for preview-all: one full-episode decoder per tile (often 10-bit HEVC MKV) freezes the app. Seeking into the source (`handleTimeUpdate`/`handleEnded`) is only a hover fallback when the range preview fails, and for home clips still mid-cut.
+
+17. **Scene Scout first-visit layout**: until the first search of an app session, `SceneScoutPage` renders `SceneScoutHero` (logo, Add Episode, search, database picker) instead of the toolbar and grid. `heroDismissed` in `sceneScoutStore` is runtime only, never persisted. The first search records the hero bar's rect (`features/sceneScout/heroTransition.ts`) and the top toolbar slides its bar from there on mount. Search, Add Episode (with its per-run scene detection popup, remembered in `settings.lastIndexDetection`, separate from the home import default) and database creation are shared pieces: `ScoutSearchField`, `useAddEpisodes`, `useCreateScoutDatabase`.

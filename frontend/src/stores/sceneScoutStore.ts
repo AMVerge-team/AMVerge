@@ -64,6 +64,8 @@ type SceneScoutState = {
   displayNames: Record<string, string>;
   /** height of the panel's searching box, as a percent of the two boxes together */
   panelSplitPct: number;
+  /** runtime only: the centered first-visit layout gives way to the top toolbar after the first search */
+  heroDismissed: boolean;
 };
 
 type SceneScoutActions = {
@@ -87,13 +89,18 @@ type SceneScoutActions = {
   loadVideos: (name: string) => Promise<void>;
   deleteVideo: (databasePath: string, videoId: number) => Promise<void>;
   addVideo: (videoPath: string) => Promise<{ ok: boolean; message: string | null }>;
-  addVideos: (videoPaths: string[]) => Promise<{ ok: boolean; message: string | null }>;
+  addVideos: (
+    videoPaths: string[],
+    detector?: "transnetv2_gpu" | "keyframe_detection"
+  ) => Promise<{ ok: boolean; message: string | null }>;
+  dismissHero: () => void;
   unloadModel: () => Promise<void>;
   setQuery: (query: string) => void;
   runSearch: () => Promise<void>;
   clearResults: () => void;
   updateSettings: (changes: Partial<ScoutSearchSettings>) => void;
   generateThumbnails: (path: string) => Promise<{ ok: boolean; generated: number; message: string | null }>;
+  backfillThumbnails: (paths: string[]) => void;
   refresh: () => Promise<void>;
 };
 
@@ -118,7 +125,15 @@ const INITIAL: SceneScoutState = {
   unloadedPaths: [],
   displayNames: {},
   panelSplitPct: 35,
+  heroDismissed: false,
 };
+
+// databases already backfilled this session, so a repeat search does not respawn the cli for nothing
+const backfilled = new Set<string>();
+
+function fileStem(path: string): string {
+  return (path.split(/[/\\]/).pop() ?? path).replace(/\.[^.]+$/, "").toLowerCase();
+}
 
 function message(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
@@ -248,6 +263,8 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           await get().openDatabase(db.path);
           get().selectDatabase(db.path, "single");
           appState.setProgressMsg("Database loaded successfully");
+          // databases made elsewhere may lack stored thumbnails; write them in once
+          get().backfillThumbnails([db.path]);
           await new Promise((r) => setTimeout(r, 600));
           return { ok: true, message: null, database: db };
         } catch (err) {
@@ -435,6 +452,8 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
 
       setActiveDatabase: (path) => set({ openedDatabase: path }),
 
+      dismissHero: () => set({ heroDismissed: true }),
+
       setPanelSplitPct: (pct) => set({ panelSplitPct: Math.min(85, Math.max(15, pct)) }),
 
       loadVideos: async (name) => {
@@ -519,8 +538,10 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         return get().addVideos([videoPath]);
       },
 
-      addVideos: async (videoPaths) => {
+      addVideos: async (videoPaths, detectorArg) => {
         if (!videoPaths.length) return { ok: true, message: null };
+        // remembered for scene scout only, so it never changes the home import default
+        if (detectorArg) set({ settings: { ...get().settings, lastIndexDetection: detectorArg } });
         const database = get().openedDatabase || get().selectedDatabases[0];
         if (!database) return { ok: false, message: "Select or open a database first." };
 
@@ -564,8 +585,18 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
               appState.setProgressMsg("Detecting scenes…");
               appState.setProgress(10);
             } else if (stage === "sampling") {
-              appState.setProgressMsg(`Sampling ${total} representative frames…`);
-              appState.setProgress(20);
+              // the cli streams sampling progress, so it fills its own 10..20 slice of the bar
+              const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+              appState.setProgress(10 + Math.round(pct / 10));
+              appState.setProgressMsg(
+                done > 0
+                  ? `Sampling representative frames ${done}/${total} (${pct}%)`
+                  : `Sampling ${total} representative frames…`
+              );
+              useAppStateStore.setState((s) => ({
+                ...s,
+                bgProgress: { done, total },
+              }));
             } else if (stage === "embedding") {
               const pct = total > 0 ? Math.round((done / total) * 100) : 0;
               const currentProgress = Math.min(100, Math.max(0, 20 + Math.round((pct * 80) / 100)));
@@ -581,7 +612,10 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             }
           });
 
-          const detector = useGeneralSettingsStore.getState().sceneDetectionMethod;
+          const detector =
+            detectorArg ??
+            get().settings.lastIndexDetection ??
+            useGeneralSettingsStore.getState().sceneDetectionMethod;
           for (let i = 0; i < totalVideos; i++) {
             const videoPath = videoPaths[i];
             const name = videoPath.split(/[/\\]/).pop() || videoPath;
@@ -608,9 +642,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
               },
             });
 
-            const keepModelInMemory = get().settings.keepModelInMemory ?? true;
-            const gpuStandby = get().settings.gpuStandby ?? true;
-            await scoutAddVideo(database, videoPath, detector, customPath(), keepModelInMemory, gpuStandby);
+            await scoutAddVideo(database, videoPath, detector, customPath());
             console.log(`SCOUT|queue [${i + 1}/${totalVideos}] completed ${name}`);
           }
           await Promise.all([get().loadVideos(database), get().loadDatabases()]);
@@ -684,6 +716,12 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           };
           const results = await scoutSearch(query, searchSettings, customPath());
           set({ results, lastQuery: query });
+
+          // hits name their database by file stem, so map back to the searched paths
+          const missing = new Set(results.filter((h) => !h.thumbnailB64).map((h) => h.database.toLowerCase()));
+          if (missing.size) {
+            get().backfillThumbnails(get().selectedDatabases.filter((p) => missing.has(fileStem(p))));
+          }
         } catch (err) {
           set({ results: [], error: message(err) });
         } finally {
@@ -723,6 +761,22 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           appState.setLoading(false);
           appState.setProgress(0);
           appState.setProgressMsg("");
+        }
+      },
+
+      /** silent, background version of generateThumbnails: no loading card, once per database per session */
+      backfillThumbnails: (paths) => {
+        for (const path of paths) {
+          const key = path.toLowerCase();
+          if (backfilled.has(key)) continue;
+          backfilled.add(key);
+          void scoutGenerateThumbnails(path, customPath())
+            .then((res) => console.log(`SCOUT|thumbs backfilled ${res.generated} into ${path}`))
+            .catch((err) => {
+              // a failed run may be retried later this session
+              backfilled.delete(key);
+              console.error("SCOUT|thumbs backfill failed", err);
+            });
         }
       },
 

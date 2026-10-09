@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { open, save } from "@tauri-apps/plugin-dialog";
+import { open } from "@tauri-apps/plugin-dialog";
 import {
   FaChevronRight,
   FaDatabase,
@@ -12,6 +12,7 @@ import {
   FaTrashAlt,
   FaVideo,
 } from "react-icons/fa";
+import { FiDatabase } from "react-icons/fi";
 
 import ModalShell from "../common/ModalShell";
 import Tooltip from "../common/Tooltip";
@@ -19,6 +20,7 @@ import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
 import { useContextMenuStore } from "../../stores/contextMenuStore";
 import type { ScoutDatabase, ScoutVideo } from "../../features/sceneScout/types";
 import { useScoutDbDrag, type ScoutList } from "./useScoutDbDrag";
+import { useCreateScoutDatabase } from "./useCreateScoutDatabase";
 
 type DbMenu = { list: ScoutList; paths: string[]; x: number; y: number };
 
@@ -46,7 +48,6 @@ export function SceneScoutPanel() {
   const loading = useSceneScoutStore((s) => s.loading);
   const indexing = useSceneScoutStore((s) => s.indexing);
   const loadDatabases = useSceneScoutStore((s) => s.loadDatabases);
-  const openDatabase = useSceneScoutStore((s) => s.openDatabase);
   const toggleDatabaseExpanded = useSceneScoutStore((s) => s.toggleDatabaseExpanded);
   const selectVideo = useSceneScoutStore((s) => s.selectVideo);
   const addToSearch = useSceneScoutStore((s) => s.addToSearch);
@@ -55,18 +56,16 @@ export function SceneScoutPanel() {
   const loadVideos = useSceneScoutStore((s) => s.loadVideos);
   const splitPct = useSceneScoutStore((s) => s.panelSplitPct);
   const setPanelSplitPct = useSceneScoutStore((s) => s.setPanelSplitPct);
-  const createDatabase = useSceneScoutStore((s) => s.createDatabase);
   const openExistingDatabase = useSceneScoutStore((s) => s.openExistingDatabase);
   const deleteDatabase = useSceneScoutStore((s) => s.deleteDatabase);
   const deleteVideo = useSceneScoutStore((s) => s.deleteVideo);
   const unloadDatabase = useSceneScoutStore((s) => s.unloadDatabase);
-  const renameDatabase = useSceneScoutStore((s) => s.renameDatabase);
   const displayNames = useSceneScoutStore((s) => s.displayNames);
   const generateThumbnails = useSceneScoutStore((s) => s.generateThumbnails);
 
-  const [namingPath, setNamingPath] = useState<string | null>(null);
-  const [draftName, setDraftName] = useState("");
-  const [error, setError] = useState("");
+  const { startCreate, modal: createModal, error: createError } = useCreateScoutDatabase();
+  const [panelError, setError] = useState("");
+  const error = panelError || createError;
   const [searchQuery, setSearchQuery] = useState("");
   const [isOpening, setIsOpening] = useState(false);
   const [openingName, setOpeningName] = useState<string | null>(null);
@@ -202,31 +201,6 @@ export function SceneScoutPanel() {
     if (opening && !videosByDatabase[path]) void loadVideos(path);
   };
 
-  /** pick a location, create the file, then ask what to call it in the app */
-  const startCreate = async () => {
-    setError("");
-
-    const picked = await save({
-      title: "Create Scene Scout database",
-      defaultPath: "My Series.scoutdb",
-      filters: [{ name: "Scene Scout database", extensions: ["scoutdb"] }],
-    });
-    if (!picked) return;
-
-    const result = await createDatabase(picked);
-    if (!result.ok || !result.path) {
-      setError(result.message || "Could not create the database.");
-      return;
-    }
-
-    // default the label to the file they just named, which is almost always
-    // what they want it called. key by the cli's resolved path so the label
-    // matches the entry in the database list
-    const fileStem = result.path.split(/[/\\]/).pop()?.replace(/\.scoutdb$/i, "") ?? "Database";
-    setDraftName(fileStem);
-    setNamingPath(result.path);
-  };
-
   const startOpen = async () => {
     setError("");
 
@@ -258,14 +232,6 @@ export function SceneScoutPanel() {
     }
   };
 
-  const confirmName = () => {
-    if (!namingPath) return;
-    const name = draftName.trim();
-    if (name) renameDatabase(namingPath, name);
-    setNamingPath(null);
-    void openDatabase(namingPath);
-  };
-
   const handleGenerateThumbnails = async (database: ScoutDatabase) => {
     setError("");
     setGeneratingThumbsDb(database.path);
@@ -283,13 +249,6 @@ export function SceneScoutPanel() {
   const renderVideos = (database: ScoutDatabase, pickable: boolean) => {
     const dbVideos = videosByDatabase[database.path] ?? (samePath(opened, database.path) ? videos : []);
     const allDbVideoPaths = dbVideos.map((v) => v.filepath);
-    if (dbVideos.length === 0) {
-      return (
-        <div className="episode-panel-empty" style={{ paddingLeft: "32px" }}>
-          Nothing indexed. Use Add Episode above the grid.
-        </div>
-      );
-    }
     return dbVideos.map((video) => {
       const isVideoSelected = pickable && selectedVideos.some((vp) => samePath(vp, video.filepath));
       const isVideoIndexing = video.status === "indexing" || (indexing !== null && samePath(indexing.video, video.filepath));
@@ -313,7 +272,7 @@ export function SceneScoutPanel() {
             }
           }}
         >
-          <FaVideo className="episode-panel-import-icon" aria-hidden="true" />
+          <FaVideo className="episode-panel-import-icon scene-scout-row-icon" aria-hidden="true" />
           <span className="episode-panel-episode-name">{video.name}</span>
           <span className="episode-panel-count">
             {video.status === "indexing" ? "..." : video.sceneCount}
@@ -375,7 +334,12 @@ export function SceneScoutPanel() {
           >
             <FaChevronRight className="episode-panel-caret-icon" />
           </button>
-          <FaDatabase className="episode-panel-import-icon" aria-hidden="true" />
+          {/* outline marks a database with nothing indexed yet */}
+          {database.videoCount === 0 ? (
+            <FiDatabase className="episode-panel-import-icon scene-scout-row-icon" aria-hidden="true" />
+          ) : (
+            <FaDatabase className="episode-panel-import-icon scene-scout-row-icon" aria-hidden="true" />
+          )}
           <span className="episode-panel-episode-name">{labelFor(path, database.name)}</span>
           <span className="episode-panel-count">{database.sceneCount}</span>
           {list === "all" && (
@@ -644,41 +608,7 @@ export function SceneScoutPanel() {
         </div>
       )}
 
-      {namingPath && (
-        <ModalShell
-          open
-          onClose={confirmName}
-          label="Name this database"
-          className="scene-scout-name-modal"
-        >
-          <div className="denial-notice">
-            <FaDatabase aria-hidden="true" className="denial-notice-icon" />
-            <h2>Name this database</h2>
-
-            <p className="events-subtitle ban-notice-note">
-              This is only the label shown in the sidebar. The file keeps the name
-              you gave it.
-            </p>
-
-            <input
-              autoFocus
-              className="scene-scout-name-input"
-              value={draftName}
-              placeholder="Database name"
-              onChange={(e) => setDraftName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") confirmName();
-              }}
-            />
-
-            <div className="denial-notice-actions">
-              <button type="button" className="event-host-btn" onClick={confirmName}>
-                Done
-              </button>
-            </div>
-          </div>
-        </ModalShell>
-      )}
+      {createModal}
 
       {databaseToDelete && (
         <ModalShell

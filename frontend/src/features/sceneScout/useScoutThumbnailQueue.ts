@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useAppStateStore } from "../../stores/appStore";
-import { useSceneScoutStore } from "../../stores/sceneScoutStore";
 
 const MAX_CONCURRENCY = 2;
 const MAX_CACHE_SIZE = 300;
@@ -21,7 +20,6 @@ function cacheSet(key: string, value: string): void {
 
 export function useScoutThumbnailQueue(): void {
   const clips = useAppStateStore((s) => s.clips);
-  const dynamicEnabled = useSceneScoutStore((s) => s.settings.dynamicThumbnails ?? true);
   const importToken = useAppStateStore((s) => s.importToken);
 
   const activeWorkersRef = useRef(0);
@@ -33,12 +31,7 @@ export function useScoutThumbnailQueue(): void {
     cancelledEpochRef.current += 1;
     const currentEpoch = cancelledEpochRef.current;
 
-    if (!dynamicEnabled) {
-      queueRef.current = [];
-      pendingClipsRef.current.clear();
-      return;
-    }
-
+    // shows a frame right away while the database backfill writes the permanent one
     const needed: string[] = [];
     const clipMap = new Map<string, { src: string; startSec: number }>();
     const immediateUpdates: Array<{ id: string; thumbnail: string }> = [];
@@ -139,5 +132,5 @@ export function useScoutThumbnailQueue(): void {
     return () => {
       cancelledEpochRef.current += 1;
     };
-  }, [clips, dynamicEnabled, importToken]);
+  }, [clips, importToken]);
 }

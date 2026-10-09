@@ -95,6 +95,8 @@ export const LazyClip = memo(function LazyClip({
     clip.endSec !== undefined &&
     clip.endSec > clip.startSec;
   const isVideoPlayable = (isVideoMode || isUncutScene) && clip.clipMode !== "failed";
+  // scene scout results point into a whole episode; home clips still mid-cut keep their old seek playback
+  const usesRangePreview = isUncutScene && Boolean(clip.database);
   const isProcessing =
     clip.originalName === "Merging..." ||
     clip.originalName === "Splitting..." ||
@@ -134,7 +136,13 @@ export const LazyClip = memo(function LazyClip({
     videoRef,
     requestProxySequential,
     reportProxyDemand,
+    rangeStart: usesRangePreview ? clip.startSec : undefined,
+    rangeEnd: usesRangePreview ? clip.endSec : undefined,
   });
+
+  // a scout result plays its short range preview like any cut clip; seeking the full
+  // source only happens on hover, and only when that preview could not be built
+  const seekIntoSource = isUncutScene && !source.rangeProxySrc;
 
   // mount on hover or preview-all only, never per visible tile, so the number of
   // live decoders stays bounded. when a transcode is needed, wait for the proxy
@@ -142,11 +150,13 @@ export const LazyClip = memo(function LazyClip({
   const shouldMountVideo =
     isVideoPlayable &&
     (isHovered || (gridPreview && staggerReady)) &&
-    (!source.needsPreviewTranscode || Boolean(source.videoProxySrc));
+    (usesRangePreview
+      ? Boolean(source.rangeProxySrc) || (source.rangeFailed && isHovered)
+      : !source.needsPreviewTranscode || Boolean(source.videoProxySrc));
 
   // single source of truth for the <video> src: the JSX and the media-release
   // effect must agree on it so a stripped attribute can be restored
-  const rawVideoPath = source.videoProxySrc ?? clip.clipPath ?? clip.src;
+  const rawVideoPath = source.rangeProxySrc ?? source.videoProxySrc ?? clip.clipPath ?? clip.src;
   const videoSrcUrl = shouldMountVideo
     ? `${convertFileSrc(rawVideoPath)}?v=${importToken}`
     : null;
@@ -172,8 +182,8 @@ export const LazyClip = memo(function LazyClip({
     ensurePreviewProxyPath: source.ensurePreviewProxyPath,
     proxyInFlightRef: source.proxyInFlightRef,
     restartPlayback: source.restartPlayback,
-    startTime: isUncutScene ? clip.startSec : undefined,
-    endTime: isUncutScene ? clip.endSec : undefined,
+    startTime: seekIntoSource ? clip.startSec : undefined,
+    endTime: seekIntoSource ? clip.endSec : undefined,
   });
 
   const { tone: downloadTone, sample: sampleDownloadTone } = useDownloadTone();
@@ -419,7 +429,7 @@ export const LazyClip = memo(function LazyClip({
               className="clip"
               src={videoSrcUrl}
               muted={!(isHovered && audioPlaybackHover)}
-              loop={!isUncutScene}
+              loop={!seekIntoSource}
               autoPlay
               playsInline
               preload="metadata"

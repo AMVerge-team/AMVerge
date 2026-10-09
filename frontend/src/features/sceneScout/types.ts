@@ -76,10 +76,8 @@ export type ScoutSearchSettings = {
   selectedDatabases: string[];
   /** empty means all videos in selected databases */
   selectedVideos: string[];
-  /** keep model weights in memory across searches for instant responses */
-  keepModelInMemory?: boolean;
-  gpuStandby?: boolean;
-  dynamicThumbnails?: boolean;
+  /** scene detection last picked when indexing, preselected next time */
+  lastIndexDetection?: "transnetv2_gpu" | "keyframe_detection";
 };
 
 export const DEFAULT_SEARCH_SETTINGS: ScoutSearchSettings = {
@@ -88,9 +86,6 @@ export const DEFAULT_SEARCH_SETTINGS: ScoutSearchSettings = {
   includeThumbnails: true,
   selectedDatabases: [],
   selectedVideos: [],
-  keepModelInMemory: true,
-  gpuStandby: true,
-  dynamicThumbnails: true,
 };
 
 /** Sentinel for the Custom entry. Zero is never a real result count, so it can
