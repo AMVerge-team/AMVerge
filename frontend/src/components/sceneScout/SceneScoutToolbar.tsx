@@ -85,6 +85,9 @@ export function SceneScoutToolbar() {
   // the row is padded to clear the preview pane, so the search field ends at
   // the grid's right edge instead of running under the panel
   const previewCollapsed = useUIStateStore((s) => s.previewCollapsed);
+  const setPreviewCollapsed = useUIStateStore((s) => s.setPreviewCollapsed);
+  const sidebarEnabled = useUIStateStore((s) => s.sidebarEnabled);
+  const setSidebarEnabled = useUIStateStore((s) => s.setSidebarEnabled);
   const previewSplitPct = useUIStateStore((s) => s.previewSplitPct);
   const gridPreview = useUIStateStore((s) => s.gridPreview);
   const setGridPreview = useUIStateStore((s) => s.setGridPreview);
@@ -237,6 +240,25 @@ export function SceneScoutToolbar() {
     >
       <div className="events-toolbar-rows">
         <div className="import-buttons-container events-toolbar-row">
+          {/* first in the row, over the panel it controls, same as home and events */}
+          <Tooltip content={sidebarEnabled ? "Hide database panel" : "Show database panel"}>
+            <button
+              type="button"
+              className={`import-button panel-toggle-button episode-panel-toggle${sidebarEnabled ? " active" : ""}`}
+              onClick={() => setSidebarEnabled(!sidebarEnabled)}
+              aria-label={sidebarEnabled ? "Hide database panel" : "Show database panel"}
+              aria-pressed={sidebarEnabled}
+            >
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M9 3v18" />
+                {sidebarEnabled && (
+                  <rect x="3.9" y="4.9" width="4.2" height="14.2" rx="1" fill="currentColor" stroke="none" />
+                )}
+              </svg>
+            </button>
+          </Tooltip>
+
           <Tooltip content={noDatabaseOpen ? GATE_HINT : "Index an episode into the open database"}>
             <button
               type="button"
@@ -275,6 +297,28 @@ export function SceneScoutToolbar() {
               </button>
             </Tooltip>
           </div>
+
+          {/* last in the row, pushed over the preview pane it controls */}
+          <Tooltip
+            content={previewCollapsed ? "Show preview panel" : "Hide preview panel"}
+            placement="bottom-end"
+          >
+            <button
+              type="button"
+              className={`import-button panel-toggle-button scene-scout-preview-toggle${previewCollapsed ? "" : " active"}`}
+              onClick={() => setPreviewCollapsed(!previewCollapsed)}
+              aria-label={previewCollapsed ? "Show preview panel" : "Hide preview panel"}
+              aria-pressed={!previewCollapsed}
+            >
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M15 3v18" />
+                {!previewCollapsed && (
+                  <rect x="15.9" y="4.9" width="4.2" height="14.2" rx="1" fill="currentColor" stroke="none" />
+                )}
+              </svg>
+            </button>
+          </Tooltip>
         </div>
 
         <div className="scene-scout-search-row">

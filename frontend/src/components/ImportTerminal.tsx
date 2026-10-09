@@ -184,6 +184,21 @@ export default function ImportTerminal({
     const unlisteners: UnlistenFn[] = [];
     let disposed = false;
 
+    // the cli streams counted stages often; print the header once, then each 20% step once
+    const lastStep: Record<string, number> = {};
+    const pushCounted = (stage: string, header: string, label: string, done: number, total: number) => {
+      if (!(stage in lastStep)) {
+        lastStep[stage] = 0;
+        pushLine("event", header);
+      }
+      if (total <= 0 || done <= 0) return;
+      const step = Math.floor((done * 5) / total);
+      if (step > lastStep[stage]) {
+        lastStep[stage] = step;
+        pushLine("event", `${label} ${done}/${total}`);
+      }
+    };
+
     const attach = async () => {
       const stops = await Promise.all([
         listen<ConsoleLogEvent>("console_log", (e: Event<ConsoleLogEvent>) => {
@@ -214,12 +229,12 @@ export default function ImportTerminal({
             } else if (stage === "detecting") {
               pushLine("event", "detecting scenes…");
             } else if (stage === "sampling") {
-              pushLine("event", `sampling ${total} representative frames…`);
+              pushCounted(stage, `sampling ${total} representative frames…`, "sampled frames", done, total);
             } else if (stage === "embedding") {
-              if (total > 0 && (done === total || done % Math.max(1, Math.floor(total / 5)) === 0)) {
-                pushLine("event", `embedding scenes ${done}/${total}`);
-              }
+              pushCounted(stage, `embedding ${total} scenes…`, "embedding scenes", done, total);
             } else if (stage === "done") {
+              // a batch of episodes repeats every stage, so the next one prints its own steps
+              for (const key of Object.keys(lastStep)) delete lastStep[key];
               pushLine("event", `indexed ${total} scenes successfully`);
             }
           }

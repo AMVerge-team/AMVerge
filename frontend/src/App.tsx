@@ -38,6 +38,7 @@ import { useScenePreviewStore } from "./stores/scenePreviewStore";
 import { useAiDepsStore } from "./stores/aiDepsStore";
 import { useAppStateStore } from "./stores/appStore";
 import { useWebpLoadingStore } from "./stores/webpLoadingStore";
+import { useSceneScoutStore } from "./stores/sceneScoutStore";
 import { useUIStateStore } from "./stores/UIStore";
 import { applyThemeSettings, useGeneralSettingsStore, useThemeSettingsStore } from "./stores/settingsStore";
 import { useEpisodePanelRuntimeStore } from "./stores/episodeStore";
@@ -60,6 +61,9 @@ function App() {
   const bgProgress = useAppStateStore((s) => s.bgProgress);
   const bgImportProgress = useAppStateStore((s) => s.bgImportProgress);
   const reencodeProgress = useAppStateStore((s) => s.reencodeProgress);
+  // scene scout indexing reports two counted stages, so the card names whichever is running
+  const scoutIndexStage = useSceneScoutStore((s) => s.indexing?.stage);
+  const scoutAddLabel = scoutIndexStage === "sampling" ? "Sampling frames" : "Embedding scenes";
   const webpLoadDone = useWebpLoadingStore((s) => s.done);
   const webpLoadTotalRaw = useWebpLoadingStore((s) => s.total);
   const webpDismissed = useWebpLoadingStore((s) => s.dismissed);
@@ -473,7 +477,7 @@ function App() {
               <BgProgressBar
                 clipDone={(reencodeProgress ?? bgProgress)?.done ?? 0}
                 clipTotal={(reencodeProgress ?? bgProgress)?.total ?? 0}
-                clipLabel={activeOperation === "scout_add" ? "Embedding scenes" : activeOperation === "scout_search" ? "Searching scenes" : reencodeProgress ? "Reencoding" : "Processing clips"}
+                clipLabel={activeOperation === "scout_add" ? scoutAddLabel : activeOperation === "scout_search" ? "Searching scenes" : reencodeProgress ? "Reencoding" : "Processing clips"}
                 importDone={bgImportProgress?.done ?? 0}
                 importTotal={bgImportProgress?.total ?? 0}
                 webpDone={webpLoadDone}
@@ -487,7 +491,7 @@ function App() {
           <BgProgressBar
             clipDone={(reencodeProgress ?? bgProgress)?.done ?? 0}
             clipTotal={(reencodeProgress ?? bgProgress)?.total ?? 0}
-            clipLabel={activeOperation === "scout_add" ? "Embedding scenes" : activeOperation === "scout_search" ? "Searching scenes" : reencodeProgress ? "Reencoding" : "Processing clips"}
+            clipLabel={activeOperation === "scout_add" ? scoutAddLabel : activeOperation === "scout_search" ? "Searching scenes" : reencodeProgress ? "Reencoding" : "Processing clips"}
             importDone={bgImportProgress?.done ?? 0}
             importTotal={bgImportProgress?.total ?? 0}
             webpDone={webpLoadDone}

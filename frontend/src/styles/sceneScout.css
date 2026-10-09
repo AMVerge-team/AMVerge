@@ -255,6 +255,11 @@
     transition: border 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
 }
 
+/* the preview toggle sits at the far right of the row, above the pane it controls */
+.events-toolbar-row .panel-toggle-button.scene-scout-preview-toggle {
+    margin-left: auto;
+}
+
 /* the shared import-button min-width left empty space either side of the label */
 .import-button.scene-scout-settings-toggle {
     min-width: 0;

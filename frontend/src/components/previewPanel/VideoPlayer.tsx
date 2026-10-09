@@ -243,6 +243,13 @@ export default function VideoPlayer({
     ? Math.max(0, Math.min(sceneDuration, current - (startTime ?? 0)))
     : current;
 
+  // the jump to a scene's start happens once per clip; canplay also fires after every
+  // user seek, and re-snapping there undid each click on the timeline
+  const initialSeekPendingRef = useRef(true);
+  useEffect(() => {
+    initialSeekPendingRef.current = true;
+  }, [clipId, src, startTime]);
+
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
@@ -262,6 +269,7 @@ export default function VideoPlayer({
     if (!v) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const fraction = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    initialSeekPendingRef.current = false;
     if (hasSceneRange) {
       const target = (startTime ?? 0) + fraction * sceneDuration;
       v.currentTime = target;
@@ -295,6 +303,8 @@ export default function VideoPlayer({
             }
           }}
           onCanPlay={(e) => {
+            if (!initialSeekPendingRef.current) return;
+            initialSeekPendingRef.current = false;
             if (startTime !== undefined && isFinite(startTime) && startTime > 0) {
               const v = e.currentTarget;
               if (Math.abs(v.currentTime - startTime) > 0.5) {
