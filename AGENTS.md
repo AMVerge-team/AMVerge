@@ -302,6 +302,7 @@ frontend/
 | `abort_ai_install` | deps.rs | Kill in-flight uv install |
 | `uninstall_ai_pack` | deps.rs | Remove one pack's packages (torch kept) |
 | `remove_ai_env` | deps.rs | Delete the whole AI environment |
+| `update_ai_cli` | deps.rs | Upgrade the AI env's amverge to the newest PyPI patch in the bundled major.minor series (silent, ~20s after launch, prod only) |
 | `list_models` | models.rs | Spawn `amverge models --json` → depth + interpolation weights |
 | `download_model` | models.rs | `amverge models --json --download <key>` |
 | `delete_model` | models.rs | `amverge models --json --delete <key>` |
@@ -592,5 +593,7 @@ App starts → main.tsx: maybeCheckForUpdatesOnStartup()
 15. **Scene Scout external databases & migrations**: Users can open external database files (`.scoutdb`, `.db`, `.scdb`) from anywhere via `scout_open_database`. Validates schema structure (`processed_videos`, `scene_embeddings`, `image_embeddings`), automatically migrates legacy schema versions (v0-v2 to v3) with `PRAGMA user_version = 3` for two-way compatibility with `scene-scout-dev`, and tracks external paths in `externalPaths` (persisted in `amverge.scenescout.v1`).
 
 16. **Scene Scout video previews**: Search results are uncut scenes bounded by `[startSec, endSec]` inside the full source episode (`clip.database` set). On hover or a preview-all stagger turn, `useClipVideoSource` requests `ensure_scene_range_preview`, a short 480p x264 cut of just that range, and `LazyClip` plays it like any cut clip. Never mount a `<video>` on the raw source for preview-all: one full-episode decoder per tile (often 10-bit HEVC MKV) freezes the app. Seeking into the source (`handleTimeUpdate`/`handleEnded`) is only a hover fallback when the range preview fails, and for home clips still mid-cut.
+
+18. **CLI patch auto-update (AI env only)**: the AI env's `amverge` follows PyPI within the bundled CLI's major.minor (`deps/cli_update.rs`). New pack installs use `>=bundled,<next minor`; `update_ai_cli` upgrades in place on launch, stopping the scout daemon first and keeping installed packs. **A CLI release that changes the app contract (commands, flags, JSON, IPC events) must bump the minor version**, or installed apps pull it in automatically and break. The bundled sidecar (keyframe import, export) still only changes with an app update.
 
 17. **Scene Scout first-visit layout**: until the first search of an app session, `SceneScoutPage` renders `SceneScoutHero` (logo, Add Episode, search, database picker) instead of the toolbar and grid. `heroDismissed` in `sceneScoutStore` is runtime only, never persisted. The first search records the hero bar's rect (`features/sceneScout/heroTransition.ts`) and the top toolbar slides its bar from there on mount. Search, Add Episode (with its per-run scene detection popup, remembered in `settings.lastIndexDetection`, separate from the home import default) and database creation are shared pieces: `ScoutSearchField`, `useAddEpisodes`, `useCreateScoutDatabase`.
