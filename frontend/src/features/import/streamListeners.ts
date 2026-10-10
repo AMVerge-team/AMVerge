@@ -178,15 +178,15 @@ export async function startVideoStreamingListeners(
     scheduleFlush();
   });
 
-  // keyframe copies done. the grid is already visible, so this only clears the
-  // busy flag; phase-2 re-encodes keep streaming and deliberately do not block a
-  // new import
+  // the initial preview phase is complete. the grid is already visible, so this
+  // only clears the busy flag; exact AI previews keep streaming and deliberately
+  // do not block a new import
   const unlistenPhase1 = await listen<{ episode_cache_id?: string | null }>(
     "phase1_complete",
     (event) => {
       if (!isMine(event.payload)) return;
-      // flush synchronously so every keyframe clip path is in the store before
-      // the import resolves
+      // flush synchronously so every completed preview path is in the store
+      // before the import resolves
       cancelFlush();
       flushPatches();
       if (focusGrid) useAppStateStore.setState({ loading: false, bgProgress: null });

@@ -11,6 +11,7 @@ pub mod extension_sync;
 pub mod models;
 pub mod notifications;
 pub mod preview;
+pub mod scene_scout;
 pub mod scenepacks;
 pub mod scenes;
 pub mod settings;

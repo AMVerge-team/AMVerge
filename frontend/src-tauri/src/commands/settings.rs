@@ -7,7 +7,10 @@ use tauri::{AppHandle, Manager};
 
 use crate::utils::ffmpeg::resolve_bundled_tool;
 use crate::utils::logging::console_log;
-use crate::utils::paths::{is_episode_cache_dir, resolve_episodes_storage_dir};
+use crate::utils::paths::{
+    is_episode_cache_dir, resolve_episodes_storage_dir, resolve_storage_root, EPISODES_DIR_NAME,
+    OWNED_STORAGE_DIRS,
+};
 use crate::utils::process::apply_no_window;
 
 #[tauri::command]
@@ -17,72 +20,59 @@ pub fn get_default_episodes_dir(app: AppHandle) -> Result<String, String> {
     Ok(path.to_string_lossy().to_string())
 }
 
+/// move every kind of storage AMVerge owns to a new root.
+///
+/// walks `OWNED_STORAGE_DIRS` rather than one folder, so episodes, Scenepacks
+/// and Scene Scout databases all follow the location the user picks in
+/// Settings. adding a new kind of storage means adding its name to that list
+/// and nothing else here.
+///
+/// returns the OLD episodes folder, not the old root: both callers use it to
+/// rewrite the stored clip paths of episodes they already have.
 #[tauri::command]
-pub fn move_episodes_to_new_dir(
+pub fn move_storage_to_new_dir(
     app: AppHandle,
     old_dir: Option<String>,
     new_dir: Option<String>,
 ) -> Result<String, String> {
-    let old_path = resolve_episodes_storage_dir(&app, old_dir.as_deref())?;
-    let new_path = resolve_episodes_storage_dir(&app, new_dir.as_deref())?;
-    let old_path_string = old_path.to_string_lossy().to_string();
+    let old_root = resolve_storage_root(&app, old_dir.as_deref())?;
+    let new_root = resolve_storage_root(&app, new_dir.as_deref())?;
 
-    if old_path == new_path {
-        return Ok(old_path_string);
+    let old_episodes = resolve_episodes_storage_dir(&app, old_dir.as_deref())?;
+    let old_episodes_string = old_episodes.to_string_lossy().to_string();
+
+    if old_root == new_root {
+        return Ok(old_episodes_string);
     }
-
-    if !old_path.exists() {
-        return Ok(old_path_string);
-    }
-
-    fs::create_dir_all(&new_path).map_err(|e| format!("Failed to create new directory: {e}"))?;
 
     // source folders that were copied but could not be deleted (locked files)
     let mut leftovers: Vec<String> = Vec::new();
 
-    for entry in
-        fs::read_dir(&old_path).map_err(|e| format!("Failed to read old directory: {e}"))?
-    {
-        let entry = entry.map_err(|e| format!("Failed to read entry: {e}"))?;
-
-        let src = entry.path();
-
-        // move only folders we created. the old directory may be a location the
-        // user picked themselves and filled with unrelated files; relocating
-        // those along with the cache would move data that isn't ours
-        if !is_episode_cache_dir(&src) {
+    for dir_name in OWNED_STORAGE_DIRS {
+        let src_dir = old_root.join(dir_name);
+        if !src_dir.is_dir() {
             continue;
         }
 
-        let dest = new_path.join(entry.file_name());
+        let dest_dir = new_root.join(dir_name);
+        fs::create_dir_all(&dest_dir)
+            .map_err(|e| format!("Failed to create new directory: {e}"))?;
 
-        // fast path: same volume, nothing holding the files open
-        if fs::rename(&src, &dest).is_ok() {
-            continue;
-        }
+        for entry in
+            fs::read_dir(&src_dir).map_err(|e| format!("Failed to read old directory: {e}"))?
+        {
+            let entry = entry.map_err(|e| format!("Failed to read entry: {e}"))?;
+            let src = entry.path();
 
-        // slow path: copy everything first, and only then try to delete the
-        // source. the delete is deliberately best-effort, the grid keeps the
-        // clips it is displaying open in the WebView, so a file can be locked
-        // (os error 32) at any moment. failing hard here used to abort
-        // `remove_dir_all` mid-way, which had already deleted part of the
-        // episode: the copy survived, but the source was gutted
-        if src.is_dir() {
-            let mut options = fs_extra::dir::CopyOptions::new();
-            options.copy_inside = true;
-            options.overwrite = true;
+            // the episodes folder is the one a user may also have filled with
+            // their own files, so only the folders carrying our manifest marker
+            // move. the other kinds live in folders AMVerge creates and owns
+            // outright, where everything inside is ours
+            if *dir_name == EPISODES_DIR_NAME && !is_episode_cache_dir(&src) {
+                continue;
+            }
 
-            fs::create_dir_all(&dest)
-                .map_err(|e| format!("Failed to create destination folder: {e}"))?;
-
-            fs_extra::dir::copy(&src, &dest, &options)
-                .map_err(|e| format!("Failed to copy directory: {e}"))?;
-        } else {
-            fs::copy(&src, &dest).map_err(|e| format!("Failed to copy file: {e}"))?;
-        }
-
-        if !remove_with_retries(&src) {
-            leftovers.push(src.to_string_lossy().to_string());
+            move_entry(&src, &dest_dir.join(entry.file_name()), &mut leftovers)?;
         }
     }
 
@@ -96,7 +86,42 @@ pub fn move_episodes_to_new_dir(
         );
     }
 
-    Ok(old_path_string)
+    Ok(old_episodes_string)
+}
+
+/// move one folder or file, falling back to copy-then-delete.
+///
+/// the delete is deliberately best-effort: the grid keeps the clips it is
+/// displaying open in the WebView, so a file can be locked (os error 32) at any
+/// moment. failing hard here used to abort `remove_dir_all` mid-way, which had
+/// already deleted part of the episode, leaving the copy intact but the source
+/// gutted. a survivor is recorded as a leftover, never treated as a reason to
+/// abort the rest of the move.
+fn move_entry(src: &Path, dest: &Path, leftovers: &mut Vec<String>) -> Result<(), String> {
+    // fast path: same volume, nothing holding the files open
+    if fs::rename(src, dest).is_ok() {
+        return Ok(());
+    }
+
+    if src.is_dir() {
+        let mut options = fs_extra::dir::CopyOptions::new();
+        options.copy_inside = true;
+        options.overwrite = true;
+
+        fs::create_dir_all(dest)
+            .map_err(|e| format!("Failed to create destination folder: {e}"))?;
+
+        fs_extra::dir::copy(src, dest, &options)
+            .map_err(|e| format!("Failed to copy directory: {e}"))?;
+    } else {
+        fs::copy(src, dest).map_err(|e| format!("Failed to copy file: {e}"))?;
+    }
+
+    if !remove_with_retries(src) {
+        leftovers.push(src.to_string_lossy().to_string());
+    }
+
+    Ok(())
 }
 
 /// delete a moved-from path, retrying briefly. Windows releases a file handle

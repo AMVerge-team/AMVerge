@@ -1,6 +1,9 @@
+#[cfg(target_os = "windows")]
 use std::path::{Path, PathBuf};
+#[cfg(target_os = "windows")]
 use std::process::Command;
 
+#[cfg(target_os = "windows")]
 use crate::utils::process::apply_no_window;
 
 #[cfg(target_os = "windows")]

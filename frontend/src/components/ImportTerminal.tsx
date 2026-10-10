@@ -17,9 +17,7 @@ interface ImportTerminalProps {
   batchDone: number;
   batchCurrentFile: string;
   onAbort: () => void;
-  /** which CLI operation this overlay is showing (drives the command header) */
-  operation?: "import" | "export";
-  /** video file name for the synthesized command header line */
+  operation?: "import" | "export" | "scout_add" | "scout_open" | "scout_search";
   commandLabel?: string;
   /** scene detection method for the synthesized command line (e.g. keyframe_detection) */
   detectionMethod?: string;
@@ -168,6 +166,12 @@ export default function ImportTerminal({
     if (operation === "export") {
       const target = commandLabel ? `"${commandLabel}"` : "<clips>";
       pushLine("cmd", `amverge export ${target} --merge`);
+    } else if (operation === "scout_add") {
+      const target = commandLabel ? `"${commandLabel}"` : "<video>";
+      pushLine("cmd", `amverge scout add ${target}`);
+    } else if (operation === "scout_open") {
+      const target = commandLabel ? `"${commandLabel}"` : "<database>";
+      pushLine("cmd", `amverge scout open ${target}`);
     } else {
       const target = commandLabel ? `"${commandLabel}"` : "<video>";
       pushLine("cmd", `amverge backend ${target} ${detectionMethod} ${importMethod}`);
@@ -179,6 +183,21 @@ export default function ImportTerminal({
   useEffect(() => {
     const unlisteners: UnlistenFn[] = [];
     let disposed = false;
+
+    // the cli streams counted stages often; print the header once, then each 20% step once
+    const lastStep: Record<string, number> = {};
+    const pushCounted = (stage: string, header: string, label: string, done: number, total: number) => {
+      if (!(stage in lastStep)) {
+        lastStep[stage] = 0;
+        pushLine("event", header);
+      }
+      if (total <= 0 || done <= 0) return;
+      const step = Math.floor((done * 5) / total);
+      if (step > lastStep[stage]) {
+        lastStep[stage] = step;
+        pushLine("event", `${label} ${done}/${total}`);
+      }
+    };
 
     const attach = async () => {
       const stops = await Promise.all([
@@ -194,8 +213,32 @@ export default function ImportTerminal({
           pushLine("event", `✓ ${name} · ${clip_mode || "done"}`);
         }),
         listen("phase1_complete", () => {
-          pushLine("event", "phase 1 complete · keyframe clips ready");
+          pushLine(
+            "event",
+            detectionMethod.startsWith("keyframe")
+              ? "keyframe clips ready"
+              : "scenes detected · encoding exact previews"
+          );
         }),
+        listen<{ stage: string; done: number; total: number; video?: string | null }>(
+          "scout_progress",
+          (e) => {
+            const { stage, done, total } = e.payload;
+            if (stage === "loading_model") {
+              pushLine("event", "loading SigLIP 2 model weights…");
+            } else if (stage === "detecting") {
+              pushLine("event", "detecting scenes…");
+            } else if (stage === "sampling") {
+              pushCounted(stage, `sampling ${total} representative frames…`, "sampled frames", done, total);
+            } else if (stage === "embedding") {
+              pushCounted(stage, `embedding ${total} scenes…`, "embedding scenes", done, total);
+            } else if (stage === "done") {
+              // a batch of episodes repeats every stage, so the next one prints its own steps
+              for (const key of Object.keys(lastStep)) delete lastStep[key];
+              pushLine("event", `indexed ${total} scenes successfully`);
+            }
+          }
+        ),
       ]);
 
       if (disposed) {
@@ -266,7 +309,9 @@ export default function ImportTerminal({
         <div className="lm-head" onPointerDown={handleCardPointerDown}>
           <span className="lm-spinner">{done ? "✓" : SPINNER[spinnerFrame]}</span>
           <span className="lm-title">
-            {isBatch ? "Importing videos" : progressMsg || "Finishing import…"}
+            {isBatch
+              ? (operation === "scout_add" ? "Embedding videos" : "Importing videos")
+              : progressMsg || (operation === "scout_add" ? "Embedding scenes…" : operation === "scout_open" ? "Opening database…" : operation === "scout_search" ? "Searching scenes…" : "Finishing import…")}
           </span>
           <div className="lm-actions">
             <Tooltip content="Expand">
@@ -347,7 +392,15 @@ export default function ImportTerminal({
     <div className="loading-overlay">
       <div className="import-terminal" role="log" aria-label="AMVerge CLI output">
         <div className="it-header">
-          <span className="it-title">AMVerge CLI</span>
+          <span className="it-title">
+            {operation === "scout_add"
+              ? "Scene Scout - Indexing"
+              : operation === "scout_open"
+              ? "Scene Scout - Database"
+              : operation === "scout_search"
+              ? "Scene Scout - Search"
+              : "AMVerge CLI"}
+          </span>
           {onToggleMinimize ? (
             <Tooltip content="Minimize">
               <button
@@ -386,7 +439,7 @@ export default function ImportTerminal({
 
           {batchTotal > 1 && (
             <div className="it-batch">
-              Cutting videos {batchDone + 1}/{batchTotal} · {batchCurrentFile}
+              {operation === "scout_add" ? "Embedding videos" : "Cutting videos"} {batchDone + 1}/{batchTotal} · {batchCurrentFile}
             </div>
           )}
 

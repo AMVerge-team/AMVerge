@@ -1,4 +1,6 @@
+#[cfg(target_os = "windows")]
 use super::super::scripts::escape_ps_single_quoted;
+#[cfg(target_os = "windows")]
 use super::super::staging::normalize_windows_editor_import_path;
 
 #[cfg(target_os = "windows")]

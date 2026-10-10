@@ -12,6 +12,7 @@ use tauri::{AppHandle, State};
 
 use crate::state::ActiveInstall;
 use crate::utils::logging::console_log;
+#[cfg(windows)]
 use crate::utils::process::apply_no_window;
 use crate::utils::sidecar::{ai_env_dir, ai_env_python, ai_env_ready, uv_cache_dir, uv_python_dir};
 
@@ -32,13 +33,14 @@ pub async fn ai_env_status(app: AppHandle) -> Result<AiEnvStatus, String> {
         .map_err(|e| format!("status task panicked: {e}"))?
 }
 
-/// install one pack (and torch, the first time). `gpu` picks the CUDA wheel
+/// install one pack. `gpu` picks the CUDA wheel, `gpu_decode` rebuilds on the NVDEC profile
 #[tauri::command]
 pub async fn install_ai_pack(
     app: AppHandle,
     install_state: State<'_, ActiveInstall>,
     pack: String,
     gpu: bool,
+    gpu_decode: Option<bool>,
 ) -> Result<AiEnvStatus, String> {
     let target = pack_by_id(&pack)?;
 
@@ -56,7 +58,7 @@ pub async fn install_ai_pack(
     let app_for_task = app.clone();
     let state_for_task = state.clone();
     let outcome = tokio::task::spawn_blocking(move || {
-        let result = install_ai_pack_inner(&app_for_task, &state_for_task, target, gpu);
+        let result = install_ai_pack_inner(&app_for_task, &state_for_task, target, gpu, gpu_decode);
         state_for_task.finish();
         result
     })
@@ -70,8 +72,7 @@ pub async fn install_ai_pack(
     ai_env_status(app).await
 }
 
-/// stop an in-flight install. the venv is left in place; a half-installed pack
-/// simply reports as not installed and can be retried
+/// stop an in-flight install; a half-installed pack just reports as not installed
 #[tauri::command]
 pub async fn abort_ai_install(install_state: State<'_, ActiveInstall>) -> Result<(), String> {
     install_state.cancel();
@@ -100,14 +101,11 @@ pub async fn abort_ai_install(install_state: State<'_, ActiveInstall>) -> Result
     Ok(())
 }
 
-/// remove one pack's distinguishing packages. torch stays because other packs
-/// share it; use `remove_ai_env` to reclaim that space
+/// remove one pack's own packages. torch stays; use `remove_ai_env` for that space
 #[tauri::command]
 pub async fn uninstall_ai_pack(app: AppHandle, pack: String) -> Result<AiEnvStatus, String> {
     let target = pack_by_id(&pack)?;
     if !ai_env_ready(&app) {
-        // returning the status here looked like success and left the button
-        // unchanged, with no clue that nothing had happened
         return Err("There is no AI environment to remove from.".to_string());
     }
 

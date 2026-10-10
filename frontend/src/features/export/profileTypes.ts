@@ -39,7 +39,7 @@ export type ExportAudioMode =
   | "opus"
   | "mp3"
   | "none";
-export type ExportContainer = "mp4" | "mov" | "mxf";
+export type ExportContainer = "avi" | "mp4" | "mov" | "mxf";
 export type ExportHardwareMode = "auto" | "gpu" | "cpu";
 export type ExportEditorTarget =
   | "none";

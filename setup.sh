@@ -211,6 +211,11 @@ ok "node_modules installed"
 note "Staging the uv binary used to provision AI environments"
 npm run fetch:uv || warn "fetch:uv failed. Not fatal; tauri:dev retries it."
 
+# The Rust build refuses to start while the release sidecar is missing, even
+# though a dev build never runs it. Empty stand-ins satisfy it.
+npm run stub:sidecar
+ok "Sidecar stand-ins in place for dev builds"
+
 # ---------------------------------------------------------------------------
 step "Done"
 

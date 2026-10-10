@@ -116,8 +116,12 @@ export function supportsAudioMode(workflow: ExportWorkflow): boolean {
 export function supportsContainerSelection(workflow: ExportWorkflow): boolean {
   switch (workflow) {
     case "video_encode":
-    case "video_remux":
       return true;
+    // A stream copy inherits AVI/MP4/MOV when possible, or uses the source
+    // codec policy at export time. Letting a stored profile override that
+    // would turn a safe fast-remux choice into a surprise mux failure.
+    case "video_remux":
+      return false;
     default:
       return false;
   }
@@ -140,6 +144,8 @@ export function isExportCodecContainerCompatible(
   const family = getCodecFamily(codec);
 
   switch (container) {
+    case "avi":
+      return family === "h264" || family === "h265";
     case "mp4":
       return family === "h264" || family === "h265" || family === "av1";
     case "mov":
@@ -265,7 +271,7 @@ export function getExportProfileSummary(profile: ExportProfile): string {
     ? getExportCodecLabel(codec)
     : "Stream copy";
   const audioLabel = AUDIO_MODE_LABELS[profile.audioMode] || "Audio copy";
-  const containerLabel = profile.container.toUpperCase();
+  const containerLabel = profile.workflow === "video_remux" ? "Auto container" : profile.container.toUpperCase();
 
   return `${codecLabel} • ${audioLabel} • ${containerLabel}`;
 }

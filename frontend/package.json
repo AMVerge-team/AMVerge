@@ -11,8 +11,9 @@
     "build:all": "npm run build:sidecar && npm run fetch:uv && npm run build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "tauri:dev": "npm run fetch:uv && dotenv -e ../.env -- tauri dev",
-    "tauri:build": "dotenv -e ../.env.production -- tauri build"
+    "stub:sidecar": "node ./scripts/stub-sidecar.mjs",
+    "tauri:dev": "npm run fetch:uv && npm run stub:sidecar && dotenv -e ../.env -- tauri dev",
+    "tauri:build": "node ./scripts/stub-sidecar.mjs --check && dotenv -e ../.env.production -- tauri build"
   },
   "dependencies": {
     "@tauri-apps/api": "~2.10.1",

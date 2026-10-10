@@ -1,7 +1,14 @@
 import { invoke } from "@tauri-apps/api/core";
 import { create } from "zustand";
 
-import type { AiEnvStatus, AiPackId } from "../features/aiDeps/packs";
+import {
+  loadGpuPreference,
+  saveGpuPreference,
+  wantsCudaWheel,
+  type AiEnvStatus,
+  type AiPackId,
+  type GpuPreference,
+} from "../features/aiDeps/packs";
 
 const MAX_LOGS = 200;
 
@@ -31,6 +38,16 @@ export type AiDepsStore = {
   logs: string[];
   error: string | null;
 
+  /// names the operation when it is not "install this pack": the dialog is
+  /// reused for GPU decode, where "TransNetV2 installed" describes neither what
+  /// is running nor what finished. null falls back to the pack's own wording
+  job: { title: string; done: string } | null;
+
+  /// user's override for the CUDA/CPU wheel choice, for when the GPU probe is
+  /// wrong. persisted, because it has to survive the next install too
+  gpuPreference: GpuPreference;
+  setGpuPreference: (preference: GpuPreference) => void;
+
   refresh: () => Promise<AiEnvStatus | null>;
   /// resolves true when `id` is installed and the caller may proceed. opens the
   /// confirm dialog when it isn't, and resolves false if the user declines
@@ -39,6 +56,9 @@ export type AiDepsStore = {
   /// re-resolve every installed pack against the CUDA index. for an env that
   /// ended up on a CPU torch despite the machine having an NVIDIA GPU
   repairGpu: () => Promise<void>;
+  /// turn NVDEC decode on or off. rebuilds the AI env on the other profile,
+  /// which is a multi-GB re-download either way, so the UI must say so first
+  setGpuDecode: (enabled: boolean) => Promise<void>;
   cancel: () => void;
   close: () => void;
   minimize: () => void;
@@ -53,6 +73,12 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
   status: null,
   loading: false,
 
+  gpuPreference: loadGpuPreference(),
+  setGpuPreference: (preference) => {
+    saveGpuPreference(preference);
+    set({ gpuPreference: preference });
+  },
+
   open: false,
   pack: null,
   stage: "confirm",
@@ -61,6 +87,7 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
   message: "",
   logs: [],
   error: null,
+  job: null,
 
   refresh: async () => {
     set({ loading: true });
@@ -102,6 +129,7 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
       message: "",
       logs: [],
       error: null,
+      job: null,
     });
 
     return new Promise<boolean>((resolve) => {
@@ -110,13 +138,11 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
   },
 
   startInstall: async () => {
-    const { pack, status } = get();
+    const { pack, status, gpuPreference } = get();
     if (!pack) return;
 
-    // driven by the hardware, not by whatever variant happens to be installed.
-    // preferring the installed variant made a CPU torch sticky: once anything
-    // pulled in a CPU wheel, every later pack kept reinstalling CPU
-    const gpu = Boolean(status?.gpuAvailable);
+    // driven by hardware, not the installed variant, which made a CPU torch sticky
+    const gpu = wantsCudaWheel(status, gpuPreference);
     set({
       stage: "installing",
       percent: 0,
@@ -155,11 +181,10 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
     const installed = (Object.keys(status?.packs ?? {}) as AiPackId[]).filter(
       (id) => status?.packs?.[id],
     );
-    if (installed.length === 0 || !status?.gpuAvailable) return;
+    // not gated on the GPU probe: an undetected GPU is exactly why this exists
+    if (installed.length === 0) return;
 
-    // one call is enough: the backend resolves the requested pack together with
-    // every pack already installed, so a single run puts the whole environment
-    // on the CUDA wheels
+    // one call: the backend re-resolves every installed pack onto the CUDA wheels
     settle(false);
     set({
       open: true,
@@ -170,12 +195,16 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
       message: "Reinstalling PyTorch with GPU support...",
       logs: [],
       error: null,
+      job: { title: "GPU support", done: "GPU support installed" },
     });
 
     try {
       const next = await invoke<AiEnvStatus>("install_ai_pack", {
         pack: installed[0],
         gpu: true,
+        // omitted on purpose: a torch repair must not decide the GPU decode
+        // profile, and the backend leaves it as it found it
+        gpuDecode: undefined,
       });
       set({
         status: next,
@@ -194,6 +223,62 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
         indeterminate: false,
         error: String(err),
         message: "Reinstall failed.",
+      });
+      await get().refresh();
+    }
+  },
+
+  setGpuDecode: async (enabled) => {
+    const status = get().status ?? (await get().refresh());
+    const installed = (Object.keys(status?.packs ?? {}) as AiPackId[]).filter(
+      (id) => status?.packs?.[id],
+    );
+    if (installed.length === 0) return;
+
+    // different interpreters, so this is a rebuild rather than an add
+    settle(false);
+    set({
+      open: true,
+      pack: installed[0],
+      stage: "installing",
+      percent: 0,
+      indeterminate: true,
+      message: enabled
+        ? "Rebuilding the AI environment with GPU decode..."
+        : "Removing GPU decode...",
+      logs: [],
+      error: null,
+      job: {
+        title: enabled ? "Enabling GPU decoding" : "Disabling GPU decoding",
+        done: enabled ? "GPU decoding enabled" : "GPU decoding disabled",
+      },
+    });
+
+    try {
+      const next = await invoke<AiEnvStatus>("install_ai_pack", {
+        pack: installed[0],
+        gpu: true,
+        gpuDecode: enabled,
+      });
+      const ok = next.gpuDecodeInstalled === enabled;
+      set({
+        status: next,
+        stage: ok ? "done" : "error",
+        percent: 100,
+        indeterminate: false,
+        message: ok
+          ? enabled
+            ? "GPU decode enabled."
+            : "GPU decode removed."
+          : "The environment did not end up on the requested profile.",
+        error: ok ? null : "Nelux is still not in the state that was asked for.",
+      });
+    } catch (err) {
+      set({
+        stage: "error",
+        indeterminate: false,
+        error: String(err),
+        message: "Rebuild failed.",
       });
       await get().refresh();
     }

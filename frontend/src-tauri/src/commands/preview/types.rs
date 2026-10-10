@@ -15,6 +15,16 @@ pub struct PreviewAudioStream {
     pub language: String,
 }
 
+/// Codec names reported by ffprobe for export-policy decisions. These are
+/// deliberately source facts, not a claim that a target container can mux
+/// them; the CLI remains the authoritative copy-export preflight.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportSourceStreams {
+    pub video_codec: Option<String>,
+    pub audio_codecs: Vec<String>,
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SceneWebpJob {

@@ -1,4 +1,5 @@
 use super::*;
+#[cfg(target_os = "windows")]
 use std::process::Command;
 
 #[cfg(target_os = "windows")]

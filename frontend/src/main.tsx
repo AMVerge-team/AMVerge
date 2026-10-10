@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./styles/index.css";
 import { initConsoleCapture } from "./utils/appConsole";
+import { applyThemeSettings, useThemeSettingsStore } from "./stores/settingsStore";
 
 initConsoleCapture();
 
@@ -56,6 +57,19 @@ async function maybeCheckForUpdatesOnStartup() {
 }
 
 void maybeCheckForUpdatesOnStartup();
+
+// before React renders anything. App also applies this in an effect, which runs
+// after the first paint, so the splash would show one frame of the default
+// green accent before the user's own colour arrived. `persist` keeps the theme
+// in localStorage, which is synchronous and already hydrated by now
+// guarded: at module scope a throw here would take the whole render with it,
+// where the same call inside App's effect could only cost the theme. App
+// re-applies it either way, so failing quietly is the right trade
+try {
+  applyThemeSettings(useThemeSettingsStore.getState());
+} catch (err) {
+  console.warn("Could not pre-apply theme settings", err);
+}
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>

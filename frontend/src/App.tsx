@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Event, listen } from "@tauri-apps/api/event";
 import { DEFAULT_GENERAL_SETTINGS } from "./stores/settingsStore";
@@ -15,9 +15,11 @@ import BanNoticeModal from "./components/events/BanNoticeModal";
 import DenialNoticeModal from "./components/events/DenialNoticeModal";
 import ApprovalNoticeModal from "./components/events/ApprovalNoticeModal";
 import ScenepacksPage from "./pages/ScenepacksPage";
+import SceneScoutPage from "./pages/SceneScoutPage";
 import ImportTerminal from "./components/ImportTerminal";
 import BgProgressBar from "./components/BgProgressBar";
 import StartupNotificationModal, { type StartupNotification } from "./components/StartupNotificationModal";
+import SplashScreen from "./components/SplashScreen";
 import PostExportPassesModal from "./components/PostExportPassesModal";
 import AiInstallModal from "./components/AiInstallModal";
 
@@ -36,6 +38,7 @@ import { useScenePreviewStore } from "./stores/scenePreviewStore";
 import { useAiDepsStore } from "./stores/aiDepsStore";
 import { useAppStateStore } from "./stores/appStore";
 import { useWebpLoadingStore } from "./stores/webpLoadingStore";
+import { useSceneScoutStore } from "./stores/sceneScoutStore";
 import { useUIStateStore } from "./stores/UIStore";
 import { applyThemeSettings, useGeneralSettingsStore, useThemeSettingsStore } from "./stores/settingsStore";
 import { useEpisodePanelRuntimeStore } from "./stores/episodeStore";
@@ -58,6 +61,9 @@ function App() {
   const bgProgress = useAppStateStore((s) => s.bgProgress);
   const bgImportProgress = useAppStateStore((s) => s.bgImportProgress);
   const reencodeProgress = useAppStateStore((s) => s.reencodeProgress);
+  // scene scout indexing reports two counted stages, so the card names whichever is running
+  const scoutIndexStage = useSceneScoutStore((s) => s.indexing?.stage);
+  const scoutAddLabel = scoutIndexStage === "sampling" ? "Sampling frames" : "Embedding scenes";
   const webpLoadDone = useWebpLoadingStore((s) => s.done);
   const webpLoadTotalRaw = useWebpLoadingStore((s) => s.total);
   const webpDismissed = useWebpLoadingStore((s) => s.dismissed);
@@ -91,6 +97,21 @@ function App() {
   const abortedRef = useRef(false);
 
   const scenepacksEnabled = useGeneralSettingsStore((s) => s.scenepacksEnabled);
+
+  const [splashVisible, setSplashVisible] = useState(true);
+
+  // hide every background layer while the splash is up, so the gradient and any
+  // wallpaper fade in with the app rather than being there all along. before
+  // paint, or the first frame shows the background at full strength
+  useLayoutEffect(() => {
+    document.body.style.setProperty("--app-bg-reveal", "0");
+  }, []);
+
+  const handleSplashFinished = useCallback(() => {
+    setSplashVisible(false);
+    // the transition on body carries it the rest of the way
+    document.body.style.setProperty("--app-bg-reveal", "1");
+  }, []);
   const themeSettings = useThemeSettingsStore();
 
 
@@ -107,7 +128,7 @@ function App() {
       useAppStateStore.getState().setSelectedClips(new Set());
       await new Promise((resolve) => setTimeout(resolve, 250));
 
-      const resolvedOldPath = await invoke<string>("move_episodes_to_new_dir", {
+      const resolvedOldPath = await invoke<string>("move_storage_to_new_dir", {
         oldDir: useGeneralSettingsStore.getState().episodesPath,
         newDir: null,
       });
@@ -250,6 +271,7 @@ function App() {
         invoke("abort_detect_scenes"),
         invoke("abort_export"),
         invoke("abort_editor_import"),
+        invoke("abort_scout_index"),
       ]);
     } catch (err) {
       console.error("abort tasks failed:", err);
@@ -278,13 +300,13 @@ function App() {
 
   // auto-minimize once the heavy phase (scene detect + first clip cuts) is done
   // and only background thumbnail/reencode/preview work remains
-  const autoMinimized = !loading && bgActive;
+  const autoMinimized = activeOperation === "scout_add" || activeOperation === "scout_open" || activeOperation === "scout_search" || (!loading && bgActive);
   const overlayMinimized = minimizeOverride !== null ? minimizeOverride : autoMinimized;
 
   async function handleAbortAndCloseBgProgress() {
-    const { bgProgress: bg, bgImportProgress: bgImport, reencodeProgress: reenc } =
+    const { bgProgress: bg, bgImportProgress: bgImport, reencodeProgress: reenc, activeOperation: op } =
       useAppStateStore.getState();
-    if (bg || bgImport || reenc) {
+    if (bg || bgImport || reenc || op === "scout_add" || op === "scout_open" || op === "scout_search") {
       await handleAbort();
     }
     clearBgProgress();
@@ -455,7 +477,7 @@ function App() {
               <BgProgressBar
                 clipDone={(reencodeProgress ?? bgProgress)?.done ?? 0}
                 clipTotal={(reencodeProgress ?? bgProgress)?.total ?? 0}
-                clipLabel={reencodeProgress ? "Reencoding" : "Processing clips"}
+                clipLabel={activeOperation === "scout_add" ? scoutAddLabel : activeOperation === "scout_search" ? "Searching scenes" : reencodeProgress ? "Reencoding" : "Processing clips"}
                 importDone={bgImportProgress?.done ?? 0}
                 importTotal={bgImportProgress?.total ?? 0}
                 webpDone={webpLoadDone}
@@ -469,7 +491,7 @@ function App() {
           <BgProgressBar
             clipDone={(reencodeProgress ?? bgProgress)?.done ?? 0}
             clipTotal={(reencodeProgress ?? bgProgress)?.total ?? 0}
-            clipLabel={reencodeProgress ? "Reencoding" : "Processing clips"}
+            clipLabel={activeOperation === "scout_add" ? scoutAddLabel : activeOperation === "scout_search" ? "Searching scenes" : reencodeProgress ? "Reencoding" : "Processing clips"}
             importDone={bgImportProgress?.done ?? 0}
             importTotal={bgImportProgress?.total ?? 0}
             webpDone={webpLoadDone}
@@ -503,6 +525,7 @@ function App() {
           <HomePage />
         </div>
         {activePage === "scenepacks" && scenepacksEnabled && <ScenepacksPage />}
+        {activePage === "sceneScout" && <SceneScoutPage />}
         {activePage === "events" && <EventsPage />}
       </div>
       <QuickMenu />
@@ -525,6 +548,7 @@ function App() {
       ) : null}
       <PostExportPassesModal />
       <AiInstallModal />
+      {splashVisible ? <SplashScreen onFinished={handleSplashFinished} /> : null}
       </AppLayout>
   );
 }

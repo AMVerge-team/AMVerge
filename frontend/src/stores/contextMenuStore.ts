@@ -15,7 +15,8 @@ export type ContextMenuId =
   | "scenepack-panel-item"
   | "scenepack-panel-empty"
   | "clip-scenepack-picker"
-  | "scenepack-clip";
+  | "scenepack-clip"
+  | "scene-scout-database";
 
 type ContextMenuStore = {
   activeMenu: ContextMenuId | null;

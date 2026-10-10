@@ -6,10 +6,14 @@ use tauri::AppHandle;
 use crate::state::ActiveInstall;
 use crate::utils::logging::{console_log, sanitize_for_console};
 use crate::utils::sidecar::{
-    ai_env_dir, ai_env_python, ai_env_ready, app_data_dir, bundled_cli_version, uv_cache_dir,
+    ai_env_dir, ai_env_python, ai_env_ready, bundled_cli_version, runtime_dir, uv_cache_dir,
 };
 
-use super::packs::{Pack, AI_ENV_PYTHON_VERSION, PACKS, TORCH_CUDA_INDEX, TORCH_FAMILY};
+use super::packs::{
+    Pack, AI_ENV_PYTHON_VERSION, AI_ENV_PYTHON_VERSION_GPU_DECODE, PACKS, TORCH_CUDA_INDEX,
+    TORCH_CUDA_INDEX_GPU_DECODE, TORCH_FAMILY, TORCH_PIN_GPU_DECODE,
+};
+use super::status::env_python_version_of;
 use super::progress::{emit_log, emit_progress, report_uv_progress};
 use super::status::{installed_distributions, uv_command};
 
@@ -29,8 +33,6 @@ pub(crate) fn run_uv_step(
         *lock = Some(child.id());
     }
 
-    // uv writes its progress to stderr and command output to stdout. drain
-    // stdout on its own thread so a full pipe can never deadlock the reader
     let stdout_handle = child.stdout.take().map(|stdout| {
         let app = app.clone();
         let pack = pack.to_string();
@@ -49,9 +51,6 @@ pub(crate) fn run_uv_step(
     let mut total_packages = 0usize;
     let mut downloaded = 0usize;
     if let Some(stderr) = child.stderr.take() {
-        // uv redraws its progress in place with \r rather than one line per
-        // update, so read to the newline and split on both terminators to catch
-        // those intermediate redraws
         let mut reader = BufReader::new(stderr);
         let mut buf = Vec::new();
 
@@ -118,15 +117,84 @@ pub(crate) fn install_ai_pack_inner(
     install_state: &ActiveInstall,
     pack: &Pack,
     gpu: bool,
+    gpu_decode: Option<bool>,
 ) -> Result<(), String> {
     let env_dir = ai_env_dir(app)?;
     let python = ai_env_python(app)?;
-    std::fs::create_dir_all(app_data_dir(app)?).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(runtime_dir(app)?).map_err(|e| e.to_string())?;
 
-    console_log("DEPS|install", &format!("pack={} gpu={gpu}", pack.id));
+    let has_nelux = installed_distributions(app, &python)
+        .map(|d| d.contains_key("nelux"))
+        .unwrap_or(false);
+    let want_nelux = gpu_decode.unwrap_or(has_nelux);
 
-    // 1. provision the venv (uv downloads a standalone CPython the first time)
-    if !ai_env_ready(app) {
+    console_log(
+        "DEPS|install",
+        &format!(
+            "pack={} gpu={gpu} gpu_decode={want_nelux} (was {has_nelux})",
+            pack.id
+        ),
+    );
+
+    let wanted_python = if want_nelux {
+        AI_ENV_PYTHON_VERSION_GPU_DECODE
+    } else {
+        AI_ENV_PYTHON_VERSION
+    };
+
+    // 1. provision the venv (uv downloads a standalone CPython the first time).
+    let existing_python = if ai_env_ready(app) {
+        env_python_version_of(&python)
+    } else {
+        None
+    };
+
+    // turning GPU decode off is only ever removing Nelux. nothing else in the
+    // environment changes, so there is no resolution to run and nothing to
+    // download; rebuilding for it re-fetched several GB to arrive somewhere
+    // strictly worse
+    if gpu_decode == Some(false) && existing_python.is_some() {
+        if has_nelux {
+            emit_progress(app, pack.id, "packages", 50, true, "Removing GPU decode...");
+            let mut cmd = uv_command(app)?;
+            cmd.arg("pip")
+                .arg("uninstall")
+                .arg("--python")
+                .arg(&python)
+                .arg("nelux");
+            run_uv_step(app, install_state, pack.id, cmd, "Removing GPU decode")?;
+        }
+        emit_progress(app, pack.id, "done", 100, false, "GPU decode removed.");
+        return Ok(());
+    }
+    let needs_rebuild = match existing_python.as_deref() {
+        None => true,
+        Some(found) => want_nelux && found != AI_ENV_PYTHON_VERSION_GPU_DECODE,
+    };
+
+    // read BEFORE the rebuild empties the env, or every other pack gets dropped
+    let packs_to_keep: Vec<&'static str> = if needs_rebuild && existing_python.is_some() {
+        let before = installed_distributions(app, &python).unwrap_or_default();
+        PACKS
+            .iter()
+            .filter(|p| {
+                p.requires
+                    .iter()
+                    .all(|dist| before.contains_key(&dist.to_lowercase()))
+            })
+            .map(|p| p.extra)
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    if needs_rebuild {
+        if let Some(found) = existing_python.as_deref() {
+            console_log(
+                "DEPS|install",
+                &format!("rebuilding env: on Python {found}, need {wanted_python}"),
+            );
+        }
         emit_progress(
             app,
             pack.id,
@@ -139,29 +207,24 @@ pub(crate) fn install_ai_pack_inner(
         cmd.arg("venv")
             .arg(&env_dir)
             .arg("--python")
-            .arg(AI_ENV_PYTHON_VERSION);
+            .arg(wanted_python);
+        if existing_python.is_some() {
+            cmd.arg("--clear");
+        }
         run_uv_step(app, install_state, pack.id, cmd, "Environment setup")?;
     }
     if install_state.canceled() {
         return Err("Install canceled.".to_string());
     }
 
-    // 2. the pack and torch in ONE resolution. splitting them was the bug behind
-    //    CPU-only depth maps: the pack resolution ran against plain PyPI, and
-    //    depth-anything-v2's `torchvision<0.23` ceiling forced torch down to a
-    //    version it then satisfied with the CPU wheel, silently replacing the
-    //    CUDA build installed moments earlier
+    // 2. pack and torch in ONE resolution: splitting them let PyPI win and install CPU torch
     let installed = installed_distributions(app, &python)?;
     let variant_matches = installed
         .get("torch")
         .map(|v| v.contains("+cu") == gpu)
         .unwrap_or(false);
 
-    // install the target pack together with everything already installed, as one
-    // spec. installing packs one at a time let each re-resolve torch on its own
-    // terms: `interpolation` has no torchvision ceiling, so it would happily
-    // upgrade torch to a version with no CUDA wheel and undo `depth`'s install.
-    // a single resolution has to satisfy every pack at once
+    // install the target pack together with everything already installed as one spec
     let mut extras: Vec<&str> = PACKS
         .iter()
         .filter(|p| {
@@ -172,7 +235,16 @@ pub(crate) fn install_ai_pack_inner(
         })
         .map(|p| p.extra)
         .collect();
+    // whatever the rebuild wiped goes back in the same resolution
+    for extra in &packs_to_keep {
+        if *extra != pack.extra && !extras.contains(extra) {
+            extras.push(extra);
+        }
+    }
     extras.push(pack.extra);
+    if want_nelux {
+        extras.push("nelux");
+    }
 
     let spec = match bundled_cli_version(app) {
         Some(version) => format!("amverge[{}]=={version}", extras.join(",")),
@@ -199,33 +271,28 @@ pub(crate) fn install_ai_pack_inner(
         .arg(&python)
         .arg(&spec);
 
-    // torch AND torchvision, even for a pack that only needs torch. torchvision
-    // is ABI-locked to one torch build, so a later pack pulling it in (depth,
-    // via depth-anything-v2) would make uv replace the torch already on disk.
-    // on Windows that replace fails outright if any process has torch's
-    // _C.*.pyd loaded, and the half-finished swap leaves the env with no torch
-    // metadata - unusable, and not recoverable by retrying. laying both down in
-    // the first resolution means later packs find a matched pair already there
+    // both, always: torchvision is ABI-locked to torch, so a later pack would swap it
     for dist in TORCH_FAMILY {
         cmd.arg(dist);
     }
 
-    if gpu {
-        // uv gives an extra index priority over the default one and, under the
-        // default first-index strategy, resolves a package exclusively from the
-        // first index that carries it. so torch/torchvision come only from the
-        // CUDA index (which never serves a CPU wheel), while av, opencv and the
-        // rest (absent there) fall through to PyPI.
-        //
-        // do NOT add --index-strategy unsafe-best-match here: it picks the
-        // highest version across all indexes, and PyPI ships newer torch
-        // releases than the CUDA index does, so it silently selects a CPU wheel
-        cmd.arg("--extra-index-url").arg(TORCH_CUDA_INDEX);
+    if want_nelux {
+        cmd.arg(TORCH_PIN_GPU_DECODE);
     }
 
-    // an already-installed CPU torch satisfies every constraint, so uv would
-    // report "no changes" and leave it in place. force the swap when the variant
-    // on disk isn't the one being asked for
+    if gpu {
+        let on_cuda13 = installed
+            .get("torch")
+            .map(|v| v.contains("+cu13"))
+            .unwrap_or(false);
+        cmd.arg("--extra-index-url").arg(if want_nelux || on_cuda13 {
+            TORCH_CUDA_INDEX_GPU_DECODE
+        } else {
+            TORCH_CUDA_INDEX
+        });
+    }
+
+    // a CPU torch satisfies every constraint, so uv reports "no changes" without this
     if !variant_matches {
         for dist in TORCH_FAMILY {
             if installed.contains_key(*dist) {
@@ -255,9 +322,7 @@ pub(crate) fn install_ai_pack_inner(
         ));
     }
 
-    // a CPU torch where a GPU one was asked for means the feature will run, but
-    // at a fraction of the speed; the failure this whole single-resolution
-    // change exists to prevent. say so instead of leaving it to be discovered
+    // a CPU torch where GPU was asked for runs fine but far slower, so say so now
     if gpu {
         let torch_version = after.get("torch").cloned().unwrap_or_default();
         if !torch_version.contains("+cu") {

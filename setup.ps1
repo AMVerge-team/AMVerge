@@ -225,6 +225,12 @@ try {
     if ($LASTEXITCODE -ne 0) {
         Write-Warn "fetch:uv failed. Not fatal; tauri:dev retries it."
     }
+
+    # The Rust build refuses to start while the release sidecar is missing,
+    # even though a dev build never runs it. Empty stand-ins satisfy it.
+    npm run stub:sidecar
+    if ($LASTEXITCODE -ne 0) { throw "stub:sidecar failed." }
+    Write-Ok "Sidecar stand-ins in place for dev builds"
 } finally {
     Pop-Location
 }

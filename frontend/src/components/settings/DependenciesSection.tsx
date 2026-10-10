@@ -83,16 +83,22 @@ export default function DependenciesSection() {
     }
   };
 
+  const gpuPreference = useAiDepsStore((s) => s.gpuPreference);
+
   const torchLabel = status?.torchVersion
     ? `${status.torchVersion} (${status.torchVariant === "cuda" ? "GPU / CUDA" : "CPU"})`
     : `not installed. Would use the ${
-        plannedTorchVariant(status) === "cuda" ? "GPU / CUDA" : "CPU"
+        plannedTorchVariant(status, gpuPreference) === "cuda" ? "GPU / CUDA" : "CPU"
       } build`;
 
-  // an NVIDIA machine running the CPU wheel: everything still works, just many
-  // times slower. offer the swap rather than making the user wipe the whole env
-  const gpuRepairAvailable = Boolean(
-    status?.envReady && status?.gpuAvailable && status?.torchVariant === "cpu",
+  // not gated on the GPU probe: the undetected machines are the ones that need it
+  const gpuRepairAvailable = Boolean(status?.envReady && status?.torchVariant === "cpu");
+  const gpuUndetermined = status?.gpuProbe === "unknown" || Boolean(status?.statusError);
+
+  // hidden on pre-Turing cards, where the rebuild would leave a worse env than it found
+  const gpuDecodeOn = Boolean(status?.gpuDecodeInstalled);
+  const gpuDecodeRowVisible = Boolean(
+    status?.envReady && (gpuDecodeOn || status?.gpuDecodeSupported),
   );
 
   return (
@@ -113,9 +119,13 @@ export default function DependenciesSection() {
           <SettingRow
             label="PyTorch"
             description={
-              gpuRepairAvailable
-                ? "The CPU version is installed, but this PC has an NVIDIA GPU. AI features are running much slower than they could."
-                : "Shared by every AI feature. It downloads once, then the rest install quickly."
+              !gpuRepairAvailable
+                ? "Shared by every AI feature. It downloads once, then the rest install quickly."
+                : status?.gpuAvailable
+                  ? "The CPU version is installed, but this PC has an NVIDIA GPU. AI features are running much slower than they could."
+                  : gpuUndetermined
+                    ? "The CPU version is installed. AMVerge couldn't check whether this PC has an NVIDIA GPU, so if it does, AI features are running much slower than they could."
+                    : "The CPU version is installed. No NVIDIA GPU was detected, but you can still force the GPU build if you believe that's wrong."
             }
             control={
               <div className="aid-pack-row">
@@ -136,6 +146,33 @@ export default function DependenciesSection() {
             }
           />
 
+          {gpuDecodeRowVisible ? (
+            <SettingRow
+              label="GPU decode"
+              description={
+                gpuDecodeOn
+                  ? "TransNetV2 reads video through the GPU's decoder. Files the hardware can't decode, such as 10-bit H.264, fall back to FFmpeg on their own."
+                  : "Decodes video on the GPU for AI scene detection. Turning this on re-downloads PyTorch for compatibility."
+              }
+              control={
+                <div className="aid-pack-row">
+                  <span className={`aid-state${gpuDecodeOn ? " installed" : ""}`}>
+                    {gpuDecodeOn ? "on" : "off"}
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={gpuDecodeOn}
+                    aria-label="GPU decode"
+                    className="aid-switch"
+                    onClick={() => void useAiDepsStore.getState().setGpuDecode(!gpuDecodeOn)}
+                    disabled={busy !== null}
+                  />
+                </div>
+              }
+            />
+          ) : null}
+
           {VISIBLE_PACK_IDS.map((packId) => {
             const pack = AI_PACKS[packId];
             const installed = isPackInstalled(status, packId);
@@ -147,7 +184,9 @@ export default function DependenciesSection() {
                 control={
                   <div className="aid-pack-row">
                     <span className={`aid-state${installed ? " installed" : ""}`}>
-                      {installed ? "Installed" : `~${formatSizeMb(estimateDownloadMb(status, packId))}`}
+                      {installed
+                      ? "Installed"
+                      : `~${formatSizeMb(estimateDownloadMb(status, packId, gpuPreference))}`}
                     </span>
                     {installed ? (
                       <button

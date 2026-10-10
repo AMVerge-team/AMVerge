@@ -6,10 +6,10 @@ import type { ClipItem } from "../types/domain";
 /**
  * adds clips to a Scenepack without making the user wait for it
  *
- * cutting a clip is not cheap: the CLI is a separate process, and for a
- * WebP-mode episode it indexes the source's keyframes before it can cut
- * anything. blocking the UI on that turned a one-second gesture into a
- * multi-second one, repeated for every clip of a pass
+ * cutting a clip is not cheap: the CLI is a separate process and source-range
+ * clips are re-encoded so their preview begins at the requested scene boundary.
+ * blocking the UI on that turned a one-second gesture into a multi-second one,
+ * repeated for every clip of a pass
  *
  * so the work is started and the caller is released. the clips show up in the
  * grid immediately as placeholders (see `scenepackPendingStore`) and are

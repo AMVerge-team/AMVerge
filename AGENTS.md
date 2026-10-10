@@ -1,7 +1,26 @@
 # AMVerge v2: AI Agent Guide
 
 > Target: `V2_BRANCH` (Tauri v2 + React + AMVerge-CLI)
-> Last updated: 2026-08-06
+> Last updated: 2026-08-11
+
+## Cross-Repo Contracts
+
+Sibling repos sit next to this one: `../AMVerge-CLI` (the Python backend this app spawns) and `../AMVerge-Extension` (After Effects CEP panel). Each repo has its own agent, and this agent owns this repo only.
+
+- **Reading** sibling repos needs no prompt. **Editing** them asks the user every time (`.claude/hooks/sibling_edit_guard.py`, PreToolUse, reads `siblings` from `contracts.json`). The hook covers the file-editing tools, not shell commands, so never change a sibling repo through Bash. Path-based `Edit(../...)` permission rules were tried and do not work: they cannot match outside the project root. Only do it for trivial fixes the user approves. Anything else goes through `/handoff`.
+- `.claude/contracts.json` lists the files here that call into or are mirrored by other repos. Keep it current.
+- `.claude/hooks/contract_guard.py` (PostToolUse) reminds you, once per session per contract, when you edit one of those files.
+- The CLI is upstream. If the app needs the CLI to behave differently (new flag, event, JSON field, extra), do not work around it in Rust or TS: run `/handoff AMVerge-CLI` with the request. When a CLI handoff arrives here, adapt the app to it.
+- `/handoff <repo>` writes a brief to `.claude/handoffs/` (gitignored), runs that repo's agent headless in its own checkout (accept-edits, cannot edit other repos, does not commit), and relays its report.
+
+| Contract | Here | Other side |
+|---|---|---|
+| `amverge backend` / `materialize-clips` + IPC events | `commands/scenes.rs`, `commands/scenepacks.rs` | CLI `commands/sidecar/*`, `core/infra/ipc.py` |
+| `amverge export` + `--ipc` post passes | `commands/export.rs`, `commands/export/*` | CLI `commands/export/export.py`, `core/export/engine.py`, `core/infra/preview.py` |
+| `amverge models --json` | `commands/models.rs` | CLI `commands/upscaling/models.py` |
+| `amverge[extras]` install | `commands/deps/*` | CLI `pyproject.toml` |
+| `extension_sync/` dir | `commands/extension_sync.rs`, `src/hooks/useExtensionSync.ts` | Extension (writer not found on `mac-support-v0`) |
+| UI design tokens | `src/styles/*` | Extension `AMVERGE_APP_UI_REFERENCE.md`, `AMVerge/css/*` |
 
 ## Architecture Overview
 
@@ -181,6 +200,7 @@ frontend/
         bug_report.rs               # Bug report submit (HTTP POST, HMAC signed)
         deps.rs                     # AI env (uv venv), pack install/status
         models.rs                   # AI model weights (list/download/delete)
+        scene_scout.rs              # Scene Scout search, add, databases, open, daemon
         discord.rs                  # Discord RPC (currently no-op)
 
         export/                     # Export sub-modules
@@ -259,6 +279,7 @@ frontend/
 | `hover_preview_error` | preview.rs | Log hover preview errors |
 | `ensure_preview_proxy` | preview.rs | Transcode to x264 proxy (480p, CRF 32) |
 | `ensure_merged_preview` | preview.rs | Concat multiple proxies |
+| `ensure_scene_range_preview` | preview.rs | 480p x264 cut of one `[start, end]` range of a source video, cached in app cache (Scene Scout tiles) |
 | `generate_scene_webp` | preview.rs | Single animated/still WebP (libwebp) |
 | `generate_scene_webp_batch` | preview.rs | Batch WebP (max 8 concurrent) |
 | `lookup_scene_webp_cache_batch` | preview.rs | Disk cache check (no encode) |
@@ -284,6 +305,17 @@ frontend/
 | `list_models` | models.rs | Spawn `amverge models --json` → depth + interpolation weights |
 | `download_model` | models.rs | `amverge models --json --download <key>` |
 | `delete_model` | models.rs | `amverge models --json --delete <key>` |
+| `scout_list_databases` | scene_scout.rs | List all databases in root |
+| `scout_database_info` | scene_scout.rs | Fetch info for a single database |
+| `scout_create_database` | scene_scout.rs | Create a new database |
+| `scout_open_database` | scene_scout.rs | Open external database with validation and migration |
+| `scout_delete_database` | scene_scout.rs | Delete database file |
+| `scout_list_videos` | scene_scout.rs | List videos in a database |
+| `scout_status` | scene_scout.rs | Get Scene Scout model and root status |
+| `scout_search` | scene_scout.rs | Query scenes with SigLIP 2 embeddings (daemon or one-shot) |
+| `scout_add_video` | scene_scout.rs | Index video scenes into a database |
+| `abort_scout_index` | scene_scout.rs | Kill active indexing process tree |
+| `scout_unload_model` | scene_scout.rs | Unload model weights from memory |
 
 ---
 
@@ -355,7 +387,7 @@ useImportExport.ts: handleImport(file)
   │   │     ├─ Read stdout → build final manifest.json
   │   │     └─ On exit: write manifest.json to disk
   │   │
-  │   └─ Resolves on phase1_complete OR process end
+  │   └─ Resolves on phase1_complete OR process end; AI previews continue encoding in the background
   │
   └─ IF importMethod === "webp_files" (blocking):
       └─ await invoke("detect_scenes", ...) → blocks
@@ -372,7 +404,7 @@ User selects clips + clicks Export
   ▼
 useImportExport.ts: handleExport(selectedClips, mergeEnabled)
   ├─ buildExportOptionsPayload(profileId)
-  ├─ clipExportSpecs(clip) → { input, start_sec?, end_sec? }
+  ├─ clipExportSpecs(clip) → episode source range, or a Scenepack's materialized clip
   ├─ invoke("export_clips", { clips, savePath, mergeEnabled, exportOptions })
   │     │
   │     ▼ Rust export.rs
@@ -451,9 +483,9 @@ All ffmpeg processes:
 
 | Method | Description |
 |--------|-------------|
-| `transnetv2_gpu` | PyTorch ML model (GPU accelerated) |
+| `transnetv2_gpu` | PyTorch ML model (GPU accelerated); previews of scenes whose start and end sit exactly on closed keyframes are stream-copied (MP4-muxable sources with AAC/MP3 audio only), the rest re-encoded at detected boundaries |
 | `pyscenedetect_cpu` | PySceneDetect library (CPU, adaptive) |
-| `keyframe_detection` | Fast keyframe-based split (no ML) |
+| `keyframe_detection` | Fast stream-copy split at keyframes (no ML) |
 
 ---
 
@@ -527,7 +559,7 @@ App starts → main.tsx: maybeCheckForUpdatesOnStartup()
 
 ---
 
-## Key Gotchas
+## Key Things to Remember
 
 1. **CLI sidecar is external**: `AMVerge-CLI` is a separate Git repo. Dev mode expects it at `../AMVerge-CLI/`. Prod bundles it via PyInstaller.
 
@@ -543,10 +575,22 @@ App starts → main.tsx: maybeCheckForUpdatesOnStartup()
 
 7. **Preview proxy locks**: per-clip `AsyncMutex` prevents duplicate transcodes of the same file.
 
-8. **Export resilience**: stream-copy first, re-encode on failure. GPU contention → reduce workers by 1 and retry.
+8. **Export modes**: remux profiles use stream copy snapped outward to source keyframes; encode profiles always re-encode source ranges. GPU contention can fall back from GPU to CPU encoding, but never changes a copy export into an encode.
 
 9. **Animated WebP cache**: fingerprinted by SHA-256 of file head/mid/tail bytes. Cache invalidated if source changes.
 
 10. **All child processes killed on close**: `on_window_event(CloseRequested)` walks all PID lists and kills every subprocess.
 
 11. **Dev builds never install AI**: `ai_env_status` reports `managed: false`, and `ensurePack`/`install_ai_pack` short-circuit in dev. AI runs from the CLI checkout's venv; install extras there with `pip install -e .[all]`. A `managed`-mode (production) build shows the real install dialog.
+
+12. **Be sure to keep comments concise**: Use lowercase for all comments and they should all only be one line long. Only add comments where needed.
+
+13. **Scene Scout databases are keyed by absolute path, never name**: `openedDatabase`, `deleteDatabase`, the "Search in" chips, and every `scout*` call pass `database.path`. The CLI's `db_path` sanitizes bare names (spaces become underscores), so passing a name like "My Series" would resolve to `My_Series.scoutdb`, a different file. Names are display-only labels (`displayNames[path]`); the row's open state compares with `samePath`, and `loadDatabases` dedupes the root listing against external paths by normalized path.
+
+14. **Scene Scout in-memory daemon worker**: `scout_search` uses a persistent `amverge scout daemon` process when `keepModelInMemory` is enabled (default: true). Holds SigLIP 2 in CUDA VRAM for sub-50ms searches, automatically offloading to CPU after 300s of inactivity (`gpuStandby`), and terminated on app close via `kill_all_child_processes`.
+
+15. **Scene Scout external databases & migrations**: Users can open external database files (`.scoutdb`, `.db`, `.scdb`) from anywhere via `scout_open_database`. Validates schema structure (`processed_videos`, `scene_embeddings`, `image_embeddings`), automatically migrates legacy schema versions (v0-v2 to v3) with `PRAGMA user_version = 3` for two-way compatibility with `scene-scout-dev`, and tracks external paths in `externalPaths` (persisted in `amverge.scenescout.v1`).
+
+16. **Scene Scout video previews**: Search results are uncut scenes bounded by `[startSec, endSec]` inside the full source episode (`clip.database` set). On hover or a preview-all stagger turn, `useClipVideoSource` requests `ensure_scene_range_preview`, a short 480p x264 cut of just that range, and `LazyClip` plays it like any cut clip. Never mount a `<video>` on the raw source for preview-all: one full-episode decoder per tile (often 10-bit HEVC MKV) freezes the app. Seeking into the source (`handleTimeUpdate`/`handleEnded`) is only a hover fallback when the range preview fails, and for home clips still mid-cut.
+
+17. **Scene Scout first-visit layout**: until the first search of an app session, `SceneScoutPage` renders `SceneScoutHero` (logo, Add Episode, search, database picker) instead of the toolbar and grid. `heroDismissed` in `sceneScoutStore` is runtime only, never persisted. The first search records the hero bar's rect (`features/sceneScout/heroTransition.ts`) and the top toolbar slides its bar from there on mount. Search, Add Episode (with its per-run scene detection popup, remembered in `settings.lastIndexDetection`, separate from the home import default) and database creation are shared pieces: `ScoutSearchField`, `useAddEpisodes`, `useCreateScoutDatabase`.

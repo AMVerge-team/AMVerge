@@ -2,7 +2,7 @@
 import type React from "react";
 
 /** pages that browse clips and drive which panel the sidebar shows */
-export type ClipPage = "home" | "scenepacks";
+export type ClipPage = "home" | "scenepacks" | "sceneScout";
 
 export type Page = ClipPage | "events";
 

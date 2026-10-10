@@ -20,15 +20,20 @@ import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
 import { clipExportSpecs } from "../../features/export/clipSpecs.ts";
 import { deliverExportedFiles } from "../../features/export/deliverExports.ts";
+import { remuxAudioModeForSource, remuxContainerForSource, type ExportSourceStreams } from "../../features/export/remuxPolicy.ts";
 import { useScenepacksStore } from "../../stores/scenepackStore.ts";
 import { useContextMenuStore } from "../../stores/contextMenuStore.ts";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
+import { useSceneScoutStore } from "../../stores/sceneScoutStore.ts";
 import { removeClipsFromScenepack } from "../../utils/scenepackStorage.ts";
 import type { ClipItem } from "../../types/domain.ts";
+import type { ExportContainer } from "../../features/export/profileTypes.ts";
 
 export default function ClipsContainer({ cols }: { cols?: number }) {
   const clips = useAppStateStore((state) => state.clips);
   const loading = useAppStateStore((state) => state.loading);
+  const isScoutSearching = useSceneScoutStore((state) => state.searching);
+  const scoutLastQuery = useSceneScoutStore((state) => state.lastQuery);
   const importToken = useAppStateStore((state) => state.importToken);
   const setFocusedClip = useAppStateStore((state) => state.setFocusedClip);
   const setFocusedClipId = useAppStateStore((state) => state.setFocusedClipId);
@@ -126,6 +131,10 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     // still-open) episode's method here showed WebP-sourced pack clips as stills
     if (activePage === "scenepacks") return true;
 
+    // Scene Scout results are time ranges in a source video with bounded playback,
+    // previewing via HTML5 video directly on hover
+    if (activePage === "sceneScout") return true;
+
     const openedEpisode = episodes.find((e) => e.id === openedEpisodeId);
     return (
       openedEpisode?.importMethod === "video_files" ||
@@ -184,8 +193,19 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
       const activeProfile = settings.exportProfiles.find(
         (candidate) => candidate.id === settings.activeExportProfileId
       ) ?? settings.exportProfiles[0];
-      const format = activeProfile?.container || settings.exportFormat || "mp4";
+      let format: ExportContainer = activeProfile?.container ?? "mp4";
       const fileName = clip.originalName || clip.src.split(/[\\/]/).pop() || "clip";
+      const srcs = clipExportSpecs(clip);
+      const sourcePath = srcs[0]?.input;
+      let source: ExportSourceStreams = { videoCodec: null, audioCodecs: [] };
+      if (activeProfile?.workflow === "video_remux" && sourcePath) {
+        try {
+          source = await invoke<ExportSourceStreams>("probe_export_source_streams", { videoPath: sourcePath });
+        } catch (error) {
+          console.warn("Could not inspect remux source streams", error);
+        }
+        format = remuxContainerForSource(sourcePath, source.videoCodec);
+      }
       const defaultPath = `${fileName}.${format}`;
 
       const savePath = await save({
@@ -197,14 +217,14 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
 
       setLoading(true);
 
-      const srcs = clipExportSpecs(clip);
       const exportOptions = {
         profileId: activeProfile.id,
         workflow: activeProfile.workflow,
         editorTarget: activeProfile.editorTarget,
         codec: activeProfile.codec,
-        audioMode:
-          activeProfile.container === "mov" && activeProfile.audioMode === "flac"
+        audioMode: activeProfile.workflow === "video_remux"
+          ? remuxAudioModeForSource(activeProfile.audioMode, format, source.audioCodecs)
+          : activeProfile.container === "mov" && activeProfile.audioMode === "flac"
             ? "alac"
             : activeProfile.audioMode === "none"
               ? "copy"
@@ -501,17 +521,11 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     return () => el.removeEventListener("wheel", onWheel);
   }, [colsOverridden, setStoreCols]);
 
+  const showLoadingSkeletons = loading || (activePage === "sceneScout" && isScoutSearching);
+
   return (
     <main className="clips-container" ref={containerRef}>
-      {clips.length === 0 ? (
-        <div className="empty-grid-wrapper">
-          <p id="empty-grid">
-            {activePage === "scenepacks"
-              ? <>No Scenepack opened.<br/>Select one from the sidebar to view its clips.</>
-              : <>No video loaded.<br/>If no clips are displaying, try changing the episode storage path in general settings.</>}
-          </p>
-        </div>
-      ) : loading ? (
+      {showLoadingSkeletons ? (
         <div
           className="clips-grid"
           style={{
@@ -522,6 +536,22 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
           {Array.from({ length: 12 }).map((_, i) => (
             <div key={i} className="clip-skeleton" />
           ))}
+        </div>
+      ) : clips.length === 0 ? (
+        <div className="empty-grid-wrapper">
+          <p id="empty-grid">
+            {activePage === "scenepacks"
+              ? <>No Scenepack opened.<br/>Select one from the sidebar to view its clips.</>
+              : activePage === "sceneScout"
+              ? (
+                scoutLastQuery ? (
+                  <>No scenes matched your search.<br/>Try lowering the minimum score or changing your search terms.</>
+                ) : (
+                  <>No scenes found.<br/>Select one or more databases on the left, describe a scene, and press Enter to search.</>
+                )
+              )
+              : <>No video loaded.<br/>If no clips are displaying, try changing the episode storage path in general settings.</>}
+          </p>
         </div>
       ) : (
         <>

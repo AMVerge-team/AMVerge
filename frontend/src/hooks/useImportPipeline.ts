@@ -57,7 +57,7 @@ export function useImportPipeline({ abortedRef }: Params) {
       focusGrid = streamToGrid
     ): Promise<{ episodeEntry: EpisodeEntry; sceneCount: number }> => {
       // video mode streams clips into the grid as they are cut and resolves once
-      // the keyframe copies land; re-encodes finish in the background
+      // the initial preview phase completes; exact AI previews finish in the background
       const videoStreaming = streamToGrid && generalSettings.importMethod === "video_files";
 
       // the ml pack could have been removed, or the setting carried over from an
@@ -294,8 +294,8 @@ export function useImportPipeline({ abortedRef }: Params) {
           });
 
           try {
-            // stream every episode so it appears as soon as its keyframe cuts
-            // land. only the first takes the grid; the rest fill the sidebar
+            // stream every episode so it appears as soon as its preview phase
+            // completes. only the first takes the grid; the rest fill the sidebar
             // without moving the user's view
             const { episodeEntry, sceneCount } = await runImportPipeline(
               file,

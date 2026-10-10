@@ -380,6 +380,11 @@
     font-weight: 500;
     pointer-events: none;
     letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.clip-original-timestamp.is-timeframe {
+    letter-spacing: 0.2px;
 }
 
 .selection-action-bar {

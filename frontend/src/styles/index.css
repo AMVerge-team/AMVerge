@@ -12,6 +12,7 @@
 @import "./common/overlays/quickMenu.css";
 @import "./common/overlays/spotlight.css";
 @import "./common/overlays/appModal.css";
+@import "./common/overlays/splash.css";
 @import "./common/startupNotification.css";
 @import "./common/tooltip.css";
 @import "./home/clipsGrid.css";
@@ -39,6 +40,7 @@
 @import "./settings/cropModal.css";
 @import "./menu/credits.css";
 @import "./scenepacks.css";
+@import "./sceneScout.css";
 @import "./events/browser.css";
 @import "./events/detail.css";
 @import "./events/hostModal.css";

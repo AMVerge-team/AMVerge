@@ -1,0 +1,876 @@
+/* Scene Scout.
+   Reuses the episode panel and import-row classes wherever the layout matches,
+   so the page reads as part of the app rather than a bolt-on. Only what is
+   genuinely new to Scene Scout lives here. */
+
+/* the shell reuses `events-toolbar-shell` and `events-toolbar-row`, which is
+   what makes the info and refresh buttons render like the Events page rather
+   than falling back to their bare defaults. only the height is ours. */
+.scene-scout-toolbar-shell {
+    height: auto;
+    min-height: 60px;
+}
+
+/* Search field ----------------------------------------------------------- */
+
+.scene-scout-search-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    padding-left: 15px;
+    padding-right: 5px;
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+.scene-scout-search-row > * {
+    width: 100%;
+}
+
+.scene-scout-search-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid rgb(255 255 255 / 0.14);
+    border-radius: 8px;
+    background: rgb(0 0 0 / 0.4);
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.scene-scout-search-field.is-disabled {
+    opacity: 0.55;
+    border-color: rgb(255 255 255 / 0.08);
+    background: rgb(0 0 0 / 0.25);
+}
+
+.scene-scout-search-field.is-disabled input {
+    cursor: not-allowed;
+}
+
+.scene-scout-search-field:focus-within:not(.is-disabled) {
+    border-color: var(--accent);
+}
+
+.scene-scout-search-icon {
+    flex: 0 0 auto;
+    color: rgb(255 255 255 / 0.45);
+}
+
+.scene-scout-search-field input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #fff;
+    font-family: var(--ui-font);
+    font-size: 0.85rem;
+}
+
+.scene-scout-search-field input::placeholder {
+    color: rgb(255 255 255 / 0.35);
+}
+
+.scene-scout-search-clear,
+.scene-scout-search-go {
+    flex: 0 0 auto;
+    border: none;
+    background: transparent;
+    color: rgb(255 255 255 / 0.55);
+    cursor: pointer;
+}
+
+.scene-scout-search-go {
+    padding: 0 12px;
+    height: 26px;
+    border-radius: 6px;
+    background: rgb(var(--accent-rgb) / 0.18);
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.scene-scout-search-go:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* Settings dropdown ------------------------------------------------------ */
+
+.scene-scout-settings-toggle.is-open {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.scene-scout-settings-row {
+    display: flex;
+    flex-wrap: wrap;
+    /* the controls sit on a shared baseline while their labels stack above, so
+       the row aligns on the bottom rather than centring mismatched heights */
+    align-items: flex-end;
+    gap: 16px;
+    padding: 10px 12px;
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 8px;
+    background: rgb(0 0 0 / 0.28);
+    font-family: var(--ui-font);
+}
+
+.scene-scout-setting {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: rgb(255 255 255 / 0.6);
+}
+
+/* a checkbox has no label above it, so it is padded down to land on the same
+   line as the dropdown triggers beside it rather than floating at the top */
+.scene-scout-setting-inline {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+}
+
+/* the shared Dropdown brings its own trigger and menu styling; it only needs a
+   sensible width here, since its default stretches to its container */
+.scene-scout-dropdown {
+    min-width: 150px;
+}
+
+.scene-scout-dropdown-detection {
+    min-width: 180px;
+}
+
+.scene-scout-db-filter .scene-scout-db-chips {
+    height: 34px;
+    align-items: center;
+}
+
+.scene-scout-db-filter {
+    flex: 1 1 260px;
+    min-width: 0;
+}
+
+.scene-scout-db-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.scene-scout-db-chip {
+    padding: 3px 10px;
+    border: 1px solid rgb(255 255 255 / 0.15);
+    border-radius: 999px;
+    background: transparent;
+    color: rgb(255 255 255 / 0.6);
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.scene-scout-db-chip.is-active {
+    border-color: var(--accent);
+    background: rgb(var(--accent-rgb) / 0.15);
+    color: var(--accent);
+}
+
+/* Sidebar panel ---------------------------------------------------------- */
+
+/* The panel reuses `eps-container`, `episode-panel`, `episode-panel-row` and
+   `scenepack-search` wholesale, so it inherits the border, scrollbar, header
+   and row states. Only the create field below is genuinely new. */
+
+.scene-scout-create {
+    display: flex;
+    gap: 6px;
+    padding: 4px 10px 8px;
+}
+
+.scene-scout-create input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 30px;
+    padding: 0 8px;
+    border: 1px solid rgb(255 255 255 / 0.15);
+    border-radius: 6px;
+    background: rgb(0 0 0 / 0.4);
+    color: #fff;
+    font-family: var(--ui-font);
+    font-size: 0.8rem;
+}
+
+.scene-scout-create input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.scene-scout-create button {
+    padding: 0 10px;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    background: rgb(var(--accent-rgb) / 0.15);
+    color: var(--accent);
+    font-family: var(--ui-font);
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+
+.scene-scout-panel-error {
+    padding: 0 10px 6px;
+}
+
+/* the label and its chevron are separate children, so the button needs to lay
+   them out rather than relying on the default inline flow, which left the arrow
+   sitting low against the text */
+.scene-scout-settings-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: auto;
+    padding: 0 14px;
+    white-space: nowrap;
+}
+
+.scene-scout-settings-toggle svg {
+    flex: 0 0 auto;
+    font-size: 0.75em;
+    transition: transform 0.15s ease;
+}
+
+.scene-scout-settings-toggle.is-open svg {
+    transform: rotate(180deg);
+}
+
+/* matches the refresh and info buttons, which are the two beside it */
+.scene-scout-settings-toggle {
+    transition: border 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+/* the preview toggle sits at the far right of the row, above the pane it controls */
+.events-toolbar-row .panel-toggle-button.scene-scout-preview-toggle {
+    margin-left: auto;
+}
+
+/* the shared import-button min-width left empty space either side of the label */
+.import-button.scene-scout-settings-toggle {
+    min-width: 0;
+    padding: 0 12px;
+}
+
+/* the row's database and episode icons are labels, not buttons, so they skip the shared button hover */
+.episode-panel-import-icon.scene-scout-row-icon {
+    cursor: inherit;
+}
+
+.episode-panel-import-icon.scene-scout-row-icon:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: transparent;
+    color: var(--accent);
+    box-shadow: none;
+    transform: none;
+}
+
+.scene-scout-settings-toggle:hover:not(:disabled) {
+    cursor: pointer;
+    box-shadow: 0 0 15px rgb(var(--accent-rgb) / 0.4);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+}
+
+/* the Custom field replaces the dropdown trigger in place, so it copies the
+   trigger's own box rather than sitting beside it as a second control */
+.scene-scout-topk-input {
+    height: 34px;
+    padding: 6px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.9);
+    font-family: var(--ui-font);
+    font-size: 0.85rem;
+    box-sizing: border-box;
+}
+
+.scene-scout-topk-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+
+/* the settings row sets the UI font for its labels, but Preview All is the same
+   control as the Home page's, so it follows the app font the user picked in
+   settings instead */
+.scene-scout-settings-row .checkbox-row > span {
+    font-family: var(--app-font);
+}
+
+/* names a database that already exists on disk, so it can only ever change the
+   sidebar label and never fails */
+.app-modal.scene-scout-name-modal {
+    width: min(420px, 92vw);
+    height: auto;
+    max-height: min(70vh, 480px);
+}
+
+/* same footprint as the other notice modals; the file path wraps inside it */
+.app-modal.scene-scout-delete-modal {
+    width: min(460px, 92vw);
+    height: auto;
+    max-height: min(80vh, 620px);
+}
+
+/* first-visit layout: logo, actions, search and databases centered in the page */
+/* fills the layout's left pane, so the preview pane beside it stays as the user left it */
+.scene-scout-hero {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.scene-scout-hero-inner {
+    width: min(640px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    animation: scene-scout-pop-in 220ms ease-out;
+}
+
+/* the svg's teal shades, rebuilt from the accent so the wordmark follows the theme */
+.scene-scout-logo {
+    --ss-logo-light: color-mix(in srgb, var(--accent) 55%, #ffffff);
+    --ss-logo-base: var(--accent);
+    --ss-logo-mid: color-mix(in srgb, var(--accent) 82%, #000000);
+    --ss-logo-dark: color-mix(in srgb, var(--accent) 70%, #000000);
+    --ss-logo-deep: color-mix(in srgb, var(--accent) 60%, #000000);
+    display: flex;
+    justify-content: center;
+}
+
+.scene-scout-logo-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.scene-scout-hero-logo {
+    width: min(420px, 90%);
+    margin: 0 auto 10px;
+}
+
+.scene-scout-hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.scene-scout-hero-actions .import-button {
+    margin: 0;
+}
+
+.scene-scout-hero-actions .scene-scout-preview-toggle {
+    margin-left: auto;
+}
+
+.scene-scout-hero-search .scene-scout-search-field {
+    height: 46px;
+}
+
+.scene-scout-hero-dbs {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.22);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+}
+
+.scene-scout-hero-dbs-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.scene-scout-hero-new {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgb(var(--accent-rgb) / 0.5);
+    background: transparent;
+    color: var(--accent);
+    font-family: var(--ui-font);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease;
+}
+
+.scene-scout-hero-new:hover {
+    border-color: var(--accent);
+    background: rgb(var(--accent-rgb) / 0.12);
+}
+
+.scene-scout-hero-db-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.scene-scout-hero-db {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.85);
+    font-family: var(--ui-font);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease;
+}
+
+.scene-scout-hero-db:hover {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.scene-scout-hero-db.is-selected {
+    border-color: rgb(var(--accent-rgb) / 0.7);
+    background: rgb(var(--accent-rgb) / 0.1);
+    color: #fff;
+}
+
+.scene-scout-hero-db-icon {
+    flex: none;
+    color: var(--accent);
+    font-size: 15px;
+}
+
+.scene-scout-hero-db-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.scene-scout-hero-db-count {
+    flex: none;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.scene-scout-hero-empty {
+    padding: 14px 8px;
+    font-size: 12px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.scene-scout-hero-error {
+    margin: 0;
+}
+
+/* controls hidden in the hero fade in once the search bar reaches the top */
+.scene-scout-reveal {
+    animation: scene-scout-reveal-in 360ms ease-out 140ms both;
+}
+
+@keyframes scene-scout-reveal-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+}
+
+/* add episode: pick how scenes are split, every time, preselected to the last choice */
+.app-modal.scene-scout-index-modal {
+    width: min(420px, 92vw);
+    height: auto;
+    max-height: min(80vh, 560px);
+}
+
+.scene-scout-detection-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    margin: 12px 0 16px;
+}
+
+.scene-scout-detection-choice {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.03);
+    color: #fff;
+    font-family: var(--ui-font);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 120ms ease, background 120ms ease;
+}
+
+.scene-scout-detection-choice:hover {
+    border-color: rgb(var(--accent-rgb) / 0.5);
+}
+
+.scene-scout-detection-choice.is-active {
+    border-color: var(--accent);
+    background: rgb(var(--accent-rgb) / 0.12);
+}
+
+.scene-scout-detection-choice-label {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.scene-scout-detection-choice-desc {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+/* options overlay: floats over the grid under the Options button instead of pushing the page down */
+.scene-scout-options-anchor {
+    display: inline-flex;
+}
+
+.scene-scout-options-pop {
+    position: fixed;
+    z-index: 1300;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    box-sizing: border-box;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.92);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.55);
+    font-family: var(--ui-font);
+    animation: scene-scout-pop-in 120ms ease-out;
+}
+
+@keyframes scene-scout-pop-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.scene-scout-options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.scene-scout-options-pop .scene-scout-setting {
+    min-width: 0;
+    gap: 3px;
+    font-size: 11px;
+}
+
+.scene-scout-options-pop .scene-scout-dropdown,
+.scene-scout-options-pop .scene-scout-dropdown-detection {
+    min-width: 0;
+    width: 100%;
+}
+
+.scene-scout-options-pop .dropdown-trigger {
+    min-height: 0;
+    height: 28px;
+    padding: 0 8px;
+    font-size: 11px;
+}
+
+.scene-scout-options-pop .dropdown-item {
+    font-size: 11px;
+}
+
+.scene-scout-options-pop .scene-scout-topk-input {
+    height: 28px;
+    font-size: 11px;
+}
+
+.scene-scout-options-toggles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 12px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.scene-scout-option-toggle {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    padding: 4px 2px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.scene-scout-option-toggle .custom-checkbox {
+    width: 15px;
+    height: 15px;
+    margin-right: 0;
+    flex: 0 0 auto;
+}
+
+.scene-scout-option-toggle .custom-checkbox input:checked + .checkmark::after {
+    width: 4px;
+    height: 7px;
+}
+
+.scene-scout-options-pop .scene-scout-db-filter {
+    flex: none;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.scene-scout-options-pop .scene-scout-db-filter .scene-scout-db-chips {
+    height: auto;
+}
+
+.scene-scout-options-pop .scene-scout-db-chip {
+    padding: 2px 8px;
+    font-size: 11px;
+}
+
+.scene-scout-options-footer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.scene-scout-options-pop .scene-scout-unload-btn {
+    height: 26px;
+    padding: 0 10px;
+    font-size: 11px;
+}
+
+/* searched databases on top, all below; each box is an episode-panel-list so both keep its outline and fade */
+.scene-scout-split {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.scene-scout-db-box {
+    min-height: 72px;
+    transition: border-color 120ms ease;
+}
+
+.scene-scout-db-box + .scene-scout-split-handle + .scene-scout-db-box {
+    flex: 1 1 0;
+}
+
+.scene-scout-split-handle {
+    flex: 0 0 10px;
+    cursor: row-resize;
+    position: relative;
+}
+
+.scene-scout-split-handle::after {
+    content: "";
+    position: absolute;
+    left: 40%;
+    right: 40%;
+    top: 4px;
+    height: 2px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    transition: background 120ms ease;
+}
+
+.scene-scout-split-handle:hover::after,
+.scene-scout-resizing .scene-scout-split-handle::after {
+    background: rgb(var(--accent-rgb) / 0.8);
+}
+
+/* keeps the row-resize cursor and stops text selection while the handle is held */
+body.scene-scout-resizing {
+    cursor: row-resize;
+    user-select: none;
+}
+
+.scene-scout-section-label {
+    padding: 4px 6px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.5;
+}
+
+.scene-scout-drop-hint {
+    padding: 10px 8px;
+    font-size: 12px;
+    opacity: 0.45;
+    text-align: center;
+}
+
+/* rows are dragged by hand, so a drag must not select their text */
+.scene-scout-db-row {
+    user-select: none;
+}
+
+/* already searched: stays listed below, greyed so it reads as picked */
+.scene-scout-db-row.is-in-search {
+    opacity: 0.4;
+}
+
+.scene-scout-drag-ghost {
+    position: fixed;
+    z-index: 10000;
+    pointer-events: none;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgb(0 0 0 / 0.85);
+    border: 1px solid rgb(var(--accent-rgb) / 0.6);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.scene-scout-db-menu .scene-scout-menu-danger {
+    color: #ef4444;
+}
+
+.scene-scout-db-menu .episode-context-menu-item:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.scene-scout-name-input {
+    width: 100%;
+    max-width: 320px;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid rgb(255 255 255 / 0.15);
+    border-radius: 8px;
+    background: rgb(0 0 0 / 0.4);
+    color: #fff;
+    font-family: var(--ui-font);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.scene-scout-name-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+/* no icon competing for the width, so the label takes the space instead */
+.scene-scout-toolbar-shell .events-action-button {
+    font-size: 1.3rem;
+    padding: 0 18px;
+}
+
+/* a disabled input still paints a normal field, so the whole control is dimmed
+   to match the greyed-out buttons beside it */
+.scene-scout-search-field.is-disabled {
+    opacity: 0.45;
+}
+
+.scene-scout-search-field input:disabled {
+    cursor: not-allowed;
+}
+
+/* the title is the panel's heading, so the credit sits beside it as a footnote
+   rather than competing with it. baseline-aligned so it sits on the same line
+   as the title's text rather than its box */
+.episode-panel-title .scene-scout-credit {
+    margin-left: 6px;
+    font-family: var(--ui-font);
+    font-size: 0.62rem;
+    font-weight: 400;
+    letter-spacing: 0.2px;
+    color: rgb(255 255 255 / 0.35);
+    vertical-align: baseline;
+    white-space: nowrap;
+}
+
+.scene-scout-unload-btn {
+    width: auto;
+    height: 34px;
+    margin: 0;
+    padding: 0 14px;
+    font-size: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--app-font);
+    border: 1px solid rgb(var(--accent-rgb) / 0.85);
+    border-radius: 8px;
+    background: rgba(15, 0, 0, 0.15);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    white-space: nowrap;
+}
+
+.scene-scout-unload-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgb(var(--accent-rgb) / 0.18);
+    color: var(--accent);
+    box-shadow: 0 0 15px rgb(var(--accent-rgb) / 0.4);
+}
+
+.scene-scout-unload-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.episode-panel-import-icon.episode-delete-btn:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+}
+
+.scene-scout-delete-modal .denial-notice-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 18px;
+}
+

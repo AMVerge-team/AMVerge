@@ -29,6 +29,8 @@ fn main() {
         .manage(ActiveFfmpegPids::default())
         .manage(ActiveInstall::default())
         .manage(commands::auth::DiscordAuthState::default())
+        .manage(crate::commands::scene_scout::SceneScoutWorkerState::default())
+        .manage(crate::commands::scene_scout::ActiveScoutIndex::default())
         .invoke_handler(tauri::generate_handler![
             commands::bug_report::submit_bug_report,
             commands::auth::begin_discord_login,
@@ -75,9 +77,11 @@ fn main() {
             commands::editor_import::davinci_resolve::import_clips_to_davinci,
             commands::preview::check_hevc,
             commands::preview::get_audio_streams,
+            commands::preview::probe_export_source_streams,
             commands::preview::hover_preview_error,
             commands::preview::ensure_preview_proxy,
             commands::preview::ensure_merged_preview,
+            commands::preview::ensure_scene_range_preview,
             commands::preview::generate_scene_webp,
             commands::preview::generate_scene_webp_batch,
             commands::preview::lookup_scene_webp_cache_batch,
@@ -93,7 +97,21 @@ fn main() {
             commands::settings::crop_and_save_profile_icon,
             commands::settings::delete_profile_icon_file,
             commands::settings::reveal_in_file_manager,
-            commands::settings::move_episodes_to_new_dir,
+            commands::settings::move_storage_to_new_dir,
+            commands::scene_scout::scout_list_databases,
+            commands::scene_scout::scout_database_info,
+            commands::scene_scout::scout_open_database,
+            commands::scene_scout::scout_create_database,
+            commands::scene_scout::scout_delete_database,
+            commands::scene_scout::scout_list_videos,
+            commands::scene_scout::scout_delete_video,
+            commands::scene_scout::scout_status,
+            commands::scene_scout::scout_search,
+            commands::scene_scout::scout_add_video,
+            commands::scene_scout::abort_scout_index,
+            commands::scene_scout::scout_unload_model,
+            commands::scene_scout::extract_scout_thumbnail_memory,
+            commands::scene_scout::scout_generate_thumbnails,
             commands::settings::get_default_episodes_dir,
             commands::discord::start_discord_rpc,
             commands::discord::update_discord_rpc,
@@ -191,4 +209,29 @@ fn kill_all_child_processes(app: &tauri::AppHandle) {
     // clear the Discord presence before the process goes away, so no ghost
     // "playing AMVerge" is left on the profile
     commands::discord::shutdown(app);
+
+    // kill active Scene Scout daemon worker
+    let scout_worker = app.state::<crate::commands::scene_scout::SceneScoutWorkerState>();
+    if let Ok(mut guard) = scout_worker.inner.try_lock() {
+        if let Some(mut session) = guard.take() {
+            let _ = session.child.start_kill();
+        }
+    };
+
+    let scout_index_pid = app
+        .state::<crate::commands::scene_scout::ActiveScoutIndex>()
+        .0
+        .lock()
+        .ok()
+        .and_then(|mut l| l.take());
+    if let Some(pid) = scout_index_pid {
+        #[cfg(not(target_os = "windows"))]
+        let _ = StdCommand::new("kill")
+            .args(["-9", &format!("-{pid}")])
+            .output();
+        #[cfg(target_os = "windows")]
+        let _ = StdCommand::new("taskkill")
+            .args(["/F", "/T", "/PID", &pid.to_string()])
+            .output();
+    }
 }

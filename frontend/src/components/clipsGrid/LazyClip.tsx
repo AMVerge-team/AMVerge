@@ -9,7 +9,8 @@ import { useClipStagger } from "./useClipStagger.ts";
 import { useClipVideoSource } from "./useClipVideoSource.ts";
 import { useClipVideoElement } from "./useClipVideoElement.ts";
 import { useDownloadTone } from "./useDownloadTone.ts";
-import { formatClipTime } from "./clipFormat.ts";
+import { formatClipTime, formatClipTimeframe, formatScoreWithConfidence } from "./clipFormat.ts";
+import { mediaSrcVersioned } from "../../utils/mediaSrc.ts";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { selectOverlayOpen, useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore, useThemeSettingsStore } from "../../stores/settingsStore.ts";
@@ -87,6 +88,15 @@ export const LazyClip = memo(function LazyClip({
   }, [activeContextMenu]);
 
   const isVideoMode = Boolean(clip.clipPath) && clip.clipMode !== "failed";
+  const isUncutScene =
+    !clip.clipPath &&
+    Boolean(clip.src) &&
+    clip.startSec !== undefined &&
+    clip.endSec !== undefined &&
+    clip.endSec > clip.startSec;
+  const isVideoPlayable = (isVideoMode || isUncutScene) && clip.clipMode !== "failed";
+  // scene scout results point into a whole episode; home clips still mid-cut keep their old seek playback
+  const usesRangePreview = isUncutScene && Boolean(clip.database);
   const isProcessing =
     clip.originalName === "Merging..." ||
     clip.originalName === "Splitting..." ||
@@ -113,12 +123,12 @@ export const LazyClip = memo(function LazyClip({
   const source = useClipVideoSource({
     clip,
     index,
-    isVideoMode,
+    isVideoMode: isVideoPlayable,
     isVisible,
     isHovered,
     gridPreview,
     staggerReady,
-    showVideo: isVideoMode,
+    showVideo: isVideoPlayable,
     importToken,
     needsHevcProxy,
     audioPlaybackHover,
@@ -126,29 +136,38 @@ export const LazyClip = memo(function LazyClip({
     videoRef,
     requestProxySequential,
     reportProxyDemand,
+    rangeStart: usesRangePreview ? clip.startSec : undefined,
+    rangeEnd: usesRangePreview ? clip.endSec : undefined,
   });
+
+  // a scout result plays its short range preview like any cut clip; seeking the full
+  // source only happens on hover, and only when that preview could not be built
+  const seekIntoSource = isUncutScene && !source.rangeProxySrc;
 
   // mount on hover or preview-all only, never per visible tile, so the number of
   // live decoders stays bounded. when a transcode is needed, wait for the proxy
   // too or the raw clip renders black until ffmpeg finishes
   const shouldMountVideo =
-    isVideoMode &&
+    isVideoPlayable &&
     (isHovered || (gridPreview && staggerReady)) &&
-    (!source.needsPreviewTranscode || Boolean(source.videoProxySrc));
+    (usesRangePreview
+      ? Boolean(source.rangeProxySrc) || (source.rangeFailed && isHovered)
+      : !source.needsPreviewTranscode || Boolean(source.videoProxySrc));
 
   // single source of truth for the <video> src: the JSX and the media-release
   // effect must agree on it so a stripped attribute can be restored
+  const rawVideoPath = source.rangeProxySrc ?? source.videoProxySrc ?? clip.clipPath ?? clip.src;
   const videoSrcUrl = shouldMountVideo
-    ? `${convertFileSrc(source.videoProxySrc ?? clip.clipPath!)}?v=${importToken}`
+    ? `${convertFileSrc(rawVideoPath)}?v=${importToken}`
     : null;
 
   const video = useClipVideoElement({
     clip,
-    isVideoMode,
+    isVideoMode: isVideoPlayable,
     isHovered,
     gridPreview,
     staggerReady,
-    showVideo: isVideoMode,
+    showVideo: isVideoPlayable,
     shouldMountVideo,
     videoSrcUrl,
     effectiveSrc: source.effectiveSrc,
@@ -163,6 +182,8 @@ export const LazyClip = memo(function LazyClip({
     ensurePreviewProxyPath: source.ensurePreviewProxyPath,
     proxyInFlightRef: source.proxyInFlightRef,
     restartPlayback: source.restartPlayback,
+    startTime: seekIntoSource ? clip.startSec : undefined,
+    endTime: seekIntoSource ? clip.endSec : undefined,
   });
 
   const { tone: downloadTone, sample: sampleDownloadTone } = useDownloadTone();
@@ -175,7 +196,7 @@ export const LazyClip = memo(function LazyClip({
     isVisible,
     isHovered,
     videoPreviewMode,
-    isVideoMode,
+    isVideoMode: isVideoPlayable,
     episodeId,
     previewWebpPath,
     reportWebpDemand,
@@ -191,8 +212,12 @@ export const LazyClip = memo(function LazyClip({
   const shouldShowThumbnail = !shouldMountVideo || !video.isVideoReady;
   // in video-preview mode a clip that has not been cut yet (and has not failed)
   // shows a skeleton until its video arrives on the clip_ready stream
-  const videoClipPending = videoPreviewMode && !isVideoMode && clip.clipMode !== "failed";
-  const showTileLoadingOverlay = isVideoMode
+  const videoClipPending =
+    videoPreviewMode &&
+    !isVideoPlayable &&
+    clip.clipMode !== "failed" &&
+    clip.thumbnailReady !== true;
+  const showTileLoadingOverlay = isVideoPlayable
     ? clip.thumbnailReady === false || videoThumbFailed
     : clip.thumbnailReady === false || !webp.thumbnailLoaded || webp.thumbnailFailed;
 
@@ -272,11 +297,23 @@ export const LazyClip = memo(function LazyClip({
     e.stopPropagation();
   };
 
+  const isScout = activePage === "sceneScout";
+  const scoutTooltip = isScout
+    ? [
+        clip.originalName,
+        `Timeframe: ${formatClipTimeframe(clip.startSec, clip.endSec, true)}`,
+        clip.score !== undefined ? formatScoreWithConfidence(clip.score) : null,
+      ]
+        .filter(Boolean)
+        .join("\n")
+    : undefined;
+
   return (
     <div
       ref={wrapperRef}
       className={`clip-wrapper ${isFocused ? "focused" : ""} ${isSelected ? "selected" : ""} ${dragOver ? "scenepack-drag-over" : ""} ${appearDelayMs !== null ? "clip-appear" : ""}`}
       style={appearDelayMs !== null ? { ["--appear-delay" as any]: `${appearDelayMs}ms` } : undefined}
+      title={scoutTooltip}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
@@ -334,7 +371,7 @@ export const LazyClip = memo(function LazyClip({
       ) : (
         <>
           {/* webp mode static thumbnail; video mode uses the poster below instead */}
-          {!isVideoMode &&
+          {!isVideoPlayable &&
             !webp.thumbnailFailed &&
             clip.thumbnailReady !== false &&
             (webpStaticReady || isVisible) && (
@@ -344,8 +381,8 @@ export const LazyClip = memo(function LazyClip({
                 src={
                   webp.webpThumbnail ??
                   (webp.hasAnimatedWebp
-                    ? `${convertFileSrc(previewWebpPath!)}?v=${importToken}`
-                    : `${convertFileSrc(webp.thumbnailSrc)}?v=${importToken}`)
+                    ? mediaSrcVersioned(previewWebpPath!, importToken)
+                    : mediaSrcVersioned(webp.thumbnailSrc, importToken))
                 }
                 style={{ opacity: shouldShowThumbnail ? 1 : 0 }}
                 draggable={false}
@@ -359,10 +396,10 @@ export const LazyClip = memo(function LazyClip({
             )}
 
           {/* video mode poster: a still at rest, the <video> mounts only on hover */}
-          {isVideoMode && clip.thumbnailReady !== false && !videoThumbFailed && (
+          {isVideoPlayable && clip.thumbnailReady !== false && !videoThumbFailed && (
             <img
               className="clip"
-              src={`${convertFileSrc(clip.thumbnail)}?v=${importToken}${videoThumbRetry > 0 ? `&r=${videoThumbRetry}` : ""}`}
+              src={`${mediaSrcVersioned(clip.thumbnail, importToken)}${videoThumbRetry > 0 ? `&r=${videoThumbRetry}` : ""}`}
               style={{ opacity: shouldShowThumbnail ? 1 : 0 }}
               draggable={false}
               onError={() => {
@@ -392,10 +429,10 @@ export const LazyClip = memo(function LazyClip({
               className="clip"
               src={videoSrcUrl}
               muted={!(isHovered && audioPlaybackHover)}
-              loop
+              loop={!seekIntoSource}
               autoPlay
               playsInline
-              preload="none"
+              preload="metadata"
               ref={video.setVideoRef}
               style={{ position: "absolute", inset: 0 }}
               draggable={false}
@@ -403,6 +440,8 @@ export const LazyClip = memo(function LazyClip({
               onLoadedMetadata={video.handleLoadedMetadata}
               onPlaying={(e) => video.requestFirstFrame(e.currentTarget)}
               onLoadedData={video.handleLoadedData}
+              onTimeUpdate={video.handleTimeUpdate}
+              onEnded={video.handleEnded}
               onError={video.handleError}
             />
           )}
@@ -424,7 +463,11 @@ export const LazyClip = memo(function LazyClip({
           )}
 
           {showClipTimestamps && clip.startSec !== undefined && (
-            <div className="clip-original-timestamp">{formatClipTime(clip.startSec)}</div>
+            <div className={`clip-original-timestamp${isScout ? " is-timeframe" : ""}`}>
+              {isScout
+                ? formatClipTimeframe(clip.startSec, clip.endSec)
+                : formatClipTime(clip.startSec)}
+            </div>
           )}
 
           {showDownloadButton && (

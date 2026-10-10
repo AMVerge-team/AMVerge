@@ -28,6 +28,8 @@ type Params = {
   ensurePreviewProxyPath: (clipPath: string, priority: boolean, transcodeVideo: boolean) => Promise<string>;
   proxyInFlightRef: RefObject<boolean>;
   restartPlayback: () => void;
+  startTime?: number;
+  endTime?: number;
 };
 
 export function useClipVideoElement({
@@ -51,6 +53,8 @@ export function useClipVideoElement({
   ensurePreviewProxyPath,
   proxyInFlightRef,
   restartPlayback,
+  startTime,
+  endTime,
 }: Params) {
   const hasReportedErrorRef = useRef(false);
   const hasFirstFrameRef = useRef(false);
@@ -138,7 +142,7 @@ export function useClipVideoElement({
       v.pause();
       v.muted = true;
       try {
-        v.currentTime = 0;
+        v.currentTime = startTime !== undefined && isFinite(startTime) ? startTime : 0;
       } catch {}
       return;
     }
@@ -147,8 +151,16 @@ export function useClipVideoElement({
     v.muted = !(isHovered && audioPlaybackHover);
     v.volume = playbackVolume;
     v.autoplay = true;
-    v.loop = true;
+    v.loop = startTime === undefined;
     v.playbackRate = Math.max(0.25, Math.min(3, gridPreviewSpeed));
+
+    if (startTime !== undefined && isFinite(startTime) && startTime > 0) {
+      if (Math.abs(v.currentTime - startTime) > 0.5) {
+        try {
+          v.currentTime = startTime;
+        } catch {}
+      }
+    }
 
     if (v.readyState === 0) {
       try {
@@ -167,6 +179,7 @@ export function useClipVideoElement({
     audioPlaybackHover,
     playbackVolume,
     gridPreviewSpeed,
+    startTime,
   ]);
 
   // some HEVC variants report as supported but black-screen in HTML video, so if
@@ -216,9 +229,14 @@ export function useClipVideoElement({
       const v = e.currentTarget;
       v.muted = !(isHovered && audioPlaybackHover);
       v.volume = playbackVolume;
+      if (startTime !== undefined && isFinite(startTime) && startTime > 0) {
+        try {
+          v.currentTime = startTime;
+        } catch {}
+      }
       v.play().catch(() => {});
     },
-    [gridPreview, isHovered, audioPlaybackHover, playbackVolume]
+    [gridPreview, isHovered, audioPlaybackHover, playbackVolume, startTime]
   );
 
   const handleLoadedData = useCallback(() => {
@@ -226,11 +244,44 @@ export function useClipVideoElement({
     setIsVideoReady(true);
   }, []);
 
+  const handleTimeUpdate = useCallback(
+    (e: React.SyntheticEvent<HTMLVideoElement>) => {
+      if (startTime === undefined || endTime === undefined) return;
+      const v = e.currentTarget;
+      if (v.currentTime >= endTime || v.currentTime < (startTime - 0.2)) {
+        try {
+          v.currentTime = startTime;
+        } catch {}
+      }
+    },
+    [startTime, endTime]
+  );
+
+  const handleEnded = useCallback(
+    (e: React.SyntheticEvent<HTMLVideoElement>) => {
+      const v = e.currentTarget;
+      if (startTime !== undefined) {
+        try {
+          v.currentTime = startTime;
+          v.play().catch(() => {});
+        } catch {}
+      }
+    },
+    [startTime]
+  );
+
   // clear transient error and readiness flags so the next hover can try again
   const resetOnLeave = useCallback(() => {
     hasReportedErrorRef.current = false;
     setIsVideoReady(false);
-  }, []);
+    const v = videoRef.current;
+    if (v) {
+      try {
+        v.pause();
+        v.currentTime = startTime !== undefined && isFinite(startTime) ? startTime : 0;
+      } catch {}
+    }
+  }, [startTime]);
 
   const handleError = useCallback(
     (e: React.SyntheticEvent<HTMLVideoElement>) => {
@@ -308,6 +359,8 @@ export function useClipVideoElement({
     requestFirstFrame,
     handleLoadedMetadata,
     handleLoadedData,
+    handleTimeUpdate,
+    handleEnded,
     handleError,
     resetOnLeave,
   };

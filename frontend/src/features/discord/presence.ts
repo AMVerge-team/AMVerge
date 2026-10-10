@@ -21,7 +21,7 @@ export type PresenceInput = {
     activePage: string;
     settingsOpen: boolean;
     menuOpen: boolean;
-    activeOperation: "import" | "export" | null;
+    activeOperation: "import" | "export" | "scout_add" | "scout_open" | "scout_search" | null;
     progress: number;
     batchDone: number;
     batchTotal: number;
@@ -75,6 +75,40 @@ export function derivePresence(input: PresenceInput): RPCActivity {
             state,
             small_image: "loading_icon_new",
             small_text: "Detecting",
+        };
+    }
+
+    if (activeOperation === "scout_add") {
+        const source = batchCurrentFile;
+        const target = source ? mediaName(source) : null;
+        const details = showFilename && target ? `Indexing: ${target}` : "Indexing scenes";
+        const state =
+            batchTotal > 1
+                ? `Video ${Math.min(batchDone + 1, batchTotal)} of ${batchTotal} · ${percent}%`
+                : `${percent}%`;
+        return {
+            details,
+            state,
+            small_image: "loading_icon_new",
+            small_text: "Indexing",
+        };
+    }
+
+    if (activeOperation === "scout_open") {
+        return {
+            details: "Scene Scout",
+            state: "Loading database",
+            small_image: "loading_icon_new",
+            small_text: "Loading",
+        };
+    }
+
+    if (activeOperation === "scout_search") {
+        return {
+            details: "Scene Scout",
+            state: "Searching scenes",
+            small_image: "loading_icon_new",
+            small_text: "Searching",
         };
     }
 

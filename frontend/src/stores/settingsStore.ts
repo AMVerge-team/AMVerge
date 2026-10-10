@@ -43,17 +43,13 @@ export type GeneralSettings = {
     audioPlaybackHover: boolean;
     previewAudioEnabled: boolean;
     previewAudioStreamIndex: number | null;
-    /** language tag of the chosen track, resolved per clip at export time */
     previewAudioLanguage: string | null;
     playbackVolume: number;
-    /** shared with the preview player's mute button, so it survives a clip switch */
     playbackMuted: boolean;
     discordRPCEnabled: boolean;
     rpcShowFilename: boolean;
     rpcShowMiniIcons: boolean;
-    /** show the "elapsed" timer Discord counts from app launch */
     rpcShowElapsed: boolean;
-    /** make the presence card's lines and art open the site / the server */
     rpcShowLinks: boolean;
     sceneDetectionMethod: SceneDetectionMethod;
     importMethod: importMethod;
@@ -122,8 +118,6 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     rpcShowMiniIcons: true,
     rpcShowElapsed: true,
     rpcShowLinks: true,
-    // keyframe detection works on a fresh install; TransNetV2 needs the
-    // optional AI pack, which the user opts into from Settings
     sceneDetectionMethod: "keyframe_detection",
     importMethod: "video_files",
     previewTranscodeMode: "hevc",
@@ -133,6 +127,27 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     davinciResolveEnabled: false,
     davinciExportSelected: false,
 };
+
+const LEGACY_FAST_REMUX_PROFILE_ID = "remux-fast-mov";
+const LEGACY_FAST_REMUX_PROFILE_NAME = "Fast Remux MOV";
+const AUTO_FAST_REMUX_PROFILE_NAME = "Fast Remux (Auto Container)";
+
+/**
+ * Fast remux now derives its container from the source. Update the shipped
+ * legacy preset's old MOV-specific label without touching user-created
+ * profiles or a user-renamed copy of the preset.
+ */
+export function migrateLegacyFastRemuxProfile(profile: ExportProfile): ExportProfile {
+    if (
+        profile.id !== LEGACY_FAST_REMUX_PROFILE_ID ||
+        profile.workflow !== "video_remux" ||
+        profile.name !== LEGACY_FAST_REMUX_PROFILE_NAME
+    ) {
+        return profile;
+    }
+
+    return { ...profile, name: AUTO_FAST_REMUX_PROFILE_NAME };
+}
 
 export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
     persist(
@@ -262,7 +277,7 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                 set({ davinciResolveEnabled: enabled }),
             setDavinciExportSelected: (selected) =>
                 set({ davinciExportSelected: selected }),
-            
+
             resetGeneralSettings: () => set(DEFAULT_GENERAL_SETTINGS),
             updatePostExportPasses: (pass, changes) =>
                 set((state) => ({
@@ -274,6 +289,20 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
         }),
         {
             name: "amverge.generalSettings.v2",
+            version: 1,
+            migrate: (persistedState, version) => {
+                const persisted = (persistedState || {}) as Partial<GeneralSettings>;
+                if (version >= 1 || !Array.isArray(persisted.exportProfiles)) {
+                    return persisted;
+                }
+
+                return {
+                    ...persisted,
+                    exportProfiles: persisted.exportProfiles.map((profile) =>
+                        migrateLegacyFastRemuxProfile(profile as ExportProfile)
+                    ),
+                };
+            },
             merge: (persistedState, currentState) => {
                 const persisted = (persistedState || {}) as Partial<GeneralSettings>;
 
@@ -332,14 +361,14 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
 import { convertFileSrc } from "@tauri-apps/api/core";
 
 export type ThemeSettings = {
-    accentColor: string; // hex, e.g. "#22c55e"
-    backgroundGradientColor: string; // hex, e.g. "#001a00"
+    accentColor: string;
+    backgroundGradientColor: string;
     backgroundImagePath: string | null;
-    backgroundOpacity: number; // 0 to 1
-    backgroundBlur: number; // pixels
+    backgroundOpacity: number;
+    backgroundBlur: number;
     gridPreviewSpeed: number;
-    appFontFamily: string | null; // null = default (Jersey 10 stack)
-    appFontAdjust: number; // font-size-adjust, so a custom font matches the default's apparent size
+    appFontFamily: string | null;
+    appFontAdjust: number;
     showDownloadButton: boolean;
     showClipTimestamps: boolean;
     widescreenClipTiles: boolean;
@@ -454,7 +483,6 @@ function hexToRgbTriplet(hex: string): string | null {
     const g = clampByte(parseInt(cleaned.slice(2, 4), 16));
     const b = clampByte(parseInt(cleaned.slice(4, 6), 16));
 
-    // css color 4 slash syntax
     return `${r} ${g} ${b}`;
 }
 
@@ -470,6 +498,13 @@ export function applyThemeSettings(settings: ThemeSettings) {
 
     root.style.setProperty("--bg-accent", settings.backgroundGradientColor);
     body.style.setProperty("--bg-accent", settings.backgroundGradientColor);
+
+    // the gradient's far stop needs a triplet so it can carry the reveal alpha
+    const bgRgb = hexToRgbTriplet(settings.backgroundGradientColor);
+    if (bgRgb) {
+        root.style.setProperty("--bg-accent-rgb", bgRgb);
+        body.style.setProperty("--bg-accent-rgb", bgRgb);
+    }
 
     const rgb = hexToRgbTriplet(settings.accentColor);
     if (rgb) {
@@ -497,15 +532,12 @@ export function applyThemeSettings(settings: ThemeSettings) {
     root.style.setProperty("--clip-tile-aspect", clipTileAspect);
     body.style.setProperty("--clip-tile-aspect", clipTileAspect);
 
-    // UI font from the Appearance picker, falling back to the default stack
     const appFont = settings.appFontFamily
         ? `"${settings.appFontFamily}", ${DEFAULT_FONT_STACK}`
         : DEFAULT_FONT_STACK;
     root.style.setProperty("--app-font", appFont);
     body.style.setProperty("--app-font", appFont);
 
-    // most fonts render much larger than the pixel default at the same px size,
-    // so a custom pick gets normalized by x-height. "none" leaves Jersey 10 be
     const fontAdjust = settings.appFontFamily
         ? String(settings.appFontAdjust ?? 0.47)
         : "none";

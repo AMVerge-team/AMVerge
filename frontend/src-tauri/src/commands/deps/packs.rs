@@ -1,18 +1,27 @@
-/// Python the AI env is built on. the CLI itself allows >=3.11, but
-/// depth-anything-v2 requires >=3.12, and the env is shared by every pack
+/// >=3.12 because depth-anything-v2 needs it, and every pack shares this env
 pub(crate) const AI_ENV_PYTHON_VERSION: &str = "3.12";
 
-/// CUDA wheel index used when an NVIDIA GPU is present. matches the index the
-/// sidecar used to be built against
+/// CUDA wheel index used when an NVIDIA GPU is present
 pub(crate) const TORCH_CUDA_INDEX: &str = "https://download.pytorch.org/whl/cu128";
 
-/// distributions that must come from the CUDA index together. torchvision is
-/// pulled in by depth-anything-v2 and is ABI-locked to its torch build, so a
-/// CPU torchvision beside a CUDA torch is not a usable combination
+// GPU decode (Nelux/NVDEC): opt-in, because cu130 drops every pre-Turing GPU
+
+/// Nelux ships no wheels below this
+pub(crate) const AI_ENV_PYTHON_VERSION_GPU_DECODE: &str = "3.13";
+
+/// the only index carrying a torch new enough for Nelux (cu128 stops at 2.11)
+pub(crate) const TORCH_CUDA_INDEX_GPU_DECODE: &str = "https://download.pytorch.org/whl/cu130";
+
+/// pinned, not a floor: Nelux checks torch's minor on import and refuses a mismatch
+pub(crate) const TORCH_PIN_GPU_DECODE: &str = "torch==2.13.*";
+
+/// Turing. read from `nvidia-smi --query-gpu=compute_cap`, so no torch needed
+pub(crate) const GPU_DECODE_MIN_COMPUTE: f32 = 7.5;
+
+/// both from the CUDA index: torchvision is ABI-locked to its torch build
 pub(crate) const TORCH_FAMILY: &[&str] = &["torch", "torchvision"];
 
-/// a pack: one user-facing AI capability, its amverge extra, and the
-/// distributions that prove it is installed
+/// one AI capability: its amverge extra, and the distributions that prove it
 pub(crate) struct Pack {
     pub(crate) id: &'static str,
     pub(crate) extra: &'static str,
@@ -35,6 +44,11 @@ pub(crate) const PACKS: &[Pack] = &[
         id: "interpolation",
         extra: "interpolation",
         requires: &["torch", "scipy", "opencv-python-headless"],
+    },
+    Pack {
+        id: "scout",
+        extra: "scout",
+        requires: &["torch", "transformers", "pillow"],
     },
     Pack {
         id: "upscale",

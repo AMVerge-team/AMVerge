@@ -40,12 +40,6 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
   return (
       <main
         className="clips-import"
-        // reserve the preview pane's width so the toggle at the end of this row
-        // lands over the grid's right edge, and slides with the divider. with
-        // the pane collapsed the grid is full width and no reserve is needed.
-        // the 280px floor mirrors .right-pane's min-width: past that point the
-        // pane stops shrinking while the percentage keeps going, and without it
-        // the button carried on sliding after the divider had visibly stopped
         style={
           previewCollapsed
             ? undefined
@@ -53,10 +47,6 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
         }
       >
         <div className="import-buttons-container">
-          {/* Left end of the row, over the panel it controls - the mirror of
-              the preview toggle at the far right. Rendered on every clip page:
-              it belongs to the sidebar, not to importing, so hiding the import
-              controls must not take it away. */}
           <Tooltip content={sidebarEnabled ? "Hide episode panel" : "Show episode panel"}>
               <button
                 type="button"
@@ -137,8 +127,6 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
             </div>
           </div>
 
-          {/* Right end of the row, over the pane it controls. `.grid-checkboxes`
-              is space-between, so this lands there on its own. */}
           <Tooltip content={previewCollapsed ? "Show preview panel" : "Hide preview panel"} placement="bottom-end">
             <button
               type="button"
