@@ -22,6 +22,7 @@
     ],
     "security": {
       "csp": "connect-src ipc: http://ipc.localhost",
+      "dangerousDisableAssetCspModification": ["style-src"],
       "assetProtocol": {
         "enable": true,
         "scope": ["**"]

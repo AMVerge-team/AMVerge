@@ -246,8 +246,9 @@ pub(crate) fn install_ai_pack_inner(
         extras.push("nelux");
     }
 
+    // newest compatible patch, not just the bundled one, so a fresh install starts with every fix
     let spec = match bundled_cli_version(app) {
-        Some(version) => format!("amverge[{}]=={version}", extras.join(",")),
+        Some(version) => format!("amverge[{}]{}", extras.join(","), super::cli_update::compatible_spec(&version)),
         None => format!("amverge[{}]", extras.join(",")),
     };
 

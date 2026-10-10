@@ -367,6 +367,12 @@
     display: block;
 }
 
+.scene-scout-logo .ss-logo-light { fill: var(--ss-logo-light); }
+.scene-scout-logo .ss-logo-base { fill: var(--ss-logo-base); }
+.scene-scout-logo .ss-logo-mid { fill: var(--ss-logo-mid); }
+.scene-scout-logo .ss-logo-dark { fill: var(--ss-logo-dark); }
+.scene-scout-logo .ss-logo-deep { fill: var(--ss-logo-deep); }
+
 .scene-scout-hero-logo {
     width: min(420px, 90%);
     margin: 0 auto 10px;

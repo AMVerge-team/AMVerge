@@ -1,13 +1,13 @@
 import rawLogo from "../../../public/Scene_Scout_logo_full.svg?raw";
 
-// the svg's teal family, lightest to darkest, mapped onto the theme accent so the logo follows it
+// teal family to accent-filled classes; inline style attributes are blocked by the production csp
 const TEAL_TO_ACCENT: Record<string, string> = {
-  "#7CF2EE": "var(--ss-logo-light)",
-  "#78ECE7": "var(--ss-logo-light)",
-  "#4BD1D4": "var(--ss-logo-base)",
-  "#56B7B7": "var(--ss-logo-mid)",
-  "#26A4A4": "var(--ss-logo-dark)",
-  "#129B9B": "var(--ss-logo-deep)",
+  "#7CF2EE": "ss-logo-light",
+  "#78ECE7": "ss-logo-light",
+  "#4BD1D4": "ss-logo-base",
+  "#56B7B7": "ss-logo-mid",
+  "#26A4A4": "ss-logo-dark",
+  "#129B9B": "ss-logo-deep",
 };
 
 // built once: the traced svg ships a full-canvas white background and a lot of empty margin
@@ -24,9 +24,8 @@ const LOGO_MARKUP = (() => {
       .replace(/viewBox="[^"]*"/i, 'viewBox="40 300 1145 460"');
     return `<svg${cleaned} class="scene-scout-logo-svg" aria-hidden="true">`;
   });
-  for (const [hex, color] of Object.entries(TEAL_TO_ACCENT)) {
-    // attributes cannot take var(); an inline style can
-    svg = svg.replace(new RegExp(`fill="${hex}"`, "gi"), `style="fill:${color}"`);
+  for (const [hex, cls] of Object.entries(TEAL_TO_ACCENT)) {
+    svg = svg.replace(new RegExp(`fill="${hex}"`, "gi"), `class="${cls}"`);
   }
   return svg;
 })();

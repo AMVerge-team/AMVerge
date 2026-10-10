@@ -317,6 +317,25 @@ function App() {
     applyThemeSettings(themeSettings);
   }, [themeSettings]);
 
+  // keeps the AI env's cli on the newest compatible patch; delayed so it never competes with startup
+  useEffect(() => {
+    if (!import.meta.env.PROD) return;
+    const timer = window.setTimeout(() => {
+      invoke<{ status: string; installed?: string | null; latest?: string | null; message?: string | null }>(
+        "update_ai_cli"
+      )
+        .then((r) => {
+          if (r.status === "updated") {
+            console.info(`AI CLI updated ${r.installed ?? "?"} -> ${r.latest ?? "?"}`);
+          } else if (r.status === "failed") {
+            console.warn(`AI CLI update failed, staying on ${r.installed ?? "?"}: ${r.message ?? ""}`);
+          }
+        })
+        .catch((err) => console.warn("AI CLI update check failed", err));
+    }, 20_000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     if (activePage === "scenepacks" && !scenepacksEnabled) {
       useUIStateStore.getState().setActivePage("home");

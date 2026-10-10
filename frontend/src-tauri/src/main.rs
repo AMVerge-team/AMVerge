@@ -51,6 +51,7 @@ fn main() {
             commands::deps::abort_ai_install,
             commands::deps::uninstall_ai_pack,
             commands::deps::remove_ai_env,
+            commands::deps::update_ai_cli,
             commands::models::list_models,
             commands::models::download_model,
             commands::models::delete_model,

@@ -16,11 +16,13 @@ use crate::utils::logging::console_log;
 use crate::utils::process::apply_no_window;
 use crate::utils::sidecar::{ai_env_dir, ai_env_python, ai_env_ready, uv_cache_dir, uv_python_dir};
 
+mod cli_update;
 mod install;
 mod packs;
 mod progress;
 mod status;
 
+pub(crate) use cli_update::*;
 pub(crate) use install::*;
 pub(crate) use packs::*;
 pub(crate) use status::*;

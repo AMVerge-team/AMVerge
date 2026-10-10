@@ -262,11 +262,14 @@ pub fn amverge_ai_command(app: &AppHandle) -> Result<Command, String> {
         return Ok(base_command(dev_amverge_exe()?));
     }
 
-    if !ai_env_ready(app) {
+    // a venv with python but no amverge script (install canceled or failed midway) must not be
+    // launched, or every call dies with "the system cannot find the file specified"
+    let ai_exe = ai_env_amverge(app)?;
+    if !ai_env_ready(app) || !ai_exe.is_file() {
         return amverge_command(app);
     }
 
-    let mut cmd = base_command(ai_env_amverge(app)?);
+    let mut cmd = base_command(ai_exe);
     if let Ok(dir) = sidecar_dir(app) {
         let internal = dir.join("_internal");
         let existing = std::env::var_os("PATH").unwrap_or_default();
