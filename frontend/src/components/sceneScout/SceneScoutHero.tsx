@@ -10,6 +10,7 @@ import { ScoutInfoButton } from "./ScoutInfoButton";
 import { useAddEpisodes } from "./useAddEpisodes";
 import { useCreateScoutDatabase } from "./useCreateScoutDatabase";
 import { SceneScoutLogo } from "./SceneScoutLogo";
+import { PreviewToggle, SidebarToggle } from "./PanelToggles";
 
 /**
  * the centered layout Scene Scout opens with, once per app session: pick or create a
@@ -96,6 +97,7 @@ export function SceneScoutHero() {
         <SceneScoutLogo className="scene-scout-hero-logo" />
 
         <div className="scene-scout-hero-actions">
+          <SidebarToggle />
           <Tooltip
             content={
               addTargetName ? `Index episodes into ${addTargetName}` : "Select or create a database below first"
@@ -111,6 +113,8 @@ export function SceneScoutHero() {
             </button>
           </Tooltip>
           <ScoutInfoButton />
+          {/* far right, above the end of the search bar */}
+          <PreviewToggle />
         </div>
 
         <div className="scene-scout-hero-search">

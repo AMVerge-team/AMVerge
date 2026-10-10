@@ -287,7 +287,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0px 4px;
+    gap: 8px;
+    padding: 0;
+    min-width: 0;
+}
+
+/* merge, resolve and language wrap onto their own lines in a narrow pane instead of overlapping */
+.export-options-row .export-dir-row {
+    flex-wrap: wrap;
+    gap: 8px 20px;
 }
 
 .davinci-export-toggle {
@@ -315,52 +323,37 @@
     filter: drop-shadow(0 0 6px rgb(var(--accent-rgb) / 0.45));
 }
 
-.merge-clips-label {
-    width: 72px;
-    min-width: 72px;
-    height: 36px;
+/* both labels size to their text and sit right against their control,
+   instead of centring in a fixed box that left a wide gap beside it */
+.merge-clips-label,
+.audio-stream-label {
+    flex: none;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: center;
-    line-height: 1.05;
-    font-size: 10px;
+    align-items: flex-end;
+    line-height: 1.15;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.7px;
-    color: rgba(255, 255, 255, 0.72);
-    text-align: center;
+    letter-spacing: 0.6px;
+    color: rgba(255, 255, 255, 0.85);
+    text-align: right;
     user-select: none;
 }
 
-.audio-stream-select {
-    flex: 1 1 auto;
-    min-width: 0;
+/* sized to the language it shows, not stretched by the profile picker's width:100% */
+.export-profile-select.audio-stream-select {
+    width: auto !important;
+    min-width: 76px;
+    max-width: 180px;
 }
 
 .audio-stream-field {
-    flex: 1;
+    flex: 0 1 auto;
     min-width: 0;
     display: flex;
     align-items: center;
     gap: 8px;
-}
-
-.audio-stream-label {
-    width: 64px;
-    min-width: 64px;
-    height: 36px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    line-height: 1.05;
-    font-size: clamp(10px, 1.5cqw, 14px);
-    font-weight: 600;
-    letter-spacing: 0.7px;
-    color: rgb(255, 255, 255);
-    text-align: center;
-    user-select: none;
-    margin-right: 2px;
 }
 
 .export-dir-input:focus {

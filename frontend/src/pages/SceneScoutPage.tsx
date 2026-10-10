@@ -19,10 +19,6 @@ export default function SceneScoutPage() {
   const refreshStatus = useSceneScoutStore((s) => s.refreshStatus);
   const heroDismissed = useSceneScoutStore((s) => s.heroDismissed);
 
-  // the grid fades in only on the hero-to-top handoff, not on every tab switch
-  const wasHeroRef = useRef(!heroDismissed);
-  const revealGrid = wasHeroRef.current && heroDismissed;
-
   useScoutThumbnailQueue();
 
   // the grid is shared with the episode pages, so whatever was in it has to be
@@ -68,16 +64,16 @@ export default function SceneScoutPage() {
     state.setFocusedClipId(null);
   }, [clips]);
 
-  if (!heroDismissed) {
-    return <SceneScoutHero />;
-  }
-
   return (
     <>
-      <SceneScoutToolbar />
+      {heroDismissed && <SceneScoutToolbar />}
 
-      <div className={`main-layout-wrapper${revealGrid ? " scene-scout-reveal" : ""}`}>
-        <MainLayout active={!overlayOpen} />
+      <div className="main-layout-wrapper">
+        {/* the first-visit layout takes the grid's place only, so the preview pane stays as the user left it */}
+        <MainLayout
+          active={!overlayOpen}
+          left={heroDismissed ? undefined : <SceneScoutHero />}
+        />
 
         <div className="info-bar">
           <Tooltip content="Options">

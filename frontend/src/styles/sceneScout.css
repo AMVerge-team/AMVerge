@@ -330,8 +330,9 @@
 }
 
 /* first-visit layout: logo, actions, search and databases centered in the page */
+/* fills the layout's left pane, so the preview pane beside it stays as the user left it */
 .scene-scout-hero {
-    flex: 1;
+    height: 100%;
     min-height: 0;
     display: flex;
     align-items: center;
@@ -379,6 +380,10 @@
 
 .scene-scout-hero-actions .import-button {
     margin: 0;
+}
+
+.scene-scout-hero-actions .scene-scout-preview-toggle {
+    margin-left: auto;
 }
 
 .scene-scout-hero-search .scene-scout-search-field {
