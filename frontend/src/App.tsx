@@ -272,6 +272,7 @@ function App() {
         invoke("abort_export"),
         invoke("abort_editor_import"),
         invoke("abort_scout_index"),
+        invoke("abort_resume_episode"),
       ]);
     } catch (err) {
       console.error("abort tasks failed:", err);
@@ -288,9 +289,18 @@ function App() {
     void useAiDepsStore.getState().refresh();
   }, []);
 
+  const resumingEpisodeId = useAppStateStore((s) => s.resumingEpisodeId);
+  const resumingEpisodeName = useEpisodePanelRuntimeStore(
+    (s) => s.episodes.find((e) => e.id === resumingEpisodeId)?.displayName
+  );
+
   useEffect(() => {
     if (loading) setImportUiActive(true);
   }, [loading]);
+  // a resumed episode brings the CLI mini window back (minimized, since only background work runs)
+  useEffect(() => {
+    if (resumingEpisodeId) setImportUiActive(true);
+  }, [resumingEpisodeId]);
   useEffect(() => {
     if (!loading && !bgActive) {
       setImportUiActive(false);
@@ -483,8 +493,8 @@ function App() {
             batchDone={batchDone}
             batchCurrentFile={batchCurrentFile || ""}
             onAbort={handleAbort}
-            commandLabel={batchCurrentFile || undefined}
-            operation={activeOperation ?? "import"}
+            commandLabel={batchCurrentFile || resumingEpisodeName || undefined}
+            operation={activeOperation ?? (resumingEpisodeId ? "resume" : "import")}
             detectionMethod={sceneDetectionMethod}
             importMethod={importMethodSetting}
             minimized={overlayMinimized}

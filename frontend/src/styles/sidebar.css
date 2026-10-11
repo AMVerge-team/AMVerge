@@ -313,6 +313,21 @@ body.is-resizing-sidebar {
     opacity: 1;
 }
 
+/* a paused import stays visible without hovering, so it is never forgotten */
+.episode-panel-import-icon.episode-resume-btn {
+    opacity: 1;
+    border-color: rgba(var(--accent-rgb), 0.5);
+}
+
+.episode-panel-import-icon.episode-resume-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--accent);
+    box-shadow: none;
+    transform: none;
+}
+
 .episode-panel-count {
     opacity: 0.75;
     font-size: 15px;

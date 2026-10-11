@@ -13,7 +13,8 @@ use crate::payloads::{
     ClipReadyPayload, InitialClipsPayload, PairResultPayload, Phase1CompletePayload,
     ProgressPayload, ReencodeProgressPayload, ThumbnailReadyPayload,
 };
-use crate::state::ActiveSidecar;
+use crate::state::{ActiveResume, ActiveSidecar};
+use std::sync::atomic::Ordering;
 use crate::utils::logging::{
     console_log, emit_console_log, sanitize_for_console, sanitize_line_with_known_paths,
 };
@@ -522,6 +523,174 @@ pub async fn detect_scenes(
     );
 
     Ok(stdout_string)
+}
+
+/// one video-mode scene the app still shows as unfinished
+#[derive(serde::Deserialize)]
+pub struct ResumeClipSpec {
+    scene_index: u32,
+    source_path: String,
+    start_sec: f64,
+    end_sec: f64,
+    clip_path: Option<String>,
+    clip_mode: Option<String>,
+    // the poster path the CLI promised: <episode>/scenes/scene_XXXX.jpg
+    thumbnail: String,
+}
+
+/// finishes the cuts/posters a video-mode import left behind when the app closed
+/// mid-import. files already on disk are only reported; the rest are re-cut from
+/// their source range (re-encode, like the CLI's phase 2) into the scene's usual
+/// scene_XXXX.mp4/.jpg. streams clip_ready/thumbnail_ready like a live import
+#[tauri::command]
+pub async fn resume_episode_clips(
+    app: AppHandle,
+    resume_state: State<'_, ActiveResume>,
+    episode_cache_id: String,
+    clips: Vec<ResumeClipSpec>,
+) -> Result<(), String> {
+    use crate::commands::scenepacks::{run_materialize_clips, MaterializeClipSpec};
+
+    resume_state.cancel_requested.store(false, Ordering::SeqCst);
+    // a paused (aborted) resume leaves its remaining clips untouched, never marked failed
+    let canceled = || resume_state.cancel_requested.load(Ordering::SeqCst);
+
+    let emit_done = |idx: u32, clip_path: Option<String>, clip_mode: &str| {
+        let _ = app.emit(
+            "clip_ready",
+            ClipReadyPayload {
+                scene_index: idx,
+                clip_path,
+                clip_mode: clip_mode.to_string(),
+                episode_cache_id: Some(episode_cache_id.clone()),
+            },
+        );
+        // sent even for a failed scene so its skeleton always ends
+        let _ = app.emit(
+            "thumbnail_ready",
+            ThumbnailReadyPayload {
+                position: idx,
+                episode_cache_id: Some(episode_cache_id.clone()),
+            },
+        );
+    };
+
+    let mut todo: Vec<ResumeClipSpec> = Vec::new();
+    for clip in clips {
+        let thumb = PathBuf::from(&clip.thumbnail);
+        let cut_ok = clip.clip_path.as_deref().is_some_and(|p| Path::new(p).is_file());
+        if cut_ok && thumb.is_file() {
+            emit_done(
+                clip.scene_index,
+                clip.clip_path.clone(),
+                clip.clip_mode.as_deref().unwrap_or("copy"),
+            );
+        } else if thumb.extension().and_then(|e| e.to_str()) == Some("jpg") && thumb.parent().is_some() {
+            todo.push(clip);
+        } else {
+            emit_done(clip.scene_index, None, "failed");
+        }
+    }
+
+    console_log(
+        "SCENE|resume",
+        &format!("episode={episode_cache_id} recut={}", todo.len()),
+    );
+
+    // small batches so tiles fill in progressively instead of all at the end
+    for batch in todo.chunks(4) {
+        if canceled() {
+            console_log("SCENE|resume", &format!("episode={episode_cache_id} paused"));
+            return Ok(());
+        }
+        let scenes_dir = PathBuf::from(&batch[0].thumbnail)
+            .parent()
+            .map(Path::to_path_buf)
+            .unwrap_or_default();
+        // the episode was deleted while resuming: stop, never recreate its folder
+        if !scenes_dir.is_dir() {
+            console_log("SCENE|resume", &format!("episode={episode_cache_id} gone, stopping"));
+            return Ok(());
+        }
+
+        let specs: Vec<MaterializeClipSpec> = batch
+            .iter()
+            .map(|c| MaterializeClipSpec {
+                source_path: Some(c.source_path.clone()),
+                start_sec: Some(c.start_sec),
+                end_sec: Some(c.end_sec),
+                existing_clip_path: None,
+                existing_thumbnail_path: None,
+            })
+            .collect();
+
+        let results = match run_materialize_clips(
+            &app,
+            &specs,
+            &scenes_dir,
+            false,
+            Some(resume_state.pids.clone()),
+        )
+        .await
+        {
+            Ok(r) => r,
+            Err(_) if canceled() => return Ok(()),
+            Err(e) => {
+                console_log("ERROR|resume_episode_clips", &sanitize_for_console(&e));
+                for c in batch {
+                    emit_done(c.scene_index, None, "failed");
+                }
+                continue;
+            }
+        };
+
+        for (i, clip) in batch.iter().enumerate() {
+            let result = results.iter().find(|r| r.index == i);
+            let thumb_target = PathBuf::from(&clip.thumbnail);
+            let clip_target = thumb_target.with_extension("mp4");
+
+            let Some(cut) = result.and_then(|r| r.clip_path.as_ref()) else {
+                emit_done(clip.scene_index, None, "failed");
+                continue;
+            };
+            // replace any half-written file the killed import left at the usual name
+            let _ = fs::remove_file(&clip_target);
+            let final_clip = match fs::rename(cut, &clip_target) {
+                Ok(()) => clip_target.to_string_lossy().to_string(),
+                Err(_) => cut.clone(),
+            };
+            if let Some(t) = result.and_then(|r| r.thumbnail_path.as_ref()) {
+                let _ = fs::remove_file(&thumb_target);
+                let _ = fs::rename(t, &thumb_target);
+            }
+            emit_done(clip.scene_index, Some(final_clip), "reencode");
+        }
+    }
+
+    Ok(())
+}
+
+/// pauses a running resume: kills its cutter, the remaining clips stay unfinished
+#[tauri::command]
+pub async fn abort_resume_episode(resume_state: State<'_, ActiveResume>) -> Result<(), String> {
+    resume_state.cancel_requested.store(true, Ordering::SeqCst);
+    let pids: Vec<u32> = resume_state
+        .pids
+        .lock()
+        .map(|mut l| l.drain(..).collect())
+        .unwrap_or_default();
+
+    for pid in pids {
+        #[cfg(windows)]
+        {
+            let mut cmd = Command::new("taskkill");
+            apply_no_window(&mut cmd);
+            let _ = cmd.args(["/F", "/T", "/PID", &pid.to_string()]).output();
+        }
+        #[cfg(not(windows))]
+        let _ = Command::new("kill").args(["-9", &format!("-{pid}")]).output();
+    }
+    Ok(())
 }
 
 #[tauri::command]

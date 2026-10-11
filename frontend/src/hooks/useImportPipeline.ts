@@ -41,6 +41,10 @@ export function useImportPipeline({ abortedRef }: Params) {
     return Boolean(s.loading || s.bgProgress || s.bgImportProgress);
   };
 
+  // an aborted episode whose scenes already landed in the sidebar is kept as paused, not deleted
+  const hasLanded = (episodeId: string) =>
+    useEpisodePanelRuntimeStore.getState().episodes.some((ep) => ep.id === episodeId && ep.clips.length > 0);
+
   const discardEpisodeCache = (episodeId: string) => {
     invoke("delete_episode_cache", {
       episodeCacheId: episodeId,
@@ -310,7 +314,7 @@ export function useImportPipeline({ abortedRef }: Params) {
             });
 
             if (abortedRef.current || importGenRef.current !== gen) {
-              discardEpisodeCache(episodeId);
+              if (!hasLanded(episodeId)) discardEpisodeCache(episodeId);
               break;
             }
 
@@ -345,7 +349,7 @@ export function useImportPipeline({ abortedRef }: Params) {
               clips: episodeEntry.clips.length,
             });
           } catch (err) {
-            discardEpisodeCache(episodeId);
+            if (!(abortedRef.current && hasLanded(episodeId))) discardEpisodeCache(episodeId);
             if (abortedRef.current) break;
             logImportError("batch.detect_scenes", err, {
               index: i + 1,

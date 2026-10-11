@@ -6,7 +6,7 @@ mod state;
 mod utils;
 
 use state::{
-    ActiveFfmpegPids, ActiveInstall, ActiveSidecar, DiscordRPCState, EditorImportAbortState,
+    ActiveFfmpegPids, ActiveInstall, ActiveResume, ActiveSidecar, DiscordRPCState, EditorImportAbortState,
     ExportAbortState, PreviewProxyLocks, PreviewTranscodeSlots,
 };
 use std::process::Command as StdCommand;
@@ -27,6 +27,7 @@ fn main() {
         .manage(EditorImportAbortState::default())
         .manage(ExportAbortState::default())
         .manage(ActiveFfmpegPids::default())
+        .manage(ActiveResume::default())
         .manage(ActiveInstall::default())
         .manage(commands::auth::DiscordAuthState::default())
         .manage(crate::commands::scene_scout::SceneScoutWorkerState::default())
@@ -66,6 +67,8 @@ fn main() {
             commands::export::create_export_staging_dir,
             commands::export::delete_export_staging_dir,
             commands::export::unique_export_base_name,
+            commands::scenes::resume_episode_clips,
+            commands::scenes::abort_resume_episode,
             commands::export::detect_nvidia_encoder_profile,
             commands::export::detect_gpu_encoder_capabilities,
             commands::export::fast_merge,
@@ -155,13 +158,22 @@ fn kill_all_child_processes(app: &tauri::AppHandle) {
             .output();
     }
 
-    // kill untracked ffmpeg processes (merge, split, proxy)
-    let misc_pids: Vec<u32> = app
+    // kill untracked ffmpeg processes (merge, split, proxy) and a running episode resume
+    let resume = app.state::<ActiveResume>();
+    resume.cancel_requested.store(true, Ordering::SeqCst);
+    let mut misc_pids: Vec<u32> = app
         .state::<ActiveFfmpegPids>()
         .pids
         .lock()
         .map(|mut l| l.drain(..).collect())
         .unwrap_or_default();
+    misc_pids.extend(
+        resume
+            .pids
+            .lock()
+            .map(|mut l| l.drain(..).collect::<Vec<u32>>())
+            .unwrap_or_default(),
+    );
     for pid in misc_pids {
         #[cfg(not(target_os = "windows"))]
         let _ = StdCommand::new("kill")

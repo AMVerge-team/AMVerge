@@ -17,7 +17,7 @@ interface ImportTerminalProps {
   batchDone: number;
   batchCurrentFile: string;
   onAbort: () => void;
-  operation?: "import" | "export" | "scout_add" | "scout_open" | "scout_search";
+  operation?: "import" | "export" | "scout_add" | "scout_open" | "scout_search" | "resume";
   commandLabel?: string;
   /** scene detection method for the synthesized command line (e.g. keyframe_detection) */
   detectionMethod?: string;
@@ -172,6 +172,9 @@ export default function ImportTerminal({
     } else if (operation === "scout_open") {
       const target = commandLabel ? `"${commandLabel}"` : "<database>";
       pushLine("cmd", `amverge scout open ${target}`);
+    } else if (operation === "resume") {
+      const target = commandLabel ? `"${commandLabel}"` : "<episode>";
+      pushLine("cmd", `amverge materialize-clips ${target} --resume`);
     } else {
       const target = commandLabel ? `"${commandLabel}"` : "<video>";
       pushLine("cmd", `amverge backend ${target} ${detectionMethod} ${importMethod}`);

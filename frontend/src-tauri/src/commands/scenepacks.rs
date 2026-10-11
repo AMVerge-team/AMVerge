@@ -19,15 +19,15 @@ use crate::utils::sidecar::amverge_command;
 #[derive(Deserialize, Serialize)]
 pub(crate) struct MaterializeClipSpec {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    source_path: Option<String>,
+    pub(crate) source_path: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    start_sec: Option<f64>,
+    pub(crate) start_sec: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    end_sec: Option<f64>,
+    pub(crate) end_sec: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    existing_clip_path: Option<String>,
+    pub(crate) existing_clip_path: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    existing_thumbnail_path: Option<String>,
+    pub(crate) existing_thumbnail_path: Option<String>,
 }
 
 #[derive(Serialize, Clone)]
@@ -59,6 +59,23 @@ pub async fn materialize_scenepack_clips(
     let out_dir = resolve_scenepacks_storage_dir(&app, custom_path.as_deref())?.join(id);
     std::fs::create_dir_all(&out_dir).map_err(|e| e.to_string())?;
 
+    console_log(
+        "SCENEPACK|materialize_start",
+        &format!("scenepack={scenepack_id} clips={}", clips.len()),
+    );
+    run_materialize_clips(&app, &clips, &out_dir, true, None).await
+}
+
+/// runs `amverge materialize-clips` for `clips` into `out_dir`. `emit_progress`
+/// forwards the CLI's PROGRESS lines as `scene_progress`; `pids` tracks the child
+/// so it is killed on app close
+pub(crate) async fn run_materialize_clips(
+    app: &AppHandle,
+    clips: &[MaterializeClipSpec],
+    out_dir: &std::path::Path,
+    emit_progress: bool,
+    pids: Option<Arc<Mutex<Vec<u32>>>>,
+) -> Result<Vec<MaterializedClip>, String> {
     // a per-call name, not a per-process one: two adds started close together
     // shared a single path, so the second wrote its list over the first before
     // that CLI had read it, and the first pack received the wrong clip
@@ -75,7 +92,7 @@ pub async fn materialize_scenepack_clips(
     let inputs_path_str = inputs_path.to_string_lossy().to_string();
     let out_dir_str = out_dir.to_string_lossy().to_string();
 
-    let mut cmd = amverge_command(&app)?;
+    let mut cmd = amverge_command(app)?;
     cmd.arg("materialize-clips")
         .arg("--inputs-json")
         .arg(&inputs_path_str)
@@ -84,14 +101,15 @@ pub async fn materialize_scenepack_clips(
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
-    console_log(
-        "SCENEPACK|materialize_start",
-        &format!("scenepack={scenepack_id} clips={}", clips.len()),
-    );
-
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("Failed to spawn amverge materialize-clips: {e}"))?;
+    let child_pid = child.id();
+    if let Some(pids) = &pids {
+        if let Ok(mut l) = pids.lock() {
+            l.push(child_pid);
+        }
+    }
 
     let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
     let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
@@ -106,6 +124,9 @@ pub async fn materialize_scenepack_clips(
                 acc.push('\n');
             }
             if let Some(rest) = line.strip_prefix("PROGRESS|") {
+                if !emit_progress {
+                    continue;
+                }
                 let mut parts = rest.splitn(2, '|');
                 let pct = parts.next().unwrap_or("");
                 let msg = parts.next().unwrap_or("").to_string();
@@ -135,6 +156,11 @@ pub async fn materialize_scenepack_clips(
         .map_err(|e| format!("wait thread panicked: {e}"))?
         .map_err(|e| format!("Failed waiting for amverge materialize-clips: {e}"))?;
 
+    if let Some(pids) = &pids {
+        if let Ok(mut l) = pids.lock() {
+            l.retain(|p| *p != child_pid);
+        }
+    }
     let _ = std::fs::remove_file(&inputs_path);
 
     if let Ok(payload) = serde_json::from_str::<Value>(stdout_string.trim()) {

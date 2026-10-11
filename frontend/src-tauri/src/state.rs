@@ -96,6 +96,13 @@ pub struct ExportAbortState {
     pub pids: Arc<Mutex<Vec<u32>>>,
 }
 
+/// the in-flight resume of a paused video-mode episode (`resume_episode_clips`)
+#[derive(Default)]
+pub struct ActiveResume {
+    pub cancel_requested: AtomicBool,
+    pub pids: Arc<Mutex<Vec<u32>>>,
+}
+
 #[derive(Default)]
 pub struct ActiveFfmpegPids {
     pub pids: Arc<Mutex<Vec<u32>>>,

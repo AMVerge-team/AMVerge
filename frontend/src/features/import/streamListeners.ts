@@ -36,6 +36,10 @@ export async function startVideoStreamingListeners(
   focusGrid: boolean,
   deps: Deps
 ): Promise<StreamingSession> {
+  // marks the episode as processing, so it never shows as paused or gets resumed mid-import
+  useAppStateStore.setState((s) => ({
+    liveImportEpisodeIds: [...s.liveImportEpisodeIds.filter((id) => id !== episodeId), episodeId],
+  }));
   let resolvePhase1: () => void = () => {};
   const phase1Done = new Promise<void>((resolve) => {
     resolvePhase1 = resolve;
@@ -210,6 +214,9 @@ export async function startVideoStreamingListeners(
     // apply anything buffered right before teardown so no patch is dropped
     cancelFlush();
     flushPatches();
+    useAppStateStore.setState((s) => ({
+      liveImportEpisodeIds: s.liveImportEpisodeIds.filter((id) => id !== episodeId),
+    }));
     unlistenInitial();
     unlistenClip();
     unlistenThumb();

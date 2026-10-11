@@ -29,6 +29,10 @@ export type AppState = {
   // does NOT count as "import busy": re-encodes run in the background and must
   // not block starting a new import
   reencodeProgress: { done: number; total: number } | null;
+  // episodes a live import is still streaming into
+  liveImportEpisodeIds: string[];
+  // the paused episode currently being resumed (one at a time)
+  resumingEpisodeId: string | null;
   importToken: string;
   batchTotal: number;
   batchDone: number;
@@ -76,6 +80,8 @@ export const DEFAULT_APP_STATE: AppState = {
   bgProgress: null,
   bgImportProgress: null,
   reencodeProgress: null,
+  liveImportEpisodeIds: [],
+  resumingEpisodeId: null,
   importToken: "",
   batchTotal: 0,
   batchDone: 0,

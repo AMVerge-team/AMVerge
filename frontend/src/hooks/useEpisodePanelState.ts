@@ -5,7 +5,6 @@ import { useAppStateStore } from "../stores/appStore";
 import { useEpisodePanelRuntimeStore, useEpisodePanelMetadataStore } from "../stores/episodeStore";
 import { useGeneralSettingsStore } from "../stores/settingsStore";
 import { useUIStateStore } from "../stores/UIStore";
-
 /**
  * opens an episode by id. store-level (reads via getState) so lightweight
  * components (e.g. the grid refresh button) can trigger an open/re-open

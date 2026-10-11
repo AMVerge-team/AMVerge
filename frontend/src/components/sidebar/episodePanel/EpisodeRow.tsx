@@ -1,6 +1,8 @@
 import type React from "react";
-import { FaFolderOpen, FaImage, FaVideo } from "react-icons/fa";
+import { FaFolderOpen, FaImage, FaPlay, FaVideo } from "react-icons/fa";
 import Tooltip from "../../common/Tooltip";
+import { useAppStateStore } from "../../../stores/appStore";
+import { isEpisodePaused, resumeEpisode } from "../../../features/import/resumeEpisode";
 import type { EpisodePanelProps, PointerDragSource } from "../types";
 
 type Episode = EpisodePanelProps["episodes"][number];
@@ -65,6 +67,19 @@ export default function EpisodeRow({
     onRevealEpisode?.(episode.id);
   };
 
+  // paused: its import stopped early (mini window or app closed) with clips left to cut
+  const liveImportEpisodeIds = useAppStateStore((s) => s.liveImportEpisodeIds);
+  const resumingEpisodeId = useAppStateStore((s) => s.resumingEpisodeId);
+  const resumeBlocked = useAppStateStore(
+    (s) => Boolean(s.loading || s.bgProgress || s.bgImportProgress || s.reencodeProgress || s.resumingEpisodeId)
+  );
+  const isPaused = isEpisodePaused(episode, liveImportEpisodeIds, resumingEpisodeId);
+
+  const handleResume = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    void resumeEpisode(episode.id);
+  };
+
   return (
     <div
       className={rowClass}
@@ -93,6 +108,27 @@ export default function EpisodeRow({
           {episode.displayName}
         </span>
       </Tooltip>
+      {isPaused && (
+        <Tooltip
+          content={resumeBlocked ? "Processing paused · wait for the current task to finish" : "Processing paused · resume"}
+          side="right"
+        >
+          <span>
+            <button
+              type="button"
+              className="episode-panel-import-icon episode-resume-btn"
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onDoubleClick={(e) => e.stopPropagation()}
+              onClick={handleResume}
+              disabled={resumeBlocked}
+              aria-label="Resume processing"
+            >
+              <FaPlay />
+            </button>
+          </span>
+        </Tooltip>
+      )}
       <Tooltip content="Show in File Explorer" side="right">
         <button
           type="button"
