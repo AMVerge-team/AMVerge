@@ -480,6 +480,14 @@ function App() {
     };
   }, [activePage, sidebarEnabled]);
 
+  // shared by the bar attached to the mini window and the standalone one
+  const clipProgress = reencodeProgress ?? bgProgress;
+  const clipLabel =
+    activeOperation === "scout_add" ? scoutAddLabel
+    : activeOperation === "scout_search" ? "Searching scenes"
+    : reencodeProgress ? "Reencoding"
+    : "Processing clips";
+
   return (
       <AppLayout
       windowWrapperRef={windowWrapperRef}
@@ -504,9 +512,9 @@ function App() {
             onClose={handleAbortAndCloseBgProgress}
             bgBar={
               <BgProgressBar
-                clipDone={(reencodeProgress ?? bgProgress)?.done ?? 0}
-                clipTotal={(reencodeProgress ?? bgProgress)?.total ?? 0}
-                clipLabel={activeOperation === "scout_add" ? scoutAddLabel : activeOperation === "scout_search" ? "Searching scenes" : reencodeProgress ? "Reencoding" : "Processing clips"}
+                clipDone={clipProgress?.done ?? 0}
+                clipTotal={clipProgress?.total ?? 0}
+                clipLabel={clipLabel}
                 importDone={bgImportProgress?.done ?? 0}
                 importTotal={bgImportProgress?.total ?? 0}
                 webpDone={webpLoadDone}
@@ -518,9 +526,9 @@ function App() {
           />
         ) : (bgProgress || bgImportProgress || reencodeProgress || webpLoadTotal > 0 || (aiInstalling && !aiModalOpen)) ? (
           <BgProgressBar
-            clipDone={(reencodeProgress ?? bgProgress)?.done ?? 0}
-            clipTotal={(reencodeProgress ?? bgProgress)?.total ?? 0}
-            clipLabel={activeOperation === "scout_add" ? scoutAddLabel : activeOperation === "scout_search" ? "Searching scenes" : reencodeProgress ? "Reencoding" : "Processing clips"}
+            clipDone={clipProgress?.done ?? 0}
+            clipTotal={clipProgress?.total ?? 0}
+            clipLabel={clipLabel}
             importDone={bgImportProgress?.done ?? 0}
             importTotal={bgImportProgress?.total ?? 0}
             webpDone={webpLoadDone}

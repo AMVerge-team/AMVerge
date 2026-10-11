@@ -1,8 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { ClipItem, EpisodeEntry } from "../../types/domain";
-import { useAppStateStore } from "../../stores/appStore";
+import { AppState, useAppStateStore } from "../../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore";
+import { createClipPatchBuffer } from "./clipPatchBuffer";
 
 /**
  * paused video-mode episodes and their resume
@@ -33,18 +34,14 @@ export function isEpisodePaused(
   return episode.clips.some(isUnfinished);
 }
 
-// anything else running owns the mini window, and an import must not race a resume
-export function canStartResume(): boolean {
-  const s = useAppStateStore.getState();
-  return !(s.loading || s.bgProgress || s.bgImportProgress || s.reencodeProgress || s.resumingEpisodeId);
-}
+// anything else running owns the mini window, and an import must not race a resume.
+// a store selector, so components can subscribe to it directly
+export const isResumeBlocked = (s: AppState): boolean =>
+  Boolean(s.loading || s.bgProgress || s.bgImportProgress || s.reencodeProgress || s.resumingEpisodeId);
 
-export async function resumeEpisode(episodeId: string): Promise<void> {
-  if (!canStartResume()) return;
-  const episode = useEpisodePanelRuntimeStore.getState().episodes.find((e) => e.id === episodeId);
-  if (!episode) return;
-
-  const specs = episode.clips
+// the unfinished scenes in the shape `resume_episode_clips` takes
+function buildResumeSpecs(episode: EpisodeEntry) {
+  return episode.clips
     .filter(isUnfinished)
     .filter((c) => typeof c.sceneIndex === "number" && typeof c.startSec === "number" && typeof c.endSec === "number")
     .map((c) => ({
@@ -56,6 +53,14 @@ export async function resumeEpisode(episodeId: string): Promise<void> {
       clip_mode: c.clipMode ?? null,
       thumbnail: c.thumbnail,
     }));
+}
+
+export async function resumeEpisode(episodeId: string): Promise<void> {
+  if (isResumeBlocked(useAppStateStore.getState())) return;
+  const episode = useEpisodePanelRuntimeStore.getState().episodes.find((e) => e.id === episodeId);
+  if (!episode) return;
+
+  const specs = buildResumeSpecs(episode);
   if (specs.length === 0) return;
 
   const total = episode.clips.length;
@@ -70,17 +75,7 @@ export async function resumeEpisode(episodeId: string): Promise<void> {
   console.info("[resume] resuming paused episode", { episodeId, clips: specs.length });
 
   // buffered per frame like a live import, so a burst of events is one grid update
-  const pending = new Map<string, Partial<ClipItem>>();
-  let frame: number | null = null;
-  const flush = () => {
-    frame = null;
-    if (pending.size === 0) return;
-    const snapshot = new Map(pending);
-    pending.clear();
-    const apply = (c: ClipItem): ClipItem => {
-      const p = snapshot.get(c.id);
-      return p ? { ...c, ...p } : c;
-    };
+  const patches = createClipPatchBuffer((apply) => {
     useEpisodePanelRuntimeStore.getState().setEpisodes((prev) =>
       prev.map((ep) => (ep.id === episodeId ? { ...ep, clips: ep.clips.map(apply) } : ep))
     );
@@ -90,12 +85,8 @@ export async function resumeEpisode(episodeId: string): Promise<void> {
       bgProgress: s.resumingEpisodeId === episodeId ? { done, total } : s.bgProgress,
       progress: Math.round((done / total) * 100),
     }));
-  };
-  const patch = (sceneIndex: number, p: Partial<ClipItem>) => {
-    const id = `${episodeId}_${sceneIndex}`;
-    pending.set(id, { ...(pending.get(id) ?? {}), ...p });
-    if (frame === null) frame = requestAnimationFrame(flush);
-  };
+  });
+  const patch = (sceneIndex: number, p: Partial<ClipItem>) => patches.patch(`${episodeId}_${sceneIndex}`, p);
 
   const isMine = (p: { episode_cache_id?: string | null }) => p.episode_cache_id === episodeId;
   const unlistenClip = await listen<{
@@ -124,8 +115,7 @@ export async function resumeEpisode(episodeId: string): Promise<void> {
   } catch (err) {
     console.error("[resume] failed:", err);
   } finally {
-    if (frame !== null) cancelAnimationFrame(frame);
-    flush();
+    patches.flushNow();
     unlistenClip();
     unlistenThumb();
     useAppStateStore.setState((s) => ({
