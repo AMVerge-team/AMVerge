@@ -263,7 +263,7 @@ frontend/
 | `detect_scenes` | scenes.rs | Spawn CLI sidecar, stream progress events |
 | `load_episode_manifest` | scenes.rs | Read cached `manifest.json` from disk |
 | `abort_detect_scenes` | scenes.rs | Kill sidecar process group |
-| `resume_episode_clips` | scenes.rs | Resume a paused video-mode episode (import stopped by closing the CLI mini window or the app): re-cuts missing clips/posters via `materialize-clips`, streams `clip_ready`/`thumbnail_ready`. Started from the episode row's resume button (`features/import/resumeEpisode.ts`); "paused" is derived from unfinished clips, never stored |
+| `resume_episode_clips` | scenes.rs | Resume a paused video-mode episode (import stopped by closing the CLI mini window or the app): re-cuts missing clips/posters in one `materialize-clips --cut-mode copy|auto` run (mode from the manifest's detection method, so keyframe-exact scenes stream-copy like the import did; CLI streams `MATERIALIZED|<json>` per item), streams `clip_ready`/`thumbnail_ready`. Started from the episode row's resume button (`features/import/resumeEpisode.ts`); "paused" is derived from unfinished clips, never stored |
 | `abort_resume_episode` | scenes.rs | Pause a running resume (kills its cutter; remaining clips stay unfinished, not failed) |
 | `unique_export_base_name` | export.rs | First free `name`, `name (1)`, ... in the export folder so merged exports never overwrite |
 | `export_clips` | export.rs | Spawn CLI export, stream progress |

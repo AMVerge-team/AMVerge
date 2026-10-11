@@ -316,7 +316,7 @@ body.is-resizing-sidebar {
 /* a paused import stays visible without hovering, so it is never forgotten */
 .episode-panel-import-icon.episode-resume-btn {
     opacity: 1;
-    border-color: rgba(var(--accent-rgb), 0.5);
+    font-size: 9px;
 }
 
 .episode-panel-import-icon.episode-resume-btn:disabled {

@@ -36,8 +36,25 @@ pub struct MaterializedClip {
     pub index: usize,
     pub clip_path: Option<String>,
     pub thumbnail_path: Option<String>,
+    pub clip_mode: Option<String>,
     pub error: Option<String>,
 }
+
+impl MaterializedClip {
+    fn from_json(item: &Value) -> Self {
+        let text = |key: &str| item.get(key).and_then(|v| v.as_str()).map(String::from);
+        Self {
+            index: item.get("index").and_then(|v| v.as_u64()).unwrap_or(0) as usize,
+            clip_path: text("clip_path"),
+            thumbnail_path: text("thumbnail_path"),
+            clip_mode: text("clip_mode"),
+            error: text("error"),
+        }
+    }
+}
+
+/// called from the CLI reader thread as each item finishes (`MATERIALIZED|<json>`)
+pub(crate) type OnMaterialized = Box<dyn Fn(MaterializedClip) + Send + 'static>;
 
 /// cut/copy a batch of clips into `<scene_packs>/<scenepack_id>/`, each as a
 /// standalone .mp4 + poster .jpg. this is what makes a Scenepack independent
@@ -63,18 +80,21 @@ pub async fn materialize_scenepack_clips(
         "SCENEPACK|materialize_start",
         &format!("scenepack={scenepack_id} clips={}", clips.len()),
     );
-    run_materialize_clips(&app, &clips, &out_dir, true, None).await
+    run_materialize_clips(&app, &clips, &out_dir, "reencode", true, None, None).await
 }
 
-/// runs `amverge materialize-clips` for `clips` into `out_dir`. `emit_progress`
-/// forwards the CLI's PROGRESS lines as `scene_progress`; `pids` tracks the child
-/// so it is killed on app close
+/// runs `amverge materialize-clips` for `clips` into `out_dir`. `cut_mode` is the
+/// CLI's `--cut-mode` (reencode/auto/copy); `emit_progress` forwards its PROGRESS
+/// lines as `scene_progress`; `pids` tracks the child so it is killed on app close;
+/// `on_item` sees each item as soon as it finishes
 pub(crate) async fn run_materialize_clips(
     app: &AppHandle,
     clips: &[MaterializeClipSpec],
     out_dir: &std::path::Path,
+    cut_mode: &str,
     emit_progress: bool,
     pids: Option<Arc<Mutex<Vec<u32>>>>,
+    on_item: Option<OnMaterialized>,
 ) -> Result<Vec<MaterializedClip>, String> {
     // a per-call name, not a per-process one: two adds started close together
     // shared a single path, so the second wrote its list over the first before
@@ -97,8 +117,12 @@ pub(crate) async fn run_materialize_clips(
         .arg("--inputs-json")
         .arg(&inputs_path_str)
         .arg("--output-dir")
-        .arg(&out_dir_str)
-        .stdout(Stdio::piped())
+        .arg(&out_dir_str);
+    // only passed when needed, so Scenepacks keep the exact call older CLIs accept
+    if cut_mode != "reencode" {
+        cmd.arg("--cut-mode").arg(cut_mode);
+    }
+    cmd.stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
     let mut child = cmd
@@ -123,7 +147,11 @@ pub(crate) async fn run_materialize_clips(
                 acc.push_str(&line);
                 acc.push('\n');
             }
-            if let Some(rest) = line.strip_prefix("PROGRESS|") {
+            if let Some(json) = line.strip_prefix("MATERIALIZED|") {
+                if let (Some(cb), Ok(item)) = (&on_item, serde_json::from_str::<Value>(json)) {
+                    cb(MaterializedClip::from_json(&item));
+                }
+            } else if let Some(rest) = line.strip_prefix("PROGRESS|") {
                 if !emit_progress {
                     continue;
                 }
@@ -173,21 +201,7 @@ pub(crate) async fn run_materialize_clips(
             return Err(msg.to_string());
         }
         if let Some(items) = payload.get("items").and_then(|i| i.as_array()) {
-            let results: Vec<MaterializedClip> = items
-                .iter()
-                .map(|item| MaterializedClip {
-                    index: item.get("index").and_then(|v| v.as_u64()).unwrap_or(0) as usize,
-                    clip_path: item
-                        .get("clip_path")
-                        .and_then(|v| v.as_str())
-                        .map(String::from),
-                    thumbnail_path: item
-                        .get("thumbnail_path")
-                        .and_then(|v| v.as_str())
-                        .map(String::from),
-                    error: item.get("error").and_then(|v| v.as_str()).map(String::from),
-                })
-                .collect();
+            let results: Vec<MaterializedClip> = items.iter().map(MaterializedClip::from_json).collect();
             if status.success() {
                 console_log(
                     "SCENEPACK|materialize_end",
