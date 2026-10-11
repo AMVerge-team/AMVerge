@@ -347,7 +347,11 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const onScroll = () => { lastScrollTopRef.current = el.scrollTop; };
+    const onScroll = () => {
+      // skeletons replace the grid while loading and clamp scrollTop, so ignore those events
+      if (useAppStateStore.getState().loading) return;
+      lastScrollTopRef.current = el.scrollTop;
+    };
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
@@ -373,15 +377,15 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
       return;
     }
     if (loading && !prevLoadingRef.current) {
-      // loading just started, remember where we were so we can restore
-      savedScrollRef.current = el.scrollTop;
+      // loading just started; el.scrollTop is already clamped by the skeletons, use the last real position
+      savedScrollRef.current = lastScrollTopRef.current;
     } else if (!loading && prevLoadingRef.current && savedScrollRef.current !== null) {
-      // loading finished, restore scroll after the grid re-renders
+      // loading finished, restore scroll once the grid and its window padding have re-rendered
       const target = savedScrollRef.current;
       savedScrollRef.current = null;
-      requestAnimationFrame(() => {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
         containerRef.current?.scrollTo({ top: target });
-      });
+      }));
     }
     prevLoadingRef.current = loading;
   }, [loading]);
@@ -389,6 +393,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   useEffect(() => {
     // new import - discard any pending scroll restore and go to the top
     savedScrollRef.current = null;
+    lastScrollTopRef.current = 0;
     containerRef.current?.scrollTo({ top: 0 });
     resetWebpQueue();
     // every fresh episode view (open / import / refresh / startup auto-open)

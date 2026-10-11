@@ -65,6 +65,7 @@ fn main() {
             commands::export::delete_export_intermediates,
             commands::export::create_export_staging_dir,
             commands::export::delete_export_staging_dir,
+            commands::export::unique_export_base_name,
             commands::export::detect_nvidia_encoder_profile,
             commands::export::detect_gpu_encoder_capabilities,
             commands::export::fast_merge,

@@ -553,18 +553,23 @@ pub fn reveal_in_file_manager(file_path: String) -> Result<(), String> {
 
     let path = fs::canonicalize(&raw_path).unwrap_or(raw_path.clone());
     // strip Windows extended-length path prefix "\\?\" as explorer.exe does not recognize it
-    let path_string = path
-        .to_string_lossy()
-        .replace(r"\\?\", "")
-        .replace('/', "\\");
+    let lossy = path.to_string_lossy();
+    let path_string = match lossy.strip_prefix(r"\\?\UNC\") {
+        Some(rest) => format!(r"\\{rest}"),
+        None => lossy.trim_start_matches(r"\\?\").to_string(),
+    }
+    .replace('/', "\\");
 
     let is_dir = raw_path.is_dir() || path.is_dir();
 
+    // raw_arg: Command::arg would wrap "/select,C:\a b\x.mp4" in quotes, which explorer
+    // can't parse, so it falls back to opening Documents
+    use std::os::windows::process::CommandExt;
     let mut cmd = Command::new("explorer");
     if is_dir {
-        cmd.arg(&path_string);
+        cmd.raw_arg(format!("\"{path_string}\""));
     } else {
-        cmd.arg(format!("/select,{path_string}"));
+        cmd.raw_arg(format!("/select,\"{path_string}\""));
     }
 
     cmd.spawn()

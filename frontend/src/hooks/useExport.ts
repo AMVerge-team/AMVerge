@@ -118,9 +118,15 @@ export function useExport({ onRPCUpdate }: Params) {
     [generalSettings.previewAudioStreamIndex, generalSettings.previewAudioLanguage]
   );
 
-  const mergeBaseName = (selected: ClipItem[], mergeFileName?: string) => {
+  // never overwrite: an existing merged file (or one of its pass outputs) bumps the name to "name (1)", "name (2)", ...
+  const mergeBaseName = (selected: ClipItem[], dir: string, format: string, mergeFileName?: string) => {
     const stem = (selected[0]?.originalName || "episode").replace(/\.[^./\\]+$/, "");
-    return sanitizeExportBaseName(mergeFileName || `${stem}_merged`);
+    return invoke<string>("unique_export_base_name", {
+      dir,
+      base: sanitizeExportBaseName(mergeFileName || `${stem}_merged`),
+      extension: format,
+      suffixes: Object.values(PASS_SUFFIX),
+    });
   };
 
   /**
@@ -132,7 +138,7 @@ export function useExport({ onRPCUpdate }: Params) {
     async (selected: ClipItem[], dir: string, mergeFileName: string | undefined, passes: PostExportPasses) => {
       const sep = pathSeparatorFor(dir);
       const { exportOptions, format } = await exportContextForClips(selected);
-      const baseName = mergeBaseName(selected, mergeFileName);
+      const baseName = await mergeBaseName(selected, dir, format, mergeFileName);
       const finalSavePath = `${dir}${sep}${baseName}.${format}`;
 
       // per-clip parts are staged elsewhere so the folder the user picked only
@@ -263,7 +269,7 @@ export function useExport({ onRPCUpdate }: Params) {
 
         let savePath: string;
         if (mergeEnabled) {
-          savePath = `${dir}${sep}${mergeBaseName(selected, mergeFileName)}.${format}`;
+          savePath = `${dir}${sep}${await mergeBaseName(selected, dir, format, mergeFileName)}.${format}`;
         } else {
           const firstFile = (selected[0]?.src || "").split(/[/\\]/).pop() || `episode_0000.${format}`;
           const defaultBase = firstFile.replace(/\.[^/.]+$/, "").replace(/_\d{4}$/, "");

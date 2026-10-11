@@ -583,6 +583,32 @@ pub async fn delete_export_staging_dir(dir: String) -> Result<(), String> {
     Ok(())
 }
 
+/// first free base name in `dir`: `base`, then `base (1)`, `base (2)`, ...
+/// a name is taken if `{name}{suffix}.{extension}` exists for any of `suffixes`
+/// (the empty suffix is always checked), so pass outputs never overwrite either
+#[tauri::command]
+pub async fn unique_export_base_name(
+    dir: String,
+    base: String,
+    extension: String,
+    suffixes: Vec<String>,
+) -> Result<String, String> {
+    let dir_path = std::path::PathBuf::from(&dir);
+    let taken = |name: &str| {
+        std::iter::once("").chain(suffixes.iter().map(String::as_str)).any(|suffix| {
+            dir_path.join(format!("{name}{suffix}.{extension}")).exists()
+        })
+    };
+
+    if !taken(&base) {
+        return Ok(base);
+    }
+    (1..10_000)
+        .map(|n| format!("{base} ({n})"))
+        .find(|name| !taken(name))
+        .ok_or_else(|| "Could not find a free export file name.".to_string())
+}
+
 /// outside the export folder the user picked
 #[tauri::command]
 pub async fn delete_export_intermediates(dir: String, paths: Vec<String>) -> Result<(), String> {
