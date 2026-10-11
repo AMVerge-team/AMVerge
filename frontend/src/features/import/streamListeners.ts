@@ -4,6 +4,7 @@ import { fileNameFromPath } from "../../utils/episodeUtils";
 import { useAppStateStore } from "../../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore";
 import { parseManifestInitialClips } from "./manifest";
+import { createClipPatchBuffer } from "./clipPatchBuffer";
 
 type Deps = {
   selectedFolderId: string | null;
@@ -60,29 +61,9 @@ export async function startVideoStreamingListeners(
   const isOnScreen = () =>
     useEpisodePanelRuntimeStore.getState().openedEpisodeId === episodeId;
 
-  // clip_ready patches arrive in bursts, and applying each as its own setState
-  // re-renders the whole grid every time (two O(n) store maps per event), which
-  // froze the UI during import. buffer by clip id and flush once per frame
-  const pendingPatches = new Map<string, Partial<ClipItem>>();
-  let flushHandle: number | null = null;
-
-  // merge rather than replace, so a clip_ready and a thumbnail_ready for the
-  // same clip within one frame do not clobber each other
-  const mergePatch = (id: string, patch: Partial<ClipItem>) => {
-    pendingPatches.set(id, { ...(pendingPatches.get(id) ?? {}), ...patch });
-  };
-
-  const flushPatches = () => {
-    flushHandle = null;
-    if (pendingPatches.size === 0) return;
-    const snapshot = new Map(pendingPatches);
-    pendingPatches.clear();
-
-    const applyPatch = (c: ClipItem): ClipItem => {
-      const p = snapshot.get(c.id);
-      return p ? { ...c, ...p } : c;
-    };
-
+  // clip_ready patches arrive in bursts; applying each as its own setState froze
+  // the UI during import (two O(n) store maps per event), so they flush per frame
+  const patches = createClipPatchBuffer((applyPatch) => {
     sessionClips = sessionClips.map(applyPatch);
     if (isOnScreen()) {
       useAppStateStore.setState((s) => ({
@@ -98,18 +79,7 @@ export async function startVideoStreamingListeners(
     deps.setEpisodes((prev) =>
       prev.map((ep) => (ep.id === episodeId ? { ...ep, clips: ep.clips.map(applyPatch) } : ep))
     );
-  };
-
-  const scheduleFlush = () => {
-    if (flushHandle === null) flushHandle = requestAnimationFrame(flushPatches);
-  };
-
-  const cancelFlush = () => {
-    if (flushHandle !== null) {
-      cancelAnimationFrame(flushHandle);
-      flushHandle = null;
-    }
-  };
+  });
 
   const unlistenInitial = await listen<{
     clips_json: string;
@@ -164,12 +134,11 @@ export async function startVideoStreamingListeners(
   }>("clip_ready", (event) => {
     if (!isMine(event.payload)) return;
     const { scene_index, clip_path, clip_mode } = event.payload;
-    mergePatch(`${episodeId}_${scene_index}`, {
+    clipDone += 1;
+    patches.patch(`${episodeId}_${scene_index}`, {
       clipPath: clip_path ?? undefined,
       clipMode: clip_mode || undefined,
     });
-    clipDone += 1;
-    scheduleFlush();
   });
 
   // a scene's static jpg poster finished, so the grid can swap its skeleton
@@ -178,8 +147,7 @@ export async function startVideoStreamingListeners(
     episode_cache_id?: string | null;
   }>("thumbnail_ready", (event) => {
     if (!isMine(event.payload)) return;
-    mergePatch(`${episodeId}_${event.payload.position}`, { thumbnailReady: true });
-    scheduleFlush();
+    patches.patch(`${episodeId}_${event.payload.position}`, { thumbnailReady: true });
   });
 
   // the initial preview phase is complete. the grid is already visible, so this
@@ -191,8 +159,7 @@ export async function startVideoStreamingListeners(
       if (!isMine(event.payload)) return;
       // flush synchronously so every completed preview path is in the store
       // before the import resolves
-      cancelFlush();
-      flushPatches();
+      patches.flushNow();
       if (focusGrid) useAppStateStore.setState({ loading: false, bgProgress: null });
       resolvePhase1();
     }
@@ -212,8 +179,7 @@ export async function startVideoStreamingListeners(
 
   const stop = () => {
     // apply anything buffered right before teardown so no patch is dropped
-    cancelFlush();
-    flushPatches();
+    patches.flushNow();
     useAppStateStore.setState((s) => ({
       liveImportEpisodeIds: s.liveImportEpisodeIds.filter((id) => id !== episodeId),
     }));

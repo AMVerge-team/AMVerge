@@ -9,11 +9,9 @@ use tauri::{AppHandle, State};
 
 use crate::state::ExportAbortState;
 use crate::utils::ffmpeg::resolve_bundled_tool;
-use crate::utils::logging::console_log;
-#[cfg(target_os = "windows")]
-use crate::utils::logging::sanitize_for_console;
+use crate::utils::logging::{console_log, sanitize_for_console};
 use crate::utils::paths::file_name_only;
-use crate::utils::process::apply_no_window;
+use crate::utils::process::{apply_no_window, kill_process_tree_async, KILL_TOOL};
 
 pub(super) async fn fast_merge_inner(
     app: AppHandle,
@@ -270,47 +268,16 @@ pub(super) async fn abort_export_inner(
         return Ok("Export cancellation requested.".to_string());
     }
 
-    #[cfg(target_os = "windows")]
-    {
-        let result = tokio::task::spawn_blocking(move || {
-            for pid in pids {
-                let mut cmd = Command::new("taskkill");
-                apply_no_window(&mut cmd);
-                let out = cmd.args(["/F", "/T", "/PID", &pid.to_string()]).output();
-                if let Ok(ref output) = out {
-                    if !output.status.success() {
-                        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-                        console_log(
-                            "EXPORT|abort",
-                            &format!(
-                                "taskkill pid={} failed: {}",
-                                pid,
-                                sanitize_for_console(&stderr)
-                            ),
-                        );
-                    }
-                }
+    for pid in pids {
+        if let Ok(output) = kill_process_tree_async(pid).await {
+            if cfg!(windows) && !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+                console_log(
+                    "EXPORT|abort",
+                    &format!("{KILL_TOOL} pid={} failed: {}", pid, sanitize_for_console(&stderr)),
+                );
             }
-            Ok::<(), String>(())
-        })
-        .await
-        .map_err(|e| format!("taskkill task panicked: {e}"))?
-        .map_err(|e| format!("Failed to run taskkill: {e}"))?;
-
-        let _ = result;
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        let _ = tokio::task::spawn_blocking(move || {
-            for pid in pids {
-                // negative PID kills the entire process group (ffmpeg + any children)
-                let _ = Command::new("kill")
-                    .args(["-9", &format!("-{pid}")])
-                    .output();
-            }
-        })
-        .await;
+        }
     }
 
     if let Ok(mut lock) = abort_state.pids.lock() {

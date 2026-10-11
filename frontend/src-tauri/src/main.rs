@@ -9,7 +9,7 @@ use state::{
     ActiveFfmpegPids, ActiveInstall, ActiveResume, ActiveSidecar, DiscordRPCState, EditorImportAbortState,
     ExportAbortState, PreviewProxyLocks, PreviewTranscodeSlots,
 };
-use std::process::Command as StdCommand;
+use utils::process::kill_process_tree;
 use std::sync::atomic::Ordering;
 use tauri::Manager;
 
@@ -67,8 +67,8 @@ fn main() {
             commands::export::create_export_staging_dir,
             commands::export::delete_export_staging_dir,
             commands::export::unique_export_base_name,
-            commands::scenes::resume_episode_clips,
-            commands::scenes::abort_resume_episode,
+            commands::scene_resume::resume_episode_clips,
+            commands::scene_resume::abort_resume_episode,
             commands::export::detect_nvidia_encoder_profile,
             commands::export::detect_gpu_encoder_capabilities,
             commands::export::fast_merge,
@@ -138,86 +138,42 @@ fn main() {
         });
 }
 
+/// empties a tracked pid list, so each pid is killed exactly once
+fn drain_pids(pids: &std::sync::Mutex<Vec<u32>>) -> Vec<u32> {
+    pids.lock().map(|mut l| l.drain(..).collect()).unwrap_or_default()
+}
+
+/// takes a single tracked pid, leaving the slot empty
+fn take_pid(pid: &std::sync::Mutex<Option<u32>>) -> Option<u32> {
+    pid.lock().ok().and_then(|mut l| l.take())
+}
+
 fn kill_all_child_processes(app: &tauri::AppHandle) {
-    // kill active export ffmpeg processes
+    let mut pids: Vec<u32> = Vec::new();
+
+    // active export ffmpeg processes
     let export_state = app.state::<ExportAbortState>();
     export_state.abort_requested.store(true, Ordering::SeqCst);
-    let export_pids: Vec<u32> = export_state
-        .pids
-        .lock()
-        .map(|mut l| l.drain(..).collect())
-        .unwrap_or_default();
-    for pid in export_pids {
-        #[cfg(not(target_os = "windows"))]
-        let _ = StdCommand::new("kill")
-            .args(["-9", &format!("-{pid}")])
-            .output();
-        #[cfg(target_os = "windows")]
-        let _ = StdCommand::new("taskkill")
-            .args(["/F", "/T", "/PID", &pid.to_string()])
-            .output();
-    }
+    pids.extend(drain_pids(&export_state.pids));
 
-    // kill untracked ffmpeg processes (merge, split, proxy) and a running episode resume
+    // untracked ffmpeg processes (merge, split, proxy) and a running episode resume
     let resume = app.state::<ActiveResume>();
     resume.cancel_requested.store(true, Ordering::SeqCst);
-    let mut misc_pids: Vec<u32> = app
-        .state::<ActiveFfmpegPids>()
-        .pids
-        .lock()
-        .map(|mut l| l.drain(..).collect())
-        .unwrap_or_default();
-    misc_pids.extend(
-        resume
-            .pids
-            .lock()
-            .map(|mut l| l.drain(..).collect::<Vec<u32>>())
-            .unwrap_or_default(),
-    );
-    for pid in misc_pids {
-        #[cfg(not(target_os = "windows"))]
-        let _ = StdCommand::new("kill")
-            .args(["-9", &format!("-{pid}")])
-            .output();
-        #[cfg(target_os = "windows")]
-        let _ = StdCommand::new("taskkill")
-            .args(["/F", "/T", "/PID", &pid.to_string()])
-            .output();
-    }
+    pids.extend(drain_pids(&app.state::<ActiveFfmpegPids>().pids));
+    pids.extend(drain_pids(&resume.pids));
 
-    // kill Python sidecar (scene detection) process group
+    // Python sidecar (scene detection) process group
     let sidecar = app.state::<ActiveSidecar>();
     if let Ok(mut lock) = sidecar.child.lock() {
         *lock = None;
     }
-    let sidecar_pid = sidecar.pid.lock().ok().and_then(|mut l| l.take());
-    if let Some(pid) = sidecar_pid {
-        #[cfg(not(target_os = "windows"))]
-        let _ = StdCommand::new("kill")
-            .args(["-9", &format!("-{pid}")])
-            .output();
-        #[cfg(target_os = "windows")]
-        let _ = StdCommand::new("taskkill")
-            .args(["/F", "/T", "/PID", &pid.to_string()])
-            .output();
-    }
+    pids.extend(take_pid(&sidecar.pid));
 
-    // kill an in-flight dependency install (uv + its download children)
-    let install_pid = app
-        .state::<ActiveInstall>()
-        .pid
-        .lock()
-        .ok()
-        .and_then(|mut l| l.take());
-    if let Some(pid) = install_pid {
-        #[cfg(not(target_os = "windows"))]
-        let _ = StdCommand::new("kill")
-            .args(["-9", &format!("-{pid}")])
-            .output();
-        #[cfg(target_os = "windows")]
-        let _ = StdCommand::new("taskkill")
-            .args(["/F", "/T", "/PID", &pid.to_string()])
-            .output();
+    // an in-flight dependency install (uv + its download children)
+    pids.extend(take_pid(&app.state::<ActiveInstall>().pid));
+
+    for pid in pids {
+        let _ = kill_process_tree(pid);
     }
 
     // clear the Discord presence before the process goes away, so no ghost
@@ -232,20 +188,8 @@ fn kill_all_child_processes(app: &tauri::AppHandle) {
         }
     };
 
-    let scout_index_pid = app
-        .state::<crate::commands::scene_scout::ActiveScoutIndex>()
-        .0
-        .lock()
-        .ok()
-        .and_then(|mut l| l.take());
-    if let Some(pid) = scout_index_pid {
-        #[cfg(not(target_os = "windows"))]
-        let _ = StdCommand::new("kill")
-            .args(["-9", &format!("-{pid}")])
-            .output();
-        #[cfg(target_os = "windows")]
-        let _ = StdCommand::new("taskkill")
-            .args(["/F", "/T", "/PID", &pid.to_string()])
-            .output();
+    let scout_index = app.state::<crate::commands::scene_scout::ActiveScoutIndex>();
+    if let Some(pid) = take_pid(&scout_index.0) {
+        let _ = kill_process_tree(pid);
     }
 }

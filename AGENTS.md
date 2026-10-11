@@ -191,6 +191,7 @@ frontend/
 
       commands/
         scenes.rs                   # detect_scenes, abort, load_manifest
+        scene_resume.rs             # resume/abort a paused video-mode episode (materialize-clips)
         export.rs                   # export_clips, run_export_pass, GPU detection, ops
         preview.rs                  # WebP gen, proxy transcode, HEVC check, audio probe
         settings.rs                 # File I/O, image crop, profile icons, reveal
@@ -218,7 +219,7 @@ frontend/
         ffmpeg.rs                   # resolve_bundled_tool (ffmpeg/ffprobe path lookup)
         logging.rs                  # console_log emission to frontend
         paths.rs                    # Path sanitization, cache ID helpers
-        process.rs                  # CREATE_NO_WINDOW flag for Windows
+        process.rs                  # CREATE_NO_WINDOW flag, kill_process_tree (taskkill /T or process-group kill)
         sidecar.rs                  # amverge_command: CLI resolution (dev/prod)
 ```
 
@@ -263,8 +264,8 @@ frontend/
 | `detect_scenes` | scenes.rs | Spawn CLI sidecar, stream progress events |
 | `load_episode_manifest` | scenes.rs | Read cached `manifest.json` from disk |
 | `abort_detect_scenes` | scenes.rs | Kill sidecar process group |
-| `resume_episode_clips` | scenes.rs | Resume a paused video-mode episode (import stopped by closing the CLI mini window or the app): re-cuts missing clips/posters in one `materialize-clips --cut-mode copy|auto` run (mode from the manifest's detection method, so keyframe-exact scenes stream-copy like the import did; CLI streams `MATERIALIZED|<json>` per item), streams `clip_ready`/`thumbnail_ready`. Started from the episode row's resume button (`features/import/resumeEpisode.ts`); "paused" is derived from unfinished clips, never stored |
-| `abort_resume_episode` | scenes.rs | Pause a running resume (kills its cutter; remaining clips stay unfinished, not failed) |
+| `resume_episode_clips` | scene_resume.rs | Resume a paused video-mode episode (import stopped by closing the CLI mini window or the app): re-cuts missing clips/posters in one `materialize-clips --cut-mode copy|auto` run (mode from the manifest's detection method, so keyframe-exact scenes stream-copy like the import did; CLI streams `MATERIALIZED|<json>` per item), streams `clip_ready`/`thumbnail_ready`. Started from the episode row's resume button (`features/import/resumeEpisode.ts`); "paused" is derived from unfinished clips, never stored |
+| `abort_resume_episode` | scene_resume.rs | Pause a running resume (kills its cutter; remaining clips stay unfinished, not failed) |
 | `unique_export_base_name` | export.rs | First free `name`, `name (1)`, ... in the export folder so merged exports never overwrite |
 | `export_clips` | export.rs | Spawn CLI export, stream progress |
 | `run_export_pass` | export.rs | Post-export passes (depth, deadframes, interpolate) |

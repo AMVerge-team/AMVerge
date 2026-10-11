@@ -19,6 +19,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 use crate::utils::logging::{console_log, emit_console_log, sanitize_for_console};
 use crate::utils::paths::{file_name_only, resolve_scene_scout_storage_dir};
+use crate::utils::process::kill_process_tree_async;
 use crate::utils::sidecar::amverge_ai_command;
 use crate::utils::sidecar::amverge_exe_name;
 
@@ -915,26 +916,7 @@ pub async fn abort_scout_index(
 
     console_log("SCOUT|abort", &format!("killing indexing process tree pid={pid}"));
 
-    #[cfg(windows)]
-    let result = tokio::task::spawn_blocking(move || {
-        let mut cmd = std::process::Command::new("taskkill");
-        crate::utils::process::apply_no_window(&mut cmd);
-        cmd.args(["/F", "/T", "/PID", &pid.to_string()])
-            .output()
-            .map_err(|e| format!("Failed to run taskkill: {e}"))
-    })
-    .await
-    .map_err(|e| format!("taskkill task panicked: {e}"))??;
-
-    #[cfg(not(windows))]
-    let result = tokio::task::spawn_blocking(move || {
-        std::process::Command::new("kill")
-            .args(["-9", &format!("-{pid}")])
-            .output()
-            .map_err(|e| format!("Failed to run kill: {e}"))
-    })
-    .await
-    .map_err(|e| format!("kill task panicked: {e}"))??;
+    let result = kill_process_tree_async(pid).await?;
 
     if result.status.success() {
         console_log("SCOUT|abort", &format!("killed scout indexing pid={pid} ok"));

@@ -2,7 +2,7 @@ import type React from "react";
 import { FaFolderOpen, FaImage, FaPlay, FaVideo } from "react-icons/fa";
 import Tooltip from "../../common/Tooltip";
 import { useAppStateStore } from "../../../stores/appStore";
-import { isEpisodePaused, resumeEpisode } from "../../../features/import/resumeEpisode";
+import { isEpisodePaused, isResumeBlocked, resumeEpisode } from "../../../features/import/resumeEpisode";
 import type { EpisodePanelProps, PointerDragSource } from "../types";
 
 type Episode = EpisodePanelProps["episodes"][number];
@@ -70,9 +70,7 @@ export default function EpisodeRow({
   // paused: its import stopped early (mini window or app closed) with clips left to cut
   const liveImportEpisodeIds = useAppStateStore((s) => s.liveImportEpisodeIds);
   const resumingEpisodeId = useAppStateStore((s) => s.resumingEpisodeId);
-  const resumeBlocked = useAppStateStore(
-    (s) => Boolean(s.loading || s.bgProgress || s.bgImportProgress || s.reencodeProgress || s.resumingEpisodeId)
-  );
+  const resumeBlocked = useAppStateStore(isResumeBlocked);
   const isPaused = isEpisodePaused(episode, liveImportEpisodeIds, resumingEpisodeId);
 
   const handleResume = (e: React.MouseEvent) => {

@@ -6,14 +6,11 @@
 //! feature maps to a "pack"; installing a pack installs torch once plus that
 //! pack's extra, pinned to the CLI version baked into the sidecar
 
-use std::process::Command;
-
 use tauri::{AppHandle, State};
 
 use crate::state::ActiveInstall;
 use crate::utils::logging::console_log;
-#[cfg(windows)]
-use crate::utils::process::apply_no_window;
+use crate::utils::process::kill_process_tree;
 use crate::utils::sidecar::{ai_env_dir, ai_env_python, ai_env_ready, uv_cache_dir, uv_python_dir};
 
 mod cli_update;
@@ -87,18 +84,7 @@ pub async fn abort_ai_install(install_state: State<'_, ActiveInstall>) -> Result
 
     console_log("DEPS|abort", &format!("killing uv pid={pid}"));
 
-    #[cfg(windows)]
-    {
-        let mut cmd = Command::new("taskkill");
-        apply_no_window(&mut cmd);
-        let _ = cmd.args(["/F", "/T", "/PID", &pid.to_string()]).output();
-    }
-    #[cfg(not(windows))]
-    {
-        let _ = Command::new("kill")
-            .args(["-9", &format!("-{pid}")])
-            .output();
-    }
+    let _ = kill_process_tree(pid);
 
     Ok(())
 }
