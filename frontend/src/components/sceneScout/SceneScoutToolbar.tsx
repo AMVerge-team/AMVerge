@@ -8,8 +8,10 @@ import Tooltip from "../common/Tooltip";
 import { useSceneScoutStore } from "../../stores/sceneScoutStore";
 import { useUIStateStore } from "../../stores/UIStore";
 import { playHeroFlip } from "../../features/sceneScout/heroTransition";
+import { subjectArrow } from "../../features/sceneScout/motion";
 import { ScoutSearchField } from "./ScoutSearchField";
 import { ScoutInfoButton } from "./ScoutInfoButton";
+import { ScoutModeTabs } from "./ScoutModeTabs";
 import { useAddEpisodes } from "./useAddEpisodes";
 import { PreviewToggle, SidebarToggle } from "./PanelToggles";
 import {
@@ -21,6 +23,8 @@ import {
   MAX_TOP_K,
   MIN_THRESHOLD_PCT,
   MIN_TOP_K,
+  MOTION_DIRECTIONS,
+  type MotionSubject,
   THRESHOLD_OPTIONS,
   TOP_K_OPTIONS,
 } from "../../features/sceneScout/types";
@@ -82,6 +86,8 @@ export function SceneScoutToolbar() {
   const refresh = useSceneScoutStore((s) => s.refresh);
   const loading = useSceneScoutStore((s) => s.loading);
   const storeError = useSceneScoutStore((s) => s.error);
+  const backfillMotion = useSceneScoutStore((s) => s.backfillMotion);
+  const motionBackfilling = useSceneScoutStore((s) => s.motionBackfilling);
 
   // the row is padded to clear the preview pane, so the search field ends at
   // the grid's right edge instead of running under the panel
@@ -201,6 +207,28 @@ export function SceneScoutToolbar() {
     }
     setEditingThreshold(false);
   };
+  // motion filters change which scenes qualify, so a live search re-runs like the other settings
+  const startSubjects = settings.startSubjects ?? [];
+  const applyMotionFilter = (changes: { startSubjects?: MotionSubject[]; includeUnclear?: boolean }) => {
+    updateSettings(changes);
+    if (query.trim() && !searching) void runSearch();
+  };
+  const toggleStartSubject = (subject: MotionSubject) =>
+    applyMotionFilter({
+      startSubjects: startSubjects.includes(subject)
+        ? startSubjects.filter((s) => s !== subject)
+        : [...startSubjects, subject],
+    });
+
+  const [motionNote, setMotionNote] = useState<string | null>(null);
+  const analysingMotion = selectedDatabases.some((p) => motionBackfilling.includes(p));
+  const handleAnalyseMotion = async () => {
+    setMotionNote(null);
+    const res = await backfillMotion(selectedDatabases);
+    setMotionNote(res.ok ? `Measured motion for ${res.scenes} scenes` : res.message);
+    if (res.ok && query.trim()) void runSearch();
+  };
+
   const [unloading, setUnloading] = useState(false);
   const [freed, setFreed] = useState(false);
 
@@ -240,6 +268,7 @@ export function SceneScoutToolbar() {
         <div className="import-buttons-container events-toolbar-row">
           {/* first in the row, over the panel it controls, same as home and events */}
           <SidebarToggle />
+          <ScoutModeTabs />
 
           <Tooltip content={noDatabaseOpen ? GATE_HINT : "Index an episode into the open database"}>
             <button
@@ -414,6 +443,52 @@ export function SceneScoutToolbar() {
               </div>
             </div>
             )}
+
+            <div className="scene-scout-setting scene-scout-motion-filter">
+              <span>Starts moving</span>
+              <div className="scene-scout-motion-grid" role="group" aria-label="Start direction filter">
+                {MOTION_DIRECTIONS.map((subject) => (
+                  <Tooltip key={subject} content={subject === "still" ? "Subject still" : `Subject moving ${subject}`}>
+                    <button
+                      type="button"
+                      className={`scene-scout-db-chip${startSubjects.includes(subject) ? " is-active" : ""}`}
+                      onClick={() => toggleStartSubject(subject)}
+                      aria-pressed={startSubjects.includes(subject)}
+                    >
+                      {subjectArrow(subject)}
+                    </button>
+                  </Tooltip>
+                ))}
+              </div>
+              <div className="scene-scout-motion-side">
+                <OptionToggle
+                  label="Include unclear"
+                  hint="Keep scenes whose motion could not be read (smears, flashes, effects)"
+                  checked={settings.includeUnclear ?? false}
+                  onChange={(checked) => applyMotionFilter({ includeUnclear: checked })}
+                />
+                {startSubjects.length > 0 && (
+                  <button
+                    type="button"
+                    className="scene-scout-db-chip"
+                    onClick={() => applyMotionFilter({ startSubjects: [] })}
+                  >
+                    Any direction
+                  </button>
+                )}
+                <Tooltip content="Measure motion for scenes in the searched databases that do not have it yet. Decodes each episode again, so it takes about a minute per episode.">
+                  <button
+                    type="button"
+                    className="scene-scout-db-chip"
+                    onClick={() => void handleAnalyseMotion()}
+                    disabled={analysingMotion || selectedDatabases.length === 0}
+                  >
+                    {analysingMotion ? "Analysing…" : "Analyse motion"}
+                  </button>
+                </Tooltip>
+                {motionNote && <span className="scene-scout-motion-note">{motionNote}</span>}
+              </div>
+            </div>
 
             <div className="scene-scout-options-footer">
               <Tooltip content="Free the RAM / VRAM the search model is using right now">

@@ -4,6 +4,8 @@ import { listen } from "@tauri-apps/api/event";
 
 import {
   scoutAddVideo,
+  scoutBackfillMotion,
+  scoutClipMotion,
   scoutCreateDatabase,
   scoutDatabaseInfo,
   scoutDeleteDatabase,
@@ -18,6 +20,8 @@ import {
 } from "../features/sceneScout/api";
 import {
   DEFAULT_SEARCH_SETTINGS,
+  type FlowSource,
+  type SceneMotion,
   type ScoutDatabase,
   type ScoutHit,
   type ScoutIndexProgress,
@@ -28,6 +32,7 @@ import {
 import { useAiDepsStore } from "./aiDepsStore";
 import { useAppStateStore } from "./appStore";
 import { useGeneralSettingsStore } from "./settingsStore";
+import { useUIStateStore } from "./UIStore";
 
 /** The storage root every call has to be told about, read fresh each time. */
 function customPath(): string | null {
@@ -66,7 +71,21 @@ type SceneScoutState = {
   panelSplitPct: number;
   /** runtime only: the centered first-visit layout gives way to the top toolbar after the first search */
   heroDismissed: boolean;
+  /** runtime only: which Scene Scout tab is showing; search and flow keep separate results */
+  mode: ScoutMode;
+  /** runtime only: the clip the Flow tab continues, and how it moves */
+  flowFrom: FlowSource | null;
+  flowTags: SceneMotion | null;
+  /** measuring the flow clip's motion, before the search itself starts */
+  flowMeasuring: boolean;
+  flowResults: ScoutHit[];
+  flowSearching: boolean;
+  flowError: string | null;
+  /** runtime only: databases whose motion is being measured right now */
+  motionBackfilling: string[];
 };
+
+export type ScoutMode = "search" | "flow";
 
 type SceneScoutActions = {
   refreshStatus: () => Promise<void>;
@@ -102,6 +121,14 @@ type SceneScoutActions = {
   generateThumbnails: (path: string) => Promise<{ ok: boolean; generated: number; message: string | null }>;
   backfillThumbnails: (paths: string[]) => void;
   refresh: () => Promise<void>;
+  setMode: (mode: ScoutMode) => void;
+  /** open the Flow tab with a clip and find the scenes most like its last frame */
+  startFlowSearch: (source: FlowSource) => Promise<void>;
+  /** re-run the Flow tab's search for the current clip (databases or result count changed) */
+  runFlowSearch: () => Promise<void>;
+  clearFlow: () => void;
+  /** measure motion for databases indexed before motion existed */
+  backfillMotion: (paths: string[]) => Promise<{ ok: boolean; scenes: number; message: string | null }>;
 };
 
 const INITIAL: SceneScoutState = {
@@ -126,6 +153,14 @@ const INITIAL: SceneScoutState = {
   displayNames: {},
   panelSplitPct: 35,
   heroDismissed: false,
+  mode: "search",
+  flowFrom: null,
+  flowTags: null,
+  flowMeasuring: false,
+  flowResults: [],
+  flowSearching: false,
+  flowError: null,
+  motionBackfilling: [],
 };
 
 // databases already backfilled this session, so a repeat search does not respawn the cli for nothing
@@ -785,6 +820,84 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         await Promise.all([get().loadDatabases(), get().refreshStatus()]);
         const opened = get().openedDatabase;
         if (opened) await get().loadVideos(opened);
+      },
+
+      setMode: (mode) => set({ mode }),
+
+      startFlowSearch: async (source) => {
+        // the input player shows the clip's ending motion first; the search measures it again in the CLI
+        set({
+          mode: "flow",
+          flowFrom: source,
+          flowTags: null,
+          flowMeasuring: true,
+          flowResults: [],
+          flowError: null,
+        });
+        useUIStateStore.getState().setActivePage("sceneScout");
+        try {
+          const flowTags = await scoutClipMotion(source);
+          // a newer flow clip replaced this one while it was measuring
+          if (get().flowFrom !== source) return;
+          set({ flowTags });
+        } catch (err) {
+          if (get().flowFrom === source) set({ flowError: `Could not read the clip's motion: ${message(err)}` });
+        } finally {
+          if (get().flowFrom === source) set({ flowMeasuring: false });
+        }
+        if (get().flowFrom === source) await get().runFlowSearch();
+      },
+
+      runFlowSearch: async () => {
+        const source = get().flowFrom;
+        if (!source) return;
+        if (get().selectedDatabases.length === 0) {
+          set({ flowError: "Add a database to the Searching list on the left first." });
+          return;
+        }
+        if (!(await useAiDepsStore.getState().ensurePack("scout"))) {
+          set({ flowError: "Scene Scout needs its AI pack installed." });
+          return;
+        }
+
+        set({ flowSearching: true, flowError: null });
+        try {
+          // the Search tab's direction filter belongs to that tab; flow ranks by visual similarity alone
+          const flowSettings = {
+            ...get().settings,
+            selectedDatabases: get().selectedDatabases,
+            selectedVideos: get().selectedVideos,
+            startSubjects: [],
+            includeUnclear: false,
+          };
+          const flowResults = await scoutSearch("", flowSettings, customPath(), source);
+          if (get().flowFrom === source) set({ flowResults });
+        } catch (err) {
+          if (get().flowFrom === source) set({ flowResults: [], flowError: message(err) });
+        } finally {
+          set({ flowSearching: false });
+        }
+      },
+
+      clearFlow: () =>
+        set({ flowFrom: null, flowTags: null, flowMeasuring: false, flowResults: [], flowError: null }),
+
+      backfillMotion: async (paths) => {
+        const pending = paths.filter((p) => !get().motionBackfilling.includes(p));
+        if (pending.length === 0) return { ok: true, scenes: 0, message: null };
+        set((s) => ({ motionBackfilling: [...s.motionBackfilling, ...pending] }));
+        let scenes = 0;
+        try {
+          for (const path of pending) {
+            const res = await scoutBackfillMotion(path, customPath());
+            scenes += res.scenes;
+          }
+          return { ok: true, scenes, message: null };
+        } catch (err) {
+          return { ok: false, scenes, message: message(err) };
+        } finally {
+          set((s) => ({ motionBackfilling: s.motionBackfilling.filter((p) => !pending.includes(p)) }));
+        }
       },
     }),
     {

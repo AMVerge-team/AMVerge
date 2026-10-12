@@ -683,6 +683,228 @@
     justify-content: flex-end;
 }
 
+/* motion filter: a 3x3 direction pad (centre = still) beside its toggles */
+.scene-scout-options-pop .scene-scout-motion-filter {
+    flex: none;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 10px;
+    row-gap: 6px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.scene-scout-motion-filter > span {
+    grid-column: 1 / -1;
+}
+
+.scene-scout-motion-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 26px);
+    gap: 3px;
+}
+
+.scene-scout-options-pop .scene-scout-motion-grid .scene-scout-db-chip {
+    width: 26px;
+    height: 24px;
+    padding: 0;
+    font-size: 13px;
+    border-radius: 6px;
+}
+
+.scene-scout-motion-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+}
+
+.scene-scout-motion-side .scene-scout-db-chip:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.scene-scout-motion-note {
+    font-size: 11px;
+    color: rgb(255 255 255 / 0.55);
+}
+
+/* Search / Flow tabs: a segmented switch in the toolbar row */
+.scene-scout-mode-tabs {
+    display: inline-flex;
+    padding: 2px;
+    border: 1px solid rgb(255 255 255 / 0.14);
+    border-radius: 8px;
+    background: rgb(255 255 255 / 0.03);
+}
+
+.scene-scout-mode-tab {
+    height: 28px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: rgb(255 255 255 / 0.6);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.scene-scout-mode-tab:hover {
+    color: white;
+}
+
+.scene-scout-mode-tab.is-active {
+    background: rgb(var(--accent-rgb) / 0.18);
+    color: var(--accent);
+}
+
+.scene-scout-flow-status {
+    font-size: 12px;
+    color: rgb(255 255 255 / 0.55);
+    white-space: nowrap;
+}
+
+/* Flow tab: two players over the matches grid */
+.scene-scout-flow-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    gap: 10px;
+}
+
+.scene-scout-flow-players {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    padding: 6px 20px 0 15px;
+    flex: none;
+}
+
+.scene-scout-flow-player {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.scene-scout-flow-player-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    font-size: 12px;
+}
+
+.scene-scout-flow-player-role {
+    color: var(--accent);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 11px;
+}
+
+.scene-scout-flow-player-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: rgb(255 255 255 / 0.7);
+}
+
+/* capped so the grid below always keeps most of the height */
+.scene-scout-flow-player-frame {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    max-height: 34vh;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    background: black;
+    border: 1px solid rgb(255 255 255 / 0.08);
+}
+
+.scene-scout-flow-player-frame video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.scene-scout-flow-player-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 24px;
+    text-align: center;
+    font-size: 13px;
+    color: rgb(255 255 255 / 0.45);
+}
+
+.scene-scout-flow-player-empty.is-loading {
+    font-style: italic;
+}
+
+.scene-scout-flow-player-tags {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 18px;
+    font-size: 12px;
+    color: rgb(255 255 255 / 0.7);
+}
+
+.scene-scout-flow-player-tags b {
+    color: var(--accent);
+    font-size: 15px;
+}
+
+.scene-scout-flow-player-camera {
+    margin-left: 4px;
+    color: rgb(255 255 255 / 0.45);
+}
+
+.scene-scout-flow-player-tags .is-muted {
+    color: rgb(255 255 255 / 0.4);
+    font-style: italic;
+}
+
+.scene-scout-flow-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.scene-scout-flow-actions .buttons {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    height: 32px;
+    padding: 0 12px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.scene-scout-flow-actions .buttons:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.scene-scout-flow-grid {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
 .scene-scout-options-pop .scene-scout-unload-btn {
     height: 26px;
     padding: 0 10px;

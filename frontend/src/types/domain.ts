@@ -1,3 +1,5 @@
+import type { SceneMotion } from "../features/sceneScout/types";
+
 export type ClipItem = {
   id: string;
   src: string;
@@ -17,6 +19,8 @@ export type ClipItem = {
   score?: number;
   database?: string;
   scoutNeedsThumb?: boolean;
+  /** Scene Scout results: how the scene starts and ends moving */
+  motion?: SceneMotion | null;
 };
 
 export type EpisodeFolder = {

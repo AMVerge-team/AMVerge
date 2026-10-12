@@ -32,8 +32,12 @@ import type { ExportContainer } from "../../features/export/profileTypes.ts";
 export default function ClipsContainer({ cols }: { cols?: number }) {
   const clips = useAppStateStore((state) => state.clips);
   const loading = useAppStateStore((state) => state.loading);
-  const isScoutSearching = useSceneScoutStore((state) => state.searching);
+  const scoutFlowMode = useSceneScoutStore((state) => state.mode === "flow");
+  const isScoutSearching = useSceneScoutStore((state) =>
+    state.mode === "flow" ? state.flowSearching || state.flowMeasuring : state.searching
+  );
   const scoutLastQuery = useSceneScoutStore((state) => state.lastQuery);
+  const scoutHasFlowClip = useSceneScoutStore((state) => state.flowFrom !== null);
   const importToken = useAppStateStore((state) => state.importToken);
   const setFocusedClip = useAppStateStore((state) => state.setFocusedClip);
   const setFocusedClipId = useAppStateStore((state) => state.setFocusedClipId);
@@ -547,6 +551,14 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
           <p id="empty-grid">
             {activePage === "scenepacks"
               ? <>No Scenepack opened.<br/>Select one from the sidebar to view its clips.</>
+              : activePage === "sceneScout" && scoutFlowMode
+              ? (
+                scoutHasFlowClip ? (
+                  <>No scenes found for this clip.<br/>Add a database to the Searching list on the left, or lower the minimum score in Search options.</>
+                ) : (
+                  <>No clip to continue yet.<br/>Choose a clip above, or select one on Home and click Find flowing clips.</>
+                )
+              )
               : activePage === "sceneScout"
               ? (
                 scoutLastQuery ? (
