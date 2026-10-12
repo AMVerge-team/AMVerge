@@ -6,9 +6,17 @@
 /* the shell reuses `events-toolbar-shell` and `events-toolbar-row`, which is
    what makes the info and refresh buttons render like the Events page rather
    than falling back to their bare defaults. only the height is ours. */
+/* one row, the same height as home's import row (grid-toolbar), centred like it */
 .scene-scout-toolbar-shell {
-    height: auto;
-    min-height: 60px;
+    align-items: center;
+}
+
+.scene-scout-toolbar-error {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Search field ----------------------------------------------------------- */
@@ -20,8 +28,6 @@
     min-width: 0;
     padding-left: 15px;
     padding-right: 5px;
-    margin-top: 4px;
-    margin-bottom: 4px;
 }
 
 .scene-scout-search-row > * {
@@ -150,38 +156,6 @@
     min-width: 180px;
 }
 
-.scene-scout-db-filter .scene-scout-db-chips {
-    height: 34px;
-    align-items: center;
-}
-
-.scene-scout-db-filter {
-    flex: 1 1 260px;
-    min-width: 0;
-}
-
-.scene-scout-db-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-
-.scene-scout-db-chip {
-    padding: 3px 10px;
-    border: 1px solid rgb(255 255 255 / 0.15);
-    border-radius: 999px;
-    background: transparent;
-    color: rgb(255 255 255 / 0.6);
-    font-size: 0.75rem;
-    cursor: pointer;
-}
-
-.scene-scout-db-chip.is-active {
-    border-color: var(--accent);
-    background: rgb(var(--accent-rgb) / 0.15);
-    color: var(--accent);
-}
-
 /* Sidebar panel ---------------------------------------------------------- */
 
 /* The panel reuses `eps-container`, `episode-panel`, `episode-panel-row` and
@@ -227,43 +201,9 @@
     padding: 0 10px 6px;
 }
 
-/* the label and its chevron are separate children, so the button needs to lay
-   them out rather than relying on the default inline flow, which left the arrow
-   sitting low against the text */
-.scene-scout-settings-toggle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    width: auto;
-    padding: 0 14px;
-    white-space: nowrap;
-}
-
-.scene-scout-settings-toggle svg {
-    flex: 0 0 auto;
-    font-size: 0.75em;
-    transition: transform 0.15s ease;
-}
-
-.scene-scout-settings-toggle.is-open svg {
-    transform: rotate(180deg);
-}
-
-/* matches the refresh and info buttons, which are the two beside it */
-.scene-scout-settings-toggle {
-    transition: border 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
-}
-
 /* the preview toggle sits at the far right of the row, above the pane it controls */
 .events-toolbar-row .panel-toggle-button.scene-scout-preview-toggle {
     margin-left: auto;
-}
-
-/* the shared import-button min-width left empty space either side of the label */
-.import-button.scene-scout-settings-toggle {
-    min-width: 0;
-    padding: 0 12px;
 }
 
 /* the row's database and episode icons are labels, not buttons, so they skip the shared button hover */
@@ -277,13 +217,6 @@
     color: var(--accent);
     box-shadow: none;
     transform: none;
-}
-
-.scene-scout-settings-toggle:hover:not(:disabled) {
-    cursor: pointer;
-    box-shadow: 0 0 15px rgb(var(--accent-rgb) / 0.4);
-    border: 1px solid var(--accent);
-    color: var(--accent);
 }
 
 /* the Custom field replaces the dropdown trigger in place, so it copies the
@@ -400,7 +333,6 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    margin-top: 6px;
     padding: 10px;
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -414,6 +346,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 2px 4px;
+    font-family: var(--ui-font);
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.06em;
@@ -631,56 +564,164 @@
     font-size: 11px;
 }
 
-.scene-scout-options-toggles {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2px 12px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.scene-scout-option-toggle {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    min-width: 0;
-    padding: 4px 2px;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.85);
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-.scene-scout-option-toggle .custom-checkbox {
-    width: 15px;
-    height: 15px;
-    margin-right: 0;
-    flex: 0 0 auto;
-}
-
-.scene-scout-option-toggle .custom-checkbox input:checked + .checkmark::after {
-    width: 4px;
-    height: 7px;
-}
-
-.scene-scout-options-pop .scene-scout-db-filter {
-    flex: none;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.scene-scout-options-pop .scene-scout-db-filter .scene-scout-db-chips {
-    height: auto;
-}
-
-.scene-scout-options-pop .scene-scout-db-chip {
-    padding: 2px 8px;
-    font-size: 11px;
-}
-
 .scene-scout-options-footer {
     display: flex;
     justify-content: flex-end;
+}
+
+/* Search / Flow tabs: a segmented switch in the toolbar row */
+/* same frame as the 2rem import buttons beside it: accent border, rounded, blurred glass */
+.scene-scout-mode-tabs {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 2px;
+    height: 2rem;
+    padding: 2px;
+    border: 1px solid rgb(var(--accent-rgb) / 0.9);
+    border-radius: 10px;
+    background: rgba(15, 0, 0, 0.1);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+}
+
+.scene-scout-mode-tab {
+    height: 100%;
+    padding: 0 14px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: rgb(255 255 255 / 0.6);
+    font-family: var(--app-font);
+    font-size: clamp(0.8rem, 1.5vw, 1rem);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.scene-scout-mode-tab:hover {
+    color: white;
+}
+
+.scene-scout-mode-tab.is-active {
+    background: rgb(var(--accent-rgb) / 0.18);
+    color: var(--accent);
+}
+
+/* Flow tab: the inputted clip over the matches grid; the clicked match plays in the preview pane */
+/* both tabs' left pane: their header (search bar or input clip) above the results grid */
+.scene-scout-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    gap: 10px;
+}
+
+/* sized like a preview, not the full row, so the grid below keeps most of the height */
+.scene-scout-flow-input {
+    flex: none;
+    width: min(560px, 100%);
+    padding: 6px 20px 0 15px;
+    box-sizing: border-box;
+}
+
+.scene-scout-flow-player {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+/* fixed Arial, never the user's chosen app font: this label says which clip is which */
+.scene-scout-flow-player-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    font-family: var(--ui-font);
+    font-size: 12px;
+}
+
+.scene-scout-flow-player-role {
+    color: var(--accent);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 11px;
+}
+
+.scene-scout-flow-player-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: rgb(255 255 255 / 0.7);
+}
+
+/* capped so the grid below always keeps most of the height */
+.scene-scout-flow-player-frame {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    max-height: 34vh;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    background: black;
+    border: 1px solid rgb(255 255 255 / 0.08);
+}
+
+.scene-scout-flow-player-frame video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.scene-scout-flow-player-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 24px;
+    text-align: center;
+    font-family: var(--ui-font);
+    font-size: 13px;
+    color: rgb(255 255 255 / 0.45);
+}
+
+.scene-scout-flow-player-empty.is-loading {
+    font-style: italic;
+}
+
+/* first-visit layout (Flow tab): the clip player fills the centred column, Choose clip inside it */
+.scene-scout-hero .scene-scout-flow-input {
+    width: 100%;
+    padding: 0;
+}
+
+.scene-scout-flow-hero-pick {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.scene-scout-flow-hero-pick .import-button {
+    margin: 0;
+}
+
+.scene-scout-flow-hero-pick span {
+    font-family: var(--ui-font);
+    font-size: 12px;
+    color: rgb(255 255 255 / 0.45);
+}
+
+.scene-scout-view-grid {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .scene-scout-options-pop .scene-scout-unload-btn {
@@ -735,7 +776,10 @@ body.scene-scout-resizing {
     user-select: none;
 }
 
+/* "Searching" / "All databases": arial so they stay readable whatever font the user picks */
 .scene-scout-section-label {
+    font-family: var(--ui-font);
+    font-size-adjust: none;
     padding: 4px 6px 6px;
     font-size: 11px;
     font-weight: 600;

@@ -23,6 +23,8 @@ export type UIState = {
      *  keep the preview toggle above the grid's right edge */
     previewSplitPct: number;
     pinned: boolean;
+    /** the preview pane's How to use guide, open or folded */
+    howToUseExpanded: boolean;
 };
 
 export type UIStateStore = UIState & {
@@ -51,6 +53,7 @@ export type UIStateStore = UIState & {
     setPreviewCollapsed: (collapsed: boolean) => void;
     setPreviewSplitPct: (pct: number) => void;
     togglePinned: () => void;
+    setHowToUseExpanded: (expanded: boolean) => void;
 };
 
 /** true while a full-screen modal covers the app, so previews can stand down */
@@ -74,6 +77,7 @@ export const DEFAULT_UI_STATE: UIState = {
     previewCollapsed: false,
     previewSplitPct: 65,
     pinned: false,
+    howToUseExpanded: true,
 };
 
 export const useUIStateStore = create<UIStateStore>()(
@@ -138,6 +142,7 @@ export const useUIStateStore = create<UIStateStore>()(
             setPreviewCollapsed: (previewCollapsed) => set({ previewCollapsed }),
             setPreviewSplitPct: (previewSplitPct) => set({ previewSplitPct }),
             togglePinned: () => set((state) => ({ pinned: !state.pinned })),
+            setHowToUseExpanded: (howToUseExpanded) => set({ howToUseExpanded }),
         }),
         {
             name: "amverge.ui.v1",
@@ -153,6 +158,7 @@ export const useUIStateStore = create<UIStateStore>()(
                 // always-on-top outlives a restart; the Tauri window state does not,
                 // so Navbar re-applies it on mount
                 pinned: state.pinned,
+                howToUseExpanded: state.howToUseExpanded,
             }),
         }
     )

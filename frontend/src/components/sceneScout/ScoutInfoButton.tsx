@@ -3,7 +3,7 @@ import InfoButton from "../common/InfoButton";
 /** the "how does this work" popover, shared by the first-visit layout and the top toolbar */
 export function ScoutInfoButton() {
   return (
-    <InfoButton title="Scene Scout Information">
+    <InfoButton title="Scene Scout" variant="toolbar">
       <p>
         Scene Scout searches your indexed episodes by description rather than by filename. Type what
         you remember of a scene and it finds the closest matches.

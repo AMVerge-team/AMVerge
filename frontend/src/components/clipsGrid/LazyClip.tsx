@@ -21,6 +21,7 @@ import { ScenepackPickerMenu } from "./ScenepackPickerMenu.tsx";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
 import { useScenepacksStore } from "../../stores/scenepackStore.ts";
 import { removeClipsFromScenepack } from "../../utils/scenepackStorage.ts";
+import { describeMotion } from "../../features/sceneScout/motion.ts";
 
 const VIDEO_THUMB_MAX_RETRIES = 2;
 
@@ -303,6 +304,8 @@ export const LazyClip = memo(function LazyClip({
         clip.originalName,
         `Timeframe: ${formatClipTimeframe(clip.startSec, clip.endSec, true)}`,
         clip.score !== undefined ? formatScoreWithConfidence(clip.score) : null,
+        clip.motion ? `Starts: ${describeMotion(clip.motion.start)}` : null,
+        clip.motion ? `Ends: ${describeMotion(clip.motion.end)}` : null,
       ]
         .filter(Boolean)
         .join("\n")

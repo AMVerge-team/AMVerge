@@ -27,6 +27,31 @@ export type ScoutVideo = {
   modifiedAt: number;
 };
 
+/** subject direction on screen (+y down), or still / unclear */
+export type MotionSubject =
+  | "right" | "down-right" | "down" | "down-left" | "left" | "up-left" | "up" | "up-right"
+  | "still" | "unclear";
+
+/** how one end of a scene moves; derived by the CLI from measured optical flow */
+export type MotionTags = {
+  subject: MotionSubject;
+  /** pan-<direction>, zoom-in, zoom-out, static or unclear */
+  camera: string;
+  /** subject speed when it moves */
+  speed: "slow" | "medium" | "fast" | null;
+};
+
+export type SceneMotion = { start: MotionTags; end: MotionTags };
+
+/** The clip a flow search continues: a whole file, or a range inside one. */
+export type FlowSource = {
+  path: string;
+  startMs?: number;
+  endMs?: number;
+  /** what the chip calls it */
+  label: string;
+};
+
 /** One search result: a time range inside an indexed video. */
 export type ScoutHit = {
   videoPath: string;
@@ -40,6 +65,8 @@ export type ScoutHit = {
   database: string;
   /** base64 JPEG, absent when thumbnails were turned off in search settings */
   thumbnailB64: string | null;
+  /** null for scenes indexed without motion */
+  motion?: SceneMotion | null;
 };
 
 export type ScoutStatus = {

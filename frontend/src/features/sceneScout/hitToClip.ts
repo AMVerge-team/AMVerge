@@ -23,6 +23,7 @@ export function hitToClipItem(hit: ScoutHit, index: number): ClipItem {
     sourceKind: "video",
     episodeId: scoutCacheId(hit.database),
     scoutNeedsThumb: !hit.thumbnailB64,
+    motion: hit.motion ?? null,
   };
 }
 

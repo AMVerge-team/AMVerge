@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
 import type {
+  FlowSource,
   ScoutDatabase,
   ScoutHit,
   ScoutSearchSettings,
@@ -60,7 +61,8 @@ export function scoutStatus(customPath: string | null): Promise<ScoutStatus> {
 export function scoutSearch(
   query: string,
   settings: ScoutSearchSettings,
-  customPath: string | null
+  customPath: string | null,
+  flowFrom: FlowSource | null = null
 ): Promise<ScoutHit[]> {
   return invoke<ScoutHit[]>("scout_search", {
     args: {
@@ -73,6 +75,9 @@ export function scoutSearch(
       // always the warm daemon with idle gpu offload; a cold process per search is just slower
       keepModelInMemory: true,
       gpuStandby: true,
+      flowFrom: flowFrom
+        ? { path: flowFrom.path, startMs: flowFrom.startMs, endMs: flowFrom.endMs }
+        : null,
     },
     customPath,
   });

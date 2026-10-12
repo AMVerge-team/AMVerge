@@ -8,8 +8,8 @@ import { useUIStateStore } from "../../stores/UIStore";
 import { formatCooldown, useCooldown } from "./useCooldown";
 
 const FILTER_OPTIONS: DropdownOption<EventFilter>[] = [
-  { value: "all", label: "All events", description: "Everything, running or finished" },
-  { value: "mine", label: "My events", description: "Events you host, including ones in review" },
+  { value: "all", label: "All events", description: "Everything" },
+  { value: "mine", label: "My events", description: "Events you host" },
   { value: "hc", label: "HC only", description: "Hour Challenges only" },
   { value: "ec", label: "EC only", description: "Long Contests only" },
 ];
@@ -79,7 +79,7 @@ export default function EventsToolbar() {
               <rect x="3" y="3" width="18" height="18" rx="2" />
               <path d="M9 3v18" />
               {sidebarEnabled && (
-                <rect x="3.9" y="4.9" width="4.2" height="14.2" rx="1" fill="currentColor" stroke="none" />
+                <rect x="3" y="3" width="6" height="18" rx="2" fill="currentColor" stroke="none" />
               )}
             </svg>
           </button>
@@ -111,7 +111,7 @@ export default function EventsToolbar() {
           </button>
         </Tooltip>
 
-        <InfoButton title="Community Events">
+        <InfoButton title="Community Events" variant="toolbar">
           <p>
             The community is big, and editing contests get lost in the noise. This page
             gathers them in one place so editors can find opportunities worth entering,
@@ -216,7 +216,7 @@ export default function EventsToolbar() {
                 <rect x="3" y="3" width="18" height="18" rx="2" />
                 <path d="M15 3v18" />
                 {!previewCollapsed && (
-                  <rect x="15.9" y="4.9" width="4.2" height="14.2" rx="1" fill="currentColor" stroke="none" />
+                  <rect x="15" y="3" width="6" height="18" rx="2" fill="currentColor" stroke="none" />
                 )}
               </svg>
             </button>

@@ -22,7 +22,10 @@
     border-radius: 999px;
 }
 
+/* the guide is read, not glanced at, so it stays in arial whatever font the user picks */
 .info-panel {
+    font-family: var(--ui-font);
+    font-size-adjust: none;
     width: 100%;
     max-width: 650px;
     margin-top: 12px;
@@ -226,7 +229,7 @@
 
     opacity: 1;
     font-size: 1.1rem;
-    font-family: var(--app-font);
+    font-family: var(--ui-font);
     min-width: 14px;
     text-align: center;
 }

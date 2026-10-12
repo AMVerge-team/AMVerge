@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { FaSyncAlt } from "react-icons/fa";
+import { FaSyncAlt, FaTimes } from "react-icons/fa";
+import { ImportIcon } from "./icons/ToolbarIcons";
 import Tooltip from "./common/Tooltip";
+import PreviewAllToggle from "./common/PreviewAllToggle";
 import { useAppStateStore } from "../stores/appStore";
 import { useUIStateStore } from "../stores/UIStore";
 import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
@@ -13,8 +15,6 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
   const loading = useAppStateStore((s: any) => s.loading);
   const bgProgress = useAppStateStore((s: any) => s.bgProgress);
   const bgImportProgress = useAppStateStore((s: any) => s.bgImportProgress);
-  const gridPreview = useUIStateStore((s: any) => s.gridPreview);
-  const setGridPreview = useUIStateStore((s: any) => s.setGridPreview);
   const previewCollapsed = useUIStateStore((s: any) => s.previewCollapsed);
   const setPreviewCollapsed = useUIStateStore((s: any) => s.setPreviewCollapsed);
   const sidebarEnabled = useUIStateStore((s: any) => s.sidebarEnabled);
@@ -39,14 +39,14 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
 
   return (
       <main
-        className="clips-import"
+        className="clips-import grid-toolbar"
         style={
           previewCollapsed
             ? undefined
             : { paddingRight: `calc(max(280px, ${100 - previewSplitPct}%) + 10px)` }
         }
       >
-        <div className="import-buttons-container">
+        <div className="import-buttons-container home-toolbar-buttons">
           <Tooltip content={sidebarEnabled ? "Hide episode panel" : "Show episode panel"}>
               <button
                 type="button"
@@ -59,7 +59,7 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
                   <rect x="3" y="3" width="18" height="18" rx="2" />
                   <path d="M9 3v18" />
                   {sidebarEnabled && (
-                    <rect x="3.9" y="4.9" width="4.2" height="14.2" rx="1" fill="currentColor" stroke="none" />
+                    <rect x="3" y="3" width="6" height="18" rx="2" fill="currentColor" stroke="none" />
                   )}
                 </svg>
               </button>
@@ -67,13 +67,25 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
 
           {showImportControls && (
             <>
-            <button onClick={onImportClick}
-                    className="import-button"
-                    disabled={importBusy}
-                    id="file-button"
-            >
-              {importBusy ? "Processing...": "Import Episode"}
-            </button>
+            <Tooltip content={importBusy ? "Processing..." : "Import episode"}>
+              <span className="tooltip-anchor">
+                <button onClick={onImportClick}
+                        className="import-button icon-action-button import-icon-button"
+                        disabled={importBusy}
+                        id="file-button"
+                        aria-label="Import episode"
+                >
+                  <ImportIcon />
+                </button>
+              </span>
+            </Tooltip>
+            </>
+          )}
+
+          <PreviewAllToggle />
+
+          {showImportControls && (
+            <>
             {/* wrapper span: a disabled button fires no pointer events of its
                 own, so the tooltip listens on the element around it */}
             <Tooltip content="Refresh episode">
@@ -95,37 +107,15 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
           )}
         </div>
         <div className="grid-checkboxes">
-          <div className="selectable-checkboxes">
-            <div className="checkbox-row">
-              <label className="custom-checkbox">
-                <input
-                  type="checkbox"
-                  className="checkbox"
-                  checked={gridPreview}
-                  onChange={(e) => setGridPreview(e.target.checked)}
-                />
-                <span className="checkmark"></span>
-              </label>
-              <span>Preview All</span>
-            </div>
-            <div className="checkbox-row">
-              <label className="custom-checkbox">
-                <input
-                  type="checkbox"
-                  className="checkbox"
-                  checked={hasSelection}
-                  disabled={!hasSelection}
-                  onChange={(e) => {
-                    if (!e.target.checked) {
-                      setSelectedClips(new Set())
-                    }
-                  }}
-                />
-                <span className="checkmark"></span>
-              </label>
-              <span>{selectedClips.size} selected</span>
-            </div>
-          </div>
+          {/* only there while something is selected; the x clears the selection */}
+          {hasSelection ? (
+            <button type="button" className="selection-pill" onClick={() => setSelectedClips(new Set())}>
+              {selectedClips.size} selected
+              <FaTimes aria-hidden="true" />
+            </button>
+          ) : (
+            <span />
+          )}
 
           <Tooltip content={previewCollapsed ? "Show preview panel" : "Hide preview panel"} placement="bottom-end">
             <button
@@ -139,7 +129,7 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
                 <rect x="3" y="3" width="18" height="18" rx="2" />
                 <path d="M15 3v18" />
                 {!previewCollapsed && (
-                  <rect x="15.9" y="4.9" width="4.2" height="14.2" rx="1" fill="currentColor" stroke="none" />
+                  <rect x="15" y="3" width="6" height="18" rx="2" fill="currentColor" stroke="none" />
                 )}
               </svg>
             </button>

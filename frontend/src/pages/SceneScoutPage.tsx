@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { FaCog } from "react-icons/fa";
 
 import MainLayout from "../MainLayout";
 import Tooltip from "../components/common/Tooltip";
 import SceneScoutToolbar from "../components/sceneScout/SceneScoutToolbar";
 import SceneScoutHero from "../components/sceneScout/SceneScoutHero";
+import { SceneScoutSearchView } from "../components/sceneScout/SceneScoutSearchView";
+import { SceneScoutFlowToolbar } from "../components/sceneScout/flow/SceneScoutFlowToolbar";
+import { SceneScoutFlowView } from "../components/sceneScout/flow/SceneScoutFlowView";
 import { useAppStateStore } from "../stores/appStore";
 import { useSceneScoutStore } from "../stores/sceneScoutStore";
 import { selectOverlayOpen, useUIStateStore } from "../stores/UIStore";
@@ -15,7 +18,10 @@ export default function SceneScoutPage() {
   const overlayOpen = useUIStateStore(selectOverlayOpen);
   const openSettings = useUIStateStore((s) => s.openSettings);
 
-  const results = useSceneScoutStore((s) => s.results);
+  const mode = useSceneScoutStore((s) => s.mode);
+  const searchResults = useSceneScoutStore((s) => s.results);
+  const flowResults = useSceneScoutStore((s) => s.flowResults);
+  const results = mode === "flow" ? flowResults : searchResults;
   const refreshStatus = useSceneScoutStore((s) => s.refreshStatus);
   const heroDismissed = useSceneScoutStore((s) => s.heroDismissed);
 
@@ -64,16 +70,30 @@ export default function SceneScoutPage() {
     state.setFocusedClipId(null);
   }, [clips]);
 
+  // until the first search or flow of the session, both tabs show the centered first-visit
+  // layout. after that each tab has its own toolbar and view. the preview pane stays on both:
+  // it plays the clicked result and exports it
+  const firstVisit = !heroDismissed;
+
+  // the first-visit layout keeps its controls in the centre, but still reserves the toolbar
+  // row, so the preview pane starts at the same height as on home and both tabs
+  let toolbar: ReactNode = <div className="clips-import grid-toolbar" aria-hidden="true" />;
+  let left: ReactNode;
+  if (firstVisit) left = <SceneScoutHero />;
+  else if (mode === "flow") {
+    toolbar = <SceneScoutFlowToolbar />;
+    left = <SceneScoutFlowView />;
+  } else {
+    toolbar = <SceneScoutToolbar />;
+    left = <SceneScoutSearchView />;
+  }
+
   return (
     <>
-      {heroDismissed && <SceneScoutToolbar />}
+      {toolbar}
 
       <div className="main-layout-wrapper">
-        {/* the first-visit layout takes the grid's place only, so the preview pane stays as the user left it */}
-        <MainLayout
-          active={!overlayOpen}
-          left={heroDismissed ? undefined : <SceneScoutHero />}
-        />
+        <MainLayout active={!overlayOpen} left={left} />
 
         <div className="info-bar">
           <Tooltip content="Options">

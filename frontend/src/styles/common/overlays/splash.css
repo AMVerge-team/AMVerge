@@ -27,7 +27,8 @@
 
 .splash-logo {
     margin: 0;
-    font-family: var(--app-font);
+    font-family: var(--logo-font);
+    font-size-adjust: none;
     font-size: clamp(52px, 12vw, 104px);
     font-weight: 400;
     line-height: 1;

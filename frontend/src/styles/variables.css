@@ -37,4 +37,6 @@
     --app-font-adjust: none;
 
     --ui-font: Arial, Helvetica, sans-serif;
+    /* the AMVerge wordmark (navbar, splash); never follows the user's font choice */
+    --logo-font: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }

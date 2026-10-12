@@ -18,6 +18,7 @@ import {
 } from "../features/sceneScout/api";
 import {
   DEFAULT_SEARCH_SETTINGS,
+  type FlowSource,
   type ScoutDatabase,
   type ScoutHit,
   type ScoutIndexProgress,
@@ -28,10 +29,41 @@ import {
 import { useAiDepsStore } from "./aiDepsStore";
 import { useAppStateStore } from "./appStore";
 import { useGeneralSettingsStore } from "./settingsStore";
+import { useUIStateStore } from "./UIStore";
 
 /** The storage root every call has to be told about, read fresh each time. */
 function customPath(): string | null {
   return useGeneralSettingsStore.getState().episodesPath;
+}
+
+/**
+ * Runs a search, showing the "Loading SigLIP 2 model weights…" card if the
+ * model has to load first (the first Search or Flow of a session, or after it
+ * was unloaded). Rust announces that with a `loading_model` progress event; a
+ * search that finds the model already loaded never opens the card.
+ */
+async function withModelLoadingCard<T>(search: () => Promise<T>): Promise<T> {
+  const appState = useAppStateStore.getState();
+  let cardOpened = false;
+  const stopListening = await listen<ScoutIndexProgress>("scout_progress", (e) => {
+    if (e.payload.stage !== "loading_model") return;
+    cardOpened = true;
+    appState.setActiveOperation("scout_search");
+    appState.setLoading(true);
+    appState.setProgress(0);
+    appState.setProgressMsg("Loading SigLIP 2 model weights…");
+  });
+
+  try {
+    return await search();
+  } finally {
+    stopListening();
+    if (cardOpened) {
+      appState.setActiveOperation(null);
+      appState.setLoading(false);
+      appState.setProgressMsg("");
+    }
+  }
 }
 
 type SceneScoutState = {
@@ -64,9 +96,19 @@ type SceneScoutState = {
   displayNames: Record<string, string>;
   /** height of the panel's searching box, as a percent of the two boxes together */
   panelSplitPct: number;
-  /** runtime only: the centered first-visit layout gives way to the top toolbar after the first search */
+  /** runtime only: the centered first-visit layout gives way to the top layout after the first
+   *  search or flow, on both tabs */
   heroDismissed: boolean;
+  /** runtime only: which Scene Scout tab is showing; search and flow keep separate results */
+  mode: ScoutMode;
+  /** runtime only: the clip the Flow tab finds scenes to follow */
+  flowFrom: FlowSource | null;
+  flowResults: ScoutHit[];
+  flowSearching: boolean;
+  flowError: string | null;
 };
+
+export type ScoutMode = "search" | "flow";
 
 type SceneScoutActions = {
   refreshStatus: () => Promise<void>;
@@ -102,6 +144,11 @@ type SceneScoutActions = {
   generateThumbnails: (path: string) => Promise<{ ok: boolean; generated: number; message: string | null }>;
   backfillThumbnails: (paths: string[]) => void;
   refresh: () => Promise<void>;
+  setMode: (mode: ScoutMode) => void;
+  /** open the Flow tab with a clip and find the scenes most like its last frame */
+  startFlowSearch: (source: FlowSource) => Promise<void>;
+  /** re-run the Flow tab's search for the current clip (databases or result count changed) */
+  runFlowSearch: () => Promise<void>;
 };
 
 const INITIAL: SceneScoutState = {
@@ -126,6 +173,11 @@ const INITIAL: SceneScoutState = {
   displayNames: {},
   panelSplitPct: 35,
   heroDismissed: false,
+  mode: "search",
+  flowFrom: null,
+  flowResults: [],
+  flowSearching: false,
+  flowError: null,
 };
 
 // databases already backfilled this session, so a repeat search does not respawn the cli for nothing
@@ -694,27 +746,13 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         }
 
         set({ searching: true, error: null });
-        const appState = useAppStateStore.getState();
-        let stopListener: (() => void) | null = null;
-        let cardOpened = false;
-
         try {
-          stopListener = await listen<ScoutIndexProgress>("scout_progress", (e) => {
-            if (e.payload.stage === "loading_model") {
-              cardOpened = true;
-              appState.setActiveOperation("scout_search");
-              appState.setLoading(true);
-              appState.setProgress(0);
-              appState.setProgressMsg("Loading SigLIP 2 model weights…");
-            }
-          });
-
           const searchSettings = {
             ...get().settings,
             selectedDatabases: get().selectedDatabases,
             selectedVideos: get().selectedVideos,
           };
-          const results = await scoutSearch(query, searchSettings, customPath());
+          const results = await withModelLoadingCard(() => scoutSearch(query, searchSettings, customPath()));
           set({ results, lastQuery: query });
 
           // hits name their database by file stem, so map back to the searched paths
@@ -725,14 +763,6 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         } catch (err) {
           set({ results: [], error: message(err) });
         } finally {
-          if (stopListener) {
-            stopListener();
-          }
-          if (cardOpened) {
-            appState.setActiveOperation(null);
-            appState.setLoading(false);
-            appState.setProgressMsg("");
-          }
           set({ searching: false });
         }
       },
@@ -785,6 +815,43 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         await Promise.all([get().loadDatabases(), get().refreshStatus()]);
         const opened = get().openedDatabase;
         if (opened) await get().loadVideos(opened);
+      },
+
+      setMode: (mode) => set({ mode }),
+
+      startFlowSearch: async (source) => {
+        // using flow ends the first-visit layout for both tabs, exactly like the first search does
+        set({ heroDismissed: true, mode: "flow", flowFrom: source, flowResults: [], flowError: null });
+        useUIStateStore.getState().setActivePage("sceneScout");
+        await get().runFlowSearch();
+      },
+
+      runFlowSearch: async () => {
+        const source = get().flowFrom;
+        if (!source) return;
+        if (get().selectedDatabases.length === 0) {
+          set({ flowError: "Add a database to the Searching list on the left first." });
+          return;
+        }
+        if (!(await useAiDepsStore.getState().ensurePack("scout"))) {
+          set({ flowError: "Scene Scout needs its AI pack installed." });
+          return;
+        }
+
+        set({ flowSearching: true, flowError: null });
+        try {
+          const flowSettings = {
+            ...get().settings,
+            selectedDatabases: get().selectedDatabases,
+            selectedVideos: get().selectedVideos,
+          };
+          const flowResults = await withModelLoadingCard(() => scoutSearch("", flowSettings, customPath(), source));
+          if (get().flowFrom === source) set({ flowResults });
+        } catch (err) {
+          if (get().flowFrom === source) set({ flowResults: [], flowError: message(err) });
+        } finally {
+          set({ flowSearching: false });
+        }
       },
     }),
     {

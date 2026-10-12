@@ -66,6 +66,20 @@ pub struct ScoutHit {
     pub database: String,
     #[serde(default)]
     pub thumbnail_b64: Option<String>,
+    /// `{start, end}` motion tags; absent for scenes indexed without motion
+    #[serde(default)]
+    pub motion: Option<serde_json::Value>,
+}
+
+/// The clip a flow search continues: a whole file, or a range inside one.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScoutFlowFrom {
+    pub path: String,
+    #[serde(default)]
+    pub start_ms: Option<i64>,
+    #[serde(default)]
+    pub end_ms: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -511,6 +525,9 @@ pub struct ScoutSearchArgs {
     pub keep_model_in_memory: Option<bool>,
     #[serde(default)]
     pub gpu_standby: Option<bool>,
+    /// rank scenes by how much they look like this clip's last frame
+    #[serde(default)]
+    pub flow_from: Option<ScoutFlowFrom>,
 }
 
 #[tauri::command]
@@ -566,6 +583,11 @@ pub async fn scout_search(
                 "top_k": args.top_k.unwrap_or(24),
                 "threshold": args.threshold.unwrap_or(-1.0),
                 "include_thumbnails": args.include_thumbnails.unwrap_or(true),
+                "flow_from": args.flow_from.as_ref().map(|f| serde_json::json!({
+                    "path": f.path,
+                    "start_ms": f.start_ms,
+                    "end_ms": f.end_ms,
+                })),
             });
 
             let app_clone = app.clone();
@@ -614,17 +636,32 @@ pub async fn scout_search(
     let top_k = args.top_k.unwrap_or(24).to_string();
     let threshold = args.threshold.unwrap_or(-1.0).to_string();
 
-    let mut argv: Vec<String> = vec![
-        "search".into(),
-        args.query.clone(),
+    let mut argv: Vec<String> = vec!["search".into()];
+    // a flow search may have no text at all; the clip's last frame stands in for it
+    if !args.query.trim().is_empty() {
+        argv.push(args.query.clone());
+    }
+    argv.extend([
         "--root".into(),
         root,
         "--top-k".into(),
         top_k,
         "--threshold".into(),
         threshold,
-    ];
+    ]);
 
+    if let Some(flow) = &args.flow_from {
+        argv.push("--flow-from".into());
+        argv.push(flow.path.clone());
+        if let Some(ms) = flow.start_ms {
+            argv.push("--flow-start-ms".into());
+            argv.push(ms.to_string());
+        }
+        if let Some(ms) = flow.end_ms {
+            argv.push("--flow-end-ms".into());
+            argv.push(ms.to_string());
+        }
+    }
     for name in &args.databases {
         argv.push("--db".into());
         argv.push(name.clone());
