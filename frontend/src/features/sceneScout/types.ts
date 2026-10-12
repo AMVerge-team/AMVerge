@@ -52,10 +52,6 @@ export type FlowSource = {
   label: string;
 };
 
-export const MOTION_DIRECTIONS: MotionSubject[] = [
-  "up-left", "up", "up-right", "left", "still", "right", "down-left", "down", "down-right",
-];
-
 /** One search result: a time range inside an indexed video. */
 export type ScoutHit = {
   videoPath: string;
@@ -109,10 +105,6 @@ export type ScoutSearchSettings = {
   selectedVideos: string[];
   /** scene detection last picked when indexing, preselected next time */
   lastIndexDetection?: "transnetv2_gpu" | "keyframe_detection";
-  /** keep only scenes whose subject starts moving one of these ways; empty means any */
-  startSubjects?: MotionSubject[];
-  /** keep scenes whose motion could not be read when filtering by direction */
-  includeUnclear?: boolean;
 };
 
 export const DEFAULT_SEARCH_SETTINGS: ScoutSearchSettings = {

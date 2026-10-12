@@ -306,53 +306,6 @@ pub async fn scout_generate_thumbnails(
     scout_json(&app, &["generate-thumbnails", "--db", &database, "--root", &root]).await
 }
 
-#[derive(Deserialize)]
-struct MotionEnvelope {
-    motion: serde_json::Value,
-}
-
-/// Start/end motion tags of one clip (or a range inside a video), for the flow
-/// chip. Classical optical flow over two short windows: no model, about a second.
-#[tauri::command]
-pub async fn scout_clip_motion(
-    app: AppHandle,
-    path: String,
-    start_ms: Option<i64>,
-    end_ms: Option<i64>,
-) -> Result<serde_json::Value, String> {
-    let start = start_ms.map(|v| v.to_string());
-    let end = end_ms.map(|v| v.to_string());
-    let mut args: Vec<&str> = vec!["clip-motion", path.as_str()];
-    if let Some(v) = start.as_deref() {
-        args.extend(["--start-ms", v]);
-    }
-    if let Some(v) = end.as_deref() {
-        args.extend(["--end-ms", v]);
-    }
-    let envelope: MotionEnvelope = scout_json(&app, &args).await?;
-    Ok(envelope.motion)
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct ScoutMotionBackfillResult {
-    pub done: bool,
-    pub scenes: u64,
-    pub database: String,
-}
-
-/// Measures motion for a database's scenes that lack it (indexed before motion
-/// existed, or by an older measurement). Needs the source videos, not the model.
-#[tauri::command]
-pub async fn scout_backfill_motion(
-    app: AppHandle,
-    database: String,
-    custom_path: Option<String>,
-) -> Result<ScoutMotionBackfillResult, String> {
-    let root = scout_root(&app, custom_path.as_deref())?;
-    scout_json(&app, &["motion", "--db", &database, "--root", &root]).await
-}
-
 #[tauri::command]
 pub async fn scout_create_database(
     app: AppHandle,
@@ -572,14 +525,9 @@ pub struct ScoutSearchArgs {
     pub keep_model_in_memory: Option<bool>,
     #[serde(default)]
     pub gpu_standby: Option<bool>,
-    /// rank by how well each scene's start continues this clip's ending motion
+    /// rank scenes by how much they look like this clip's last frame
     #[serde(default)]
     pub flow_from: Option<ScoutFlowFrom>,
-    /// keep only scenes whose subject starts moving one of these ways
-    #[serde(default)]
-    pub start_subjects: Vec<String>,
-    #[serde(default)]
-    pub include_unclear: Option<bool>,
 }
 
 #[tauri::command]
@@ -635,8 +583,6 @@ pub async fn scout_search(
                 "top_k": args.top_k.unwrap_or(24),
                 "threshold": args.threshold.unwrap_or(-1.0),
                 "include_thumbnails": args.include_thumbnails.unwrap_or(true),
-                "start_subjects": args.start_subjects,
-                "include_unclear": args.include_unclear.unwrap_or(false),
                 "flow_from": args.flow_from.as_ref().map(|f| serde_json::json!({
                     "path": f.path,
                     "start_ms": f.start_ms,
@@ -716,14 +662,6 @@ pub async fn scout_search(
             argv.push(ms.to_string());
         }
     }
-    for subject in &args.start_subjects {
-        argv.push("--start-subject".into());
-        argv.push(subject.clone());
-    }
-    if args.include_unclear == Some(true) {
-        argv.push("--include-unclear".into());
-    }
-
     for name in &args.databases {
         argv.push("--db".into());
         argv.push(name.clone());

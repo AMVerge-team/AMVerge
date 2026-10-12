@@ -34,7 +34,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   const loading = useAppStateStore((state) => state.loading);
   const scoutFlowMode = useSceneScoutStore((state) => state.mode === "flow");
   const isScoutSearching = useSceneScoutStore((state) =>
-    state.mode === "flow" ? state.flowSearching || state.flowMeasuring : state.searching
+    state.mode === "flow" ? state.flowSearching : state.searching
   );
   const scoutLastQuery = useSceneScoutStore((state) => state.lastQuery);
   const scoutHasFlowClip = useSceneScoutStore((state) => state.flowFrom !== null);

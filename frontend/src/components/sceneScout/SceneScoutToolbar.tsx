@@ -1,19 +1,18 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { FaChevronDown, FaSyncAlt } from "react-icons/fa";
+import { FaSyncAlt } from "react-icons/fa";
 
 import Dropdown from "../common/Dropdown";
 import Tooltip from "../common/Tooltip";
+import PreviewAllToggle from "../common/PreviewAllToggle";
+import { SettingsIcon } from "../icons/ToolbarIcons";
 import { useSceneScoutStore } from "../../stores/sceneScoutStore";
-import { useUIStateStore } from "../../stores/UIStore";
-import { playHeroFlip } from "../../features/sceneScout/heroTransition";
-import { subjectArrow } from "../../features/sceneScout/motion";
-import { ScoutSearchField } from "./ScoutSearchField";
+import { AddEpisodeButton } from "./AddEpisodeButton";
+import { heroFlipPending } from "../../features/sceneScout/heroTransition";
 import { ScoutInfoButton } from "./ScoutInfoButton";
 import { ScoutModeTabs } from "./ScoutModeTabs";
 import { useAddEpisodes } from "./useAddEpisodes";
-import { PreviewToggle, SidebarToggle } from "./PanelToggles";
+import { PreviewToggle, SidebarToggle, usePreviewPaneClearance } from "./PanelToggles";
 import {
   CUSTOM_THRESHOLD,
   CUSTOM_TOP_K,
@@ -23,47 +22,15 @@ import {
   MAX_TOP_K,
   MIN_THRESHOLD_PCT,
   MIN_TOP_K,
-  MOTION_DIRECTIONS,
-  type MotionSubject,
   THRESHOLD_OPTIONS,
   TOP_K_OPTIONS,
 } from "../../features/sceneScout/types";
 
 const OPTIONS_POP_WIDTH = 300;
 
-/** one checkbox row in the options overlay; the whole row toggles */
-function OptionToggle({
-  label,
-  hint,
-  checked,
-  onChange,
-}: {
-  label: string;
-  hint: ReactNode;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <Tooltip content={hint}>
-      <label className="scene-scout-option-toggle">
-        <span className="custom-checkbox">
-          <input
-            type="checkbox"
-            className="checkbox"
-            checked={checked}
-            onChange={(e) => onChange(e.target.checked)}
-          />
-          <span className="checkmark"></span>
-        </span>
-        <span>{label}</span>
-      </label>
-    </Tooltip>
-  );
-}
-
 /**
- * Toolbar for the Scene Scout page: Add Episode, the search field, and the
- * search settings dropdown beneath it.
+ * Toolbar for the Scene Scout Search tab: Add Episode, the tabs, and the search
+ * settings dropdown. The search field sits in the left pane (SceneScoutSearchView).
  *
  * Takes the place of the import row, exactly as `EventsToolbar` does, so the
  * page keeps the same frame as the rest of the app.
@@ -72,29 +39,18 @@ export function SceneScoutToolbar() {
   const query = useSceneScoutStore((s) => s.query);
   const runSearch = useSceneScoutStore((s) => s.runSearch);
   const searching = useSceneScoutStore((s) => s.searching);
-  const indexing = useSceneScoutStore((s) => s.indexing);
   const opened = useSceneScoutStore((s) => s.openedDatabase);
-  const databases = useSceneScoutStore((s) => s.databases);
   const selectedDatabases = useSceneScoutStore((s) => s.selectedDatabases);
-  const addToSearch = useSceneScoutStore((s) => s.addToSearch);
-  const removeFromSearch = useSceneScoutStore((s) => s.removeFromSearch);
-  const selectAllDatabases = useSceneScoutStore((s) => s.selectAllDatabases);
-  const displayNames = useSceneScoutStore((s) => s.displayNames);
   const settings = useSceneScoutStore((s) => s.settings);
   const updateSettings = useSceneScoutStore((s) => s.updateSettings);
   const unloadModel = useSceneScoutStore((s) => s.unloadModel);
   const refresh = useSceneScoutStore((s) => s.refresh);
   const loading = useSceneScoutStore((s) => s.loading);
   const storeError = useSceneScoutStore((s) => s.error);
-  const backfillMotion = useSceneScoutStore((s) => s.backfillMotion);
-  const motionBackfilling = useSceneScoutStore((s) => s.motionBackfilling);
 
   // the row is padded to clear the preview pane, so the search field ends at
   // the grid's right edge instead of running under the panel
-  const previewCollapsed = useUIStateStore((s) => s.previewCollapsed);
-  const previewSplitPct = useUIStateStore((s) => s.previewSplitPct);
-  const gridPreview = useUIStateStore((s) => s.gridPreview);
-  const setGridPreview = useUIStateStore((s) => s.setGridPreview);
+  const clearOfPreview = usePreviewPaneClearance();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const optionsBtnRef = useRef<HTMLDivElement>(null);
@@ -136,8 +92,6 @@ export function SceneScoutToolbar() {
 
   const noDatabaseOpen = !opened && selectedDatabases.length === 0;
   const GATE_HINT = "Please select a Database or Create one on the left panel first.";
-
-  const labelFor = (path: string, fallback: string) => displayNames[path] ?? fallback;
 
   // sticky, so picking Custom keeps the box open while the field is empty and
   // topK still holds its previous preset value
@@ -207,27 +161,6 @@ export function SceneScoutToolbar() {
     }
     setEditingThreshold(false);
   };
-  // motion filters change which scenes qualify, so a live search re-runs like the other settings
-  const startSubjects = settings.startSubjects ?? [];
-  const applyMotionFilter = (changes: { startSubjects?: MotionSubject[]; includeUnclear?: boolean }) => {
-    updateSettings(changes);
-    if (query.trim() && !searching) void runSearch();
-  };
-  const toggleStartSubject = (subject: MotionSubject) =>
-    applyMotionFilter({
-      startSubjects: startSubjects.includes(subject)
-        ? startSubjects.filter((s) => s !== subject)
-        : [...startSubjects, subject],
-    });
-
-  const [motionNote, setMotionNote] = useState<string | null>(null);
-  const analysingMotion = selectedDatabases.some((p) => motionBackfilling.includes(p));
-  const handleAnalyseMotion = async () => {
-    setMotionNote(null);
-    const res = await backfillMotion(selectedDatabases);
-    setMotionNote(res.ok ? `Measured motion for ${res.scenes} scenes` : res.message);
-    if (res.ok && query.trim()) void runSearch();
-  };
 
   const [unloading, setUnloading] = useState(false);
   const [freed, setFreed] = useState(false);
@@ -247,40 +180,24 @@ export function SceneScoutToolbar() {
   const { startAddEpisodes, modal: addModal, error: addError } = useAddEpisodes();
   const error = addError;
 
-  // arriving from the centered first-visit layout: slide the bar up from where it was
-  // and fade the controls that were hidden there
-  const searchFieldRef = useRef<HTMLDivElement>(null);
-  const [revealed, setRevealed] = useState(false);
-  useLayoutEffect(() => {
-    if (playHeroFlip(searchFieldRef.current)) setRevealed(true);
-  }, []);
+  // arriving from the centered first-visit layout: fade in the controls that were hidden there.
+  // read on first render, before the search view below uses the slide up
+  const [revealed] = useState(heroFlipPending);
 
   return (
-    <main
-      className="clips-import events-toolbar-shell scene-scout-toolbar-shell"
-      style={
-        previewCollapsed
-          ? undefined
-          : { paddingRight: `calc(max(280px, ${100 - previewSplitPct}%) + 10px)` }
-      }
-    >
+    <main className="clips-import grid-toolbar events-toolbar-shell scene-scout-toolbar-shell" style={clearOfPreview}>
       <div className="events-toolbar-rows">
         <div className="import-buttons-container events-toolbar-row">
           {/* first in the row, over the panel it controls, same as home and events */}
           <SidebarToggle />
+
+          <AddEpisodeButton
+            hint={noDatabaseOpen ? GATE_HINT : "Add episode to the open database"}
+            onClick={() => void startAddEpisodes()}
+            disabled={searching || noDatabaseOpen}
+          />
+
           <ScoutModeTabs />
-
-          <Tooltip content={noDatabaseOpen ? GATE_HINT : "Index an episode into the open database"}>
-            <button
-              type="button"
-              className="import-button events-action-button"
-              onClick={() => void startAddEpisodes()}
-              disabled={Boolean(indexing) || searching || noDatabaseOpen}
-            >
-              {indexing ? "Indexing..." : "Add Episode"}
-            </button>
-          </Tooltip>
-
           <ScoutInfoButton />
 
           <Tooltip content="Refresh databases">
@@ -299,22 +216,27 @@ export function SceneScoutToolbar() {
             <Tooltip content="Search settings">
               <button
                 type="button"
-                className={`import-button scene-scout-settings-toggle${settingsOpen ? " is-open" : ""}`}
+                className={`import-button icon-action-button scene-scout-settings-toggle${settingsOpen ? " is-open" : ""}`}
                 onClick={() => setSettingsOpen((prev) => !prev)}
                 aria-expanded={settingsOpen}
+                aria-label="Search settings"
               >
-                Options
-                <FaChevronDown aria-hidden="true" />
+                <SettingsIcon />
               </button>
             </Tooltip>
           </div>
 
+          <PreviewAllToggle />
+
+          {/* inline, so the row keeps home's height and the preview pane never shifts */}
+          {(error || storeError) && (
+            <Tooltip content={error || storeError}>
+              <p className="events-error scene-scout-toolbar-error">{error || storeError}</p>
+            </Tooltip>
+          )}
+
           {/* last in the row, pushed over the preview pane it controls */}
           <PreviewToggle />
-        </div>
-
-        <div className="scene-scout-search-row">
-          <ScoutSearchField fieldRef={searchFieldRef} />
         </div>
 
         {settingsOpen && popPos && createPortal(
@@ -407,89 +329,6 @@ export function SceneScoutToolbar() {
 
             </div>
 
-            <div className="scene-scout-options-toggles">
-              <OptionToggle
-                label="Preview all"
-                hint="Play every result's preview at once, not only the one you hover"
-                checked={gridPreview}
-                onChange={setGridPreview}
-              />
-            </div>
-
-            {databases.length > 1 && (
-            <div className="scene-scout-setting scene-scout-db-filter">
-              <span>Search in</span>
-              <div className="scene-scout-db-chips">
-                <button
-                  type="button"
-                  className={`scene-scout-db-chip${selectedDatabases.length === databases.length ? " is-active" : ""}`}
-                  onClick={() => selectAllDatabases()}
-                >
-                  All
-                </button>
-                {databases.map((database) => {
-                  const inSearch = selectedDatabases.some((p) => p === database.path || p.toLowerCase() === database.path.toLowerCase());
-                  return (
-                    <button
-                      key={database.path}
-                      type="button"
-                      className={`scene-scout-db-chip${inSearch ? " is-active" : ""}`}
-                      onClick={() => (inSearch ? removeFromSearch([database.path]) : addToSearch([database.path]))}
-                    >
-                      {labelFor(database.path, database.name)}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            )}
-
-            <div className="scene-scout-setting scene-scout-motion-filter">
-              <span>Starts moving</span>
-              <div className="scene-scout-motion-grid" role="group" aria-label="Start direction filter">
-                {MOTION_DIRECTIONS.map((subject) => (
-                  <Tooltip key={subject} content={subject === "still" ? "Subject still" : `Subject moving ${subject}`}>
-                    <button
-                      type="button"
-                      className={`scene-scout-db-chip${startSubjects.includes(subject) ? " is-active" : ""}`}
-                      onClick={() => toggleStartSubject(subject)}
-                      aria-pressed={startSubjects.includes(subject)}
-                    >
-                      {subjectArrow(subject)}
-                    </button>
-                  </Tooltip>
-                ))}
-              </div>
-              <div className="scene-scout-motion-side">
-                <OptionToggle
-                  label="Include unclear"
-                  hint="Keep scenes whose motion could not be read (smears, flashes, effects)"
-                  checked={settings.includeUnclear ?? false}
-                  onChange={(checked) => applyMotionFilter({ includeUnclear: checked })}
-                />
-                {startSubjects.length > 0 && (
-                  <button
-                    type="button"
-                    className="scene-scout-db-chip"
-                    onClick={() => applyMotionFilter({ startSubjects: [] })}
-                  >
-                    Any direction
-                  </button>
-                )}
-                <Tooltip content="Measure motion for scenes in the searched databases that do not have it yet. Decodes each episode again, so it takes about a minute per episode.">
-                  <button
-                    type="button"
-                    className="scene-scout-db-chip"
-                    onClick={() => void handleAnalyseMotion()}
-                    disabled={analysingMotion || selectedDatabases.length === 0}
-                  >
-                    {analysingMotion ? "Analysing…" : "Analyse motion"}
-                  </button>
-                </Tooltip>
-                {motionNote && <span className="scene-scout-motion-note">{motionNote}</span>}
-              </div>
-            </div>
-
             <div className="scene-scout-options-footer">
               <Tooltip content="Free the RAM / VRAM the search model is using right now">
                 <button
@@ -506,7 +345,6 @@ export function SceneScoutToolbar() {
           document.body
         )}
 
-        {(error || storeError) && <p className="events-error">{error || storeError}</p>}
         {addModal}
       </div>
     </main>

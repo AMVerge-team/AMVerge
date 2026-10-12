@@ -21,6 +21,28 @@
     color: black;
 }
 
+/* toolbar version: matches the 2rem accent-bordered buttons beside it (events, scene scout) */
+.info-button.toolbar-info-button {
+    width: 2rem;
+    height: 2rem;
+    flex-shrink: 0;
+    border: 1px solid rgb(var(--accent-rgb) / 0.9);
+    border-radius: 10px;
+    background: rgba(15, 0, 0, 0.1);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    color: #fff;
+    font-size: 15px;
+    transition: border 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.info-button.toolbar-info-button:hover {
+    background: rgba(15, 0, 0, 0.1);
+    box-shadow: 0 0 15px rgb(var(--accent-rgb) / 0.4);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
 .info-modal-overlay {
     position: fixed;
     inset: 0;

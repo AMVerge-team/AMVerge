@@ -11,6 +11,11 @@
     align-items: center;
 }
 
+/* home and scene scout share this row height, so the preview pane below starts at the same spot on every page */
+.grid-toolbar {
+    height: 2.6rem;
+}
+
 .import-buttons-container {
     display: flex;
     flex-direction: row;
@@ -76,6 +81,70 @@
                 color 0.2s ease;
 }
 
+/* square icon buttons: import episode, add episode, search settings */
+.import-button.icon-action-button {
+    width: 2rem;
+    min-width: 2rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    transition: border 0.2s ease,
+                box-shadow 0.2s ease,
+                color 0.2s ease;
+}
+
+.icon-action-button svg {
+    flex: none;
+}
+
+/* import / add episode: wider than the square buttons around it, so it reads as the main action */
+.import-button.icon-action-button.import-icon-button {
+    width: 3rem;
+    min-width: 3rem;
+    font-size: 15px;
+}
+
+/* front gear top left, a smaller dimmer gear peeking out behind its bottom right */
+.settings-icon {
+    position: relative;
+    display: block;
+    width: 18px;
+    height: 18px;
+}
+
+.settings-icon svg {
+    position: absolute;
+}
+
+.settings-icon-front {
+    top: 0;
+    left: 0;
+    width: 14px;
+    height: 14px;
+}
+
+.settings-icon-back {
+    right: 0;
+    bottom: 0;
+    width: 10px;
+    height: 10px;
+    opacity: 0.55;
+}
+
+.icon-action-button:hover:not(:disabled) {
+    cursor: pointer;
+    box-shadow: 0 0 15px rgb(var(--accent-rgb) / 0.4);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+}
+
+.icon-action-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
 .refresh-button:hover:not(:disabled) {
     cursor: pointer;
     box-shadow: 0 0 15px rgb(var(--accent-rgb) / 0.4);
@@ -91,6 +160,8 @@
 .panel-toggle-button {
     width: 2rem;
     min-width: 2rem;
+    /* import-button's side padding left ~10px for the icon and shrank it */
+    padding: 0;
     margin-right: 15px;
     flex: none;
     display: inline-flex;
@@ -103,6 +174,13 @@
                 background 0.2s ease;
 }
 
+/* the panel icon fills most of its 2rem box on every page (home, scene scout, events) */
+.panel-toggle-button svg {
+    flex: none;
+    width: 20px;
+    height: 20px;
+}
+
 .panel-toggle-button:hover {
     box-shadow: 0 0 15px rgb(var(--accent-rgb) / 0.4);
     border: 1px solid var(--accent);
@@ -112,6 +190,47 @@
 .panel-toggle-button.active {
     color: var(--accent);
     background: rgb(var(--accent-rgb) / 0.12);
+}
+
+/* spacing comes from the row's gap, so it sits evenly wherever it lands */
+.panel-toggle-button.preview-all-toggle {
+    margin: 0;
+}
+
+/* home and scenepacks: one even gap between every button, whichever ones are shown */
+.import-buttons-container.home-toolbar-buttons {
+    gap: 8px;
+}
+
+.import-buttons-container.home-toolbar-buttons .import-button {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.selection-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 1.6rem;
+    padding: 0 10px;
+    border: 1px solid rgb(var(--accent-rgb) / 0.6);
+    border-radius: 999px;
+    background: rgb(var(--accent-rgb) / 0.12);
+    color: var(--accent);
+    font-family: var(--app-font);
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.selection-pill svg {
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+.selection-pill:hover {
+    border-color: var(--accent);
 }
 
 .refresh-icon.spinning {

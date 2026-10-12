@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { FaDatabase, FaPlus } from "react-icons/fa";
 import { FiDatabase } from "react-icons/fi";
 
-import Tooltip from "../common/Tooltip";
 import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
 import { setHeroFlip } from "../../features/sceneScout/heroTransition";
 import { ScoutSearchField } from "./ScoutSearchField";
@@ -12,6 +11,8 @@ import { useCreateScoutDatabase } from "./useCreateScoutDatabase";
 import { SceneScoutLogo } from "./SceneScoutLogo";
 import { PreviewToggle, SidebarToggle } from "./PanelToggles";
 import { ScoutModeTabs } from "./ScoutModeTabs";
+import { AddEpisodeButton } from "./AddEpisodeButton";
+import { FlowHeroClip } from "./flow/FlowHeroClip";
 
 /**
  * the centered layout Scene Scout opens with, once per app session: pick or create a
@@ -23,7 +24,6 @@ export function SceneScoutHero() {
   const selectedDatabases = useSceneScoutStore((s) => s.selectedDatabases);
   const opened = useSceneScoutStore((s) => s.openedDatabase);
   const displayNames = useSceneScoutStore((s) => s.displayNames);
-  const indexing = useSceneScoutStore((s) => s.indexing);
   const searching = useSceneScoutStore((s) => s.searching);
   const storeError = useSceneScoutStore((s) => s.error);
   const addToSearch = useSceneScoutStore((s) => s.addToSearch);
@@ -32,6 +32,8 @@ export function SceneScoutHero() {
   const dismissHero = useSceneScoutStore((s) => s.dismissHero);
   const runSearch = useSceneScoutStore((s) => s.runSearch);
   const loadDatabases = useSceneScoutStore((s) => s.loadDatabases);
+  // the centre holds the search bar on the Search tab and the clip player on the Flow tab
+  const mode = useSceneScoutStore((s) => s.mode);
 
   // the list lives here too, so it fills even with the sidebar collapsed
   useEffect(() => {
@@ -99,29 +101,24 @@ export function SceneScoutHero() {
 
         <div className="scene-scout-hero-actions">
           <SidebarToggle />
+          <AddEpisodeButton
+            hint={addTargetName ? `Add episode to ${addTargetName}` : "Select or create a database below first"}
+            onClick={onAddEpisodes}
+            disabled={!addTarget || searching}
+          />
           <ScoutModeTabs />
-          <Tooltip
-            content={
-              addTargetName ? `Index episodes into ${addTargetName}` : "Select or create a database below first"
-            }
-          >
-            <button
-              type="button"
-              className="import-button events-action-button"
-              onClick={onAddEpisodes}
-              disabled={!addTarget || Boolean(indexing) || searching}
-            >
-              {indexing ? "Indexing..." : "Add Episode"}
-            </button>
-          </Tooltip>
           <ScoutInfoButton />
           {/* far right, above the end of the search bar */}
           <PreviewToggle />
         </div>
 
-        <div className="scene-scout-hero-search">
-          <ScoutSearchField fieldRef={fieldRef} onSubmit={startFirstSearch} blockedHint={blockedHint} />
-        </div>
+        {mode === "flow" ? (
+          <FlowHeroClip blockedHint={blockedHint} />
+        ) : (
+          <div className="scene-scout-hero-search">
+            <ScoutSearchField fieldRef={fieldRef} onSubmit={startFirstSearch} blockedHint={blockedHint} />
+          </div>
+        )}
 
         <div className="scene-scout-hero-dbs">
           <div className="scene-scout-hero-dbs-head">

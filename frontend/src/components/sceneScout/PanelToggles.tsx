@@ -1,5 +1,14 @@
+import type { CSSProperties } from "react";
+
 import Tooltip from "../common/Tooltip";
 import { useUIStateStore } from "../../stores/UIStore";
+
+/** pads a toolbar row clear of the preview pane, so its controls end at the grid's right edge */
+export function usePreviewPaneClearance(): CSSProperties | undefined {
+  const previewCollapsed = useUIStateStore((s) => s.previewCollapsed);
+  const previewSplitPct = useUIStateStore((s) => s.previewSplitPct);
+  return previewCollapsed ? undefined : { paddingRight: `calc(max(280px, ${100 - previewSplitPct}%) + 10px)` };
+}
 
 /** shows or hides the left database panel; same control, icon and setting as home and events */
 export function SidebarToggle() {
@@ -18,7 +27,7 @@ export function SidebarToggle() {
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
           <rect x="3" y="3" width="18" height="18" rx="2" />
           <path d="M9 3v18" />
-          {sidebarEnabled && <rect x="3.9" y="4.9" width="4.2" height="14.2" rx="1" fill="currentColor" stroke="none" />}
+          {sidebarEnabled && <rect x="3" y="3" width="6" height="18" rx="2" fill="currentColor" stroke="none" />}
         </svg>
       </button>
     </Tooltip>
@@ -42,7 +51,7 @@ export function PreviewToggle() {
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
           <rect x="3" y="3" width="18" height="18" rx="2" />
           <path d="M15 3v18" />
-          {!previewCollapsed && <rect x="15.9" y="4.9" width="4.2" height="14.2" rx="1" fill="currentColor" stroke="none" />}
+          {!previewCollapsed && <rect x="15" y="3" width="6" height="18" rx="2" fill="currentColor" stroke="none" />}
         </svg>
       </button>
     </Tooltip>

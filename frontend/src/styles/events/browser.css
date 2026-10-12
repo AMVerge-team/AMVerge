@@ -54,27 +54,6 @@
     margin-left: 0;
 }
 
-.events-toolbar-row .info-button {
-    width: 2rem;
-    height: 2rem;
-    flex-shrink: 0;
-    border: 1px solid rgb(var(--accent-rgb) / 0.9);
-    border-radius: 10px;
-    background: rgba(15, 0, 0, 0.1);
-    -webkit-backdrop-filter: blur(4px);
-    backdrop-filter: blur(4px);
-    color: #fff;
-    font-size: 15px;
-    transition: border 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
-}
-
-.events-toolbar-row .info-button:hover {
-    background: rgba(15, 0, 0, 0.1);
-    box-shadow: 0 0 15px rgb(var(--accent-rgb) / 0.4);
-    border-color: var(--accent);
-    color: var(--accent);
-}
-
 .events-toolbar-right {
     display: flex;
     align-items: center;
@@ -189,9 +168,16 @@
     color: #fff;
 }
 
+/* the trigger hugs its label; the menu grows past it so long options stay readable */
 .events-filter-dropdown {
-    width: 190px;
+    width: auto;
     flex-shrink: 0;
+}
+
+.events-filter-dropdown .dropdown-menu {
+    right: auto;
+    min-width: 100%;
+    width: max-content;
 }
 
 .events-pane {

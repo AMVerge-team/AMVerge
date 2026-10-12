@@ -4,8 +4,6 @@ import { listen } from "@tauri-apps/api/event";
 
 import {
   scoutAddVideo,
-  scoutBackfillMotion,
-  scoutClipMotion,
   scoutCreateDatabase,
   scoutDatabaseInfo,
   scoutDeleteDatabase,
@@ -21,7 +19,6 @@ import {
 import {
   DEFAULT_SEARCH_SETTINGS,
   type FlowSource,
-  type SceneMotion,
   type ScoutDatabase,
   type ScoutHit,
   type ScoutIndexProgress,
@@ -37,6 +34,36 @@ import { useUIStateStore } from "./UIStore";
 /** The storage root every call has to be told about, read fresh each time. */
 function customPath(): string | null {
   return useGeneralSettingsStore.getState().episodesPath;
+}
+
+/**
+ * Runs a search, showing the "Loading SigLIP 2 model weights…" card if the
+ * model has to load first (the first Search or Flow of a session, or after it
+ * was unloaded). Rust announces that with a `loading_model` progress event; a
+ * search that finds the model already loaded never opens the card.
+ */
+async function withModelLoadingCard<T>(search: () => Promise<T>): Promise<T> {
+  const appState = useAppStateStore.getState();
+  let cardOpened = false;
+  const stopListening = await listen<ScoutIndexProgress>("scout_progress", (e) => {
+    if (e.payload.stage !== "loading_model") return;
+    cardOpened = true;
+    appState.setActiveOperation("scout_search");
+    appState.setLoading(true);
+    appState.setProgress(0);
+    appState.setProgressMsg("Loading SigLIP 2 model weights…");
+  });
+
+  try {
+    return await search();
+  } finally {
+    stopListening();
+    if (cardOpened) {
+      appState.setActiveOperation(null);
+      appState.setLoading(false);
+      appState.setProgressMsg("");
+    }
+  }
 }
 
 type SceneScoutState = {
@@ -69,20 +96,16 @@ type SceneScoutState = {
   displayNames: Record<string, string>;
   /** height of the panel's searching box, as a percent of the two boxes together */
   panelSplitPct: number;
-  /** runtime only: the centered first-visit layout gives way to the top toolbar after the first search */
+  /** runtime only: the centered first-visit layout gives way to the top layout after the first
+   *  search or flow, on both tabs */
   heroDismissed: boolean;
   /** runtime only: which Scene Scout tab is showing; search and flow keep separate results */
   mode: ScoutMode;
-  /** runtime only: the clip the Flow tab continues, and how it moves */
+  /** runtime only: the clip the Flow tab finds scenes to follow */
   flowFrom: FlowSource | null;
-  flowTags: SceneMotion | null;
-  /** measuring the flow clip's motion, before the search itself starts */
-  flowMeasuring: boolean;
   flowResults: ScoutHit[];
   flowSearching: boolean;
   flowError: string | null;
-  /** runtime only: databases whose motion is being measured right now */
-  motionBackfilling: string[];
 };
 
 export type ScoutMode = "search" | "flow";
@@ -126,9 +149,6 @@ type SceneScoutActions = {
   startFlowSearch: (source: FlowSource) => Promise<void>;
   /** re-run the Flow tab's search for the current clip (databases or result count changed) */
   runFlowSearch: () => Promise<void>;
-  clearFlow: () => void;
-  /** measure motion for databases indexed before motion existed */
-  backfillMotion: (paths: string[]) => Promise<{ ok: boolean; scenes: number; message: string | null }>;
 };
 
 const INITIAL: SceneScoutState = {
@@ -155,12 +175,9 @@ const INITIAL: SceneScoutState = {
   heroDismissed: false,
   mode: "search",
   flowFrom: null,
-  flowTags: null,
-  flowMeasuring: false,
   flowResults: [],
   flowSearching: false,
   flowError: null,
-  motionBackfilling: [],
 };
 
 // databases already backfilled this session, so a repeat search does not respawn the cli for nothing
@@ -729,27 +746,13 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         }
 
         set({ searching: true, error: null });
-        const appState = useAppStateStore.getState();
-        let stopListener: (() => void) | null = null;
-        let cardOpened = false;
-
         try {
-          stopListener = await listen<ScoutIndexProgress>("scout_progress", (e) => {
-            if (e.payload.stage === "loading_model") {
-              cardOpened = true;
-              appState.setActiveOperation("scout_search");
-              appState.setLoading(true);
-              appState.setProgress(0);
-              appState.setProgressMsg("Loading SigLIP 2 model weights…");
-            }
-          });
-
           const searchSettings = {
             ...get().settings,
             selectedDatabases: get().selectedDatabases,
             selectedVideos: get().selectedVideos,
           };
-          const results = await scoutSearch(query, searchSettings, customPath());
+          const results = await withModelLoadingCard(() => scoutSearch(query, searchSettings, customPath()));
           set({ results, lastQuery: query });
 
           // hits name their database by file stem, so map back to the searched paths
@@ -760,14 +763,6 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         } catch (err) {
           set({ results: [], error: message(err) });
         } finally {
-          if (stopListener) {
-            stopListener();
-          }
-          if (cardOpened) {
-            appState.setActiveOperation(null);
-            appState.setLoading(false);
-            appState.setProgressMsg("");
-          }
           set({ searching: false });
         }
       },
@@ -825,27 +820,10 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       setMode: (mode) => set({ mode }),
 
       startFlowSearch: async (source) => {
-        // the input player shows the clip's ending motion first; the search measures it again in the CLI
-        set({
-          mode: "flow",
-          flowFrom: source,
-          flowTags: null,
-          flowMeasuring: true,
-          flowResults: [],
-          flowError: null,
-        });
+        // using flow ends the first-visit layout for both tabs, exactly like the first search does
+        set({ heroDismissed: true, mode: "flow", flowFrom: source, flowResults: [], flowError: null });
         useUIStateStore.getState().setActivePage("sceneScout");
-        try {
-          const flowTags = await scoutClipMotion(source);
-          // a newer flow clip replaced this one while it was measuring
-          if (get().flowFrom !== source) return;
-          set({ flowTags });
-        } catch (err) {
-          if (get().flowFrom === source) set({ flowError: `Could not read the clip's motion: ${message(err)}` });
-        } finally {
-          if (get().flowFrom === source) set({ flowMeasuring: false });
-        }
-        if (get().flowFrom === source) await get().runFlowSearch();
+        await get().runFlowSearch();
       },
 
       runFlowSearch: async () => {
@@ -862,41 +840,17 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
 
         set({ flowSearching: true, flowError: null });
         try {
-          // the Search tab's direction filter belongs to that tab; flow ranks by visual similarity alone
           const flowSettings = {
             ...get().settings,
             selectedDatabases: get().selectedDatabases,
             selectedVideos: get().selectedVideos,
-            startSubjects: [],
-            includeUnclear: false,
           };
-          const flowResults = await scoutSearch("", flowSettings, customPath(), source);
+          const flowResults = await withModelLoadingCard(() => scoutSearch("", flowSettings, customPath(), source));
           if (get().flowFrom === source) set({ flowResults });
         } catch (err) {
           if (get().flowFrom === source) set({ flowResults: [], flowError: message(err) });
         } finally {
           set({ flowSearching: false });
-        }
-      },
-
-      clearFlow: () =>
-        set({ flowFrom: null, flowTags: null, flowMeasuring: false, flowResults: [], flowError: null }),
-
-      backfillMotion: async (paths) => {
-        const pending = paths.filter((p) => !get().motionBackfilling.includes(p));
-        if (pending.length === 0) return { ok: true, scenes: 0, message: null };
-        set((s) => ({ motionBackfilling: [...s.motionBackfilling, ...pending] }));
-        let scenes = 0;
-        try {
-          for (const path of pending) {
-            const res = await scoutBackfillMotion(path, customPath());
-            scenes += res.scenes;
-          }
-          return { ok: true, scenes, message: null };
-        } catch (err) {
-          return { ok: false, scenes, message: message(err) };
-        } finally {
-          set((s) => ({ motionBackfilling: s.motionBackfilling.filter((p) => !pending.includes(p)) }));
         }
       },
     }),

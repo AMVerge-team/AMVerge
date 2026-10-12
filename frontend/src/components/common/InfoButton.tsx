@@ -6,10 +6,12 @@ import Tooltip from "./Tooltip";
 type InfoButtonProps = {
   title: string;
   children: ReactNode;
+  /** "toolbar" sizes it like the toolbar buttons beside it (rounded square, accent border) */
+  variant?: "inline" | "toolbar";
 };
 
 /** small "i" beside a setting label that opens a short explainer */
-export default function InfoButton({ title, children }: InfoButtonProps) {
+export default function InfoButton({ title, children, variant = "inline" }: InfoButtonProps) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -29,7 +31,7 @@ export default function InfoButton({ title, children }: InfoButtonProps) {
       <Tooltip content={`About ${title}`}>
         <button
           type="button"
-          className="info-button"
+          className={variant === "toolbar" ? "info-button toolbar-info-button" : "info-button"}
           onClick={() => setOpen(true)}
           aria-label={`About ${title}`}
         >

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FaChevronDown, FaChevronUp, FaQuestionCircle, FaWindows, FaApple } from "react-icons/fa";
 
 import Tooltip from "../common/Tooltip";
+import { useUIStateStore } from "../../stores/UIStore";
 
 type Platform = "windows" | "mac";
 
@@ -22,7 +23,9 @@ const STEPS: Record<Platform, React.ReactNode[]> = {
 
 export default function HowToUse() {
   const [platform, setPlatform] = useState<Platform>("windows");
-  const [isExpanded, setIsExpanded] = useState(true);
+  // persisted, so a guide the user folded away stays folded across restarts
+  const isExpanded = useUIStateStore((s) => s.howToUseExpanded);
+  const setIsExpanded = useUIStateStore((s) => s.setHowToUseExpanded);
 
   return (
     <div className={`info-panel ${isExpanded ? "expanded" : "collapsed"}`}>

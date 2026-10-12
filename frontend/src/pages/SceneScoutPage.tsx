@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { FaCog } from "react-icons/fa";
 
 import MainLayout from "../MainLayout";
 import Tooltip from "../components/common/Tooltip";
 import SceneScoutToolbar from "../components/sceneScout/SceneScoutToolbar";
 import SceneScoutHero from "../components/sceneScout/SceneScoutHero";
+import { SceneScoutSearchView } from "../components/sceneScout/SceneScoutSearchView";
 import { SceneScoutFlowToolbar } from "../components/sceneScout/flow/SceneScoutFlowToolbar";
 import { SceneScoutFlowView } from "../components/sceneScout/flow/SceneScoutFlowView";
 import { useAppStateStore } from "../stores/appStore";
@@ -69,20 +70,30 @@ export default function SceneScoutPage() {
     state.setFocusedClipId(null);
   }, [clips]);
 
-  // the Flow tab has its own two players above the grid, so it drops the preview pane
-  const flowMode = mode === "flow";
+  // until the first search or flow of the session, both tabs show the centered first-visit
+  // layout. after that each tab has its own toolbar and view. the preview pane stays on both:
+  // it plays the clicked result and exports it
+  const firstVisit = !heroDismissed;
+
+  // the first-visit layout keeps its controls in the centre, but still reserves the toolbar
+  // row, so the preview pane starts at the same height as on home and both tabs
+  let toolbar: ReactNode = <div className="clips-import grid-toolbar" aria-hidden="true" />;
+  let left: ReactNode;
+  if (firstVisit) left = <SceneScoutHero />;
+  else if (mode === "flow") {
+    toolbar = <SceneScoutFlowToolbar />;
+    left = <SceneScoutFlowView />;
+  } else {
+    toolbar = <SceneScoutToolbar />;
+    left = <SceneScoutSearchView />;
+  }
 
   return (
     <>
-      {flowMode ? <SceneScoutFlowToolbar /> : heroDismissed && <SceneScoutToolbar />}
+      {toolbar}
 
       <div className="main-layout-wrapper">
-        {/* the first-visit layout takes the grid's place only, so the preview pane stays as the user left it */}
-        <MainLayout
-          active={!overlayOpen}
-          fullWidth={flowMode}
-          left={flowMode ? <SceneScoutFlowView /> : heroDismissed ? undefined : <SceneScoutHero />}
-        />
+        <MainLayout active={!overlayOpen} left={left} />
 
         <div className="info-bar">
           <Tooltip content="Options">

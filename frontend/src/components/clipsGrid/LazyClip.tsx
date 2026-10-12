@@ -21,7 +21,7 @@ import { ScenepackPickerMenu } from "./ScenepackPickerMenu.tsx";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
 import { useScenepacksStore } from "../../stores/scenepackStore.ts";
 import { removeClipsFromScenepack } from "../../utils/scenepackStorage.ts";
-import { describeMotion, subjectArrow } from "../../features/sceneScout/motion.ts";
+import { describeMotion } from "../../features/sceneScout/motion.ts";
 
 const VIDEO_THUMB_MAX_RETRIES = 2;
 
@@ -470,15 +470,6 @@ export const LazyClip = memo(function LazyClip({
               {isScout
                 ? formatClipTimeframe(clip.startSec, clip.endSec)
                 : formatClipTime(clip.startSec)}
-            </div>
-          )}
-
-          {isScout && clip.motion && (
-            // start → end subject direction, for information; it never affects ranking
-            <div className="clip-motion-badge">
-              {subjectArrow(clip.motion.start.subject)}
-              <span className="clip-motion-badge-sep">›</span>
-              {subjectArrow(clip.motion.end.subject)}
             </div>
           )}
 

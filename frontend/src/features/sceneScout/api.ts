@@ -2,7 +2,6 @@ import { invoke } from "@tauri-apps/api/core";
 
 import type {
   FlowSource,
-  SceneMotion,
   ScoutDatabase,
   ScoutHit,
   ScoutSearchSettings,
@@ -76,31 +75,12 @@ export function scoutSearch(
       // always the warm daemon with idle gpu offload; a cold process per search is just slower
       keepModelInMemory: true,
       gpuStandby: true,
-      startSubjects: settings.startSubjects ?? [],
-      includeUnclear: settings.includeUnclear ?? false,
       flowFrom: flowFrom
         ? { path: flowFrom.path, startMs: flowFrom.startMs, endMs: flowFrom.endMs }
         : null,
     },
     customPath,
   });
-}
-
-/** start/end motion of one clip, for the flow chip; no model, about a second */
-export function scoutClipMotion(source: FlowSource): Promise<SceneMotion> {
-  return invoke<SceneMotion>("scout_clip_motion", {
-    path: source.path,
-    startMs: source.startMs ?? null,
-    endMs: source.endMs ?? null,
-  });
-}
-
-/** measures motion for scenes indexed before motion existed; decodes each source episode */
-export function scoutBackfillMotion(
-  database: string,
-  customPath: string | null
-): Promise<{ done: boolean; scenes: number; database: string }> {
-  return invoke("scout_backfill_motion", { database, customPath });
 }
 
 export function scoutAddVideo(
