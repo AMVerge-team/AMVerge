@@ -83,6 +83,15 @@ fn place_resumed_clip(cut: &str, thumb: Option<&str>, thumb_target: &Path) -> St
     final_clip
 }
 
+/// true when the jpg was written to the end (ends with the EOI marker). a poster the
+/// import was killed in the middle of writing is on disk but cut short, and never loads
+fn poster_complete(path: &Path) -> bool {
+    use std::io::{Read, Seek, SeekFrom};
+    let Ok(mut file) = fs::File::open(path) else { return false };
+    let mut tail = [0u8; 2];
+    file.seek(SeekFrom::End(-2)).is_ok() && file.read_exact(&mut tail).is_ok() && tail == [0xFF, 0xD9]
+}
+
 /// splits the scenes into those still needing a cut and reports the rest: files
 /// already on disk are ready, specs with no usable poster path end as failed
 fn split_finished(
@@ -93,7 +102,7 @@ fn split_finished(
     for clip in clips {
         let thumb = PathBuf::from(&clip.thumbnail);
         let cut_ok = clip.clip_path.as_deref().is_some_and(|p| Path::new(p).is_file());
-        if cut_ok && thumb.is_file() {
+        if cut_ok && poster_complete(&thumb) {
             emit_done(
                 clip.scene_index,
                 clip.clip_path.clone(),

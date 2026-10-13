@@ -1,8 +1,5 @@
-import { useLayoutEffect, useRef } from "react";
-
 import ClipsContainer from "../../clipsGrid/ClipsContainer";
 import { useSceneScoutStore } from "../../../stores/sceneScoutStore";
-import { playHeroFlip } from "../../../features/sceneScout/heroTransition";
 import { FlowPlayer } from "./FlowPlayer";
 
 /**
@@ -13,15 +10,9 @@ import { FlowPlayer } from "./FlowPlayer";
 export function SceneScoutFlowView() {
   const flowFrom = useSceneScoutStore((s) => s.flowFrom);
 
-  // arriving from the first-visit layout: slide the player up from where it sat there
-  const playerRef = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    playHeroFlip(playerRef.current, true);
-  }, []);
-
   return (
     <div className="scene-scout-view">
-      <div ref={playerRef} className="scene-scout-flow-input">
+      <div className="scene-scout-flow-input">
         <FlowPlayer source={flowFrom} empty="Choose a clip, or select one on Home and click Find flowing clips." />
       </div>
 
