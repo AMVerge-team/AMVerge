@@ -128,8 +128,25 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     [clips, focusedClipId]
   );
   const hasSource = !!props.sourceClip && !!sourceClipObj;
-  const previewVideoSrc = sourceClipObj?.clipPath || props.sourceClip;
-  const isCutClip = Boolean(sourceClipObj?.clipPath);
+
+  // a scene scout result is a range inside a whole episode, often a 10-bit HEVC MKV the
+  // webview renders black. it plays the same short x264 cut its grid tile uses (same
+  // cache), never the source, which also spared transcoding a full episode for one scene
+  const scoutRange =
+    !sourceClipObj?.clipPath &&
+    Boolean(sourceClipObj?.database) &&
+    sourceClipObj?.startSec !== undefined &&
+    sourceClipObj?.endSec !== undefined &&
+    sourceClipObj.endSec > sourceClipObj.startSec
+      ? { videoPath: sourceClipObj.src, startSec: sourceClipObj.startSec, endSec: sourceClipObj.endSec }
+      : null;
+  const scoutRangeKey = scoutRange ? `${scoutRange.videoPath}|${scoutRange.startSec}|${scoutRange.endSec}` : null;
+  const [scoutRangeCut, setScoutRangeCut] = React.useState<{ key: string; path: string } | null>(null);
+  const scoutRangeSrc = scoutRangeCut && scoutRangeCut.key === scoutRangeKey ? scoutRangeCut.path : null;
+
+  const previewVideoSrc = scoutRange ? scoutRangeSrc : (sourceClipObj?.clipPath || props.sourceClip);
+  // a scout range cut is already just the scene, so it plays from 0 like a cut clip
+  const isCutClip = Boolean(sourceClipObj?.clipPath) || Boolean(scoutRange);
   const sceneStartTime = isCutClip ? undefined : sourceClipObj?.startSec;
   const sceneEndTime = isCutClip ? undefined : sourceClipObj?.endSec;
 
@@ -141,11 +158,31 @@ export default function PreviewContainer(props: PreviewContainerProps) {
 
   const { needed: needsPreviewTranscode, preset: transcodePreset } = usePreviewTranscode();
 
+  // the scout scene's short cut, with the tile's own height/crf so both share one cached file
+  React.useEffect(() => {
+    if (webpPreviewMode || !scoutRange || !scoutRangeKey) return;
+    let cancelled = false;
+    invoke<string>("ensure_scene_range_preview", {
+      videoPath: scoutRange.videoPath,
+      startSec: scoutRange.startSec,
+      endSec: scoutRange.endSec,
+      previewHeight: transcodePreset.height,
+      previewCrf: transcodePreset.crf,
+    })
+      .then((path) => { if (!cancelled && path) setScoutRangeCut({ key: scoutRangeKey, path }); })
+      .catch((err) => { console.warn("scene range preview failed", err); });
+    return () => { cancelled = true; };
+    // scoutRange is rebuilt every render; its key is what identifies it
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scoutRangeKey, webpPreviewMode, transcodePreset]);
+
   // build the proxy this clip needs: a playable codec and/or the chosen audio
-  // track. webp previews are images, so this is video mode only
+  // track. webp previews are images, so this is video mode only. a scout range cut
+  // is already a playable x264 file
   React.useEffect(() => {
     setLanguageProxySrc(null);
     if (webpPreviewMode) return;
+    if (scoutRange) return;
     if (!previewVideoSrc) return;
     if (selectedMappedAudioStreamIndex === null && !needsPreviewTranscode) return;
     let cancelled = false;
@@ -169,9 +206,11 @@ export default function PreviewContainer(props: PreviewContainerProps) {
 
   // while a transcode is pending the raw clip would render black, so hold the
   // player on the proxy path and let it mount once ffmpeg finishes
-  const playableVideoSrc = needsPreviewTranscode
-    ? languageProxySrc
-    : (languageProxySrc ?? previewVideoSrc);
+  const playableVideoSrc = scoutRange
+    ? scoutRangeSrc
+    : needsPreviewTranscode
+      ? languageProxySrc
+      : (languageProxySrc ?? previewVideoSrc);
 
   // source-anchored time window for the focused scene (mirrors the grid's WebP window)
   const sourcePath = sourceClipObj ? (sourceClipObj.originalPath || sourceClipObj.src) : null;

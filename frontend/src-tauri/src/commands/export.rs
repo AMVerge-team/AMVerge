@@ -248,6 +248,7 @@ pub async fn export_clips(
         .spawn()
         .map_err(|e| format!("Failed to spawn amverge CLI: {e}"))?;
     let child_pid = child.id();
+    crate::utils::process::bind_to_app_lifetime(child_pid);
     if let Ok(mut lock) = active_pids.lock() {
         lock.push(child_pid);
     }
@@ -399,6 +400,7 @@ pub async fn run_export_pass(
         .spawn()
         .map_err(|e| format!("Failed to spawn amverge {cli_cmd}: {e}"))?;
     let child_pid = child.id();
+    crate::utils::process::bind_to_app_lifetime(child_pid);
     if let Ok(mut lock) = active_pids.lock() {
         lock.push(child_pid);
     }

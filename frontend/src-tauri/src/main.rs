@@ -189,7 +189,7 @@ fn kill_all_child_processes(app: &tauri::AppHandle) {
     };
 
     let scout_index = app.state::<crate::commands::scene_scout::ActiveScoutIndex>();
-    if let Some(pid) = take_pid(&scout_index.0) {
+    if let Some(pid) = take_pid(&scout_index.pid) {
         let _ = kill_process_tree(pid);
     }
 }

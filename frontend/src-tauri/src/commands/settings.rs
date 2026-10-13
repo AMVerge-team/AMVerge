@@ -281,17 +281,14 @@ fn run_ffmpeg_transform(
             .arg(destination);
     }
 
-    let output = cmd
-        .output()
+    let output = crate::utils::process::output_bound(&mut cmd)
         .map_err(|e| format!("Failed to run ffmpeg ({}): {e}", ffmpeg.display()))?;
 
     if !output.status.success() {
+        // ffmpeg's full output goes to the console; the ui only gets one line
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-        return Err(if stderr.is_empty() {
-            "ffmpeg failed to transform background".to_string()
-        } else {
-            format!("ffmpeg failed to transform background: {stderr}")
-        });
+        crate::utils::logging::console_log("ERROR|background", &stderr);
+        return Err("Could not process that image or video. Check the console for details.".to_string());
     }
 
     Ok(destination.to_string_lossy().to_string())

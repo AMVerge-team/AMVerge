@@ -67,11 +67,11 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
 
           {showImportControls && (
             <>
-            <Tooltip content={importBusy ? "Processing..." : "Import episode"}>
+            {/* stays enabled while something runs: importing then asks whether to stop it */}
+            <Tooltip content="Import episode">
               <span className="tooltip-anchor">
                 <button onClick={onImportClick}
                         className="import-button icon-action-button import-icon-button"
-                        disabled={importBusy}
                         id="file-button"
                         aria-label="Import episode"
                 >

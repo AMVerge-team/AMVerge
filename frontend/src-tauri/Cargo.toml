@@ -36,7 +36,14 @@ keyring = { version = "3", features = ["apple-native", "windows-native", "sync-s
 # WMI's video adapter query takes nine seconds.
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"
-windows-sys = { version = "0.61", features = ["Win32_System_SystemInformation"] }
+windows-sys = { version = "0.61", features = [
+    "Win32_System_SystemInformation",
+    # kill-on-close job object for ffmpeg / cli children (utils/process.rs)
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_JobObjects",
+    "Win32_System_Threading",
+] }
 
 [profile.release]
 codegen-units = 1

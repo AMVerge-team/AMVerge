@@ -9,6 +9,7 @@ import {
   parseManifestInitialClips,
 } from "../features/import/manifest";
 import { startVideoStreamingListeners } from "../features/import/streamListeners";
+import { claimProcess } from "../features/processes/singleProcess";
 import { useAiDepsStore } from "../stores/aiDepsStore";
 import { useAppStateStore } from "../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
@@ -35,11 +36,6 @@ export function useImportPipeline({ abortedRef }: Params) {
   // bumped per import so a stale run cannot clear the loader of a newer one
   const importGenRef = useRef(0);
   const streamCleanupRef = useRef<(() => void) | null>(null);
-
-  const importBusy = () => {
-    const s = useAppStateStore.getState();
-    return Boolean(s.loading || s.bgProgress || s.bgImportProgress);
-  };
 
   // an aborted episode whose scenes already landed in the sidebar is kept as paused, not deleted
   const hasLanded = (episodeId: string) =>
@@ -185,7 +181,9 @@ export function useImportPipeline({ abortedRef }: Params) {
 
   const handleImport = useCallback(
     async (file: string | null) => {
-      if (!file || importBusy()) return;
+      if (!file) return;
+      // one long job at a time: asks to stop whatever runs, or keeps it and drops this import
+      if (!(await claimProcess("import"))) return;
 
       const episodeId = buildEpisodeCacheId(file);
       const gen = ++importGenRef.current;
@@ -247,7 +245,8 @@ export function useImportPipeline({ abortedRef }: Params) {
 
   const handleBatchImport = useCallback(
     async (files: string[]) => {
-      if (files.length === 0 || importBusy()) return;
+      if (files.length === 0) return;
+      if (!(await claimProcess("import"))) return;
 
       const gen = ++importGenRef.current;
       abortedRef.current = false;
@@ -383,9 +382,8 @@ export function useImportPipeline({ abortedRef }: Params) {
     [episodeState, generalSettings.episodesPath, abortedRef, setBgImportProgress, runImportPipeline]
   );
 
+  // the picker comes first: a running job is only questioned once there is something to start
   const onImportClick = useCallback(async () => {
-    if (importBusy()) return;
-
     try {
       const files = await open({
         multiple: true,

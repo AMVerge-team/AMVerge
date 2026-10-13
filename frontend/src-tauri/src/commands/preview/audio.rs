@@ -3,7 +3,7 @@ use std::process::Command;
 use tauri::AppHandle;
 
 use crate::utils::ffmpeg::resolve_bundled_tool;
-use crate::utils::process::apply_no_window;
+use crate::utils::process::{apply_no_window, output_bound};
 
 use super::types::{ExportSourceStreams, PreviewAudioStream};
 
@@ -67,9 +67,9 @@ pub async fn get_audio_streams(app: AppHandle, video_path: String) -> Result<Vec
             "-of",
             "json",
             &video_path,
-        ])
-        .output()
-        .map_err(|e| format!("Failed to run ffprobe ({}): {e}", ffprobe.display()))
+        ]);
+        output_bound(&mut cmd)
+            .map_err(|e| format!("Failed to run ffprobe ({}): {e}", ffprobe.display()))
     })
     .await
     .map_err(|e| format!("ffprobe task panicked: {e}"))??;
@@ -146,9 +146,9 @@ pub async fn probe_export_source_streams(
         apply_no_window(&mut cmd);
         cmd.args([
             "-v", "error", "-show_entries", "stream=codec_name,codec_type", "-of", "json", &video_path,
-        ])
-        .output()
-        .map_err(|e| format!("Failed to run ffprobe ({}): {e}", ffprobe.display()))
+        ]);
+        output_bound(&mut cmd)
+            .map_err(|e| format!("Failed to run ffprobe ({}): {e}", ffprobe.display()))
     })
     .await
     .map_err(|e| format!("ffprobe task panicked: {e}"))??;

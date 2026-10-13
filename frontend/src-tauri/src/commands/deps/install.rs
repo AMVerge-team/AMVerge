@@ -29,6 +29,7 @@ pub(crate) fn run_uv_step(
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("Failed to start {step_label}: {e}"))?;
+    crate::utils::process::bind_to_app_lifetime(child.id());
     if let Ok(mut lock) = install_state.pid.lock() {
         *lock = Some(child.id());
     }

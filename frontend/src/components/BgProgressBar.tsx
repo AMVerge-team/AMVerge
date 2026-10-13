@@ -120,6 +120,12 @@ export default function BgProgressBar({
     window.addEventListener("pointercancel", onUp);
   };
 
+  // attached under the minimized card with nothing to report, an empty block still drew
+  // its top border and padding as a stray line under the log, so render nothing
+  if (attached && !showClipProgress && !showImportProgress && !showWebpProgress && !showAiProgress) {
+    return null;
+  }
+
   // attached mode flows inside a parent card: no fixed positioning, no drag,
   // and no header (the parent card owns the title + controls)
   const anchoredStyle = attached

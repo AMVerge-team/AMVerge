@@ -2,7 +2,7 @@ import type React from "react";
 import { FaFolderOpen, FaImage, FaPlay, FaVideo } from "react-icons/fa";
 import Tooltip from "../../common/Tooltip";
 import { useAppStateStore } from "../../../stores/appStore";
-import { isEpisodePaused, isResumeBlocked, resumeEpisode } from "../../../features/import/resumeEpisode";
+import { isEpisodePaused, resumeEpisode } from "../../../features/import/resumeEpisode";
 import type { EpisodePanelProps, PointerDragSource } from "../types";
 
 type Episode = EpisodePanelProps["episodes"][number];
@@ -70,7 +70,6 @@ export default function EpisodeRow({
   // paused: its import stopped early (mini window or app closed) with clips left to cut
   const liveImportEpisodeIds = useAppStateStore((s) => s.liveImportEpisodeIds);
   const resumingEpisodeId = useAppStateStore((s) => s.resumingEpisodeId);
-  const resumeBlocked = useAppStateStore(isResumeBlocked);
   const isPaused = isEpisodePaused(episode, liveImportEpisodeIds, resumingEpisodeId);
 
   const handleResume = (e: React.MouseEvent) => {
@@ -107,10 +106,8 @@ export default function EpisodeRow({
         </span>
       </Tooltip>
       {isPaused && (
-        <Tooltip
-          content={resumeBlocked ? "Processing paused · wait for the current task to finish" : "Processing paused · resume"}
-          side="right"
-        >
+        // stays enabled while something else runs: resuming then asks whether to stop it
+        <Tooltip content="Processing paused · resume" side="right">
           <span>
             <button
               type="button"
@@ -119,7 +116,6 @@ export default function EpisodeRow({
               onMouseDown={(e) => e.stopPropagation()}
               onDoubleClick={(e) => e.stopPropagation()}
               onClick={handleResume}
-              disabled={resumeBlocked}
               aria-label="Resume processing"
             >
               <FaPlay />

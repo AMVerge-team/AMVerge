@@ -129,6 +129,7 @@ pub(crate) async fn run_materialize_clips(
         .spawn()
         .map_err(|e| format!("Failed to spawn amverge materialize-clips: {e}"))?;
     let child_pid = child.id();
+    crate::utils::process::bind_to_app_lifetime(child_pid);
     if let Some(pids) = &pids {
         if let Ok(mut l) = pids.lock() {
             l.push(child_pid);

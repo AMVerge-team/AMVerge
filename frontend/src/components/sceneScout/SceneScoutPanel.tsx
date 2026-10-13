@@ -621,11 +621,11 @@ export function SceneScoutPanel() {
             <FaTrashAlt aria-hidden="true" className="denial-notice-icon" style={{ color: "#ef4444" }} />
             <h2>Delete Database from System?</h2>
 
-            <p className="events-subtitle ban-notice-note" style={{ color: "rgba(255,255,255,0.85)" }}>
+            <p className="events-subtitle ban-notice-note scene-scout-delete-question" style={{ color: "rgba(255,255,255,0.85)" }}>
               Are you sure you want to permanently delete <strong>{databaseToDelete.name}</strong> from your system?
             </p>
 
-            <div style={{ background: "rgba(0,0,0,0.35)", borderRadius: "8px", padding: "10px 14px", margin: "12px 0", fontSize: "12px", textAlign: "left", wordBreak: "break-all" }}>
+            <div className="scene-scout-delete-details">
               <div style={{ color: "rgba(255,255,255,0.5)", marginBottom: "4px" }}>File path:</div>
               <div style={{ fontFamily: "monospace", color: "rgba(255,255,255,0.9)" }}>{databaseToDelete.path}</div>
               <div style={{ marginTop: "6px", color: "rgba(255,255,255,0.6)" }}>
@@ -633,7 +633,7 @@ export function SceneScoutPanel() {
               </div>
             </div>
 
-            <p style={{ color: "rgba(239, 68, 68, 0.9)", fontSize: "12px", margin: "6px 0 16px" }}>
+            <p className="scene-scout-delete-warning">
               This will permanently erase the database file and its embeddings from disk. This action cannot be undone. If you only want to remove it from this list, right-click it and choose Remove from list instead.
             </p>
 
@@ -674,11 +674,11 @@ export function SceneScoutPanel() {
             <FaTrashAlt aria-hidden="true" className="denial-notice-icon" style={{ color: "#ef4444" }} />
             <h2>Remove Video from Database?</h2>
 
-            <p className="events-subtitle ban-notice-note" style={{ color: "rgba(255,255,255,0.85)" }}>
+            <p className="events-subtitle ban-notice-note scene-scout-delete-question" style={{ color: "rgba(255,255,255,0.85)" }}>
               Are you sure you want to remove <strong>{videoToDelete.video.name}</strong> from <strong>{videoToDelete.database.name}</strong>?
             </p>
 
-            <div style={{ background: "rgba(0,0,0,0.35)", borderRadius: "8px", padding: "10px 14px", margin: "12px 0", fontSize: "12px", textAlign: "left", wordBreak: "break-all" }}>
+            <div className="scene-scout-delete-details">
               <div style={{ color: "rgba(255,255,255,0.5)", marginBottom: "4px" }}>File path:</div>
               <div style={{ fontFamily: "monospace", color: "rgba(255,255,255,0.9)" }}>{videoToDelete.video.filepath}</div>
               <div style={{ marginTop: "6px", color: "rgba(255,255,255,0.6)" }}>
@@ -686,7 +686,7 @@ export function SceneScoutPanel() {
               </div>
             </div>
 
-            <p style={{ color: "rgba(239, 68, 68, 0.9)", fontSize: "12px", margin: "6px 0 16px" }}>
+            <p className="scene-scout-delete-warning">
               This will remove the video entry and all its scene embeddings and thumbnails from this database. The video file on your computer will NOT be deleted.
             </p>
 

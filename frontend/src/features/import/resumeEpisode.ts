@@ -1,9 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { ClipItem, EpisodeEntry } from "../../types/domain";
-import { AppState, useAppStateStore } from "../../stores/appStore";
+import { useAppStateStore } from "../../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore";
 import { createClipPatchBuffer } from "./clipPatchBuffer";
+import { claimProcess } from "../processes/singleProcess";
 
 /**
  * paused video-mode episodes and their resume
@@ -34,11 +35,6 @@ export function isEpisodePaused(
   return episode.clips.some(isUnfinished);
 }
 
-// anything else running owns the mini window, and an import must not race a resume.
-// a store selector, so components can subscribe to it directly
-export const isResumeBlocked = (s: AppState): boolean =>
-  Boolean(s.loading || s.bgProgress || s.bgImportProgress || s.reencodeProgress || s.resumingEpisodeId);
-
 // the unfinished scenes in the shape `resume_episode_clips` takes
 function buildResumeSpecs(episode: EpisodeEntry) {
   return episode.clips
@@ -56,10 +52,14 @@ function buildResumeSpecs(episode: EpisodeEntry) {
 }
 
 export async function resumeEpisode(episodeId: string): Promise<void> {
-  if (isResumeBlocked(useAppStateStore.getState())) return;
+  const found = useEpisodePanelRuntimeStore.getState().episodes.find((e) => e.id === episodeId);
+  if (!found || buildResumeSpecs(found).length === 0) return;
+  // one long job at a time: anything else running owns the mini window, so ask to stop it first
+  if (!(await claimProcess("resume"))) return;
+
+  // re-read after the wait: stopping an import can finish clips of this very episode
   const episode = useEpisodePanelRuntimeStore.getState().episodes.find((e) => e.id === episodeId);
   if (!episode) return;
-
   const specs = buildResumeSpecs(episode);
   if (specs.length === 0) return;
 

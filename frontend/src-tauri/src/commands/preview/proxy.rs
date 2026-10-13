@@ -11,7 +11,7 @@ use crate::state::{ActiveFfmpegPids, PreviewProxyLocks, PreviewTranscodeSlots};
 use crate::utils::ffmpeg::resolve_bundled_tool;
 use crate::utils::logging::console_log;
 use crate::utils::paths::file_name_only;
-use crate::utils::process::apply_no_window;
+use crate::utils::process::{apply_no_window, bind_to_app_lifetime, output_bound};
 
 #[tauri::command]
 pub async fn check_hevc(app: AppHandle, video_path: String) -> Result<bool, String> {
@@ -49,9 +49,9 @@ pub async fn check_hevc(app: AppHandle, video_path: String) -> Result<bool, Stri
             "-of",
             "default=nk=1:nw=1",
             &video_path,
-        ])
-        .output()
-        .map_err(|e| format!("Failed to run ffprobe ({}): {e}", ffprobe.display()))
+        ]);
+        output_bound(&mut cmd)
+            .map_err(|e| format!("Failed to run ffprobe ({}): {e}", ffprobe.display()))
     })
     .await
     .map_err(|e| format!("ffprobe task panicked: {e}"))??;
@@ -237,6 +237,7 @@ pub async fn ensure_preview_proxy(
             .spawn()
             .map_err(|e| format!("Failed to run ffmpeg: {e}"))?;
         let pid = child.id();
+        bind_to_app_lifetime(pid);
         if let Ok(mut l) = pids.lock() { l.push(pid); }
         let result = child.wait_with_output().map_err(|e| format!("Failed waiting for ffmpeg: {e}"))?;
         if let Ok(mut l) = pids.lock() { l.retain(|p| *p != pid); }
@@ -409,6 +410,7 @@ pub async fn ensure_scene_range_preview(
             .spawn()
             .map_err(|e| format!("Failed to run ffmpeg: {e}"))?;
         let pid = child.id();
+        bind_to_app_lifetime(pid);
         if let Ok(mut l) = pids.lock() { l.push(pid); }
         let result = child.wait_with_output().map_err(|e| format!("Failed waiting for ffmpeg: {e}"))?;
         if let Ok(mut l) = pids.lock() { l.retain(|p| *p != pid); }
@@ -529,6 +531,7 @@ pub async fn ensure_merged_preview(
             .spawn()
             .map_err(|e| format!("Failed to run ffmpeg: {e}"))?;
         let pid = child.id();
+        bind_to_app_lifetime(pid);
         if let Ok(mut l) = pids.lock() { l.push(pid); }
         let result = child.wait_with_output().map_err(|e| format!("Failed waiting for ffmpeg: {e}"))?;
         if let Ok(mut l) = pids.lock() { l.retain(|p| *p != pid); }

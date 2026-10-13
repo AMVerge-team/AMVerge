@@ -14,7 +14,7 @@ use crate::state::{ActiveFfmpegPids, PreviewProxyLocks, ProxyLockMap};
 use crate::utils::ffmpeg::resolve_bundled_tool;
 use crate::utils::logging::console_log;
 use crate::utils::paths::{file_name_only, resolve_episodes_storage_dir, sanitize_episode_cache_id};
-use crate::utils::process::apply_no_window;
+use crate::utils::process::{apply_no_window, bind_to_app_lifetime};
 
 use super::fingerprint::{
     cached_fingerprint, content_fingerprint, preview_cache_key_with_fingerprint,
@@ -193,6 +193,7 @@ pub(crate) async fn generate_scene_webp_inner(
             .spawn()
             .map_err(|e| format!("Failed to run ffmpeg: {e}"))?;
         let pid = child.id();
+        bind_to_app_lifetime(pid);
         if let Ok(mut l) = pids.lock() { l.push(pid); }
         let result = child.wait_with_output().map_err(|e| format!("Failed waiting for ffmpeg: {e}"))?;
         if let Ok(mut l) = pids.lock() { l.retain(|p| *p != pid); }

@@ -19,7 +19,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 use crate::utils::logging::{console_log, emit_console_log, sanitize_for_console};
 use crate::utils::paths::{file_name_only, resolve_scene_scout_storage_dir};
-use crate::utils::process::kill_process_tree_async;
+use crate::utils::process::{bind_to_app_lifetime, kill_process_tree_async};
 use crate::utils::sidecar::amverge_ai_command;
 use crate::utils::sidecar::amverge_exe_name;
 
@@ -198,6 +198,9 @@ async fn scout_json<T: for<'de> Deserialize<'de>>(
         .stdout(Stdio::piped())
         .spawn()
         .map_err(|e| format!("Failed to run the AMVerge CLI: {e}"))?;
+    if let Some(pid) = child.id() {
+        bind_to_app_lifetime(pid);
+    }
 
     let stderr = child
         .stderr
@@ -223,14 +226,17 @@ async fn scout_json<T: for<'de> Deserialize<'de>>(
         .unwrap_or_default();
 
     if line.trim().is_empty() {
-        let stderr = stderr_accum
+        // the whole log is in the console already (forward_stderr); the ui only gets its last line,
+        // which is where the cli's own error message lands, never the [diag] chatter above it
+        let last = stderr_accum
             .lock()
-            .map(|s| s.trim().to_string())
+            .ok()
+            .and_then(|s| s.lines().rev().find(|l| !l.trim().is_empty()).map(|l| l.trim().to_string()))
             .unwrap_or_default();
-        return Err(if stderr.is_empty() {
-            "Scene Scout returned no output.".to_string()
+        return Err(if last.is_empty() || last.starts_with("[diag]") {
+            format!("Scene Scout {verb} failed. Check the console for details.")
         } else {
-            stderr
+            last
         });
     }
 
@@ -296,14 +302,82 @@ pub struct ScoutGenerateThumbnailsResult {
     pub database: String,
 }
 
+/// fills in missing thumbnails and redoes low-resolution ones
 #[tauri::command]
 pub async fn scout_generate_thumbnails(
     app: AppHandle,
+    active_index: State<'_, ActiveScoutIndex>,
     database: String,
     custom_path: Option<String>,
+    report_progress: Option<bool>,
 ) -> Result<ScoutGenerateThumbnailsResult, String> {
+    let report_progress = report_progress.unwrap_or(false);
     let root = scout_root(&app, custom_path.as_deref())?;
-    scout_json(&app, &["generate-thumbnails", "--db", &database, "--root", &root]).await
+    let (cmd, argv) = scout_pair(&app, &["generate-thumbnails", "--db", &database, "--root", &root])?;
+    scout_spawn_log("generate-thumbnails", &argv);
+
+    let mut child = tokio::process::Command::from(cmd)
+        .stdout(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to run the AMVerge CLI: {e}"))?;
+    let child_pid = child.id().unwrap_or_default();
+    bind_to_app_lifetime(child_pid);
+    if report_progress {
+        active_index.start(child_pid);
+    }
+
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| "Scene Scout produced no stderr stream.".to_string())?;
+    let (stderr_task, _stderr_accum) = forward_stderr(&app, stderr);
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| "Scene Scout produced no output stream.".to_string())?;
+
+    let mut result: Option<ScoutGenerateThumbnailsResult> = None;
+    let mut failure: Option<String> = None;
+    let mut reader = BufReader::new(stdout).lines();
+    while let Ok(Some(line)) = reader.next_line().await {
+        let Ok(value) = serde_json::from_str::<serde_json::Value>(line.trim()) else {
+            continue;
+        };
+        if let Some(message) = value.get("error").and_then(|v| v.as_str()) {
+            failure = Some(message.to_string());
+        } else if value.get("done").and_then(|v| v.as_bool()) == Some(true) {
+            result = serde_json::from_value(value).ok();
+        } else if report_progress {
+            if let Ok(progress) = serde_json::from_value::<ScoutIndexProgress>(value) {
+                let _ = app.emit("scout_progress", progress);
+            }
+        }
+    }
+
+    let status = child
+        .wait()
+        .await
+        .map_err(|e| format!("Thumbnail generation failed to finish: {e}"))?;
+    let _ = stderr_task.await;
+
+    // a stopped run is a pause: every episode it finished is already saved, and the next
+    // run skips those (they are full size now), so it carries on from where this one stopped
+    if report_progress {
+        active_index.finish(child_pid);
+        if active_index.was_canceled() {
+            console_log("SCOUT|abort", "generate-thumbnails paused");
+            return Err(SCOUT_CANCELED.to_string());
+        }
+    }
+
+    if let Some(message) = failure {
+        return Err(message);
+    }
+    match result {
+        Some(result) if status.success() => Ok(result),
+        // the cli's log already went to the console through forward_stderr; the ui gets one line
+        _ => Err(format!("Thumbnail generation stopped ({status}). Check the console for details.")),
+    }
 }
 
 #[tauri::command]
@@ -460,8 +534,40 @@ pub struct SceneScoutWorkerState {
     pub inner: Arc<tokio::sync::Mutex<Option<SceneScoutWorkerSession>>>,
 }
 
+/// the foreground scout run (add episode, generate thumbnails) the progress window's abort stops
 #[derive(Default, Clone)]
-pub struct ActiveScoutIndex(pub Arc<Mutex<Option<u32>>>);
+pub struct ActiveScoutIndex {
+    pub pid: Arc<Mutex<Option<u32>>>,
+    /// set by abort, so a killed run reports `SCOUT_CANCELED` instead of retrying on
+    /// the cli or surfacing its log as an error
+    pub canceled: Arc<std::sync::atomic::AtomicBool>,
+}
+
+impl ActiveScoutIndex {
+    /// a new foreground run: not canceled, and `pid` is what abort kills
+    fn start(&self, pid: u32) {
+        self.canceled.store(false, std::sync::atomic::Ordering::SeqCst);
+        if let Ok(mut lock) = self.pid.lock() {
+            *lock = Some(pid);
+        }
+    }
+
+    /// forgets `pid` once its run is over (a later run may already own the slot)
+    fn finish(&self, pid: u32) {
+        if let Ok(mut lock) = self.pid.lock() {
+            if *lock == Some(pid) {
+                *lock = None;
+            }
+        }
+    }
+
+    fn was_canceled(&self) -> bool {
+        self.canceled.load(std::sync::atomic::Ordering::SeqCst)
+    }
+}
+
+/// what an aborted scout run returns; the frontend treats it as a stop, not a failure
+pub const SCOUT_CANCELED: &str = "Canceled.";
 
 fn spawn_scout_worker(
     app: &AppHandle,
@@ -488,6 +594,9 @@ fn spawn_scout_worker(
     let mut child = tokio_cmd
         .spawn()
         .map_err(|e| format!("Failed to spawn scout daemon: {e}"))?;
+    if let Some(pid) = child.id() {
+        bind_to_app_lifetime(pid);
+    }
 
     let stdin = child.stdin.take().ok_or("Failed to open daemon stdin")?;
     let stdout = child.stdout.take().ok_or("Failed to open daemon stdout")?;
@@ -760,9 +869,7 @@ pub async fn scout_add_video(
         if let Some(session) = worker_guard.as_mut() {
             let child_pid = session.child.id().unwrap_or_default();
             console_log("SCOUT|pid", &format!("pid={child_pid}"));
-            if let Ok(mut lock) = active_index.0.lock() {
-                *lock = Some(child_pid);
-            }
+            active_index.start(child_pid);
 
             let req = serde_json::json!({
                 "action": "add",
@@ -783,9 +890,7 @@ pub async fn scout_add_video(
                 })
                 .await;
 
-            if let Ok(mut lock) = active_index.0.lock() {
-                *lock = None;
-            }
+            active_index.finish(child_pid);
 
             match res {
                 Ok(resp) => {
@@ -804,13 +909,18 @@ pub async fn scout_add_video(
                     return Ok(scenes);
                 }
                 Err(e) => {
+                    if let Some(mut old) = worker_guard.take() {
+                        let _ = old.child.kill().await;
+                    }
+                    // an abort kills the daemon too; that is a stop, not a reason to index again on the cli
+                    if active_index.was_canceled() {
+                        console_log("SCOUT|abort", &format!("add canceled video={video_name}"));
+                        return Err(SCOUT_CANCELED.to_string());
+                    }
                     console_log(
                         "SCOUT|daemon",
                         &format!("daemon indexing failed: {e}, falling back to CLI"),
                     );
-                    if let Some(mut old) = worker_guard.take() {
-                        let _ = old.child.kill().await;
-                    }
                 }
             }
         }
@@ -837,10 +947,9 @@ pub async fn scout_add_video(
         .map_err(|e| format!("Failed to start indexing: {e}"))?;
 
     let child_pid = child.id().unwrap_or_default();
+    bind_to_app_lifetime(child_pid);
     console_log("SCOUT|pid", &format!("pid={child_pid}"));
-    if let Ok(mut lock) = active_index.0.lock() {
-        *lock = Some(child_pid);
-    }
+    active_index.start(child_pid);
 
     let stderr = child
         .stderr
@@ -888,11 +997,12 @@ pub async fn scout_add_video(
         .await
         .map_err(|e| format!("Indexing failed to finish: {e}"))?;
     let _ = stderr_task.await;
+    active_index.finish(child_pid);
 
-    if let Ok(mut lock) = active_index.0.lock() {
-        *lock = None;
+    if active_index.was_canceled() {
+        console_log("SCOUT|abort", &format!("add canceled video={video_name}"));
+        return Err(SCOUT_CANCELED.to_string());
     }
-
     if let Some(message) = failure {
         console_log(
             "ERROR|scout_add_video",
@@ -917,11 +1027,8 @@ pub async fn scout_add_video(
             }
         }
         console_log("ERROR|scout_add_video", "backend_stderr_dump_end");
-        return Err(if dump.trim().is_empty() {
-            "Indexing failed. Check the console for details.".to_string()
-        } else {
-            dump.trim().to_string()
-        });
+        // the log went to the console above; the ui gets one line, never the dump
+        return Err(format!("Indexing {video_name} failed. Check the console for details."));
     }
 
     console_log(
@@ -933,24 +1040,17 @@ pub async fn scout_add_video(
 }
 
 #[tauri::command]
-pub async fn abort_scout_index(
-    active_index: State<'_, ActiveScoutIndex>,
-    worker_state: State<'_, SceneScoutWorkerState>,
-) -> Result<(), String> {
-    let pid = active_index.0.lock().map_err(|e| e.to_string())?.take();
+pub async fn abort_scout_index(active_index: State<'_, ActiveScoutIndex>) -> Result<(), String> {
+    let pid = active_index.pid.lock().map_err(|e| e.to_string())?.take();
     let Some(pid) = pid else {
         console_log("SCOUT|abort", "no active scout indexing process to kill");
         return Ok(());
     };
+    active_index.canceled.store(true, std::sync::atomic::Ordering::SeqCst);
 
-    let mut worker_guard = worker_state.inner.lock().await;
-    if let Some(session) = worker_guard.as_ref() {
-        if session.child.id() == Some(pid) {
-            worker_guard.take();
-        }
-    }
-    drop(worker_guard);
-
+    // killed first, without touching the daemon lock: a daemon add holds that lock until
+    // its request ends, which only happens once the daemon dies. the add clears the
+    // dead session itself
     console_log("SCOUT|abort", &format!("killing indexing process tree pid={pid}"));
 
     let result = kill_process_tree_async(pid).await?;
@@ -1008,10 +1108,14 @@ pub async fn extract_scout_thumbnail_memory(
             "5",
             "pipe:1",
         ]);
+        cmd.stdin(std::process::Stdio::null());
         cmd.stdout(std::process::Stdio::piped());
         cmd.stderr(std::process::Stdio::null());
 
-        let output = cmd.output().map_err(|e| e.to_string())?;
+        // spawned rather than .output() so it can be bound like every other ffmpeg
+        let child = cmd.spawn().map_err(|e| e.to_string())?;
+        bind_to_app_lifetime(child.id());
+        let output = child.wait_with_output().map_err(|e| e.to_string())?;
         if output.status.success() && !output.stdout.is_empty() {
             let encoded = base64::engine::general_purpose::STANDARD.encode(&output.stdout);
             Ok(Some(format!("data:image/jpeg;base64,{encoded}")))

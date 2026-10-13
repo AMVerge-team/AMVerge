@@ -7,6 +7,7 @@ import { runPostExportPasses } from "../features/export/runPostExportPasses";
 import { anyPassEnabled, PASS_SUFFIX, type PostExportPasses } from "../features/export/postPasses";
 import { clipExportSpecs } from "../features/export/clipSpecs";
 import { deliverExportedFiles } from "../features/export/deliverExports";
+import { claimProcess } from "../features/processes/singleProcess";
 import { remuxAudioModeForSource, remuxContainerForSource, type ExportSourceStreams } from "../features/export/remuxPolicy";
 import type { ExportAudioMode } from "../features/export/profileTypes";
 import {
@@ -248,6 +249,9 @@ export function useExport({ onRPCUpdate }: Params) {
         dir = picked as string;
         persistedState.setExportDir(dir);
       }
+
+      // one long job at a time: asks to stop whatever runs, or keeps it and drops this export
+      if (!(await claimProcess("export"))) return;
 
       const passesSnapshot = generalSettings.postExportPasses;
 

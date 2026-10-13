@@ -15,6 +15,7 @@ import {
   scoutStatus,
   scoutUnloadModel,
   scoutGenerateThumbnails,
+  isScoutCanceled,
 } from "../features/sceneScout/api";
 import {
   DEFAULT_SEARCH_SETTINGS,
@@ -26,6 +27,7 @@ import {
   type ScoutStatus,
   type ScoutVideo,
 } from "../features/sceneScout/types";
+import { claimProcess } from "../features/processes/singleProcess";
 import { useAiDepsStore } from "./aiDepsStore";
 import { useAppStateStore } from "./appStore";
 import { useGeneralSettingsStore } from "./settingsStore";
@@ -34,6 +36,23 @@ import { useUIStateStore } from "./UIStore";
 /** The storage root every call has to be told about, read fresh each time. */
 function customPath(): string | null {
   return useGeneralSettingsStore.getState().episodesPath;
+}
+
+/**
+ * Removes episodes an add-episode run stopped part way through. The CLI marks an
+ * episode `indexing` until its last write, so whatever still says that after a stop
+ * or failure is half-done. Completed episodes are never touched.
+ */
+async function discardUnfinishedVideos(database: string): Promise<void> {
+  try {
+    const videos = await scoutListVideos(database, customPath());
+    for (const video of videos.filter((v) => v.status === "indexing")) {
+      console.log(`SCOUT|queue removing unfinished ${video.name}`);
+      await scoutDeleteVideo(database, video.id, customPath());
+    }
+  } catch (err) {
+    console.error("SCOUT|queue could not remove the unfinished episode", err);
+  }
 }
 
 /**
@@ -597,6 +616,9 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         const database = get().openedDatabase || get().selectedDatabases[0];
         if (!database) return { ok: false, message: "Select or open a database first." };
 
+        // one long job at a time: asks to stop whatever runs, or keeps it and drops this one
+        if (!(await claimProcess("scout_add"))) return { ok: false, message: null };
+
         if (!(await useAiDepsStore.getState().ensurePack("scout"))) {
           return { ok: false, message: "Scene Scout needs its AI pack installed." };
         }
@@ -701,6 +723,14 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           console.log(`SCOUT|queue all ${totalVideos} videos indexed successfully`);
           return { ok: true, message: null };
         } catch (err) {
+          // episodes finished before the stop are kept; the one it stopped on is removed,
+          // so the database never holds a half-indexed episode
+          await discardUnfinishedVideos(database);
+          await Promise.all([get().loadVideos(database), get().loadDatabases()]);
+          if (isScoutCanceled(err)) {
+            console.log("SCOUT|queue stopped by the user");
+            return { ok: false, message: null };
+          }
           console.error("SCOUT|queue error", err);
           return { ok: false, message: message(err) };
         } finally {
@@ -773,19 +803,35 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         set((state) => ({ settings: { ...state.settings, ...changes } })),
 
       generateThumbnails: async (path: string) => {
+        if (!(await claimProcess("scout_thumbnails"))) return { ok: false, generated: 0, message: null };
+        let stopListening: (() => void) | null = null;
         try {
           const appState = useAppStateStore.getState();
-          appState.setActiveOperation("scout_add");
+          appState.setActiveOperation("scout_thumbnails");
           appState.setLoading(true);
           appState.setProgress(0);
-          appState.setProgressMsg("Generating missing database thumbnails...");
+          appState.setProgressMsg("Finding missing and low-resolution thumbnails…");
 
-          const res = await scoutGenerateThumbnails(path, customPath());
+          // the cli reports every frame it decodes, so the bar moves throughout a long season
+          stopListening = await listen<ScoutIndexProgress>("scout_progress", (e) => {
+            const { stage, done, total } = e.payload;
+            if (stage !== "thumbnails" || total <= 0) return;
+            appState.setProgress(Math.round((done / total) * 100));
+            appState.setProgressMsg(`Generating thumbnails ${done}/${total}`);
+          });
+
+          const res = await scoutGenerateThumbnails(path, customPath(), true);
           await get().loadDatabases();
           return { ok: true, generated: res.generated, message: null };
         } catch (err) {
+          // closing the window pauses: finished episodes are saved and the next run carries on
+          if (isScoutCanceled(err)) {
+            console.log("SCOUT|thumbs paused; generating again resumes from the next episode");
+            return { ok: false, generated: 0, message: null };
+          }
           return { ok: false, generated: 0, message: message(err) };
         } finally {
+          stopListening?.();
           const appState = useAppStateStore.getState();
           appState.setActiveOperation(null);
           appState.setLoading(false);

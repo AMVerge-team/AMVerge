@@ -70,6 +70,7 @@ fn run_models(app: &AppHandle, args: &[&str]) -> Result<(String, Vec<String>), S
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("Failed to start amverge models: {e}"))?;
+    crate::utils::process::bind_to_app_lifetime(child.id());
 
     let stdout_arc = Arc::new(Mutex::new(String::new()));
     let stderr_arc = Arc::new(Mutex::new(Vec::new()));

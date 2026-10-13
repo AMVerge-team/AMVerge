@@ -17,7 +17,7 @@ interface ImportTerminalProps {
   batchDone: number;
   batchCurrentFile: string;
   onAbort: () => void;
-  operation?: "import" | "export" | "scout_add" | "scout_open" | "scout_search" | "resume";
+  operation?: "import" | "export" | "scout_add" | "scout_open" | "scout_search" | "scout_thumbnails" | "resume";
   commandLabel?: string;
   /** scene detection method for the synthesized command line (e.g. keyframe_detection) */
   detectionMethod?: string;
@@ -172,6 +172,9 @@ export default function ImportTerminal({
     } else if (operation === "scout_open") {
       const target = commandLabel ? `"${commandLabel}"` : "<database>";
       pushLine("cmd", `amverge scout open ${target}`);
+    } else if (operation === "scout_thumbnails") {
+      const target = commandLabel ? `"${commandLabel}"` : "<database>";
+      pushLine("cmd", `amverge scout generate-thumbnails --db ${target}`);
     } else if (operation === "resume") {
       const target = commandLabel ? `"${commandLabel}"` : "<episode>";
       pushLine("cmd", `amverge materialize-clips ${target} --resume`);
@@ -235,6 +238,8 @@ export default function ImportTerminal({
               pushCounted(stage, `sampling ${total} representative frames…`, "sampled frames", done, total);
             } else if (stage === "embedding") {
               pushCounted(stage, `embedding ${total} scenes…`, "embedding scenes", done, total);
+            } else if (stage === "thumbnails") {
+              pushCounted(stage, `making ${total} thumbnails…`, "thumbnails", done, total);
             } else if (stage === "done") {
               // a batch of episodes repeats every stage, so the next one prints its own steps
               for (const key of Object.keys(lastStep)) delete lastStep[key];
@@ -314,7 +319,7 @@ export default function ImportTerminal({
           <span className="lm-title">
             {isBatch
               ? (operation === "scout_add" ? "Embedding videos" : "Importing videos")
-              : progressMsg || (operation === "scout_add" ? "Embedding scenes…" : operation === "scout_open" ? "Opening database…" : operation === "scout_search" ? "Searching scenes…" : "Finishing import…")}
+              : progressMsg || (operation === "scout_add" ? "Embedding scenes…" : operation === "scout_open" ? "Opening database…" : operation === "scout_search" ? "Searching scenes…" : operation === "scout_thumbnails" ? "Generating thumbnails…" : "Finishing import…")}
           </span>
           <div className="lm-actions">
             <Tooltip content="Expand">
@@ -402,6 +407,8 @@ export default function ImportTerminal({
               ? "Scene Scout - Database"
               : operation === "scout_search"
               ? "Scene Scout - Search"
+              : operation === "scout_thumbnails"
+              ? "Scene Scout - Thumbnails"
               : "AMVerge CLI"}
           </span>
           {onToggleMinimize ? (

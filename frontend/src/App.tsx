@@ -22,6 +22,8 @@ import StartupNotificationModal, { type StartupNotification } from "./components
 import SplashScreen from "./components/SplashScreen";
 import PostExportPassesModal from "./components/PostExportPassesModal";
 import AiInstallModal from "./components/AiInstallModal";
+import ProcessConflictModal from "./components/ProcessConflictModal";
+import { registerProcessAbort } from "./features/processes/singleProcess";
 
 import useDiscordRPC from "./hooks/useDiscordRPC";
 import useHEVCSupport from "./hooks/useHEVCSupport";
@@ -309,18 +311,32 @@ function App() {
 
   // auto-minimize once the heavy phase (scene detect + first clip cuts) is done
   // and only background thumbnail/reencode/preview work remains
-  const autoMinimized = activeOperation === "scout_add" || activeOperation === "scout_open" || activeOperation === "scout_search" || (!loading && bgActive);
+  const scoutOperation =
+    activeOperation === "scout_add" ||
+    activeOperation === "scout_open" ||
+    activeOperation === "scout_search" ||
+    activeOperation === "scout_thumbnails";
+  const autoMinimized = scoutOperation || (!loading && bgActive);
   const overlayMinimized = minimizeOverride !== null ? minimizeOverride : autoMinimized;
 
   async function handleAbortAndCloseBgProgress() {
     const { bgProgress: bg, bgImportProgress: bgImport, reencodeProgress: reenc, activeOperation: op } =
       useAppStateStore.getState();
-    if (bg || bgImport || reenc || op === "scout_add" || op === "scout_open" || op === "scout_search") {
+    if (bg || bgImport || reenc || op === "scout_add" || op === "scout_open" || op === "scout_search" || op === "scout_thumbnails") {
       await handleAbort();
     }
     clearBgProgress();
     useWebpLoadingStore.getState().dismiss();
   }
+
+  // "stop it and continue" in ProcessConflictModal: the same stop the progress window's ✕ does
+  useEffect(() => {
+    registerProcessAbort(async () => {
+      await handleAbort();
+      clearBgProgress();
+      useWebpLoadingStore.getState().dismiss();
+    });
+  });
 
   useEffect(() => {
     applyThemeSettings(themeSettings);
@@ -437,6 +453,7 @@ function App() {
   const clipLabel =
     activeOperation === "scout_add" ? scoutAddLabel
     : activeOperation === "scout_search" ? "Searching scenes"
+    : activeOperation === "scout_thumbnails" ? "Generating thumbnails"
     : reencodeProgress ? "Reencoding"
     : "Processing clips";
 
@@ -517,6 +534,7 @@ function App() {
         {activePage === "events" && <EventsPage />}
       </div>
       <QuickMenu />
+      <ProcessConflictModal />
       <CommandPalette />
       <MenuModal />
       <HostEventModal />

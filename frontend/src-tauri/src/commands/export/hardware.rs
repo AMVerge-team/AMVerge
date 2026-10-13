@@ -60,8 +60,7 @@ fn probe_encoder_available(ffmpeg_path: &Path, encoder: &str) -> bool {
     let mut cmd = Command::new(ffmpeg_path);
     apply_no_window(&mut cmd);
 
-    let output = cmd
-        .args([
+    cmd.args([
             "-hide_banner",
             "-loglevel",
             "error",
@@ -79,8 +78,8 @@ fn probe_encoder_available(ffmpeg_path: &Path, encoder: &str) -> bool {
             "-f",
             "null",
             "-",
-        ])
-        .output();
+        ]);
+    let output = crate::utils::process::output_bound(&mut cmd);
 
     match output {
         Ok(value) => value.status.success(),
@@ -148,7 +147,7 @@ pub(super) async fn detect_gpu_encoder_capabilities_inner(
     let probe = tokio::task::spawn_blocking(move || {
         let mut cmd = Command::new(&ffmpeg_path);
         apply_no_window(&mut cmd);
-        let output = cmd.args(["-hide_banner", "-encoders"]).output()?;
+        let output = crate::utils::process::output_bound(cmd.args(["-hide_banner", "-encoders"]))?;
 
         if !output.status.success() {
             return Ok::<GpuEncoderCapabilitiesPayload, std::io::Error>(

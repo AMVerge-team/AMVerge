@@ -277,6 +277,7 @@ pub async fn detect_scenes(
         .map_err(|e| format!("Failed to spawn amverge backend: {e}"))?;
 
     let child_pid = child.id();
+    crate::utils::process::bind_to_app_lifetime(child_pid);
     console_log("SCENE|pid", &format!("pid={}", child_pid));
 
     let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;

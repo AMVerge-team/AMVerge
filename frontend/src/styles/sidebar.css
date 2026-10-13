@@ -418,19 +418,42 @@ body.is-resizing-sidebar {
     margin-bottom: 10px;
 }
 
+/* the message and the buttons are read, not glanced at: arial whatever font the user picks */
 .episode-modal-message {
+    font-family: var(--ui-font);
+    font-size-adjust: none;
     opacity: 0.92;
-    line-height: 1.2;
+    line-height: 1.35;
     margin-bottom: 12px;
+    /* an unbroken file name or path wraps rather than running out of the dialog */
+    overflow-wrap: anywhere;
+}
+
+/* the thing being acted on (an episode name, often a long file name) on its own boxed line,
+   cut short with an ellipsis so it can never run out of the dialog; the tooltip holds it all */
+.episode-modal-subject {
+    margin: -4px 0 12px;
+    padding: 7px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    font-family: var(--ui-font);
+    font-size-adjust: none;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .episode-modal-note {
+    font-family: var(--ui-font);
+    font-size-adjust: none;
     opacity: 0.55;
-    font-size: 14px;
-    line-height: 1.2;
+    font-size: 12px;
+    line-height: 1.3;
     margin-top: -6px;
     margin-bottom: 12px;
-    letter-spacing: 0.4px;
 }
 
 .episode-modal-input {
@@ -464,7 +487,8 @@ body.is-resizing-sidebar {
     border: 1px solid rgba(255,255,255,0.18);
     color: white;
     cursor: pointer;
-    font-family: var(--app-font);
+    font-family: var(--ui-font);
+    font-size-adjust: none;
 }
 
 .episode-modal-btn:hover {

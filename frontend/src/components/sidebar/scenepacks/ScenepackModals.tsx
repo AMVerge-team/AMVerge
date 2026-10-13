@@ -132,7 +132,10 @@ export function DeleteItemModal({ target, onConfirm, onClose }: DeleteProps) {
           Delete {target.kind === "scenepack" ? "Scenepack" : "Folder"}
         </div>
         <div className="episode-modal-message">
-          Are you sure you want to delete "{target.name}"?
+          Are you sure you want to delete this {target.kind === "scenepack" ? "Scenepack" : "folder"}?
+        </div>
+        <div className="episode-modal-subject" title={target.name}>
+          {target.name}
         </div>
         {target.kind === "folder" && (
           <div className="episode-modal-note">

@@ -177,3 +177,21 @@ body::before {
 .discord-contact:hover {
     opacity: 0.8;
 }
+
+/* every inline error message in the app. a long or log-like message (a file path, cli
+   output) can never widen or stretch the layout: it wraps anywhere and stops after four
+   lines. the full text is always in the console */
+.events-error,
+.pxm-errors,
+.scenepack-picker-error,
+.bugreport-field-error,
+.bugreport-alert.error {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    overflow: hidden;
+}

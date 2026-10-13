@@ -11,6 +11,8 @@ type Props = {
   busy?: boolean;
   /** a middle button, for a choice that is neither cancel nor the primary action */
   secondary?: { label: string; onClick: () => void };
+  /** the dismiss button's label, when "Cancel" would be ambiguous */
+  cancelLabel?: string;
 };
 
 // shared shape for the destructive confirmations in General settings
@@ -22,6 +24,7 @@ export function ConfirmModal({
   onClose,
   busy = false,
   secondary,
+  cancelLabel = "Cancel",
 }: Props) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -51,7 +54,7 @@ export function ConfirmModal({
         <div className="episode-modal-message">{message}</div>
         <div className="episode-modal-actions">
           <button type="button" className="episode-modal-btn" onClick={onClose} disabled={busy}>
-            Cancel
+            {cancelLabel}
           </button>
           {secondary && (
             <button type="button" className="episode-modal-btn" onClick={secondary.onClick}>

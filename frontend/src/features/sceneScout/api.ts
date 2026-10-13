@@ -110,13 +110,23 @@ export function scoutOpenDatabase(
   return invoke<ScoutDatabase>("scout_open_database", { path, customPath });
 }
 
+/** what an aborted add-episode or thumbnail run rejects with (rust `SCOUT_CANCELED`) */
+export const SCOUT_CANCELED = "Canceled.";
+
+export function isScoutCanceled(err: unknown): boolean {
+  return String(err) === SCOUT_CANCELED;
+}
+
+/** fills missing thumbnails and redoes low-resolution ones; `reportProgress` streams
+ *  `scout_progress` events and makes the run abortable (the silent backfill passes false) */
 export function scoutGenerateThumbnails(
   database: string,
-  customPath: string | null
+  customPath: string | null,
+  reportProgress = false
 ): Promise<{ done: boolean; generated: number; database: string }> {
   return invoke<{ done: boolean; generated: number; database: string }>(
     "scout_generate_thumbnails",
-    { database, customPath }
+    { database, customPath, reportProgress }
   );
 }
 

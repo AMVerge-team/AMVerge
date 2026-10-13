@@ -11,7 +11,10 @@
     align-items: center;
 }
 
-.scene-scout-toolbar-error {
+/* the toolbar row has a fixed height, so its error is one line with an ellipsis rather
+   than the shared four-line clamp (the tooltip holds the full text) */
+.events-error.scene-scout-toolbar-error {
+    display: block;
     flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
@@ -459,12 +462,49 @@
     max-height: min(80vh, 560px);
 }
 
+/* short scene scout dialogs (index episodes, delete database): icon, title, text and
+   buttons sit close together */
+.scene-scout-index-modal .denial-notice,
+.scene-scout-delete-modal .denial-notice {
+    gap: 6px;
+    padding: 22px 24px 20px;
+}
+
+/* the index dialog's icon follows the user's accent, not the notice's warning yellow */
+.scene-scout-index-modal .denial-notice-icon {
+    color: var(--accent);
+}
+
+/* the delete question wraps into two even lines rather than leaving two words alone on the second */
+.scene-scout-delete-question {
+    max-width: 360px;
+    text-wrap: balance;
+}
+
+.scene-scout-delete-details {
+    width: 100%;
+    margin: 6px 0;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.35);
+    font-size: 12px;
+    text-align: left;
+    word-break: break-all;
+}
+
+.scene-scout-delete-warning {
+    margin: 0;
+    font-size: 12px;
+    color: rgba(239, 68, 68, 0.9);
+    text-wrap: balance;
+}
+
 .scene-scout-detection-choices {
     display: flex;
     flex-direction: column;
     gap: 8px;
     width: 100%;
-    margin: 12px 0 16px;
+    margin: 6px 0;
 }
 
 .scene-scout-detection-choice {
@@ -962,6 +1002,6 @@ body.scene-scout-resizing {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    margin-top: 18px;
+    margin-top: 10px;
 }
 

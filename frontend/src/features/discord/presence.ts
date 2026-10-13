@@ -21,7 +21,7 @@ export type PresenceInput = {
     activePage: string;
     settingsOpen: boolean;
     menuOpen: boolean;
-    activeOperation: "import" | "export" | "scout_add" | "scout_open" | "scout_search" | null;
+    activeOperation: "import" | "export" | "scout_add" | "scout_open" | "scout_search" | "scout_thumbnails" | null;
     progress: number;
     batchDone: number;
     batchTotal: number;

@@ -474,7 +474,10 @@ export default function EpisodePanel() {
                 Delete {confirmDelete.kind === "folder" ? "Folder" : "Episode"}
               </div>
               <div className="episode-modal-message">
-                Are you sure you want to delete "{confirmDelete.label}"?
+                Are you sure you want to delete this {confirmDelete.kind === "folder" ? "folder" : "episode"}?
+              </div>
+              <div className="episode-modal-subject" title={confirmDelete.label}>
+                {confirmDelete.label}
               </div>
               <div className="episode-modal-note">
                 This will also delete all cached clip files on disk.

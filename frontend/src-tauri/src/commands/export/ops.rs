@@ -11,7 +11,7 @@ use crate::state::ExportAbortState;
 use crate::utils::ffmpeg::resolve_bundled_tool;
 use crate::utils::logging::{console_log, sanitize_for_console};
 use crate::utils::paths::file_name_only;
-use crate::utils::process::{apply_no_window, kill_process_tree_async, KILL_TOOL};
+use crate::utils::process::{apply_no_window, bind_to_app_lifetime, kill_process_tree_async, KILL_TOOL};
 
 pub(super) async fn fast_merge_inner(
     app: AppHandle,
@@ -82,6 +82,7 @@ pub(super) async fn fast_merge_inner(
         .spawn()
         .map_err(|e| format!("Failed to spawn ffmpeg: {e}"))?;
     let pid = child.id();
+    bind_to_app_lifetime(pid);
     if let Ok(mut l) = active_pids.lock() {
         l.push(pid);
     }
@@ -93,8 +94,10 @@ pub(super) async fn fast_merge_inner(
     }
 
     if !result.status.success() {
+        // ffmpeg's full output goes to the console; the ui only gets one line
         let stderr = String::from_utf8_lossy(&result.stderr);
-        return Err(format!("FFmpeg merge failed: {stderr}"));
+        crate::utils::logging::console_log("ERROR|fast_merge", stderr.trim());
+        return Err("FFmpeg merge failed. Check the console for details.".to_string());
     }
 
     Ok(output_path)
@@ -160,6 +163,7 @@ pub(super) async fn fast_split_inner(
         .spawn()
         .map_err(|e| format!("Part 1 failed: {e}"))?;
     let pid1 = child1.id();
+    bind_to_app_lifetime(pid1);
     if let Ok(mut l) = active_pids.lock() { l.push(pid1); }
     let out1 = child1.wait_with_output().map_err(|e| format!("Part 1 failed: {e}"))?;
     if let Ok(mut l) = active_pids.lock() { l.retain(|p| *p != pid1); }
@@ -211,6 +215,7 @@ pub(super) async fn fast_split_inner(
         .spawn()
         .map_err(|e| format!("Part 2 failed: {e}"))?;
     let pid2 = child2.id();
+    bind_to_app_lifetime(pid2);
     if let Ok(mut l) = active_pids.lock() { l.push(pid2); }
     let out2 = child2.wait_with_output().map_err(|e| format!("Part 2 failed: {e}"))?;
     if let Ok(mut l) = active_pids.lock() { l.retain(|p| *p != pid2); }
@@ -246,6 +251,7 @@ pub(super) async fn fast_split_inner(
         .spawn()
     {
         let pid3 = child3.id();
+        bind_to_app_lifetime(pid3);
         if let Ok(mut l) = active_pids.lock() { l.push(pid3); }
         let _ = child3.wait();
         if let Ok(mut l) = active_pids.lock() { l.retain(|p| *p != pid3); }
