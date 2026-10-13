@@ -14,8 +14,9 @@ import Tooltip from "../common/Tooltip";
 import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
 
 const VOLUME_HIDE_DELAY_MS = 700;
-const FALLBACK_VOLUME = 0.5;
 const VOLUME_COMMIT_DELAY_MS = 150;
+/** unmuting always comes back this quiet, never at a level that blasts; drag up from there */
+const UNMUTE_VOLUME = 0.01;
 
 function formatTime(seconds: number): string {
   if (!isFinite(seconds) || seconds < 0) seconds = 0;
@@ -31,6 +32,8 @@ type VideoPlayerProps = {
   startTime?: number;
   endTime?: number;
   onTimeUpdate?: (time: number) => void;
+  /** always muted, with no volume control (scene scout flow's input clip) */
+  silent?: boolean;
 };
 
 export default function VideoPlayer({
@@ -40,6 +43,7 @@ export default function VideoPlayer({
   startTime,
   endTime,
   onTimeUpdate,
+  silent = false,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
@@ -64,21 +68,21 @@ export default function VideoPlayer({
   const hideTimerRef = useRef<number | null>(null);
   const commitTimerRef = useRef<number | null>(null);
   const draggingRef = useRef(false);
-  // last audible level, so unmuting a slider dragged to zero has somewhere to go
-  const lastVolumeRef = useRef(volume > 0 ? volume : FALLBACK_VOLUME);
-
   const displayVolume = dragVolume ?? volume;
 
   useEffect(() => {
-    if (volume > 0) lastVolumeRef.current = volume;
     const v = videoRef.current;
     if (!v) return;
+    if (silent) {
+      v.muted = true;
+      return;
+    }
     // a drag owns the element until it commits, and the store still holds the
     // pre-drag level; applying it here would jump the volume mid-gesture
     if (dragVolume !== null) return;
     v.volume = volume;
     v.muted = muted || volume === 0;
-  }, [volume, muted, src, dragVolume]);
+  }, [volume, muted, src, dragVolume, silent]);
 
   // the store is persisted, so an unchanged write still costs a serialize and a
   // re-render of everything subscribed to it
@@ -188,7 +192,6 @@ export default function VideoPlayer({
       // dragging to the bottom is a mute, and dragging back up undoes it
       v.muted = clamped === 0;
     }
-    if (clamped > 0) lastVolumeRef.current = clamped;
     syncMuted(clamped === 0);
 
     if (commit) {
@@ -209,7 +212,7 @@ export default function VideoPlayer({
     if (!v) return;
     if (v.muted || displayVolume === 0) {
       // a single click, not a drag - no reason to defer it
-      applyVolume(displayVolume > 0 ? displayVolume : lastVolumeRef.current || FALLBACK_VOLUME, true);
+      applyVolume(UNMUTE_VOLUME, true);
     } else {
       v.muted = true;
       syncMuted(true);
@@ -289,11 +292,12 @@ export default function VideoPlayer({
           src={src}
           autoPlay
           playsInline
+          muted={silent}
           onClick={togglePlay}
           onLoadedMetadata={(e) => {
             const v = e.currentTarget;
             v.volume = volume;
-            v.muted = muted || volume === 0;
+            v.muted = silent || muted || volume === 0;
             setDuration(v.duration);
             if (startTime !== undefined && isFinite(startTime) && startTime > 0) {
               try {
@@ -318,7 +322,10 @@ export default function VideoPlayer({
           onDurationChange={(e) => setDuration(e.currentTarget.duration)}
           onPlay={() => setPlaying(true)}
           onPause={() => setPlaying(false)}
-          onVolumeChange={(e) => syncMuted(e.currentTarget.muted)}
+          onVolumeChange={(e) => {
+            // a silent player's own mute is not the user's setting
+            if (!silent) syncMuted(e.currentTarget.muted);
+          }}
           onTimeUpdate={(e) => {
             const v = e.currentTarget;
             const t = v.currentTime;
@@ -360,6 +367,7 @@ export default function VideoPlayer({
             />
           </div>
 
+          {!silent && (
           <div
             className={`volume-control${volumeOpen ? " open" : ""}`}
             ref={volumeRef}
@@ -394,6 +402,7 @@ export default function VideoPlayer({
               />
             </div>
           </div>
+          )}
 
           <Tooltip content="Fullscreen" align="end">
             <button onClick={toggleFullscreen} aria-label="Fullscreen">

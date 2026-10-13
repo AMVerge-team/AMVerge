@@ -3,6 +3,7 @@ import Sidebar from "./sidebar/Sidebar";
 import Navbar from "./Navbar";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { isVideoBackgroundPath, useThemeSettingsStore } from "../stores/settingsStore";
+import { useViewportAlignedDivider } from "../hooks/useViewportAlignedDivider";
 
 export interface AppLayoutProps {
   windowWrapperRef: React.RefObject<HTMLDivElement | null>;
@@ -10,7 +11,6 @@ export interface AppLayoutProps {
   navbarProps: React.ComponentProps<typeof Navbar>;
   dividerProps: {
     onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
-    dividerOffsetPx: number;
     sidebarWidthPx: number;
   };
   children: React.ReactNode;
@@ -28,6 +28,7 @@ export default function AppLayout({
   isDragging,
 }: AppLayoutProps) {
   const backgroundMediaPath = useThemeSettingsStore((s) => s.backgroundImagePath);
+  const alignDivider = useViewportAlignedDivider();
   const backgroundVideoSrc = React.useMemo(() => {
     if (!backgroundMediaPath || !isVideoBackgroundPath(backgroundMediaPath)) {
       return null;
@@ -61,7 +62,6 @@ export default function AppLayout({
         ref={windowWrapperRef}
         style={{
           ["--amverge-sidebar-width" as any]: `${dividerProps.sidebarWidthPx}px`,
-          ["--amverge-divider-offset" as any]: `${dividerProps.dividerOffsetPx}px`,
         }}
       >
         <Navbar {...navbarProps} />
@@ -75,16 +75,14 @@ export default function AppLayout({
             <>
               <Sidebar />
               <div
+                ref={alignDivider}
                 className="divider sidebar-splitter"
                 onPointerDown={dividerProps.onPointerDown}
                 role="separator"
                 aria-orientation="vertical"
                 aria-label="Resize sidebar"
                 tabIndex={-1}
-              >
-                <span className="subdivider" />
-                <span className="subdivider" />
-              </div>
+              />
             </>
           ) : null}
           <div className="content-wrapper">

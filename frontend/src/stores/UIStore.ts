@@ -25,6 +25,8 @@ export type UIState = {
     pinned: boolean;
     /** the preview pane's How to use guide, open or folded */
     howToUseExpanded: boolean;
+    /** height of scene scout flow's input clip area, set by dragging the bar under it */
+    flowPlayerHeightPx: number;
 };
 
 export type UIStateStore = UIState & {
@@ -54,6 +56,7 @@ export type UIStateStore = UIState & {
     setPreviewSplitPct: (pct: number) => void;
     togglePinned: () => void;
     setHowToUseExpanded: (expanded: boolean) => void;
+    setFlowPlayerHeightPx: (px: number) => void;
 };
 
 /** true while a full-screen modal covers the app, so previews can stand down */
@@ -78,6 +81,7 @@ export const DEFAULT_UI_STATE: UIState = {
     previewSplitPct: 65,
     pinned: false,
     howToUseExpanded: true,
+    flowPlayerHeightPx: 300,
 };
 
 export const useUIStateStore = create<UIStateStore>()(
@@ -143,6 +147,7 @@ export const useUIStateStore = create<UIStateStore>()(
             setPreviewSplitPct: (previewSplitPct) => set({ previewSplitPct }),
             togglePinned: () => set((state) => ({ pinned: !state.pinned })),
             setHowToUseExpanded: (howToUseExpanded) => set({ howToUseExpanded }),
+            setFlowPlayerHeightPx: (flowPlayerHeightPx) => set({ flowPlayerHeightPx }),
         }),
         {
             name: "amverge.ui.v1",
@@ -159,6 +164,7 @@ export const useUIStateStore = create<UIStateStore>()(
                 // so Navbar re-applies it on mount
                 pinned: state.pinned,
                 howToUseExpanded: state.howToUseExpanded,
+                flowPlayerHeightPx: state.flowPlayerHeightPx,
             }),
         }
     )

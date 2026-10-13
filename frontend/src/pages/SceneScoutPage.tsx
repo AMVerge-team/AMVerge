@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
-import { FaCog } from "react-icons/fa";
-
 import MainLayout from "../MainLayout";
-import Tooltip from "../components/common/Tooltip";
 import SceneScoutToolbar from "../components/sceneScout/SceneScoutToolbar";
 import SceneScoutHero from "../components/sceneScout/SceneScoutHero";
 import { SceneScoutSearchView } from "../components/sceneScout/SceneScoutSearchView";
@@ -16,7 +13,6 @@ import { useScoutThumbnailQueue } from "../features/sceneScout/useScoutThumbnail
 
 export default function SceneScoutPage() {
   const overlayOpen = useUIStateStore(selectOverlayOpen);
-  const openSettings = useUIStateStore((s) => s.openSettings);
 
   const mode = useSceneScoutStore((s) => s.mode);
   const searchResults = useSceneScoutStore((s) => s.results);
@@ -95,18 +91,7 @@ export default function SceneScoutPage() {
       <div className="main-layout-wrapper">
         <MainLayout active={!overlayOpen} left={left} />
 
-        <div className="info-bar">
-          <Tooltip content="Options">
-            <button
-              type="button"
-              className="settings-gear-button"
-              onClick={() => openSettings()}
-              aria-label="Options"
-            >
-              <FaCog aria-hidden="true" />
-            </button>
-          </Tooltip>
-        </div>
+        <div className="info-bar" />
       </div>
     </>
   );

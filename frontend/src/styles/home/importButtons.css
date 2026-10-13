@@ -75,7 +75,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 18px;
     transition: border 0.2s ease,
                 box-shadow 0.2s ease,
                 color 0.2s ease;
@@ -342,26 +342,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     user-select: text;
-}
-
-.settings-gear-button {
-    position: fixed;
-    right: 14px;
-    bottom: 10px;
-    z-index: 1200;
-    padding: 0;
-    border: none;
-    background: transparent;
-    color: var(--accent);
-    font-size: 2rem;
-    line-height: 0;
-    cursor: pointer;
-    transition: transform 0.15s ease, filter 0.15s ease;
-}
-
-.settings-gear-button:hover {
-    transform: rotate(35deg);
-    filter: drop-shadow(0 0 6px rgb(var(--accent-rgb) / 0.7));
 }
 
 .panel-toggle-button.episode-panel-toggle {

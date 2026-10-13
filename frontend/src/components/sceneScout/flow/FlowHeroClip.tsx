@@ -1,6 +1,6 @@
 import { useSceneScoutStore } from "../../../stores/sceneScoutStore";
 import { pickFlowClip } from "../../../features/sceneScout/pickFlowClip";
-import { ImportIcon } from "../../icons/ToolbarIcons";
+import { FindMatchesIcon } from "../../icons/ToolbarIcons";
 
 /**
  * The Flow tab's part of the first-visit layout: a dashed bar, the same size as
@@ -24,8 +24,8 @@ export function FlowHeroClip({ blockedHint }: { blockedHint: string | null }) {
       onClick={() => void chooseClip()}
       disabled={Boolean(blockedHint)}
     >
-      <ImportIcon />
-      <span>{blockedHint ?? "Input a file"}</span>
+      <FindMatchesIcon />
+      <span>{blockedHint ?? "Input a file to find scene matches"}</span>
     </button>
   );
 }

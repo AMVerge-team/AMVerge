@@ -1,8 +1,6 @@
 import { useEffect } from "react";
-import { FaCog } from "react-icons/fa";
 
 import MainLayout from "../MainLayout";
-import Tooltip from "../components/common/Tooltip";
 import EventsBrowser, { MAX_EVENT_COLUMNS } from "../components/events/EventsBrowser";
 import EventsToolbar from "../components/events/EventsToolbar";
 import { useEventsStore } from "../stores/eventsStore";
@@ -15,7 +13,6 @@ import { useUIStateStore } from "../stores/UIStore";
  * left it but shows nothing, since there is no clip to preview here.
  */
 export default function EventsPage() {
-  const openSettings = useUIStateStore((s) => s.openSettings);
   const setCols = useUIStateStore((s) => s.setCols);
   const loadEvents = useEventsStore((s) => s.loadEvents);
   const refreshSession = useEventsStore((s) => s.refreshSession);
@@ -43,18 +40,7 @@ export default function EventsPage() {
             would keep playing its audio while you browse events */}
         <MainLayout left={<EventsBrowser />} previewIdle />
 
-        <div className="info-bar">
-          <Tooltip content="Settings">
-            <button
-              type="button"
-              className="settings-gear-button"
-              onClick={() => openSettings()}
-              aria-label="Settings"
-            >
-              <FaCog aria-hidden="true" />
-            </button>
-          </Tooltip>
-        </div>
+        <div className="info-bar" />
       </div>
     </>
   );

@@ -1,9 +1,6 @@
 import type { ReactNode } from "react";
-import { FaCog } from "react-icons/fa";
 import ImportButtons from "./ImportButtons";
-import Tooltip from "./common/Tooltip";
 import MainLayout from "../MainLayout";
-import { useUIStateStore } from "../stores/UIStore";
 
 type GridPageLayoutProps = {
   /** false while the page is mounted but covered, so previews stand down */
@@ -25,8 +22,6 @@ export default function GridPageLayout({
   showImportControls = true,
   infoText,
 }: GridPageLayoutProps) {
-  const openSettings = useUIStateStore((s) => s.openSettings);
-
   return (
     <>
       <div
@@ -44,17 +39,6 @@ export default function GridPageLayout({
           style={intro ? { ["--intro-delay" as any]: "260ms" } : undefined}
         >
           {infoText ? <span className="info-bar-filename">{infoText}</span> : null}
-
-          <Tooltip content="Settings">
-            <button
-              type="button"
-              className="settings-gear-button"
-              onClick={() => openSettings()}
-              aria-label="Settings"
-            >
-              <FaCog aria-hidden="true" />
-            </button>
-          </Tooltip>
         </div>
       </div>
     </>

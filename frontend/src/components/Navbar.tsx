@@ -18,7 +18,8 @@ export default function Navbar({}: NavbarProps) {
     const setCols = useUIStateStore((s: any) => s.setCols);
     const pinned = useUIStateStore((s: any) => s.pinned);
     const togglePinned = useUIStateStore((s: any) => s.togglePinned);
-    const openMenu = useUIStateStore((s) => s.openMenu);
+    // the same quick navigation that Escape opens
+    const setQuickMenuOpen = useUIStateStore((s) => s.setQuickMenuOpen);
     const activePage = useUIStateStore((s) => s.activePage);
 
     const clips = useAppStateStore(s => s.clips);
@@ -74,11 +75,11 @@ export default function Navbar({}: NavbarProps) {
     return (
         <div className="navbar" data-tauri-drag-region>
             <div className="left-nav" data-tauri-drag-region>
-                <Tooltip content="Menu" side="bottom">
+                <Tooltip content="Quick navigation (Esc)" side="bottom">
                     <button
                         type="button"
                         className="navbar-menu-btn"
-                        onClick={openMenu}
+                        onClick={() => setQuickMenuOpen(true)}
                         aria-label="Menu"
                     >
                         <FaBars aria-hidden="true" />

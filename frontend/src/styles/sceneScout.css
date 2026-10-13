@@ -617,64 +617,86 @@
     gap: 10px;
 }
 
-/* sized like a preview, not the full row, so the grid below keeps most of the height */
+/* the bar between them owns the spacing. an inline-size container, so the clip area
+   below can cap itself at the height where the video fills the width */
+.scene-scout-view.scene-scout-flow-view {
+    gap: 0;
+    --flow-label-height: 19px;
+    container-type: inline-size;
+}
+
+/* the same space above and below the line: the video sits on the bottom of its area,
+   and the grid drops its own top padding here so scrolled and unscrolled look alike */
+.scene-scout-flow-view > .scene-scout-split-handle {
+    margin: 10px 0;
+}
+
+.scene-scout-flow-view .clips-grid {
+    padding-top: 0;
+}
+
+/* height comes from the resizer (inline style) */
 .scene-scout-flow-input {
     flex: none;
-    width: min(560px, 100%);
-    padding: 6px 20px 0 15px;
+    width: 100%;
+    min-height: 0;
+    /* never taller than a full-width video needs (padding + label + 16:9 of the inner width),
+       and a saved height from a bigger window still leaves the grid room */
+    max-height: min(
+        calc(100% - 180px),
+        calc(6px + var(--flow-label-height) + (100cqw - 30px) * 9 / 16)
+    );
+    padding: 6px 15px 0;
     box-sizing: border-box;
 }
 
+/* a size container, so the box inside can fit itself to the room left */
 .scene-scout-flow-player {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    height: 100%;
+    min-width: 0;
+    container-type: size;
+}
+
+/* label + video as one piece: the largest that fits, so the label rides along with the video */
+.scene-scout-flow-player-box {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    min-width: 0;
+    width: min(100cqw, (100cqh - var(--flow-label-height)) * 16 / 9);
 }
 
-/* fixed Arial, never the user's chosen app font: this label says which clip is which */
-.scene-scout-flow-player-head {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    min-width: 0;
-    font-family: var(--ui-font);
-    font-size: 12px;
-}
-
+/* fixed Arial, never the user's chosen app font */
 .scene-scout-flow-player-role {
+    font-family: var(--ui-font);
+    font-size-adjust: none;
     color: var(--accent);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     font-size: 11px;
+    line-height: 13px;
 }
 
-.scene-scout-flow-player-name {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: rgb(255 255 255 / 0.7);
-}
-
-/* capped so the grid below always keeps most of the height */
+/* 16:9 at the box's width, so the border always hugs the video */
 .scene-scout-flow-player-frame {
     position: relative;
-    aspect-ratio: 16 / 9;
-    max-height: 34vh;
     width: 100%;
+    aspect-ratio: 16 / 9;
     border-radius: 12px;
     overflow: hidden;
     background: black;
     border: 1px solid rgb(255 255 255 / 0.08);
 }
 
-.scene-scout-flow-player-frame video {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    display: block;
+/* the custom player brings its own rounded accent frame; clipping it here cut its corners off */
+.scene-scout-flow-player-frame:has(.video-wrapper) {
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+    background: transparent;
 }
 
 .scene-scout-flow-player-empty {
@@ -694,7 +716,6 @@
     font-style: italic;
 }
 
-/* first-visit layout (Flow tab): the clip player fills the centred column, Choose clip inside it */
 /* the flow tab's first-visit picker: same box as the hero search bar, dashed like a drop zone */
 .scene-scout-flow-hero-input {
     display: flex;
@@ -762,17 +783,22 @@
     flex: 1 1 0;
 }
 
+/* stacked splitters (database panel, flow clip / results): one short grey line, accent on hover */
+/* the handle is exactly as wide as its line, so the empty space beside it is not a grab area */
 .scene-scout-split-handle {
     flex: 0 0 10px;
+    align-self: center;
+    width: 40%;
     cursor: row-resize;
     position: relative;
+    touch-action: none;
 }
 
 .scene-scout-split-handle::after {
     content: "";
     position: absolute;
-    left: 40%;
-    right: 40%;
+    left: 0;
+    right: 0;
     top: 4px;
     height: 2px;
     border-radius: 999px;

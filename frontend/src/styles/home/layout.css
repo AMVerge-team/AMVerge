@@ -74,23 +74,32 @@
     display: none;
 }
 
+/* side-by-side splitters: one grey line, accent on hover, same as scene scout's panel handle.
+   the handle is exactly as tall as its line, so the space above and below is not a grab area.
+   height and top margin come from useViewportAlignedDivider, so every splitter lines up */
 .divider {
-    display: flex;
-    flex-direction: row;
+    position: relative;
+    flex: none;
     width: 10px;
-    height: 50%;
+    height: 40%;
     cursor: col-resize;
-    justify-content: space-between;
-    align-items: center;
-    align-self: center;
+    align-self: flex-start;
+    touch-action: none;
 }
 
-.divider.sidebar-splitter {
-    transform: translateY(var(--amverge-divider-offset, 0px));
+.divider::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 4px;
+    width: 2px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    transition: background 120ms ease;
 }
 
-.subdivider {
-    background: rgb(var(--accent-rgb) / 0.5);
-    width: 1px;
-    height: 100%;
+.divider:hover::after {
+    background: rgb(var(--accent-rgb) / 0.8);
 }
+

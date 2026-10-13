@@ -62,6 +62,7 @@ export const LazyClip = memo(function LazyClip({
   const gridPreviewSpeed = useThemeSettingsStore((s) => s.gridPreviewSpeed ?? 1);
   const showDownloadButton = useThemeSettingsStore((s) => s.showDownloadButton);
   const showClipTimestamps = useThemeSettingsStore((s) => s.showClipTimestamps);
+  const showClipEndTime = useThemeSettingsStore((s) => s.showClipEndTime);
 
   const openedEpisodeId = useEpisodePanelRuntimeStore((s) => s.openedEpisodeId);
   const episodeId = clip.episodeId ?? openedEpisodeId ?? clip.id.split("_").slice(0, -1).join("_");
@@ -466,8 +467,8 @@ export const LazyClip = memo(function LazyClip({
           )}
 
           {showClipTimestamps && clip.startSec !== undefined && (
-            <div className={`clip-original-timestamp${isScout ? " is-timeframe" : ""}`}>
-              {isScout
+            <div className={`clip-original-timestamp${isScout && showClipEndTime ? " is-timeframe" : ""}`}>
+              {isScout && showClipEndTime
                 ? formatClipTimeframe(clip.startSec, clip.endSec)
                 : formatClipTime(clip.startSec)}
             </div>

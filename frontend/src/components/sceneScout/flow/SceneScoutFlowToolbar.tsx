@@ -1,6 +1,7 @@
-import { FaFolderOpen, FaSyncAlt } from "react-icons/fa";
+import { FaSyncAlt } from "react-icons/fa";
 
 import Tooltip from "../../common/Tooltip";
+import { FindMatchesIcon } from "../../icons/ToolbarIcons";
 import { useSceneScoutStore } from "../../../stores/sceneScoutStore";
 import { pickFlowClip } from "../../../features/sceneScout/pickFlowClip";
 import { ScoutModeTabs } from "../ScoutModeTabs";
@@ -31,16 +32,19 @@ export function SceneScoutFlowToolbar() {
         <div className="import-buttons-container events-toolbar-row">
           <SidebarToggle />
 
-          <Tooltip content={noDatabase ? "Add a database to the Searching list on the left first" : "Pick the clip to cut from"}>
-            <button
-              type="button"
-              className="import-button events-action-button"
-              onClick={() => void pickClip()}
-              disabled={busy || noDatabase}
-            >
-              <FaFolderOpen aria-hidden="true" style={{ marginRight: 6 }} />
-              Choose clip…
-            </button>
+          {/* wrapper span: a disabled button fires no pointer events, so the tooltip listens on it instead */}
+          <Tooltip content={noDatabase ? "Add a database to the Searching list on the left first" : "Input a file to find scene matches"}>
+            <span className="tooltip-anchor">
+              <button
+                type="button"
+                className="import-button icon-action-button import-icon-button"
+                onClick={() => void pickClip()}
+                disabled={busy || noDatabase}
+                aria-label="Input a file to find scene matches"
+              >
+                <FindMatchesIcon />
+              </button>
+            </span>
           </Tooltip>
 
           <ScoutModeTabs />

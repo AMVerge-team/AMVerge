@@ -3,6 +3,7 @@ import ClipsContainer from "./components/clipsGrid/ClipsContainer";
 import PreviewContainer from "./components/previewPanel/PreviewContainer";
 import { useAppStateStore } from "./stores/appStore";
 import { useUIStateStore } from "./stores/UIStore";
+import { useViewportAlignedDivider } from "./hooks/useViewportAlignedDivider";
 
 /** drag the divider past this share of the width and the preview pane folds away */
 const COLLAPSE_AT_PERCENT = 90;
@@ -60,6 +61,7 @@ export default function MainLayout({
     );
 
     const resizeCleanupRef = useRef<(() => void) | null>(null);
+    const alignDivider = useViewportAlignedDivider();
 
     useEffect(() => {
         return () => {
@@ -111,10 +113,7 @@ export default function MainLayout({
                 </div>
 
                 {!fullWidth && !previewCollapsed && (
-                    <div className="divider" onMouseDown={startHorizontalResize}>
-                        <span className="subdivider" />
-                        <span className="subdivider" />
-                    </div>
+                    <div ref={alignDivider} className="divider" onMouseDown={startHorizontalResize} />
                 )}
 
                 {/* Kept mounted while collapsed: the pane holds the export settings, and

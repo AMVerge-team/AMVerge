@@ -383,6 +383,30 @@ export default function AppearanceSection({
         />
 
         <SettingRow
+          label="Show end time"
+          description='Scene Scout results show "start - end" instead of only the start.'
+          control={
+            <div className="settings-control">
+              <label className="custom-checkbox">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={themeSettings.showClipEndTime ?? false}
+                  disabled={!themeSettings.showClipTimestamps}
+                  onChange={(e) =>
+                    setThemeSettings((prev) => ({
+                      ...prev,
+                      showClipEndTime: e.target.checked,
+                    }))
+                  }
+                />
+                <span className="checkmark"></span>
+              </label>
+            </div>
+          }
+        />
+
+        <SettingRow
           label="Widescreen clip tiles"
           description="Show clip tiles as square or widescreen."
           control={

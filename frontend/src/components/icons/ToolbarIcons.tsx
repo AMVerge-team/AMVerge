@@ -1,4 +1,10 @@
 import { FaCog } from "react-icons/fa";
+import { LuFileSearch } from "react-icons/lu";
+
+/** flow's "input a file to find matches": a file with a magnifier, kept apart from the import icon */
+export function FindMatchesIcon() {
+  return <LuFileSearch aria-hidden="true" />;
+}
 
 /** arrow down into a tray, symmetric about the centre so it sits dead centre in its button */
 export function ImportIcon() {

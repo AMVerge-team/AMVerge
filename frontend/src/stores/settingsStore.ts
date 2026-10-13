@@ -371,6 +371,8 @@ export type ThemeSettings = {
     appFontAdjust: number;
     showDownloadButton: boolean;
     showClipTimestamps: boolean;
+    /** scene scout tiles show "start - end" instead of only the start */
+    showClipEndTime: boolean;
     widescreenClipTiles: boolean;
 };
 
@@ -400,6 +402,7 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
     appFontAdjust: 0.47,
     showDownloadButton: true,
     showClipTimestamps: true,
+    showClipEndTime: false,
     widescreenClipTiles: false,
 };
 

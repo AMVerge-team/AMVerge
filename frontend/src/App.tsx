@@ -146,7 +146,6 @@ function App() {
     useThemeSettingsStore.getState().resetThemeSettings();
   }
 
-  const [dividerOffsetPx, setDividerOffsetPx] = useState(0);
   const [startupNotification, setStartupNotification] = useState<StartupNotification | null>(null);
   const [showStartupNotification, setShowStartupNotification] = useState(false);
   const startupUpdateNotification = useStartupUpdateNotification();
@@ -433,53 +432,6 @@ function App() {
     };
   }, [importedVideoPath, importToken, setVideoIsHEVC]);
 
-  useEffect(() => {
-    // every clip page renders a .main-layout-wrapper and only the active one has
-    // height (the others sit behind display:none), so the visible one is what
-    // the sidebar divider aligns to - whichever page is showing
-    const visibleWrapper = () =>
-      Array.from(document.querySelectorAll<HTMLElement>(".main-layout-wrapper"))
-        .find((el) => el.getBoundingClientRect().height > 0) ?? null;
-
-    const update = () => {
-      const ww = windowWrapperRef.current;
-      const ml = visibleWrapper();
-
-      if (!ww || !ml) return;
-
-      const wwRect = ww.getBoundingClientRect();
-      const mlRect = ml.getBoundingClientRect();
-
-      if (mlRect.height === 0) {
-        setDividerOffsetPx((prev) => (prev === 0 ? prev : 0));
-        return;
-      }
-
-      const wwCenterY = wwRect.top + wwRect.height / 2;
-      const mlCenterY = mlRect.top + mlRect.height / 2;
-      const offsetPx = mlCenterY - wwCenterY;
-
-      setDividerOffsetPx((prev) =>
-        Math.abs(prev - offsetPx) < 0.5 ? prev : offsetPx
-      );
-    };
-
-    update();
-
-    const ro = new ResizeObserver(() => update());
-
-    document
-      .querySelectorAll<HTMLElement>(".main-layout-wrapper")
-      .forEach((el) => ro.observe(el));
-
-    window.addEventListener("resize", update);
-
-    return () => {
-      ro.disconnect();
-      window.removeEventListener("resize", update);
-    };
-  }, [activePage, sidebarEnabled]);
-
   // shared by the bar attached to the mini window and the standalone one
   const clipProgress = reencodeProgress ?? bgProgress;
   const clipLabel =
@@ -553,7 +505,6 @@ function App() {
       }}
       dividerProps={{
         onPointerDown: startSidebarResize,
-        dividerOffsetPx,
         sidebarWidthPx,
       }}
     >
