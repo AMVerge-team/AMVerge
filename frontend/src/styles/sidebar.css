@@ -88,7 +88,6 @@ body.is-resizing-sidebar {
     height: 14px;
     display: block;
 }
-
 .sidebar-button > .sidebar-nav-button.is-active,
 .sidebar-button > .sidebar-nav-button:disabled:not(.is-feature-off) {
     background: rgb(var(--accent-rgb) / 0.18);
