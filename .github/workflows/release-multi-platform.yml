@@ -63,17 +63,28 @@ jobs:
       - name: Install Tauri CLI (Rust)
         run: cargo install tauri-cli --version '^2.0'
 
-      - name: Cache FFmpeg binaries
-        uses: actions/cache@v4
-        with:
-          path: frontend/.ffmpeg-bin
-          key: ffmpeg-windows-x86_64-${{ hashFiles('frontend/scripts/ffmpeg-bins.sha256') }}
-
       - name: Stage FFmpeg binaries for the sidecar
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: bash frontend/scripts/fetch-ffmpeg.sh windows-x86_64
+        shell: pwsh
+        run: |
+          choco install ffmpeg -y
+          $ffmpegDir = Join-Path (Get-Location) "frontend/.ffmpeg-bin"
+          New-Item -ItemType Directory -Force $ffmpegDir | Out-Null
+          $ffmpegReal = "C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin\ffmpeg.exe"
+          $ffprobeReal = "C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin\ffprobe.exe"
+
+          if (-not (Test-Path $ffmpegReal) -or -not (Test-Path $ffprobeReal)) {
+            Write-Host "Real ffmpeg binaries not found at expected Chocolatey path."
+            Get-ChildItem "C:\ProgramData\chocolatey\lib\ffmpeg" -Recurse -File -Filter ffmpeg.exe | Format-Table -AutoSize
+            Get-ChildItem "C:\ProgramData\chocolatey\lib\ffmpeg" -Recurse -File -Filter ffprobe.exe | Format-Table -AutoSize
+            exit 1
+          }
+
+          Copy-Item $ffmpegReal (Join-Path $ffmpegDir "ffmpeg.exe") -Force
+          Copy-Item $ffprobeReal (Join-Path $ffmpegDir "ffprobe.exe") -Force
+          & (Join-Path $ffmpegDir "ffmpeg.exe") -version | Select-Object -First 1
+          & (Join-Path $ffmpegDir "ffprobe.exe") -version | Select-Object -First 1
+          "FFMPEG_BIN_DIR=$ffmpegDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
       - name: Build Python sidecar
         working-directory: frontend
         run: node scripts/build-sidecar.mjs --target x86_64-pc-windows-msvc
@@ -215,17 +226,43 @@ jobs:
         if: matrix.rust_target == 'x86_64-apple-darwin'
         run: sudo softwareupdate --install-rosetta --agree-to-license
 
-      - name: Cache FFmpeg binaries
-        uses: actions/cache@v4
-        with:
-          path: frontend/.ffmpeg-bin
-          key: ffmpeg-${{ matrix.rust_target == 'x86_64-apple-darwin' && 'macos-x86_64' || 'macos-arm64' }}-${{ hashFiles('frontend/scripts/ffmpeg-bins.sha256') }}
-
       - name: Stage FFmpeg binaries for the sidecar
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: bash frontend/scripts/fetch-ffmpeg.sh ${{ matrix.rust_target == 'x86_64-apple-darwin' && 'macos-x86_64' || 'macos-arm64' }}
+        run: |
+          FFMPEG_DIR="$GITHUB_WORKSPACE/frontend/.ffmpeg-bin"
+          mkdir -p "$FFMPEG_DIR"
+
+          if [ "${{ matrix.rust_target }}" = "x86_64-apple-darwin" ]; then
+            echo "Installing x86_64 ffmpeg/ffprobe from Evermeet for Intel target"
+            curl -fL --retry 3 "https://evermeet.cx/ffmpeg/getrelease/zip" -o "$FFMPEG_DIR/ffmpeg.zip"
+            curl -fL --retry 3 "https://evermeet.cx/ffmpeg/getrelease/ffprobe/zip" -o "$FFMPEG_DIR/ffprobe.zip"
+            unzip -j -o "$FFMPEG_DIR/ffmpeg.zip" -d "$FFMPEG_DIR"
+            unzip -j -o "$FFMPEG_DIR/ffprobe.zip" -d "$FFMPEG_DIR"
+            rm -f "$FFMPEG_DIR/ffmpeg.zip" "$FFMPEG_DIR/ffprobe.zip"
+          else
+            echo "Installing arm64 ffmpeg/ffprobe from Homebrew for Apple Silicon target"
+            brew install ffmpeg
+            cp "$(which ffmpeg)" "$FFMPEG_DIR/ffmpeg"
+            cp "$(which ffprobe)" "$FFMPEG_DIR/ffprobe"
+          fi
+
+          chmod +x "$FFMPEG_DIR/ffmpeg" "$FFMPEG_DIR/ffprobe"
+
+          echo "Validating FFmpeg architecture for target ${{ matrix.rust_target }}"
+          FFMPEG_INFO="$(file "$FFMPEG_DIR/ffmpeg")"
+          FFPROBE_INFO="$(file "$FFMPEG_DIR/ffprobe")"
+          echo "$FFMPEG_INFO"
+          echo "$FFPROBE_INFO"
+
+          if [ "${{ matrix.rust_target }}" = "x86_64-apple-darwin" ]; then
+            echo "$FFMPEG_INFO" | grep -q "x86_64" || { echo "ffmpeg arch mismatch: expected x86_64"; exit 1; }
+            echo "$FFPROBE_INFO" | grep -q "x86_64" || { echo "ffprobe arch mismatch: expected x86_64"; exit 1; }
+          else
+            echo "$FFMPEG_INFO" | grep -q "arm64" || { echo "ffmpeg arch mismatch: expected arm64"; exit 1; }
+            echo "$FFPROBE_INFO" | grep -q "arm64" || { echo "ffprobe arch mismatch: expected arm64"; exit 1; }
+          fi
+
+          echo "FFMPEG_BIN_DIR=$FFMPEG_DIR" >> "$GITHUB_ENV"
+
       - name: Build Python sidecar
         working-directory: frontend
         run: node scripts/build-sidecar.mjs --target ${{ matrix.rust_target }}
