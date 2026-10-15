@@ -427,7 +427,7 @@ jobs:
               -volname "$APP_VOLNAME" \
               -srcfolder "$STAGING_DIR" \
               -ov \
-              -format UDZO \
+              -format ULMO \
               "$DMG_PATH"; then
               break
             fi
