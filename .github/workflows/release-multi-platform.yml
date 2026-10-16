@@ -32,6 +32,28 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Set app version from release tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const version = process.env.RELEASE_TAG.replace(/^v/, "");
+            const packagePath = "frontend/package.json";
+            const lockPath = "frontend/package-lock.json";
+            const tauriPath = "frontend/src-tauri/tauri.conf.json";
+            const pkg = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+            pkg.version = version;
+            fs.writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`);
+            const lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+            lock.version = version;
+            if (lock.packages?.[""]) lock.packages[""].version = version;
+            fs.writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
+            const tauri = JSON.parse(fs.readFileSync(tauriPath, "utf8"));
+            tauri.version = version;
+            fs.writeFileSync(tauriPath, `${JSON.stringify(tauri, null, 2)}\n`);
+          '
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -166,18 +188,38 @@ jobs:
             tauri_config: tauri.macos.conf.json
             sidecar_dir: backend_script-aarch64-apple-darwin
             app_artifact_name: amverge-macos-arm64-app
-            updater_artifact_name: amverge-macos-arm64-updater
           - runner: macos-14
             arch_label: intel
             rust_target: x86_64-apple-darwin
             tauri_config: tauri.macos.intel.conf.json
             sidecar_dir: backend_script-x86_64-apple-darwin
             app_artifact_name: amverge-macos-x64-app
-            updater_artifact_name: amverge-macos-x64-updater
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+
+      - name: Set app version from release tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const version = process.env.RELEASE_TAG.replace(/^v/, "");
+            const packagePath = "frontend/package.json";
+            const lockPath = "frontend/package-lock.json";
+            const tauriPath = "frontend/src-tauri/tauri.conf.json";
+            const pkg = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+            pkg.version = version;
+            fs.writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`);
+            const lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+            lock.version = version;
+            if (lock.packages?.[""]) lock.packages[""].version = version;
+            fs.writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
+            const tauri = JSON.parse(fs.readFileSync(tauriPath, "utf8"));
+            tauri.version = version;
+            fs.writeFileSync(tauriPath, `${JSON.stringify(tauri, null, 2)}\n`);
+          '
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -319,26 +361,6 @@ jobs:
           APP_BUNDLE_DIR="$(dirname "$APP_BUNDLE")"
           tar -C "$APP_BUNDLE_DIR" -czf artifacts/${{ matrix.app_artifact_name }}.tar.gz "$(basename "$APP_BUNDLE")"
 
-      - name: Collect mac updater artifacts
-        run: |
-          mkdir -p artifacts/updater
-          BUNDLE_ROOT="frontend/src-tauri/target/${{ matrix.rust_target }}/release/bundle"
-          FOUND=0
-          while IFS= read -r -d '' sig; do
-            target="${sig%.sig}"
-            if [ -f "$target" ]; then
-              cp "$target" artifacts/updater/
-              cp "$sig" artifacts/updater/
-              FOUND=1
-            fi
-          done < <(find "$BUNDLE_ROOT" -type f -name '*.sig' -print0)
-
-          if [ "$FOUND" -ne 1 ]; then
-            echo "No updater artifact/signature pair found under $BUNDLE_ROOT"
-            find "$BUNDLE_ROOT" -maxdepth 4 -print || true
-            exit 1
-          fi
-
       - name: Upload app artifact
         uses: actions/upload-artifact@v4
         with:
@@ -346,18 +368,13 @@ jobs:
           path: artifacts/${{ matrix.app_artifact_name }}.tar.gz
           if-no-files-found: error
 
-      - name: Upload updater artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.updater_artifact_name }}
-          path: artifacts/updater/*
-          if-no-files-found: error
-
   package-universal-macos:
     name: Package Universal macOS DMG
     needs: build-macos-arch
     runs-on: macos-14
     env:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
       APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
       APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
       APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
@@ -379,6 +396,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+
+      - name: Install Tauri CLI (Rust)
+        run: cargo install tauri-cli --version '^2.0'
 
       - name: Import Apple signing certificate
         run: |
@@ -618,11 +638,36 @@ jobs:
           xcrun stapler staple "$DMG_PATH"
           xcrun stapler validate "$DMG_PATH"
 
+      - name: Create signed universal updater bundle
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          APP_BUNDLE_NAME="$(basename "$UNIVERSAL_APP_PATH")"
+          UPDATER_DIR="$GITHUB_WORKSPACE/artifacts/macos-universal-updater"
+          UPDATER_ARCHIVE="$UPDATER_DIR/$APP_BUNDLE_NAME.tar.gz"
+
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "TAURI_SIGNING_PRIVATE_KEY is missing. Configure the repository secret and re-run."
+            exit 1
+          fi
+
+          mkdir -p "$UPDATER_DIR"
+          tar -C "$(dirname "$UNIVERSAL_APP_PATH")" -czf "$UPDATER_ARCHIVE" "$APP_BUNDLE_NAME"
+          cargo tauri signer sign --app-version "$VERSION" "$UPDATER_ARCHIVE"
+          test -s "$UPDATER_ARCHIVE.sig"
+
       - name: Upload universal DMG artifact
         uses: actions/upload-artifact@v4
         with:
           name: amverge-macos-universal-dmg
           path: frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/AMVerge-macos-universal.dmg
+          if-no-files-found: error
+
+      - name: Upload universal updater artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: amverge-macos-universal-updater
+          path: artifacts/macos-universal-updater/*
           if-no-files-found: error
 
   publish-release:
@@ -652,17 +697,11 @@ jobs:
           name: amverge-macos-universal-dmg
           path: release-input/macos-dmg
 
-      - name: Download macOS arm64 updater artifacts
+      - name: Download macOS universal updater artifact
         uses: actions/download-artifact@v4
         with:
-          name: amverge-macos-arm64-updater
-          path: release-input/macos-arm64-updater
-
-      - name: Download macOS x64 updater artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: amverge-macos-x64-updater
-          path: release-input/macos-x64-updater
+          name: amverge-macos-universal-updater
+          path: release-input/macos-universal-updater
 
       - name: Prepare combined release assets and latest.json
         run: |
@@ -672,23 +711,19 @@ jobs:
 
           WIN_EXE="$(find release-input/windows-installer -type f -name '*.exe' | head -n 1)"
           WIN_SIG="$(find release-input/windows-updater -type f -name '*.sig' | head -n 1)"
-          ARM_SIG="$(find release-input/macos-arm64-updater -type f -name '*.sig' | head -n 1)"
-          X64_SIG="$(find release-input/macos-x64-updater -type f -name '*.sig' | head -n 1)"
+          MAC_SIG="$(find release-input/macos-universal-updater -type f -name '*.sig' | head -n 1)"
           MAC_DMG_SRC="$(find release-input/macos-dmg -type f -name '*.dmg' | head -n 1)"
 
           [ -n "$WIN_EXE" ] || { echo "Missing Windows .exe"; exit 1; }
           [ -n "$WIN_SIG" ] || { echo "Missing Windows updater signature"; exit 1; }
-          [ -n "$ARM_SIG" ] || { echo "Missing macOS arm64 updater signature"; exit 1; }
-          [ -n "$X64_SIG" ] || { echo "Missing macOS x64 updater signature"; exit 1; }
+          [ -n "$MAC_SIG" ] || { echo "Missing universal macOS updater signature"; exit 1; }
           [ -n "$MAC_DMG_SRC" ] || { echo "Missing universal macOS DMG"; exit 1; }
 
           WIN_UPDATER_FILE="${WIN_SIG%.sig}"
-          ARM_UPDATER_FILE="${ARM_SIG%.sig}"
-          X64_UPDATER_FILE="${X64_SIG%.sig}"
+          MAC_UPDATER_FILE="${MAC_SIG%.sig}"
 
           [ -f "$WIN_UPDATER_FILE" ] || { echo "Missing Windows updater file pair"; exit 1; }
-          [ -f "$ARM_UPDATER_FILE" ] || { echo "Missing macOS arm64 updater file pair"; exit 1; }
-          [ -f "$X64_UPDATER_FILE" ] || { echo "Missing macOS x64 updater file pair"; exit 1; }
+          [ -f "$MAC_UPDATER_FILE" ] || { echo "Missing universal macOS updater file pair"; exit 1; }
 
           WIN_EXE_NAME="$(basename "$WIN_EXE")"
           MAC_DMG_NAME="${WIN_EXE_NAME%.exe}.dmg"
@@ -696,44 +731,29 @@ jobs:
           WIN_UPDATER_NAME="$(basename "$WIN_UPDATER_FILE")"
           WIN_SIG_NAME="$(basename "$WIN_SIG")"
 
-          ARM_UPDATER_BASENAME="$(basename "$ARM_UPDATER_FILE")"
-          ARM_SIG_BASENAME="$(basename "$ARM_SIG")"
-          X64_UPDATER_BASENAME="$(basename "$X64_UPDATER_FILE")"
-          X64_SIG_BASENAME="$(basename "$X64_SIG")"
-
-          ARM_UPDATER_NAME="darwin-aarch64-${ARM_UPDATER_BASENAME}"
-          ARM_SIG_NAME="darwin-aarch64-${ARM_SIG_BASENAME}"
-          X64_UPDATER_NAME="darwin-x86_64-${X64_UPDATER_BASENAME}"
-          X64_SIG_NAME="darwin-x86_64-${X64_SIG_BASENAME}"
-
-          if [ "$ARM_UPDATER_NAME" = "$X64_UPDATER_NAME" ] || [ "$ARM_SIG_NAME" = "$X64_SIG_NAME" ]; then
-            echo "macOS updater artifact naming collision detected"
-            exit 1
-          fi
+          MAC_UPDATER_BASENAME="$(basename "$MAC_UPDATER_FILE")"
+          MAC_SIG_BASENAME="$(basename "$MAC_SIG")"
+          MAC_UPDATER_NAME="darwin-universal-${MAC_UPDATER_BASENAME}"
+          MAC_SIG_NAME="darwin-universal-${MAC_SIG_BASENAME}"
 
           cp "$WIN_EXE" "release-assets/$WIN_EXE_NAME"
           cp "$MAC_DMG_SRC" "release-assets/$MAC_DMG_NAME"
 
           cp "$WIN_UPDATER_FILE" "release-assets/$WIN_UPDATER_NAME"
           cp "$WIN_SIG" "release-assets/$WIN_SIG_NAME"
-          cp "$ARM_UPDATER_FILE" "release-assets/$ARM_UPDATER_NAME"
-          cp "$ARM_SIG" "release-assets/$ARM_SIG_NAME"
-          cp "$X64_UPDATER_FILE" "release-assets/$X64_UPDATER_NAME"
-          cp "$X64_SIG" "release-assets/$X64_SIG_NAME"
+          cp "$MAC_UPDATER_FILE" "release-assets/$MAC_UPDATER_NAME"
+          cp "$MAC_SIG" "release-assets/$MAC_SIG_NAME"
 
           [ -f "release-assets/$WIN_UPDATER_NAME" ] || { echo "Missing staged Windows updater file"; exit 1; }
           [ -f "release-assets/$WIN_SIG_NAME" ] || { echo "Missing staged Windows updater signature"; exit 1; }
-          [ -f "release-assets/$ARM_UPDATER_NAME" ] || { echo "Missing staged macOS arm64 updater file"; exit 1; }
-          [ -f "release-assets/$ARM_SIG_NAME" ] || { echo "Missing staged macOS arm64 updater signature"; exit 1; }
-          [ -f "release-assets/$X64_UPDATER_NAME" ] || { echo "Missing staged macOS x64 updater file"; exit 1; }
-          [ -f "release-assets/$X64_SIG_NAME" ] || { echo "Missing staged macOS x64 updater signature"; exit 1; }
+          [ -f "release-assets/$MAC_UPDATER_NAME" ] || { echo "Missing staged universal macOS updater file"; exit 1; }
+          [ -f "release-assets/$MAC_SIG_NAME" ] || { echo "Missing staged universal macOS updater signature"; exit 1; }
 
           VERSION="${GITHUB_REF_NAME#v}"
           NOW_UTC="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
           WIN_SIG_VAL="$(tr -d '\r\n' < "$WIN_SIG")"
-          ARM_SIG_VAL="$(tr -d '\r\n' < "$ARM_SIG")"
-          X64_SIG_VAL="$(tr -d '\r\n' < "$X64_SIG")"
+          MAC_SIG_VAL="$(tr -d '\r\n' < "$MAC_SIG")"
 
           cat > release-assets/latest.json <<EOF
           {
@@ -746,12 +766,12 @@ jobs:
                 "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/$WIN_UPDATER_NAME"
               },
               "darwin-aarch64": {
-                "signature": "$ARM_SIG_VAL",
-                "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/$ARM_UPDATER_NAME"
+                "signature": "$MAC_SIG_VAL",
+                "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/$MAC_UPDATER_NAME"
               },
               "darwin-x86_64": {
-                "signature": "$X64_SIG_VAL",
-                "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/$X64_UPDATER_NAME"
+                "signature": "$MAC_SIG_VAL",
+                "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/$MAC_UPDATER_NAME"
               }
             }
           }
