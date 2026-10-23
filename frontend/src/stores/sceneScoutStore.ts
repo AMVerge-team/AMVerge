@@ -28,6 +28,7 @@ import {
   type ScoutVideo,
 } from "../features/sceneScout/types";
 import { claimProcess } from "../features/processes/singleProcess";
+import type { SceneRange } from "../features/sceneScout/precutEpisodes";
 import { useAiDepsStore } from "./aiDepsStore";
 import { useAppStateStore } from "./appStore";
 import { useGeneralSettingsStore } from "./settingsStore";
@@ -150,9 +151,11 @@ type SceneScoutActions = {
   loadVideos: (name: string) => Promise<void>;
   deleteVideo: (databasePath: string, videoId: number) => Promise<void>;
   addVideo: (videoPath: string) => Promise<{ ok: boolean; message: string | null }>;
+  /** `precutScenes` maps a video to the scenes it was already cut into on home; those skip detection */
   addVideos: (
     videoPaths: string[],
-    detector?: "transnetv2_gpu" | "keyframe_detection"
+    detector?: "transnetv2_gpu" | "keyframe_detection",
+    precutScenes?: Record<string, SceneRange[]>
   ) => Promise<{ ok: boolean; message: string | null }>;
   dismissHero: () => void;
   unloadModel: () => Promise<void>;
@@ -609,7 +612,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         return get().addVideos([videoPath]);
       },
 
-      addVideos: async (videoPaths, detectorArg) => {
+      addVideos: async (videoPaths, detectorArg, precutScenes) => {
         if (!videoPaths.length) return { ok: true, message: null };
         // remembered for scene scout only, so it never changes the home import default
         if (detectorArg) set({ settings: { ...get().settings, lastIndexDetection: detectorArg } });
@@ -716,7 +719,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
               },
             });
 
-            await scoutAddVideo(database, videoPath, detector, customPath());
+            await scoutAddVideo(database, videoPath, detector, customPath(), precutScenes?.[videoPath] ?? null);
             console.log(`SCOUT|queue [${i + 1}/${totalVideos}] completed ${name}`);
           }
           await Promise.all([get().loadVideos(database), get().loadDatabases()]);

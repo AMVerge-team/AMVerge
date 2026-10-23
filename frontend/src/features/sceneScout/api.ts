@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import type { SceneRange } from "./precutEpisodes";
 
 import type {
   FlowSource,
@@ -83,11 +84,13 @@ export function scoutSearch(
   });
 }
 
+/** `scenes` (an episode already cut on home) skips detection and indexes exactly those ranges */
 export function scoutAddVideo(
   database: string,
   videoPath: string,
   detector: string,
-  customPath: string | null
+  customPath: string | null,
+  scenes: SceneRange[] | null = null
 ): Promise<number> {
   return invoke<number>("scout_add_video", {
     database,
@@ -96,6 +99,7 @@ export function scoutAddVideo(
     customPath,
     keepModelInMemory: true,
     gpuStandby: true,
+    scenes,
   });
 }
 

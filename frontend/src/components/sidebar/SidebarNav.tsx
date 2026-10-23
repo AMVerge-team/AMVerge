@@ -1,6 +1,7 @@
 // sidebar navigation buttons. handles switching between top-level pages like Home and Scenepacks
 import type { IconType } from "react-icons";
-import { FaCalendarAlt, FaHome, FaLayerGroup, FaSearch } from "react-icons/fa";
+import { FaCalendarAlt, FaLayerGroup, FaSearch } from "react-icons/fa";
+import { IoLibrary } from "react-icons/io5";
 import type { Page } from "./types";
 import Tooltip from "../common/Tooltip";
 import { useUIStateStore } from "../../stores/UIStore";
@@ -8,7 +9,8 @@ import { useGeneralSettingsStore } from "../../stores/settingsStore";
 import { selectNewEventIds, useEventsStore } from "../../stores/eventsStore";
 
 const allButtons: { name: string; page: Page; icon: IconType; featureKey?: string }[] = [
-  { name: "Home", page: "home", icon: FaHome },
+  // shown as "Library"; the page id stays "home" so saved ui state keeps working
+  { name: "Library", page: "home", icon: IoLibrary },
   { name: "Scenepacks", page: "scenepacks", icon: FaLayerGroup, featureKey: "scenepacks" },
   { name: "Scene Scout", page: "sceneScout", icon: FaSearch },
   { name: "Community Events", page: "events", icon: FaCalendarAlt },
