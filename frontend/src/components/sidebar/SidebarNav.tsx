@@ -5,36 +5,42 @@ import { IoLibrary } from "react-icons/io5";
 import type { Page } from "./types";
 import Tooltip from "../common/Tooltip";
 import { useUIStateStore } from "../../stores/UIStore";
-import { useGeneralSettingsStore } from "../../stores/settingsStore";
 import { selectNewEventIds, useEventsStore } from "../../stores/eventsStore";
+import { useFeature, type FeatureId } from "../../features/featureToggles";
 
-const allButtons: { name: string; page: Page; icon: IconType; featureKey?: string }[] = [
+const allButtons: { name: string; page: Page; icon: IconType; feature?: FeatureId }[] = [
   // shown as "Library"; the page id stays "home" so saved ui state keeps working
   { name: "Library", page: "home", icon: IoLibrary },
-  { name: "Scenepacks", page: "scenepacks", icon: FaLayerGroup, featureKey: "scenepacks" },
-  { name: "Scene Scout", page: "sceneScout", icon: FaSearch },
+  { name: "Scenepacks", page: "scenepacks", icon: FaLayerGroup, feature: "scenepacks" },
+  { name: "Scene Scout", page: "sceneScout", icon: FaSearch, feature: "sceneScout" },
   { name: "Community Events", page: "events", icon: FaCalendarAlt },
 ];
 
 export default function SidebarNav() {
   const activePage = useUIStateStore(s => s.activePage);
   const setActivePage = useUIStateStore(s => s.setActivePage);
-  const scenepacksEnabled = useGeneralSettingsStore(s => s.scenepacksEnabled);
   const newEventCount = useEventsStore(s => selectNewEventIds(s).length);
+  // a switched-off feature's tab is greyed out, or left out with "Hide disabled features"
+  const features: Partial<Record<FeatureId, { enabled: boolean; hidden: boolean }>> = {
+    scenepacks: useFeature("scenepacks"),
+    sceneScout: useFeature("sceneScout"),
+  };
 
   return (
     <div className="menu-buttons">
       {allButtons.map((button) => {
         const Icon = button.icon;
         const isActive = activePage === button.page;
-        const isFeatureOff = button.featureKey === "scenepacks" && !scenepacksEnabled;
+        const feature = button.feature ? features[button.feature] : undefined;
+        if (feature?.hidden) return null;
+        const isFeatureOff = feature ? !feature.enabled : false;
 
         return (
           // the tooltip sits on the row rather than the button: the active and
           // feature-off buttons are disabled, and those fire no pointer events
           <Tooltip
             key={button.page}
-            content={isFeatureOff ? "Enable Scenepacks in Settings" : button.name}
+            content={isFeatureOff ? `Turn on ${button.name} in Settings › Features` : button.name}
             side="right"
           >
             <div className="sidebar-button">

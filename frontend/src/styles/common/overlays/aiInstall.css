@@ -183,3 +183,15 @@
 .aid-state.installed {
     color: var(--accent);
 }
+
+/* Settings > Features storage sizes */
+.settings-value.aid-size {
+    width: auto;
+    font-family: var(--ui-font);
+    font-size: 12px;
+}
+
+.settings-value.aid-size-total {
+    color: var(--accent);
+    font-weight: 600;
+}

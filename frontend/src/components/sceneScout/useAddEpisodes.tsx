@@ -8,7 +8,7 @@ import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore";
 import { useGeneralSettingsStore, type SceneDetectionMethod } from "../../stores/settingsStore";
 import { useAiDepsStore } from "../../stores/aiDepsStore";
-import { SCENE_DETECTION_OPTIONS } from "../settings/general/options";
+import { sceneDetectionOptions } from "../settings/general/options";
 import { episodeSceneRanges, precutEpisodes, type SceneRange } from "../../features/sceneScout/precutEpisodes";
 
 const VIDEO_EXTENSIONS = ["mp4", "mkv", "mov", "avi"];
@@ -25,6 +25,7 @@ export function useAddEpisodes() {
   const addVideos = useSceneScoutStore((s) => s.addVideos);
   const lastIndexDetection = useSceneScoutStore((s) => s.settings.lastIndexDetection);
   const fallbackDetection = useGeneralSettingsStore((s) => s.sceneDetectionMethod);
+  const aiSceneDetectionEnabled = useGeneralSettingsStore((s) => s.aiSceneDetectionEnabled);
   const homeEpisodes = useEpisodePanelRuntimeStore((s) => s.episodes);
   const targetDatabase = useSceneScoutStore((s) => s.openedDatabase || s.selectedDatabases[0] || null);
   const indexedVideos = useSceneScoutStore((s) => (targetDatabase ? s.videosByDatabase[targetDatabase] : undefined));
@@ -58,7 +59,9 @@ export function useAddEpisodes() {
     if (!files) return;
     const paths = Array.isArray(files) ? (files as string[]) : [files as string];
     if (paths.length === 0) return;
-    setMethod((lastIndexDetection ?? fallbackDetection) as IndexDetection);
+    // ai detection switched off in Settings > Features: keyframes is the only choice
+    const preferred = (lastIndexDetection ?? fallbackDetection) as IndexDetection;
+    setMethod(aiSceneDetectionEnabled ? preferred : "keyframe_detection");
     setPending(paths);
   };
 
@@ -162,7 +165,7 @@ export function useAddEpisodes() {
         <p className="events-subtitle ban-notice-note">How should scenes be found before indexing?</p>
 
         <div className="scene-scout-detection-choices" role="radiogroup" aria-label="Scene detection">
-          {SCENE_DETECTION_OPTIONS.map((option) => {
+          {sceneDetectionOptions(aiSceneDetectionEnabled).map((option) => {
             const active = option.value === method;
             return (
               <button

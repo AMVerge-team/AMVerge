@@ -57,6 +57,13 @@ export type GeneralSettings = {
     previewTranscodeQuality: PreviewTranscodeQuality;
     postExportPasses: PostExportPasses;
     scenepacksEnabled: boolean;
+    /** Settings > Features switches (see features/featureToggles.ts) */
+    aiSceneDetectionEnabled: boolean;
+    sceneScoutEnabled: boolean;
+    depthPassEnabled: boolean;
+    interpolationPassEnabled: boolean;
+    /** a switched-off feature disappears from the ui instead of being greyed out */
+    hideDisabledFeatures: boolean;
     davinciResolveEnabled: boolean;
     davinciExportSelected: boolean;
 };
@@ -124,6 +131,11 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     previewTranscodeQuality: "480p",
     postExportPasses: DEFAULT_POST_EXPORT_PASSES,
     scenepacksEnabled: false,
+    aiSceneDetectionEnabled: true,
+    sceneScoutEnabled: true,
+    depthPassEnabled: true,
+    interpolationPassEnabled: true,
+    hideDisabledFeatures: false,
     davinciResolveEnabled: false,
     davinciExportSelected: false,
 };

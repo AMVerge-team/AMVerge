@@ -54,7 +54,14 @@ pub struct AiEnvStatus {
     pub status_error: Option<String>,
     /// Apple Silicon MPS needs no special wheel, so this can hold when `gpu_available` doesn't
     pub mps_available: bool,
+    /// the AI venv: torch and every pack's packages
     pub env_size_bytes: u64,
+    /// the standalone Python interpreter uv downloaded for that venv
+    pub python_size_bytes: u64,
+    /// depth / interpolation / upscale weights the cli downloads into its own config folder
+    pub models_size_bytes: u64,
+    /// Scene Scout's SigLIP 2 checkpoint in the shared Hugging Face cache
+    pub scout_model_size_bytes: u64,
     /// dev builds run against the CLI checkout's venv and never provision this
     pub managed: bool,
 }
@@ -370,6 +377,44 @@ pub(crate) fn mps_available() -> bool {
     cfg!(all(target_os = "macos", target_arch = "aarch64"))
 }
 
+/// the cli's own folder for downloaded weights, the same path `infra/config.py`
+/// `get_amverge_config_dir()` builds: APPDATA first, then the per-OS default
+pub(crate) fn cli_models_dir() -> Option<PathBuf> {
+    let config = match std::env::var_os("APPDATA").filter(|v| !v.is_empty()) {
+        Some(appdata) => PathBuf::from(appdata).join("com.amverge.cli"),
+        None => {
+            let home = home_dir()?;
+            if cfg!(windows) {
+                home.join("AppData").join("Roaming").join("com.amverge.cli")
+            } else if cfg!(target_os = "macos") {
+                home.join("Library").join("Application Support").join("com.amverge.cli")
+            } else {
+                home.join(".config").join("com.amverge.cli")
+            }
+        }
+    };
+    Some(config.join("models"))
+}
+
+/// where transformers keeps SigLIP 2: Hugging Face's own lookup order
+/// (HF_HUB_CACHE, HF_HOME/hub, XDG_CACHE_HOME/huggingface/hub, ~/.cache/huggingface/hub)
+pub(crate) fn scout_model_dir() -> Option<PathBuf> {
+    let env_dir = |key: &str| std::env::var_os(key).filter(|v| !v.is_empty()).map(PathBuf::from);
+    let hub = env_dir("HF_HUB_CACHE")
+        .or_else(|| env_dir("HF_HOME").map(|home| home.join("hub")))
+        .or_else(|| env_dir("XDG_CACHE_HOME").map(|cache| cache.join("huggingface").join("hub")))
+        .or_else(|| home_dir().map(|home| home.join(".cache").join("huggingface").join("hub")))?;
+    Some(hub.join("models--google--siglip2-so400m-patch16-naflex"))
+}
+
+fn home_dir() -> Option<PathBuf> {
+    std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
+        .filter(|v| !v.is_empty())
+        .map(PathBuf::from)
+}
+
+/// total size of the files under `path`. symlinks are counted as links, never followed,
+/// so a Hugging Face snapshot (links into its blobs) is not counted twice
 pub(crate) fn dir_size_bytes(path: &Path) -> u64 {
     let Ok(entries) = std::fs::read_dir(path) else {
         return 0;
@@ -434,6 +479,10 @@ pub(crate) fn compute_status(app: &AppHandle) -> Result<AiEnvStatus, String> {
     } else {
         0
     };
+    // everything else the AI features put on disk, which the old total left out
+    let python_size_bytes = uv_python_dir(app).map(|dir| dir_size_bytes(&dir)).unwrap_or(0);
+    let models_size_bytes = cli_models_dir().map(|dir| dir_size_bytes(&dir)).unwrap_or(0);
+    let scout_model_size_bytes = scout_model_dir().map(|dir| dir_size_bytes(&dir)).unwrap_or(0);
 
     let gpu_probe = nvidia_gpu_probe();
 
@@ -455,6 +504,31 @@ pub(crate) fn compute_status(app: &AppHandle) -> Result<AiEnvStatus, String> {
         status_error,
         mps_available: mps_available(),
         env_size_bytes,
+        python_size_bytes,
+        models_size_bytes,
+        scout_model_size_bytes,
         managed: !cfg!(debug_assertions),
     })
+}
+
+#[cfg(test)]
+mod disk_usage_tests {
+    use super::*;
+
+    /// prints what Settings > Features would report on this machine, to compare against
+    /// the folders by hand. ignored by default: it reads real user folders
+    #[test]
+    #[ignore]
+    fn print_disk_usage_on_this_machine() {
+        let gb = |bytes: u64| bytes as f64 / (1024.0 * 1024.0 * 1024.0);
+        if let Some(appdata) = std::env::var_os("APPDATA") {
+            let legacy = PathBuf::from(appdata).join("app.amverge");
+            println!("pyenv        {:.2} GB", gb(dir_size_bytes(&legacy.join("pyenv"))));
+            println!("python       {:.2} GB", gb(dir_size_bytes(&legacy.join("python"))));
+        }
+        let models = cli_models_dir().unwrap();
+        println!("models       {:.2} GB  {}", gb(dir_size_bytes(&models)), models.display());
+        let scout = scout_model_dir().unwrap();
+        println!("scout model  {:.2} GB  {}", gb(dir_size_bytes(&scout)), scout.display());
+    }
 }

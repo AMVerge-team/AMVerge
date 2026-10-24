@@ -99,6 +99,7 @@ function App() {
   const abortedRef = useRef(false);
 
   const scenepacksEnabled = useGeneralSettingsStore((s) => s.scenepacksEnabled);
+  const sceneScoutEnabled = useGeneralSettingsStore((s) => s.sceneScoutEnabled);
 
   const [splashVisible, setSplashVisible] = useState(true);
 
@@ -361,11 +362,12 @@ function App() {
     return () => window.clearTimeout(timer);
   }, []);
 
+  // a page whose feature was switched off in Settings > Features sends the user back to the library
   useEffect(() => {
-    if (activePage === "scenepacks" && !scenepacksEnabled) {
+    if ((activePage === "scenepacks" && !scenepacksEnabled) || (activePage === "sceneScout" && !sceneScoutEnabled)) {
       useUIStateStore.getState().setActivePage("home");
     }
-  }, [activePage, scenepacksEnabled]);
+  }, [activePage, scenepacksEnabled, sceneScoutEnabled]);
 
   useEffect(() => {
     if (!startupUpdateNotification) {
@@ -530,7 +532,7 @@ function App() {
           <HomePage />
         </div>
         {activePage === "scenepacks" && scenepacksEnabled && <ScenepacksPage />}
-        {activePage === "sceneScout" && <SceneScoutPage />}
+        {activePage === "sceneScout" && sceneScoutEnabled && <SceneScoutPage />}
         {activePage === "events" && <EventsPage />}
       </div>
       <QuickMenu />

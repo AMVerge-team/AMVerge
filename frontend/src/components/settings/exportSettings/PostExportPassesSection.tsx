@@ -3,6 +3,7 @@ import SettingRow from "../../common/SettingRow";
 import { useGeneralSettingsStore } from "../../../stores/settingsStore";
 import { useAiDepsStore } from "../../../stores/aiDepsStore";
 import { isPackInstalled, type AiPackId } from "../../../features/aiDeps/packs";
+import { useFeature } from "../../../features/featureToggles";
 import {
   DEPTH_COLORMAP_OPTIONS,
   DEPTH_ENCODER_OPTIONS,
@@ -16,10 +17,12 @@ function ToggleControl({
   checked,
   onChange,
   label,
+  disabled = false,
 }: {
   checked: boolean;
   onChange: (value: boolean) => void;
   label: string;
+  disabled?: boolean;
 }) {
   return (
     <label className="custom-checkbox" aria-label={label}>
@@ -27,6 +30,7 @@ function ToggleControl({
         type="checkbox"
         className="checkbox"
         checked={checked}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
       />
       <span className="checkmark" />
@@ -38,6 +42,10 @@ export default function PostExportPassesSection() {
   const passes = useGeneralSettingsStore((s) => s.postExportPasses);
   const update = useGeneralSettingsStore((s) => s.updatePostExportPasses);
   const { depth, deadframes, interpolation } = passes;
+  // each pass is a feature in Settings > Features: off greys its switch, hidden leaves it out
+  const depthFeature = useFeature("depthPass");
+  const interpolationFeature = useFeature("interpolationPass");
+  const OFF_NOTE = " Turn it on in Settings › Features.";
 
   // depth and interpolation need torch (dead frames is opencv-only and ships
   // with the app). offer the install when the pass is switched on, so the
@@ -54,18 +62,21 @@ export default function PostExportPassesSection() {
 
   return (
     <>
-      <SettingRow
-        label="Depth map pass"
-        description="Also save a depth map of each export as <name>_depth."
-        control={
-          <ToggleControl
-            label="Toggle depth map pass"
-            checked={depth.enabled}
-            onChange={(enabled) => void enableGatedPass("depth", enabled)}
-          />
-        }
-      />
-      {depth.enabled && (
+      {!depthFeature.hidden && (
+        <SettingRow
+          label="Depth map pass"
+          description={`Also save a depth map of each export as <name>_depth.${depthFeature.enabled ? "" : OFF_NOTE}`}
+          control={
+            <ToggleControl
+              label="Toggle depth map pass"
+              checked={depth.enabled && depthFeature.enabled}
+              disabled={!depthFeature.enabled}
+              onChange={(enabled) => void enableGatedPass("depth", enabled)}
+            />
+          }
+        />
+      )}
+      {depth.enabled && depthFeature.enabled && (
         <div className="pass-config">
           <SettingRow
             label="Depth model"
@@ -105,18 +116,21 @@ export default function PostExportPassesSection() {
         </div>
       )}
 
-      <SettingRow
-        label="Interpolation pass"
-        description="Removes still frames, then adds new ones for smoother motion. Saved as <name>_interpolated."
-        control={
-          <ToggleControl
-            label="Toggle interpolation pass"
-            checked={interpolation.enabled}
-            onChange={(enabled) => void enableGatedPass("interpolation", enabled)}
-          />
-        }
-      />
-      {interpolation.enabled && (
+      {!interpolationFeature.hidden && (
+        <SettingRow
+          label="Interpolation pass"
+          description={`Removes still frames, then adds new ones for smoother motion. Saved as <name>_interpolated.${interpolationFeature.enabled ? "" : OFF_NOTE}`}
+          control={
+            <ToggleControl
+              label="Toggle interpolation pass"
+              checked={interpolation.enabled && interpolationFeature.enabled}
+              disabled={!interpolationFeature.enabled}
+              onChange={(enabled) => void enableGatedPass("interpolation", enabled)}
+            />
+          }
+        />
+      )}
+      {interpolation.enabled && interpolationFeature.enabled && (
         <div className="pass-config">
           <SettingRow
             label="Interpolation model"

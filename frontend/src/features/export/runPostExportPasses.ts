@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useAiDepsStore } from "../../stores/aiDepsStore";
 import { usePassRunStore } from "../../stores/passRunStore";
 import { AI_PACKS } from "../aiDeps/packs";
+import { isFeatureEnabled } from "../featureToggles";
 import {
   anyPassEnabled,
   deadframesArgs,
@@ -95,6 +96,9 @@ export async function runPostExportPasses(
   // (the settings toggle installs it), but a removed pack or a settings file
   // from another machine would otherwise surface as a failed pass here
   const effective: PostExportPasses = { ...passes };
+  // a pass switched off in Settings > Features never runs, whatever its own toggle says
+  if (!isFeatureEnabled("depthPass")) effective.depth = { ...effective.depth, enabled: false };
+  if (!isFeatureEnabled("interpolationPass")) effective.interpolation = { ...effective.interpolation, enabled: false };
   const skipped: string[] = [];
   const skipNote = (packId: "depth" | "interpolation") =>
     `[skipped] ${packId} pass: ${AI_PACKS[packId].dependencyName} is not installed`;

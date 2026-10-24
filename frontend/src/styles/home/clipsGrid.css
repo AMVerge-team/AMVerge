@@ -429,9 +429,15 @@
   transition: background 0.2s ease, border 0.2s ease;
 }
 
-.selection-action-bar-btn:hover {
+.selection-action-bar-btn:hover:not(:disabled) {
   border-color: rgb(var(--accent-rgb));
   color: var(--accent);
+}
+
+/* its feature is switched off in Settings > Features */
+.selection-action-bar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .selection-action-bar-btn svg {
