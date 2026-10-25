@@ -41,7 +41,14 @@ export type AiEnvStatus = {
   /** Apple Silicon: torch's MPS backend works without a special wheel, so this
    *  holds even when `gpuAvailable`/`torchVariant` (both NVIDIA-only) don't */
   mpsAvailable: boolean;
+  /** the AI venv: torch and every pack's packages */
   envSizeBytes: number;
+  /** the standalone Python interpreter uv downloaded for that venv */
+  pythonSizeBytes: number;
+  /** depth / interpolation / upscale weights in the cli's config folder */
+  modelsSizeBytes: number;
+  /** Scene Scout's SigLIP 2 checkpoint in the shared Hugging Face cache */
+  scoutModelSizeBytes: number;
   /// false in dev builds, where the CLI checkout's venv is used as-is
   managed: boolean;
 };

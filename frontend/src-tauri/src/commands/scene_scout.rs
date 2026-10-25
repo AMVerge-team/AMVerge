@@ -569,6 +569,32 @@ impl ActiveScoutIndex {
 /// what an aborted scout run returns; the frontend treats it as a stop, not a failure
 pub const SCOUT_CANCELED: &str = "Canceled.";
 
+/// a json file in the temp folder for a cli argument, deleted when this is dropped
+struct TempFile(std::path::PathBuf);
+
+impl TempFile {
+    fn write_json(prefix: &str, value: &impl Serialize) -> Result<Self, String> {
+        let stamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or_default();
+        let path = std::env::temp_dir().join(format!("{prefix}_{}_{stamp}.json", std::process::id()));
+        let body = serde_json::to_vec(value).map_err(|e| format!("Could not write {prefix}: {e}"))?;
+        std::fs::write(&path, body).map_err(|e| format!("Could not write {prefix}: {e}"))?;
+        Ok(Self(path))
+    }
+
+    fn path_str(&self) -> &str {
+        self.0.to_str().unwrap_or_default()
+    }
+}
+
+impl Drop for TempFile {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
+}
+
 fn spawn_scout_worker(
     app: &AppHandle,
     root: &str,
@@ -825,6 +851,9 @@ pub async fn scout_add_video(
     custom_path: Option<String>,
     keep_model_in_memory: Option<bool>,
     gpu_standby: Option<bool>,
+    // an episode already imported and cut on home: its manifest's [start_ms, end_ms]
+    // ranges, so the cli indexes exactly those scenes and skips detection
+    scenes: Option<Vec<[u64; 2]>>,
     active_index: State<'_, ActiveScoutIndex>,
     worker_state: State<'_, SceneScoutWorkerState>,
 ) -> Result<u64, String> {
@@ -833,10 +862,14 @@ pub async fn scout_add_video(
     let method = detector.unwrap_or_else(|| "keyframe_detection".to_string());
     let video_name = file_name_only(&video_path);
     let db_name = file_name_only(&database);
+    let scenes = scenes.filter(|s| !s.is_empty());
 
     console_log(
         "SCOUT|start",
-        &format!("verb=add video={video_name} db={db_name} detector={method}"),
+        &match &scenes {
+            Some(s) => format!("verb=add video={video_name} db={db_name} precut={} scenes", s.len()),
+            None => format!("verb=add video={video_name} db={db_name} detector={method}"),
+        },
     );
 
     let keep_in_memory = keep_model_in_memory.unwrap_or(true);
@@ -876,6 +909,7 @@ pub async fn scout_add_video(
                 "video": video_path,
                 "database": database,
                 "detector": method,
+                "scenes": scenes,
             });
 
             let app_clone = app.clone();
@@ -926,19 +960,26 @@ pub async fn scout_add_video(
         }
     }
 
-    let (cmd, argv) = scout_pair(
-        &app,
-        &[
-            "add",
-            video_path.as_str(),
-            "--db",
-            database.as_str(),
-            "--root",
-            root.as_str(),
-            "--detector",
-            method.as_str(),
-        ],
-    )?;
+    // the cli takes pre-cut ranges as a file; the guard deletes it however this returns
+    let scenes_file = match &scenes {
+        Some(ranges) => Some(TempFile::write_json("scout_scenes", ranges)?),
+        None => None,
+    };
+    let mut args = vec![
+        "add",
+        video_path.as_str(),
+        "--db",
+        database.as_str(),
+        "--root",
+        root.as_str(),
+        "--detector",
+        method.as_str(),
+    ];
+    if let Some(file) = &scenes_file {
+        args.push("--scenes-json");
+        args.push(file.path_str());
+    }
+    let (cmd, argv) = scout_pair(&app, &args)?;
     scout_spawn_log("add", &argv);
 
     let mut child = tokio::process::Command::from(cmd)

@@ -15,14 +15,13 @@ import InfoButton from "../common/InfoButton";
 import Tooltip from "../common/Tooltip";
 import { clearEpisodePanelCache } from "../../utils/episodeUtils";
 import { clearScenepacksStorage } from "../../utils/scenepackStorage";
-import { useScenepacksStore } from "../../stores/scenepackStore";
 import { useAiDepsStore } from "../../stores/aiDepsStore";
 import { isPackInstalled } from "../../features/aiDeps/packs";
 import {
   PREVIEW_METHOD_OPTIONS,
   PREVIEW_TRANSCODE_MODE_OPTIONS,
   PREVIEW_TRANSCODE_QUALITY_OPTIONS,
-  SCENE_DETECTION_OPTIONS,
+  sceneDetectionOptions,
 } from "./general/options";
 import { ConfirmModal } from "./general/ConfirmModal";
 
@@ -48,14 +47,12 @@ export default function GeneralSettings({
       ? "hevc"
       : generalSettings.previewTranscodeMode;
   const setGridPreview = useUIStateStore((s) => s.setGridPreview);
-  const scenepacksCount = useScenepacksStore((s) => s.scenepacks.length);
   const [loading, setLoading] = useState(false);
   const [showFactoryResetConfirm, setShowFactoryResetConfirm] = useState(false);
   const [showClearPanelConfirm, setShowClearPanelConfirm] = useState(false);
   const [clearingPanel, setClearingPanel] = useState(false);
   const [showClearScenepacksConfirm, setShowClearScenepacksConfirm] = useState(false);
   const [clearingScenepacks, setClearingScenepacks] = useState(false);
-  const [showDisableScenepacksConfirm, setShowDisableScenepacksConfirm] = useState(false);
   const defaultEpisodesPathLabel = navigator.userAgent.includes("Mac OS X")
     ? "Default (Application Support)"
     : "Default (App Data)";
@@ -103,29 +100,6 @@ export default function GeneralSettings({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [showClearScenepacksConfirm]);
-
-  useEffect(() => {
-    if (!showDisableScenepacksConfirm) return;
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setShowDisableScenepacksConfirm(false);
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [showDisableScenepacksConfirm]);
-
-  // turning Scenepacks off with packs still saved asks what to do with them
-  // first; turning it on is immediate
-  const handleToggleScenepacksEnabled = (enabled: boolean) => {
-    if (!enabled && scenepacksCount > 0) {
-      setShowDisableScenepacksConfirm(true);
-      return;
-    }
-    setGeneralSettings((prev) => ({ ...prev, scenepacksEnabled: enabled }));
-  };
 
   const handleClearScenepacks = async () => {
     setClearingScenepacks(true);
@@ -259,7 +233,7 @@ export default function GeneralSettings({
             control={
               <Dropdown
                 className="settings-wide-dropdown"
-                options={SCENE_DETECTION_OPTIONS}
+                options={sceneDetectionOptions(generalSettings.aiSceneDetectionEnabled)}
                 value={generalSettings.sceneDetectionMethod}
                 onChange={(method) => void handleSceneDetectionChange(method)}
               />
@@ -400,25 +374,8 @@ export default function GeneralSettings({
         />
         </SettingsSection>
 
-        <SettingsSection id="general.features" title="Features">
-        <SettingRow
-          label="Scenepacks"
-          description="Enable the Scenepacks feature for grouping clips into themed collections."
-          control={
-            <div className="settings-control">
-              <label className="custom-checkbox">
-                <input
-                  type="checkbox"
-                  className="checkbox"
-                  checked={generalSettings.scenepacksEnabled}
-                  onChange={(e) => handleToggleScenepacksEnabled(e.target.checked)}
-                />
-                <span className="checkmark"></span>
-              </label>
-            </div>
-          }
-        />
-
+        {/* scenepacks and the other major features moved to Settings > Features */}
+        <SettingsSection id="general.integrations" title="Integrations">
         <SettingRow
           label="DaVinci Resolve Compatibility"
           description="Send exported clips straight to the DaVinci Resolve timeline (Studio only)."
@@ -559,35 +516,6 @@ export default function GeneralSettings({
             busy={clearingScenepacks}
             onClose={() => setShowClearScenepacksConfirm(false)}
             onConfirm={() => void handleClearScenepacks()}
-          />
-        )}
-
-        {showDisableScenepacksConfirm && (
-          <ConfirmModal
-            title="Disable Scenepacks"
-            message={
-              <>
-                You have {scenepacksCount} Scenepack{scenepacksCount !== 1 ? "s" : ""}. Would you
-                like to delete{scenepacksCount !== 1 ? " them" : " it"} too, or just disable the
-                feature and keep{scenepacksCount !== 1 ? " them" : " it"} for later?
-              </>
-            }
-            confirmLabel="Delete Scenepacks"
-            secondary={{
-              label: "Keep Scenepacks",
-              onClick: () => {
-                setGeneralSettings((prev) => ({ ...prev, scenepacksEnabled: false }));
-                setShowDisableScenepacksConfirm(false);
-              },
-            }}
-            onClose={() => setShowDisableScenepacksConfirm(false)}
-            onConfirm={() => {
-              setGeneralSettings((prev) => ({ ...prev, scenepacksEnabled: false }));
-              setShowDisableScenepacksConfirm(false);
-              void clearScenepacksStorage().catch((err) =>
-                window.alert("Failed to clear Scenepack storage: " + String(err))
-              );
-            }}
           />
         )}
       </div>

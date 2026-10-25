@@ -59,7 +59,7 @@ export function SceneScoutFlowView() {
   return (
     <div ref={viewRef} className="scene-scout-view scene-scout-flow-view">
       <div ref={inputRef} className="scene-scout-flow-input" style={{ height: playerHeight }}>
-        <FlowPlayer source={flowFrom} empty="Input a file, or select a clip on Home and click Find flowing clips." />
+        <FlowPlayer source={flowFrom} empty="Input a file, or select a clip in your Library and click Find flowing clips." />
       </div>
 
       <div

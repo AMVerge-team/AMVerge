@@ -1,6 +1,6 @@
 import GeneralSettings from "../components/settings/GeneralSettings";
 import AppearanceSection from "../components/settings/AppearanceSection";
-import DependenciesSection from "../components/settings/DependenciesSection";
+import FeaturesSection from "../components/settings/FeaturesSection";
 import DiscordRPCSection from "../components/settings/DiscordRPCSection";
 import ExportSection from "../components/settings/exportSettings/ExportSection";
 import { useUIStateStore } from "../stores/UIStore";
@@ -9,7 +9,7 @@ const PAGES = [
   { key: "general", label: "General" },
   { key: "export", label: "Export" },
   { key: "appearance", label: "Appearance" },
-  { key: "dependencies", label: "Dependencies" },
+  { key: "features", label: "Features" },
   { key: "discord", label: "Discord RPC" },
 ];
 
@@ -63,8 +63,8 @@ export default function Settings({
               <ExportSection />
             )}
 
-            {activeTab === "dependencies" && (
-              <DependenciesSection />
+            {activeTab === "features" && (
+              <FeaturesSection />
             )}
 
             {activeTab === "discord" && (

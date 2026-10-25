@@ -556,7 +556,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
                 scoutHasFlowClip ? (
                   <>No scenes found for this clip.<br/>Add a database to the Searching list on the left, or lower the minimum score in Search options.</>
                 ) : (
-                  <>No clip to continue yet.<br/>Choose a clip above, or select one on Home and click Find flowing clips.</>
+                  <>No clip to continue yet.<br/>Choose a clip above, or select one in your Library and click Find flowing clips.</>
                 )
               )
               : activePage === "sceneScout"
