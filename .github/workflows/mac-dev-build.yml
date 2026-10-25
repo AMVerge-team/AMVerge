@@ -144,7 +144,8 @@ jobs:
 
       - name: Build macOS app bundle
         working-directory: frontend/src-tauri
-        run: cargo tauri build --target ${{ matrix.rust_target }} --bundles app --config ${{ matrix.tauri_config }}
+        # beta name keeps the dev build from replacing an installed release in /Applications
+        run: cargo tauri build --target ${{ matrix.rust_target }} --bundles app --config ${{ matrix.tauri_config }} --config '{"productName":"AMVerge (beta)"}'
 
       - name: Debug bundled outputs
         run: |
@@ -405,7 +406,7 @@ jobs:
           DMG_PATH="frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/AMVerge-macos-universal.dmg"
 
           # Clear stale mounts from previous attempts on the same runner image.
-          hdiutil info | awk '/\/Volumes\/'"$APP_VOLNAME"'$/ {print $1}' | while read -r dev; do
+          hdiutil info | grep -F "/Volumes/$APP_VOLNAME" | awk '{print $1}' | while read -r dev; do
             [ -n "$dev" ] && hdiutil detach "$dev" -force || true
           done
 
@@ -438,7 +439,7 @@ jobs:
             fi
 
             echo "hdiutil create failed (attempt $attempt), retrying..."
-            hdiutil info | awk '/\/Volumes\/'"$APP_VOLNAME"'$/ {print $1}' | while read -r dev; do
+            hdiutil info | grep -F "/Volumes/$APP_VOLNAME" | awk '{print $1}' | while read -r dev; do
               [ -n "$dev" ] && hdiutil detach "$dev" -force || true
             done
           done
