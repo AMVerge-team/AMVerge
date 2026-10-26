@@ -1,0 +1,116 @@
+name: Windows Dev Build
+
+# a test installer for the current branch, named "AMVerge (beta)" (tauri.beta.conf.json)
+# so it installs beside a release build instead of replacing it. not a release: no
+# updater artifacts are collected and nothing is published
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-dev-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-windows:
+    name: Build Windows Beta Installer
+    runs-on: windows-latest
+    env:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      AMVERGE_NOTIFICATIONS_API_URL: ${{ secrets.AMVERGE_NOTIFICATIONS_API_URL }}
+      VITE_ADMIN_API_URL: ${{ secrets.VITE_ADMIN_API_URL }}
+      AMVERGE_NOTIFICATIONS_API_KEY: ${{ secrets.AMVERGE_NOTIFICATIONS_API_KEY }}
+      AMVERGE_BUG_REPORT_API_URL: ${{ secrets.AMVERGE_BUG_REPORT_API_URL }}
+      AMVERGE_BUG_REPORT_API_KEY: ${{ secrets.AMVERGE_BUG_REPORT_API_KEY }}
+      AMVERGE_BUG_REPORT_KEY_ID: ${{ secrets.AMVERGE_BUG_REPORT_KEY_ID }}
+      AMVERGE_BUG_REPORT_SIGNING_SECRET: ${{ secrets.AMVERGE_BUG_REPORT_SIGNING_SECRET }}
+      # same sidecar as a release: the published CLI wheel, no torch
+      AMVERGE_CLI_INSTALL_SPEC: "amverge[edge,discord,dev]"
+      AMVERGE_API_BASE_URL: ${{ secrets.AMVERGE_API_BASE_URL }}
+      AMVERGE_DISCORD_APP_CLIENT_ID: ${{ secrets.AMVERGE_DISCORD_APP_CLIENT_ID }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Tauri CLI (Rust)
+        run: cargo install tauri-cli --version '^2.0'
+
+      - name: Stage FFmpeg binaries for the sidecar
+        shell: pwsh
+        run: |
+          choco install ffmpeg -y
+          $ffmpegDir = Join-Path (Get-Location) "frontend/.ffmpeg-bin"
+          New-Item -ItemType Directory -Force $ffmpegDir | Out-Null
+          $ffmpegReal = "C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin\ffmpeg.exe"
+          $ffprobeReal = "C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin\ffprobe.exe"
+
+          if (-not (Test-Path $ffmpegReal) -or -not (Test-Path $ffprobeReal)) {
+            Write-Host "Real ffmpeg binaries not found at expected Chocolatey path."
+            Get-ChildItem "C:\ProgramData\chocolatey\lib\ffmpeg" -Recurse -File -Filter ffmpeg.exe | Format-Table -AutoSize
+            Get-ChildItem "C:\ProgramData\chocolatey\lib\ffmpeg" -Recurse -File -Filter ffprobe.exe | Format-Table -AutoSize
+            exit 1
+          }
+
+          Copy-Item $ffmpegReal (Join-Path $ffmpegDir "ffmpeg.exe") -Force
+          Copy-Item $ffprobeReal (Join-Path $ffmpegDir "ffprobe.exe") -Force
+          & (Join-Path $ffmpegDir "ffmpeg.exe") -version | Select-Object -First 1
+          & (Join-Path $ffmpegDir "ffprobe.exe") -version | Select-Object -First 1
+          "FFMPEG_BIN_DIR=$ffmpegDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Build Python sidecar
+        working-directory: frontend
+        run: node scripts/build-sidecar.mjs --target x86_64-pc-windows-msvc
+
+      # beta name keeps the dev build from replacing an installed release
+      - name: Build Windows installer
+        working-directory: frontend/src-tauri
+        run: cargo tauri build --target x86_64-pc-windows-msvc --config tauri.windows.conf.json --config tauri.beta.conf.json
+
+      - name: Collect the installer
+        shell: pwsh
+        run: |
+          $bundleRoot = "frontend/src-tauri/target/x86_64-pc-windows-msvc/release/bundle"
+          New-Item -ItemType Directory -Force artifacts/windows-beta | Out-Null
+
+          $exe = Get-ChildItem -Path $bundleRoot -Recurse -File -Filter *.exe |
+            Where-Object { $_.FullName -match "bundle\\nsis\\" } |
+            Select-Object -First 1
+
+          if (-not $exe) {
+            Write-Host "No NSIS .exe found under $bundleRoot"
+            Get-ChildItem -Path $bundleRoot -Recurse | Format-Table -AutoSize
+            exit 1
+          }
+
+          Copy-Item $exe.FullName artifacts/windows-beta/ -Force
+          Write-Host "Built $($exe.Name)"
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-beta-installer
+          path: artifacts/windows-beta/*
+          if-no-files-found: error
