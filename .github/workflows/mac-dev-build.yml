@@ -90,43 +90,17 @@ jobs:
         if: matrix.rust_target == 'x86_64-apple-darwin'
         run: sudo softwareupdate --install-rosetta --agree-to-license
 
+      - name: Cache FFmpeg binaries
+        uses: actions/cache@v4
+        with:
+          path: frontend/.ffmpeg-bin
+          key: ffmpeg-${{ matrix.rust_target == 'x86_64-apple-darwin' && 'macos-x86_64' || 'macos-arm64' }}-${{ hashFiles('frontend/scripts/ffmpeg-bins.sha256') }}
+
       - name: Stage FFmpeg binaries for the sidecar
-        run: |
-          FFMPEG_DIR="$GITHUB_WORKSPACE/frontend/.ffmpeg-bin"
-          mkdir -p "$FFMPEG_DIR"
-
-          if [ "${{ matrix.rust_target }}" = "x86_64-apple-darwin" ]; then
-            echo "Installing x86_64 ffmpeg/ffprobe from Evermeet for Intel target"
-            curl -fL --retry 3 "https://evermeet.cx/ffmpeg/getrelease/zip" -o "$FFMPEG_DIR/ffmpeg.zip"
-            curl -fL --retry 3 "https://evermeet.cx/ffmpeg/getrelease/ffprobe/zip" -o "$FFMPEG_DIR/ffprobe.zip"
-            unzip -j -o "$FFMPEG_DIR/ffmpeg.zip" -d "$FFMPEG_DIR"
-            unzip -j -o "$FFMPEG_DIR/ffprobe.zip" -d "$FFMPEG_DIR"
-            rm -f "$FFMPEG_DIR/ffmpeg.zip" "$FFMPEG_DIR/ffprobe.zip"
-          else
-            echo "Installing arm64 ffmpeg/ffprobe from Homebrew for Apple Silicon target"
-            brew install ffmpeg
-            cp "$(which ffmpeg)" "$FFMPEG_DIR/ffmpeg"
-            cp "$(which ffprobe)" "$FFMPEG_DIR/ffprobe"
-          fi
-
-          chmod +x "$FFMPEG_DIR/ffmpeg" "$FFMPEG_DIR/ffprobe"
-
-          echo "Validating FFmpeg architecture for target ${{ matrix.rust_target }}"
-          FFMPEG_INFO="$(file "$FFMPEG_DIR/ffmpeg")"
-          FFPROBE_INFO="$(file "$FFMPEG_DIR/ffprobe")"
-          echo "$FFMPEG_INFO"
-          echo "$FFPROBE_INFO"
-
-          if [ "${{ matrix.rust_target }}" = "x86_64-apple-darwin" ]; then
-            echo "$FFMPEG_INFO" | grep -q "x86_64" || { echo "ffmpeg arch mismatch: expected x86_64"; exit 1; }
-            echo "$FFPROBE_INFO" | grep -q "x86_64" || { echo "ffprobe arch mismatch: expected x86_64"; exit 1; }
-          else
-            echo "$FFMPEG_INFO" | grep -q "arm64" || { echo "ffmpeg arch mismatch: expected arm64"; exit 1; }
-            echo "$FFPROBE_INFO" | grep -q "arm64" || { echo "ffprobe arch mismatch: expected arm64"; exit 1; }
-          fi
-
-          echo "FFMPEG_BIN_DIR=$FFMPEG_DIR" >> "$GITHUB_ENV"
-
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash frontend/scripts/fetch-ffmpeg.sh ${{ matrix.rust_target == 'x86_64-apple-darwin' && 'macos-x86_64' || 'macos-arm64' }}
       - name: Build Python sidecar
         working-directory: frontend
         run: node scripts/build-sidecar.mjs --target ${{ matrix.rust_target }}
@@ -170,7 +144,8 @@ jobs:
 
       - name: Build macOS app bundle
         working-directory: frontend/src-tauri
-        run: cargo tauri build --target ${{ matrix.rust_target }} --bundles app --config ${{ matrix.tauri_config }}
+        # beta name keeps the dev build from replacing an installed release in /Applications
+        run: cargo tauri build --target ${{ matrix.rust_target }} --bundles app --config ${{ matrix.tauri_config }} --config '{"productName":"AMVerge (beta)"}'
 
       - name: Debug bundled outputs
         run: |
@@ -431,7 +406,7 @@ jobs:
           DMG_PATH="frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/AMVerge-macos-universal.dmg"
 
           # Clear stale mounts from previous attempts on the same runner image.
-          hdiutil info | awk '/\/Volumes\/'"$APP_VOLNAME"'$/ {print $1}' | while read -r dev; do
+          hdiutil info | grep -F "/Volumes/$APP_VOLNAME" | awk '{print $1}' | while read -r dev; do
             [ -n "$dev" ] && hdiutil detach "$dev" -force || true
           done
 
@@ -453,7 +428,7 @@ jobs:
               -volname "$APP_VOLNAME" \
               -srcfolder "$STAGING_DIR" \
               -ov \
-              -format UDZO \
+              -format ULMO \
               "$DMG_PATH"; then
               break
             fi
@@ -464,7 +439,7 @@ jobs:
             fi
 
             echo "hdiutil create failed (attempt $attempt), retrying..."
-            hdiutil info | awk '/\/Volumes\/'"$APP_VOLNAME"'$/ {print $1}' | while read -r dev; do
+            hdiutil info | grep -F "/Volumes/$APP_VOLNAME" | awk '{print $1}' | while read -r dev; do
               [ -n "$dev" ] && hdiutil detach "$dev" -force || true
             done
           done
