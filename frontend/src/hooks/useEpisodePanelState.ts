@@ -5,6 +5,7 @@ import { useAppStateStore } from "../stores/appStore";
 import { useEpisodePanelRuntimeStore, useEpisodePanelMetadataStore } from "../stores/episodeStore";
 import { useGeneralSettingsStore } from "../stores/settingsStore";
 import { useUIStateStore } from "../stores/UIStore";
+import { stopRunningProcess } from "../features/processes/singleProcess";
 /**
  * opens an episode by id. store-level (reads via getState) so lightweight
  * components (e.g. the grid refresh button) can trigger an open/re-open
@@ -220,6 +221,14 @@ export default function useEpisodePanelState() {
 	};
 
 	const handleDeleteEpisode = async (episodeId: string) => {
+		// an episode still being imported or resumed stops first, so nothing keeps writing
+		// into the folder deleted below. a batch import stops as a whole, as the ✕ would
+		const { liveImportEpisodeIds, resumingEpisodeId } = useAppStateStore.getState();
+		if (liveImportEpisodeIds.includes(episodeId) || resumingEpisodeId === episodeId) {
+			console.info("[episode] deleting an episode mid-processing; stopping it first", { episodeId });
+			await stopRunningProcess();
+		}
+
 		const wasOpenedEpisode = episodeRuntimeState.openedEpisodeId === episodeId;
 		episodeRuntimeState.setEpisodes((prev) => prev.filter((e) => e.id !== episodeId));
 		if (episodeRuntimeState.selectedEpisodeId === episodeId) episodeRuntimeState.setSelectedEpisodeId(null);

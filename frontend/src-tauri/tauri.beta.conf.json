@@ -1,4 +1,18 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "AMVerge (beta)"
+  "productName": "AMVerge (beta)",
+  "app": {
+    "windows": [
+      {
+        "title": "AMVerge (beta)"
+      }
+    ]
+  },
+  "bundle": {
+    "windows": {
+      "nsis": {
+        "startMenuFolder": "AMVerge (beta)"
+      }
+    }
+  }
 }

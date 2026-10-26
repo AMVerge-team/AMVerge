@@ -86,6 +86,16 @@ function waitUntilIdle(): Promise<boolean> {
   });
 }
 
+/**
+ * stops whatever long job is running (the progress window's ✕) and resolves once it has
+ * fully unwound, true when it did. used before deleting something that job is writing to
+ */
+export async function stopRunningProcess(): Promise<boolean> {
+  if (!runningProcess()) return true;
+  await abortRunning?.();
+  return waitUntilIdle();
+}
+
 /** the modal's answer: stop the running job and start the new one, or keep it */
 export async function answerConflict(stopRunning: boolean): Promise<void> {
   const { conflict } = useProcessConflictStore.getState();
@@ -97,8 +107,7 @@ export async function answerConflict(stopRunning: boolean): Promise<void> {
   }
 
   useProcessConflictStore.setState({ stopping: true });
-  await abortRunning?.();
-  const idle = await waitUntilIdle();
+  const idle = await stopRunningProcess();
   if (!idle) console.warn("[process] the running job did not stop in time; the new one was not started");
   useProcessConflictStore.setState({ conflict: null, stopping: false });
   conflict.resolve(idle);
