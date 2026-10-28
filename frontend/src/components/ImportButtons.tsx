@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { FaSyncAlt, FaTimes } from "react-icons/fa";
-import { ImportIcon } from "./icons/ToolbarIcons";
 import Tooltip from "./common/Tooltip";
 import PreviewAllToggle from "./common/PreviewAllToggle";
 import { useAppStateStore } from "../stores/appStore";
@@ -71,11 +70,10 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
             <Tooltip content="Import episode">
               <span className="tooltip-anchor">
                 <button onClick={onImportClick}
-                        className="import-button icon-action-button import-icon-button"
+                        className="import-button icon-action-button import-text-button"
                         id="file-button"
-                        aria-label="Import episode"
                 >
-                  <ImportIcon />
+                  Import
                 </button>
               </span>
             </Tooltip>

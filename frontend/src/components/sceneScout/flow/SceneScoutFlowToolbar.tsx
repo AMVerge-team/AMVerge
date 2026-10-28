@@ -1,7 +1,6 @@
 import { FaSyncAlt } from "react-icons/fa";
 
 import Tooltip from "../../common/Tooltip";
-import { FindMatchesIcon } from "../../icons/ToolbarIcons";
 import { useSceneScoutStore } from "../../../stores/sceneScoutStore";
 import { pickFlowClip } from "../../../features/sceneScout/pickFlowClip";
 import { ScoutModeTabs } from "../ScoutModeTabs";
@@ -37,12 +36,11 @@ export function SceneScoutFlowToolbar() {
             <span className="tooltip-anchor">
               <button
                 type="button"
-                className="import-button icon-action-button import-icon-button"
+                className="import-button icon-action-button import-text-button"
                 onClick={() => void pickClip()}
                 disabled={busy || noDatabase}
-                aria-label="Input a file to find scene matches"
               >
-                <FindMatchesIcon />
+                Import
               </button>
             </span>
           </Tooltip>

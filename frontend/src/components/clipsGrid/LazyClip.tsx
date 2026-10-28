@@ -10,7 +10,7 @@ import { useClipVideoSource } from "./useClipVideoSource.ts";
 import { useClipVideoElement } from "./useClipVideoElement.ts";
 import { useDownloadTone } from "./useDownloadTone.ts";
 import { formatClipTime, formatClipTimeframe, formatScoreWithConfidence } from "./clipFormat.ts";
-import { mediaSrcVersioned } from "../../utils/mediaSrc.ts";
+import { imageThumbnail, mediaSrcVersioned } from "../../utils/mediaSrc.ts";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { selectOverlayOpen, useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore, useThemeSettingsStore } from "../../stores/settingsStore.ts";
@@ -46,10 +46,6 @@ export const LazyClip = memo(function LazyClip({
   const previewWebpPath = useScenePreviewStore((s) => s.animatedByClipId[clip.id]);
   const isSelected = useAppStateStore((s) => s.selectedClips.has(clip.id));
   const isFocused = useAppStateStore((s) => s.focusedClipId === clip.id);
-
-  // previews stay down while the settings modal is up: no decoders, no proxies.
-  // deferred so opening settings paints the modal first instead of unmounting
-  // every decoder in the same commit
   const settingsOpen = useDeferredValue(useUIStateStore(selectOverlayOpen));
   const gridPreview = useUIStateStore((s) => s.gridPreview) && !settingsOpen;
   const activePage = useUIStateStore((s) => s.activePage);
@@ -68,11 +64,9 @@ export const LazyClip = memo(function LazyClip({
   const episodeId = clip.episodeId ?? openedEpisodeId ?? clip.id.split("_").slice(0, -1).join("_");
 
   const [isVisible, setIsVisible] = useState(false);
-  // a tile hovered when the modal opened never gets its mouseleave
   const [hovered, setIsHovered] = useState(false);
   const isHovered = hovered && !settingsOpen;
   const [showScenepackModal, setShowScenepackModal] = useState(false);
-  // where the tile's scenepack picker opened, or null when it is closed
   const [scenepackMenu, setScenepackMenu] = useState<{ x: number; y: number } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [videoThumbFailed, setVideoThumbFailed] = useState(false);
@@ -91,13 +85,13 @@ export const LazyClip = memo(function LazyClip({
 
   const isVideoMode = Boolean(clip.clipPath) && clip.clipMode !== "failed";
   const isUncutScene =
+    (videoPreviewMode || Boolean(clip.database)) &&
     !clip.clipPath &&
     Boolean(clip.src) &&
     clip.startSec !== undefined &&
     clip.endSec !== undefined &&
     clip.endSec > clip.startSec;
   const isVideoPlayable = (isVideoMode || isUncutScene) && clip.clipMode !== "failed";
-  // scene scout results point into a whole episode; home clips still mid-cut keep their old seek playback
   const usesRangePreview = isUncutScene && Boolean(clip.database);
   const isProcessing =
     clip.originalName === "Merging..." ||
@@ -378,7 +372,9 @@ export const LazyClip = memo(function LazyClip({
           {!isVideoPlayable &&
             !webp.thumbnailFailed &&
             clip.thumbnailReady !== false &&
-            (webpStaticReady || isVisible) && (
+            (webpStaticReady || isVisible) &&
+            // no image yet (a webp episode has no posters): the skeleton shows until its webp is made
+            Boolean(webp.webpThumbnail || webp.hasAnimatedWebp || webp.thumbnailSrc) && (
               <img
                 ref={setThumbnailEl}
                 className="clip"
@@ -400,7 +396,7 @@ export const LazyClip = memo(function LazyClip({
             )}
 
           {/* video mode poster: a still at rest, the <video> mounts only on hover */}
-          {isVideoPlayable && clip.thumbnailReady !== false && !videoThumbFailed && (
+          {isVideoPlayable && clip.thumbnailReady !== false && !videoThumbFailed && imageThumbnail(clip.thumbnail) && (
             <img
               className="clip"
               src={`${mediaSrcVersioned(clip.thumbnail, importToken)}${videoThumbRetry > 0 ? `&r=${videoThumbRetry}` : ""}`}

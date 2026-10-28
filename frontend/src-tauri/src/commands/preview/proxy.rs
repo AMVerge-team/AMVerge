@@ -7,6 +7,7 @@ use tauri::{AppHandle, State};
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
 
+use super::cache::{preview_cache_dir, prune_in_background, touch};
 use crate::state::{ActiveFfmpegPids, PreviewProxyLocks, PreviewTranscodeSlots};
 use crate::utils::ffmpeg::resolve_bundled_tool;
 use crate::utils::logging::console_log;
@@ -114,7 +115,9 @@ pub async fn ensure_preview_proxy(
     transcode_video: Option<bool>,
     preview_height: Option<u32>,
     preview_crf: Option<u32>,
+    in_cache: Option<bool>,
 ) -> Result<String, String> {
+    let in_cache = in_cache.unwrap_or(false);
     let transcode_video = transcode_video.unwrap_or(true);
     let preview_height = preview_height.unwrap_or(480).clamp(144, 2160);
     let preview_crf = preview_crf.unwrap_or(32).clamp(0, 51);
@@ -165,20 +168,29 @@ pub async fn ensure_preview_proxy(
         return Err(format!("Clip not found: {}", input_path.display()));
     }
 
-    let parent = input_path
-        .parent()
-        .ok_or("Invalid clip path (no parent directory)")?;
-
-    let stem = input_path
-        .file_stem()
-        .map(|s| s.to_string_lossy().to_string())
-        .ok_or("Invalid clip filename")?;
+    // app-owned clips keep their proxy beside them; a picked file's goes to the capped cache, never into the user's folder
+    let (parent, stem) = if in_cache {
+        (preview_cache_dir(&app)?, cache_stem(&input_path))
+    } else {
+        let parent = input_path
+            .parent()
+            .ok_or("Invalid clip path (no parent directory)")?
+            .to_path_buf();
+        let stem = input_path
+            .file_stem()
+            .map(|s| s.to_string_lossy().to_string())
+            .ok_or("Invalid clip filename")?;
+        (parent, stem)
+    };
 
     let proxy_path = parent.join(format!("{stem}.{audio_suffix}.{mode_suffix}.preview.mp4"));
     let proxy_tmp_path = parent.join(format!("{stem}.{audio_suffix}.{mode_suffix}.preview.tmp.mp4"));
 
     if let Ok(meta) = std::fs::metadata(&proxy_path) {
         if meta.is_file() && meta.len() > 0 {
+            if in_cache {
+                touch(&proxy_path);
+            }
             return Ok(proxy_path.to_string_lossy().to_string());
         }
     }
@@ -297,7 +309,26 @@ pub async fn ensure_preview_proxy(
         "PROXY|end",
         &format!("ok proxy={}", file_name_only(&final_path)),
     );
+    if in_cache {
+        prune_in_background(&app);
+    }
     Ok(final_path)
+}
+
+/// a cache name for a picked file: its path, size and change time, so an edited file gets a fresh preview
+fn cache_stem(path: &Path) -> String {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+
+    let mut hasher = DefaultHasher::new();
+    path.hash(&mut hasher);
+    if let Ok(meta) = std::fs::metadata(path) {
+        meta.len().hash(&mut hasher);
+        if let Ok(modified) = meta.modified() {
+            modified.hash(&mut hasher);
+        }
+    }
+    format!("file-{:016x}", hasher.finish())
 }
 
 /// a small x264 preview of just `[start_sec, end_sec)` of a source video, for
@@ -317,7 +348,6 @@ pub async fn ensure_scene_range_preview(
 ) -> Result<String, String> {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
-    use tauri::Manager;
 
     let input_path = PathBuf::from(&video_path);
     if !input_path.is_file() {
@@ -341,12 +371,7 @@ pub async fn ensure_scene_range_preview(
     preview_crf.hash(&mut hasher);
     let hash = hasher.finish();
 
-    let cache_dir = app
-        .path()
-        .app_cache_dir()
-        .map_err(|e| format!("No cache directory: {e}"))?
-        .join("scene_range_previews");
-    std::fs::create_dir_all(&cache_dir).map_err(|e| format!("Failed to create preview cache: {e}"))?;
+    let cache_dir = preview_cache_dir(&app)?;
     let preview_path = cache_dir.join(format!("{hash:016x}.mp4"));
     let preview_tmp_path = cache_dir.join(format!("{hash:016x}.tmp.mp4"));
 
@@ -362,6 +387,7 @@ pub async fn ensure_scene_range_preview(
 
     if let Ok(meta) = std::fs::metadata(&preview_path) {
         if meta.is_file() && meta.len() > 0 {
+            touch(&preview_path);
             return Ok(preview_path.to_string_lossy().to_string());
         }
     }
@@ -439,6 +465,7 @@ pub async fn ensure_scene_range_preview(
         let _ = std::fs::remove_file(&preview_tmp_path);
     }
 
+    prune_in_background(&app);
     Ok(preview_path.to_string_lossy().to_string())
 }
 

@@ -29,7 +29,8 @@ export function useFlowPreviewSrc(source: FlowSource | null): { src: string | nu
             startSec: source.startMs / 1000,
             endSec: source.endMs / 1000,
           })
-        : invoke<string>("ensure_preview_proxy", { clipPath: source.path, transcodeVideo: true });
+        : // the app's capped cache, never a preview file dropped beside the user's own video
+          invoke<string>("ensure_preview_proxy", { clipPath: source.path, transcodeVideo: true, inCache: true });
 
     request
       .then((path) => {

@@ -163,6 +163,8 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
 
     try {
       while (true) {
+        // paused from the progress card: demands keep accumulating, nothing new is encoded until resume
+        if (useWebpLoadingStore.getState().pausedEpisodeId) break;
         const { batch, offscreenOnly } = pickNextBatch();
         if (batch.length === 0) break;
 
@@ -349,6 +351,9 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
         const typed = item as SceneWebpBatchItem;
         if (!typed.path) continue;
         cacheRef.current.set(typed.sceneId, typed.path);
+        // already on disk: never needed an encode, so it leaves the queue and the loading count
+        demandRef.current.delete(typed.sceneId);
+        finishLoading(typed.sceneId, false);
         const { clipId } = parseDemandKey(typed.sceneId);
         hits.push([clipId, typed.path]);
       }
@@ -374,7 +379,7 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
         error: error instanceof Error ? error.message : String(error),
       });
     }
-  }, [publishResult]);
+  }, [finishLoading]);
 
   const resetWebpQueue = useCallback(() => {
     // abandon the previous episode's pending work without touching cacheRef:
@@ -388,6 +393,15 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
     resetLoadProgress();
     useScenePreviewStore.getState().reset();
   }, [resetLoadProgress]);
+
+  // resume picks up exactly the demands that piled up while paused
+  useEffect(
+    () =>
+      useWebpLoadingStore.subscribe((state, prev) => {
+        if (prev.pausedEpisodeId && !state.pausedEpisodeId) void processQueue();
+      }),
+    [processQueue]
+  );
 
   // paint each scene the instant its encode finishes, rather than waiting for the
   // whole backend batch (which only returns once its slowest encode completes).

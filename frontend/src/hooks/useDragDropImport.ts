@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useUIStateStore } from "../stores/UIStore";
+import { useSceneScoutStore } from "../stores/sceneScoutStore";
 
 type UseDragDropImportProps = {
   handleImport: (file: string) => void | Promise<void>;
@@ -56,6 +57,17 @@ export default function useDragDropImport({
         });
 
         if (videoFiles.length === 0) return;
+
+        // the Flow tab takes a dropped video as the clip to continue, same as its Import button
+        const scout = useSceneScoutStore.getState();
+        const page = useUIStateStore.getState().activePage;
+        if (page === "sceneScout" && scout.mode === "flow") {
+          const path = videoFiles[0];
+          void scout.startFlowSearch({ path, label: path.split(/[/\\]/).pop() ?? path });
+          return;
+        }
+        // anywhere else it is a library import, shown in the library rather than another page's grid
+        if (page !== "home") useUIStateStore.getState().setActivePage("home");
 
         if (videoFiles.length === 1) {
           void Promise.resolve(handlersRef.current.handleImport(videoFiles[0])).catch((error) => {

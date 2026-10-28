@@ -99,11 +99,12 @@
     flex: none;
 }
 
-/* import / add episode: wider than the square buttons around it, so it reads as the main action */
-.import-button.icon-action-button.import-icon-button {
-    width: 3rem;
-    min-width: 3rem;
-    font-size: 21px;
+/* import / add episode: a word instead of an icon, so it reads as the main action */
+.import-button.icon-action-button.import-text-button {
+    width: auto;
+    min-width: 0;
+    padding: 0 0.85rem;
+    font-size: 13px;
 }
 
 /* front gear top left, a smaller dimmer gear peeking out behind its bottom right */

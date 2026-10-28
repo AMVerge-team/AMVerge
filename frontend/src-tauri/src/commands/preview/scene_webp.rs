@@ -40,7 +40,12 @@ pub(crate) fn resolve_scene_webp_cache_base(
 ) -> Result<PathBuf, String> {
     let base = if let Some(raw_id) = episode_cache_id {
         let id = sanitize_episode_cache_id(raw_id)?;
-        resolve_episodes_storage_dir(app, custom_path)?.join(id).join("scenes")
+        let episode_dir = resolve_episodes_storage_dir(app, custom_path)?.join(id);
+        // a deleted episode's encodes still in flight must not recreate its folder
+        if !episode_dir.is_dir() {
+            return Err("Episode was deleted".to_string());
+        }
+        episode_dir.join("scenes")
     } else {
         app.path()
             .app_data_dir()

@@ -4,6 +4,7 @@ import Tooltip from "../../common/Tooltip";
 import { useAppStateStore } from "../../../stores/appStore";
 import { isEpisodePaused } from "../../../features/import/resumeEpisode";
 import { resumeEpisode } from "../../../features/import/reencodeQueue";
+import { useWebpLoadingStore } from "../../../stores/webpLoadingStore";
 import type { EpisodePanelProps, PointerDragSource } from "../types";
 
 type Episode = EpisodePanelProps["episodes"][number];
@@ -71,11 +72,14 @@ export default function EpisodeRow({
   // paused: its import stopped early (mini window or app closed) with clips left to cut
   const liveImportEpisodeIds = useAppStateStore((s) => s.liveImportEpisodeIds);
   const reencodeQueue = useAppStateStore((s) => s.reencodeQueue);
-  const isPaused = isEpisodePaused(episode, liveImportEpisodeIds, reencodeQueue);
+  // a webp episode pauses its preview encodes instead, when its progress card is closed
+  const webpPaused = useWebpLoadingStore((s) => s.pausedEpisodeId === episode.id);
+  const isPaused = webpPaused || isEpisodePaused(episode, liveImportEpisodeIds, reencodeQueue);
 
   const handleResume = (e: React.MouseEvent) => {
     e.stopPropagation();
-    void resumeEpisode(episode.id);
+    if (webpPaused) useWebpLoadingStore.getState().resume();
+    else void resumeEpisode(episode.id);
   };
 
   return (

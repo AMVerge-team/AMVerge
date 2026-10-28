@@ -99,12 +99,12 @@ fn build_manifest_from_backend_payload(
                 .unwrap_or("")
                 .to_string();
 
-            // static jpg poster path from the backend (video-mode). falls back to
-            // the source video for webp/legacy payloads that don't emit one
+            // the backend's jpg poster (video mode); webp mode has none and shows its webps. never the
+            // source video: an <img> on it read the whole episode into memory per tile and crashed the app
             let thumbnail = scene
                 .get("thumbnail")
                 .and_then(|v| v.as_str())
-                .unwrap_or(video_path)
+                .unwrap_or("")
                 .to_string();
             let thumbnail_ready = scene
                 .get("thumbnail_ready")

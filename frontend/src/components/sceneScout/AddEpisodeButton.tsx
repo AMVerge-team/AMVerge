@@ -1,8 +1,7 @@
 import Tooltip from "../common/Tooltip";
-import { ImportIcon } from "../icons/ToolbarIcons";
 import { useSceneScoutStore } from "../../stores/sceneScoutStore";
 
-/** scene scout's add episode: the same import icon as home's import episode */
+/** scene scout's add episode: the same Import button as home's import episode */
 export function AddEpisodeButton({
   hint,
   onClick,
@@ -19,12 +18,11 @@ export function AddEpisodeButton({
       <span className="tooltip-anchor">
         <button
           type="button"
-          className="import-button icon-action-button import-icon-button"
+          className="import-button icon-action-button import-text-button"
           onClick={onClick}
           disabled={disabled || Boolean(indexing)}
-          aria-label="Add episode"
         >
-          <ImportIcon />
+          Import
         </button>
       </span>
     </Tooltip>

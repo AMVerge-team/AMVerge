@@ -156,26 +156,6 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   // staggered mount queue: mounts videos one at a time in grid preview
   const { reportStaggerDemand } = useStaggeredMountQueue();
 
-  // register every clip in the episode, not just the tiles currently mounted:
-  // the queue works through offscreen demand in its own lane, and the loading
-  // count has to be the episode's total rather than however far you scrolled.
-  // tiles still raise their own entry's priority while visible or hovered
-  useEffect(() => {
-    if (episodeVideoPreview) return;
-    // read, don't subscribe: results stream in constantly and the grid must not
-    // re-render for each. clips that already have a preview are skipped so they
-    // never enter the loading count - counting them made the total shrink as you
-    // scrolled, when their tile mounted and withdrew the demand
-    const resolved = useScenePreviewStore.getState().animatedByClipId;
-    for (let index = 0; index < clips.length; index++) {
-      const clip = clips[index];
-      if (resolved[clip.id]) continue;
-      const job = buildWebpJob(clip, clip.episodeId ?? openedEpisodeId ?? null);
-      if (!job) continue;
-      reportWebpDemand(clip.id, { isVisible: false, order: index, priority: false, job });
-    }
-  }, [clips, episodeVideoPreview, openedEpisodeId, reportWebpDemand]);
-
   const gridColumns = loading
     ? activeCols
     : Math.max(1, Math.min(activeCols, clips.length));
@@ -405,6 +385,32 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     useUIStateStore.getState().setGridPreview(false);
   }, [importToken, resetWebpQueue]);
 
+  // the open episode was deleted or closed: its webp previews stop with it
+  useEffect(() => {
+    if (!openedEpisodeId) resetWebpQueue();
+  }, [openedEpisodeId, resetWebpQueue]);
+
+  // register every clip in the episode, not just the tiles currently mounted:
+  // the queue works through offscreen demand in its own lane, and the loading
+  // count has to be the episode's total rather than however far you scrolled.
+  // tiles still raise their own entry's priority while visible or hovered.
+  // declared after the reset above: effects run in order, and running first let the reset wipe it
+  useEffect(() => {
+    if (episodeVideoPreview) return;
+    // read, don't subscribe: results stream in constantly and the grid must not
+    // re-render for each. clips that already have a preview are skipped so they
+    // never enter the loading count - counting them made the total shrink as you
+    // scrolled, when their tile mounted and withdrew the demand
+    const resolved = useScenePreviewStore.getState().animatedByClipId;
+    for (let index = 0; index < clips.length; index++) {
+      const clip = clips[index];
+      if (resolved[clip.id]) continue;
+      const job = buildWebpJob(clip, clip.episodeId ?? openedEpisodeId ?? null);
+      if (!job) continue;
+      reportWebpDemand(clip.id, { isVisible: false, order: index, priority: false, job });
+    }
+  }, [clips, episodeVideoPreview, openedEpisodeId, reportWebpDemand, importToken]);
+
   // entrance animation: tiles fade in top-left → bottom-right when an episode
   // opens (importToken changes, including app startup auto-open). the class is
   // only applied during a short window and then removed, CSS animations replay
@@ -556,7 +562,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
                 scoutHasFlowClip ? (
                   <>No scenes found for this clip.<br/>Add a database to the Searching list on the left, or lower the minimum score in Search options.</>
                 ) : (
-                  <>No clip to continue yet.<br/>Choose a clip above, or select one in your Library and click Find flowing clips.</>
+                  <>No clip to continue yet.<br/>Input an episode above, or select a clip in your Library and click Find flowing clips.</>
                 )
               )
               : activePage === "sceneScout"

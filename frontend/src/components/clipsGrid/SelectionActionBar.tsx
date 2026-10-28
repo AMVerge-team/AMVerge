@@ -61,7 +61,7 @@ export function SelectionActionBar() {
                 }}
               >
                 <FaWater />
-                <span>Find flowing clips</span>
+                <span>Find clips that flow</span>
               </button>
             </span>
           </Tooltip>

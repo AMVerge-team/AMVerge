@@ -11,6 +11,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { ClipItem } from "../../types/domain";
 import { SceneWebpJob } from "./types";
 import { cancelIdle, scheduleIdle, type IdleHandle } from "../../utils/idle";
+import { imageThumbnail } from "../../utils/mediaSrc";
 
 const WEBP_THUMBNAIL_CACHE = new Map<string, string>();
 // cache keys include the importToken, so every episode (re)open adds a fresh set
@@ -143,7 +144,8 @@ export function useWebpPreview({
   const webpEnd = Math.min(rawWebpEnd > webpStart ? rawWebpEnd : webpStart + 2, webpStart + 2.5);
 
   const hasAnimatedWebp = Boolean(previewWebpPath);
-  const displayThumbnailPath = clip.thumbnail || clip.src;
+  // never clip.src: a webp episode's src is the whole source video, which an <img> reads entirely into memory
+  const displayThumbnailPath = imageThumbnail(clip.thumbnail) ?? "";
 
   const webpFileSrc = previewWebpPath
     ? `${convertFileSrc(previewWebpPath)}?v=${importToken}`
@@ -232,17 +234,10 @@ export function useWebpPreview({
     if (previewWebpPath) setThumbnailFailed(false);
   }, [previewWebpPath]);
 
+  // the poster failed: show the skeleton until the webp arrives, rather than falling back to the video
   const handleThumbnailError = useCallback(() => {
-    const fallbackCandidates = [clip.thumbnail, clip.src]
-      .filter((value): value is string => Boolean(value));
-    const next = fallbackCandidates.find((candidate) => candidate !== thumbnailSrc);
-    if (next) {
-      setThumbnailSrc(next);
-      setThumbnailLoaded(false);
-      return;
-    }
     setThumbnailFailed(true);
-  }, [clip.src, clip.thumbnail, thumbnailSrc]);
+  }, []);
 
   return {
     displayThumbnailPath,

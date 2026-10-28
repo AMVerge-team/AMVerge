@@ -602,7 +602,8 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             }
           }
 
-          await get().loadDatabases();
+          // the lists above are already right; this only re-syncs counts, so the caller never waits on it
+          void get().loadDatabases();
         } catch (err) {
           set({ error: message(err) });
         }

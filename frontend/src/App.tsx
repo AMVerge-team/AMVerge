@@ -308,6 +308,24 @@ function App() {
   useEffect(() => {
     if (resumingEpisodeId) setImportUiActive(true);
   }, [resumingEpisodeId]);
+  // a webp episode's previews show in the same window, not the old standalone card
+  useEffect(() => {
+    if (webpLoadTotal > 0) setImportUiActive(true);
+  }, [webpLoadTotal]);
+
+  // previews are the only work left: the window reports them as its own job
+  const previewsOnly =
+    webpLoadTotal > 0 &&
+    !loading &&
+    !activeOperation &&
+    !resumingEpisodeId &&
+    !bgProgress &&
+    !bgImportProgress &&
+    !reencodeProgress &&
+    reencodeQueueLength === 0;
+  const openedEpisodeName = useEpisodePanelRuntimeStore(
+    (s) => s.episodes.find((e) => e.id === s.openedEpisodeId)?.displayName
+  );
   useEffect(() => {
     if (!loading && !bgActive) {
       setImportUiActive(false);
@@ -331,16 +349,27 @@ function App() {
     if (bg || bgImport || reenc || op === "scout_add" || op === "scout_open" || op === "scout_search" || op === "scout_thumbnails") {
       await handleAbort();
     }
+    const pauseWebps = pauseWebpGeneration();
     clearBgProgress();
-    useWebpLoadingStore.getState().dismiss();
+    pauseWebps();
+  }
+
+  // closing the card pauses webp previews still to make, like closing an import; the episode row resumes them
+  function pauseWebpGeneration(): () => void {
+    const { total, done } = useWebpLoadingStore.getState();
+    const episodeId = useEpisodePanelRuntimeStore.getState().openedEpisodeId;
+    return () => {
+      if (total > done) useWebpLoadingStore.getState().pause(episodeId);
+    };
   }
 
   // "stop it and continue" in ProcessConflictModal: the same stop the progress window's ✕ does
   useEffect(() => {
     registerProcessAbort(async () => {
       await handleAbort();
+      const pauseWebps = pauseWebpGeneration();
       clearBgProgress();
-      useWebpLoadingStore.getState().dismiss();
+      pauseWebps();
     });
   });
 
@@ -471,14 +500,15 @@ function App() {
       loadingOverlay={
         importUiActive ? (
           <ImportTerminal
-            progress={progress}
-            progressMsg={progressMsg}
+            progress={previewsOnly ? Math.round((webpLoadDone / webpLoadTotal) * 100) : progress}
+            progressMsg={previewsOnly ? `Generating previews ${webpLoadDone}/${webpLoadTotal}` : progressMsg}
             batchTotal={batchTotal}
             batchDone={batchDone}
             batchCurrentFile={batchCurrentFile || ""}
-            onAbort={handleAbort}
-            commandLabel={batchCurrentFile || resumingEpisodeName || undefined}
-            operation={activeOperation ?? (resumingEpisodeId ? "resume" : "import")}
+            // abort on previews pauses them, the same as closing the window
+            onAbort={previewsOnly ? handleAbortAndCloseBgProgress : handleAbort}
+            commandLabel={batchCurrentFile || resumingEpisodeName || (previewsOnly ? openedEpisodeName : undefined) || undefined}
+            operation={activeOperation ?? (resumingEpisodeId ? "resume" : previewsOnly ? "previews" : "import")}
             detectionMethod={sceneDetectionMethod}
             importMethod={importMethodSetting}
             minimized={overlayMinimized}
@@ -494,7 +524,8 @@ function App() {
                 importDone={bgImportProgress?.done ?? 0}
                 importTotal={bgImportProgress?.total ?? 0}
                 webpDone={webpLoadDone}
-                webpTotal={webpLoadTotal}
+                // the window's own bar already shows previews when they are the job
+                webpTotal={previewsOnly ? 0 : webpLoadTotal}
                 onClose={handleAbortAndCloseBgProgress}
                 attached
               />

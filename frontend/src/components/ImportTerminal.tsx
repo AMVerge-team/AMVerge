@@ -17,7 +17,7 @@ interface ImportTerminalProps {
   batchDone: number;
   batchCurrentFile: string;
   onAbort: () => void;
-  operation?: "import" | "export" | "scout_add" | "scout_open" | "scout_search" | "scout_thumbnails" | "resume";
+  operation?: "import" | "export" | "scout_add" | "scout_open" | "scout_search" | "scout_thumbnails" | "resume" | "previews";
   commandLabel?: string;
   /** scene detection method for the synthesized command line (e.g. keyframe_detection) */
   detectionMethod?: string;
@@ -178,6 +178,9 @@ export default function ImportTerminal({
     } else if (operation === "resume") {
       const target = commandLabel ? `"${commandLabel}"` : "<episode>";
       pushLine("cmd", `amverge materialize-clips ${target} --resume`);
+    } else if (operation === "previews") {
+      const target = commandLabel ? `"${commandLabel}"` : "<episode>";
+      pushLine("cmd", `ffmpeg libwebp ${target} --scene-previews`);
     } else {
       const target = commandLabel ? `"${commandLabel}"` : "<video>";
       pushLine("cmd", `amverge backend ${target} ${detectionMethod} ${importMethod}`);
@@ -217,6 +220,11 @@ export default function ImportTerminal({
           const { scene_index, clip_path, clip_mode } = e.payload;
           const name = clip_path ? fileNameOf(clip_path) : `scene_${scene_index}`;
           pushLine("event", `✓ ${name} · ${clip_mode || "done"}`);
+        }),
+        // a webp episode's scene previews, encoded by the app's own ffmpeg rather than the cli
+        listen<{ sceneId: string; path: string }>("scene_webp_ready", (e) => {
+          const scene = e.payload.sceneId.split("::")[0].split("_").pop();
+          pushLine("event", `✓ scene ${scene} · preview`);
         }),
         listen("phase1_complete", () => {
           pushLine(
@@ -319,7 +327,7 @@ export default function ImportTerminal({
           <span className="lm-title">
             {isBatch
               ? (operation === "scout_add" ? "Embedding videos" : "Importing videos")
-              : progressMsg || (operation === "scout_add" ? "Embedding scenes…" : operation === "scout_open" ? "Opening database…" : operation === "scout_search" ? "Searching scenes…" : operation === "scout_thumbnails" ? "Generating thumbnails…" : "Finishing import…")}
+              : progressMsg || (operation === "scout_add" ? "Embedding scenes…" : operation === "scout_open" ? "Opening database…" : operation === "scout_search" ? "Searching scenes…" : operation === "scout_thumbnails" ? "Generating thumbnails…" : operation === "previews" ? "Generating previews…" : "Finishing import…")}
           </span>
           <div className="lm-actions">
             <Tooltip content="Expand">

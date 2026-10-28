@@ -47,8 +47,8 @@ function FlowInfo() {
       <ol>
         <li>Add the databases to search to the Searching list on the left.</li>
         <li>
-          Press the find matches button and pick a video file, or select one clip in your Library or in Search
-          results and click Find flowing clips.
+          Press Import and pick a video file, or select one clip in your Library or in Search
+          results and click Find clips that flow.
         </li>
         <li>Click a match to play it in the preview pane, and export it from there as usual.</li>
       </ol>

@@ -90,6 +90,8 @@ fn main() {
             commands::preview::generate_scene_webp,
             commands::preview::generate_scene_webp_batch,
             commands::preview::lookup_scene_webp_cache_batch,
+            commands::preview::preview_cache_size,
+            commands::preview::clear_preview_cache,
             commands::cache::delete_episode_cache,
             commands::cache::clear_episode_panel_cache,
             commands::scenepacks::materialize_scenepack_clips,
@@ -124,6 +126,11 @@ fn main() {
             commands::discord::discord_rpc_status,
             commands::discord::discord_rpc_app_info,
         ])
+        .setup(|app| {
+            // the preview cache only grows while the app runs, so it is brought under its cap on launch
+            commands::preview::cache::prune_in_background(app.handle());
+            Ok(())
+        })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
                 kill_all_child_processes(&window.app_handle().clone());

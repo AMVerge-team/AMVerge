@@ -37,11 +37,26 @@ export default function FeaturesSection() {
   const [busy, setBusy] = useState<FeatureId | "env" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmScenepacksOff, setConfirmScenepacksOff] = useState(false);
+  const [previewCacheBytes, setPreviewCacheBytes] = useState(0);
+  const [clearingPreviews, setClearingPreviews] = useState(false);
   const importRunning = useAppStateStore(() => runningProcess() === "import");
 
   useEffect(() => {
     void useAiDepsStore.getState().refresh();
+    invoke<number>("preview_cache_size").then(setPreviewCacheBytes).catch(() => {});
   }, []);
+
+  // whatever is left is in use right now (a preview on screen, an encode running)
+  const clearPreviewCache = async () => {
+    setClearingPreviews(true);
+    try {
+      setPreviewCacheBytes(await invoke<number>("clear_preview_cache"));
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setClearingPreviews(false);
+    }
+  };
 
   // dev builds run the cli checkout's venv: nothing is downloaded or removed from here
   const managed = status?.managed ?? true;
@@ -106,7 +121,7 @@ export default function FeaturesSection() {
   const packagesBytes = (status?.envSizeBytes ?? 0) + (status?.pythonSizeBytes ?? 0);
   const modelsBytes = status?.modelsSizeBytes ?? 0;
   const scoutModelBytes = status?.scoutModelSizeBytes ?? 0;
-  const totalBytes = packagesBytes + modelsBytes + scoutModelBytes;
+  const totalBytes = packagesBytes + modelsBytes + scoutModelBytes + previewCacheBytes;
 
   return (
     <section className="panel menu-panel settings-panel">
@@ -230,6 +245,23 @@ export default function FeaturesSection() {
             label="Scene Scout model"
             description="SigLIP 2, kept in the shared Hugging Face cache, so other apps that use it share this copy."
             control={<span className="settings-value aid-size">{formatBytes(scoutModelBytes)}</span>}
+          />
+          <SettingRow
+            label="Preview cache"
+            description="Playable previews of Scene Scout results and Flow clips. Kept under 1 GB automatically, oldest first, and remade when needed."
+            control={
+              <div className="aid-pack-row">
+                <span className="settings-value aid-size">{formatBytes(previewCacheBytes)}</span>
+                <button
+                  type="button"
+                  className="aid-btn"
+                  onClick={() => void clearPreviewCache()}
+                  disabled={clearingPreviews || previewCacheBytes === 0}
+                >
+                  {clearingPreviews ? "Clearing…" : "Clear"}
+                </button>
+              </div>
+            }
           />
           <SettingRow
             label="Total"

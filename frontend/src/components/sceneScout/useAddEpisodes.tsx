@@ -101,10 +101,7 @@ export function useAddEpisodes() {
 
         <div className="scout-add-columns">
           <section className="scout-add-column">
-            <h3>Import a pre-cut episode</h3>
-            <p className="scout-add-hint">
-              Episodes already in your Library. Their scenes are reused, so scene detection is skipped.
-            </p>
+            <h3>Pick an episode from your library</h3>
             <div className="scout-add-list" role="listbox" aria-multiselectable="true" aria-label="Library episodes">
               {offered.map((episode) => {
                 const isPicked = picked.has(episode.id);
@@ -142,10 +139,7 @@ export function useAddEpisodes() {
           <div className="scout-add-divider" aria-hidden="true" />
 
           <section className="scout-add-column scout-add-full">
-            <h3>Import a full episode</h3>
-            <p className="scout-add-hint">
-              Pick a video file from your computer. Its scenes are detected before indexing.
-            </p>
+            <h3>Pick a video file from your computer</h3>
             <button type="button" className="event-host-btn scout-add-pick" onClick={() => void pickFullEpisodes()}>
               <ImportIcon />
               Choose video…

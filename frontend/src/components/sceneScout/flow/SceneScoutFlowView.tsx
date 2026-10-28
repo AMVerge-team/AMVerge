@@ -2,6 +2,9 @@ import { useRef } from "react";
 import type { PointerEvent } from "react";
 
 import ClipsContainer from "../../clipsGrid/ClipsContainer";
+import Tooltip from "../../common/Tooltip";
+import { ImportIcon } from "../../icons/ToolbarIcons";
+import { pickFlowClip } from "../../../features/sceneScout/pickFlowClip";
 import { useSceneScoutStore } from "../../../stores/sceneScoutStore";
 import { useUIStateStore } from "../../../stores/UIStore";
 import { FlowPlayer } from "./FlowPlayer";
@@ -17,6 +20,8 @@ const MIN_GRID_PX = 160;
  */
 export function SceneScoutFlowView() {
   const flowFrom = useSceneScoutStore((s) => s.flowFrom);
+  const noDatabase = useSceneScoutStore((s) => s.selectedDatabases.length === 0);
+  const startFlowSearch = useSceneScoutStore((s) => s.startFlowSearch);
   const playerHeight = useUIStateStore((s) => s.flowPlayerHeightPx);
   const setPlayerHeight = useUIStateStore((s) => s.setFlowPlayerHeightPx);
   const viewRef = useRef<HTMLDivElement>(null);
@@ -31,6 +36,11 @@ export function SceneScoutFlowView() {
     const frame = input.querySelector(".scene-scout-flow-player-frame");
     const labelBlock = box && frame ? frame.getBoundingClientRect().top - box.getBoundingClientRect().top : 0;
     return parseFloat(style.paddingTop) + labelBlock + (innerWidth * 9) / 16;
+  };
+
+  const pickClip = async () => {
+    const source = await pickFlowClip();
+    if (source) void startFlowSearch(source);
   };
 
   const startResize = (e: PointerEvent<HTMLDivElement>) => {
@@ -59,7 +69,20 @@ export function SceneScoutFlowView() {
   return (
     <div ref={viewRef} className="scene-scout-view scene-scout-flow-view">
       <div ref={inputRef} className="scene-scout-flow-input" style={{ height: playerHeight }}>
-        <FlowPlayer source={flowFrom} empty="Input a file, or select a clip in your Library and click Find flowing clips." />
+        <FlowPlayer
+          source={flowFrom}
+          empty={
+            <Tooltip content={noDatabase ? "Add a database to the Searching list on the left first" : "Input a file to find scene matches"}>
+              {/* wrapper span: a disabled button fires no pointer events, so the tooltip listens on it instead */}
+              <span className="tooltip-anchor">
+                <button type="button" className="event-host-btn scout-add-pick" onClick={() => void pickClip()} disabled={noDatabase}>
+                  <ImportIcon />
+                  Input episode
+                </button>
+              </span>
+            </Tooltip>
+          }
+        />
       </div>
 
       <div

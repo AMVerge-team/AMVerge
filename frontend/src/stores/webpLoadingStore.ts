@@ -15,14 +15,16 @@ import { create } from "zustand";
 export type WebpLoadingStore = {
   total: number;
   done: number;
-  /**
-   * the user closed the background-tasks card. generation continues (results
-   * are cached either way), but the card stays hidden until the queue is reset
-   * otherwise the next progress update would pop it straight back open.
-   */
+  /** the card is hidden: true while generation is paused */
   dismissed: boolean;
+  /**
+   * the episode whose WebP generation the user paused by closing the card; the
+   * queue starts no new encodes while it is set, and the episode row offers resume
+   */
+  pausedEpisodeId: string | null;
   setProgress: (total: number, done: number) => void;
-  dismiss: () => void;
+  pause: (episodeId: string | null) => void;
+  resume: () => void;
   reset: () => void;
 };
 
@@ -30,15 +32,16 @@ export const useWebpLoadingStore = create<WebpLoadingStore>((set) => ({
   total: 0,
   done: 0,
   dismissed: false,
+  pausedEpisodeId: null,
   setProgress: (total, done) =>
     set((s) => (s.total === total && s.done === done ? s : { total, done })),
-  dismiss: () => set((s) => (s.dismissed ? s : { dismissed: true })),
-  // called when the queue resets (episode switch / new import), which re-arms
-  // the card for the next episode
+  pause: (episodeId) => set({ dismissed: true, pausedEpisodeId: episodeId }),
+  resume: () => set({ dismissed: false, pausedEpisodeId: null }),
+  // called when the queue resets (episode switch / new import): the next episode starts unpaused
   reset: () =>
     set((s) =>
-      s.total === 0 && s.done === 0 && !s.dismissed
+      s.total === 0 && s.done === 0 && !s.dismissed && s.pausedEpisodeId === null
         ? s
-        : { total: 0, done: 0, dismissed: false },
+        : { total: 0, done: 0, dismissed: false, pausedEpisodeId: null },
     ),
 }));

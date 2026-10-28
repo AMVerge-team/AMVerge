@@ -487,7 +487,7 @@
     font-family: var(--app-font);
     font-size: 1.3rem;
     font-weight: 500;
-    text-align: center;
+    text-align: left;
 }
 
 .scout-add-columns {
@@ -509,13 +509,6 @@
     font-size: 14px;
     font-weight: 600;
     color: var(--accent);
-}
-
-.scout-add-hint {
-    margin: 0;
-    font-size: 12px;
-    line-height: 1.4;
-    color: rgba(255, 255, 255, 0.6);
 }
 
 .scout-add-divider {

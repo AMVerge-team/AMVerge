@@ -254,15 +254,23 @@ export default function useEpisodePanelState() {
 		// removing the entry from the panel without this left the cut clips,
 		// posters and proxies on disk forever. read the path at call time rather
 		// than subscribing; this hook is used by the whole episode panel
-		try {
-			await invoke("delete_episode_cache", {
-				episodeCacheId: episodeId,
-				customPath: useGeneralSettingsStore.getState().episodesPath,
-			});
-		} catch (err) {
-			// the panel entry is already gone; surface the disk failure without
-			// putting the episode back, since the user asked for it to be removed
-			console.error("[episode] failed to delete cache folder", { episodeId, err });
+		// windows refuses to delete files still open (tiles, a finishing encode), so a failed delete waits and retries
+		for (let attempt = 1; attempt <= 4; attempt++) {
+			try {
+				await invoke("delete_episode_cache", {
+					episodeCacheId: episodeId,
+					customPath: useGeneralSettingsStore.getState().episodesPath,
+				});
+				break;
+			} catch (err) {
+				if (attempt < 4) {
+					await new Promise((resolve) => setTimeout(resolve, 400));
+					continue;
+				}
+				// the panel entry is already gone; surface the disk failure without
+				// putting the episode back, since the user asked for it to be removed
+				console.error("[episode] failed to delete cache folder", { episodeId, err });
+			}
 		}
 	};
 

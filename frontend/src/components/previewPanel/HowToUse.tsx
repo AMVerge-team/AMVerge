@@ -39,7 +39,7 @@ function steps(guide: Guide, mod: string): React.ReactNode[] {
       ];
     case "sceneScoutFlow":
       return [
-        <>Click <b>Input a file</b>, or select one clip and click <b>Find flowing clips</b></>,
+        <>Click <b>Import</b>, or select one clip and click <b>Find clips that flow</b></>,
         <>Matches are scenes that look like they continue from your clip's last frame</>,
         <>Drag the line between your clip and the matches to resize them</>,
         <>Single click a match to <b>Preview</b> it</>,

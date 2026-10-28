@@ -4,6 +4,7 @@ import PreviewContainer from "./components/previewPanel/PreviewContainer";
 import { useAppStateStore } from "./stores/appStore";
 import { useUIStateStore } from "./stores/UIStore";
 import { useViewportAlignedDivider } from "./hooks/useViewportAlignedDivider";
+import { imageThumbnail } from "./utils/mediaSrc";
 
 /** drag the divider past this share of the width and the preview pane folds away */
 const COLLAPSE_AT_PERCENT = 90;
@@ -49,12 +50,13 @@ export default function MainLayout({
 
     const focusedClipThumbnail = useMemo(
         () => {
+            // only real images: an old webp episode's "thumbnail" is the source video itself
             if (focusedClipId) {
-                const byId = clips.find((c) => c.id === focusedClipId);
-                if (byId?.thumbnail) return byId.thumbnail;
+                const byId = imageThumbnail(clips.find((c) => c.id === focusedClipId)?.thumbnail);
+                if (byId) return byId;
             }
             return focusedClip
-                ? clips.find((c) => c.src === focusedClip)?.thumbnail ?? null
+                ? imageThumbnail(clips.find((c) => c.src === focusedClip)?.thumbnail) ?? null
                 : null;
         },
         [focusedClip, focusedClipId, clips]

@@ -24,6 +24,20 @@ export function mediaSrc(pathOrUrl: string): string {
   return convertFileSrc(pathOrUrl);
 }
 
+const IMAGE_FILE = /\.(jpe?g|png|webp|gif|bmp|avif)$/i;
+
+/**
+ * The thumbnail only if it is an actual image (a file or an inline `data:` URL).
+ *
+ * WebP-mode episodes imported before the fix carry the source video as their
+ * "thumbnail". An `<img>` cannot ask for a byte range, so pointing one at a video
+ * made the app read the whole episode into memory for every tile, and it crashed.
+ */
+export function imageThumbnail(path: string | null | undefined): string | undefined {
+  if (!path) return undefined;
+  return path.startsWith("data:") || IMAGE_FILE.test(path.split("?")[0]) ? path : undefined;
+}
+
 /**
  * As above, with the import token appended for cache busting.
  *
