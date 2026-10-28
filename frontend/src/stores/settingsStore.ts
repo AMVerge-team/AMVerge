@@ -131,10 +131,11 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     previewTranscodeQuality: "480p",
     postExportPasses: DEFAULT_POST_EXPORT_PASSES,
     scenepacksEnabled: false,
-    aiSceneDetectionEnabled: true,
-    sceneScoutEnabled: true,
-    depthPassEnabled: true,
-    interpolationPassEnabled: true,
+    // a fresh install starts with every feature off; switching one on downloads what it needs
+    aiSceneDetectionEnabled: false,
+    sceneScoutEnabled: false,
+    depthPassEnabled: false,
+    interpolationPassEnabled: false,
     hideDisabledFeatures: false,
     davinciResolveEnabled: false,
     davinciExportSelected: false,
@@ -336,8 +337,20 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                         ? rawExportFormat
                         : "mp4";
 
+                // settings saved before these switches existed had every feature on; an update keeps it that way
+                const featuresBeforeToggles =
+                    persistedState && persisted.aiSceneDetectionEnabled === undefined
+                        ? {
+                              aiSceneDetectionEnabled: true,
+                              sceneScoutEnabled: true,
+                              depthPassEnabled: true,
+                              interpolationPassEnabled: true,
+                          }
+                        : {};
+
                 return {
                     ...currentState,
+                    ...featuresBeforeToggles,
                     ...persisted,
                     exportProfiles: persistedProfiles,
                     activeExportProfileId,

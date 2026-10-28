@@ -15,6 +15,10 @@ pub(crate) const TORCH_CUDA_INDEX_GPU_DECODE: &str = "https://download.pytorch.o
 /// pinned, not a floor: Nelux checks torch's minor on import and refuses a mismatch
 pub(crate) const TORCH_PIN_GPU_DECODE: &str = "torch==2.13.*";
 
+/// the last Nelux built against torch 2.13 (0.19+ is 2.14). its metadata names no torch,
+/// so unpinned uv takes the newest and the import then refuses. move both pins together
+pub(crate) const NELUX_PIN_GPU_DECODE: &str = "nelux==0.18.*";
+
 /// Turing. read from `nvidia-smi --query-gpu=compute_cap`, so no torch needed
 pub(crate) const GPU_DECODE_MIN_COMPUTE: f32 = 7.5;
 

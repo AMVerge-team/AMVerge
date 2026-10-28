@@ -7,7 +7,7 @@ import {
 } from "../../stores/settingsStore";
 import { useAppStateStore } from "../../stores/appStore";
 import { useUIStateStore } from "../../stores/UIStore";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SettingRow from "../common/SettingRow";
 import Dropdown from "../common/Dropdown";
 import SettingsSection from "../common/SettingsSection";
@@ -90,6 +90,11 @@ export default function GeneralSettings({
   // rather than failing later, mid-import
   const aiStatus = useAiDepsStore((s) => s.status);
   const mlInstalled = isPackInstalled(aiStatus, "ml");
+  const aiDepsBusy = useAiDepsStore((s) => s.stage === "installing");
+
+  useEffect(() => {
+    if (!useAiDepsStore.getState().status) void useAiDepsStore.getState().refresh();
+  }, []);
 
   const handleSceneDetectionChange = async (method: SceneDetectionMethod) => {
     if (method === "transnetv2_gpu" && !mlInstalled) {
@@ -200,6 +205,31 @@ export default function GeneralSettings({
               />
             }
           />
+
+          {/* only once AI Scene Detection is installed and on, since only it decodes this way */}
+          {generalSettings.aiSceneDetectionEnabled && mlInstalled && (
+            <SettingRow
+              label="GPU Decoding"
+              description={
+                !aiStatus?.managed
+                  ? "Dev build: install nelux into the CLI checkout's venv instead."
+                  : aiStatus.gpuDecodeSupported
+                    ? "Decode video on the NVIDIA GPU during AI Scene Detection. Much faster on long episodes."
+                    : "Needs an NVIDIA GTX 16-series, RTX 20-series or newer GPU."
+              }
+              control={
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={Boolean(aiStatus?.gpuDecodeInstalled)}
+                  aria-label="GPU Decoding"
+                  className="aid-switch"
+                  disabled={!aiStatus?.managed || !aiStatus.gpuDecodeSupported || aiDepsBusy}
+                  onClick={() => void useAiDepsStore.getState().setGpuDecode(!aiStatus?.gpuDecodeInstalled)}
+                />
+              }
+            />
+          )}
         </SettingsSection>
 
         <SettingsSection id="general.preview" title="Preview & Playback">

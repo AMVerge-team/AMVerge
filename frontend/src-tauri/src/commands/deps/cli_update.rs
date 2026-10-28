@@ -13,7 +13,7 @@ use crate::utils::logging::console_log;
 use crate::utils::sidecar::{ai_env_python, ai_env_ready, bundled_cli_version, uv_cache_dir};
 
 use super::install::run_uv_step;
-use super::packs::PACKS;
+use super::packs::{NELUX_PIN_GPU_DECODE, PACKS, TORCH_PIN_GPU_DECODE};
 use super::status::{installed_distributions, uv_command};
 
 const PYPI_JSON: &str = "https://pypi.org/pypi/amverge/json";
@@ -162,7 +162,8 @@ pub async fn update_ai_cli(
         .filter(|p| p.requires.iter().all(|dist| installed_dists.contains_key(&dist.to_lowercase())))
         .map(|p| p.extra)
         .collect();
-    if installed_dists.contains_key("nelux") {
+    let has_nelux = installed_dists.contains_key("nelux");
+    if has_nelux {
         extras.push("nelux");
     }
     let spec = if extras.is_empty() {
@@ -177,6 +178,10 @@ pub async fn update_ai_cli(
     let outcome = tokio::task::spawn_blocking(move || -> Result<(), String> {
         let mut cmd = uv_command(&app_for_task)?;
         cmd.arg("pip").arg("install").arg("--python").arg(&python_for_task).arg(&spec);
+        // also repairs an env that took a Nelux built for a newer torch
+        if has_nelux {
+            cmd.arg(TORCH_PIN_GPU_DECODE).arg(NELUX_PIN_GPU_DECODE);
+        }
         let result = run_uv_step(&app_for_task, &state_for_task, "cli", cmd, "CLI update");
         // same as pack installs: the wheel cache is a second copy of every download
         if let Ok(cache) = uv_cache_dir(&app_for_task) {

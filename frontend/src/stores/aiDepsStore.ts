@@ -56,6 +56,8 @@ export type AiDepsStore = {
   /// re-resolve every installed pack against the CUDA index. for an env that
   /// ended up on a CPU torch despite the machine having an NVIDIA GPU
   repairGpu: () => Promise<void>;
+  /// adds or removes Nelux (NVDEC decode) in the AI env, which AI Scene Detection then uses
+  setGpuDecode: (enabled: boolean) => Promise<void>;
   cancel: () => void;
   close: () => void;
   minimize: () => void;
@@ -149,12 +151,9 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
       error: null,
     });
 
-    // gpu decode ships with ai scene detection on cards that can run it, never as a separate choice;
-    // undefined for every other pack, so they keep whatever profile the env already has
-    const gpuDecode = pack === "ml" && gpu && status?.gpuDecodeSupported ? true : undefined;
-
     try {
-      const next = await invoke<AiEnvStatus>("install_ai_pack", { pack, gpu, gpuDecode });
+      // gpuDecode left out: GPU decoding is its own setting, and the env keeps whatever it has
+      const next = await invoke<AiEnvStatus>("install_ai_pack", { pack, gpu, gpuDecode: undefined });
       const installed = Boolean(next.packs?.[pack]);
       set({
         status: next,
@@ -224,6 +223,45 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
         indeterminate: false,
         error: String(err),
         message: "Reinstall failed.",
+      });
+      await get().refresh();
+    }
+  },
+
+  setGpuDecode: async (enabled) => {
+    settle(false);
+    set({
+      open: true,
+      pack: "ml",
+      stage: "installing",
+      percent: 0,
+      indeterminate: true,
+      message: enabled ? "Installing GPU decoding..." : "Removing GPU decoding...",
+      logs: [],
+      error: null,
+      job: enabled
+        ? { title: "GPU decoding", done: "GPU decoding installed" }
+        : { title: "Removing GPU decoding", done: "GPU decoding removed" },
+    });
+
+    try {
+      // Nelux needs the CUDA build, so turning it on always asks for it
+      const next = await invoke<AiEnvStatus>("install_ai_pack", { pack: "ml", gpu: true, gpuDecode: enabled });
+      const ok = next.gpuDecodeInstalled === enabled;
+      set({
+        status: next,
+        stage: ok ? "done" : "error",
+        percent: 100,
+        indeterminate: false,
+        message: ok ? (enabled ? "GPU decoding installed." : "GPU decoding removed.") : "Nothing changed.",
+        error: ok ? null : enabled ? "Nelux is still missing after the install." : "Nelux is still installed.",
+      });
+    } catch (err) {
+      set({
+        stage: "error",
+        indeterminate: false,
+        error: String(err),
+        message: enabled ? "Install failed." : "Removal failed.",
       });
       await get().refresh();
     }

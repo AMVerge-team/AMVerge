@@ -10,8 +10,8 @@ use crate::utils::sidecar::{
 };
 
 use super::packs::{
-    Pack, AI_ENV_PYTHON_VERSION, AI_ENV_PYTHON_VERSION_GPU_DECODE, PACKS, TORCH_CUDA_INDEX,
-    TORCH_CUDA_INDEX_GPU_DECODE, TORCH_FAMILY, TORCH_PIN_GPU_DECODE,
+    Pack, AI_ENV_PYTHON_VERSION, AI_ENV_PYTHON_VERSION_GPU_DECODE, NELUX_PIN_GPU_DECODE, PACKS,
+    TORCH_CUDA_INDEX, TORCH_CUDA_INDEX_GPU_DECODE, TORCH_FAMILY, TORCH_PIN_GPU_DECODE,
 };
 use super::status::env_python_version_of;
 use super::progress::{emit_log, emit_progress, report_uv_progress};
@@ -279,7 +279,7 @@ pub(crate) fn install_ai_pack_inner(
     }
 
     if want_nelux {
-        cmd.arg(TORCH_PIN_GPU_DECODE);
+        cmd.arg(TORCH_PIN_GPU_DECODE).arg(NELUX_PIN_GPU_DECODE);
     }
 
     if gpu {

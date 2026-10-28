@@ -33,7 +33,7 @@ export const FEATURES: FeatureDef[] = [
     id: "aiSceneDetection",
     label: "AI Scene Detection",
     description:
-      "Finds scene cuts with AI (TransNetV2), the most accurate way to import. On a supported NVIDIA GPU it also decodes video on the GPU.",
+      "Finds scene cuts with AI (TransNetV2), the most accurate way to import.",
     setting: "aiSceneDetectionEnabled",
     pack: "ml",
   },
