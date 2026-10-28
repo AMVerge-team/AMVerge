@@ -24,6 +24,7 @@ import PostExportPassesModal from "./components/PostExportPassesModal";
 import AiInstallModal from "./components/AiInstallModal";
 import ProcessConflictModal from "./components/ProcessConflictModal";
 import { registerProcessAbort } from "./features/processes/singleProcess";
+import { clearReencodeQueue } from "./features/import/reencodeQueue";
 
 import useDiscordRPC from "./hooks/useDiscordRPC";
 import useHEVCSupport from "./hooks/useHEVCSupport";
@@ -63,6 +64,7 @@ function App() {
   const bgProgress = useAppStateStore((s) => s.bgProgress);
   const bgImportProgress = useAppStateStore((s) => s.bgImportProgress);
   const reencodeProgress = useAppStateStore((s) => s.reencodeProgress);
+  const reencodeQueueLength = useAppStateStore((s) => s.reencodeQueue.length);
   // scene scout indexing reports two counted stages, so the card names whichever is running
   const scoutIndexStage = useSceneScoutStore((s) => s.indexing?.stage);
   const scoutAddLabel = scoutIndexStage === "sampling" ? "Sampling frames" : "Embedding scenes";
@@ -267,6 +269,8 @@ function App() {
 
   async function handleAbort() {
     abortedRef.current = true;
+    // emptied first, so the resume stopped below does not start the next episode
+    clearReencodeQueue();
 
     try {
       await Promise.allSettled([
@@ -281,8 +285,9 @@ function App() {
     }
   }
 
+  // the queue counts between its episodes too, so the mini window does not close and reopen
   const bgActive =
-    !!(bgProgress || bgImportProgress || reencodeProgress) || webpLoadTotal > 0;
+    !!(bgProgress || bgImportProgress || reencodeProgress) || reencodeQueueLength > 0 || webpLoadTotal > 0;
   const [importUiActive, setImportUiActive] = useState(false);
   // null = follow auto behaviour; true/false = user's explicit minimize choice
   const [minimizeOverride, setMinimizeOverride] = useState<boolean | null>(null);

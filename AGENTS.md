@@ -263,8 +263,8 @@ frontend/
 |---------|--------|---------|
 | `detect_scenes` | scenes.rs | Spawn CLI sidecar, stream progress events |
 | `load_episode_manifest` | scenes.rs | Read cached `manifest.json` from disk |
-| `abort_detect_scenes` | scenes.rs | Kill sidecar process group |
-| `resume_episode_clips` | scene_resume.rs | Resume a paused video-mode episode (import stopped by closing the CLI mini window or the app): re-cuts missing clips/posters in one `materialize-clips --cut-mode copy|auto` run (mode from the manifest's detection method, so keyframe-exact scenes stream-copy like the import did; CLI streams `MATERIALIZED|<json>` per item), streams `clip_ready`/`thumbnail_ready`. Started from the episode row's resume button (`features/import/resumeEpisode.ts`); "paused" is derived from unfinished clips, never stored |
+| `abort_detect_scenes` | scenes.rs | Kill sidecar process groups: one episode's (`episodeCacheId`) or all. `ActiveSidecar` tracks every running backend by pid, since a batch can overlap two |
+| `resume_episode_clips` | scene_resume.rs | Resume a paused video-mode episode (import stopped by closing the CLI mini window or the app): re-cuts missing clips/posters in one `materialize-clips --cut-mode copy|auto` run (mode from the manifest's detection method, so keyframe-exact scenes stream-copy like the import did; CLI streams `MATERIALIZED|<json>` per item), streams `clip_ready`/`thumbnail_ready`. Only the re-encode queue (`features/import/reencodeQueue.ts`) starts it: an import's handed-off re-encodes and the episode row's resume button both go through it, so one runs at a time. "Paused" is derived from unfinished clips (never stored) and excludes queued episodes |
 | `abort_resume_episode` | scene_resume.rs | Pause a running resume (kills its cutter; remaining clips stay unfinished, not failed) |
 | `unique_export_base_name` | export.rs | First free `name`, `name (1)`, ... in the export folder so merged exports never overwrite |
 | `export_clips` | export.rs | Spawn CLI export, stream progress |
@@ -392,7 +392,7 @@ useImportExport.ts: handleImport(file)
   │   │     ├─ Read stdout → build final manifest.json
   │   │     └─ On exit: write manifest.json to disk
   │   │
-  │   └─ Resolves on phase1_complete OR process end; AI previews continue encoding in the background
+  │   └─ Resolves on phase1_complete OR process end. Clips still uncut then (AI re-encodes) are handed off: the episode's CLI is killed (`abort_detect_scenes` with its `episodeCacheId`) and the episode joins the re-encode queue (`features/import/reencodeQueue.ts`), which finishes one episode at a time through `resume_episode_clips`: the opened episode first (switching the moment another queued one is opened), the rest in queue order
   │
   └─ IF importMethod === "webp_files" (blocking):
       └─ await invoke("detect_scenes", ...) → blocks
@@ -586,7 +586,7 @@ App starts → main.tsx: maybeCheckForUpdatesOnStartup()
 
 10. **All child processes killed on close**: `on_window_event(CloseRequested)` walks all PID lists and kills every subprocess. That only runs on a normal close, so on Windows every ffmpeg / ffprobe / CLI / uv child also joins a kill-on-close Job Object right after spawning (`utils/process.rs`: `bind_to_app_lifetime`, or `output_bound` in place of `.output()`); a crash or Task Manager kill still takes the whole tree down. Any new ffmpeg or CLI spawn must do the same. Editors, Explorer and the updater are never bound, so they outlive the app.
 
-10b. **One long job at a time**: import, export, resume, Scene Scout add-episode and thumbnail generation each `await claimProcess(kind)` (`features/processes/singleProcess.ts`) before starting. If another job runs, `ProcessConflictModal` (the shared `ConfirmModal`) asks to stop it (App's abort, same as the progress window's ✕, then waits until idle) or keep it and drop the new one. Their buttons stay enabled so the question can be asked. A new long job must claim too.
+10b. **One long job at a time**: import, export, resume, Scene Scout add-episode and thumbnail generation each `await claimProcess(kind)` (the re-encode queue is the one exception: it runs beside the import that fed it) (`features/processes/singleProcess.ts`) before starting. If another job runs, `ProcessConflictModal` (the shared `ConfirmModal`) asks to stop it (App's abort, same as the progress window's ✕, then waits until idle) or keep it and drop the new one. Their buttons stay enabled so the question can be asked. A new long job must claim too.
 
 10c. **Settings > Features** (`FeaturesSection.tsx`, was Dependencies): one switch per major feature (`features/featureToggles.ts`: AI Scene Detection, Scene Scout, Scenepacks, Depth / Interpolation pass), persisted as `*Enabled` in general settings. Switching an AI feature on installs its pack; off keeps the files ("Free up space" removes them) and resets settings that pointed at it. A switched-off feature is greyed out wherever it appears, or left out when `hideDisabledFeatures` is on: read it with `useFeature(id)` (`isFeatureEnabled` outside components). GPU decode (Nelux) is its own switch in Settings > General under Scene Detection Method (`aiDepsStore.setGpuDecode` → `install_ai_pack` with `gpuDecode`), shown only while AI Scene Detection is on and installed; installing a pack leaves it as it is. Fresh installs start with every feature off; settings saved before the switches existed keep them on (`settingsStore` merge). Storage lists every byte: venv + uv Python, the CLI's `models` folder, and SigLIP 2 in the shared Hugging Face cache (counted, never deleted by the app).
 

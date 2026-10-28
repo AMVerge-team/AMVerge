@@ -163,11 +163,7 @@ fn kill_all_child_processes(app: &tauri::AppHandle) {
     pids.extend(drain_pids(&resume.pids));
 
     // Python sidecar (scene detection) process group
-    let sidecar = app.state::<ActiveSidecar>();
-    if let Ok(mut lock) = sidecar.child.lock() {
-        *lock = None;
-    }
-    pids.extend(take_pid(&sidecar.pid));
+    pids.extend(app.state::<ActiveSidecar>().take_pids(None));
 
     // an in-flight dependency install (uv + its download children)
     pids.extend(take_pid(&app.state::<ActiveInstall>().pid));

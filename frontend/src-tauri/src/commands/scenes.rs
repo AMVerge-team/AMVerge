@@ -13,7 +13,7 @@ use crate::payloads::{
     ClipReadyPayload, InitialClipsPayload, PairResultPayload, Phase1CompletePayload,
     ProgressPayload, ReencodeProgressPayload, ThumbnailReadyPayload,
 };
-use crate::state::ActiveSidecar;
+use crate::state::{ActiveSidecar, SidecarProc};
 use crate::utils::logging::{
     console_log, emit_console_log, sanitize_for_console, sanitize_line_with_known_paths,
 };
@@ -283,11 +283,11 @@ pub async fn detect_scenes(
     let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
     let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
 
-    if let Ok(mut lock) = sidecar_state.pid.lock() {
-        *lock = Some(child_pid);
-    }
-    if let Ok(mut lock) = sidecar_state.child.lock() {
-        *lock = Some(child);
+    if let Ok(mut procs) = sidecar_state.procs.lock() {
+        procs.insert(
+            child_pid,
+            SidecarProc { episode_cache_id: episode_cache_id.clone(), child },
+        );
     }
 
     let stderr_accum = Arc::new(Mutex::new(String::new()));
@@ -444,16 +444,14 @@ pub async fn detect_scenes(
 
     let _ = stderr_handle.await;
 
+    // an abort already took this process out of the map
     let child_for_wait = sidecar_state
-        .child
+        .procs
         .lock()
         .map_err(|e| e.to_string())?
-        .take();
+        .remove(&child_pid);
 
-    let Some(mut child_for_wait) = child_for_wait else {
-        if let Ok(mut lock) = sidecar_state.pid.lock() {
-            *lock = None;
-        }
+    let Some(SidecarProc { child: mut child_for_wait, .. }) = child_for_wait else {
         return Err("Scene detection was canceled.".to_string());
     };
 
@@ -461,10 +459,6 @@ pub async fn detect_scenes(
         .await
         .map_err(|e| format!("wait thread panicked: {e}"))?
         .map_err(|e| format!("Failed waiting for python: {e}"))?;
-
-    if let Ok(mut lock) = sidecar_state.pid.lock() {
-        *lock = None;
-    }
 
     console_log(
         "SCENE|end",
@@ -546,35 +540,30 @@ pub async fn load_episode_manifest(
 }
 
 #[tauri::command]
-pub async fn abort_detect_scenes(sidecar_state: State<'_, ActiveSidecar>) -> Result<(), String> {
-    let pid = sidecar_state
-        .pid
-        .lock()
-        .map_err(|e| e.to_string())?
-        .take();
+pub async fn abort_detect_scenes(
+    sidecar_state: State<'_, ActiveSidecar>,
+    episode_cache_id: Option<String>,
+) -> Result<(), String> {
+    // out of the map first, so detect_scenes' wait path sees it gone and reports a cancel
+    let pids = sidecar_state.take_pids(episode_cache_id.as_deref());
 
-    // drop the child handle so detect_scenes' wait path sees None and exits cleanly.
-    // dropping closes the pipes but does not kill the process, the kill below does that
-    {
-        let mut lock = sidecar_state.child.lock().map_err(|e| e.to_string())?;
-        *lock = None;
-    }
-
-    let Some(pid) = pid else {
+    if pids.is_empty() {
         console_log("ABORT", "no active sidecar to kill");
         return Ok(());
-    };
+    }
 
-    console_log("ABORT", &format!("killing process group pid={pid}"));
+    for pid in pids {
+        console_log("ABORT", &format!("killing process group pid={pid}"));
 
-    // the whole tree, so the ffmpeg children the Python backend spawned die too
-    let result = kill_process_tree_async(pid).await?;
+        // the whole tree, so the ffmpeg children the Python backend spawned die too
+        let result = kill_process_tree_async(pid).await?;
 
-    if result.status.success() {
-        console_log("ABORT", &format!("killed process group pid={pid} ok"));
-    } else {
-        let stderr = String::from_utf8_lossy(&result.stderr).trim().to_string();
-        console_log("ABORT", &format!("kill process group pid={pid} failed: {stderr}"));
+        if result.status.success() {
+            console_log("ABORT", &format!("killed process group pid={pid} ok"));
+        } else {
+            let stderr = String::from_utf8_lossy(&result.stderr).trim().to_string();
+            console_log("ABORT", &format!("kill process group pid={pid} failed: {stderr}"));
+        }
     }
 
     Ok(())

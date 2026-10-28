@@ -4,19 +4,17 @@ import { ClipItem, EpisodeEntry } from "../../types/domain";
 import { useAppStateStore } from "../../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore";
 import { createClipPatchBuffer } from "./clipPatchBuffer";
-import { claimProcess } from "../processes/singleProcess";
 
 /**
- * paused video-mode episodes and their resume
+ * paused video-mode episodes and finishing their clips
  *
- * an import stops early when the CLI mini window is closed or the app is closed.
- * the episode's clips are persisted as they stream, so everything finished is
- * kept; what is left is clips with no cut or no poster. such an episode is
- * "paused" (derived from its clips, nothing extra is stored) and the sidebar
- * offers to resume it. `resume_episode_clips` reports files already on disk and
- * re-cuts the rest, streaming the same clip_ready/thumbnail_ready events a live
- * import does, while the mini window shows its progress. closing that window
- * pauses it again
+ * a video-mode import hands its re-encodes to the re-encode queue once the fast
+ * previews are cut, and an import closed early (mini window or app closed) leaves
+ * clips behind too. the episode's clips are persisted as they stream, so what is
+ * left is clips with no cut or no poster. such an episode is "paused" (derived
+ * from its clips, nothing extra is stored) unless the queue holds it.
+ * `resume_episode_clips` reports files already on disk and re-cuts the rest,
+ * streaming the same clip_ready/thumbnail_ready events a live import does
  */
 
 function isUnfinished(clip: ClipItem): boolean {
@@ -28,10 +26,10 @@ function isUnfinished(clip: ClipItem): boolean {
 export function isEpisodePaused(
   episode: EpisodeEntry,
   liveImportEpisodeIds: string[],
-  resumingEpisodeId: string | null
+  reencodeQueue: string[]
 ): boolean {
   if (episode.importMethod !== "video_files") return false;
-  if (resumingEpisodeId === episode.id || liveImportEpisodeIds.includes(episode.id)) return false;
+  if (reencodeQueue.includes(episode.id) || liveImportEpisodeIds.includes(episode.id)) return false;
   return episode.clips.some(isUnfinished);
 }
 
@@ -51,13 +49,14 @@ function buildResumeSpecs(episode: EpisodeEntry) {
     }));
 }
 
-export async function resumeEpisode(episodeId: string): Promise<void> {
-  const found = useEpisodePanelRuntimeStore.getState().episodes.find((e) => e.id === episodeId);
-  if (!found || buildResumeSpecs(found).length === 0) return;
-  // one long job at a time: anything else running owns the mini window, so ask to stop it first
-  if (!(await claimProcess("resume"))) return;
+/** whether the episode still has clips a resume can finish */
+export function hasClipsToFinish(episodeId: string): boolean {
+  const episode = useEpisodePanelRuntimeStore.getState().episodes.find((e) => e.id === episodeId);
+  return Boolean(episode && buildResumeSpecs(episode).length > 0);
+}
 
-  // re-read after the wait: stopping an import can finish clips of this very episode
+/** cuts the episode's unfinished clips; only the re-encode queue calls this, so one runs at a time */
+export async function finishEpisodeClips(episodeId: string): Promise<void> {
   const episode = useEpisodePanelRuntimeStore.getState().episodes.find((e) => e.id === episodeId);
   if (!episode) return;
   const specs = buildResumeSpecs(episode);
@@ -65,14 +64,17 @@ export async function resumeEpisode(episodeId: string): Promise<void> {
 
   const total = episode.clips.length;
   let done = total - specs.length;
-  const label = `Resuming ${episode.displayName}`;
-  const app = useAppStateStore.getState();
-  app.setProgress(Math.round((done / total) * 100));
-  app.setProgressMsg(label);
-  // bgProgress drives the mini window's bar and keeps new imports blocked meanwhile
-  useAppStateStore.setState({ resumingEpisodeId: episodeId, bgProgress: { done, total } });
+  const label = `Finishing clips for ${episode.displayName}`;
+  // a running import owns the mini window's main bar, so this reports on the bar under it
+  const progressUpdate = () => ({
+    reencodeProgress: { done, total },
+    ...(useAppStateStore.getState().activeOperation !== "import"
+      ? { progress: Math.round((done / total) * 100), progressMsg: label }
+      : {}),
+  });
+  useAppStateStore.setState({ resumingEpisodeId: episodeId, ...progressUpdate() });
 
-  console.info("[resume] resuming paused episode", { episodeId, clips: specs.length });
+  console.info("[resume] finishing episode clips", { episodeId, clips: specs.length });
 
   // buffered per frame like a live import, so a burst of events is one grid update
   const patches = createClipPatchBuffer((apply) => {
@@ -82,8 +84,7 @@ export async function resumeEpisode(episodeId: string): Promise<void> {
     const onScreen = useEpisodePanelRuntimeStore.getState().openedEpisodeId === episodeId;
     useAppStateStore.setState((s) => ({
       ...(onScreen ? { clips: s.clips.map(apply) } : {}),
-      bgProgress: s.resumingEpisodeId === episodeId ? { done, total } : s.bgProgress,
-      progress: Math.round((done / total) * 100),
+      ...progressUpdate(),
     }));
   });
   const patch = (sceneIndex: number, p: Partial<ClipItem>) => patches.patch(`${episodeId}_${sceneIndex}`, p);
@@ -118,9 +119,6 @@ export async function resumeEpisode(episodeId: string): Promise<void> {
     patches.flushNow();
     unlistenClip();
     unlistenThumb();
-    useAppStateStore.setState((s) => ({
-      resumingEpisodeId: null,
-      bgProgress: s.resumingEpisodeId === episodeId ? null : s.bgProgress,
-    }));
+    useAppStateStore.setState({ resumingEpisodeId: null, reencodeProgress: null });
   }
 }

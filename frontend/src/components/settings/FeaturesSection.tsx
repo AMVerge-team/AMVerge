@@ -3,9 +3,12 @@ import { invoke } from "@tauri-apps/api/core";
 
 import SettingRow from "../common/SettingRow";
 import SettingsSection from "../common/SettingsSection";
+import Tooltip from "../common/Tooltip";
 import AiModelsSection from "./AiModelsSection";
 import { ConfirmModal } from "./general/ConfirmModal";
 import { useAiDepsStore } from "../../stores/aiDepsStore";
+import { useAppStateStore } from "../../stores/appStore";
+import { runningProcess } from "../../features/processes/singleProcess";
 import { useGeneralSettingsStore } from "../../stores/settingsStore";
 import { useSceneScoutStore } from "../../stores/sceneScoutStore";
 import { useScenepacksStore } from "../../stores/scenepackStore";
@@ -34,6 +37,7 @@ export default function FeaturesSection() {
   const [busy, setBusy] = useState<FeatureId | "env" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmScenepacksOff, setConfirmScenepacksOff] = useState(false);
+  const importRunning = useAppStateStore(() => runningProcess() === "import");
 
   useEffect(() => {
     void useAiDepsStore.getState().refresh();
@@ -138,6 +142,8 @@ export default function FeaturesSection() {
               : enabled
                 ? `On · ~${downloadSize} download on first use`
                 : `Off · ~${downloadSize} download`;
+            // a running import uses this pack, so installing or removing it underneath breaks the episode
+            const lockedByImport = feature.id === "aiSceneDetection" && importRunning;
             return (
               <SettingRow
                 key={feature.id}
@@ -152,20 +158,29 @@ export default function FeaturesSection() {
                         type="button"
                         className="aid-btn"
                         onClick={() => void freeUpSpace(feature.id, feature.pack!)}
-                        disabled={busy !== null}
+                        disabled={busy !== null || lockedByImport}
                       >
                         {busy === feature.id ? "Removing…" : "Free up space"}
                       </button>
                     ) : null}
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={enabled}
-                      aria-label={feature.label}
-                      className="aid-switch"
-                      onClick={() => void toggle(feature.id, !enabled)}
-                      disabled={busy !== null || (Boolean(feature.pack) && !enabled && status?.uvAvailable === false && managed)}
-                    />
+                    <Tooltip content="Setting disabled while imports are running" disabled={!lockedByImport}>
+                      {/* a disabled button gets no hover events, so the span carries the tooltip */}
+                      <span style={{ display: "inline-flex" }}>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={enabled}
+                          aria-label={feature.label}
+                          className="aid-switch"
+                          onClick={() => void toggle(feature.id, !enabled)}
+                          disabled={
+                            busy !== null ||
+                            lockedByImport ||
+                            (Boolean(feature.pack) && !enabled && status?.uvAvailable === false && managed)
+                          }
+                        />
+                      </span>
+                    </Tooltip>
                   </div>
                 }
               />

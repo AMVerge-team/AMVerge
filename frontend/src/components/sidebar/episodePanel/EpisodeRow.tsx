@@ -2,7 +2,8 @@ import type React from "react";
 import { FaFolderOpen, FaImage, FaPlay, FaVideo } from "react-icons/fa";
 import Tooltip from "../../common/Tooltip";
 import { useAppStateStore } from "../../../stores/appStore";
-import { isEpisodePaused, resumeEpisode } from "../../../features/import/resumeEpisode";
+import { isEpisodePaused } from "../../../features/import/resumeEpisode";
+import { resumeEpisode } from "../../../features/import/reencodeQueue";
 import type { EpisodePanelProps, PointerDragSource } from "../types";
 
 type Episode = EpisodePanelProps["episodes"][number];
@@ -69,8 +70,8 @@ export default function EpisodeRow({
 
   // paused: its import stopped early (mini window or app closed) with clips left to cut
   const liveImportEpisodeIds = useAppStateStore((s) => s.liveImportEpisodeIds);
-  const resumingEpisodeId = useAppStateStore((s) => s.resumingEpisodeId);
-  const isPaused = isEpisodePaused(episode, liveImportEpisodeIds, resumingEpisodeId);
+  const reencodeQueue = useAppStateStore((s) => s.reencodeQueue);
+  const isPaused = isEpisodePaused(episode, liveImportEpisodeIds, reencodeQueue);
 
   const handleResume = (e: React.MouseEvent) => {
     e.stopPropagation();

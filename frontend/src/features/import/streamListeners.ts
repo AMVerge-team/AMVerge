@@ -24,8 +24,8 @@ export type StreamingSession = {
  * wires the streaming import events for one episode
  *
  * every payload carries the episode it belongs to, so several imports can be in
- * flight at once (a batch keeps re-encoding one episode while cutting the next)
- * and each session only reacts to its own events
+ * flight at once (one finishing its posters while the next starts) and each
+ * session only reacts to its own events
  *
  * `focusGrid` decides whether this episode takes over the view. a batch grants
  * it to the first episode only; the rest fill their own buffer and appear in the
@@ -165,18 +165,6 @@ export async function startVideoStreamingListeners(
     }
   );
 
-  const unlistenReencode = await listen<{
-    done: number;
-    total: number;
-    episode_cache_id?: string | null;
-  }>("reencode_progress", (event) => {
-    if (!isMine(event.payload)) return;
-    const { done, total } = event.payload;
-    useAppStateStore.setState({
-      reencodeProgress: total > 0 && done < total ? { done, total } : null,
-    });
-  });
-
   const stop = () => {
     // apply anything buffered right before teardown so no patch is dropped
     patches.flushNow();
@@ -187,13 +175,12 @@ export async function startVideoStreamingListeners(
     unlistenClip();
     unlistenThumb();
     unlistenPhase1();
-    unlistenReencode();
     // bgProgress normally clears at phase1_complete; this covers the process
     // dying mid-cut, which would leave the import permanently busy. only the
     // session that owns the view may clear it, or a background episode finishing
     // would wipe the active import's progress
     if (focusGrid) {
-      useAppStateStore.setState({ reencodeProgress: null, bgProgress: null });
+      useAppStateStore.setState({ bgProgress: null });
     }
   };
 

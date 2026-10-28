@@ -9,6 +9,7 @@ import {
   parseManifestInitialClips,
 } from "../features/import/manifest";
 import { startVideoStreamingListeners } from "../features/import/streamListeners";
+import { queueReencode } from "../features/import/reencodeQueue";
 import { claimProcess } from "../features/processes/singleProcess";
 import { useAiDepsStore } from "../stores/aiDepsStore";
 import { useAppStateStore } from "../stores/appStore";
@@ -121,8 +122,15 @@ export function useImportPipeline({ abortedRef }: Params) {
         ]);
 
         if (winner === "phase1") {
-          // read from the session, not the grid: a background episode never
-          // wrote there. phase-2 patches keep arriving afterwards
+          // clips with no cut yet are the re-encodes: stop this CLI and let the queue
+          // do them, one episode at a time, so a batch never re-encodes several at once
+          if (getClips().some((clip) => !clip.clipPath)) {
+            await invoke("abort_detect_scenes", { episodeCacheId: episodeId }).catch(() => {});
+            await invokeSettled;
+            // the ✕ during the handoff stops everything, so nothing is queued after it
+            if (!abortedRef.current) queueReencode(episodeId);
+          }
+          // read from the session, not the grid: a background episode never wrote there
           const streamedClips = getClips();
           return {
             episodeEntry: {
@@ -172,6 +180,7 @@ export function useImportPipeline({ abortedRef }: Params) {
       generalSettings.episodesPath,
       generalSettings.sceneDetectionMethod,
       generalSettings.importMethod,
+      abortedRef,
       episodeState.selectedFolderId,
       episodeState.setEpisodes,
       episodeState.setSelectedEpisodeId,
@@ -187,6 +196,7 @@ export function useImportPipeline({ abortedRef }: Params) {
 
       const episodeId = buildEpisodeCacheId(file);
       const gen = ++importGenRef.current;
+      abortedRef.current = false;
       console.info("[import] start", {
         mode: "single",
         file,
@@ -240,7 +250,7 @@ export function useImportPipeline({ abortedRef }: Params) {
         console.info("[import] finished", { mode: "single", file, episodeId, importGeneration: gen });
       }
     },
-    [episodeState, generalSettings.episodesPath, runImportPipeline]
+    [episodeState, generalSettings.episodesPath, abortedRef, runImportPipeline]
   );
 
   const handleBatchImport = useCallback(

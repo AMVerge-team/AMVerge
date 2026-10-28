@@ -4,17 +4,31 @@ use std::sync::{Arc, Mutex};
 
 use tokio::sync::Mutex as AsyncMutex;
 
-pub struct ActiveSidecar {
-    pub pid: Mutex<Option<u32>>,
-    pub child: Mutex<Option<std::process::Child>>,
+/// one running `amverge backend` and the episode it imports
+pub struct SidecarProc {
+    pub episode_cache_id: Option<String>,
+    pub child: std::process::Child,
 }
 
-impl Default for ActiveSidecar {
-    fn default() -> Self {
-        Self {
-            pid: Mutex::new(None),
-            child: Mutex::new(None),
+/// every running scene detection by pid; a batch can overlap two, which a single slot lost track of
+#[derive(Default)]
+pub struct ActiveSidecar {
+    pub procs: Mutex<HashMap<u32, SidecarProc>>,
+}
+
+impl ActiveSidecar {
+    /// removes and returns the pids of `episode`'s process, or of every process when `None`
+    pub fn take_pids(&self, episode: Option<&str>) -> Vec<u32> {
+        let Ok(mut procs) = self.procs.lock() else { return Vec::new() };
+        let pids: Vec<u32> = procs
+            .iter()
+            .filter(|(_, p)| episode.is_none() || p.episode_cache_id.as_deref() == episode)
+            .map(|(pid, _)| *pid)
+            .collect();
+        for pid in &pids {
+            procs.remove(pid);
         }
+        pids
     }
 }
 

@@ -17,7 +17,7 @@ export type ProcessKind = "import" | "export" | "resume" | "scout_add" | "scout_
 export const PROCESS_LABELS: Record<ProcessKind, string> = {
   import: "importing an episode",
   export: "exporting clips",
-  resume: "resuming an episode",
+  resume: "finishing episode clips",
   scout_add: "adding episodes to a Scene Scout database",
   scout_thumbnails: "generating Scene Scout thumbnails",
 };
@@ -25,13 +25,15 @@ export const PROCESS_LABELS: Record<ProcessKind, string> = {
 /** the job running right now, read from the state every job already keeps */
 export function runningProcess(): ProcessKind | null {
   const s = useAppStateStore.getState();
-  if (s.resumingEpisodeId) return "resume";
   if (s.activeOperation === "export") return "export";
   if (s.activeOperation === "scout_add") return "scout_add";
   if (s.activeOperation === "scout_thumbnails") return "scout_thumbnails";
-  if (s.activeOperation === "import") return "import";
-  // an import keeps cutting and re-encoding clips in the background after its loader closes
-  if (s.bgProgress || s.bgImportProgress || s.reencodeProgress) return "import";
+  // an import (a batch included) wins over the re-encode queue running beside it
+  if (s.activeOperation === "import" || s.bgImportProgress) return "import";
+  // the re-encode queue, between its episodes too
+  if (s.resumingEpisodeId || s.reencodeQueue.length > 0) return "resume";
+  // an import keeps cutting clips in the background after its loader closes
+  if (s.bgProgress) return "import";
   return null;
 }
 

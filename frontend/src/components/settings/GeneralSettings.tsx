@@ -17,6 +17,7 @@ import { clearEpisodePanelCache } from "../../utils/episodeUtils";
 import { clearScenepacksStorage } from "../../utils/scenepackStorage";
 import { useAiDepsStore } from "../../stores/aiDepsStore";
 import { isPackInstalled } from "../../features/aiDeps/packs";
+import { runningProcess } from "../../features/processes/singleProcess";
 import {
   PREVIEW_METHOD_OPTIONS,
   PREVIEW_TRANSCODE_MODE_OPTIONS,
@@ -91,6 +92,8 @@ export default function GeneralSettings({
   const aiStatus = useAiDepsStore((s) => s.status);
   const mlInstalled = isPackInstalled(aiStatus, "ml");
   const aiDepsBusy = useAiDepsStore((s) => s.stage === "installing");
+  // a running import has nelux loaded, so swapping it underneath fails or breaks the episode
+  const importRunning = useAppStateStore(() => runningProcess() === "import");
 
   useEffect(() => {
     if (!useAiDepsStore.getState().status) void useAiDepsStore.getState().refresh();
@@ -218,15 +221,20 @@ export default function GeneralSettings({
                     : "Needs an NVIDIA GTX 16-series, RTX 20-series or newer GPU."
               }
               control={
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={Boolean(aiStatus?.gpuDecodeInstalled)}
-                  aria-label="GPU Decoding"
-                  className="aid-switch"
-                  disabled={!aiStatus?.managed || !aiStatus.gpuDecodeSupported || aiDepsBusy}
-                  onClick={() => void useAiDepsStore.getState().setGpuDecode(!aiStatus?.gpuDecodeInstalled)}
-                />
+                <Tooltip content="Setting disabled while imports are running" disabled={!importRunning}>
+                  {/* a disabled button gets no hover events, so the span carries the tooltip */}
+                  <span style={{ display: "inline-flex" }}>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={Boolean(aiStatus?.gpuDecodeInstalled)}
+                      aria-label="GPU Decoding"
+                      className="aid-switch"
+                      disabled={!aiStatus?.managed || !aiStatus.gpuDecodeSupported || aiDepsBusy || importRunning}
+                      onClick={() => void useAiDepsStore.getState().setGpuDecode(!aiStatus?.gpuDecodeInstalled)}
+                    />
+                  </span>
+                </Tooltip>
               }
             />
           )}
