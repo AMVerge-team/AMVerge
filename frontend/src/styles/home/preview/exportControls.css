@@ -123,7 +123,7 @@
         "icon label"
         "icon desc" !important;
     column-gap: 12px !important;
-    row-gap: 2px !important;
+    row-gap: 0 !important;
     align-items: center !important;
     width: 100% !important;
 }
@@ -154,8 +154,8 @@
 
 .export-profile-select .dropdown-item-icon svg,
 .export-profile-select .dropdown-value.rich .dropdown-item-icon svg {
-    width: 18px !important;
-    height: 18px !important;
+    width: 24px !important;
+    height: 24px !important;
     display: block !important;
 }
 
@@ -166,7 +166,7 @@
     justify-content: center !important;
     width: 100% !important;
     height: 100% !important;
-    font-size: 11px !important;
+    font-size: 13px !important;
     font-weight: 800 !important;
     letter-spacing: 0.5px !important;
     color: var(--accent) !important;
@@ -177,7 +177,7 @@
     grid-area: label !important;
     font-size: 0.85rem !important;
     letter-spacing: 0.5px !important;
-    line-height: 1.2 !important;
+    line-height: 1.05 !important;
     font-weight: 500 !important;
     color: #ffffff !important;
     white-space: nowrap !important;
@@ -188,13 +188,13 @@
 .export-profile-select .dropdown-item-description,
 .export-profile-select .dropdown-value.rich .dropdown-item-description {
     grid-area: desc !important;
-    font-size: 0.72rem !important;
+    font-size: 0.6rem !important;
     color: rgba(255, 255, 255, 0.55) !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     letter-spacing: 0.2px !important;
-    line-height: 1.2 !important;
+    line-height: 1.05 !important;
 }
 
 .export-profile-select .dropdown-item {

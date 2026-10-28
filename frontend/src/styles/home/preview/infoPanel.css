@@ -208,7 +208,6 @@
     justify-content: flex-start;
 
     gap: 10px;
-    transition: color 0.2s ease;
     counter-increment: step-counter;
 }
 
@@ -216,10 +215,6 @@
     text-align: left;
     word-spacing: normal;
     letter-spacing: normal;
-}
-
-.steps-list li:hover {
-    color: rgba(255, 255, 255, 0.95);
 }
 
 .steps-list li::before {

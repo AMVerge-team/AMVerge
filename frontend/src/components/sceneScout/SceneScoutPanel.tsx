@@ -463,15 +463,12 @@ export function SceneScoutPanel() {
             <div className="scenepacks-empty-cta">
               <FaDatabase style={{ fontSize: 28, opacity: 0.3 }} aria-hidden="true" />
               <span style={{ fontSize: 15, opacity: 0.6 }}>No databases yet</span>
-              <span style={{ fontSize: 12, opacity: 0.4 }}>
-                Index episodes, then search them by describing a scene
-              </span>
               <button
                 className="episode-modal-btn primary"
                 onClick={() => void startCreate()}
-                style={{ marginTop: 8, fontSize: 14 }}
+                style={{ marginTop: 6, fontSize: 12, padding: "6px 12px" }}
               >
-                Create your first Scene Scout Database
+                Create a Scene Scout Database
               </button>
             </div>
           )}

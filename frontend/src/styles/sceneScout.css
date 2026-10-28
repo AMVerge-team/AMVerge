@@ -434,9 +434,12 @@
     color: rgba(255, 255, 255, 0.5);
 }
 
+/* fixed Arial, never the user's chosen app font */
 .scene-scout-hero-empty {
     padding: 14px 8px;
-    font-size: 12px;
+    font-family: var(--ui-font);
+    font-size-adjust: none;
+    font-size: 14px;
     text-align: center;
     color: rgba(255, 255, 255, 0.45);
 }
