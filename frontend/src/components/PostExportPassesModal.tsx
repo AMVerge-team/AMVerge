@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 import Tooltip from "./common/Tooltip";
+import { useEscapeToClose } from "./common/useEscapeToClose";
 import { usePassRunStore } from "../stores/passRunStore";
 
 export default function PostExportPassesModal() {
@@ -16,6 +17,13 @@ export default function PostExportPassesModal() {
   const logs = usePassRunStore((s) => s.logs);
   const finished = usePassRunStore((s) => s.finished);
   const errors = usePassRunStore((s) => s.errors);
+
+  // Escape closes a finished run, and tucks a running one into its mini card rather than stopping it
+  useEscapeToClose(() => {
+    const store = usePassRunStore.getState();
+    if (store.finished) store.close();
+    else store.setMinimized(true);
+  }, active && !minimized);
 
   const logRef = useRef<HTMLDivElement | null>(null);
   useLayoutEffect(() => {

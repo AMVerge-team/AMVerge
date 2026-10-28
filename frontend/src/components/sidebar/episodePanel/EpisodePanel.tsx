@@ -2,6 +2,7 @@
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FaSearch, FaTimes, FaVideo } from "react-icons/fa";
+import { useEscapeToClose } from "../../common/useEscapeToClose";
 
 import Tooltip from "../../common/Tooltip";
 import EpisodePanelContextMenus from "./EpisodePanelContextMenus";
@@ -181,6 +182,8 @@ export default function EpisodePanel() {
       label: f?.name ?? "folder",
     });
   };
+
+  useEscapeToClose(() => setConfirmDelete(null), confirmDelete !== null);
 
   const handleConfirmDelete = () => {
     if (!confirmDelete) return;

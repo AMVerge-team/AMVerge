@@ -1,7 +1,8 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { FaInfo, FaTimes } from "react-icons/fa";
 
 import Tooltip from "./Tooltip";
+import { useEscapeToClose } from "./useEscapeToClose";
 
 type InfoButtonProps = {
   title: string;
@@ -14,17 +15,7 @@ type InfoButtonProps = {
 export default function InfoButton({ title, children, variant = "inline" }: InfoButtonProps) {
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        setOpen(false);
-      }
-    };
-    document.addEventListener("keydown", onKeyDown, true);
-    return () => document.removeEventListener("keydown", onKeyDown, true);
-  }, [open]);
+  useEscapeToClose(() => setOpen(false), open);
 
   return (
     <>

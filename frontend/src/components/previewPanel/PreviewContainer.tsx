@@ -11,6 +11,7 @@ import { SiDavinciresolve } from "react-icons/si";
 import Dropdown from "../common/Dropdown";
 import { useDavinciAvailable } from "../../features/davinci/useDavinciAvailable.ts";
 import Tooltip from "../common/Tooltip";
+import { useEscapeToClose } from "../common/useEscapeToClose";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { useAppPersistedStore } from "../../stores/appStore.ts";
 import { useUIStateStore } from "../../stores/UIStore.ts";
@@ -46,6 +47,7 @@ type PreviewContainerProps = {
 
 export default function PreviewContainer(props: PreviewContainerProps) {
   const [showMergeNameModal, setShowMergeNameModal] = React.useState(false);
+  useEscapeToClose(() => setShowMergeNameModal(false), showMergeNameModal);
   const mergeNameInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const clips = useAppStateStore(s => s.clips);
@@ -548,7 +550,6 @@ export default function PreviewContainer(props: PreviewContainerProps) {
               placeholder="Enter file name..."
               defaultValue={defaultMergedName}
               onKeyDown={(e) => {
-                if (e.key === "Escape") setShowMergeNameModal(false);
                 if (e.key === "Enter") confirmMergeExport();
               }}
             />

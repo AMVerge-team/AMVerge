@@ -1,6 +1,7 @@
 // episode Panel modal renderer. displays text input modals and confirmation modals
 import type React from "react";
 import type { ConfirmModalState, TextModalState } from "../types";
+import { useEscapeToClose } from "../../common/useEscapeToClose";
 
 type EpisodePanelModalsProps = {
   textModal: TextModalState | null;
@@ -34,6 +35,10 @@ export default function EpisodePanelModals({
   closeNewFolderModal,
   handleCreateNewFolder,
 }: EpisodePanelModalsProps) {
+  useEscapeToClose(() => setTextModal(null), textModal !== null);
+  useEscapeToClose(closeNewFolderModal, newFolderModal !== null);
+  useEscapeToClose(() => setConfirmModal(null), confirmModal !== null);
+
   return (
     <>
       {textModal && (
@@ -47,8 +52,6 @@ export default function EpisodePanelModals({
               placeholder={textModal.placeholder}
               defaultValue={textModal.initialValue}
               onKeyDown={(e) => {
-                if (e.key === "Escape") setTextModal(null);
-
                 if (e.key === "Enter") {
                   const value = (e.currentTarget.value ?? "").trim();
                   if (!value) return;
@@ -98,7 +101,6 @@ export default function EpisodePanelModals({
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Escape") closeNewFolderModal();
                 if (e.key === "Enter") handleCreateNewFolder();
               }}
               autoFocus

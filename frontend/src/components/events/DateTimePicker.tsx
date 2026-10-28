@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FaChevronLeft, FaChevronRight, FaRegCalendarAlt } from "react-icons/fa";
+import { useEscapeToClose } from "../common/useEscapeToClose";
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const MINUTE_STEP = 5;
@@ -77,22 +78,12 @@ export default function DateTimePicker({
     const onPointerDown = (event: PointerEvent) => {
       if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
     };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.stopPropagation();
-        setOpen(false);
-      }
-    };
-
     document.addEventListener("pointerdown", onPointerDown);
-    // capture phase: the modal closes on Escape too, and the picker should be
-    // what closes first
-    document.addEventListener("keydown", onKeyDown, true);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown, true);
-    };
+    return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [open]);
+
+  // the picker registers after its modal, so Escape closes it first
+  useEscapeToClose(() => setOpen(false), open);
 
   const days = useMemo(() => monthGrid(view), [view]);
   const today = new Date();

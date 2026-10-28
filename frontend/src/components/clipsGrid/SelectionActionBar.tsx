@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FaLayerGroup, FaSpinner, FaWater } from "react-icons/fa";
 import Tooltip from "../common/Tooltip";
+import { useEscapeToClose } from "../common/useEscapeToClose";
 import { useAppStateStore } from "../../stores/appStore";
 import { useUIStateStore } from "../../stores/UIStore";
 import { useFeature } from "../../features/featureToggles";
@@ -118,6 +119,8 @@ function BatchAddToScenepackModal({
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ percent: number; message: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // not while clips are being added
+  useEscapeToClose(onClose, !busy);
 
   const selectedClipItems = allClips.filter((c) => clipIds.includes(c.id));
 

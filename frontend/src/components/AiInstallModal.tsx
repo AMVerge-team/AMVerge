@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 
 import Tooltip from "./common/Tooltip";
+import { useEscapeToClose } from "./common/useEscapeToClose";
 import { useAiDepsStore } from "../stores/aiDepsStore";
 import {
   AI_PACKS,
@@ -33,6 +34,13 @@ export default function AiInstallModal() {
   const status = useAiDepsStore((s) => s.status);
   const gpuPreference = useAiDepsStore((s) => s.gpuPreference);
   const job = useAiDepsStore((s) => s.job);
+
+  // Escape declines the offer, or minimizes a running install rather than abandoning it
+  useEscapeToClose(() => {
+    const store = useAiDepsStore.getState();
+    if (store.stage === "installing") store.minimize();
+    else store.close();
+  }, open);
 
   const logRef = useRef<HTMLDivElement | null>(null);
   const [elapsed, setElapsed] = useState(0);

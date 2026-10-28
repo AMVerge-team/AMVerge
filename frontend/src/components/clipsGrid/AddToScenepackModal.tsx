@@ -5,6 +5,7 @@ import { useScenepacksStore } from "../../stores/scenepackStore";
 import { useUIStateStore } from "../../stores/UIStore";
 import type { ClipItem } from "../../types/domain";
 import { materializeClipsForScenepack } from "../../utils/scenepackMaterialize";
+import { useEscapeToClose } from "../common/useEscapeToClose";
 
 type AddToScenepackModalProps = {
   clip: ClipItem;
@@ -62,9 +63,8 @@ export function AddToScenepackModal({ clip, episodeId, onClose }: AddToScenepack
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") onClose();
-  };
+  // not while the clip is being added
+  useEscapeToClose(onClose, !busy);
 
   // portalled to <body>: this modal mounts from inside a clip tile, and
   // `.clip-wrapper:hover` applies a transform, which makes the tile the
@@ -73,7 +73,7 @@ export function AddToScenepackModal({ clip, episodeId, onClose }: AddToScenepack
   // bounds instead of the viewport
   return createPortal(
     <div className="episode-modal-overlay" onClick={onClose}>
-      <div className="episode-modal" onClick={(e) => e.stopPropagation()} onKeyDown={handleKeyDown}>
+      <div className="episode-modal" onClick={(e) => e.stopPropagation()}>
         <div className="episode-modal-title">Add to Scenepack</div>
 
         <div className="episode-modal-message" style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>

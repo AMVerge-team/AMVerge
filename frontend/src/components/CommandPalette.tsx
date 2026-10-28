@@ -1,11 +1,15 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
-import { FaSearch, FaTimes, FaAngleRight, FaDiscord, FaGithub } from "react-icons/fa";
+import { FaSearch, FaTimes, FaAngleRight, FaDiscord, FaGithub, FaArrowUp, FaArrowDown } from "react-icons/fa";
+import { MdKeyboardReturn } from "react-icons/md";
 import { useUIStateStore } from "../stores/UIStore";
 import { useEpisodePanelRuntimeStore, useEpisodePanelMetadataStore } from "../stores/episodeStore";
 import { useScenepacksStore } from "../stores/scenepackStore";
 import { useAppStateStore } from "../stores/appStore";
 import { useGeneralSettingsStore, useThemeSettingsStore } from "../stores/settingsStore";
+import { useSceneScoutStore } from "../stores/sceneScoutStore";
+import { featureDef, type FeatureId } from "../features/featureToggles";
+import { pickFlowClip } from "../features/sceneScout/pickFlowClip";
 import { openEpisodeById } from "../hooks/useEpisodePanelState";
 import useImportExport from "../hooks/useImportExport";
 import { CATEGORY_CHIPS, CategoryFilter, PREFIX_FILTERS } from "./commandPalette/types";
@@ -41,6 +45,9 @@ export default function CommandPalette() {
   const setSelectedScenepackId = useScenepacksStore((s) => s.setSelectedScenepackId);
   const setOpenedScenepackId = useScenepacksStore((s) => s.setOpenedScenepackId);
 
+  const scoutDatabases = useSceneScoutStore((s) => s.databases);
+  const scoutDisplayNames = useSceneScoutStore((s) => s.displayNames);
+
   const clips = useAppStateStore((s) => s.clips);
   const selectedClips = useAppStateStore((s) => s.selectedClips);
   const setSelectedClips = useAppStateStore((s) => s.setSelectedClips);
@@ -48,6 +55,12 @@ export default function CommandPalette() {
   const generalSettings = useGeneralSettingsStore();
   const themeSettings = useThemeSettingsStore();
   const { onImportClick } = useImportExport();
+
+  const featureState = (id: FeatureId) => {
+    const enabled = generalSettings[featureDef(id).setting];
+    return { enabled, hidden: !enabled && generalSettings.hideDisabledFeatures };
+  };
+  const visibleChips = CATEGORY_CHIPS.filter((chip) => !chip.feature || !featureState(chip.feature).hidden);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<CategoryFilter>("all");
@@ -75,6 +88,8 @@ export default function CommandPalette() {
     setActiveFilter("all");
     setSelectedIndex(0);
     setTimeout(() => inputRef.current?.focus(), FOCUS_DELAY_MS);
+    // databases load when Scene Scout is first visited; the palette lists them too
+    if (generalSettings.sceneScoutEnabled) void useSceneScoutStore.getState().loadDatabases();
   }, [open]);
 
   const { effectiveFilter, cleanQuery } = useMemo(() => {
@@ -90,6 +105,8 @@ export default function CommandPalette() {
         episodes,
         episodeNamesById,
         scenepacks,
+        scoutDatabases,
+        scoutDisplayNames,
         clips,
         selectedClips,
         pinned,
@@ -115,11 +132,28 @@ export default function CommandPalette() {
         openMenu,
         openSettings,
         onImportClick,
+        openScoutDatabase: (path) => {
+          const scout = useSceneScoutStore.getState();
+          scout.selectDatabase(path, "single");
+          scout.setActiveDatabase(path);
+          setActivePage("sceneScout");
+        },
+        openScoutMode: (mode) => {
+          useSceneScoutStore.getState().setMode(mode);
+          setActivePage("sceneScout");
+        },
+        inputFlowFile: async () => {
+          const source = await pickFlowClip();
+          if (source) void useSceneScoutStore.getState().startFlowSearch(source);
+        },
+        featureState,
       }),
     [
       episodes,
       episodeNamesById,
       scenepacks,
+      scoutDatabases,
+      scoutDisplayNames,
       clips,
       selectedClips,
       pinned,
@@ -150,13 +184,13 @@ export default function CommandPalette() {
       if (!lower) return true;
       return (
         cmd.title.toLowerCase().includes(lower) ||
-        cmd.subtitle?.toLowerCase().includes(lower) ||
-        cmd.badge?.toLowerCase().includes(lower)
+        cmd.subtitle?.toLowerCase().includes(lower)
       );
     });
   }, [allCommands, cleanQuery, effectiveFilter]);
 
-  const activeCommand = filteredCommands[selectedIndex] || filteredCommands[0] || null;
+  // -1 once the pointer leaves the list, so nothing stays highlighted
+  const activeCommand = filteredCommands[selectedIndex] ?? null;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
@@ -174,8 +208,8 @@ export default function CommandPalette() {
       setCommandPaletteOpen(false);
     } else if (e.key === "Tab") {
       e.preventDefault();
-      const idx = CATEGORY_CHIPS.findIndex((c) => c.id === effectiveFilter);
-      setActiveFilter(CATEGORY_CHIPS[(idx + 1) % CATEGORY_CHIPS.length].id);
+      const idx = visibleChips.findIndex((c) => c.id === effectiveFilter);
+      setActiveFilter(visibleChips[(idx + 1) % visibleChips.length].id);
       setSelectedIndex(0);
     }
   };
@@ -240,7 +274,7 @@ export default function CommandPalette() {
         </div>
 
         <div className="spotlight-pro-chips-bar">
-          {CATEGORY_CHIPS.map((chip) => {
+          {visibleChips.map((chip) => {
             const ChipIcon = chip.icon;
             return (
               <button
@@ -255,14 +289,17 @@ export default function CommandPalette() {
               >
                 <ChipIcon className="chip-icon" />
                 <span>{chip.label}</span>
-                {chip.prefix && <span className="chip-prefix">{chip.prefix}</span>}
               </button>
             );
           })}
         </div>
 
         <div className="spotlight-pro-body">
-          <div className="spotlight-pro-list-pane" ref={resultsContainerRef}>
+          <div
+            className="spotlight-pro-list-pane"
+            ref={resultsContainerRef}
+            onMouseLeave={() => setSelectedIndex(-1)}
+          >
             {filteredCommands.length === 0 ? (
               <div className="spotlight-pro-empty">
                 <FaSearch className="empty-icon" />
@@ -275,7 +312,7 @@ export default function CommandPalette() {
                 return (
                   <div
                     key={cmd.id}
-                    className={`spotlight-pro-item${idx === selectedIndex ? " is-selected" : ""}`}
+                    className={`spotlight-pro-item${idx === selectedIndex ? " is-selected" : ""}${cmd.disabled ? " is-disabled" : ""}`}
                     onMouseEnter={() => setSelectedIndex(idx)}
                     onClick={() => cmd.action()}
                   >
@@ -283,10 +320,7 @@ export default function CommandPalette() {
                       <Icon />
                     </div>
                     <div className="spotlight-pro-item-main">
-                      <div className="item-title-row">
-                        <span className="item-title">{cmd.title}</span>
-                        {cmd.badge && <span className="item-badge">{cmd.badge}</span>}
-                      </div>
+                      <span className="item-title">{cmd.title}</span>
                       {cmd.subtitle && <span className="item-sub">{cmd.subtitle}</span>}
                     </div>
                     <FaAngleRight className="item-arrow" />
@@ -304,11 +338,11 @@ export default function CommandPalette() {
         <div className="spotlight-pro-footer">
           <div className="footer-keys">
             <span>
-              <kbd>↑</kbd>
-              <kbd>↓</kbd> Navigate
+              <kbd><FaArrowUp /></kbd>
+              <kbd><FaArrowDown /></kbd> Navigate
             </span>
             <span>
-              <kbd>↵</kbd> Open
+              <kbd><MdKeyboardReturn /></kbd> Open
             </span>
             <span>
               <kbd>TAB</kbd> Next Filter

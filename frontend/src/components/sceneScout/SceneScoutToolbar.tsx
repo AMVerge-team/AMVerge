@@ -4,6 +4,7 @@ import { FaSyncAlt } from "react-icons/fa";
 
 import Dropdown from "../common/Dropdown";
 import Tooltip from "../common/Tooltip";
+import { useEscapeToClose } from "../common/useEscapeToClose";
 import PreviewAllToggle from "../common/PreviewAllToggle";
 import { SettingsIcon } from "../icons/ToolbarIcons";
 import { useSceneScoutStore } from "../../stores/sceneScoutStore";
@@ -81,14 +82,11 @@ export function SceneScoutToolbar() {
       if (optionsPopRef.current?.contains(target) || optionsBtnRef.current?.contains(target)) return;
       setSettingsOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSettingsOpen(false);
     window.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onKey);
-    };
+    return () => window.removeEventListener("mousedown", onDown);
   }, [settingsOpen]);
+
+  useEscapeToClose(() => setSettingsOpen(false), settingsOpen);
 
   const noDatabaseOpen = !opened && selectedDatabases.length === 0;
   const GATE_HINT = "Please select a Database or Create one on the left panel first.";

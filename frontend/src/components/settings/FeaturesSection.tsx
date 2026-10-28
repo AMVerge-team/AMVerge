@@ -127,11 +127,17 @@ export default function FeaturesSection() {
           {FEATURES.map((feature) => {
             const enabled = settings[feature.setting];
             const installed = feature.pack ? isPackInstalled(status, feature.pack) : true;
-            const stateText = !feature.pack
-              ? enabled ? "On" : "Off"
-              : installed
-                ? enabled ? "On" : "Off · downloaded"
-                : `Off · ~${formatSizeMb(estimateDownloadMb(status, feature.pack, gpuPreference))} download`;
+            // the text follows the switch; a pack not on disk yet adds its download size
+            const onOff = enabled ? "On" : "Off";
+            const needsDownload = Boolean(feature.pack) && !installed && managed;
+            const downloadSize = needsDownload
+              ? formatSizeMb(estimateDownloadMb(status, feature.pack!, gpuPreference))
+              : "";
+            const stateText = !needsDownload
+              ? feature.pack && installed && !enabled ? "Off · downloaded" : onOff
+              : enabled
+                ? `On · ~${downloadSize} download on first use`
+                : `Off · ~${downloadSize} download`;
             return (
               <SettingRow
                 key={feature.id}

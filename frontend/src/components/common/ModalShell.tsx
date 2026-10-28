@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { FaTimes } from "react-icons/fa";
 
 import Tooltip from "./Tooltip";
+import { useEscapeToClose } from "./useEscapeToClose";
 
 type ModalShellProps = {
   open: boolean;
@@ -24,6 +25,7 @@ export default function ModalShell({
   children,
 }: ModalShellProps) {
   const [contentReady, setContentReady] = useState(false);
+  useEscapeToClose(onClose, open);
 
   useEffect(() => {
     if (!open) {
@@ -31,15 +33,8 @@ export default function ModalShell({
       return;
     }
     const frame = requestAnimationFrame(() => setContentReady(true));
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      cancelAnimationFrame(frame);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open, onClose]);
+    return () => cancelAnimationFrame(frame);
+  }, [open]);
 
   if (!open) return null;
 

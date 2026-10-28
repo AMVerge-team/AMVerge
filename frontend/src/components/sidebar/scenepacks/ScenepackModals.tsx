@@ -1,4 +1,5 @@
 import type { ScenepackFolder } from "../../../types/domain";
+import { useEscapeToClose } from "../../common/useEscapeToClose";
 
 export type NewItemModal = { kind: "scenepack" | "folder"; parentId: string | null };
 export type RenameModal = { id: string; kind: "scenepack" | "folder"; currentName: string };
@@ -30,6 +31,7 @@ export function NewItemModal({
   onClose,
 }: NewItemProps) {
   const isPack = modal.kind === "scenepack";
+  useEscapeToClose(onClose);
   return (
     <div className="episode-modal-overlay" onClick={onClose}>
       <div className="episode-modal" onClick={(e) => e.stopPropagation()}>
@@ -90,6 +92,7 @@ type RenameProps = {
 };
 
 export function RenameItemModal({ name, onNameChange, onRename, onClose }: RenameProps) {
+  useEscapeToClose(onClose);
   return (
     <div className="episode-modal-overlay" onClick={onClose}>
       <div className="episode-modal" onClick={(e) => e.stopPropagation()}>
@@ -125,6 +128,7 @@ type DeleteProps = {
 };
 
 export function DeleteItemModal({ target, onConfirm, onClose }: DeleteProps) {
+  useEscapeToClose(onClose);
   return (
     <div className="episode-modal-overlay" onClick={onClose}>
       <div className="episode-modal" onClick={(e) => e.stopPropagation()}>

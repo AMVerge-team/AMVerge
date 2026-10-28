@@ -20,9 +20,15 @@ import {
   FaSlidersH,
   FaCodeBranch,
   FaCalendarAlt,
+  FaSearchPlus,
+  FaWater,
+  FaDatabase,
 } from "react-icons/fa";
+import { IoLibrary } from "react-icons/io5";
 import { CommandItem } from "./types";
 import { ClipItem, EpisodeEntry, ScenepackEntry } from "../../types/domain";
+import type { ScoutDatabase } from "../../features/sceneScout/types";
+import { featureDef, type FeatureId } from "../../features/featureToggles";
 
 const MIN_COLS = 1;
 const MAX_COLS = 9;
@@ -32,6 +38,8 @@ export type CommandDeps = {
   episodes: EpisodeEntry[];
   episodeNamesById: Record<string, string>;
   scenepacks: ScenepackEntry[];
+  scoutDatabases: ScoutDatabase[];
+  scoutDisplayNames: Record<string, string>;
   clips: ClipItem[];
   selectedClips: Set<string>;
   pinned: boolean;
@@ -57,6 +65,10 @@ export type CommandDeps = {
   openMenu: () => void;
   openSettings: (section: string) => void;
   onImportClick: () => void;
+  openScoutDatabase: (path: string) => void;
+  openScoutMode: (mode: "search" | "flow") => void;
+  inputFlowFile: () => void;
+  featureState: (id: FeatureId) => { enabled: boolean; hidden: boolean };
 };
 
 function episodeCommands(d: CommandDeps): CommandItem[] {
@@ -73,7 +85,6 @@ function episodeCommands(d: CommandDeps): CommandItem[] {
       category: "episodes",
       title: name,
       subtitle: `${clipCount} cut scenes • ${ep.videoPath || "Ready in workspace"}`,
-      badge: "Episode",
       icon: FaPlay,
       action: () => {
         d.openEpisode(ep.id);
@@ -82,7 +93,6 @@ function episodeCommands(d: CommandDeps): CommandItem[] {
       },
       preview: {
         thumbnail: ep.clips?.[0]?.thumbnail || null,
-        metaTags: [`${clipCount} Clips`, "Video Demux", "Workspace Ready"],
         metaLine1: name,
         metaLine2: ep.videoPath || "Local video file",
         filePath: ep.videoPath,
@@ -99,9 +109,9 @@ function scenepackCommands(d: CommandDeps): CommandItem[] {
     return {
       id: `sp-${sp.id}`,
       category: "scenepacks",
+      feature: "scenepacks",
       title: sp.name,
       subtitle: `${count} scenes in collection`,
-      badge: "Scenepack",
       icon: FaLayerGroup,
       action: () => {
         d.setSelectedScenepackId(sp.id);
@@ -111,7 +121,6 @@ function scenepackCommands(d: CommandDeps): CommandItem[] {
       },
       preview: {
         thumbnail: sp.clips?.[0]?.thumbnail || null,
-        metaTags: [`${count} Clips`, "Scenepack", "Collection"],
         metaLine1: sp.name,
         metaLine2: "Custom Scenepack Folder",
         description: "Browse, filter, and batch export clips collected in this scenepack.",
@@ -121,6 +130,69 @@ function scenepackCommands(d: CommandDeps): CommandItem[] {
   });
 }
 
+function sceneScoutCommands(d: CommandDeps): CommandItem[] {
+  const databases: CommandItem[] = d.scoutDatabases.map((db) => {
+    const name = d.scoutDisplayNames[db.path] || db.name;
+    return {
+      id: `scout-db-${db.path}`,
+      category: "sceneScout",
+      feature: "sceneScout",
+      title: name,
+      subtitle: `${db.videoCount} episodes • ${db.sceneCount} scenes`,
+      icon: FaDatabase,
+      action: () => {
+        d.closePalette();
+        d.openScoutDatabase(db.path);
+      },
+      preview: {
+        metaLine1: name,
+        metaLine2: db.path,
+        filePath: db.path,
+        description: "Opens this database in Scene Scout and searches it.",
+        shortcut: OPEN_SHORTCUT,
+      },
+    };
+  });
+
+  return [
+    {
+      id: "scout-search",
+      category: "sceneScout",
+      feature: "sceneScout",
+      title: "Scene Scout: Search",
+      subtitle: "Find scenes by describing them",
+      icon: FaSearchPlus,
+      action: () => {
+        d.closePalette();
+        d.openScoutMode("search");
+      },
+      preview: {
+        metaLine1: "Scene Scout Search",
+        description: "Describe a scene in words and Scene Scout finds it across your databases.",
+        shortcut: OPEN_SHORTCUT,
+      },
+    },
+    {
+      id: "scout-flow",
+      category: "sceneScout",
+      feature: "sceneScout",
+      title: "Scene Scout: Find flowing clips",
+      subtitle: "Pick a video file and find scenes that could follow it",
+      icon: FaWater,
+      action: () => {
+        d.closePalette();
+        d.inputFlowFile();
+      },
+      preview: {
+        metaLine1: "Flow Search",
+        description: "Finds scenes that look like they follow the last frame of the file you pick.",
+        shortcut: OPEN_SHORTCUT,
+      },
+    },
+    ...databases,
+  ];
+}
+
 function actionCommands(d: CommandDeps): CommandItem[] {
   return [
     {
@@ -128,14 +200,12 @@ function actionCommands(d: CommandDeps): CommandItem[] {
       category: "actions",
       title: "Import New Episode",
       subtitle: "Select video file to detect and cut into scene clips",
-      badge: "Workspace",
       icon: FaFolderOpen,
       action: () => {
         d.closePalette();
         d.onImportClick();
       },
       preview: {
-        metaTags: ["Pipeline", "Scene Cut", "SmartCut Demux"],
         metaLine1: "Scene Detection Pipeline",
         description: "Open file dialog to run TransNetV2 AI or fast keyframe demux.",
         shortcut: "⌘I",
@@ -146,14 +216,12 @@ function actionCommands(d: CommandDeps): CommandItem[] {
       category: "actions",
       title: "Select All Clips",
       subtitle: `Highlight all ${d.clips.length} scenes in timeline`,
-      badge: "Selection",
       icon: FaThLarge,
       action: () => {
         d.setSelectedClips(new Set(d.clips.map((c) => c.id)));
         d.closePalette();
       },
       preview: {
-        metaTags: [`${d.clips.length} Available Clips`, "Timeline"],
         metaLine1: "Bulk Selection",
         description: "Selects every scene for batch export, merging, or scenepack grouping.",
         shortcut: "Ctrl+A",
@@ -164,14 +232,12 @@ function actionCommands(d: CommandDeps): CommandItem[] {
       category: "actions",
       title: "Clear Clip Selection",
       subtitle: `Deselect currently selected ${d.selectedClips.size} scenes`,
-      badge: "Selection",
       icon: FaTimes,
       action: () => {
         d.setSelectedClips(new Set());
         d.closePalette();
       },
       preview: {
-        metaTags: [`${d.selectedClips.size} Selected`],
         metaLine1: "Deselect All",
         description: "Clears selection state across the grid.",
       },
@@ -181,14 +247,12 @@ function actionCommands(d: CommandDeps): CommandItem[] {
       category: "actions",
       title: d.pinned ? "Unpin Window (Normal Mode)" : "Pin Window (Always on Top)",
       subtitle: "Toggle floating companion window for After Effects / Premiere",
-      badge: "Window",
       icon: FaThumbtack,
       action: () => {
         d.togglePinned();
         d.closePalette();
       },
       preview: {
-        metaTags: [d.pinned ? "Currently Pinned" : "Normal Window", "Companion Size"],
         metaLine1: "Always on Top Mode",
         description: "Shrinks and pins AMVerge floating above your editing application.",
       },
@@ -198,14 +262,12 @@ function actionCommands(d: CommandDeps): CommandItem[] {
       category: "actions",
       title: d.sidebarEnabled ? "Hide Sidebar" : "Show Sidebar",
       subtitle: "Toggle left navigation and episode tree panel",
-      badge: "Layout",
       icon: FaFolder,
       action: () => {
         d.setSidebarEnabled(!d.sidebarEnabled);
         d.closePalette();
       },
       preview: {
-        metaTags: [d.sidebarEnabled ? "Sidebar Visible" : "Sidebar Hidden", "Navigation"],
         metaLine1: "Sidebar Visibility",
         description: "Expands or collapses the left episode panel to save screen space.",
       },
@@ -215,14 +277,12 @@ function actionCommands(d: CommandDeps): CommandItem[] {
       category: "actions",
       title: d.previewCollapsed ? "Show Video Preview Panel" : "Hide Video Preview Panel",
       subtitle: "Toggle the right preview player to expand clip grid full-width",
-      badge: "Layout",
       icon: FaExpand,
       action: () => {
         d.setPreviewCollapsed(!d.previewCollapsed);
         d.closePalette();
       },
       preview: {
-        metaTags: [d.previewCollapsed ? "Preview Folded" : "Preview Visible", "Grid Full-Width"],
         metaLine1: "Preview Pane Toggle",
         description: "Hides or restores the right video playback and export controls pane.",
       },
@@ -232,14 +292,12 @@ function actionCommands(d: CommandDeps): CommandItem[] {
       category: "actions",
       title: "Grid: Zoom In (Larger Tiles)",
       subtitle: `Currently ${d.cols} columns per row`,
-      badge: "Grid",
       icon: FaColumns,
       action: () => {
         d.setCols((prev) => Math.max(MIN_COLS, prev - 1));
         d.closePalette();
       },
       preview: {
-        metaTags: [`Current: ${d.cols} cols`, "Grid Sizing"],
         metaLine1: "Bigger Clip Tiles",
         description: "Decreases columns to give each clip thumbnail more screen real estate.",
       },
@@ -249,14 +307,12 @@ function actionCommands(d: CommandDeps): CommandItem[] {
       category: "actions",
       title: "Grid: Zoom Out (More Columns)",
       subtitle: `Currently ${d.cols} columns per row`,
-      badge: "Grid",
       icon: FaColumns,
       action: () => {
         d.setCols((prev) => Math.min(MAX_COLS, prev + 1));
         d.closePalette();
       },
       preview: {
-        metaTags: [`Current: ${d.cols} cols`, "Grid Sizing"],
         metaLine1: "Smaller Clip Tiles",
         description: "Increases columns to view more scene clips at a glance.",
       },
@@ -266,14 +322,12 @@ function actionCommands(d: CommandDeps): CommandItem[] {
       category: "actions",
       title: d.audioPlaybackHover ? "Mute Audio on Hover" : "Enable Audio on Hover",
       subtitle: "Toggle clip hover sound in the scene grid",
-      badge: "Audio",
       icon: d.audioPlaybackHover ? FaVolumeMute : FaVolumeUp,
       action: () => {
         d.setAudioPlaybackHover(!d.audioPlaybackHover);
         d.closePalette();
       },
       preview: {
-        metaTags: [d.audioPlaybackHover ? "Audio: Active" : "Audio: Muted", "Hover Audio"],
         metaLine1: "Hover Audio Playback",
         description:
           "Controls whether hovering over a clip tile plays its synchronized audio track.",
@@ -294,11 +348,9 @@ function settingsCommands(d: CommandDeps): CommandItem[] {
       category: "settings",
       title: "Settings: General",
       subtitle: "Scene detection methods, episodes storage path, and app defaults",
-      badge: "Settings",
       icon: FaCog,
       action: openSection("general"),
       preview: {
-        metaTags: ["Detection Method", "Storage Folder", "Transcode Quality"],
         metaLine1: "General Preferences",
         metaLine2: d.episodesPath || "Default Cache Directory",
         description: "Configure detection algorithms, cache locations, and video decode pipelines.",
@@ -310,11 +362,9 @@ function settingsCommands(d: CommandDeps): CommandItem[] {
       category: "settings",
       title: "Settings: Export Profiles",
       subtitle: "GPU acceleration encoders (NVENC / AMF / QSV) and video codecs",
-      badge: "Settings",
       icon: FaFileExport,
       action: openSection("export"),
       preview: {
-        metaTags: ["NVENC / AMF / QSV", "H.264 / HEVC / AV1", "ProRes"],
         metaLine1: "Export Configuration",
         metaLine2: d.exportPath || "Default Export Folder",
         description: "Manage export encoders, bitrates, hardware profiles, and container formats.",
@@ -326,11 +376,9 @@ function settingsCommands(d: CommandDeps): CommandItem[] {
       category: "settings",
       title: "Settings: Appearance",
       subtitle: "Custom colors, wallpaper background blur, and clip styling",
-      badge: "Settings",
       icon: FaSlidersH,
       action: openSection("appearance"),
       preview: {
-        metaTags: ["Accent Tint", "Custom Background", "Font Adjust"],
         metaLine1: "Visual Styling",
         metaLine2: `Accent: ${d.accentColor}`,
         description: "Personalize app colors, background images, opacity, and typography.",
@@ -342,11 +390,9 @@ function settingsCommands(d: CommandDeps): CommandItem[] {
       category: "settings",
       title: "Settings: Features",
       subtitle: "Turn AI Scene Detection, Scene Scout, Scenepacks and export passes on or off",
-      badge: "Settings",
       icon: FaBolt,
       action: openSection("features"),
       preview: {
-        metaTags: ["AI Scene Detection", "Scene Scout", "Scenepacks", "Depth Maps", "Interpolation"],
         metaLine1: "Features & storage",
         description: "Switch major features on or off, download what they need, and see how much disk space they use.",
         shortcut: OPEN_SHORTCUT,
@@ -357,11 +403,9 @@ function settingsCommands(d: CommandDeps): CommandItem[] {
       category: "settings",
       title: "Settings: Discord Rich Presence",
       subtitle: "Configure Discord status badges, filenames, and rich details",
-      badge: "Settings",
       icon: FaCodeBranch,
       action: openSection("discord"),
       preview: {
-        metaTags: [d.discordRPCEnabled ? "RPC Enabled" : "RPC Disabled", "Discord"],
         metaLine1: "Discord RPC Integration",
         description: "Show your editing status and active clips count on Discord.",
         shortcut: OPEN_SHORTCUT,
@@ -377,20 +421,64 @@ function menuCommands(d: CommandDeps): CommandItem[] {
     d.openMenu();
   };
 
+  const goTo = (page: string) => () => {
+    d.closePalette();
+    d.setActivePage(page);
+  };
+
   return [
+    {
+      id: "page-library",
+      category: "menu",
+      title: "Library",
+      subtitle: "Your imported episodes and their clips",
+      icon: IoLibrary,
+      action: goTo("home"),
+      preview: {
+        metaLine1: "Library",
+        description: "Back to the episode grid.",
+        shortcut: OPEN_SHORTCUT,
+      },
+    },
+    {
+      id: "page-scenepacks",
+      category: "menu",
+      feature: "scenepacks",
+      title: "Scenepacks",
+      subtitle: "Themed collections of clips",
+      icon: FaLayerGroup,
+      action: goTo("scenepacks"),
+      preview: {
+        metaLine1: "Scenepacks",
+        description: "Browse and export the clips you grouped into Scenepacks.",
+        shortcut: OPEN_SHORTCUT,
+      },
+    },
+    {
+      id: "page-scene-scout",
+      category: "menu",
+      feature: "sceneScout",
+      title: "Scene Scout",
+      subtitle: "Search your episodes by describing a scene",
+      icon: FaSearchPlus,
+      action: goTo("sceneScout"),
+      preview: {
+        metaLine1: "Scene Scout",
+        description: "Search indexed episodes by text, or find clips that flow into each other.",
+        shortcut: OPEN_SHORTCUT,
+      },
+    },
     {
       id: "community-events",
       category: "menu",
       title: "Community Events",
       subtitle: "Browse contests, collabs, and jams, or host your own",
-      badge: "Community",
       icon: FaCalendarAlt,
       action: () => {
         d.closePalette();
         d.setActivePage("events");
       },
       preview: {
-        metaTags: ["Contests", "Collabs", "Jams"],
         metaLine1: "Community Events",
         description: "Events hosted by the AMVerge community, reviewed before they appear.",
         shortcut: OPEN_SHORTCUT,
@@ -401,11 +489,9 @@ function menuCommands(d: CommandDeps): CommandItem[] {
       category: "menu",
       title: "Developer Console Logs",
       subtitle: "Live CLI IPC events, backend streams, and diagnostic logs",
-      badge: "System",
       icon: FaTerminal,
       action: openMenuPage,
       preview: {
-        metaTags: ["CLI IPC", "Debug Output", "FFmpeg Logs"],
         metaLine1: "Diagnostic Console",
         description: "Inspect live stderr/stdout telemetry from FFmpeg, PyAV, and AI sidecars.",
         shortcut: OPEN_SHORTCUT,
@@ -416,11 +502,9 @@ function menuCommands(d: CommandDeps): CommandItem[] {
       category: "menu",
       title: "Update Logs & Patch Notes",
       subtitle: "Read release history and new features in AMVerge v2",
-      badge: "System",
       icon: FaHistory,
       action: openMenuPage,
       preview: {
-        metaTags: ["Release v2.0", "Changelog", "Patch History"],
         metaLine1: "Version Release Logs",
         description: "Browse changelogs, bug fixes, and feature additions.",
         shortcut: OPEN_SHORTCUT,
@@ -431,11 +515,9 @@ function menuCommands(d: CommandDeps): CommandItem[] {
       category: "menu",
       title: "About AMVerge",
       subtitle: "Architecture, system info, and open-source licenses",
-      badge: "System",
       icon: FaInfoCircle,
       action: openMenuPage,
       preview: {
-        metaTags: ["Tauri v2", "Rust Backend", "AMVerge CLI"],
         metaLine1: "About AMVerge Desktop",
         description: "High-performance anime & video scene cutter by Crptk & team.",
         shortcut: OPEN_SHORTCUT,
@@ -446,11 +528,9 @@ function menuCommands(d: CommandDeps): CommandItem[] {
       category: "menu",
       title: "Report a Bug / Issue",
       subtitle: "Submit feedback with diagnostic telemetry or connect to Discord",
-      badge: "Support",
       icon: FaBug,
       action: openMenuPage,
       preview: {
-        metaTags: ["HMAC Verified", "Bug Tracker", "Community"],
         metaLine1: "Feedback & Bug Reports",
         description: "Submit reproducible bugs directly to the development team.",
         shortcut: OPEN_SHORTCUT,
@@ -459,12 +539,37 @@ function menuCommands(d: CommandDeps): CommandItem[] {
   ];
 }
 
+// a switched-off feature's commands are left out when hidden, otherwise greyed out and point to Settings › Features
+function applyFeatureToggles(commands: CommandItem[], d: CommandDeps): CommandItem[] {
+  return commands.flatMap((cmd) => {
+    if (!cmd.feature) return [cmd];
+    const { enabled, hidden } = d.featureState(cmd.feature);
+    if (enabled) return [cmd];
+    if (hidden) return [];
+    return [
+      {
+        ...cmd,
+        disabled: true,
+        subtitle: `Turn on ${featureDef(cmd.feature).label} in Settings › Features`,
+        action: () => {
+          d.closePalette();
+          d.openSettings("features");
+        },
+      },
+    ];
+  });
+}
+
 export function buildCommands(deps: CommandDeps): CommandItem[] {
-  return [
-    ...episodeCommands(deps),
-    ...scenepackCommands(deps),
-    ...actionCommands(deps),
-    ...settingsCommands(deps),
-    ...menuCommands(deps),
-  ];
+  return applyFeatureToggles(
+    [
+      ...episodeCommands(deps),
+      ...scenepackCommands(deps),
+      ...sceneScoutCommands(deps),
+      ...actionCommands(deps),
+      ...settingsCommands(deps),
+      ...menuCommands(deps),
+    ],
+    deps
+  );
 }

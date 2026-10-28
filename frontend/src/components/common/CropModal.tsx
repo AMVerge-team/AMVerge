@@ -4,6 +4,7 @@ import { FaUndo, FaRedo, FaArrowsAltH, FaArrowsAltV, FaExpand, FaSyncAlt } from 
 import "react-image-crop/dist/ReactCrop.css";
 
 import Tooltip from "./Tooltip";
+import { useEscapeToClose } from "./useEscapeToClose";
 
 type CropModalProps = {
   image: string;
@@ -44,6 +45,8 @@ export default function CropModal({
   const [flip, setFlip] = useState({ horizontal: false, vertical: false });
   const [customRes, setCustomRes] = useState({ width: 0, height: 0 });
   const [loading, setLoading] = useState(false);
+  // not while the crop is being saved
+  useEscapeToClose(onClose, !loading);
 
   const imgRef = useRef<HTMLImageElement>(null);
 

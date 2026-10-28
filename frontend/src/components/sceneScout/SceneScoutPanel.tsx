@@ -16,6 +16,7 @@ import { FiDatabase } from "react-icons/fi";
 
 import ModalShell from "../common/ModalShell";
 import Tooltip from "../common/Tooltip";
+import { useEscapeToClose } from "../common/useEscapeToClose";
 import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
 import { useContextMenuStore } from "../../stores/contextMenuStore";
 import type { ScoutDatabase, ScoutVideo } from "../../features/sceneScout/types";
@@ -109,16 +110,15 @@ export function SceneScoutPanel() {
   useEffect(() => {
     if (!menu) return;
     const close = () => setMenu(null);
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
     window.addEventListener("click", close);
     window.addEventListener("contextmenu", close);
-    window.addEventListener("keydown", onKey);
     return () => {
       window.removeEventListener("click", close);
       window.removeEventListener("contextmenu", close);
-      window.removeEventListener("keydown", onKey);
     };
   }, [menu]);
+
+  useEscapeToClose(() => setMenu(null), menu !== null);
 
   // filters the panel's own lists. unrelated to searching scenes, which is the
   // bar above the grid

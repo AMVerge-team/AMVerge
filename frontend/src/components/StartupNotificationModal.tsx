@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
 import Tooltip from "./common/Tooltip";
+import { useEscapeToClose } from "./common/useEscapeToClose";
 
 export type StartupNotification = {
   id: string;
@@ -149,18 +150,7 @@ export default function StartupNotificationModal({
     };
   }, [notification.id, notification.bannerImageUrl]);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose(isUpdateMode ? false : doNotShowAgain);
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [doNotShowAgain, isUpdateMode, onClose]);
+  useEscapeToClose(() => onClose(isUpdateMode ? false : doNotShowAgain));
 
   const bannerSrc = bannerCandidates[bannerIndex];
 

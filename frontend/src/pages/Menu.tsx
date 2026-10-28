@@ -4,6 +4,7 @@ import Console from "../components/menu/Console";
 import PatchNotes from "../components/menu/PatchNotes";
 import Credits from "../components/menu/Credits";
 import BugReport from "../components/menu/BugReport";
+import { useTabKeys } from "../components/common/useTabKeys";
 import {
   FaInfoCircle,
   FaTerminal,
@@ -22,6 +23,7 @@ const PAGES = [
 
 export default function Menu() {
   const [activePage, setActivePage] = useState("about");
+  useTabKeys(PAGES.map((page) => page.key), activePage, setActivePage);
 
   return (
     <div className="menu-page">

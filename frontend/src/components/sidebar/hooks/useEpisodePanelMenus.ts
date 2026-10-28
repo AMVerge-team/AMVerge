@@ -1,6 +1,7 @@
 // menu and modal state hook for the Episode Panel. owns context menus, text modals, confirm modals, and close behavior
 import { useEffect, useRef, useState } from "react";
 import { useContextMenuStore } from "../../../stores/contextMenuStore";
+import { useEscapeToClose } from "../../common/useEscapeToClose";
 import type React from "react";
 import type {
   ConfirmModalState,
@@ -53,36 +54,25 @@ export default function useEpisodePanelMenus({
 
   const textModalInputRef = useRef<HTMLInputElement | null>(null);
 
+  const anyContextMenu = Boolean(contextMenu || folderContextMenu || panelContextMenu);
+  const closeContextMenus = () => {
+    setContextMenu(null);
+    setFolderContextMenu(null);
+    setPanelContextMenu(null);
+  };
+
   useEffect(() => {
-    if (!contextMenu && !folderContextMenu && !panelContextMenu && !textModal && !confirmModal) return;
-
-    const onWindowClick = () => {
-      setContextMenu(null);
-      setFolderContextMenu(null);
-      setPanelContextMenu(null);
-    };
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setContextMenu(null);
-        setFolderContextMenu(null);
-        setPanelContextMenu(null);
-        setTextModal(null);
-        setConfirmModal(null);
-        setNewFolderModal(null);
-      }
-    };
-
-    window.addEventListener("click", onWindowClick);
-    window.addEventListener("contextmenu", onWindowClick);
-    window.addEventListener("keydown", onKeyDown);
-
+    if (!anyContextMenu) return;
+    window.addEventListener("click", closeContextMenus);
+    window.addEventListener("contextmenu", closeContextMenus);
     return () => {
-      window.removeEventListener("click", onWindowClick);
-      window.removeEventListener("contextmenu", onWindowClick);
-      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("click", closeContextMenus);
+      window.removeEventListener("contextmenu", closeContextMenus);
     };
-  }, [contextMenu, folderContextMenu, panelContextMenu, textModal, confirmModal]);
+  }, [anyContextMenu]);
+
+  // the modals register their own Escape in EpisodePanelModals
+  useEscapeToClose(closeContextMenus, anyContextMenu);
 
   useEffect(() => {
     if (!textModal) return;

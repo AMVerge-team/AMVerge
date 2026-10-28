@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useEscapeToClose } from "../../common/useEscapeToClose";
 
 type Props = {
   title: string;
@@ -7,11 +8,8 @@ type Props = {
   confirmLabel: string;
   onConfirm: () => void;
   onClose: () => void;
-  /** while true the modal cannot be dismissed and both buttons are disabled */
   busy?: boolean;
-  /** a middle button, for a choice that is neither cancel nor the primary action */
   secondary?: { label: string; onClick: () => void };
-  /** the dismiss button's label, when "Cancel" would be ambiguous */
   cancelLabel?: string;
 };
 
@@ -27,10 +25,9 @@ export function ConfirmModal({
   cancelLabel = "Cancel",
 }: Props) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  useEscapeToClose(onClose, !busy);
 
   useEffect(() => {
-    // These confirmations are opened from a scrollable settings page. Mounting
-    // them at the document root keeps the overlay fixed to the viewport.
     dialogRef.current?.focus({ preventScroll: true });
   }, []);
 

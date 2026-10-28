@@ -109,20 +109,21 @@
     line-height: 1.35;
 }
 
-.quick-menu-card:hover {
+/* hover and the arrow keys both move the selection, so one card is ever highlighted */
+.quick-menu-card.is-selected {
     background: rgba(255, 255, 255, 0.04);
     border-color: rgba(var(--accent-rgb), 0.4);
     transform: translateY(-1px);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
-.quick-menu-card:hover .quick-menu-card-icon {
+.quick-menu-card.is-selected .quick-menu-card-icon {
     background: var(--accent);
     border-color: var(--accent);
     color: #000000;
 }
 
-.quick-menu-card:hover .quick-menu-card-title {
+.quick-menu-card.is-selected .quick-menu-card-title {
     color: var(--accent);
 }
 

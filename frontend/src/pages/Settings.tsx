@@ -4,6 +4,7 @@ import FeaturesSection from "../components/settings/FeaturesSection";
 import DiscordRPCSection from "../components/settings/DiscordRPCSection";
 import ExportSection from "../components/settings/exportSettings/ExportSection";
 import { useUIStateStore } from "../stores/UIStore";
+import { useTabKeys } from "../components/common/useTabKeys";
 
 const PAGES = [
   { key: "general", label: "General" },
@@ -26,6 +27,8 @@ export default function Settings({
 }: SettingsProps) {
   const activeTab = useUIStateStore(s => s.settingsTab);
   const setActiveTab = useUIStateStore(s => s.setSettingsTab);
+  useTabKeys(PAGES.map((page) => page.key), activeTab, setActiveTab);
+
   return (
     <div className="menu-page">
       <div className="menu-header">

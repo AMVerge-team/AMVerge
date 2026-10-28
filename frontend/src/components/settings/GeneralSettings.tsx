@@ -7,7 +7,7 @@ import {
 } from "../../stores/settingsStore";
 import { useAppStateStore } from "../../stores/appStore";
 import { useUIStateStore } from "../../stores/UIStore";
-import { useEffect, useState} from "react";
+import { useState } from "react";
 import SettingRow from "../common/SettingRow";
 import Dropdown from "../common/Dropdown";
 import SettingsSection from "../common/SettingsSection";
@@ -62,45 +62,6 @@ export default function GeneralSettings({
     "This will remove ALL episodes from the Episode Panel and delete their cached files on disk. This cannot be undone.";
   const clearScenepacksConfirmation =
     "This will remove ALL Scenepacks and delete their materialized clip files on disk. This cannot be undone.";
-  useEffect(() => {
-    if (!showFactoryResetConfirm) return;
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setShowFactoryResetConfirm(false);
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [showFactoryResetConfirm]);
-
-  useEffect(() => {
-    if (!showClearPanelConfirm) return;
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setShowClearPanelConfirm(false);
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [showClearPanelConfirm]);
-
-  useEffect(() => {
-    if (!showClearScenepacksConfirm) return;
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setShowClearScenepacksConfirm(false);
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [showClearScenepacksConfirm]);
-
   const handleClearScenepacks = async () => {
     setClearingScenepacks(true);
     try {

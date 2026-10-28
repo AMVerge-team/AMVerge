@@ -42,16 +42,6 @@ export function CommandInspector({ command }: Props) {
       <div className="inspector-details">
         <h3 className="inspector-title">{command.title}</h3>
 
-        {preview?.metaTags && (
-          <div className="inspector-chips-row">
-            {preview.metaTags.map((tag, i) => (
-              <span key={i} className="inspector-meta-tag">
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
         {preview?.metaLine2 && (
           <div className="inspector-path-box">
             <span className="path-label">Target</span>

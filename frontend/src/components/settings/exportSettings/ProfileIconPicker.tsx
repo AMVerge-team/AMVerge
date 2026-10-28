@@ -8,6 +8,7 @@ import {
 } from "react-icons/fa";
 import CropModal from "../../common/CropModal"
 import Tooltip from "../../common/Tooltip"
+import { useEscapeToClose } from "../../common/useEscapeToClose";
 import {
   EXPORT_PROFILE_ICON_OPTIONS,
   type ExportProfile,
@@ -224,6 +225,9 @@ export default function ProfileIconPicker({
     setFeaturedCustomIcons(picked.custom);
   }, [availableIconSet, normalizedCustomProfileIconSet]);
 
+  // Escape closes the picker alone, never the Settings dialog it sits in
+  useEscapeToClose(() => setShowIconPicker(false), showIconPicker);
+
   useEffect(() => {
     if (!showIconPicker) return;
 
@@ -233,19 +237,8 @@ export default function ProfileIconPicker({
       }
     };
 
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setShowIconPicker(false);
-      }
-    };
-
     document.addEventListener("mousedown", onMouseDown);
-    window.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      document.removeEventListener("mousedown", onMouseDown);
-      window.removeEventListener("keydown", onKeyDown);
-    };
+    return () => document.removeEventListener("mousedown", onMouseDown);
   }, [showIconPicker]);
 
   const toggleFeaturedIcon = (icon: ExportProfileIcon) => {

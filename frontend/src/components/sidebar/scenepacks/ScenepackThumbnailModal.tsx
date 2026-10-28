@@ -4,6 +4,7 @@ import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { FaImage } from "react-icons/fa";
 
 import { useGeneralSettingsStore } from "../../../stores/settingsStore";
+import { useEscapeToClose } from "../../common/useEscapeToClose";
 
 const ACCEPTED = ["png", "jpg", "jpeg", "webp", "gif"];
 
@@ -30,16 +31,7 @@ export default function ScenepackThumbnailModal({
   const [dragging, setDragging] = useState(false);
   const unlistenRef = useRef<(() => void) | null>(null);
 
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", onKeyDown, true);
-    return () => document.removeEventListener("keydown", onKeyDown, true);
-  }, [onClose]);
+  useEscapeToClose(onClose);
 
   // the webview's own drop event carries no filesystem path, so the file has to
   // come from Tauri's drag-drop event instead

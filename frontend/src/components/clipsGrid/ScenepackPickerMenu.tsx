@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useScenepacksStore } from "../../stores/scenepackStore";
 import { addClipsToScenepack } from "../../utils/scenepackAdd";
 import type { ClipItem, ScenepackEntry } from "../../types/domain";
+import { useEscapeToClose } from "../common/useEscapeToClose";
 
 type ScenepackPickerMenuProps = {
   clip: ClipItem;
@@ -58,10 +59,6 @@ export function ScenepackPickerMenu({
       if (anchorEl?.dataset.scenepackAnchor === clip.id) return;
       onCloseRef.current();
     };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCloseRef.current();
-    };
-
     const onBlur = () => onCloseRef.current();
     // the menu is placed in window coordinates, so a scroll UNDER it leaves it
     // pointing at nothing, and it goes at once, no easing, no timer. scrolling
@@ -76,18 +73,18 @@ export function ScenepackPickerMenu({
     // capture, so a handler that stops propagation on its way up cannot keep
     // the menu alive, and so a scrolling container is caught as well as the page
     window.addEventListener("mousedown", onPointerDown, true);
-    window.addEventListener("keydown", onKeyDown);
     window.addEventListener("blur", onBlur);
     window.addEventListener("scroll", onScroll, true);
     window.addEventListener("wheel", onScroll, { capture: true, passive: true });
     return () => {
       window.removeEventListener("mousedown", onPointerDown, true);
-      window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("blur", onBlur);
       window.removeEventListener("scroll", onScroll, true);
       window.removeEventListener("wheel", onScroll, true);
     };
   }, [clip.id]);
+
+  useEscapeToClose(() => onCloseRef.current());
 
   useEffect(() => {
     return () => {
