@@ -21,12 +21,12 @@ export function SelectionActionBar() {
 
   // add-to-Scenepack only makes sense from the Home/episode grid, a
   // Scenepack's own clips are already materialized copies, not something to
-  // re-add. a switched-off feature is greyed out, or left out when hidden
-  const showAddToScenepack = activePage === "home" && !scenepacks.hidden;
+  // re-add. a switched-off feature's action is left out entirely
+  const showAddToScenepack = activePage === "home" && scenepacks.enabled;
 
   // continuing a clip needs exactly one, from a grid that holds playable source clips
   const flowSource =
-    selectedClips.size === 1 && (activePage === "home" || activePage === "sceneScout") && !sceneScout.hidden
+    selectedClips.size === 1 && (activePage === "home" || activePage === "sceneScout") && sceneScout.enabled
       ? (() => {
           const [id] = selectedClips;
           const clip = useAppStateStore.getState().clips.find((c) => c.id === id);
@@ -43,41 +43,28 @@ export function SelectionActionBar() {
           {selectedClips.size} selected
         </span>
         {flowSource && (
-          <Tooltip
-            content={
-              sceneScout.enabled
-                ? "Find Scene Scout scenes that look like they follow this clip's last frame"
-                : "Turn on Scene Scout in Settings › Features"
-            }
-          >
-            {/* wrapper span: a disabled button fires no pointer events, so the tooltip listens on it */}
-            <span className="tooltip-anchor">
-              <button
-                className="selection-action-bar-btn"
-                disabled={!sceneScout.enabled}
-                onClick={() => {
-                  setSelectedClips(new Set());
-                  void useSceneScoutStore.getState().startFlowSearch(flowSource);
-                }}
-              >
-                <FaWater />
-                <span>Find clips that flow</span>
-              </button>
-            </span>
+          <Tooltip content="Find Scene Scout scenes that look like they follow this clip's last frame">
+            <button
+              className="selection-action-bar-btn"
+              onClick={() => {
+                setSelectedClips(new Set());
+                void useSceneScoutStore.getState().startFlowSearch(flowSource);
+              }}
+            >
+              <FaWater />
+              <span>Find clips that flow</span>
+            </button>
           </Tooltip>
         )}
         {showAddToScenepack && (
-          <Tooltip content={scenepacks.enabled ? "Add selected clips to Scenepack" : "Turn on Scenepacks in Settings › Features"}>
-            <span className="tooltip-anchor">
-              <button
-                className="selection-action-bar-btn"
-                disabled={!scenepacks.enabled}
-                onClick={() => setShowModal(true)}
-              >
-                <FaLayerGroup />
-                <span>Add to Scenepack</span>
-              </button>
-            </span>
+          <Tooltip content="Add selected clips to Scenepack">
+            <button
+              className="selection-action-bar-btn"
+              onClick={() => setShowModal(true)}
+            >
+              <FaLayerGroup />
+              <span>Add to Scenepack</span>
+            </button>
           </Tooltip>
         )}
         <Tooltip content="Deselect all">

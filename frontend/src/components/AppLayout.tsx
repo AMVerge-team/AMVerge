@@ -71,20 +71,17 @@ export default function AppLayout({
             entrance animation. Keeping content-wrapper in a fixed slot lets
             React reconcile it in place, so only the sidebar comes and goes. */}
         <div className="window-body">
-          {sidebarEnabled ? (
-            <>
-              <Sidebar />
-              <div
-                ref={alignDivider}
-                className="divider sidebar-splitter"
-                onPointerDown={dividerProps.onPointerDown}
-                role="separator"
-                aria-orientation="vertical"
-                aria-label="Resize sidebar"
-                tabIndex={-1}
-              />
-            </>
-          ) : null}
+          {sidebarEnabled ? <Sidebar /> : null}
+          {/* stays when the sidebar is folded, parked at the left edge to drag it back out */}
+          <div
+            ref={alignDivider}
+            className="divider sidebar-splitter"
+            onPointerDown={dividerProps.onPointerDown}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize sidebar"
+            tabIndex={-1}
+          />
           <div className="content-wrapper">
             {children}
           </div>

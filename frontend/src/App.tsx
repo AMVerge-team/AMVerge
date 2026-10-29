@@ -177,8 +177,6 @@ function App() {
   const setSidebarWidthPx = useUIStateStore(s => s.setSidebarWidthPx);
 
   function startSidebarResize(e: React.PointerEvent<HTMLDivElement>) {
-    if (!sidebarEnabled) return;
-
     const wrapper = windowWrapperRef.current;
     if (!wrapper) return;
 
@@ -196,16 +194,10 @@ function App() {
       const maxWidth = Math.max(minWidth, Math.floor(rect.width * 0.6));
       const proposed = Math.round(ev.clientX - rect.left);
 
-      // past the last stop the sidebar folds away, live. the listeners sit on the
-      // window rather than on the divider, so the drag survives the divider
-      // unmounting and pulling back right brings the sidebar straight back, the
-      // gesture is undoable without letting go
+      // past the last stop the sidebar folds away, live, and pulling back right
+      // brings it straight back. folded, the divider stays at the window's left
+      // edge, so the sidebar can be dragged back out from there too
       if (proposed < SIDEBAR_COLLAPSE_BELOW_PX) {
-        // hand the pointer back before the divider unmounts underneath it, so the
-        // moves keep reaching the window listeners and the fold stays undoable
-        if (divider.hasPointerCapture(pointerId)) {
-          divider.releasePointerCapture(pointerId);
-        }
         setSidebarEnabled(false);
         return;
       }

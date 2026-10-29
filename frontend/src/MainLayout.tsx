@@ -81,9 +81,8 @@ export default function MainLayout({
         const onMouseMove = (ev: MouseEvent) => {
             const delta = ev.clientX - startX;
             const newPercent = ((startLeftWidth + delta) / totalWidth) * 100;
-            // shoving the divider past the last stop folds the pane away, live. the
-            // listeners sit on the window, so the drag survives the divider unmounting
-            // and pulling back left brings the pane straight back
+            // shoving the divider past the last stop folds the pane away, live, and
+            // pulling back left brings the pane straight back
             if (newPercent >= COLLAPSE_AT_PERCENT) {
                 setPreviewCollapsed(true);
                 return;
@@ -114,7 +113,8 @@ export default function MainLayout({
                     {left ?? <ClipsContainer />}
                 </div>
 
-                {!fullWidth && !previewCollapsed && (
+                {/* stays when the pane is folded, parked at the right edge to drag it back out */}
+                {!fullWidth && (
                     <div ref={alignDivider} className="divider" onMouseDown={startHorizontalResize} />
                 )}
 

@@ -30,7 +30,7 @@ pub fn get_default_episodes_dir(app: AppHandle) -> Result<String, String> {
 /// returns the OLD episodes folder, not the old root: both callers use it to
 /// rewrite the stored clip paths of episodes they already have.
 #[tauri::command]
-pub fn move_storage_to_new_dir(
+pub async fn move_storage_to_new_dir(
     app: AppHandle,
     old_dir: Option<String>,
     new_dir: Option<String>,
@@ -45,6 +45,15 @@ pub fn move_storage_to_new_dir(
         return Ok(old_episodes_string);
     }
 
+    // a cross-drive move copies gigabytes; on the main thread windows marked the app hung and closed it
+    tauri::async_runtime::spawn_blocking(move || move_storage(&old_root, &new_root))
+        .await
+        .map_err(|e| format!("Storage move failed: {e}"))??;
+
+    Ok(old_episodes_string)
+}
+
+fn move_storage(old_root: &Path, new_root: &Path) -> Result<(), String> {
     // source folders that were copied but could not be deleted (locked files)
     let mut leftovers: Vec<String> = Vec::new();
 
@@ -86,7 +95,7 @@ pub fn move_storage_to_new_dir(
         );
     }
 
-    Ok(old_episodes_string)
+    Ok(())
 }
 
 /// move one folder or file, falling back to copy-then-delete.

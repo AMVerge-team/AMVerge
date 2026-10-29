@@ -19,7 +19,7 @@ export const EXPORT_WORKFLOW_OPTIONS: { value: ExportWorkflow; label: string }[]
   { value: "video_encode", label: "Export video (re-encode exact cuts)" },
   {
     value: "video_remux",
-    label: "Fast remux (stream copy; container selected from source)",
+    label: "Fast remux (stream copy)",
   },
 ];
 

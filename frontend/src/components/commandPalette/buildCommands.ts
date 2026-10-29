@@ -176,7 +176,7 @@ function sceneScoutCommands(d: CommandDeps): CommandItem[] {
       id: "scout-flow",
       category: "sceneScout",
       feature: "sceneScout",
-      title: "Scene Scout: Find flowing clips",
+      title: "Scene Scout: Find clips that flow",
       subtitle: "Pick a video file and find scenes that could follow it",
       icon: FaWater,
       action: () => {
