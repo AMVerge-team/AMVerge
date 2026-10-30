@@ -18,8 +18,7 @@ export type AppState = {
   importedVideoPath: string | null;
   
   loading: boolean;
-  // which CLI operation the loading overlay is showing (drives its header/command
-  // line). null when idle
+  // the cli operation the loading overlay shows; null when idle
   activeOperation: "import" | "export" | "scout_add" | "scout_open" | "scout_search" | "scout_thumbnails" | null;
   progress: number;
   progressMsg: string;

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 
 import type { FlowSource } from "../../../features/sceneScout/types";
+import { usePreviewTranscode } from "../../../features/preview/usePreviewTranscode";
 
 /** a playable url for a flow clip: a range gets the tiles' scene cut, a whole file the x264 proxy */
 export function useFlowPreviewSrc(source: FlowSource | null): { src: string | null; failed: boolean } {
@@ -11,7 +12,11 @@ export function useFlowPreviewSrc(source: FlowSource | null): { src: string | nu
     failed: false,
   });
 
-  const key = source ? `${source.path}|${source.startMs ?? ""}|${source.endMs ?? ""}` : "";
+  // the tiles' preset, so a range shares their cached cut instead of encoding it again
+  const { preset } = usePreviewTranscode();
+  const key = source
+    ? `${source.path}|${source.startMs ?? ""}|${source.endMs ?? ""}|${preset.height}p${preset.crf}`
+    : "";
 
   useEffect(() => {
     if (!source) return;
@@ -22,6 +27,8 @@ export function useFlowPreviewSrc(source: FlowSource | null): { src: string | nu
             videoPath: source.path,
             startSec: source.startMs / 1000,
             endSec: source.endMs / 1000,
+            previewHeight: preset.height,
+            previewCrf: preset.crf,
           })
         : // the app's capped cache, never a preview file dropped beside the user's own video
           invoke<string>("ensure_preview_proxy", { clipPath: source.path, transcodeVideo: true, inCache: true });
@@ -37,7 +44,6 @@ export function useFlowPreviewSrc(source: FlowSource | null): { src: string | nu
     return () => {
       cancelled = true;
     };
-    // the key captures everything in source that matters
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 

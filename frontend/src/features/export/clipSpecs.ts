@@ -3,12 +3,7 @@ import type { ClipItem } from "../../types/domain";
 /** matches Rust's `ClipSpec` (commands/export.rs): `export_clips` rejects bare paths */
 export type ClipExportSpec = { input: string; start_sec?: number; end_sec?: number };
 
-/**
- * what a clip contributes to an export: an episode clip uses its original
- * source range so copy exports can snap against source keyframes and encode
- * exports can cut the detected timestamps. Scenepacks remain self-contained
- * and export their materialized clip instead.
- */
+/** an episode clip exports its source range (so copy snaps to keyframes); Scenepack clips export their own file */
 export function clipExportSpecs(c: ClipItem): ClipExportSpec[] {
   if (c.mergedSrcs && c.mergedSrcs.length > 0) return c.mergedSrcs.map((input) => ({ input }));
   if (

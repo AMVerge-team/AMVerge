@@ -8,11 +8,7 @@ import type {
 } from "../components/events/types";
 
 
-/**
- * thin wrappers over the Rust commands. the webview's CSP blocks every remote
- * host, so this is the only way events reach the app, and it keeps the session
- * token on the Rust side, where the webview cannot read it.
- */
+// thin wrappers over the rust commands, the only way past the CSP; the session token stays in rust
 
 export function fetchEvents(scope: "active" | "past"): Promise<EventsResult> {
   return invoke<EventsResult>("fetch_events", { scope });

@@ -451,9 +451,7 @@ pub async fn generate_scene_webp_batch(
     let ffmpeg_pids = ffmpeg_pids.pids.clone();
     let fingerprint_cache: FingerprintCache = Arc::new(Mutex::new(HashMap::new()));
 
-    // fingerprint each unique source exactly once, off the async runtime, so the
-    // concurrent encode tasks below never block a worker thread computing cache
-    // keys (a batch of scenes from one episode all share the same fingerprint)
+    // each unique source is fingerprinted once, off the async runtime
     {
         let unique_sources: BTreeSet<String> =
             jobs.iter().map(|job| job.source_path.clone()).collect();

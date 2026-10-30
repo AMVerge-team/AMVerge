@@ -23,11 +23,7 @@ import type {
   EventSubmission,
 } from "../components/events/types";
 
-/**
- * not persisted: the event list is server state and the Discord session lives in
- * the OS credential store, so there is nothing here worth carrying across a
- * restart.
- */
+// not persisted: events are server state and the Discord session lives in the OS credential store
 /** Which slice of the catalogue the grid is showing */
 export type EventFilter = "all" | "mine" | "hc" | "ec";
 
@@ -54,25 +50,13 @@ export type EventsState = {
   loginPending: boolean;
   loginError: string | null;
 
-  /**
-   * approved events the user has already been shown, so a badge only ever
-   * counts genuinely new ones. persisted; everything else here is server state
-   * or session state.
-   */
+  /** approved events already shown, so the badge counts new ones; persisted */
   seenEventIds: string[];
   /** false until the first successful load establishes the baseline */
   hasSeededSeenEvents: boolean;
-  /**
-   * ids to mark NEW! for the current visit. filled when the page opens and
-   * deliberately not persisted, so the flags clear on the next visit even
-   * though the ids stay in `seenEventIds`.
-   */
+  /** ids flagged NEW! this visit; not persisted, so the flags clear next visit */
   highlightedEventIds: string[];
-  /**
-   * when the host may submit again, as an epoch millisecond deadline. derived
-   * from the seconds the server sends and this machine's own clock, so a skewed
-   * client clock cannot produce a wrong or negative countdown.
-   */
+  /** when the host may submit again, from server seconds plus the local clock, so skew can't break it */
   submitCooldownUntil: number | null;
   /** set while the account is banned from hosting; carries reason and expiry */
   ban: HostBan | null;
@@ -109,10 +93,7 @@ export type EventsStore = EventsState & {
 /** plenty for any realistic catalogue, and bounds the persisted payload */
 const SEEN_ID_LIMIT = 500;
 
-/**
- * Events a badge could plausibly count: approved and not yet finished. a host's
- * own submissions are excluded: being told your own event is new is noise.
- */
+/** approved, unfinished events a badge may count, excluding the host's own */
 function visibleEventIds(state: Pick<EventsState, "active" | "profile">): string[] {
   return state.active
     .filter((event) => event.hostDiscordId !== state.profile?.id)
@@ -198,8 +179,7 @@ export const useEventsStore = create<EventsStore>()(
 
       set({ active: active.events, past: past.events, loading: false, error: null });
 
-      // a fresh install has seen nothing, which would badge the whole existing
-      // catalogue as new. treat the first successful load as the baseline
+      // a fresh install's first load is the baseline, or the whole catalogue would badge as new
       if (!get().hasSeededSeenEvents) {
         set({
           hasSeededSeenEvents: true,
@@ -228,8 +208,7 @@ export const useEventsStore = create<EventsStore>()(
         ban: result.ban ?? null,
       });
     } catch {
-      // the host's own list is supplementary; a failure here must not blank the
-      // public grid the user came for
+      // the host's own list is extra; failing it must not blank the public grid
       set({ mine: [] });
     }
   },
@@ -292,8 +271,7 @@ export const useEventsStore = create<EventsStore>()(
         : await submitEventRequest(submission);
 
       if (!result.ok) {
-        // a cooldown refusal carries how long is left, so the button greys out
-        // immediately rather than waiting for the next loadMine
+        // a cooldown refusal says how long is left, so the button greys at once
         if (!editingId && result.retryAfterSeconds) {
           get().startSubmitCooldown(result.retryAfterSeconds);
         }
@@ -313,8 +291,7 @@ export const useEventsStore = create<EventsStore>()(
     try {
       const result = await deleteEventRequest(eventId);
 
-      // refetch either way: on success to drop the row, on failure because the
-      // list was probably stale to begin with
+      // refetch either way: success drops the row, failure means the list was stale
       await Promise.all([get().loadEvents(), get().loadMine()]);
 
       if (!result.ok) return { ok: false, message: result.message };
@@ -330,11 +307,7 @@ export const useEventsStore = create<EventsStore>()(
   /** reopens the ban reason on demand, after the one-shot notice was dismissed */
   openBanNotice: () => set({ banNoticeOpen: true }),
 
-  /**
-   * closes the ban notice and marks it seen, so it appears once rather than on
-   * every launch. local state updates first so it cannot reappear while the
-   * server call is in flight.
-   */
+  /** closes the ban notice and marks it seen, locally first so it can't reappear mid-request */
   dismissBanNotice: () => {
     const ban = get().ban;
     set({
@@ -344,10 +317,7 @@ export const useEventsStore = create<EventsStore>()(
     if (ban && !ban.noticeSeen) void acknowledgeBanNotice().catch(() => {});
   },
 
-  /**
-   * marks every unseen denial as seen. local state updates immediately so the
-   * notice cannot reappear while the server call is in flight.
-   */
+  /** marks unseen denials seen, locally first so the notice can't reappear mid-request */
   dismissDenialNotice: () => {
     const unseen = get().mine.filter(
       (event) => event.status === "denied" && event.denialSeen === false
@@ -383,12 +353,7 @@ export const useEventsStore = create<EventsStore>()(
     }
   },
 
-  /**
-   * called when the events page opens. everything currently new is highlighted
-   * for this visit and simultaneously recorded as seen, so the sidebar badge
-   * clears immediately while the NEW! flags stay readable until the user
-   * leaves and comes back.
-   */
+  /** on opening Events: new ones are highlighted this visit and recorded as seen, clearing the badge */
   markEventsSeen: () => {
     const visible = visibleEventIds(get());
     const seen = new Set(get().seenEventIds);
@@ -400,24 +365,18 @@ export const useEventsStore = create<EventsStore>()(
 
     set({
       highlightedEventIds: fresh,
-      // bounded so a long-lived install cannot grow this without limit; ids
-      // that fall off are old events no longer in any list
+      // bounded; ids that fall off are old events no longer listed
       seenEventIds: Array.from(seen).slice(-SEEN_ID_LIMIT),
     });
   },
     }),
     {
       name: "amverge.events.v1",
-      // only the seen set is worth carrying across a restart. event lists are
-      // server state, and highlights are meant to last one visit
+      // only the seen set persists; lists are server state, highlights last one visit
       partialize: (state) => ({
         seenEventIds: state.seenEventIds,
         hasSeededSeenEvents: state.hasSeededSeenEvents,
-        // an absolute deadline, so it stays correct across a restart and the
-        // button is already greyed on the first paint instead of only after
-        // loadMine round-trips. the server is still the authority: loadMine
-        // overwrites this, and a stale value only ever delays a request the
-        // server would have refused anyway
+        // an absolute deadline, so the button is grey on first paint; loadMine still overwrites it
         submitCooldownUntil: state.submitCooldownUntil,
       }),
     }

@@ -1,10 +1,4 @@
-/**
- * theme colour presets
- *
- * each accent ships with the background gradient designed to sit under it, so
- * picking an accent preset applies both. the pair is the source of truth for
- * the swatches in both colour pickers.
- */
+// each accent preset ships with its matching background gradient
 
 export type ColorPreset = {
   accent: string;
@@ -36,10 +30,7 @@ export function findAccentPreset(accent: string): ColorPreset | null {
   return COLOR_PRESETS.find((p) => eq(p.accent, accent)) ?? null;
 }
 
-/**
- * true while the gradient is one the app chose rather than one the user picked.
- * used to decide whether a new accent may overwrite it.
- */
+/** whether the gradient is app-chosen, so a new accent may overwrite it */
 export function isPresetGradient(gradient: string): boolean {
   return COLOR_PRESETS.some((p) => eq(p.gradient, gradient));
 }

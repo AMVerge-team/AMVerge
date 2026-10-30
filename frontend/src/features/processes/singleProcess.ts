@@ -2,15 +2,7 @@ import { create } from "zustand";
 
 import { useAppStateStore } from "../../stores/appStore";
 
-/**
- * one long job at a time
- *
- * importing, exporting, resuming an episode, indexing a scene scout database and
- * generating its thumbnails each own the progress window and lean on the same cpu,
- * gpu and disk. starting one while another runs asks first (ProcessConflictModal):
- * stop the running job and go on, or keep it and drop the new one. every job calls
- * `claimProcess` before it starts
- */
+// one long job at a time: starting one while another runs asks to stop it or drop the new one; every job calls `claimProcess`
 
 export type ProcessKind = "import" | "export" | "resume" | "scout_add" | "scout_thumbnails";
 
@@ -55,10 +47,7 @@ export const useProcessConflictStore = create<{ conflict: Conflict | null; stopp
   stopping: false,
 }));
 
-/**
- * call right before starting a long job. resolves true when nothing else runs, or
- * once the user chose to stop it and it has stopped; false means do not start
- */
+/** true when nothing runs or the user stopped it; false means don't start */
 export function claimProcess(next: ProcessKind): Promise<boolean> {
   const running = runningProcess();
   if (!running) return Promise.resolve(true);
@@ -88,10 +77,7 @@ function waitUntilIdle(): Promise<boolean> {
   });
 }
 
-/**
- * stops whatever long job is running (the progress window's ✕) and resolves once it has
- * fully unwound, true when it did. used before deleting something that job is writing to
- */
+/** stops the running long job (the ✕) and resolves once unwound; used before deleting what it writes to */
 export async function stopRunningProcess(): Promise<boolean> {
   if (!runningProcess()) return true;
   await abortRunning?.();

@@ -5,11 +5,7 @@ import ModalShell from "../common/ModalShell";
 import { useEventsStore } from "../../stores/eventsStore";
 import { useUIStateStore } from "../../stores/UIStore";
 
-/**
- * shown once when a moderator denies one of the host's events, so a denial is
- * not something they have to go looking for. dismissing marks it seen
- * server-side, so it does not reappear on the next launch or another machine.
- */
+/** shown once when a moderator denies a host's event; dismissal is marked seen server-side */
 export default function DenialNoticeModal() {
   const mine = useEventsStore((s) => s.mine);
   const dismiss = useEventsStore((s) => s.dismissDenialNotice);

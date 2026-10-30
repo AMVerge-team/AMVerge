@@ -18,16 +18,7 @@ pub fn apply_no_window(cmd: &mut Command) {
     }
 }
 
-/// ties a child, and everything it starts after this call, to the app's lifetime.
-///
-/// windows: the child joins a kill-on-close job object that only this process holds a
-/// handle to, so however the app ends (normal close, crash, task manager) windows kills
-/// the whole tree. the close-time cleanup in main.rs only runs on a normal close, which
-/// is how stray ffmpeg and cli processes were outliving the app. used for ffmpeg, the
-/// cli and uv only: editors, explorer and the updater's installer must outlive the app,
-/// so the app itself is never put in the job.
-///
-/// elsewhere this is a no-op; the process-group kill on close is what there is
+/// ties a child's whole tree to the app's lifetime via a kill-on-close job object (windows), so even a crash kills it; never used for editors or the updater
 pub fn bind_to_app_lifetime(pid: u32) {
     #[cfg(windows)]
     app_job::assign(pid);
@@ -38,8 +29,7 @@ pub fn bind_to_app_lifetime(pid: u32) {
     }
 }
 
-/// `Command::output()` (stdin closed, stdout and stderr captured), with the child bound
-/// to the app's lifetime before it is waited on. for short ffmpeg / ffprobe probes
+/// `Command::output()` with the child bound to the app's lifetime first, for short ffmpeg/ffprobe probes
 pub fn output_bound(cmd: &mut Command) -> std::io::Result<std::process::Output> {
     use std::process::Stdio;
     let child = cmd
@@ -63,8 +53,7 @@ mod app_job {
     };
     use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_SET_QUOTA, PROCESS_TERMINATE};
 
-    /// the job handle is deliberately never closed: windows closes it when the app
-    /// exits, and closing it is what kills the members
+    /// never closed: windows closes it on exit, which kills the members
     struct Job(HANDLE);
     unsafe impl Send for Job {}
     unsafe impl Sync for Job {}
@@ -93,8 +82,7 @@ mod app_job {
         .as_ref()
     }
 
-    /// best effort: a child that already exited, or a failed call, just stays unbound.
-    /// returns whether the child is now in the job
+    /// best effort; returns whether the child is now in the job
     pub fn assign(pid: u32) -> bool {
         let Some(job) = job() else { return false };
         unsafe {
@@ -129,8 +117,7 @@ pub const KILL_TOOL: &str = "taskkill";
 #[cfg(not(windows))]
 pub const KILL_TOOL: &str = "kill";
 
-/// force-kills `pid` and everything it spawned: `taskkill /F /T` on windows, a
-/// SIGKILL to the whole process group elsewhere. blocking; returns the tool's output
+/// force-kills `pid` and its tree (taskkill /F /T, or SIGKILL to the group); blocking
 pub fn kill_process_tree(pid: u32) -> std::io::Result<std::process::Output> {
     #[cfg(windows)]
     {

@@ -12,11 +12,7 @@ type ModalShellProps = {
   children: ReactNode;
 };
 
-/**
- * full-screen overlay shared by the settings and menu modals. the frame paints
- * on the click; its contents mount a frame later, so a heavy panel never delays
- * the overlay appearing.
- */
+/** full-screen overlay for the settings and menu modals; contents mount a frame later so the overlay paints at once */
 export default function ModalShell({
   open,
   onClose,
@@ -41,9 +37,7 @@ export default function ModalShell({
   return (
     <div
       className="app-modal-overlay"
-      // target check rather than stopPropagation on the panel: stopping the
-      // synthetic event also stops the native one, which document-level
-      // outside-click handlers (dropdowns) rely on
+      // target check, not stopPropagation, which would also stop the native event outside-click handlers need
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

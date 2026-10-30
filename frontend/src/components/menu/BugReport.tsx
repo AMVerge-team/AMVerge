@@ -182,14 +182,10 @@ export default function BugReport() {
   );
   const [nowTs, setNowTs] = useState(() => Date.now());
   const discordStatus = useDiscordRPCStatus();
-  // the signed-in account from Community Events, which is a real authenticated
-  // identity rather than whatever Rich Presence happens to be reporting. it is
-  // preferred so the field fills for anyone signed in, whether or not they run
-  // Rich Presence at all
+  // the Community Events account, a real identity, preferred over Rich Presence
   const eventsProfile = useEventsStore((state) => state.profile);
 
-  // the handle, not the display name: a display name cannot be searched for,
-  // and it carries capitals the account itself does not have
+  // the handle, which can be searched for, not the display name
   const discordUser =
     eventsProfile?.username ?? discordStatus?.user_handle ?? discordStatus?.user ?? null;
   const screenshotInputRef = useRef<HTMLInputElement | null>(null);

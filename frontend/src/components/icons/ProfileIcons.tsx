@@ -1,7 +1,6 @@
 import type { CSSProperties } from "react";
 
-// shared props for all profile icon components.
-// works for both SVG-based and text-based badge icons
+// shared props for svg and text badge profile icons
 export type ProfileIconProps = {
   className?: string;
   style?: CSSProperties;

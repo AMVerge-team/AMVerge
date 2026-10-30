@@ -7,15 +7,7 @@ export type ClipPatchBuffer = {
   flushNow: () => void;
 };
 
-/**
- * buffers clip patches by clip id and applies them once per animation frame
- *
- * streamed clip_ready/thumbnail_ready events arrive in bursts, and applying each
- * as its own setState re-renders the whole grid every time. patches for the same
- * clip merge rather than replace, so a clip_ready and a thumbnail_ready landing
- * in one frame do not clobber each other. `apply` receives a mapper that patches
- * any clip it was given a patch for
- */
+/** buffers clip patches by id and applies them once per frame; same-clip patches merge */
 export function createClipPatchBuffer(apply: (patchClip: (c: ClipItem) => ClipItem) => void): ClipPatchBuffer {
   const pending = new Map<string, Partial<ClipItem>>();
   let frame: number | null = null;

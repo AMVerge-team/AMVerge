@@ -2,10 +2,7 @@ use std::path::{Path, PathBuf};
 
 use tauri::{AppHandle, Manager};
 
-/// the configured storage root: `custom_path` if the user set one, otherwise
-/// `app_data_dir/episodes`. `episodes_storage/` and `scene_packs/` are separate
-/// subfolders beneath this root, see `resolve_episodes_storage_dir` and
-/// `resolve_scenepacks_storage_dir`
+/// subfolder of the storage root (custom path, else app_data/episodes) for episode data; scene_packs/ sits beside it
 pub const EPISODES_DIR_NAME: &str = "episodes_storage";
 pub const SCENEPACKS_DIR_NAME: &str = "scene_packs";
 pub const SCENE_SCOUT_DIR_NAME: &str = "amverge-scene-scout";
@@ -21,9 +18,7 @@ pub fn resolve_storage_root(app: &AppHandle, custom_path: Option<&str>) -> Resul
     }
 }
 
-/// where per-episode data (manifest, cut clips, WebP cache) lives. kept in its
-/// own subfolder, separate from `scene_packs/`, so a Scenepack's materialized
-/// copies never share storage with, or get deleted alongside, episode data
+/// per-episode data (manifest, clips, WebP cache), apart from Scenepacks so they're never deleted together
 pub fn resolve_episodes_storage_dir(app: &AppHandle, custom_path: Option<&str>) -> Result<PathBuf, String> {
     Ok(resolve_storage_root(app, custom_path)?.join(EPISODES_DIR_NAME))
 }
@@ -33,22 +28,12 @@ pub fn resolve_scenepacks_storage_dir(app: &AppHandle, custom_path: Option<&str>
     Ok(resolve_storage_root(app, custom_path)?.join(SCENEPACKS_DIR_NAME))
 }
 
-/// where Scene Scout keeps its search databases.
-///
-/// the name is shared with the CLI (`amverge/core/scenescout/paths.py`,
-/// `STORAGE_DIR_NAME`) and is passed to it as `--root`, so the CLI never has to
-/// guess where the app put things. changing it on one side orphans every
-/// database written by the other
+/// Scene Scout databases; the name is shared with the CLI's STORAGE_DIR_NAME, so change both together
 pub fn resolve_scene_scout_storage_dir(app: &AppHandle, custom_path: Option<&str>) -> Result<PathBuf, String> {
     Ok(resolve_storage_root(app, custom_path)?.join(SCENE_SCOUT_DIR_NAME))
 }
 
-/// every subfolder the app owns beneath the storage root.
-///
-/// a storage relocation walks this list rather than hardcoding one folder, so a
-/// new kind of storage is moved by adding its name here and nothing else. the
-/// root itself is user-chosen and routinely holds unrelated files, which is why
-/// the move is a whitelist and never "everything under the root"
+/// every folder the app owns under the storage root; a storage move walks this whitelist, never the whole user-chosen root
 pub const OWNED_STORAGE_DIRS: &[&str] = &[
     EPISODES_DIR_NAME,
     SCENEPACKS_DIR_NAME,
@@ -70,16 +55,7 @@ pub fn dir_name_only(p: &Path) -> String {
     p.to_string_lossy().to_string()
 }
 
-/// true when `path` is a directory AMVerge created for an episode.
-///
-/// the episodes directory is user-chosen, so it is routinely a folder that also
-/// holds files AMVerge did not create. moving or clearing the cache must touch
-/// only our own folders, everything else in there belongs to the user.
-///
-/// `manifest.json` is the ownership marker: every episode gets one written into
-/// its folder once detection finishes, for both the video-file and WebP import
-/// methods. matching on the folder *name* would not work, since episode ids are
-/// ordinary `[A-Za-z0-9_-]` strings that any user folder could match
+/// an episode folder AMVerge created, marked by its `manifest.json` (ids alone could match any user folder)
 pub fn is_episode_cache_dir(path: &Path) -> bool {
     path.is_dir() && path.join("manifest.json").is_file()
 }

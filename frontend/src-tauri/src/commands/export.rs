@@ -22,10 +22,7 @@ pub use types::{
     ExportOptionsPayload, GpuEncoderCapabilitiesPayload, NvidiaEncoderDetectionPayload,
 };
 
-/// one clip to export. `input` is a pre-cut clip file exported whole when no
-/// range is present; otherwise it is the original source episode and the CLI
-/// applies the selected export mode to that range. serialized as-is into the
-/// CLI's `--inputs-json`
+/// one clip to export: a whole pre-cut file, or a source range the CLI exports in the chosen mode; sent as `--inputs-json`
 #[derive(serde::Deserialize, serde::Serialize)]
 pub(crate) struct ClipSpec {
     input: String,
@@ -49,8 +46,7 @@ impl Drop for ExportAbortGuard {
     }
 }
 
-/// reject a resolved save path whose final component contains separators /
-/// parent refs; prevents path-traversal via a user-supplied merge filename
+/// rejects separators or parent refs in the final component, so a merge name can't traverse
 fn validate_save_path_filename(path: &std::path::Path) -> Result<(), String> {
     let file_name = path
         .file_name()
@@ -78,8 +74,7 @@ fn normalize_save_path(save_path: &str) -> Result<PathBuf, String> {
     Ok(path)
 }
 
-/// Map the profile workflow to the CLI `--codec`. remux → stream copy; encode →
-/// the profile's codec (the CLI validates codec/container compatibility)
+/// the CLI `--codec`: stream copy for remux, the profile's codec for encode
 fn codec_for(options: Option<&ExportOptionsPayload>) -> String {
     match options {
         Some(o) if o.workflow().contains("remux") => "copy".to_string(),
@@ -88,8 +83,7 @@ fn codec_for(options: Option<&ExportOptionsPayload>) -> String {
     }
 }
 
-/// Turn the CLI's structured copy-remux preflight error into a concise UI
-/// message. Older sidecars only provide `message`, so retain that fallback.
+/// a concise message from the CLI's structured preflight error, falling back to `message`
 fn cli_error_message(error: &serde_json::Map<String, Value>) -> String {
     if let Some(message) = error.get("message").and_then(Value::as_str) {
         return message.to_string();
@@ -106,9 +100,7 @@ fn cli_error_message(error: &serde_json::Map<String, Value>) -> String {
     "Export failed".to_string()
 }
 
-/// drive the AMVerge CLI to export the selected clips. replaces the former
-/// in-process Rust ffmpeg pipeline: spawns `amverge export --ipc`, forwards its
-/// progress to the UI, and returns the produced file paths
+/// exports the selected clips with `amverge export --ipc`, forwarding progress; returns the produced paths
 #[tauri::command]
 pub async fn export_clips(
     app: AppHandle,
@@ -135,8 +127,7 @@ pub async fn export_clips(
         return Ok(Vec::new());
     }
 
-    // preflight: every input clip must still exist (the working folder can be
-    // wiped between import and export)
+    // every input must still exist; the working folder can be wiped after import
     {
         let mut missing: Vec<String> = Vec::new();
         for clip in &clips {
@@ -334,9 +325,7 @@ pub async fn export_clips(
     })
 }
 
-/// Map a pass id to its CLI subcommand and whether it needs the optional AI env.
-/// dead frames is opencv-only, so it runs on the bundled sidecar; depth and
-/// interpolation need torch
+/// a pass's CLI subcommand and whether it needs the AI env (dead frames is opencv-only)
 fn pass_cli_command(pass: &str) -> Result<(&'static str, bool), String> {
     match pass {
         "depth" => Ok(("depth-map", true)),
@@ -346,11 +335,7 @@ fn pass_cli_command(pass: &str) -> Result<(&'static str, bool), String> {
     }
 }
 
-/// run one post-export pass (`depth`/`deadframes`/`interpolate`) on `input_path`
-/// via `amverge <cmd> <input> -o <output> --ipc [args]`. streams `PROGRESS|` and
-/// `PREVIEW_FRAME|` as `pass_progress`/`pass_preview` events, other lines as
-/// `pass_log`. reuses the export abort state so `abort_export` stops it. returns
-/// the output path on success
+/// runs one post-export pass, streaming progress, preview frames and log lines; `abort_export` stops it
 #[tauri::command]
 pub async fn run_export_pass(
     app: AppHandle,
@@ -540,14 +525,7 @@ pub async fn abort_export(abort_state: State<'_, ExportAbortState>) -> Result<St
     ops::abort_export_inner(abort_state).await
 }
 
-/// delete the per-clip files an export produced once the merged output exists.
-/// only removes files sitting directly in `dir`, so a bad path can never reach
-/// A scratch folder for the per-clip parts a merged export builds from.
-///
-/// interpolation has to run clip by clip, so a merged export with that pass
-/// enabled must cut the clips before it can join them. those parts are nobody's
-/// deliverable, so they are staged here instead of in the folder the user
-/// picked, which then only ever receives the merged result
+/// a temp folder for the per-clip parts of a merged export, so the user's folder only receives merged results
 #[tauri::command]
 pub async fn create_export_staging_dir() -> Result<String, String> {
     let stamp = std::time::SystemTime::now()
@@ -561,9 +539,7 @@ pub async fn create_export_staging_dir() -> Result<String, String> {
     Ok(dir.to_string_lossy().to_string())
 }
 
-/// removes a staging folder created above. refuses anything that is not one of
-/// ours inside the system temp directory, so a bad path cannot delete a tree
-/// that matters
+/// removes a staging folder, refusing anything that isn't ours in the temp directory
 #[tauri::command]
 pub async fn delete_export_staging_dir(dir: String) -> Result<(), String> {
     let path = std::path::PathBuf::from(&dir);
@@ -585,9 +561,7 @@ pub async fn delete_export_staging_dir(dir: String) -> Result<(), String> {
     Ok(())
 }
 
-/// first free base name in `dir`: `base`, then `base (1)`, `base (2)`, ...
-/// a name is taken if `{name}{suffix}.{extension}` exists for any of `suffixes`
-/// (the empty suffix is always checked), so pass outputs never overwrite either
+/// first free `base`, `base (1)`, ... where no `{name}{suffix}.{extension}` exists for any suffix
 #[tauri::command]
 pub async fn unique_export_base_name(
     dir: String,

@@ -4,12 +4,7 @@ import ModalShell from "../common/ModalShell";
 import { formatDateTimeShort } from "./format";
 import { useEventsStore } from "../../stores/eventsStore";
 
-/**
- * shown once when a moderator bans the signed-in user from hosting, and again
- * whenever they click the disabled Host button to ask why. dismissing marks it
- * seen server-side, so it does not reappear on the next launch or on another
- * machine.
- */
+/** shown once on a hosting ban and again when the disabled Host button is clicked; dismissal is marked seen server-side */
 export default function BanNoticeModal() {
   const ban = useEventsStore((s) => s.ban);
   const noticeOpen = useEventsStore((s) => s.banNoticeOpen);

@@ -94,8 +94,7 @@ export function ScenepacksPanel() {
     setPanelContextMenu(null);
   }, [activeContextMenu]);
 
-  // contextmenu as well as click: a right-click fires no click event, so a menu
-  // opened elsewhere would otherwise sit on screen next to this one
+  // right-click too: it fires no click, so another menu would stay open beside this one
   useEffect(() => {
     if (!contextMenu && !panelContextMenu) return;
     const close = () => {

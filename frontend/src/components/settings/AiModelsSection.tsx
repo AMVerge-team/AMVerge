@@ -51,10 +51,7 @@ const ALLOWED_INTERPOLATION_KEYS = new Set(
   INTERPOLATION_MODEL_OPTIONS.map((opt) => opt.value)
 );
 
-/**
- * AI model weight manager. lists depth + interpolation models from the CLI and
- * lets the user download or delete them. filtered to active export settings models.
- */
+/** downloads or deletes the depth and interpolation model weights the export settings use */
 export default function AiModelsSection() {
   const aiStatus = useAiDepsStore((s) => s.status);
   const [models, setModels] = useState<ModelsList | null>(null);

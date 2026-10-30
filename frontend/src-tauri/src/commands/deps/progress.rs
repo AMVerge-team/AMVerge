@@ -51,12 +51,7 @@ pub(crate) fn emit_log(app: &AppHandle, pack: &str, line: &str) {
     );
 }
 
-/// run one uv step, streaming its output to the install modal. returns the tail
-/// of the output on failure so the UI can show a real reason.
-/// turn uv's output into a real percentage. its own progress lines carry a byte
-/// percentage ("... [====] 42% ..."), which is the most accurate source; when a
-/// line has none, the "Resolved N packages" header plus one "Downloaded <name>"
-/// per package still fills the bar across the download
+/// turns uv output into a percentage: its byte percentages first, else Resolved/Downloaded counts
 pub(crate) fn report_uv_progress(
     app: &AppHandle,
     pack: &str,

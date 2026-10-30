@@ -6,12 +6,7 @@ import EventsToolbar from "../components/events/EventsToolbar";
 import { useEventsStore } from "../stores/eventsStore";
 import { useUIStateStore } from "../stores/UIStore";
 
-/**
- * same frame as the clip pages (toolbar row, split layout with its divider,
- * info bar) with the events grid in place of the clip grid. the sidebar keeps
- * whichever panel was already open, and the preview pane stays where the user
- * left it but shows nothing, since there is no clip to preview here.
- */
+/** the clip pages' frame with the events grid; sidebar and preview pane stay as they were */
 export default function EventsPage() {
   const setCols = useUIStateStore((s) => s.setCols);
   const loadEvents = useEventsStore((s) => s.loadEvents);
@@ -22,9 +17,7 @@ export default function EventsPage() {
     void refreshSession();
   }, [loadEvents, refreshSession]);
 
-  // arriving from a clip page zoomed out past this page's cap would leave the
-  // navbar reading a column count the grid cannot show, so bring it into range
-  // once on entry
+  // clamps a column count above this page's cap once on entry
   useEffect(() => {
     setCols((previous) => Math.min(previous, MAX_EVENT_COLUMNS));
   }, [setCols]);

@@ -65,9 +65,6 @@ export type ScenepackEntry = {
   folderId: string | null;
   createdAt: number;
   clips: ScenepackClip[];
-  /**
-   * cover image for the panel tile. unset falls back to the first clip's
-   * thumbnail, which is the sensible default and what every existing pack has.
-   */
+  /** panel cover; unset falls back to the first clip's thumbnail */
   thumbnail?: string | null;
 };

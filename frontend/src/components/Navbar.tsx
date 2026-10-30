@@ -48,14 +48,12 @@ export default function Navbar({}: NavbarProps) {
         return () => unlisten?.();
     }, []);
 
-    // the pin preference is persisted, the Tauri window state is not: re-apply it on
-    // mount and on every toggle
+    // the pin preference persists but the window state doesn't, so it is re-applied on mount and toggle
     useEffect(() => {
         void getCurrentWindow().setAlwaysOnTop(pinned).catch(() => {});
     }, [pinned]);
 
-    // the events grid caps at fewer columns than the clip grid, so the zoom
-    // control stops where that page actually stops rather than appearing dead
+    // the zoom control stops at the events grid's lower column cap
     const maxCols = activePage === "events" ? MAX_EVENT_COLUMNS : 9;
     const handleSmaller = () => setCols(Math.min(cols + 1, maxCols));
     const handleBigger = () => setCols(Math.max(cols - 1, 1));

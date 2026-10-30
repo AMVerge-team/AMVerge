@@ -1,8 +1,7 @@
 import { ClipItem } from "../../types/domain";
 import { fileNameFromPath } from "../../utils/episodeUtils";
 
-// builds grid clips from a manifest, preferring the initialClips the backend
-// streams and falling back to raw scene ranges over the source video
+// grid clips from a manifest: its initialClips, else raw scene ranges over the source
 export function parseManifestInitialClips(manifest: any, episodeId: string): ClipItem[] {
   const raw = Array.isArray(manifest?.initialClips) ? manifest.initialClips : [];
 

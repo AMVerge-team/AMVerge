@@ -27,10 +27,7 @@ const STATUS_EVENT = "discord_rpc_status";
 /** how long an announced outcome ("Export finished") outranks the live status */
 const OUTCOME_HOLD_MS = 12_000;
 
-/**
- * drives the Discord Rich Presence. Rust owns the connection, the reconnects and
- * Discord's one-update-per-15s cap, so this hook only says *what* to show.
- */
+/** drives Rich Presence; rust owns the connection, reconnects and rate cap, this only says what to show */
 export default function useDiscordRPC() {
     const enabled = useGeneralSettingsStore((s) => s.discordRPCEnabled);
     const showMiniIcons = useGeneralSettingsStore((s) => s.rpcShowMiniIcons);
@@ -55,12 +52,8 @@ export default function useDiscordRPC() {
     const episodes = useEpisodePanelRuntimeStore((s) => s.episodes);
     const episodeNamesById = useEpisodePanelMetadataStore((s) => s.episodeNamesById);
 
-    // same precedence the rest of the app uses to name an episode, then the
-    // extension comes off whichever name won.
     //
-    // stripping only the path was not enough: `displayName` is set at import to
-    // `originalName || fileNameFromPath(file)`, both of which keep the container,
-    // and it outranks the path, so the card kept saying "… .mp4"
+    // the app's episode-name precedence, extension stripped (displayName keeps the container)
     const episodeName = useMemo(() => {
         if (!openedEpisodeId) return null;
         const episode = episodes.find((e) => e.id === openedEpisodeId);
@@ -76,15 +69,11 @@ export default function useDiscordRPC() {
     // Settings read inside callbacks that must not be re-created on every flip
     const flagsRef = useRef({ showMiniIcons, showElapsed, showLinks });
     flagsRef.current = { showMiniIcons, showElapsed, showLinks };
-    // an announced outcome holds the card briefly; without it the derived status
-    // would overwrite "Export finished" in the same frame it was announced
+    // an announced outcome holds the card briefly, or the derived status would overwrite it at once
     const holdUntilRef = useRef(0);
     const lastActivityRef = useRef<RPCActivity | null>(null);
 
-    /**
-     * sent even when the presence is off: Rust only connects once enabled, but
-     * keeps tracking what *would* be published, for the preview card.
-     */
+    /** sent even while off: rust tracks what it would publish, for the preview card */
     const publish = useCallback(async (activity: RPCActivity) => {
         lastActivityRef.current = activity;
         const flags = flagsRef.current;
@@ -105,11 +94,7 @@ export default function useDiscordRPC() {
         }
     }, []);
 
-    /**
-     * announce an outcome the state cannot express: an export that finished or
-     * failed. it outranks the derived status for a few seconds, then the live
-     * one takes back over on its own.
-     */
+    /** announces an export finishing or failing, outranking the derived status for a few seconds */
     const updateRPC = useCallback(
         async (data: RPCActivity & { type?: string }) => {
             holdUntilRef.current = Date.now() + OUTCOME_HOLD_MS;
@@ -164,8 +149,7 @@ export default function useDiscordRPC() {
         ]
     );
 
-    // publish whenever the derived status changes, or a display toggle does.
-    // Rust drops identical payloads, so an over-eager render costs nothing
+    // publish on any status or toggle change; rust drops identical payloads
     useEffect(() => {
         const wait = holdUntilRef.current - Date.now();
         if (wait <= 0) {
@@ -203,11 +187,7 @@ export function useDiscordRPCStatus() {
     return status;
 }
 
-/**
- * the app's real name and art from Discord's public endpoints, so the preview
- * shows what friends see. offline yields nothing and the card falls back to the
- * bundled logo.
- */
+/** the app's real name and art from Discord's public endpoints; offline falls back to the bundled logo */
 export function useDiscordAppInfo() {
     const [info, setInfo] = useState<DiscordAppInfo | null>(null);
 

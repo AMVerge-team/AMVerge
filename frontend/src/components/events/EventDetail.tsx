@@ -27,8 +27,7 @@ type EventDetailProps = {
 };
 
 export default function EventDetail({ event, onBack, onEdit, onDelete, preview = false }: EventDetailProps) {
-  // the edit cooldown is per event, so revising one never blocks a fix on
-  // another. anchored to this machine's clock the moment the seconds arrived
+  // the edit cooldown is per event, anchored to this machine's clock when the seconds arrived
   const editCooldownUntil = useMemo(
     () => (event.editCooldownSeconds ? Date.now() + event.editCooldownSeconds * 1000 : null),
     [event.id, event.editCooldownSeconds]

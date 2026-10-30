@@ -1,11 +1,4 @@
-/**
- * VideoPlayer.tsx
- *
- * custom-skinned preview player. renders the markup the existing preview CSS
- * targets (.video-wrapper > .video-frame > video + .controls) so the default
- * browser controls are replaced by the app's play/pause, scrubber, time,
- * volume and fullscreen chrome.
- */
+/** custom-skinned preview player, rendering the markup the preview css targets */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FaPlay, FaPause, FaVolumeUp, FaVolumeDown, FaVolumeMute, FaExpand } from "react-icons/fa";
 
@@ -49,11 +42,9 @@ export default function VideoPlayer({
   const frameRef = useRef<HTMLDivElement | null>(null);
   const volumeRef = useRef<HTMLDivElement | null>(null);
 
-  // the slider writes straight back to the setting the preview panel reads, so
-  // the control and Settings > Playback Volume are the same value
+  // writes straight to the setting the panel reads, so it is the same value as Settings > Playback Volume
   const setPlaybackVolume = useGeneralSettingsStore((s) => s.setPlaybackVolume);
-  // mute lives in the store for the same reason volume does: PreviewContainer
-  // keys this component on the clip, so local state would reset on every switch
+  // in the store because PreviewContainer remounts this per clip
   const muted = useGeneralSettingsStore((s) => s.playbackMuted);
   const setMuted = useGeneralSettingsStore((s) => s.setPlaybackMuted);
 
@@ -61,8 +52,7 @@ export default function VideoPlayer({
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volumeOpen, setVolumeOpen] = useState(false);
-  // level being dragged right now, held locally so a drag never waits on the
-  // settings store. null means "no drag in flight, follow the prop"
+  // the level mid-drag, held locally; null follows the prop
   const [dragVolume, setDragVolume] = useState<number | null>(null);
 
   const hideTimerRef = useRef<number | null>(null);
@@ -77,15 +67,13 @@ export default function VideoPlayer({
       v.muted = true;
       return;
     }
-    // a drag owns the element until it commits, and the store still holds the
-    // pre-drag level; applying it here would jump the volume mid-gesture
+    // a drag owns the element until it commits; the store's pre-drag level would jump it
     if (dragVolume !== null) return;
     v.volume = volume;
     v.muted = muted || volume === 0;
   }, [volume, muted, src, dragVolume, silent]);
 
-  // the store is persisted, so an unchanged write still costs a serialize and a
-  // re-render of everything subscribed to it
+  // the store is persisted, so skip unchanged writes
   const syncMuted = useCallback((next: boolean) => {
     if (next !== useGeneralSettingsStore.getState().playbackMuted) setMuted(next);
   }, [setMuted]);
@@ -110,8 +98,7 @@ export default function VideoPlayer({
     cancelHide();
     hideTimerRef.current = window.setTimeout(() => {
       hideTimerRef.current = null;
-      // a drag that wandered off the slider still owns the pointer; closing
-      // under it would drop the grab mid-gesture
+      // a drag that left the slider still owns the pointer
       if (draggingRef.current) return;
       setVolumeOpen(false);
     }, VOLUME_HIDE_DELAY_MS);
@@ -123,8 +110,7 @@ export default function VideoPlayer({
     if (commitTimerRef.current !== null) window.clearTimeout(commitTimerRef.current);
   }, []);
 
-  // a drag released outside the slider still ends the drag, and restarts the
-  // dismiss countdown if the pointer never came back
+  // a drag released outside the slider still ends it and restarts the dismiss countdown
   useEffect(() => {
     const onPointerUp = () => {
       if (!draggingRef.current) return;
@@ -138,16 +124,8 @@ export default function VideoPlayer({
     return () => document.removeEventListener("pointerup", onPointerUp);
   }, [scheduleHide, commitVolume, dragVolume]);
 
-  // Media player release, same pattern as the grid tiles (see LazyClip). a
-  // detached <video> keeps decoding and keeps playing audio until GC, and
-  // PreviewContainer remounts this component on every src change, so without
-  // this, stepping through clips piles one audio track on top of the next.
   //
-  // the element is captured during setup because React nulls the ref before
-  // passive cleanups run on unmount; releasing the captured (detached) element
-  // still frees its player. the setup phase also restores a src that a previous
-  // cleanup stripped: StrictMode re-runs cleanup+setup on the SAME element, and
-  // React won't re-apply a src prop it considers unchanged
+  // releases the player on unmount like grid tiles (a detached video keeps playing audio); setup restores src for StrictMode
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
@@ -178,12 +156,7 @@ export default function VideoPlayer({
     else v.pause();
   }, []);
 
-  // the store is persisted, so every write serializes the whole settings blob to
-  // localStorage synchronously - and PreviewContainer subscribes to the store
-  // unsliced, so every write re-renders the preview tree. a range drag fires
-  // dozens of events a second, which is more than enough of both to stutter.
-  // so: audio and the slider position update immediately off local state, and
-  // the store only hears about it once the drag settles
+  // audio and slider update from local state; the persisted store only hears once the drag settles
   const applyVolume = useCallback((next: number, commit = false) => {
     const clamped = Math.min(1, Math.max(0, next));
     const v = videoRef.current;
@@ -246,8 +219,7 @@ export default function VideoPlayer({
     ? Math.max(0, Math.min(sceneDuration, current - (startTime ?? 0)))
     : current;
 
-  // the jump to a scene's start happens once per clip; canplay also fires after every
-  // user seek, and re-snapping there undid each click on the timeline
+  // jump to the scene start once per clip; canplay also fires after every user seek
   const initialSeekPendingRef = useRef(true);
   useEffect(() => {
     initialSeekPendingRef.current = true;

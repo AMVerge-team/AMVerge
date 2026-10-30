@@ -25,11 +25,7 @@ export function formatDateRange(startsAt: string, endsAt: string): string {
   return `${formatDate(startsAt)} - ${formatDate(endsAt)}`;
 }
 
-/**
- * date and time with the year dropped when it is the current one, which is the
- * common case. keeps a range readable in the narrow detail pane, where the full
- * form ran to two lines.
- */
+/** date and time without the year when it's the current one, so ranges fit the detail pane */
 export function formatDateTimeShort(value: string): string {
   const parsed = parse(value);
   if (!parsed) return value;
@@ -50,10 +46,7 @@ export function formatTime(value: string): string {
   return parsed.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
-/**
- * an hour contest happens at a time, not across a range, so it reads as one
- * date and start time rather than two dates that would both say the same day.
- */
+/** an hour contest reads as one date and start time, not a range */
 export function formatSchedule(event: CommunityEvent): string {
   if (event.eventType === "hour") {
     return `${formatDate(event.startsAt)} · ${formatTime(event.startsAt)}`;
@@ -73,10 +66,7 @@ export function eventTypeLabel(event: CommunityEvent): string {
   return `${hours} Hour Contest`;
 }
 
-/**
- * short form for the tile badge. an hour contest carries its length, so a
- * four-hour one reads "4HC" and a full-day one "24HC".
- */
+/** short tile badge; hour contests carry their length, e.g. "4HC" */
 export function eventTypeBadge(event: CommunityEvent): string {
   if (event.eventType !== "hour") return "EC";
   return `${event.durationHours || 1}HC`;
@@ -91,10 +81,7 @@ export function formatDateTime(value: string): string {
   });
 }
 
-/**
- * days until an event starts or ends, whichever it is waiting on. returns null
- * once the event is over.
- */
+/** days until an event starts or ends; null once over */
 export function countdownLabel(event: CommunityEvent): string | null {
   const now = Date.now();
   const starts = parse(event.startsAt)?.getTime();
@@ -113,10 +100,7 @@ export function countdownLabel(event: CommunityEvent): string | null {
   return `${prefix} in ${days} days`;
 }
 
-/**
- * review status, shown only on a host's own events; public listings are
- * approved by definition, so they carry no badge.
- */
+/** review status for a host's own events; public ones are approved by definition */
 export function statusLabel(
   event: CommunityEvent
 ): { text: string; tone: "pending" | "denied" | "revision" } | null {
@@ -126,29 +110,17 @@ export function statusLabel(
   return null;
 }
 
-/**
- * whether the signed-in host may remove this event. a live approved event is
- * off limits (people are relying on it), so only one awaiting review, denied,
- * or already finished can go. mirrors the server's rule.
- */
+/** whether the host may remove this event (not while live and approved); mirrors the server */
 export function canDelete(event: CommunityEvent, hostDiscordId: string | undefined): boolean {
   return Boolean(hostDiscordId) && event.hostDiscordId === hostDiscordId;
 }
 
-/**
- * whether removing this event should be confirmed first. a finished event is
- * just clearing history, so it goes straight away; anything still to come or
- * still running is a decision worth pausing on.
- */
+/** finished events delete at once; anything upcoming or running asks first */
 export function needsDeleteConfirmation(event: CommunityEvent): boolean {
   return !hasEnded(event);
 }
 
-/**
- * whether an event is publicly live. the public list omits `status` altogether
- * and only ever contains approved events, so an absent status means approved
- * checking `status === "approved"` misses every card in the public sections.
- */
+/** whether an event is publicly live; public listings omit `status`, so absent means approved */
 export function isLive(event: CommunityEvent): boolean {
   return event.status !== "pending" && event.status !== "denied";
 }
@@ -158,10 +130,7 @@ export function hasEnded(event: CommunityEvent, now = Date.now()): boolean {
   return end !== undefined && end < now;
 }
 
-/**
- * free-text match over the fields a person would search by. host name is
- * included so "who is running anything right now" is answerable.
- */
+/** free-text match over title, host name and the other searchable fields */
 export function matchesSearch(event: CommunityEvent, query: string): boolean {
   const needle = query.trim().toLowerCase();
   if (!needle) return true;
@@ -171,11 +140,7 @@ export function matchesSearch(event: CommunityEvent, query: string): boolean {
     .some((field) => field.toLowerCase().includes(needle));
 }
 
-/**
- * prize pool is free text ("$100", "1,000 USD + Nitro"), so sorting reads the
- * first number out of it. anything with no number sorts as no prize rather than
- * as zero, which keeps unprized events out of the middle of the order.
- */
+/** the first number in the free-text prize; none sorts as no prize, not zero */
 export function prizeAmount(event: CommunityEvent): number | null {
   if (!event.prizePool) return null;
 
@@ -201,8 +166,7 @@ export function compareEvents(
   const left = prizeAmount(a);
   const right = prizeAmount(b);
 
-  // Events without a prize always sit at the end, whichever direction is asked
-  // for: they are not "cheapest", they are absent
+  // events without a prize always sort last, whichever direction
   if (left === null && right === null) return 0;
   if (left === null) return 1;
   if (right === null) return -1;
@@ -221,8 +185,7 @@ export function dedupeById(events: CommunityEvent[]): CommunityEvent[] {
 }
 
 export function hostAvatarUrl(event: CommunityEvent): string | null {
-  // the host's own copy of an anonymous event still carries their identity, so
-  // the check is on the flag rather than on the fields being absent
+  // checks the flag, since the host's own copy of an anonymous event still has their identity
   if (event.isAnonymous) return null;
   if (event.hostAvatarUrl) return event.hostAvatarUrl;
   if (!event.hostAvatarHash || !event.hostDiscordId) return null;

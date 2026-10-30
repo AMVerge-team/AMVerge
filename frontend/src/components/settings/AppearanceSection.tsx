@@ -155,9 +155,7 @@ export default function AppearanceSection({
                 onChange={(newColor) => {
                   setThemeSettings((prev) => {
                     const preset = findAccentPreset(newColor);
-                    // a preset carries its own gradient, so apply the pair.
-                    // custom colours only move the gradient while it is still
-                    // app-chosen, so a hand-picked one is never overwritten
+                    // a preset applies its gradient; custom colours only move an app-chosen one
                     const nextGradient = preset
                       ? preset.gradient
                       : isPresetGradient(prev.backgroundGradientColor) ||

@@ -1,9 +1,4 @@
-/**
- * staggeredMountQueue.ts
- *
- * custom React hook for mounting video tiles one at a time in grid preview mode.
- * prevents browser/GPU stalls by deferring video element creation.
- */
+/** mounts preview-all video tiles one at a time, so the browser and GPU don't stall */
 import { useRef, useCallback, useEffect } from "react";
 
 type StaggerDemand = {
@@ -60,8 +55,7 @@ export function useStaggeredMountQueue(delayMs = 50) {
     startTimeoutRef.current = setTimeout(startProcessing, 0);
   }, [startProcessing]);
 
-  // the grid unmounts on page switches; without this the tick keeps running
-  // against a dead queue for the rest of the session
+  // stops the tick when the grid unmounts, or it runs against a dead queue all session
   useEffect(() => () => {
     if (intervalRef.current !== null) clearInterval(intervalRef.current);
     if (startTimeoutRef.current !== null) clearTimeout(startTimeoutRef.current);

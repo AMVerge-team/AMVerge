@@ -9,13 +9,7 @@ import { imageThumbnail } from "./utils/mediaSrc";
 /** drag the divider past this share of the width and the preview pane folds away */
 const COLLAPSE_AT_PERCENT = 90;
 
-/**
- * `active` is false for a MainLayout whose page is mounted but hidden. HomePage
- * stays mounted behind `display: none` so its grid survives navigation, and the
- * Scenepacks page renders a second MainLayout of its own, both read the same
- * clip store, so both preview players would load the same clip and play its
- * audio at once. `display: none` does not stop media playback.
- */
+/** `active` is false for a mounted but hidden layout, whose player must stand down (display:none keeps playing) */
 export default function MainLayout({
     intro = false,
     active = true,
@@ -27,21 +21,15 @@ export default function MainLayout({
     active?: boolean;
     /** replaces the clip grid in the left pane. Events fills it with its own grid */
     left?: React.ReactNode;
-    /** drops the preview pane and its divider entirely, rather than collapsing
-     *  them. pages with nothing to preview have no use for either, and leaving
-     *  a foldable pane behind only offers a control that does nothing */
+    /** drops the preview pane and divider for pages with nothing to preview */
     fullWidth?: boolean;
-    /** keeps the preview pane mounted, sized, and collapsible as the user left
-     *  it, but showing nothing, the Events page has no clip to preview, and
-     *  whatever was playing has to stop */
+    /** keeps the pane as the user left it but empty (Events) */
     previewIdle?: boolean;
 }) {
-    // in the store, not local state: the import row above reads it to park the
-    // preview toggle over the grid's right edge
+    // in the store so the import row can park the preview toggle over the grid's edge
     const leftWidth = useUIStateStore(s => s.previewSplitPct);
     const setLeftWidth = useUIStateStore(s => s.setPreviewSplitPct);
-    // shared by both MainLayout instances (episodes + scenepacks) and persisted, so the
-    // pane stays where it was left across navigation and restarts
+    // shared and persisted, so the pane stays put across pages and restarts
     const previewCollapsed = useUIStateStore(s => s.previewCollapsed);
     const setPreviewCollapsed = useUIStateStore(s => s.setPreviewCollapsed);
     const focusedClip = useAppStateStore(s => s.focusedClip);
@@ -81,8 +69,7 @@ export default function MainLayout({
         const onMouseMove = (ev: MouseEvent) => {
             const delta = ev.clientX - startX;
             const newPercent = ((startLeftWidth + delta) / totalWidth) * 100;
-            // shoving the divider past the last stop folds the pane away, live, and
-            // pulling back left brings the pane straight back
+            // past the last stop the pane folds away live; pulling back brings it straight back
             if (newPercent >= COLLAPSE_AT_PERCENT) {
                 setPreviewCollapsed(true);
                 return;

@@ -1,13 +1,4 @@
-//! Discord Rich Presence, spoken straight from Rust over the local IPC pipe
-//! (see [`crate::utils::discord_ipc`]): no sidecar to ship, and dev builds
-//! behave like packaged ones.
-//!
-//! this file is the seam with Tauri: managed state and the four commands. the
-//! parts worth changing on their own live beside it:
-//!
-//! * `activity.rs`: what the UI asks for, and the JSON Discord receives
-//! * `worker.rs`: the thread that owns the connection, and every timing
-//! * `app_info.rs`: the app's name and art, from Discord's public endpoints
+//! Discord Rich Presence over the local IPC pipe, no sidecar; this file holds state and commands, with activity.rs, worker.rs and app_info.rs beside it
 
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
@@ -36,8 +27,7 @@ pub struct DiscordRpcStatus {
     /// the @handle, for anything the user hands to someone else
     pub user_handle: Option<String>,
     pub error: Option<String>,
-    /// the exact activity that would be published right now. the preview renders
-    /// this instead of rebuilding it, so the two cannot drift
+    /// the exact activity that would be published, rendered by the preview so they can't drift
     pub activity: Option<Value>,
 }
 
@@ -58,8 +48,7 @@ impl DiscordRPCState {
     }
 }
 
-/// the worker runs even when the presence is switched off: it still tracks what
-/// *would* be published, which is what the settings preview renders
+/// runs even while presence is off, tracking what would be published for the preview
 fn ensure_worker(app: &AppHandle, state: &DiscordRPCState, cmd: Cmd) -> Result<(), String> {
     let mut guard = state.tx.lock().map_err(|e| e.to_string())?;
     if guard.is_none() {

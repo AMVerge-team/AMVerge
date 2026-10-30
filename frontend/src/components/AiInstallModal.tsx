@@ -17,11 +17,7 @@ function formatDuration(sec: number): string {
   return `${m}:${s < 10 ? "0" : ""}${s}`;
 }
 
-/**
- * confirm-then-install dialog for the optional AI dependencies. opened by
- * `useAiDepsStore.ensurePack` whenever a locked feature is picked; the caller's
- * promise resolves once the pack is installed or the user declines.
- */
+/** confirm-then-install dialog for an AI pack, opened by `ensurePack`; resolves once installed or declined */
 export default function AiInstallModal() {
   const open = useAiDepsStore((s) => s.open);
   const pack = useAiDepsStore((s) => s.pack);
@@ -65,8 +61,7 @@ export default function AiInstallModal() {
     }
   }, [stage]);
 
-  // one set of listeners for the app's lifetime, installs are serialized by the
-  // backend, so there is only ever one stream to follow
+  // one set of listeners for the app's lifetime; the backend serializes installs
   useEffect(() => {
     const unlisteners = [
       listen<{ pack: string; percent: number; indeterminate: boolean; message: string }>(

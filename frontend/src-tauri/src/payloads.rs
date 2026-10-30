@@ -36,9 +36,7 @@ pub struct PassLogPayload {
 #[derive(Serialize, Clone)]
 pub struct InitialClipsPayload {
     pub clips_json: String,
-    /// which episode this belongs to. a batch import has several running at
-    /// once (one still re-encoding while the next is cut), and the listeners
-    /// key clips by episode - without this they would patch the wrong one
+    /// the episode this belongs to, since a batch runs several imports at once
     pub episode_cache_id: Option<String>,
 }
 

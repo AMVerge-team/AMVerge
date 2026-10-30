@@ -1,19 +1,8 @@
 import { parseRichText, type TextSize } from "./descriptionMarkup";
 
-/**
- * bridge between the editable DOM and our restricted markup
- *
- * `serializeRoot` is the security boundary: the editor's DOM may contain
- * whatever the browser or a paste produced, but only bold and the three known
- * sizes survive the trip out. everything else (tags, attributes, event
- * handlers, urls) collapses to plain text, so what gets stored and rendered in
- * other people's apps can never be markup.
- */
+// bridge between the editable DOM and our markup; `serializeRoot` is the security boundary where only bold and sizes survive
 
-/**
- * `execCommand("fontSize")` only speaks the legacy 1-7 scale, so each of our
- * three sizes borrows one of its steps and is mapped back on the way out.
- */
+/** execCommand("fontSize") only speaks 1-7, so each size borrows a step and is mapped back */
 export const SIZE_TO_FONT: Record<TextSize, string> = { sm: "2", md: "3", lg: "5" };
 export const FONT_TO_SIZE: Record<string, TextSize> = { "2": "sm", "3": "md", "5": "lg" };
 
@@ -44,9 +33,7 @@ function serialize(node: Node, bold: boolean, size: TextSize): string {
   const isBlock = node.tagName === "DIV" || node.tagName === "P";
   const children = Array.from(node.childNodes);
 
-  // a block's trailing <br> is the browser's filler for an empty or final line,
-  // not a line break the host typed. counting it as well as the block's own
-  // newline turned every blank line into two
+  // a block's trailing <br> is browser filler, not a typed break; counting it doubled blank lines
   const last = children[children.length - 1];
   if (isBlock && last instanceof HTMLElement && last.tagName === "BR") {
     children.pop();
@@ -106,19 +93,7 @@ export function renderInto(root: HTMLElement, markup: string): void {
   }
 }
 
-/**
- * what the caret or selection is currently formatted as, read from the DOM
- * rather than from `queryCommandValue`
- *
- * `queryCommandValue("fontSize")` is not consistent between engines: Chromium
- * answers with the legacy 1-7 scale that `execCommand` accepts, while WebKit
- * commonly answers with a pixel size. since the app runs on WebView2 on Windows
- * and WKWebView on macOS, reading the elements we produced ourselves is the
- * only answer that means the same thing on both
- *
- * returns `size: null` when the selection spans more than one size, so no
- * button claims to be the current one.
- */
+/** the caret's current format, read from our own elements since queryCommandValue differs between engines; size null when mixed */
 export function readActiveFormat(editor: HTMLElement): { bold: boolean; size: TextSize | null } {
   const selection = window.getSelection();
   if (!selection || selection.rangeCount === 0) return { bold: false, size: null };

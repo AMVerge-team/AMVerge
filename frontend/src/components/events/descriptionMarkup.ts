@@ -1,11 +1,4 @@
-/**
- * a deliberately tiny markup for event descriptions: bold and three text sizes
- *
- * descriptions are written by community members and rendered in everyone else's
- * app, so no HTML is ever stored or injected. the text is parsed into plain
- * data here and rendered as React elements, which means an unrecognised or
- * malformed tag can only ever come out as literal text.
- */
+// tiny markup for event descriptions (bold, three sizes), parsed to data and rendered as React, so bad tags are just text
 
 export type TextSize = "sm" | "md" | "lg";
 
@@ -23,11 +16,7 @@ export type RichLine = RichSpan[];
 
 const TOKEN = /\*\*|\[size=(sm|md|lg)\]|\[\/size\]/g;
 
-/**
- * parses the markup into lines of styled spans. unclosed markers simply stay
- * open to the end of the text rather than failing, a half-typed description
- * still has to render while the host is editing it.
- */
+/** parses the markup into lines of styled spans; unclosed markers run to the end so a half-typed description renders */
 export function parseRichText(source: string): RichLine[] {
   const spans: RichSpan[] = [];
 
@@ -58,8 +47,7 @@ export function parseRichText(source: string): RichLine[] {
 
   push(source.slice(cursor));
 
-  // split into lines afterwards so a style can span a line break, the way it
-  // reads in the editor
+  // split into lines afterwards so a style can span a line break
   const lines: RichLine[] = [[]];
   for (const span of spans) {
     const parts = span.text.split("\n");
@@ -79,10 +67,7 @@ export function stripRichText(source: string): string {
 
 export type Edit = { value: string; selectionStart: number; selectionEnd: number };
 
-/**
- * wraps the current selection in a marker pair, or inserts an empty pair at the
- * caret. returns the new text and where the selection should land.
- */
+/** wraps the selection in a marker pair, or inserts one at the caret; returns the text and new selection */
 export function wrapSelection(
   value: string,
   selectionStart: number,
@@ -114,13 +99,7 @@ function selectionOrLine(value: string, start: number, end: number): [number, nu
   return [lineStart, lineEnd === -1 ? value.length : lineEnd];
 }
 
-/**
- * grows the range to swallow marker pairs that sit immediately outside it
- *
- * after a wrap the selection covers only the inner text, so without this the
- * next press cannot see the markers it just added and would wrap them again
- * which is exactly how `[size=lg][size=lg]…` used to accumulate.
- */
+/** grows the range over marker pairs right outside it, so a repeat press doesn't wrap them again */
 function expandOverMarkers(
   value: string,
   start: number,
@@ -141,14 +120,7 @@ function expandOverMarkers(
   return [from, to];
 }
 
-/**
- * applies a size to the selection, replacing any size already on it rather than
- * nesting another pair around it. pressing a size button repeatedly therefore
- * settles on that size instead of stacking `[size=lg][size=lg]…`
- *
- * with nothing selected it retags the whole enclosing block, which is what the
- * button appears to promise when the caret is just sitting in the text.
- */
+/** sets the selection's size, replacing any existing size; with nothing selected it retags the enclosing block */
 export function applySize(
   value: string,
   selectionStart: number,
@@ -170,8 +142,7 @@ export function applySize(
 
   const stripped = selected.replace(SIZE_OPEN, "").replace(SIZE_CLOSE, "");
 
-  // nothing to tag. without this, pressing a size button on an empty line left
-  // a stray `[size=sm][/size]` sitting in the text
+  // nothing to tag; an empty line would otherwise get a stray `[size=sm][/size]`
   if (!stripped) {
     return { value, selectionStart, selectionEnd };
   }

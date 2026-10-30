@@ -145,11 +145,7 @@ const LEGACY_FAST_REMUX_PROFILE_ID = "remux-fast-mov";
 const LEGACY_FAST_REMUX_PROFILE_NAME = "Fast Remux MOV";
 const AUTO_FAST_REMUX_PROFILE_NAME = "Fast Remux (Auto Container)";
 
-/**
- * Fast remux now derives its container from the source. Update the shipped
- * legacy preset's old MOV-specific label without touching user-created
- * profiles or a user-renamed copy of the preset.
- */
+/** relabels the shipped Fast remux preset now that it takes the source container; user profiles untouched */
 export function migrateLegacyFastRemuxProfile(profile: ExportProfile): ExportProfile {
     if (
         profile.id !== LEGACY_FAST_REMUX_PROFILE_ID ||

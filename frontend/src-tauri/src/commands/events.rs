@@ -1,8 +1,4 @@
-//! community events: browsing is public, hosting needs a Discord session.
-//!
-//! every call goes out from Rust. the session token is read from the credential
-//! store here and attached as a bearer header, so it never crosses into the
-//! webview
+//! community events: browsing is public, hosting needs a Discord session whose token stays in rust
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -16,12 +12,9 @@ pub struct EventsResponse {
     pub ok: bool,
     pub message: Option<String>,
     pub events: Vec<Value>,
-    /// seconds left on the host's submit cooldown, so the app can grey the
-    /// button out before anyone clicks it. only set by `fetch_my_events`
+    /// seconds left on the submit cooldown, set by `fetch_my_events`
     pub submit_cooldown_seconds: Option<u64>,
-    /// present when the account is banned from hosting. a struct rather than a
-    /// flag so the app can say why and for how long, and knows whether the user
-    /// has been told yet
+    /// a hosting ban with its reason, length and whether the user was told
     pub ban: Option<HostBan>,
 }
 
@@ -42,8 +35,7 @@ pub struct EventMutationResponse {
     pub ok: bool,
     pub message: Option<String>,
     pub event: Option<Value>,
-    /// set when the server refused for cooldown, so the app can start the same
-    /// countdown it would have shown had it known beforehand
+    /// set on a cooldown refusal so the app starts the same countdown
     pub retry_after_seconds: Option<u64>,
 }
 
@@ -56,8 +48,7 @@ pub struct EventSubmission {
     pub prize_pool: Option<String>,
     /// "contest" or "hour"; the server rejects anything else back to "contest"
     pub event_type: Option<String>,
-    /// hides the host's name and avatar from the public grid. moderators still
-    /// see who submitted it
+    /// hides the host from the public grid; moderators still see them
     pub is_anonymous: Option<bool>,
     /// 1-24, only meaningful for an hour contest. the server validates the range
     pub duration_hours: Option<u32>,
@@ -90,10 +81,7 @@ struct ApiEventBody {
     retry_after_seconds: Option<u64>,
 }
 
-/// the API returns thumbnail links relative to its own host. `img-src` is
-/// unconstrained in the webview, so an absolute URL loads directly, but only
-/// once we know which host to point it at, which is config the frontend does
-/// not have
+/// makes the api's relative thumbnail links absolute, since only rust knows the host
 fn absolutize_thumbnails(base: &str, events: &mut [Value]) {
     for event in events.iter_mut() {
         let Some(object) = event.as_object_mut() else {
@@ -203,8 +191,7 @@ async fn send_submission(
     let retry_after = parsed.as_ref().and_then(|body| body.retry_after_seconds);
 
     if !status.is_success() {
-        // a refused token would fail every subsequent request too, so drop it
-        // and let the user sign in again rather than leaving them stuck
+        // a refused token fails every later request, so drop it and ask to sign in again
         if status == reqwest::StatusCode::UNAUTHORIZED {
             discard_rejected_session();
             return Ok(EventMutationResponse {
@@ -258,8 +245,7 @@ async fn post_or_delete(url: String, method: reqwest::Method) -> Result<EventMut
     let retry_after = parsed.as_ref().and_then(|body| body.retry_after_seconds);
 
     if !status.is_success() {
-        // a refused token would fail every subsequent request too, so drop it
-        // and let the user sign in again rather than leaving them stuck
+        // a refused token fails every later request, so drop it and ask to sign in again
         if status == reqwest::StatusCode::UNAUTHORIZED {
             discard_rejected_session();
             return Ok(EventMutationResponse {

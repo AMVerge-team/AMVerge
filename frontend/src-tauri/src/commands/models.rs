@@ -1,8 +1,4 @@
-//! AI model weight management (depth + interpolation).
-//!
-//! thin bridge over the CLI's `amverge models --json` command. the CLI is the
-//! single source of truth for the registries and the download/delete logic; this
-//! module only spawns it, parses its JSON stdout, and surfaces errors
+//! AI model weights: a thin bridge over `amverge models --json`, which owns the registries and the download logic
 
 use std::io::{BufRead, Read};
 use std::process::Stdio;
@@ -61,8 +57,7 @@ struct ModelsActionResultEnvelope {
     result: ModelsActionResult,
 }
 
-/// run `amverge models <args>`, streaming stderr to the console, and return the
-/// stdout (the JSON payload) together with the collected stderr lines
+/// runs `amverge models <args>`, returning stdout and the collected stderr lines
 fn run_models(app: &AppHandle, args: &[&str]) -> Result<(String, Vec<String>), String> {
     let mut cmd = amverge_ai_command(app)?;
     cmd.args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
@@ -128,14 +123,7 @@ fn run_models(app: &AppHandle, args: &[&str]) -> Result<(String, Vec<String>), S
     Ok((stdout, stderr_lines))
 }
 
-/// pulls the JSON payload out of the CLI's stdout.
-///
-/// the whole of stdout used to be handed to the parser, which meant a single
-/// stray line broke it. the download path imports torch and the depth stack,
-/// and libraries in that tree print notices on import, so a download could
-/// finish on disk while the app reported a parse failure and left the row
-/// reading "not downloaded": the next click then appeared to be the one that
-/// worked. scanning back from the end finds the payload whatever precedes it
+/// the JSON payload from the last lines of stdout, since the ML stack prints notices on import
 fn parse_models_json<T: serde::de::DeserializeOwned>(stdout: &str) -> Result<T, String> {
     if let Ok(parsed) = serde_json::from_str::<T>(stdout.trim()) {
         return Ok(parsed);
@@ -210,8 +198,7 @@ mod models_json_tests {
 
     #[test]
     fn reads_json_after_library_noise() {
-        // the shape that broke downloads: the ML stack prints on import, so the
-        // payload is the last line rather than the whole of stdout
+        // the ML stack prints on import, so the payload is only the last line
         let stdout = concat!(
             "xFormers not available\n",
             "UserWarning: torch was compiled without flash attention\n",

@@ -36,8 +36,7 @@ export default function SidebarNav() {
         const isFeatureOff = feature ? !feature.enabled : false;
 
         return (
-          // the tooltip sits on the row rather than the button: the active and
-          // feature-off buttons are disabled, and those fire no pointer events
+          // on the row, since disabled buttons fire no pointer events
           <Tooltip
             key={button.page}
             content={isFeatureOff ? `Turn on ${button.name} in Settings › Features` : button.name}

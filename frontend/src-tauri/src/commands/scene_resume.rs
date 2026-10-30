@@ -1,7 +1,4 @@
-//! resuming a paused video-mode episode: an import that stopped early (CLI mini
-//! window or app closed) left scenes with no cut clip or poster. this finishes
-//! them with `materialize-clips`, streaming the same clip_ready/thumbnail_ready
-//! events a live import does
+//! resumes a paused video-mode episode: re-cuts missing clips and posters with `materialize-clips`, streaming the usual events
 
 use std::collections::HashSet;
 use std::fs;
@@ -51,8 +48,7 @@ fn emit_resumed_clip(app: &AppHandle, episode_cache_id: &str, idx: u32, clip_pat
     );
 }
 
-/// the cut mode that matches how the episode was imported: keyframe detection
-/// copied every scene, AI detection copied only keyframe-exact scenes
+/// the cut mode matching the import: keyframe copied every scene, AI only keyframe-exact ones
 fn resume_cut_mode(scenes_dir: &Path) -> &'static str {
     let method = scenes_dir
         .parent()
@@ -65,8 +61,7 @@ fn resume_cut_mode(scenes_dir: &Path) -> &'static str {
     }
 }
 
-/// moves a finished cut + poster to the scene's usual scene_XXXX names, replacing
-/// any half-written file the stopped import left there. returns the final clip path
+/// moves a finished cut and poster to the scene's usual names, replacing half-written files; returns the clip path
 fn place_resumed_clip(cut: &str, thumb: Option<&str>, thumb_target: &Path) -> String {
     let ext = Path::new(cut).extension().and_then(|e| e.to_str()).unwrap_or("mp4");
     let clip_target = thumb_target.with_extension(ext);
@@ -83,8 +78,7 @@ fn place_resumed_clip(cut: &str, thumb: Option<&str>, thumb_target: &Path) -> St
     final_clip
 }
 
-/// true when the jpg was written to the end (ends with the EOI marker). a poster the
-/// import was killed in the middle of writing is on disk but cut short, and never loads
+/// true when the jpg ends with the EOI marker, i.e. it wasn't cut short
 fn poster_complete(path: &Path) -> bool {
     use std::io::{Read, Seek, SeekFrom};
     let Ok(mut file) = fs::File::open(path) else { return false };
@@ -92,8 +86,7 @@ fn poster_complete(path: &Path) -> bool {
     file.seek(SeekFrom::End(-2)).is_ok() && file.read_exact(&mut tail).is_ok() && tail == [0xFF, 0xD9]
 }
 
-/// splits the scenes into those still needing a cut and reports the rest: files
-/// already on disk are ready, specs with no usable poster path end as failed
+/// scenes still needing a cut, reporting the rest as ready or failed
 fn split_finished(
     clips: Vec<ResumeClipSpec>,
     mut emit_done: impl FnMut(u32, Option<String>, &str),
@@ -117,10 +110,7 @@ fn split_finished(
     todo
 }
 
-/// finishes the cuts/posters a video-mode import left behind when it stopped
-/// early. files already on disk are only reported; the rest go to one
-/// `materialize-clips` run that copies or re-encodes each scene the way the
-/// import would have, into the scene's usual scene_XXXX names
+/// finishes the cuts and posters a stopped import left behind in one `materialize-clips` run
 #[tauri::command]
 pub async fn resume_episode_clips(
     app: AppHandle,
@@ -167,8 +157,7 @@ pub async fn resume_episode_clips(
         })
         .collect();
 
-    // one CLI run, so the source's keyframes are read once; each item is placed
-    // and reported the moment it finishes
+    // one CLI run, so keyframes are read once; each item is reported as it finishes
     let targets: Vec<(u32, PathBuf)> = todo
         .iter()
         .map(|c| (c.scene_index, PathBuf::from(&c.thumbnail)))

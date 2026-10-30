@@ -8,8 +8,7 @@ export type ExportSourceStreams = {
 const SOURCE_CONTAINER_RE = /\.([a-z0-9]+)$/i;
 const PRESERVED_CONTAINERS = new Set<ExportContainer>(["avi", "mp4", "mov"]);
 
-// Defaults are deliberately conservative. The CLI checks the actual muxer
-// before it writes anything, which remains necessary for profile/tag details.
+// conservative defaults; the cli still checks the real muxer before writing
 const VIDEO_CONTAINER_DEFAULTS: Record<string, ExportContainer> = {
   h264: "mp4",
   avc: "mp4",

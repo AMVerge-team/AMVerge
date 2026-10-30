@@ -1,11 +1,4 @@
-/**
- * useWebpPreview.ts
- *
- * all WebP-preview-mode logic for a clip tile, kept separate from the video
- * playback logic in LazyClip. owns the static thumbnail state, the animated
- * WebP source, and the viewport/hover demand reporting that drives WebP
- * generation. returns only what the tile needs to render its WebP layers.
- */
+/** WebP-preview-mode logic for a clip tile: static thumbnail, animated source, and demand reporting */
 import { useCallback, useEffect, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { ClipItem } from "../../types/domain";
@@ -14,9 +7,7 @@ import { cancelIdle, scheduleIdle, type IdleHandle } from "../../utils/idle";
 import { imageThumbnail } from "../../utils/mediaSrc";
 
 const WEBP_THUMBNAIL_CACHE = new Map<string, string>();
-// cache keys include the importToken, so every episode (re)open adds a fresh set
-// of entries and the old ones would otherwise live for the whole session. cap it
-// and evict oldest-inserted first so memory stays bounded over long sessions
+// keys include the importToken, so every reopen adds entries; capped, oldest evicted first
 const WEBP_THUMBNAIL_CACHE_MAX = 400;
 
 function cacheWebpThumbnail(key: string, dataUrl: string) {
@@ -31,14 +22,7 @@ function cacheWebpThumbnail(key: string, dataUrl: string) {
   WEBP_THUMBNAIL_CACHE.set(key, dataUrl);
 }
 
-/** extract a static JPEG from a WebP's first frame as a flicker-free base layer
- *
- * `enabled` is the tile's viewport visibility. the grid mounts every clip (there
- * is no virtualizer), so without this gate a 900-scene episode kicks off ~900
- * simultaneous animated-WebP decodes plus a canvas draw and JPEG encode each.
- * that is enough to take the WebView2 renderer down, which closes the window
- * with no error. cached extractions are still served instantly, on or off
- * screen */
+/** a static jpeg of a WebP's first frame as a flicker-free base layer; `enabled` gates new decodes to visible tiles */
 function useWebpThumbnail(webpSrc: string | undefined, enabled: boolean): string | null {
   const [thumbnail, setThumbnail] = useState<string | null>(
     () => (webpSrc ? (WEBP_THUMBNAIL_CACHE.get(webpSrc) ?? null) : null)
@@ -56,9 +40,7 @@ function useWebpThumbnail(webpSrc: string | undefined, enabled: boolean): string
     img.crossOrigin = "anonymous";
     img.onload = () => {
       if (cancelled) return;
-      // defer the synchronous decode + JPEG encode out of the current frame: a
-      // batch of WebPs can resolve near-simultaneously mid-scroll, and running
-      // toDataURL inline for each would stall input handling
+      // the decode and jpeg encode run at idle time so a burst of WebPs can't stall input
       idleHandle = scheduleIdle(() => {
         if (cancelled) return;
         try {
@@ -80,8 +62,7 @@ function useWebpThumbnail(webpSrc: string | undefined, enabled: boolean): string
     return () => {
       cancelled = true;
       img.onload = null;
-      // drop the decoder's reference too: an abandoned in-flight <img> keeps the
-      // partially decoded animation alive until GC
+      // an abandoned in-flight <img> keeps the decoded animation alive until GC
       img.src = "";
       if (idleHandle !== null) cancelIdle(idleHandle);
     };
@@ -188,9 +169,7 @@ export function useWebpPreview({
       },
     });
 
-    // tiles come and go as the window scrolls, so unmounting drops back to
-    // background priority rather than withdrawing - the grid registers every
-    // clip, and cancelling here would shrink the loading total as you scroll
+    // unmounting drops to background priority instead of withdrawing, so the total doesn't shrink on scroll
     return () => {
       reportWebpDemand(clip.id, {
         isVisible: false,
@@ -228,8 +207,7 @@ export function useWebpPreview({
     setThumbnailFailed(false);
   }, [displayThumbnailPath, importToken]);
 
-  // when a WebP becomes available, clear a prior thumbnailFailed so the img
-  // can retry using the WebP path instead of the original clip thumbnail
+  // a new WebP clears thumbnailFailed so the img can retry from it
   useEffect(() => {
     if (previewWebpPath) setThumbnailFailed(false);
   }, [previewWebpPath]);

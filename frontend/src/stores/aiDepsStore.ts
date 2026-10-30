@@ -14,8 +14,7 @@ const MAX_LOGS = 200;
 
 type Stage = "confirm" | "installing" | "done" | "error";
 
-/// resolver for the promise `ensurePack` handed out. kept outside the store
-/// it is control flow, not renderable state
+/// resolver for the promise `ensurePack` handed out; control flow, not state
 let pendingResolve: ((installed: boolean) => void) | null = null;
 
 function settle(installed: boolean) {
@@ -38,23 +37,18 @@ export type AiDepsStore = {
   logs: string[];
   error: string | null;
 
-  /// names the operation when it is not "install this pack": the dialog is
-  /// reused for GPU decode, where "TransNetV2 installed" describes neither what
-  /// is running nor what finished. null falls back to the pack's own wording
+  /// names a non-install job (GPU decode) for the dialog; null uses the pack's wording
   job: { title: string; done: string } | null;
 
-  /// user's override for the CUDA/CPU wheel choice, for when the GPU probe is
-  /// wrong. persisted, because it has to survive the next install too
+  /// the user's CUDA/CPU override for when the GPU probe is wrong, persisted for later installs
   gpuPreference: GpuPreference;
   setGpuPreference: (preference: GpuPreference) => void;
 
   refresh: () => Promise<AiEnvStatus | null>;
-  /// resolves true when `id` is installed and the caller may proceed. opens the
-  /// confirm dialog when it isn't, and resolves false if the user declines
+  /// true when `id` is installed; otherwise opens the confirm dialog, false if declined
   ensurePack: (id: AiPackId) => Promise<boolean>;
   startInstall: () => Promise<void>;
-  /// re-resolve every installed pack against the CUDA index. for an env that
-  /// ended up on a CPU torch despite the machine having an NVIDIA GPU
+  /// re-resolves installed packs against the CUDA index, for a CPU torch on an NVIDIA machine
   repairGpu: () => Promise<void>;
   /// adds or removes Nelux (NVDEC decode) in the AI env, which AI Scene Detection then uses
   setGpuDecode: (enabled: boolean) => Promise<void>;
@@ -202,8 +196,7 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
       const next = await invoke<AiEnvStatus>("install_ai_pack", {
         pack: installed[0],
         gpu: true,
-        // omitted on purpose: a torch repair must not decide the GPU decode
-        // profile, and the backend leaves it as it found it
+        // a torch repair leaves the GPU decode profile as it is
         gpuDecode: undefined,
       });
       set({

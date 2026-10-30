@@ -19,9 +19,7 @@ export function SelectionActionBar() {
   const sceneScout = useFeature("sceneScout");
   const [showModal, setShowModal] = useState(false);
 
-  // add-to-Scenepack only makes sense from the Home/episode grid, a
-  // Scenepack's own clips are already materialized copies, not something to
-  // re-add. a switched-off feature's action is left out entirely
+  // home only: pack clips are already materialized copies; hidden when the feature is off
   const showAddToScenepack = activePage === "home" && scenepacks.enabled;
 
   // continuing a clip needs exactly one, from a grid that holds playable source clips

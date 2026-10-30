@@ -32,8 +32,7 @@ impl ActiveSidecar {
     }
 }
 
-/// the in-flight optional-AI-dependency install (a `uv` process tree).
-/// cloned into the blocking install task, so every field is shared
+/// the in-flight AI dependency install (a uv process tree), shared with the blocking task
 #[derive(Default, Clone)]
 pub struct ActiveInstall {
     pub pid: Arc<Mutex<Option<u32>>>,
@@ -42,8 +41,7 @@ pub struct ActiveInstall {
 }
 
 impl ActiveInstall {
-    /// claim the install slot. only one install may run at a time, a second
-    /// one would fight the first over the same venv
+    /// claims the install slot; a second install would fight over the same venv
     pub fn begin(&self) -> Result<(), String> {
         if self.running.swap(true, Ordering::SeqCst) {
             return Err("Another dependency install is already running.".to_string());
@@ -82,8 +80,7 @@ pub struct PreviewTranscodeSlots {
 
 impl Default for PreviewTranscodeSlots {
     fn default() -> Self {
-        // leave headroom for the UI and any running import: at most a quarter of
-        // the machine's threads, clamped to 1..=3
+        // headroom for the UI and imports: a quarter of the threads, 1..=3
         let parallelism = std::thread::available_parallelism()
             .map(|n| n.get())
             .unwrap_or(4);
@@ -95,8 +92,7 @@ impl Default for PreviewTranscodeSlots {
     }
 }
 
-/// Discord Rich Presence lives with its worker thread, not here, the presence
-/// is an IPC connection, no longer a child process
+/// Rich Presence lives with its worker thread now, an IPC connection rather than a child process
 pub use crate::commands::discord::DiscordRPCState;
 
 #[derive(Default)]

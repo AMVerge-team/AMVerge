@@ -1,18 +1,4 @@
-//! minimal Discord IPC client, one named pipe (Windows) or unix socket, framed
-//! JSON, no external crate.
-//!
-//! four rules the protocol will not forgive:
-//!
-//! * Discord listens on `discord-ipc-0` … `-9`; Stable, PTB and Canary each hold
-//!   their own, so probe 0→9 and keep the first that answers.
-//! * A frame is `[opcode u32 LE][len u32 LE][utf8 JSON]`, written in a **single**
-//!   write, a split header and body interleave on a Windows pipe and break the
-//!   connection.
-//! * `3 PING` must be answered with `4 PONG` carrying the nonce verbatim, or
-//!   Discord hangs up.
-//! * Reads must be buffered: a chunk can split a frame or carry several.
-//!
-//! Discord not running is the nominal case, not a failure
+//! minimal Discord IPC client: probe discord-ipc-0..9, write each `[op][len][json]` frame in one write, answer PING with PONG, buffer reads; Discord absent is normal
 
 use std::io::{Read, Write};
 
@@ -49,8 +35,7 @@ impl DiscordUser {
             .cloned()
     }
 
-    /// the handle you type in Discord's search bar to add someone. always
-    /// lowercase, and unlike the display name it identifies the account
+    /// the lowercase handle that identifies the account, unlike the display name
     pub fn handle(&self) -> Option<String> {
         self.username
             .as_ref()
@@ -78,8 +63,7 @@ impl Transport {
 
         #[cfg(unix)]
         {
-            // Discord follows the XDG runtime dir; inside Flatpak/Snap it nests
-            // the sockets one level down
+            // Discord follows XDG_RUNTIME_DIR, one level down under Flatpak/Snap
             let base = std::env::var("XDG_RUNTIME_DIR")
                 .or_else(|_| std::env::var("TMPDIR"))
                 .unwrap_or_else(|_| "/tmp".to_string());
@@ -91,8 +75,7 @@ impl Transport {
                     .join(format!("discord-ipc-{index}"));
                 match std::os::unix::net::UnixStream::connect(path) {
                     Ok(sock) => {
-                        // a socket that accepts but never answers must not wedge
-                        // the worker thread for good
+                        // a socket that never answers must not wedge the worker
                         let _ =
                             sock.set_read_timeout(Some(std::time::Duration::from_secs(10)));
                         return Ok(Transport::Socket(sock));
@@ -198,8 +181,7 @@ impl DiscordIpc {
             };
             match client.handshake(app_id) {
                 Ok(()) => return Ok(client),
-                // the pipe exists but is not a usable Discord (another program
-                // squatting the name, a client still booting): try the next
+                // the pipe exists but isn't a usable Discord yet; try the next
                 Err(e) => last = e,
             }
         }
@@ -231,8 +213,7 @@ impl DiscordIpc {
         self.set_activity_raw(activity).map(|_| ())
     }
 
-    /// same, but hands back Discord's reply, the echo is the only way to see
-    /// which fields the client kept and which it dropped without a word
+    /// returns Discord's reply, the only way to see which fields it kept
     pub fn set_activity_raw(&mut self, activity: Option<Value>) -> Result<Value, String> {
         let nonce = uuid::Uuid::new_v4().to_string();
         self.write_frame(
@@ -258,8 +239,7 @@ impl DiscordIpc {
         Ok(reply)
     }
 
-    /// clear the presence before the pipe dies, so no stale "playing AMVerge"
-    /// lingers on the profile
+    /// clears the presence before the pipe dies, so nothing stale lingers
     pub fn close(&mut self) {
         let _ = self.set_activity(None);
         let _ = self.write_frame(OP_CLOSE, &json!({}));
@@ -315,11 +295,7 @@ impl DiscordIpc {
         }
     }
 
-    /// service the pipe without blocking; `false` once the connection is gone.
-    ///
-    /// without this, Discord quitting goes unnoticed until the next write, and a
-    /// ping sits unanswered just as long, which is itself grounds for Discord to
-    /// hang up on us
+    /// services the pipe without blocking (answers pings, notices Discord quitting); false once gone
     pub fn poll(&mut self) -> bool {
         loop {
             match self.fill_nonblocking() {
@@ -346,8 +322,7 @@ impl DiscordIpc {
     #[cfg(windows)]
     fn fill_nonblocking(&mut self) -> Result<usize, String> {
         let Transport::Pipe(file) = &self.transport;
-        // PeekNamedPipe is the sanctioned way to look at a blocking pipe without
-        // consuming or waiting; PIPE_NOWAIT would change every other read here
+        // PeekNamedPipe looks without consuming or waiting; PIPE_NOWAIT would change every read
         let available = peek_named_pipe(file).ok_or(CLOSED)?;
         if available == 0 {
             return Ok(0);

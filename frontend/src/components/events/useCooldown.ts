@@ -1,15 +1,6 @@
 import { useEffect, useState } from "react";
 
-/**
- * Counts a deadline down to zero, one tick a second.
- *
- * The deadline is an epoch millisecond value derived from the seconds the
- * server sent plus this machine's clock at the moment it arrived, so the two
- * clocks never have to agree.
- *
- * Server-side checks are still the real limit; this only drives what the button
- * looks like.
- */
+/** counts a deadline down each second; built from server seconds plus local arrival time, so clocks needn't agree */
 export function useCooldown(until: number | null): number {
   const [remaining, setRemaining] = useState(() => secondsLeft(until));
 

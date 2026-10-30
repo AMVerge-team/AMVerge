@@ -1,12 +1,4 @@
-//! Discord sign-in for event hosts.
-//!
-//! authorization-code + PKCE against a loopback redirect (RFC 8252). the
-//! desktop app holds no Discord client secret: it posts the code to the AMVerge
-//! backend, which performs the exchange and returns an AMVerge session token.
-//!
-//! the session token stays in this process and in the OS credential store. it
-//! is never handed to the webview, never written to localStorage, and never
-//! appears in an `invoke` payload; the frontend only ever sees the profile
+//! Discord sign-in for event hosts: auth code + PKCE on a loopback redirect, exchanged by the AMVerge backend; the session token never reaches the webview
 
 use std::sync::Mutex;
 use std::time::Duration;
@@ -27,19 +19,13 @@ const BUILD_DISCORD_APP_CLIENT_ID: Option<&str> = option_env!("AMVERGE_DISCORD_A
 const KEYRING_SERVICE: &str = "AMVerge";
 const KEYRING_ACCOUNT: &str = "discord-session";
 
-/// how long the loopback listener waits for the browser to come back before it
-/// gives up and frees the port
+/// how long the loopback listener waits for the browser before freeing the port
 const LOGIN_TIMEOUT: Duration = Duration::from_secs(300);
 
-/// cap on the callback request we are willing to read. a browser redirect is a
-/// few hundred bytes; anything larger is not the request we are waiting for
+/// cap on the callback request read; a browser redirect is a few hundred bytes
 const MAX_CALLBACK_REQUEST_BYTES: usize = 8 * 1024;
 
-/// Discord matches `redirect_uri` against its registered list exactly; it does
-/// not grant loopback the any-port allowance RFC 8252 asks for. so the port
-/// cannot be arbitrary: these are tried in order until one is free, and every
-/// one of them has to be registered on the Discord application as
-/// `http://127.0.0.1:<port>/callback`
+/// Discord matches redirect_uri exactly (no any-port loopback), so each port must be registered as `http://127.0.0.1:<port>/callback`
 const CALLBACK_PORTS: [u16; 3] = [53421, 53422, 53423];
 
 async fn bind_callback_listener() -> Result<(TcpListener, u16), String> {
@@ -67,8 +53,7 @@ pub struct DiscordUser {
 }
 
 impl DiscordUser {
-    /// Discord's CDN is reachable from the webview: `img-src` is unconstrained,
-    /// only `connect-src` is locked down
+    /// the webview can load Discord's CDN: only `connect-src` is locked down
     pub fn avatar_url(&self) -> Option<String> {
         self.avatar_hash.as_ref().map(|hash| {
             format!(
@@ -123,8 +108,7 @@ impl DiscordAuthState {
             Err(_) => None,
         };
 
-        // starting a second login abandons the first, so its listener must go
-        // or the port stays bound until the timeout
+        // a second login abandons the first, so its listener must free the port
         if let Some(previous) = previous {
             previous.abort();
         }
@@ -135,11 +119,7 @@ impl DiscordAuthState {
     }
 }
 
-/// session tokens are signed by the server that issued them, so one from a
-/// local API is meaningless to production and vice versa. scoping the
-/// credential to its API host keeps a development build and a release build
-/// from overwriting each other's session and presenting the wrong token
-/// which the server can only report as an invalid signature
+/// the credential is scoped to its API host, so dev and release builds never present each other's token
 fn keyring_account() -> String {
     match api_base_url() {
         Ok(base) => format!("{KEYRING_ACCOUNT}@{base}"),
@@ -173,10 +153,7 @@ fn clear_session() {
     }
 }
 
-/// drops a session the server has refused. a stored token the API will not
-/// accept, because it was signed by a different deployment, or its secret was
-/// rotated, is worse than none: every request fails until it is cleared, and
-/// the app has no way to explain why
+/// drops a session the server refused (other deployment, rotated secret), which would fail every request
 pub fn discard_rejected_session() {
     clear_session();
 }
@@ -187,8 +164,7 @@ pub fn session_token() -> Option<String> {
 }
 
 fn random_token() -> String {
-    // two v4 UUIDs give 32 random bytes; hex keeps it inside the PKCE verifier
-    // charset without pulling in another encoder
+    // two v4 UUIDs give 32 random bytes; hex stays inside the PKCE verifier charset
     format!(
         "{}{}",
         hex::encode(uuid::Uuid::new_v4().as_bytes()),
@@ -214,9 +190,7 @@ fn percent_encode(value: &str) -> String {
     encoded
 }
 
-/// reads `code` and `state` out of the callback request line. returns `None`
-/// for anything that is not a GET of the callback path, so a stray probe on the
-/// port cannot complete a login
+/// `code` and `state` from a GET of the callback path; anything else is ignored so a stray probe can't log in
 fn parse_callback(request: &str) -> Option<(String, String)> {
     let request_line = request.lines().next()?;
     let mut parts = request_line.split_whitespace();
@@ -347,9 +321,7 @@ async fn exchange_code(
     Ok(StoredSession { token, user })
 }
 
-/// starts the login. returns the Discord authorize URL for the frontend to open
-/// in the system browser; the result of the login arrives as a `discord-login`
-/// event once the browser comes back to the loopback listener
+/// starts the login and returns the authorize url; the result arrives as a `discord-login` event
 #[tauri::command]
 pub async fn begin_discord_login(
     app: AppHandle,
@@ -361,8 +333,7 @@ pub async fn begin_discord_login(
     )
     .ok_or_else(|| "Discord sign-in is not configured on this build.".to_string())?;
 
-    // bind before anything else: without a port there is no redirect URI to put
-    // in the authorize URL
+    // bind first: the port is part of the redirect uri
     let (listener, port) = bind_callback_listener().await?;
 
     let redirect_uri = format!("http://127.0.0.1:{port}/callback");
@@ -397,7 +368,6 @@ pub async fn begin_discord_login(
                 let request = String::from_utf8_lossy(&buffer[..read]).into_owned();
                 let Some((code, state)) = parse_callback(&request) else {
                     // favicon requests and port scans land here; keep waiting
-                    // for the real redirect
                     let _ = stream
                         .write_all(browser_response("AMVerge", "Waiting for Discord.").as_bytes())
                         .await;
@@ -405,8 +375,7 @@ pub async fn begin_discord_login(
                     continue;
                 };
 
-                // the state check is what stops someone else's authorization
-                // code from being fed to this listener
+                // the state check stops someone else's code being fed to this listener
                 if state != expected_state {
                     let _ = stream
                         .write_all(
@@ -471,8 +440,7 @@ pub async fn begin_discord_login(
     Ok(authorize_url)
 }
 
-/// drops the loopback listener when the user backs out of the login, rather
-/// than leaving the port bound until the timeout
+/// frees the loopback listener when the user backs out of the login
 #[tauri::command]
 pub fn cancel_discord_login(auth: tauri::State<'_, DiscordAuthState>) {
     if let Some(handle) = auth.take_pending() {

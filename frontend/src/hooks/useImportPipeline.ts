@@ -57,13 +57,10 @@ export function useImportPipeline({ abortedRef }: Params) {
       // a batch streams every episode but only the first one takes the view
       focusGrid = streamToGrid
     ): Promise<{ episodeEntry: EpisodeEntry; sceneCount: number }> => {
-      // video mode streams clips into the grid as they are cut and resolves once
-      // the initial preview phase completes; exact AI previews finish in the background
+      // video mode streams clips in and resolves after the preview phase; AI previews finish in the background
       const videoStreaming = streamToGrid && generalSettings.importMethod === "video_files";
 
-      // the ml pack could have been removed, or the setting carried over from an
-      // older install, since it was chosen. prompt here rather than letting the
-      // backend fail mid-import
+      // the ml pack may be gone since it was chosen, so prompt now instead of failing mid-import
       if (generalSettings.sceneDetectionMethod === "transnetv2_gpu") {
         const ready = await useAiDepsStore.getState().ensurePack("ml");
         if (!ready) {
@@ -83,9 +80,7 @@ export function useImportPipeline({ abortedRef }: Params) {
         });
 
       if (videoStreaming) {
-        // sessions no longer tear each other down: every event carries its
-        // episode id, so an earlier import's phase-2 keeps patching its own
-        // episode while this one starts
+        // events carry their episode id, so an earlier import's phase 2 keeps patching its own episode
         const { stop, phase1Done, getClips } = await startVideoStreamingListeners(
           file,
           episodeId,
@@ -104,9 +99,7 @@ export function useImportPipeline({ abortedRef }: Params) {
           stop();
         };
 
-        // fire detection but do not block import completion on it: the process
-        // keeps running phase-2 after phase1_complete, and listeners come down
-        // only when the whole process ends
+        // detection isn't awaited: phase 2 runs on after phase1_complete, listeners stop when the process ends
         let invokeError: unknown = null;
         const invokeSettled = detectScenes()
           .catch((err) => {
@@ -114,16 +107,14 @@ export function useImportPipeline({ abortedRef }: Params) {
           })
           .finally(stop);
 
-        // whichever comes first: phase-1 done, or the process ending before it
-        // (an error, or a video that produced no scenes)
+        // whichever first: phase 1 done, or the process ending before it
         const winner = await Promise.race([
           phase1Done.then(() => "phase1" as const),
           invokeSettled.then(() => "invoke" as const),
         ]);
 
         if (winner === "phase1") {
-          // clips with no cut yet are the re-encodes: stop this CLI and let the queue
-          // do them, one episode at a time, so a batch never re-encodes several at once
+          // uncut clips are re-encodes: stop this cli and let the queue do them one episode at a time
           if (getClips().some((clip) => !clip.clipPath)) {
             await invoke("abort_detect_scenes", { episodeCacheId: episodeId }).catch(() => {});
             await invokeSettled;
@@ -147,11 +138,9 @@ export function useImportPipeline({ abortedRef }: Params) {
         }
 
         if (invokeError) throw invokeError;
-        // no scenes and no phase-1 signal: detection already ran, so fall through
-        // to manifest hydration
+        // no scenes and no phase-1 signal: fall through to manifest hydration
       } else {
-        // webp_files and any other non-streaming import: run detection to
-        // completion here so the manifest exists for hydration below
+        // non-streaming imports run detection to completion so the manifest exists
         await detectScenes();
       }
 
@@ -272,9 +261,7 @@ export function useImportPipeline({ abortedRef }: Params) {
         app.setProgress(0);
         app.setProgressMsg("Starting...");
         setActiveOperation("import");
-        // batch shows the full loading screen, which is minimizable.
-        // bgImportProgress is still tracked so closing the minimized card aborts
-        // the remaining episodes
+        // batch shows the minimizable full loader; bgImportProgress lets closing the card abort the rest
         setLoading(true);
         app.setSelectedClips(new Set());
         app.setFocusedClip(null);
@@ -307,9 +294,7 @@ export function useImportPipeline({ abortedRef }: Params) {
           });
 
           try {
-            // stream every episode so it appears as soon as its preview phase
-            // completes. only the first takes the grid; the rest fill the sidebar
-            // without moving the user's view
+            // each episode appears when its preview phase completes; only the first takes the grid
             const { episodeEntry, sceneCount } = await runImportPipeline(
               file,
               episodeId,
@@ -328,18 +313,14 @@ export function useImportPipeline({ abortedRef }: Params) {
             }
 
             completedEpisodes.push(episodeEntry);
-            // the streaming listener already inserted this episode when its
-            // scenes were detected, so replace that entry
+            // replaces the entry the streaming listener inserted
             episodeState.setEpisodes((prev) => [
               episodeEntry,
               ...prev.filter((ep) => ep.id !== episodeEntry.id),
             ]);
             setBgImportProgress({ done: i + 1, total: files.length });
 
-            // first finished episode: open it and drop the full-screen loader,
-            // which auto-minimizes to the batch card since bgImportProgress is
-            // still active. later episodes only stream into the sidebar so the
-            // user's view is never yanked
+            // the first finished episode opens and the loader minimizes; later ones only fill the sidebar
             if (completedEpisodes.length === 1) {
               episodeState.setSelectedEpisodeId(episodeEntry.id);
               episodeState.setOpenedEpisodeId(episodeEntry.id);

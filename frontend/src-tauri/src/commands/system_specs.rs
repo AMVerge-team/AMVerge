@@ -1,13 +1,4 @@
-//! one-click PC specs for the bug report form.
-//!
-//! reports are only useful when we know what the app was running on, so the
-//! form offers to fill the field itself. we collect the four lines that
-//! actually explain a bug (OS, CPU, RAM, GPU) and nothing that identifies
-//! the machine or its owner.
-//!
-//! Windows answers straight from the registry. WMI knows all of this too, but
-//! `Win32_VideoController` alone takes nine seconds on a laptop with two GPUs,
-//! and a button that hangs that long reads as broken
+//! one-click PC specs for bug reports (OS, CPU, RAM, GPU, nothing identifying); Windows reads the registry since WMI is too slow
 
 #[cfg(target_os = "macos")]
 use std::process::Command;
@@ -22,13 +13,11 @@ use winreg::RegKey;
 const DISPLAY_CLASS_KEY: &str =
     r"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}";
 
-/// the build that turned Windows 10 into Windows 11. `ProductName` was never
-/// updated for it, so every Windows 11 still calls itself 10 in the registry
+/// the build that made Windows 11; ProductName still says 10
 #[cfg(windows)]
 const FIRST_WINDOWS_11_BUILD: u32 = 22000;
 
-/// hardware names come with trademark noise and padded spaces
-/// ("AMD Radeon(TM) Graphics", "AMD Ryzen 7 6800H     ")
+/// strips trademark noise and padding from hardware names
 fn tidy(value: &str) -> String {
     value
         .replace("(R)", "")
@@ -123,9 +112,7 @@ fn windows_cpu() -> String {
         .unwrap_or_default()
 }
 
-/// installed sticks, not the memory Windows leaves visible: the visible total
-/// hides what the hardware reserves, and a 32 GB machine reporting 28 GB reads
-/// like a wrong answer
+/// installed memory, not the visible total, which hides hardware reservations
 #[cfg(windows)]
 fn windows_ram() -> String {
     let mut kilobytes: u64 = 0;
@@ -143,8 +130,7 @@ fn windows_ram() -> String {
     format_ram_gb(kilobytes as f64 / 1024.0 / 1024.0)
 }
 
-/// every display adapter with a driver, integrated ones included. microsoft's
-/// own fallback adapter is not hardware, so it stays out
+/// every display adapter with a driver, minus microsoft's software fallback
 #[cfg(windows)]
 fn windows_gpus() -> String {
     let Some(class_key) = reg_key(DISPLAY_CLASS_KEY) else {
@@ -194,8 +180,7 @@ fn read_command(program: &str, args: &[&str]) -> Option<String> {
     }
 }
 
-/// macOS keeps the display hardware in `system_profiler`, one "Chipset Model"
-/// line per adapter. Apple Silicon reports its integrated GPU there too
+/// macOS lists GPUs as "Chipset Model" lines in `system_profiler`
 #[cfg(target_os = "macos")]
 fn macos_gpu_names() -> String {
     let Some(report) = read_command("system_profiler", &["SPDisplaysDataType"]) else {
@@ -246,8 +231,7 @@ fn collect_specs() -> Result<String, String> {
     )])
 }
 
-/// fills the bug report's PC Specs field. the user stays free to edit or clear
-/// whatever comes back
+/// fills the bug report's PC Specs field, still editable
 #[tauri::command]
 pub async fn detect_pc_specs() -> Result<String, String> {
     tokio::task::spawn_blocking(collect_specs)

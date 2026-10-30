@@ -9,9 +9,7 @@ type ImportExportProps = {
 };
 
 export default function useImportExport(props?: ImportExportProps) {
-  // selectors, not the whole store: PreviewContainer and ImportButtons both use
-  // this hook, and subscribing to everything re-rendered both on every progress
-  // tick during an import
+  // selectors, not the whole store, so progress ticks don't re-render every user of this hook
   const loading = useAppStateStore((s) => s.loading);
   const importToken = useAppStateStore((s) => s.importToken);
   const batchTotal = useAppStateStore((s) => s.batchTotal);

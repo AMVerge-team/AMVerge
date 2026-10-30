@@ -1,18 +1,7 @@
 import { create } from "zustand";
 import type { ClipItem } from "../types/domain";
 
-/**
- * clips being cut into a Scenepack right now
- *
- * deliberately NOT persisted. a stored Scenepack clip always owns a
- * materialized copy; that invariant is what lets a pack survive its episode
- * being deleted, so a clip only enters `scenepackStore` once the CLI has
- * actually produced its file. until then it lives here, which is enough to
- * show it in the grid and to keep the panel honest about what is in flight
- *
- * if the app closes mid-add this state simply goes away, exactly as if the
- * add had been cancelled. nothing half-true is ever written to disk.
- */
+/** clips being cut into a Scenepack; not persisted, since a stored pack clip must always own its file */
 export type PendingScenepackClip = {
   /** unique per add, so the same clip can be queued twice without colliding */
   key: string;
@@ -44,8 +33,7 @@ export const useScenepackPendingStore = create<ScenepackPendingStore>()((set) =>
       return { pending: s.pending.filter((p) => !drop.has(p.key)) };
     }),
 
-  // a failed add keeps its placeholder, carrying the reason. dropping it
-  // silently would leave the user believing the clip is in the pack
+  // a failed add keeps its placeholder with the reason, so the user isn't misled
   failPending: (keys, error) =>
     set((s) => {
       const hit = new Set(keys);

@@ -28,8 +28,7 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
   const hasSelection = selectedClips.size > 0;
   const importBusy = loading || Boolean(bgProgress) || Boolean(bgImportProgress);
 
-  // re-opens the current episode: fresh import token, cleared selection/focus,
-  // remounted tiles, same reset as switching away and back, without leaving
+  // re-opens the current episode with the same reset as switching away and back
   const handleRefreshEpisode = () => {
     if (!openedEpisodeId || importBusy) return;
     setRefreshSpinning(true);

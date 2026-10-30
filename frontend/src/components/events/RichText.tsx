@@ -2,11 +2,7 @@ import { Fragment } from "react";
 
 import { parseRichText } from "./descriptionMarkup";
 
-/**
- * renders event description markup as React elements. nothing here goes through
- * `dangerouslySetInnerHTML`, so text a community member wrote cannot become
- * markup in anyone else's app.
- */
+/** renders description markup as React elements, never `dangerouslySetInnerHTML` */
 export default function RichText({
   value,
   className,

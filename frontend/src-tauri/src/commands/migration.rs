@@ -232,8 +232,7 @@ fn move_episode(
     fs::write(dest.join("manifest.json"), manifest).map_err(|e| e.to_string())
 }
 
-/// deletes V1's leftover app data once a previous launch finished the import, so nothing named after V1 stays behind.
-/// runs at startup, so never in the same session as the import itself
+/// deletes V1's leftover app data on a launch after the import finished
 pub fn remove_v1_data_in_background(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn_blocking(move || {

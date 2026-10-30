@@ -3,10 +3,7 @@ import { useDiscordRPCStatus } from "../../hooks/useDiscordRPC";
 import DiscordPresencePreview from "./DiscordPresencePreview";
 import SettingRow from "../common/SettingRow";
 
-/**
- * Discord being closed is normal, not a fault, so "waiting" reads as a state
- * rather than an error.
- */
+/** Discord being closed is normal, so "waiting" reads as a state, not an error */
 function PresencePanel({ enabled }: { enabled: boolean }) {
   const status = useDiscordRPCStatus();
 

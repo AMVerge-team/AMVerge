@@ -5,17 +5,7 @@ import { useAppStateStore } from "../../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore";
 import { createClipPatchBuffer } from "./clipPatchBuffer";
 
-/**
- * paused video-mode episodes and finishing their clips
- *
- * a video-mode import hands its re-encodes to the re-encode queue once the fast
- * previews are cut, and an import closed early (mini window or app closed) leaves
- * clips behind too. the episode's clips are persisted as they stream, so what is
- * left is clips with no cut or no poster. such an episode is "paused" (derived
- * from its clips, nothing extra is stored) unless the queue holds it.
- * `resume_episode_clips` reports files already on disk and re-cuts the rest,
- * streaming the same clip_ready/thumbnail_ready events a live import does
- */
+// paused video-mode episodes (unfinished clips, derived, never stored) and finishing them via resume_episode_clips
 
 function isUnfinished(clip: ClipItem): boolean {
   if (clip.mergedSrcs?.length) return false;

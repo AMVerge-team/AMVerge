@@ -183,8 +183,7 @@ fn kill_all_child_processes(app: &tauri::AppHandle) {
         let _ = kill_process_tree(pid);
     }
 
-    // clear the Discord presence before the process goes away, so no ghost
-    // "playing AMVerge" is left on the profile
+    // clear the presence first so no ghost "playing AMVerge" stays on the profile
     commands::discord::shutdown(app);
 
     // kill active Scene Scout daemon worker

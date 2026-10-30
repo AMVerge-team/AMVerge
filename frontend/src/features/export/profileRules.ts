@@ -117,9 +117,7 @@ export function supportsContainerSelection(workflow: ExportWorkflow): boolean {
   switch (workflow) {
     case "video_encode":
       return true;
-    // A stream copy inherits AVI/MP4/MOV when possible, or uses the source
-    // codec policy at export time. Letting a stored profile override that
-    // would turn a safe fast-remux choice into a surprise mux failure.
+    // a stream copy follows the source container, so a stored profile must not override it
     case "video_remux":
       return false;
     default:

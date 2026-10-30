@@ -1,14 +1,10 @@
-//! shared configuration for calls to the AMVerge backend.
-//!
-//! the webview's CSP allows `connect-src ipc: http://ipc.localhost` only, so
-//! nothing in JS can reach the API directly. every request goes out from here
+//! shared config for AMVerge backend calls; the CSP blocks the webview, so every request goes out from here
 
 use std::time::Duration;
 
 const BUILD_API_BASE_URL: Option<&str> = option_env!("AMVERGE_API_BASE_URL");
 
-/// runtime environment first, build-time value as the fallback. matches the
-/// convention `bug_report.rs` established for endpoint configuration
+/// runtime environment first, build-time value as fallback (the `bug_report.rs` convention)
 pub fn read_config_var(runtime_key: &str, build_fallback: Option<&str>) -> Option<String> {
     std::env::var(runtime_key)
         .ok()

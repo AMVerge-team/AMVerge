@@ -1,8 +1,4 @@
-//! the application's name and art, as Discord itself reports them.
-//!
-//! both endpoints are public and unauthenticated. the settings preview uses
-//! them so it draws the picture Discord will actually draw, not a local
-//! stand-in
+//! the app's name and art from Discord's public endpoints, so the settings preview draws what Discord draws
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -54,8 +50,7 @@ pub(super) async fn fetch() -> Result<DiscordAppInfo, String> {
             .map(|hash| format!("{CDN}/app-icons/{APP_ID}/{hash}.png?size=160")),
     };
 
-    // a separate, also public listing. missing it is survivable: the icon covers
-    // the large image and the small badge simply drops
+    // a second public listing; without it the small badge just drops
     if let Ok(resp) = http
         .get(format!("{API}/v9/oauth2/applications/{APP_ID}/assets"))
         .send()

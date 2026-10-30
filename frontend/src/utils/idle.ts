@@ -1,11 +1,4 @@
-/**
- * idle.ts
- *
- * requestIdleCallback with a setTimeout fallback for environments that lack it,
- * plus a matching cancel. used to push non-urgent main-thread work (canvas
- * decode/encode, pixel sampling) out of scroll/interaction frames so a burst of
- * thumbnails arriving mid-scroll can't block input handling.
- */
+// requestIdleCallback with a setTimeout fallback, for work that must stay off scroll frames
 export type IdleHandle = number;
 
 type IdleWindow = Window & {

@@ -212,8 +212,7 @@ export default function ProfileIconPicker({
 
   useEffect(() => {
     const stored = readPersistedFeaturedIcons();
-    // nothing persisted: leave whatever is in memory alone, since a failed write
-    // must not wipe the user's pins
+    // nothing persisted: a failed write must not wipe the in-memory pins
     if (stored.builtIn.length === 0 && stored.custom.length === 0) return;
     const picked = selectFeaturedIcons(
       stored.builtIn,

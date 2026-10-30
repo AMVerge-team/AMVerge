@@ -1,14 +1,7 @@
 import type { AiPackId } from "./aiDeps/packs";
 import { useGeneralSettingsStore, type GeneralSettings } from "../stores/settingsStore";
 
-/**
- * the major features a user can switch on and off in Settings > Features.
- *
- * a switched-off feature is greyed out and unclickable wherever it appears, or
- * removed from the ui entirely when "Hide disabled features" is on. switching an
- * ai feature on downloads its pack; switching it off keeps the files, so turning
- * it back on is instant
- */
+/** the features switched in Settings > Features; off greys them out (or hides them), AI files are kept */
 export type FeatureId = "aiSceneDetection" | "sceneScout" | "scenepacks" | "depthPass" | "interpolationPass";
 
 type FeatureDef = {
@@ -70,10 +63,7 @@ export function featureDef(id: FeatureId): FeatureDef {
   return FEATURES.find((feature) => feature.id === id)!;
 }
 
-/**
- * how a feature shows up: `enabled` it works; otherwise `hidden` means leave it out
- * of the ui, and not hidden means show it greyed out and unclickable
- */
+/** `enabled` works; otherwise `hidden` leaves it out, else it shows greyed out */
 export function useFeature(id: FeatureId): { enabled: boolean; hidden: boolean } {
   const setting = featureDef(id).setting;
   const enabled = useGeneralSettingsStore((s) => s[setting]);

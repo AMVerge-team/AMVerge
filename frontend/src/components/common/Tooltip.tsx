@@ -42,11 +42,7 @@ type TooltipGroup = {
   delay: number;
   /** grace time before a tooltip closes once the pointer leaves */
   closeDelay: number;
-  /**
-   * window after a tooltip closes during which the next one opens instantly.
-   * this is what makes a row of icon buttons feel like one surface: the first
-   * hover waits, hopping between neighbours does not.
-   */
+  /** after a tooltip closes, the next opens instantly within this window, so a row of buttons feels like one surface */
   timeout: number;
   lastClosedAt: { current: number };
 };
@@ -55,17 +51,13 @@ const DEFAULT_GROUP: TooltipGroup = {
   delay: 600,
   closeDelay: 0,
   timeout: 400,
-  // module-level ref: without a provider every tooltip in the app still shares
-  // one hop window, which is the behaviour you want by default
+  // module-level, so without a provider every tooltip still shares one hop window
   lastClosedAt: { current: 0 },
 };
 
 const TooltipGroupContext = createContext<TooltipGroup>(DEFAULT_GROUP);
 
-/**
- * optional wrapper that retunes the hover timings of the tooltips below it (a
- * dense toolbar may want a shorter delay). tooltips work without it.
- */
+/** optional wrapper that retunes hover timings for the tooltips below it */
 export function TooltipProvider({
   delay = DEFAULT_GROUP.delay,
   closeDelay = DEFAULT_GROUP.closeDelay,
@@ -98,18 +90,9 @@ const OPPOSITE: Record<TooltipSide, TooltipSide> = {
 
 /** keeps the arrow off the rounded corners when the bubble gets shifted */
 const ARROW_INSET = 14;
-/**
- * sideways slide the bubble may take before the perpendicular axis is tried
- * instead. past it the bubble hangs off to one side of its trigger: beside it
- * reads far better, which is what puts a corner button's tooltip next to it
- * rather than above and pushed inwards.
- */
+/** how far the bubble may slide sideways before the perpendicular side is tried, so corner buttons get it beside them */
 const SHIFT_TOLERANCE = 12;
-/**
- * a left/right placement may squeeze the bubble down to this width; it wraps
- * onto more lines instead of being rejected. below it the text is shredded into
- * a column, so the bubble goes back above or below the trigger.
- */
+/** a left/right placement may wrap down to this width; narrower goes back above or below */
 const MIN_SIDE_WIDTH = 120;
 /** matches the closing animation in styles/common/tooltip.css */
 const CLOSE_MS = 110;
@@ -149,11 +132,7 @@ function candidateFor(
   alignOffset: number,
   padding: number
 ): Candidate {
-  // clientWidth/Height, not innerWidth/Height: the latter counts the scrollbar,
-  // which a fixed element cannot be laid out under. using it leaves phantom
-  // room on the scrollbar side, which is enough to make a right-hand trigger look like
-  // it barely fits above, while its mirror on the left flips beside as it
-  // should. the collision box has to be the same box the browser lays out in
+  // clientWidth, not innerWidth, which counts the scrollbar a fixed element can't sit under
   const vw = document.documentElement.clientWidth;
   const vh = document.documentElement.clientHeight;
 
@@ -174,13 +153,11 @@ function candidateFor(
           ? anchor.left
           : vw - anchor.right;
 
-  // beside the trigger the bubble is free to wrap narrower; above or below it
-  // only has to clear the window's own edges
+  // beside the trigger the bubble may wrap narrower; above or below it only has to clear the window edges
   const cap = vertical
     ? crossViewport - padding * 2
     : room - sideOffset - padding;
-  // height cannot be squeezed (text just wraps taller), so a top/bottom
-  // placement still has to fit outright
+  // height can't be squeezed, so a top/bottom placement must fit outright
   const fitsSide = vertical
     ? room >= mainSize + sideOffset + padding
     : cap >= Math.min(width, MIN_SIDE_WIDTH);
@@ -221,13 +198,7 @@ function candidateFor(
   };
 }
 
-/**
- * three collision behaviours, in order of preference: keep the requested side;
- * flip to the opposite one when it has no room; and, when the surviving side
- * only fits by sliding the bubble well off its trigger, cross over to the
- * perpendicular axis: a button parked in a corner gets its tooltip beside it,
- * arrow pointing straight back at it, instead of hanging above and inwards.
- */
+/** keeps the requested side, flips when it has no room, or crosses to the perpendicular side when it would hang far off its trigger */
 function computePlacement(
   anchor: DOMRect,
   width: number,
@@ -245,8 +216,7 @@ function computePlacement(
 
   if (!chosen.fitsSide) {
     const flipped = pick(OPPOSITE[side]);
-    // flip only when it helps: in a viewport too small for either side, staying
-    // put and shifting reads better than a bubble that keeps jumping
+    // flip only when it helps, so a too-small viewport doesn't make the bubble jump
     if (flipped.fitsSide || flipped.room > chosen.room) chosen = flipped;
   }
 
@@ -295,10 +265,7 @@ export type TooltipProps = {
   content: ReactNode;
   /** the trigger. a single element is cloned; anything else gets a wrapper */
   children: ReactNode;
-  /**
-   * side and alignment in one word: `"bottom-end"` is `side="bottom"` plus
-   * `align="end"`. wins over `side`/`align` when both are given.
-   */
+  /** side and alignment in one, e.g. `"bottom-end"`; wins over `side`/`align` */
   placement?: TooltipPlacement;
   side?: TooltipSide;
   align?: TooltipAlign;
@@ -317,20 +284,7 @@ export type TooltipProps = {
   maxWidth?: number;
 };
 
-/**
- * hover/focus tooltip, portalled to `body` so it escapes the panes' `overflow`
- * and stacking contexts. wrap any element:
- *
- * ```tsx
- * <Tooltip content="Export the selected clips">
- *   <button className="buttons">Export</button>
- * </Tooltip>
- * ```
- *
- * the trigger is cloned rather than wrapped, so no extra box lands in the
- * layout: the element must accept a `ref` and the pointer/focus handlers (an
- * intrinsic tag, or a component forwarding its props to one).
- */
+/** hover/focus tooltip portalled to body; clones its trigger, which must accept a ref and pointer/focus handlers */
 export default function Tooltip({
   content,
   children,
@@ -370,11 +324,7 @@ export default function Tooltip({
   const openRef = useRef(false);
   const id = useId();
 
-  /**
-   * hover timers only. the unmount timer is deliberately left alone: a hide
-   * that lands while one is already pending (pointer leaves, then Escape or a
-   * window blur) must not cancel the unmount it will then decline to reschedule.
-   */
+  /** hover timers only; a pending unmount timer must survive a second hide */
   const clearHoverTimers = useCallback(() => {
     for (const timer of [openTimer, closeTimer]) {
       if (timer.current !== null) {
@@ -442,8 +392,7 @@ export default function Tooltip({
       const anchor = anchorRef.current;
       const popup = popupRef.current;
       if (!anchor || !popup) return;
-      // a trigger inside a list that just unmounted would otherwise leave the
-      // bubble stranded over the layout
+      // a trigger in a list that just unmounted would strand the bubble
       if (!anchor.isConnected) {
         hide(true);
         return;
@@ -463,10 +412,7 @@ export default function Tooltip({
         );
       };
 
-      // first pass at the bubble's natural width picks a side. if that side is
-      // narrower than the bubble (a corner trigger in a cramped window), the
-      // text wraps into what fits there and the placement is redone at the new
-      // size, rather than the bubble being pushed back above the trigger
+      // measured at natural width first; if the chosen side is narrower, the text wraps and placement reruns
       let next = measure(maxWidth);
       const limit = Math.min(next.cap, maxWidth);
       if (limit < popup.offsetWidth) next = { ...measure(limit), cap: limit };
@@ -548,8 +494,7 @@ export default function Tooltip({
     },
     onFocus: (e: ReactFocusEvent<HTMLElement>) => {
       childProps.onFocus?.(e);
-      // keyboard focus only: a click already focuses the button, and its
-      // tooltip was just dismissed by the pointer press
+      // keyboard focus only; a click focuses too, and its tooltip was just dismissed
       if (e.target.matches(":focus-visible")) show();
     },
     onBlur: (e: ReactFocusEvent<HTMLElement>) => {
@@ -579,11 +524,9 @@ export default function Tooltip({
             style={{
               left: `${placement?.left ?? 0}px`,
               top: `${placement?.top ?? 0}px`,
-              // the cap the bubble was measured at, so React's render matches
-              // the width the placement was computed from
+              // the cap the placement was computed at, so the render matches it
               maxWidth: `${Math.min(placement?.cap ?? maxWidth, maxWidth)}px`,
-              // first paint is a measuring pass: the bubble is laid out at 0,0
-              // to be measured, then placed within the same commit
+              // first paint measures at 0,0, then places within the same commit
               visibility: placement ? undefined : "hidden",
             }}
           >

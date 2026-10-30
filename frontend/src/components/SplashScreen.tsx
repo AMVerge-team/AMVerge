@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
 
-/**
- * Startup splash: the wordmark in the user's accent colour, a subtitle, then it
- * lifts away to reveal the app.
- *
- * Mounted over everything and unmounted once it has finished, so nothing it
- * draws stays in the tree or keeps an animation running. Skippable by a click
- * or any key, because a splash a user has already read is an obstacle.
- */
+// startup splash: the wordmark lifts away to reveal the app; unmounted after, skippable by click or key
 
 const FADE_IN_MS = 900;
 const HOLD_MS = 900;
@@ -22,8 +15,7 @@ export default function SplashScreen({ onFinished }: SplashScreenProps) {
   const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
-    // one timer chain, cleared together, so a fast skip cannot leave a pending
-    // callback that unmounts the splash after the app is already interactive
+    // one timer chain cleared together, so a fast skip can't leave a late unmount
     const timers: number[] = [];
 
     const leave = () => {

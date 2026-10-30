@@ -14,8 +14,7 @@ export type ExportOptionsPayload = {
   parallelExports: number;
 };
 
-// strips path separators, control chars and reserved characters so a user-typed
-// merge name cannot escape the export folder
+// strips separators, control and reserved characters so a merge name can't escape the export folder
 export function sanitizeExportBaseName(rawBase: string): string {
   return (
     rawBase
@@ -34,8 +33,7 @@ export function findActiveProfile(
   return profiles.find((candidate) => candidate.id === profileId) ?? profiles[0];
 }
 
-// the profile's container, unless an encode would produce a codec that container
-// cannot hold
+// the profile's container, unless an encode's codec won't fit in it
 export function resolveExportFormat(profile: ExportProfile | undefined): string {
   const preferred = profile?.container || "mp4";
   if (!profile || profile.workflow !== "video_encode") return preferred;

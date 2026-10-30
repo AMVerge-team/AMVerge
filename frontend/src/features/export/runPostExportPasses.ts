@@ -56,8 +56,7 @@ function buildJobs(
       });
     }
     if (passes.interpolation.enabled) {
-      // dead frames first, then interpolate on top of that. keeping the copy
-      // just means writing it to its final name and not deleting it after
+      // dead frames first, then interpolation; keeping the copy just means not deleting it
       const keepDeadframes = passes.deadframes.exportCopy;
       const deadframesOut = keepDeadframes ? path(PASS_SUFFIX.deadframes) : path("_df_tmp");
       const output = path(PASS_SUFFIX.interpolation);
@@ -81,20 +80,14 @@ function buildJobs(
   return { jobs, interpOutputs, deadframesOutputs };
 }
 
-/**
- * run all enabled post-export passes on the given export output files. drives
- * the pass-run modal store and forwards CLI progress/preview/log events. passes
- * run sequentially; stop is honored between and within jobs.
- */
+/** runs the enabled passes on each exported file in sequence, driving the pass modal; stop is honored between and within jobs */
 export async function runPostExportPasses(
   outputs: string[],
   passes: PostExportPasses,
 ): Promise<{ interpolated: string[]; deadframes: string[] }> {
   if (outputs.length === 0 || !anyPassEnabled(passes)) return { interpolated: [], deadframes: [] };
 
-  // depth and interpolation run on the optional AI env. it is normally in place
-  // (the settings toggle installs it), but a removed pack or a settings file
-  // from another machine would otherwise surface as a failed pass here
+  // depth and interpolation need the AI env, which a removed pack or foreign settings file may lack
   const effective: PostExportPasses = { ...passes };
   // a pass switched off in Settings > Features never runs, whatever its own toggle says
   if (!isFeatureEnabled("depthPass")) effective.depth = { ...effective.depth, enabled: false };

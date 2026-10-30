@@ -1,8 +1,4 @@
-//! keeps the AI env's amverge on the newest patch of the series this app was built against.
-//!
-//! the app and the cli share a contract (commands, flags, json, progress events), so only
-//! releases in the bundled major.minor series are taken: 0.8.x fixes flow in automatically,
-//! a 0.9.0 that may change the contract waits for an app update
+//! keeps the AI env's amverge on the newest patch of the bundled major.minor; a new minor may change the contract and waits for an app update
 
 use serde::Serialize;
 use tauri::{AppHandle, State};

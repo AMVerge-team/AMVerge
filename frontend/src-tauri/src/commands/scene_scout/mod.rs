@@ -1,5 +1,4 @@
-//! Scene Scout: thin wrappers over `amverge scout ...`. The cli owns the model, embeddings and
-//! databases; this side passes `--root` (from the storage setting) and turns `--json` output into types.
+//! Scene Scout: thin wrappers over `amverge scout ...`; the CLI owns the model and databases, this side passes `--root` and parses `--json`
 
 mod cli;
 mod types;
@@ -437,8 +436,7 @@ pub async fn abort_scout_index(active_index: State<'_, ActiveScoutIndex>) -> Res
     };
     active_index.canceled.store(true, Ordering::SeqCst);
 
-    // killed without touching the daemon lock: a daemon add holds it until its request ends,
-    // which only happens once the daemon dies; the add then clears the dead session itself
+    // killed without the daemon lock, which a daemon add holds until the daemon dies
     console_log("SCOUT|abort", &format!("killing indexing process tree pid={pid}"));
     let result = kill_process_tree_async(pid).await?;
     if result.status.success() {

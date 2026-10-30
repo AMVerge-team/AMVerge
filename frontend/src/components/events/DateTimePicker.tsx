@@ -5,11 +5,7 @@ import { useEscapeToClose } from "../common/useEscapeToClose";
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const MINUTE_STEP = 5;
 
-/**
- * the value is the same `YYYY-MM-DDTHH:mm` local string a `datetime-local`
- * input produces, so everything downstream is unchanged, only the picker UI
- * differs.
- */
+/** the value is the same local `YYYY-MM-DDTHH:mm` string a datetime-local input gives */
 function parseValue(value: string): Date | null {
   if (!value) return null;
   const parsed = new Date(value);
@@ -65,8 +61,7 @@ export default function DateTimePicker({
   const [view, setView] = useState<Date>(() => selected ?? new Date());
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // reopening on an existing value should land on that month, not last month
-  // the user happened to browse to
+  // reopening lands on the value's month, not the last one browsed
   useEffect(() => {
     if (open && selected) setView(new Date(selected.getFullYear(), selected.getMonth(), 1));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -87,9 +82,7 @@ export default function DateTimePicker({
 
   const days = useMemo(() => monthGrid(view), [view]);
   const today = new Date();
-  // Events cannot be scheduled into the past, and an end cannot precede its
-  // start. compared at day granularity so the boundary day itself stays
-  // available
+  // no past dates, and no end before its start; compared by day so the boundary day stays available
   const floor = minDate && minDate > today ? minDate : today;
   const earliestDay = new Date(floor.getFullYear(), floor.getMonth(), floor.getDate());
 
@@ -97,8 +90,7 @@ export default function DateTimePicker({
 
   const pickDay = (day: Date) => {
     const next = new Date(day);
-    // keep whatever time was already chosen; a fresh pick starts at midday,
-    // which is a likelier intent than midnight
+    // keep the chosen time; a fresh pick starts at midday
     next.setHours(selected?.getHours() ?? 12, selected?.getMinutes() ?? 0, 0, 0);
     commit(next);
   };
@@ -114,8 +106,7 @@ export default function DateTimePicker({
 
   const minuteOptions = useMemo(() => {
     const steps = Array.from({ length: 60 / MINUTE_STEP }, (_, i) => i * MINUTE_STEP);
-    // an event edited from an older value may sit off the step grid; keep its
-    // exact minute selectable rather than silently rounding it
+    // an older value off the step grid keeps its exact minute selectable
     const current = selected?.getMinutes();
     if (current !== undefined && !steps.includes(current)) {
       steps.push(current);

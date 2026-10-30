@@ -4,15 +4,7 @@ import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore";
 import { claimProcess } from "../processes/singleProcess";
 import { finishEpisodeClips, hasClipsToFinish } from "./resumeEpisode";
 
-/**
- * one re-encode at a time
- *
- * a video-mode import stops its CLI once the fast previews are cut and queues the
- * episode here, so a batch never re-encodes several episodes at once. the opened
- * episode goes first, switching the moment another queued episode is opened; the
- * rest follow in the order they were queued. a switched-away episode keeps its
- * place and picks up where it stopped
- */
+// one re-encode at a time: the opened episode first (switching when another is opened), then queue order
 
 let running: { id: string; run: Promise<void> } | null = null;
 let pumping = false;

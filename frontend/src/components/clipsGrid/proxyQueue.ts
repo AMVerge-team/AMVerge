@@ -1,10 +1,4 @@
-/**
- * proxyQueue.ts
- *
- * custom React hook for managing HEVC/H.264 proxy generation and prioritization for video clips.
- * ensures only visible/needed proxies are generated, and prioritizes hovered/active tiles.
- * this only actually runs if the user does not have HEVC and the episode is encoded in HEVC.
- */
+/** queues HEVC proxy encodes for clips the webview can't decode, visible and hovered tiles first */
 import { useRef, useCallback } from "react";
 import {
   PREVIEW_TRANSCODE_PRESETS,
@@ -18,8 +12,7 @@ export default function useViewportAwareProxyQueue() {
   const proxyCacheRef = useRef<Map<string, string>>(new Map());
   const proxyDeferredRef = useRef<Map<string, DeferredProxy>>(new Map());
 
-  // prevents multiple ffmpeg proxy jobs from running at once.
-  // running more than one can freeze low-end machines
+  // one ffmpeg proxy job at a time; more can freeze low-end machines
   const proxyProcessingRef = useRef(false);
 
   const proxyDemandRef = useRef<Map<string, ProxyDemand>>(new Map());
@@ -88,8 +81,7 @@ export default function useViewportAwareProxyQueue() {
 
         try {
           proxyInFlightClipRef.current = clipPath;
-          // read the quality at dispatch time so a settings change applies to
-          // everything still queued without re-subscribing this long-lived loop
+          // quality read at dispatch time so a settings change applies to everything queued
           const preset =
             PREVIEW_TRANSCODE_PRESETS[
               useGeneralSettingsStore.getState().previewTranscodeQuality

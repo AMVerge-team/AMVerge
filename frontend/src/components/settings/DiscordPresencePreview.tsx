@@ -22,12 +22,7 @@ function resolveAsset(info: DiscordAppInfo | null, key: string | undefined) {
   return key ? info?.assets?.[key] ?? null : null;
 }
 
-/**
- * clickable when the activity carries a url for this element, inert otherwise
- *
- * the destination shows on hover (the one thing hovering can say that looking
- * cannot) through the app's own tooltip rather than the browser's pale box.
- */
+/** clickable when the activity has a url for this element; the destination shows in a tooltip */
 function Linked({
   url,
   className,
@@ -51,13 +46,7 @@ function Linked({
   );
 }
 
-/**
- * the activity card as it appears on a Discord profile, rendering the exact
- * payload Rust would publish (`status.activity`) rather than rebuilding it
- *
- * the lines and art are clickable here as they are on the profile, so where a
- * link lands can be checked without leaving Settings.
- */
+/** the activity card as on a Discord profile, rendering the exact payload rust publishes */
 export default function DiscordPresencePreview({
   activity,
   dim,
@@ -78,8 +67,7 @@ export default function DiscordPresencePreview({
     return () => clearInterval(id);
   }, [start]);
 
-  // falls back the way Discord itself does: named asset, then app icon, then the
-  // bundled logo when the machine is offline
+  // falls back like Discord: named asset, app icon, then the bundled logo offline
   const largeUrl = resolveAsset(info, activity?.assets?.large_image) ?? info?.icon ?? null;
   const smallUrl = resolveAsset(info, activity?.assets?.small_image);
   useEffect(() => setLargeBroken(false), [largeUrl]);

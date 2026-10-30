@@ -1,12 +1,4 @@
-/**
- * decides whether previews must be re-encoded before they can play
- *
- * clips are cut with a stream copy, so an hevc episode produces hevc clips. a
- * webview without the hevc extension renders those black while the audio still
- * plays, so previews are served from a transcoded h.264 proxy instead
- *
- * shared by the grid tiles and the preview panel so both make the same call.
- */
+/** whether previews need an h.264 proxy: stream-copied hevc clips render black without the hevc extension */
 import { useAppStateStore } from "../../stores/appStore";
 import {
   PREVIEW_TRANSCODE_PRESETS,
@@ -27,8 +19,7 @@ export function usePreviewTranscode(): PreviewTranscode {
   const videoIsHEVC = useAppStateStore((s) => s.videoIsHEVC);
   const userHasHEVC = useAppStateStore((s) => s.userHasHEVC);
 
-  // the last clause ignores the setting on purpose: with no decoder the tile is
-  // black whatever the user picked, so "off" must not be able to break playback
+  // the last clause ignores the setting: without a decoder "off" would only break playback
   const needed =
     mode === "always" ||
     (mode === "hevc" && videoIsHEVC === true) ||

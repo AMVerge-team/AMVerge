@@ -12,11 +12,7 @@ type DragState = {
   pointerId: number;
 };
 
-/**
- * pointer-driven drag, like the episode panel's. the window intercepts native
- * drag events so `draggable` never fires here: rows are dragged by hand and the
- * row under the cursor is found with elementFromPoint
- */
+/** pointer drag (the window eats native drag events); the row under the cursor comes from elementFromPoint */
 export function usePackDrag(moveScenepackToFolder: (packId: string, folderId: string | null) => void) {
   const [dropTarget, setDropTarget] = useState<string | "root" | null>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -30,8 +26,7 @@ export function usePackDrag(moveScenepackToFolder: (packId: string, folderId: st
     const folderEl = el.closest("[data-scenepack-folder-id]") as HTMLElement | null;
     if (folderEl) return folderEl.getAttribute("data-scenepack-folder-id");
 
-    // a pack row counts as its own folder, so dropping onto a sibling files the
-    // dragged pack beside it rather than doing nothing
+    // a pack row counts as its own folder, so dropping on a sibling files the pack beside it
     const packEl = el.closest("[data-scenepack-folder-of]") as HTMLElement | null;
     if (packEl) return packEl.getAttribute("data-scenepack-folder-of") || "root";
 

@@ -3,20 +3,7 @@ import { useScenepackPendingStore } from "../stores/scenepackPendingStore";
 import { materializeClipsForScenepack } from "./scenepackMaterialize";
 import type { ClipItem } from "../types/domain";
 
-/**
- * adds clips to a Scenepack without making the user wait for it
- *
- * cutting a clip is not cheap: the CLI is a separate process and source-range
- * clips are re-encoded so their preview begins at the requested scene boundary.
- * blocking the UI on that turned a one-second gesture into a multi-second one,
- * repeated for every clip of a pass
- *
- * so the work is started and the caller is released. the clips show up in the
- * grid immediately as placeholders (see `scenepackPendingStore`) and are
- * swapped for the real materialized entries when the CLI comes back. what gets
- * persisted is unchanged: a clip enters the pack only once its own copy exists
- * on disk.
- */
+/** adds clips to a pack in the background: placeholders show at once, and a clip persists only once its file exists */
 export function addClipsToScenepack(
   clips: ClipItem[],
   scenepackId: string,
@@ -52,9 +39,7 @@ export function addClipsToScenepack(
       const addClip = useScenepacksStore.getState().addClipToScenepack;
       for (const clip of materialized) addClip(scenepackId, clip);
 
-      // only the clips that came back are resolved. anything the CLI could not
-      // produce keeps its placeholder and its reason, rather than vanishing as
-      // though it had been added
+      // only returned clips resolve; the rest keep their placeholder and reason
       const resolvedKeys = keys.slice(0, materialized.length);
       useScenepackPendingStore.getState().resolvePending(resolvedKeys);
       if (failedCount > 0) {

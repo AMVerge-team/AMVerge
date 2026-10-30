@@ -8,11 +8,7 @@ import { useEscapeToClose } from "../../common/useEscapeToClose";
 
 const ACCEPTED = ["png", "jpg", "jpeg", "webp", "gif"];
 
-/**
- * sets a Scenepack's cover image. accepts a drop or a file picker, and takes
- * GIFs as-is so an animated cover keeps animating; the file is copied into the
- * pack's own storage rather than referenced where it lies.
- */
+/** sets a Scenepack's cover from a drop or picker; GIFs stay animated, and the file is copied into the pack */
 export default function ScenepackThumbnailModal({
   scenepackId,
   currentThumbnail,
@@ -33,8 +29,7 @@ export default function ScenepackThumbnailModal({
 
   useEscapeToClose(onClose);
 
-  // the webview's own drop event carries no filesystem path, so the file has to
-  // come from Tauri's drag-drop event instead
+  // the webview's drop event has no path, so the file comes from tauri's drag-drop event
   useEffect(() => {
     let cancelled = false;
 

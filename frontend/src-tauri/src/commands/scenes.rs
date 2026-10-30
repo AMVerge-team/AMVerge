@@ -65,9 +65,7 @@ fn build_manifest_from_backend_payload(
 
     let scene_count = scenes.len();
 
-    // always derive the persisted clip list from the final scenes so the
-    // manifest captures each scene's cut clip_path/clip_mode (the streamed
-    // INITIAL_CLIPS_READY event intentionally carries null paths for first paint)
+    // the clip list comes from the final scenes, since INITIAL_CLIPS_READY carries null paths
     let source_name = Path::new(video_path)
         .file_name()
         .and_then(|x| x.to_str())
@@ -99,8 +97,7 @@ fn build_manifest_from_backend_payload(
                 .unwrap_or("")
                 .to_string();
 
-            // the backend's jpg poster (video mode); webp mode has none and shows its webps. never the
-            // source video: an <img> on it read the whole episode into memory per tile and crashed the app
+            // the jpg poster in video mode; never the source video, which an <img> reads whole
             let thumbnail = scene
                 .get("thumbnail")
                 .and_then(|v| v.as_str())
@@ -149,10 +146,7 @@ fn build_manifest_from_backend_payload(
     Ok(manifest)
 }
 
-/// build a preliminary manifest from the streamed INITIAL_CLIPS_READY payload,
-/// written the moment scenes are detected (before any clip is cut). clip paths
-/// are null here; the final manifest written at process end carries the real
-/// cut paths/modes. shape matches the final manifest so any early reader works
+/// a manifest from INITIAL_CLIPS_READY, written before any cut; same shape as the final one, with null clip paths
 fn build_preliminary_manifest(
     initial_clips_json: &str,
     video_path: &str,
@@ -236,8 +230,7 @@ pub async fn detect_scenes(
     let method = scene_detection_method
         .clone()
         .unwrap_or_else(|| "transnetv2_gpu".to_string());
-    // TransNetV2 lives in the optional AI env; every other method runs on the
-    // bundled sidecar
+    // TransNetV2 needs the AI env; every other method runs on the sidecar
     let needs_ai = method == "transnetv2_gpu";
 
     let mut cmd = if needs_ai {
@@ -295,8 +288,7 @@ pub async fn detect_scenes(
     let app_for_stdout = app.clone();
     let stderr_accum_for_thread = Arc::clone(&stderr_accum);
 
-    // cloned so the stderr thread can write a preliminary manifest as soon as
-    // scenes are streamed (INITIAL_CLIPS_READY), independent of the final write
+    // cloned so the stderr thread can write the preliminary manifest
     let output_dir_for_thread = output_dir.clone();
     let video_path_for_thread = video_path.clone();
     let episode_cache_id_for_thread = episode_cache_id.clone();
@@ -320,10 +312,7 @@ pub async fn detect_scenes(
                 let msg = parts.next().unwrap_or("").to_string();
 
                 if let Ok(p) = p_str.parse::<u8>() {
-                    // drive the progress bar only. the PROGRESS lines are NOT echoed
-                    // to the console stream, at ~hundreds per import they swamped the
-                    // console tab (and log store) with no tracking value; percent is
-                    // carried by this event, not the text line
+                    // progress bar only; echoing hundreds of PROGRESS lines swamped the console
                     let _ = app_for_stderr.emit(
                         "scene_progress",
                         ProgressPayload {
@@ -340,8 +329,7 @@ pub async fn detect_scenes(
                         episode_cache_id: episode_cache_id_for_thread.clone(),
                     },
                 );
-                // persist a preliminary manifest the moment scenes are known, so
-                // the episode has a lookup on disk before any clip is cut
+                // a preliminary manifest as soon as scenes are known
                 match build_preliminary_manifest(
                     clips_json,
                     &video_path_for_thread,

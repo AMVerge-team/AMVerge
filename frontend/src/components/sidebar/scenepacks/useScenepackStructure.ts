@@ -39,10 +39,7 @@ export function useScenepackStructure(
   }, [scenepacks, folders]);
 }
 
-/**
- * a pack's own cover if one was set, otherwise the first clip's thumbnail,
- * which is the default and what every pack had before covers existed
- */
+/** a pack's cover, or its first clip's thumbnail */
 export function scenepackCover(pack: ScenepackEntry): string | null {
   return pack.thumbnail ?? pack.clips[0]?.thumbnail ?? null;
 }

@@ -230,8 +230,7 @@ export const DEFAULT_EXPORT_PROFILES: ExportProfile[] = [
     editorTarget: "none",
     codec: "h264_high",
     audioMode: "copy",
-    // Fast remux derives AVI, MP4, or MOV from the source at export time.
-    // MP4 is only the fallback stored in a profile.
+    // Fast remux takes the source's container at export; MP4 is only the stored fallback
     container: "mp4",
     mergeEnabled: false,
     hardwareMode: "cpu",

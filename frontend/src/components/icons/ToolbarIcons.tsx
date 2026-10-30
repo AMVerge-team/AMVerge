@@ -6,11 +6,7 @@ export function FindMatchesIcon() {
   return <LuFileSearch aria-hidden="true" />;
 }
 
-/**
- * a folder with a plus: "add a video from your files". the old arrow into a tray read as
- * download. a folder rather than a page, so it never looks like flow's page-and-magnifier.
- * spans x 3..21 around the centre, so it sits dead centre in its button
- */
+/** a folder with a plus ("add a video from your files"), centered in its button */
 export function ImportIcon() {
   return (
     <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

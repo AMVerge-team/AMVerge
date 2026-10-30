@@ -7,11 +7,7 @@ import { useGeneralSettingsStore } from "../stores/settingsStore";
 import { useUIStateStore } from "../stores/UIStore";
 import { stopRunningProcess } from "../features/processes/singleProcess";
 import { dropFromReencodeQueue } from "../features/import/reencodeQueue";
-/**
- * opens an episode by id. store-level (reads via getState) so lightweight
- * components (e.g. the grid refresh button) can trigger an open/re-open
- * without subscribing to the full stores through useEpisodePanelState.
- */
+/** opens an episode by id through getState, so small components can open one without subscribing */
 export function openEpisodeById(episodeId: string) {
 	const appState = useAppStateStore.getState();
 	const episodeRuntimeState = useEpisodePanelRuntimeStore.getState();
@@ -30,9 +26,7 @@ export function openEpisodeById(episodeId: string) {
 	appState.setImportedVideoPath(selectedEpisode.videoPath);
 	appState.setImportToken(Date.now().toString());
 
-	// the panel is visible from the Events page too, where opening an episode
-	// otherwise loaded it behind a page that does not show clips and looked like
-	// nothing happened. `handleOpenScenepack` does the same for its panel
+	// opening from Events would load it behind a page with no clips, so switch to home (like handleOpenScenepack)
 	useUIStateStore.getState().setActivePage("home");
 
 	startTransition(() => {
@@ -41,8 +35,7 @@ export function openEpisodeById(episodeId: string) {
 }
 
 export default function useEpisodePanelState() {
-	// getState, not a subscription: only actions are used here, and subscribing
-	// re-rendered the whole episode panel on every import progress tick
+	// getState, not a subscription, which re-rendered the panel on every import tick
 	const appState = useAppStateStore.getState();
 	const episodeRuntimeState = useEpisodePanelRuntimeStore();
 	const episodeMetadataState = useEpisodePanelMetadataStore();
@@ -222,8 +215,7 @@ export default function useEpisodePanelState() {
 	};
 
 	const handleDeleteEpisode = async (episodeId: string) => {
-		// an episode still being imported stops first, so nothing keeps writing into the
-		// folder deleted below. a batch import stops as a whole, as the ✕ would
+		// a still-importing episode stops first so nothing writes into the folder deleted below
 		if (useAppStateStore.getState().liveImportEpisodeIds.includes(episodeId)) {
 			console.info("[episode] deleting an episode mid-import; stopping it first", { episodeId });
 			await stopRunningProcess();
@@ -238,8 +230,7 @@ export default function useEpisodePanelState() {
 		if (episodeMetadataState.lastOpenedEpisodeId === episodeId) {
 			episodeMetadataState.setLastOpenedEpisodeId(null);
 		}
-		// drop the persisted display name / folder assignment too, otherwise they
-		// linger in local storage keyed to an episode that no longer exists
+		// drop its persisted name and folder assignment too
 		episodeMetadataState.removeEpisodeMetadata(episodeId);
 
 		if (wasOpenedEpisode) {
@@ -250,11 +241,7 @@ export default function useEpisodePanelState() {
 			appState.setImportedVideoPath(null);
 		}
 
-		// the episode id IS its cache folder name (see buildEpisodeCacheId), so
-		// removing the entry from the panel without this left the cut clips,
-		// posters and proxies on disk forever. read the path at call time rather
-		// than subscribing; this hook is used by the whole episode panel
-		// windows refuses to delete files still open (tiles, a finishing encode), so a failed delete waits and retries
+		// the id is the cache folder name; windows won't delete files still open, so a failed delete retries
 		for (let attempt = 1; attempt <= 4; attempt++) {
 			try {
 				await invoke("delete_episode_cache", {
@@ -267,8 +254,7 @@ export default function useEpisodePanelState() {
 					await new Promise((resolve) => setTimeout(resolve, 400));
 					continue;
 				}
-				// the panel entry is already gone; surface the disk failure without
-				// putting the episode back, since the user asked for it to be removed
+				// the entry is already gone; report the disk failure without restoring it
 				console.error("[episode] failed to delete cache folder", { episodeId, err });
 			}
 		}

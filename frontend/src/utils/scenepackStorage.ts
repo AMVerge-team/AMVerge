@@ -2,11 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useScenepacksStore } from "../stores/scenepackStore";
 import { useGeneralSettingsStore } from "../stores/settingsStore";
 
-/**
- * wipes all Scenepack UI state and asks the backend to delete every
- * materialized clip on disk. used by the General Settings "Clear Scenepack
- * Storage" button and the disable-Scenepacks confirmation flow.
- */
+/** clears Scenepack state and deletes every materialized clip on disk */
 export async function clearScenepacksStorage(): Promise<void> {
   useScenepacksStore.getState().resetScenepacks();
 
@@ -19,14 +15,7 @@ export async function clearScenepacksStorage(): Promise<void> {
   }
 }
 
-/**
- * remove clips from the opened Scenepack and delete their materialized files
- *
- * `indexes` are positions in the pack's clip array. they are dropped in a
- * single pass, because splicing one at a time would shift every later index.
- * legacy entries with no clipPath never had a file of their own, so only real
- * paths are handed to the backend.
- */
+/** removes clips from the opened pack in one pass (splicing shifts indexes) and deletes their files */
 export async function removeClipsFromScenepack(
   scenepackId: string,
   clips: Array<{ index: number; clipPath?: string }>,
@@ -51,15 +40,7 @@ export async function removeClipsFromScenepack(
   }
 }
 
-/**
- * opens a Scenepack's own storage folder in the system file manager
- *
- * the path is taken from a clip the pack already holds rather than rebuilt from
- * the settings: every materialized clip lives directly in
- * `<storage root>/scene_packs/<pack id>/`, so its parent directory IS the pack
- * folder, whatever storage root is configured. an empty pack has no folder on
- * disk yet; nothing is created just to look at it.
- */
+/** opens a pack's folder, the parent of any of its clips; an empty pack has no folder yet */
 export async function revealScenepackStorage(pack: {
   clips: { clipPath?: string; thumbnail?: string }[];
 }): Promise<void> {

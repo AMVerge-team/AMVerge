@@ -23,12 +23,7 @@ import {
   type AiPackId,
 } from "../../features/aiDeps/packs";
 
-/**
- * Settings > Features: switch the major features on and off. Switching an AI
- * feature on downloads what it needs; switching it off keeps the files (Free up
- * space removes them). Disabled features are greyed out across the app, or hidden
- * with "Hide disabled features". Storage shows every byte the AI features use.
- */
+/** Settings > Features: switch major features on and off; storage shows every byte the AI features use */
 export default function FeaturesSection() {
   const settings = useGeneralSettingsStore();
   const status = useAiDepsStore((s) => s.status);

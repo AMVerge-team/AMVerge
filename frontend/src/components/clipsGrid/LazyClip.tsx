@@ -25,8 +25,7 @@ import { describeMotion } from "../../features/sceneScout/motion.ts";
 
 const VIDEO_THUMB_MAX_RETRIES = 2;
 
-// a single tile in the clips grid. playback, proxying, stagger and tone sampling
-// each live in their own hook; this file owns tile state and layout
+// one grid tile; playback, proxying, stagger and tone sampling live in their own hooks
 export const LazyClip = memo(function LazyClip({
   clip,
   index,
@@ -76,8 +75,7 @@ export const LazyClip = memo(function LazyClip({
   const thumbnailRef = useRef<HTMLImageElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // another menu claimed the slot, so this tile's menu is stale. without this a
-  // right-click in a side panel left the clip menu hanging open beside it
+  // another menu claimed the slot, so this tile's menu is stale
   const activeContextMenu = useContextMenuStore((s) => s.activeMenu);
   useEffect(() => {
     if (activeContextMenu !== "clip-scenepack-picker") setScenepackMenu(null);
@@ -136,13 +134,10 @@ export const LazyClip = memo(function LazyClip({
     rangeEnd: usesRangePreview ? clip.endSec : undefined,
   });
 
-  // a scout result plays its short range preview like any cut clip; seeking the full
-  // source only happens on hover, and only when that preview could not be built
+  // a scout result plays its range preview; seeking the full source is only the hover fallback
   const seekIntoSource = isUncutScene && !source.rangeProxySrc;
 
-  // mount on hover or preview-all only, never per visible tile, so the number of
-  // live decoders stays bounded. when a transcode is needed, wait for the proxy
-  // too or the raw clip renders black until ffmpeg finishes
+  // mount on hover or preview-all only, so live decoders stay bounded; wait for a needed proxy or the clip renders black
   const shouldMountVideo =
     isVideoPlayable &&
     (isHovered || (gridPreview && staggerReady)) &&
@@ -150,8 +145,7 @@ export const LazyClip = memo(function LazyClip({
       ? Boolean(source.rangeProxySrc) || (source.rangeFailed && !source.sourceMissing && isHovered)
       : !source.needsPreviewTranscode || Boolean(source.videoProxySrc));
 
-  // single source of truth for the <video> src: the JSX and the media-release
-  // effect must agree on it so a stripped attribute can be restored
+  // one source of truth for the src, shared with the media-release effect
   const rawVideoPath = source.rangeProxySrc ?? source.videoProxySrc ?? clip.clipPath ?? clip.src;
   const videoSrcUrl = shouldMountVideo
     ? `${convertFileSrc(rawVideoPath)}?v=${importToken}`
@@ -198,16 +192,13 @@ export const LazyClip = memo(function LazyClip({
     reportWebpDemand,
   });
 
-  // selecting WebP mode force-enables preview-all, so without the isVisible gate
-  // every clip in the episode animates at once and kills the WebView2 renderer
+  // gated on visibility: WebP mode forces preview-all, and animating every clip kills the renderer
   const shouldShowWebpOverlay = webp.hasAnimatedWebp && (isHovered || (gridPreview && isVisible));
-  // the static layer falls back to the animated file until the extracted JPEG
-  // exists, which is only safe near the viewport for the same reason
+  // the static layer falls back to the animated file until its jpeg exists, only safe near the viewport
   const webpStaticReady = Boolean(webp.webpThumbnail) || !webp.hasAnimatedWebp;
 
   const shouldShowThumbnail = !shouldMountVideo || !video.isVideoReady;
-  // in video-preview mode a clip that has not been cut yet (and has not failed)
-  // shows a skeleton until its video arrives on the clip_ready stream
+  // a video-mode clip not cut yet shows a skeleton until clip_ready
   const videoClipPending =
     videoPreviewMode &&
     !isVideoPlayable &&
@@ -217,17 +208,14 @@ export const LazyClip = memo(function LazyClip({
     ? clip.thumbnailReady === false || videoThumbFailed
     : clip.thumbnailReady === false || !webp.thumbnailLoaded || webp.thumbnailFailed;
 
-  // the grid is virtualized already, so this only separates truly on-screen tiles
-  // from the overscan rows. scoped to the scroll container so it stays accurate
-  // regardless of outer layout
+  // separates on-screen tiles from overscan rows, scoped to the scroll container
   useEffect(() => {
     const el = wrapperRef.current;
     if (!el) return;
     const root = el.closest(".clips-container") as HTMLElement | null;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        // a 0x0 rect means an ancestor went display:none (the user switched to
-        // Settings), not a real scroll-off. ignoring it keeps the return instant
+        // a 0x0 rect means an ancestor went display:none, not a scroll-off
         const rect = entry.boundingClientRect;
         if (rect.width === 0 && rect.height === 0) return;
         setIsVisible(entry.isIntersecting);
@@ -244,9 +232,7 @@ export const LazyClip = memo(function LazyClip({
     if (img?.complete) sampleDownloadTone(img);
   }, [webp.displayThumbnailPath, importToken, showDownloadButton, sampleDownloadTone]);
 
-  // a cached image can finish loading before React attaches onLoad, so the event
-  // never fires and the skeleton stays up forever. catch the already-complete
-  // case the moment the ref attaches
+  // a cached image can finish before onLoad attaches, so the complete case is caught when the ref attaches
   const setThumbnailEl = useCallback(
     (el: HTMLImageElement | null) => {
       thumbnailRef.current = el;
@@ -276,8 +262,7 @@ export const LazyClip = memo(function LazyClip({
   );
 
   const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
-    // adding to a pack is a right-click now; the Scenepacks page keeps its own
-    // menu, which ClipsContainer owns
+    // adding to a pack is a right-click on home; the Scenepacks page has its own menu
     if (activePage === "home" && scenepacksEnabled) {
       e.preventDefault();
       e.stopPropagation();
@@ -403,8 +388,7 @@ export const LazyClip = memo(function LazyClip({
               style={{ opacity: shouldShowThumbnail ? 1 : 0 }}
               draggable={false}
               onError={() => {
-                // poster jpgs fail transiently when the whole grid reloads, so
-                // retry with a fresh cache-buster before giving up
+                // poster jpgs fail transiently on a full grid reload, so retry with a cache-buster
                 setVideoThumbRetry((attempt) => {
                   if (attempt >= VIDEO_THUMB_MAX_RETRIES) {
                     setVideoThumbFailed(true);
@@ -492,8 +476,7 @@ export const LazyClip = memo(function LazyClip({
                   e.stopPropagation();
                   const spId = useScenepacksStore.getState().openedScenepackId;
                   if (!spId) return;
-                  // same path as the right-click menu, so store removal and file
-                  // cleanup stay in one place
+                  // same path as the right-click menu, so removal and file cleanup stay in one place
                   void removeClipsFromScenepack(spId, [
                     { index: clip.sceneIndex ?? 0, clipPath: clip.clipPath },
                   ]);

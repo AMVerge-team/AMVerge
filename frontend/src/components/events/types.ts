@@ -1,7 +1,4 @@
-/**
- * "contest" runs between two dates the host picks. "hour" is a single scheduled
- * slot: the host gives one time and the server derives the one-hour window.
- */
+/** "contest" runs between two dates; "hour" is one slot whose window the server derives */
 export type EventType = "contest" | "hour";
 
 /** shape returned by the AMVerge API, passed straight through by Rust */

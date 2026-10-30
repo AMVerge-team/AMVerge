@@ -7,11 +7,7 @@ import {
 } from "../stores/episodeStore";
 import { useGeneralSettingsStore } from "../stores/settingsStore";
 
-/**
- * wipes the episode panel UI state and asks the backend to delete all cached
- * episode artifacts on disk. used by the Episode Panel "clear cache" flow and
- * the General Settings "Clear Episode Panel" button.
- */
+/** clears the episode panel state and deletes every cached episode on disk */
 export async function clearEpisodePanelCache(): Promise<void> {
   const episodeRuntime = useEpisodePanelRuntimeStore.getState();
   const episodeMetadata = useEpisodePanelMetadataStore.getState();
@@ -85,16 +81,7 @@ export function remapPathRoot(path: string, oldRoot: string, newRoot: string): s
   return cleanNewRoot + relativePath;
 }
 
-/**
- * re-root every stored path on a clip after the episodes folder moves
- *
- * clips carry absolute paths, so a move leaves each of these pointing at the old
- * location. missing one shows up as a black tile rather than an error: video
- * mode plays `clipPath`, WebP mode reads `src`, and merged clips play the
- * `mergedSrcs`/`srcList` entries, so all of them have to move together.
- * `remapPathRoot` returns non-matching paths untouched, so passing a source
- * video that lives outside the cache is a no-op.
- */
+/** re-roots every stored path on a clip after the episodes folder moves; a missed one is a black tile */
 export function remapClipPaths<T extends {
   src: string;
   thumbnail: string;

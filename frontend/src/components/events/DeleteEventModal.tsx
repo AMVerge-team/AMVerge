@@ -7,11 +7,7 @@ import type { CommunityEvent } from "./types";
 /** typed exactly, case included. a near miss is treated as a miss */
 const CONFIRM_PHRASE = "I'm sure";
 
-/**
- * guards deletion of an event that is already live. people are relying on it,
- * and a stray click on a grid tile is far too cheap a way to take it down, so
- * this one asks for the phrase to be typed rather than for a button press.
- */
+/** deleting a live event needs the phrase typed, since a stray click is too cheap a way to take it down */
 export default function DeleteEventModal({
   event,
   onCancel,
@@ -23,8 +19,7 @@ export default function DeleteEventModal({
 }) {
   const [typed, setTyped] = useState("");
 
-  // clear between events, so a phrase typed for one deletion can never carry
-  // over and pre-arm the next
+  // cleared between events so a typed phrase never pre-arms the next deletion
   useEffect(() => {
     setTyped("");
   }, [event?.id]);
@@ -52,8 +47,7 @@ export default function DeleteEventModal({
           placeholder={CONFIRM_PHRASE}
           aria-label={`Type ${CONFIRM_PHRASE} to confirm`}
           autoFocus
-          // autocorrect would happily "fix" the apostrophe and leave the phrase
-          // looking right while never matching
+          // autocorrect could "fix" the apostrophe so the phrase never matches
           autoCapitalize="off"
           autoCorrect="off"
           spellCheck={false}

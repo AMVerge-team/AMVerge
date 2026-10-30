@@ -109,15 +109,8 @@ pub(crate) fn run_editor_ui_import_ps(script_path: &Path, editor_name: &str) -> 
 pub(crate) fn run_python_script(script_path: &Path) -> Result<String, String> {
     let mut launch_errors: Vec<String> = Vec::new();
 
-    // Resolve script runs against the user's system Python (the backend/venv
-    // interpreter lookup was removed with the backend folder).
     //
-    // `fusionscript.dll` is a CPython extension built against ONE ABI, 3.13 for
-    // Resolve 21, and a mismatched interpreter dies with "initialization of
-    // fusionscript failed without raising an exception" before Resolve is ever
-    // contacted. the default `python` on PATH is routinely an older version, so
-    // the launcher's newest versions are tried first and the loop falls through
-    // on the ABI failure
+    // runs on the user's python; fusionscript is built for one ABI (3.13 for Resolve 21), so the newest versions are tried first
     #[cfg(target_os = "windows")]
     let candidates: Vec<(String, Vec<String>)> = vec![
         ("py".to_string(), vec!["-3.13".to_string()]),
@@ -128,8 +121,7 @@ pub(crate) fn run_python_script(script_path: &Path) -> Result<String, String> {
         ("py".to_string(), vec!["-3".to_string()]),
     ];
 
-    // same ABI constraint on macOS and Linux, where `fusionscript.so` is the
-    // extension and there is no `py` launcher to ask for a version
+    // same ABI constraint on macOS and Linux, with no `py` launcher to ask
     #[cfg(not(target_os = "windows"))]
     let candidates: Vec<(String, Vec<String>)> = vec![
         ("python3.13".to_string(), vec![]),
@@ -219,10 +211,7 @@ pub(crate) fn run_python_script(script_path: &Path) -> Result<String, String> {
                     return Ok(msg);
                 }
 
-                // the bridge itself loaded and Resolve answered (or refused):
-                // every remaining interpreter would hit the same wall, so the
-                // error goes straight back to the retry harness that knows how
-                // to classify it
+                // Resolve itself answered or refused, so other interpreters would hit the same wall
                 if is_resolve_side_failure(&stderr) {
                     return Err(stderr);
                 }
@@ -249,8 +238,7 @@ pub(crate) fn run_python_script(script_path: &Path) -> Result<String, String> {
     ))
 }
 
-/// errors raised by the bridge script itself, i.e. past the point where the
-/// interpreter mattered
+/// errors from the bridge script itself, past the point where the interpreter mattered
 pub(crate) fn is_resolve_side_failure(stderr: &str) -> bool {
     const MARKERS: [&str; 5] = [
         "Could not connect to DaVinci Resolve",
@@ -262,9 +250,7 @@ pub(crate) fn is_resolve_side_failure(stderr: &str) -> bool {
     MARKERS.iter().any(|marker| stderr.contains(marker))
 }
 
-/// a Resolve API call can hang forever (project switch, wedged handle). plain
-/// `Command::output()` would hang with it, and the retry harness above would
-/// never get its turn, so the child gets a deadline and a kill
+/// a Resolve API call can hang forever, so the script gets a deadline and a kill
 pub(crate) const PYTHON_SCRIPT_TIMEOUT: Duration = Duration::from_secs(180);
 
 /// `Ok(None)` = the deadline passed and the child was killed
@@ -280,8 +266,7 @@ pub(crate) fn run_with_timeout(
         .stderr(Stdio::piped())
         .spawn()?;
 
-    // drained on threads: a child that fills a pipe buffer blocks on write, and
-    // would then never reach the exit we are polling for
+    // drained on threads, or a full pipe blocks the child before it exits
     let mut child_stdout = child.stdout.take();
     let mut child_stderr = child.stderr.take();
     let stdout_reader = std::thread::spawn(move || {

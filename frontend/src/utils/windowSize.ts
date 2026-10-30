@@ -1,16 +1,7 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { LogicalSize } from "@tauri-apps/api/dpi";
 
-/**
- * per-mode window size memory (pinned / free)
- *
- * pinning is meant to shrink AMVerge into a companion window that sits over
- * another app; unpinning restores the full-size layout. each mode keeps its own
- * last size so a manual resize is not lost on the next toggle
- *
- * the window is `decorations: false`, so the document's CSS size IS the logical
- * window size; reading it needs no round trip to the shell.
- */
+// window size per mode (pinned / free); frameless, so the css size is the window size
 const WIN_SIZE_KEY = { pinned: "amverge.pinnedSize", free: "amverge.windowSize" } as const;
 
 /** mirrors `minWidth`/`minHeight` in tauri.conf.json; the OS clamps to these anyway */
@@ -46,9 +37,7 @@ export function rememberWinSize(mode: WinMode): void {
 
 export async function applyWindowSize(w: number, h: number): Promise<void> {
     const win = getCurrentWindow();
-    // a maximized/fullscreen/snapped window IGNORES setSize. drop those states
-    // UNCONDITIONALLY first (isMaximized misses the snapped state on a frameless
-    // window), then re-center so the result is visible
+    // a maximized, fullscreen or snapped window ignores setSize, so drop those first, then re-center
     try { await win.setFullscreen(false); } catch { /* noop */ }
     try { await win.unmaximize(); } catch { /* noop */ }
     try { await win.setSize(new LogicalSize(w, h)); } catch { /* noop */ }

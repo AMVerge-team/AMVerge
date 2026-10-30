@@ -9,16 +9,10 @@ type DownloadButtonProps = {
   tone?: "light" | "dark";
 };
 
-/**
- * a small download button designed to sit on a clip tile.
- * animated on hover for a premium feel.
- */
+/** a small animated download button for a clip tile */
 export const DownloadButton: React.FC<DownloadButtonProps> = ({ onClick, loading, tone = "light" }) => {
   return (
-    // wrapper span: the button goes disabled while downloading, and a disabled
-    // control fires no pointer events of its own. the wrapper is what the
-    // tooltip measures, so it carries the corner placement, left in the flow it
-    // would collapse to nothing at the tile's top-left and drag the bubble there
+    // a disabled button fires no pointer events, so the tooltip measures this wrapper (which carries the corner placement)
     <Tooltip content={loading ? "Downloading…" : "Download this clip"}>
       <span className="tooltip-anchor clip-download-anchor">
         <button

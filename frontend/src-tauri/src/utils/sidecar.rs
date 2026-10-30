@@ -9,18 +9,7 @@ pub fn app_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
     app.path().app_data_dir().map_err(|e| e.to_string())
 }
 
-/// shared home for the Python runtime, owned by neither the app nor the
-/// extension:
-///
-/// ```text
-/// <local data>/AMVerge/runtime/uv-cache   wheel cache
-/// <local data>/AMVerge/runtime/python     standalone CPython managed by uv
-/// <local data>/AMVerge/runtime/pyenv      the optional AI venv
-/// ```
-///
-/// Local rather than roaming data: the venv runs to several GB, which a roaming
-/// profile would try to sync at logon. Named for the product rather than the
-/// bundle identifier, so the extension can find it without knowing ours.
+/// shared python runtime (uv cache, python, AI venv) under local data, named for the product so the extension finds it
 pub fn shared_runtime_dir(app: &AppHandle) -> Result<PathBuf, String> {
     if let Ok(dir) = std::env::var("AMVERGE_RUNTIME_DIR") {
         if !dir.trim().is_empty() {
@@ -35,12 +24,7 @@ pub fn shared_runtime_dir(app: &AppHandle) -> Result<PathBuf, String> {
         .join("runtime"))
 }
 
-/// the runtime actually in use.
-///
-/// An environment already provisioned under the old app-owned location is used
-/// where it stands. A venv records its own absolute path in `pyvenv.cfg` and in
-/// every console script, so moving one breaks it; existing installs keep
-/// working untouched and only new environments land in the shared location.
+/// the runtime in use: an existing legacy env stays where it is, since a venv can't be moved
 pub fn runtime_dir(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(pick_runtime_dir(
         shared_runtime_dir(app)?,
@@ -49,8 +33,7 @@ pub fn runtime_dir(app: &AppHandle) -> Result<PathBuf, String> {
     ))
 }
 
-/// shared unless an environment already exists in the legacy location.
-/// `has_env` is injected so the choice can be tested without a filesystem.
+/// shared unless the legacy location already has an env; `has_env` is injected for tests
 fn pick_runtime_dir<F>(shared: PathBuf, legacy: Option<PathBuf>, has_env: F) -> PathBuf
 where
     F: Fn(&PathBuf) -> bool,
@@ -146,14 +129,12 @@ pub fn ai_env_amverge(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(venv_bin_dir(&root).join(exe_name("amverge")))
 }
 
-/// true once the AI venv has a usable interpreter (a half-provisioned directory
-/// counts as missing, so a canceled install is simply redone)
+/// true once the AI venv has an interpreter; a half-provisioned one counts as missing
 pub fn ai_env_ready(app: &AppHandle) -> bool {
     ai_env_python(app).map(|p| p.is_file()).unwrap_or(false)
 }
 
-/// the dev CLI checkout's editable venv, it already carries every extra, so
-/// `tauri dev` never needs the runtime AI env
+/// the dev CLI checkout's editable venv, which already has every extra
 fn dev_venv_dir() -> Result<PathBuf, String> {
     // current_dir is frontend/src-tauri during `tauri dev`; pop to the repo root
     let mut root = std::env::current_dir().map_err(|e| e.to_string())?;
@@ -210,8 +191,7 @@ pub fn uv_binary(app: &AppHandle) -> Result<PathBuf, String> {
     let rel = format!("bin/uv/{triple}/{}", exe_name("uv"));
 
     if cfg!(debug_assertions) {
-        // staged by `npm run fetch:uv` into frontend/src-tauri/bin/uv/<triple>/;
-        // current_dir is frontend/src-tauri during `tauri dev`
+        // staged by `npm run fetch:uv`; current_dir is frontend/src-tauri under `tauri dev`
         let dir = std::env::current_dir().map_err(|e| e.to_string())?;
         return Ok(dir.join("bin").join("uv").join(triple).join(exe_name("uv")));
     }
@@ -221,8 +201,7 @@ pub fn uv_binary(app: &AppHandle) -> Result<PathBuf, String> {
         .map_err(|e| e.to_string())
 }
 
-/// version of the CLI baked into the sidecar, written by `build-sidecar.mjs`.
-/// the runtime AI env installs this exact version so the two can never drift
+/// the CLI version baked into the sidecar, which the AI env installs so they never drift
 pub fn bundled_cli_version(app: &AppHandle) -> Option<String> {
     let path = sidecar_dir(app).ok()?.join("_internal").join("cli-version.txt");
     let raw = std::fs::read_to_string(path).ok()?;
@@ -234,12 +213,7 @@ pub fn bundled_cli_version(app: &AppHandle) -> Option<String> {
     }
 }
 
-/// Resolve the AMVerge CLI executable and return a `Command` ready to spawn
-/// (no-window + own process group applied).
-///
-/// dev (`debug_assertions`): the editable venv in the in-repo `AMVerge-CLI`
-/// checkout (`AMVERGE_CLI_DIR` overrides). prod: the PyInstaller sidecar bundled
-/// under the app's resources
+/// the AMVerge CLI as a ready `Command`: the dev checkout's venv in debug, the bundled sidecar in release
 pub fn amverge_command(app: &AppHandle) -> Result<Command, String> {
     let exe = if cfg!(debug_assertions) {
         dev_amverge_exe()?
@@ -249,21 +223,14 @@ pub fn amverge_command(app: &AppHandle) -> Result<Command, String> {
     Ok(base_command(exe))
 }
 
-/// same as [`amverge_command`], but for work that needs the optional AI packages
-/// (TransNetV2 detection, depth maps, interpolation). in a release build those
-/// live in the app-managed venv, not the sidecar, so the command resolves to
-/// `<app data>/pyenv` and gets the sidecar's `_internal` prepended to PATH
-/// that is where the CLI finds ffmpeg/ffprobe. falls back to the sidecar when
-/// the AI env is missing so the CLI can raise its own "pip install amverge[...]"
-/// error instead of failing with a spawn error
+/// like [`amverge_command`] but from the AI venv (sidecar `_internal` on PATH for ffmpeg); falls back to the sidecar so the CLI explains a missing pack
 pub fn amverge_ai_command(app: &AppHandle) -> Result<Command, String> {
     if cfg!(debug_assertions) {
         // the dev venv already has every extra installed
         return Ok(base_command(dev_amverge_exe()?));
     }
 
-    // a venv with python but no amverge script (install canceled or failed midway) must not be
-    // launched, or every call dies with "the system cannot find the file specified"
+    // a venv without its amverge script (install interrupted) must not be launched
     let ai_exe = ai_env_amverge(app)?;
     if !ai_env_ready(app) || !ai_exe.is_file() {
         return amverge_command(app);

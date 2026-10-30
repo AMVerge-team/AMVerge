@@ -17,11 +17,7 @@ import { useEventsStore } from "../../stores/eventsStore";
 import { useUIStateStore } from "../../stores/UIStore";
 import type { CommunityEvent } from "./types";
 
-/**
- * event cards carry far less detail than a clip tile, so past four across they
- * stop being readable. the shared `cols` value still drives the grid; it is
- * only clamped for display here.
- */
+/** event cards stop being readable past four across; the shared `cols` is only clamped here */
 export const MAX_EVENT_COLUMNS = 4;
 
 function Section({
@@ -49,9 +45,7 @@ function Section({
 }) {
   if (events.length === 0) return null;
 
-  // every section uses the same column count so tiles stay one size across the
-  // page, exactly like the clip grid. a short section simply leaves its trailing
-  // columns empty rather than stretching one card across the row
+  // one column count for every section so tiles stay one size; short sections leave columns empty
   const gridStyle = {
     gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
   };
@@ -89,10 +83,7 @@ function Section({
   );
 }
 
-/**
- * fills the left pane on the Events page, where the clip grid sits on the other
- * pages. shows the grid, or the detail view for whichever event is open.
- */
+/** the Events page's left pane: the grid, or the open event's detail */
 export default function EventsBrowser() {
   const active = useEventsStore((s) => s.active);
   const past = useEventsStore((s) => s.past);
@@ -104,20 +95,16 @@ export default function EventsBrowser() {
   const sort = useEventsStore((s) => s.sort);
   const detailId = useEventsStore((s) => s.detailId);
   const profile = useEventsStore((s) => s.profile);
-  // sign-in is started from the toolbar, which has nowhere to report a failure,
-  // so the error surfaces here. without this a misconfigured build makes the
-  // Login button look like it does nothing at all
+  // the toolbar can't report a sign-in failure, so it surfaces here
   const loginError = useEventsStore((s) => s.loginError);
-  // same column count the navbar zoom and ctrl+wheel drive for the clip grid,
-  // capped for this page's wider cards
+  // the clip grid's column count, capped for these wider cards
   const cols = useUIStateStore((s) => Math.min(MAX_EVENT_COLUMNS, Math.max(1, s.cols)));
 
   const openDetail = useEventsStore((s) => s.openDetail);
   const closeDetail = useEventsStore((s) => s.closeDetail);
   const openHostForm = useEventsStore((s) => s.openHostForm);
 
-  // ctrl + wheel to adjust the grid column count, the same gesture and the same
-  // 40px accumulator threshold the clip grid uses
+  // ctrl+wheel adjusts columns with the clip grid's 40px threshold
   const setStoreCols = useUIStateStore((s) => s.setCols);
   const paneRef = useRef<HTMLDivElement | null>(null);
   const wheelAccumRef = useRef(0);
@@ -145,9 +132,7 @@ export default function EventsBrowser() {
 
   const deleteEvent = useEventsStore((s) => s.deleteEvent);
 
-  // ids to flag NEW! for this visit. captured once on mount: marking them seen
-  // clears the sidebar badge straight away, while the flags stay readable until
-  // the user leaves and comes back
+  // NEW! flags captured on mount: marking seen clears the badge while the flags last the visit
   const markEventsSeen = useEventsStore((s) => s.markEventsSeen);
   const highlightedEventIds = useEventsStore((s) => s.highlightedEventIds);
   const highlighted = useMemo(() => new Set(highlightedEventIds), [highlightedEventIds]);
@@ -156,12 +141,8 @@ export default function EventsBrowser() {
     markEventsSeen();
   }, [markEventsSeen, active]);
 
-  // collapsed sections, by title. not persisted: a fold is a "get this out of
-  // the way for now" gesture, not a setting.
   //
-  // "Requested events" starts folded: the page is primarily for browsing what
-  // the community is running, and a host's own pending submissions are a small
-  // aside they can open when they want it
+  // collapsed sections by title, not persisted; "Requested events" starts folded
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(["Requested events"]));
   const toggleSection = (title: string) =>
     setCollapsed((previous) => {
@@ -171,9 +152,7 @@ export default function EventsBrowser() {
       return next;
     });
 
-  // deletion is graded by how much is at stake. a live event has people
-  // relying on it, so it asks for a typed phrase; an unreviewed one is a quick
-  // confirm; a finished one is only clearing history and goes straight away
+  // deletion graded by stakes: live asks for a typed phrase, unreviewed a confirm, finished goes at once
   const [pendingDelete, setPendingDelete] = useState<CommunityEvent | null>(null);
 
   const requestDelete = (event: CommunityEvent) => {
@@ -208,10 +187,7 @@ export default function EventsBrowser() {
       return true;
     };
 
-    // the public copy of an anonymous event carries no host id, so the owner
-    // would lose the delete control and the "mine" filter on their own event.
-    // their private copy from `mine` still has it, so prefer that where the two
-    // describe the same event
+    // the public copy of an anonymous event has no host id, so the owner's private copy wins
     const byId = new Map(mine.map((event) => [event.id, event]));
     const withOwnCopy = (list: CommunityEvent[]) =>
       list.map((event) => byId.get(event.id) ?? event);
@@ -222,14 +198,10 @@ export default function EventsBrowser() {
         .filter(passesFilter)
         .sort((a, b) => compareEvents(a, b, sort));
 
-    // submissions still waiting on a moderator, plus any that were denied.
-    // once approved an event graduates to the public sections, so it leaves
-    // this one rather than being listed twice
+    // pending and denied submissions; approved ones move to the public sections
     const requested = matching(mine).filter((event) => event.status !== "approved");
 
-    // includes the user's own approved events: this is "what the community is
-    // running", and hiding yours leaves the page looking empty when you host
-    // most of what is on
+    // includes your own approved events, or the page looks empty when you host most of it
     const activeSection = matching(active).filter((event) => !hasEnded(event));
 
     return [

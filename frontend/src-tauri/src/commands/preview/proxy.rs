@@ -20,10 +20,7 @@ pub async fn check_hevc(app: AppHandle, video_path: String) -> Result<bool, Stri
         return Err("video_path is empty".to_string());
     }
 
-    // An episode can remain in the panel after its original source was moved
-    // or deleted. HEVC detection only informs browser preview handling, so a
-    // missing source should simply use the safe non-HEVC path, not emit an
-    // alarming ffprobe error whenever that episode is opened.
+    // a moved or deleted source just takes the safe non-HEVC path instead of an ffprobe error
     if !Path::new(&video_path).is_file() {
         return Ok(false);
     }
@@ -331,9 +328,7 @@ fn cache_stem(path: &Path) -> String {
     format!("file-{:016x}", hasher.finish())
 }
 
-/// a small x264 preview of just `[start_sec, end_sec)` of a source video, for
-/// grid tiles that point into a full episode (scene scout results) instead of a
-/// cut clip. lands in the app cache, never beside the user's source file
+/// a small x264 preview of `[start_sec, end_sec)` of a source, for scout tiles; cached in the app cache, never beside the source
 #[tauri::command]
 pub async fn ensure_scene_range_preview(
     app: AppHandle,

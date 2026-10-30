@@ -107,9 +107,7 @@ pub async fn get_audio_streams(app: AppHandle, video_path: String) -> Result<Vec
             .to_string();
 
         let language = normalize_language_label(language_raw);
-        // the trailing track number was only there to disambiguate two streams
-        // sharing a language; the title already does that when present, and a
-        // bare number next to "English" reads like part of the language name
+        // no trailing track number; the title already tells same-language tracks apart
         let label = if title.is_empty() {
             language.clone()
         } else {
@@ -128,9 +126,7 @@ pub async fn get_audio_streams(app: AppHandle, video_path: String) -> Result<Vec
     Ok(out)
 }
 
-/// Probe the source streams before a remux export so the UI can select a
-/// sensible default container/audio mode. The CLI performs the final muxer
-/// preflight, since only it owns the copy-export contract.
+/// probes source streams before a remux export so the UI picks sensible defaults; the CLI does the real preflight
 #[tauri::command]
 pub async fn probe_export_source_streams(
     app: AppHandle,

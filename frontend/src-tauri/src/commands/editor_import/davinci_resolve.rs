@@ -1,8 +1,6 @@
 use super::*;
 
-// the Python bridge lives in its own file rather than being string-built in
-// Rust: it is the only Resolve-specific logic in the app, and keeping it
-// readable is what makes it patchable (or deletable) on its own
+// the Resolve bridge lives in its own python file, readable and patchable on its own
 const IMPORT_SCRIPT_TEMPLATE: &str = include_str!("resolve_import.py");
 
 #[derive(serde::Serialize)]
@@ -11,11 +9,7 @@ pub struct DavinciDetection {
     pub path: Option<String>,
 }
 
-/// whether DaVinci Resolve is installed at all. free and Studio share the same
-/// install path, executable metadata and `fusionscript.dll`, so nothing on disk
-/// tells the two editions apart; only an actual scripting connection does, and
-/// that needs Resolve running. detection therefore gates on "installed", and a
-/// Free install surfaces as an explicit error at import time
+/// whether Resolve is installed; Free and Studio look identical on disk, so Free fails at import with an explicit error
 #[tauri::command]
 pub fn detect_davinci_resolve() -> DavinciDetection {
     match davinci_install_path() {
@@ -30,8 +24,7 @@ pub fn detect_davinci_resolve() -> DavinciDetection {
     }
 }
 
-/// send clip files straight to Resolve: Media Pool, then appended to the current
-/// timeline (a new one at the clip's frame rate if no timeline is open)
+/// sends clips to Resolve's Media Pool and appends them to the timeline (new one at the clip's rate if none is open)
 #[tauri::command]
 pub async fn import_clips_to_davinci(
     app: AppHandle,
@@ -59,8 +52,7 @@ fn davinci_install_path() -> Option<PathBuf> {
 
     #[cfg(target_os = "macos")]
     {
-        // the installer puts the bundle in its own folder; older installs and
-        // manual copies sit straight in /Applications
+        // the installer uses its own folder; older or manual installs sit in /Applications
         [
             "/Applications/DaVinci Resolve/DaVinci Resolve.app",
             "/Applications/DaVinci Resolve.app",
@@ -77,12 +69,7 @@ fn davinci_install_path() -> Option<PathBuf> {
     }
 }
 
-/// official Resolve scripting environment, per platform. without it the Python
-/// module falls back to its own hardcoded defaults, which miss any install that
-/// is not in the stock location.
-///
-/// Windows sets this inline in `run_python_script`, where it also has to prepend
-/// Resolve's folder to PATH for `fusionscript.dll`'s dependencies
+/// Resolve's official scripting env per platform (Windows sets it inline in `run_python_script`)
 #[cfg(not(target_os = "windows"))]
 pub(super) fn apply_resolve_script_env(cmd: &mut std::process::Command) {
     let Some(install) = davinci_install_path() else {
@@ -132,8 +119,7 @@ pub(super) async fn import_into_davinci_resolve(
     run_davinci_import(app, media_paths, abort_requested, false).await
 }
 
-/// Media Pool + append to the current (or a freshly created) timeline, used by
-/// the clip-selection bar
+/// Media Pool + append to the current or a new timeline, for the selection bar
 pub(super) async fn import_clips_into_timeline(
     app: &AppHandle,
     media_paths: &[String],

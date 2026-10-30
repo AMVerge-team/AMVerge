@@ -20,17 +20,7 @@ export type StreamingSession = {
   getClips: () => ClipItem[];
 };
 
-/**
- * wires the streaming import events for one episode
- *
- * every payload carries the episode it belongs to, so several imports can be in
- * flight at once (one finishing its posters while the next starts) and each
- * session only reacts to its own events
- *
- * `focusGrid` decides whether this episode takes over the view. a batch grants
- * it to the first episode only; the rest fill their own buffer and appear in the
- * sidebar without disturbing whatever the user is browsing.
- */
+/** streaming import events for one episode; payloads carry their episode, and `focusGrid` decides if it takes the view */
 export async function startVideoStreamingListeners(
   file: string,
   episodeId: string,
@@ -48,28 +38,23 @@ export async function startVideoStreamingListeners(
 
   let clipDone = 0;
   let clipTotal = 0;
-  // this session's own copy of the clips. the grid store only mirrors it while
-  // this episode holds focus, so a background import can never overwrite the
-  // episode on screen
+  // this session's clips; the grid mirrors them only while this episode has focus
   let sessionClips: ClipItem[] = [];
 
   const isMine = (payload: { episode_cache_id?: string | null }) =>
     !payload.episode_cache_id || payload.episode_cache_id === episodeId;
 
-  // checked live, not captured: focusGrid only says whether the import opens
-  // itself, and the user can open a background episode at any point
+  // checked live: the user can open a background episode any time
   const isOnScreen = () =>
     useEpisodePanelRuntimeStore.getState().openedEpisodeId === episodeId;
 
-  // clip_ready patches arrive in bursts; applying each as its own setState froze
-  // the UI during import (two O(n) store maps per event), so they flush per frame
+  // clip_ready bursts flush per frame; one setState each froze the UI
   const patches = createClipPatchBuffer((applyPatch) => {
     sessionClips = sessionClips.map(applyPatch);
     if (isOnScreen()) {
       useAppStateStore.setState((s) => ({
         clips: s.clips.map(applyPatch),
-        // bgProgress stays with the import that owns the view: a background
-        // episode must not make the app look busy while you browse another
+        // only the import owning the view sets bgProgress
         bgProgress:
           focusGrid && clipTotal > 0 && clipDone < clipTotal
             ? { done: clipDone, total: clipTotal }
@@ -107,18 +92,14 @@ export async function startVideoStreamingListeners(
     sessionClips = clips;
     clipDone = 0;
     clipTotal = clips.length;
-    // the episode lands in the sidebar the moment its scenes are known, so a
-    // batch makes each one openable as it arrives rather than at the end
+    // the episode joins the sidebar as soon as its scenes are known
     deps.setEpisodes((prev) => [entry, ...prev.filter((ep) => ep.id !== episodeId)]);
 
     if (!focusGrid) return;
 
     deps.setSelectedEpisodeId(episodeId);
     deps.setOpenedEpisodeId(episodeId);
-    // reveal the grid now: only detection has run, cutting has not started. tiles
-    // show their own skeleton and fill in as clip_ready arrives. bgProgress
-    // tracks the cut and doubles as the busy flag, so a second import cannot
-    // start mid-cut
+    // reveal the grid after detection; tiles fill in on clip_ready, and bgProgress blocks a second import mid-cut
     useAppStateStore.setState({
       clips,
       loading: false,
@@ -150,15 +131,12 @@ export async function startVideoStreamingListeners(
     patches.patch(`${episodeId}_${event.payload.position}`, { thumbnailReady: true });
   });
 
-  // the initial preview phase is complete. the grid is already visible, so this
-  // only clears the busy flag; exact AI previews keep streaming and deliberately
-  // do not block a new import
+  // preview phase done: only clears the busy flag; AI previews keep streaming
   const unlistenPhase1 = await listen<{ episode_cache_id?: string | null }>(
     "phase1_complete",
     (event) => {
       if (!isMine(event.payload)) return;
-      // flush synchronously so every completed preview path is in the store
-      // before the import resolves
+      // flushed so every finished preview is in the store before the import resolves
       patches.flushNow();
       if (focusGrid) useAppStateStore.setState({ loading: false, bgProgress: null });
       resolvePhase1();
@@ -175,10 +153,7 @@ export async function startVideoStreamingListeners(
     unlistenClip();
     unlistenThumb();
     unlistenPhase1();
-    // bgProgress normally clears at phase1_complete; this covers the process
-    // dying mid-cut, which would leave the import permanently busy. only the
-    // session that owns the view may clear it, or a background episode finishing
-    // would wipe the active import's progress
+    // clears bgProgress if the process died mid-cut; only the view-owning session may
     if (focusGrid) {
       useAppStateStore.setState({ bgProgress: null });
     }

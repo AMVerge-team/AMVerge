@@ -26,15 +26,7 @@ pub fn get_default_episodes_dir(app: AppHandle) -> Result<String, String> {
     Ok(path.to_string_lossy().to_string())
 }
 
-/// move every kind of storage AMVerge owns to a new root.
-///
-/// walks `OWNED_STORAGE_DIRS` rather than one folder, so episodes, Scenepacks
-/// and Scene Scout databases all follow the location the user picks in
-/// Settings. adding a new kind of storage means adding its name to that list
-/// and nothing else here.
-///
-/// returns the OLD episodes folder, not the old root: both callers use it to
-/// rewrite the stored clip paths of episodes they already have.
+/// moves every folder in `OWNED_STORAGE_DIRS` to the new root; returns the old episodes folder for path rewrites
 #[tauri::command]
 pub async fn move_storage_to_new_dir(
     app: AppHandle,
@@ -79,10 +71,7 @@ fn move_storage(old_root: &Path, new_root: &Path) -> Result<(), String> {
             let entry = entry.map_err(|e| format!("Failed to read entry: {e}"))?;
             let src = entry.path();
 
-            // the episodes folder is the one a user may also have filled with
-            // their own files, so only the folders carrying our manifest marker
-            // move. the other kinds live in folders AMVerge creates and owns
-            // outright, where everything inside is ours
+            // only manifest-marked episode folders move; the user may keep their own files there
             if *dir_name == EPISODES_DIR_NAME && !is_episode_cache_dir(&src) {
                 continue;
             }
@@ -104,14 +93,7 @@ fn move_storage(old_root: &Path, new_root: &Path) -> Result<(), String> {
     Ok(())
 }
 
-/// move one folder or file, falling back to copy-then-delete.
-///
-/// the delete is deliberately best-effort: the grid keeps the clips it is
-/// displaying open in the WebView, so a file can be locked (os error 32) at any
-/// moment. failing hard here used to abort `remove_dir_all` mid-way, which had
-/// already deleted part of the episode, leaving the copy intact but the source
-/// gutted. a survivor is recorded as a leftover, never treated as a reason to
-/// abort the rest of the move.
+/// moves a folder or file, else copy then best-effort delete; a locked survivor becomes a leftover, never an abort
 pub(crate) fn move_entry(src: &Path, dest: &Path, leftovers: &mut Vec<String>) -> Result<(), String> {
     // fast path: same volume, nothing holding the files open
     if fs::rename(src, dest).is_ok() {
@@ -139,11 +121,7 @@ pub(crate) fn move_entry(src: &Path, dest: &Path, leftovers: &mut Vec<String>) -
     Ok(())
 }
 
-/// delete a moved-from path, retrying briefly. Windows releases a file handle
-/// slightly after the WebView drops the element that held it, so a couple of
-/// short retries turn most "file in use" failures into a clean delete. returns
-/// false when the path survived, the caller treats that as a leftover to clean
-/// up later, never as a reason to abort
+/// deletes with short retries, since windows frees handles just after the webview drops them; false leaves a leftover
 fn remove_with_retries(path: &Path) -> bool {
     for attempt in 0..5 {
         let result = if path.is_dir() {
@@ -574,8 +552,7 @@ pub fn reveal_in_file_manager(file_path: String) -> Result<(), String> {
 
     let is_dir = raw_path.is_dir() || path.is_dir();
 
-    // raw_arg: Command::arg would wrap "/select,C:\a b\x.mp4" in quotes, which explorer
-    // can't parse, so it falls back to opening Documents
+    // raw_arg: arg() would quote "/select,...", which explorer can't parse
     use std::os::windows::process::CommandExt;
     let mut cmd = Command::new("explorer");
     if is_dir {

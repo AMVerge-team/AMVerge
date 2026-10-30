@@ -50,9 +50,7 @@ export function useExport({ onRPCUpdate }: Params) {
       const message = errorMessage(err);
       console.error(logLabel, err);
       useAppStateStore.getState().setProgressMsg(`Export failed: ${message}`);
-      // The loading terminal is closed in the caller's finally block, so its
-      // status line alone is too easy to miss. Every export failure needs a
-      // durable, user-visible explanation (especially stale-source errors).
+      // the terminal closes in the caller's finally, so every failure gets a durable dialog
       void showMessage(message, { title: "Export failed", kind: "error" });
       if (notifyRPC) {
         onRPCUpdate?.({
@@ -92,8 +90,7 @@ export function useExport({ onRPCUpdate }: Params) {
     try {
       source = await invoke<ExportSourceStreams>("probe_export_source_streams", { videoPath: sourcePath });
     } catch (error) {
-      // Export remains possible: fall back to the safe MP4 default and let the
-      // CLI's authoritative preflight explain any combination it cannot copy.
+      // falls back to MP4; the cli's preflight explains anything it can't copy
       console.warn("Could not inspect remux source streams", error);
     }
     const container = remuxContainerForSource(sourcePath, source.videoCodec);
@@ -130,11 +127,7 @@ export function useExport({ onRPCUpdate }: Params) {
     });
   };
 
-  /**
-   * merge plus interpolation. interpolation has to run per clip, before the
-   * merge, so it never synthesizes frames across a cut boundary; the merged
-   * timeline is then rebuilt from the interpolated clips.
-   */
+  /** merge plus interpolation: interpolate per clip first so frames are never synthesized across a cut */
   const exportMergedWithInterpolation = useCallback(
     async (selected: ClipItem[], dir: string, mergeFileName: string | undefined, passes: PostExportPasses) => {
       const sep = pathSeparatorFor(dir);
@@ -142,9 +135,7 @@ export function useExport({ onRPCUpdate }: Params) {
       const baseName = await mergeBaseName(selected, dir, format, mergeFileName);
       const finalSavePath = `${dir}${sep}${baseName}.${format}`;
 
-      // per-clip parts are staged elsewhere so the folder the user picked only
-      // ever receives merged results, and a pass that fails midway leaves it
-      // untouched
+      // parts are staged elsewhere, so the picked folder only receives merged results
       const stagingDir = await invoke<string>("create_export_staging_dir");
       const stagingSep = pathSeparatorFor(stagingDir);
 
@@ -167,8 +158,7 @@ export function useExport({ onRPCUpdate }: Params) {
 
       let mergedFiles: string[] = [];
 
-      // one loading span across every phase: toggling it per phase unmounted the
-      // import terminal in between, throwing away the log lines it had collected
+      // one loading span across phases, or the terminal remounts and loses its log
       setActiveOperation("export");
       setLoading(true);
 
@@ -181,12 +171,10 @@ export function useExport({ onRPCUpdate }: Params) {
         );
         if (clipFiles.length === 0) throw new Error("Export produced no files.");
 
-        // the plain merge keeps the name the user chose, and passes never
-        // overwrite it
+        // the plain merge keeps the chosen name; passes never overwrite it
         mergedFiles = await mergeInto(clipFiles, finalSavePath);
 
-        // interpolation and dead-frames both produce per-clip copies, so each
-        // merges into its own suffixed file and both versions survive
+        // interpolation and dead frames each merge into their own suffixed file
         const interpOnly: PostExportPasses = {
           ...passes,
           depth: { ...passes.depth, enabled: false },
@@ -213,8 +201,7 @@ export function useExport({ onRPCUpdate }: Params) {
       } finally {
         setLoading(false);
         setActiveOperation(null);
-        // the whole staging folder goes whatever happened: nothing in it was a
-        // deliverable, and merged outputs went straight to the user's folder
+        // the staging folder always goes; merged outputs went straight to the user's folder
         try {
           await invoke("delete_export_staging_dir", { dir: stagingDir });
         } catch (err) {
@@ -260,8 +247,7 @@ export function useExport({ onRPCUpdate }: Params) {
         return;
       }
 
-      // files the export produced, fed to the post-export passes once the export
-      // loader closes. stays empty on failure so no passes run
+      // fed to the passes once the export loader closes; empty on failure so no passes run
       let producedFiles: string[] = [];
 
       try {

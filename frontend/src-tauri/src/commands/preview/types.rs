@@ -5,19 +5,15 @@ use serde::{Deserialize, Serialize};
 pub struct PreviewAudioStream {
     pub audio_stream_index: u32,
     pub label: String,
-    /// just the language name ("English"), for a picker that only needs to say
-    /// which language a track is in
+    /// just the language name, for a picker that only needs that
     pub language_label: String,
-    /// the track's own title, which is what tells two tracks in the same
-    /// language apart. empty when the stream is untitled
+    /// the track's own title, which tells same-language tracks apart; empty when untitled
     pub title: String,
     /// raw ffprobe language tag ("eng"), empty when the stream is untagged
     pub language: String,
 }
 
-/// Codec names reported by ffprobe for export-policy decisions. These are
-/// deliberately source facts, not a claim that a target container can mux
-/// them; the CLI remains the authoritative copy-export preflight.
+/// codec names as ffprobe reports them, source facts only; the CLI decides what can be muxed
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExportSourceStreams {

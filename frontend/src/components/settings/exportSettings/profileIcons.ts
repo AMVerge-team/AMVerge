@@ -41,12 +41,7 @@ export function getCurrentInlineVisibleIconCount(): number {
   return getInlineVisibleIconCount(window.innerWidth);
 }
 
-/**
- * drops icons that no longer exist, removes duplicates, and caps the total at
- * MAX_FEATURED_ICONS with built-ins taking slots first. both the persisted value
- * read at mount and every later save go through this, so a stale localStorage
- * entry can never outlive the icon it points at.
- */
+/** drops missing and duplicate icons and caps the total, built-ins first; every read and save goes through it */
 export function selectFeaturedIcons(
   builtIn: ExportProfileIcon[],
   custom: string[],

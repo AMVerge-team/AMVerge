@@ -87,8 +87,7 @@ export default function GeneralSettings({
     }
   };
 
-  // TransNetV2 needs the optional `ml` pack. prompt at the point of choice
-  // rather than failing later, mid-import
+  // TransNetV2 needs the `ml` pack, so the install is offered when it is chosen
   const aiStatus = useAiDepsStore((s) => s.status);
   const mlInstalled = isPackInstalled(aiStatus, "ml");
   const aiDepsBusy = useAiDepsStore((s) => s.stage === "installing");
@@ -119,9 +118,7 @@ export default function GeneralSettings({
         setLoading(true);
 
         try {
-          // every clip tile in the grid keeps its file open in the WebView, and
-          // Windows refuses to delete a file that is in use. drop the grid and
-          // let the browser release the handles before touching the files
+          // windows won't delete files the grid's tiles hold open, so drop the grid first
           useAppStateStore.getState().setClips([]);
           useAppStateStore.getState().setSelectedClips(new Set());
           await new Promise((resolve) => setTimeout(resolve, 250));

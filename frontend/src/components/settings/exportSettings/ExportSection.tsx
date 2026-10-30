@@ -119,11 +119,7 @@ export default function ExportSection() {
     [parallelLimit]
   );
 
-  // sync the persisted nvidiaEncoderProfile to whatever the GPU probe detected,
-  // and clamp parallelExports into the valid [1, nextParallelLimit] range when
-  // the limit shrinks (e.g. user switched codec/profile). does NOT auto-bump
-  // the user's chosen value upward; the user's choice of "1 parallel" is
-  // always respected
+  // syncs the encoder profile to the GPU probe and clamps parallel exports down when the limit shrinks, never up
   useEffect(() => {
     if (!gpuProbeComplete || !encodingWorkflow) return;
 

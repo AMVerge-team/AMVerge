@@ -38,19 +38,14 @@ function placeholder(title: string, index: number): CommunityEvent {
   };
 }
 
-/**
- * shows the draft tile as it will actually sit in the grid: real neighbours
- * around it, clipped and faded at the edges so the frame reads as a window onto
- * the page rather than a card floating on its own.
- */
+/** the draft tile among real neighbours, edges faded, as it will sit in the grid */
 export default function EventPreviewStage({ draft }: { draft: CommunityEvent }) {
   const placeholders = useMemo(
     () => PLACEHOLDER_TITLES.map((title, index) => placeholder(title, index)),
     []
   );
 
-  // four before and four after puts the draft in the middle cell of a 3-wide
-  // grid, so it is surrounded on every side
+  // four before and four after centers the draft in a 3-wide grid
   const before = placeholders.slice(0, 4);
   const after = placeholders.slice(4);
 

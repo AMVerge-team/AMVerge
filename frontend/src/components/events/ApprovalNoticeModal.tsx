@@ -5,12 +5,7 @@ import ModalShell from "../common/ModalShell";
 import { useEventsStore } from "../../stores/eventsStore";
 import { useUIStateStore } from "../../stores/UIStore";
 
-/**
- * the approval counterpart to `DenialNoticeModal`. a host should not have to
- * keep checking whether their event went live, so approval is announced the
- * same way a denial is, once, and marked seen server-side so it does not
- * reappear on the next launch or on another machine.
- */
+/** announces an approval once, like a denial, and marks it seen server-side so it never reappears */
 export default function ApprovalNoticeModal() {
   const mine = useEventsStore((s) => s.mine);
   const dismiss = useEventsStore((s) => s.dismissApprovalNotice);
@@ -57,8 +52,7 @@ export default function ApprovalNoticeModal() {
             className="event-host-btn"
             onClick={() => {
               dismiss();
-              // the notice can appear from any page, so navigate as well as
-              // select, setting the detail alone shows nothing from Home
+              // shown from any page, so navigate to Events as well as selecting it
               setActivePage("events");
               openDetail(first.id);
             }}

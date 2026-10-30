@@ -10,12 +10,7 @@ function isTyping(target: EventTarget | null): boolean {
   return el instanceof HTMLInputElement && !["checkbox", "radio", "button", "submit"].includes(el.type);
 }
 
-/**
- * ← / → step through a window's tabs (wrapping), 1-9 jump to one.
- *
- * only while that window is the only thing open: a confirm or popover on top of it
- * keeps the keys, and so does any field being typed in
- */
+/** ←/→ step through a window's tabs, 1-9 jump to one, only while nothing sits on top and no field is focused */
 export function useTabKeys(keys: string[], active: string, setActive: (key: string) => void): void {
   const latest = useRef({ keys, active, setActive });
   latest.current = { keys, active, setActive };

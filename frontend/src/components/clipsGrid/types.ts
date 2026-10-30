@@ -57,13 +57,9 @@ export type LazyClipProps = {
   /** right-click on the tile. only wired up on the Scenepacks page, where it
    * opens the delete menu */
   onClipContextMenu?: (e: React.MouseEvent, clip: ClipItem) => void;
-  // entrance animation delay (ms) for the episode-open fade-in, or null once the
-  // entrance window has passed (class removed so a display:none page switch
-  // doesn't replay the animation)
+  // episode-open fade-in delay (ms), null once the entrance window passed
   appearDelayMs: number | null;
-  // whether the opened episode was imported as video clips (vs WebP previews).
-  // fixed per-episode at import time; controls whether this tile ever generates
-  // a WebP or instead waits for / shows its cut video clip
+  // fixed per episode at import: video clips, or WebP previews
   videoPreviewMode: boolean;
   reportWebpDemand: (
     clipId: string,

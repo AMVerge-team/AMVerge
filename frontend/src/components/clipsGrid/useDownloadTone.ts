@@ -16,8 +16,7 @@ export function useDownloadTone() {
   const sample = useCallback((img: HTMLImageElement | null) => {
     if (!img || img.naturalWidth === 0 || img.naturalHeight === 0) return;
 
-    // getImageData forces a sync decode plus pixel readback, so defer to idle time
-    // and coalesce with any pending sample to keep it off scroll frames
+    // getImageData forces a sync decode, so it is deferred to idle time and coalesced
     if (idleRef.current !== null) cancelIdle(idleRef.current);
     idleRef.current = scheduleIdle(() => {
       idleRef.current = null;

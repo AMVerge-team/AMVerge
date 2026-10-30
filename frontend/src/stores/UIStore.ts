@@ -127,8 +127,7 @@ export const useUIStateStore = create<UIStateStore>()(
                 set((state) => {
                     const next =
                         typeof activePage === "function" ? activePage(state.activePage) : activePage;
-                    // Events borrows whichever panel was already up, so it must
-                    // not overwrite the remembered one
+                    // Events borrows the open panel, so it doesn't overwrite the remembered one
                     return next === "events"
                         ? { activePage: next }
                         : { activePage: next, panelPage: next };
@@ -152,16 +151,13 @@ export const useUIStateStore = create<UIStateStore>()(
         {
             name: "amverge.ui.v1",
             partialize: (state) => ({
-                // only these states are tracked in localStorage
-                // (gridPreview intentionally not persisted: Preview All always
-                // starts disabled on app launch)
+                // persisted fields (gridPreview isn't: Preview All starts off each launch)
                 sidebarWidthPx: state.sidebarWidthPx,
                 cols: state.cols,
                 sidebarEnabled: state.sidebarEnabled,
                 previewCollapsed: state.previewCollapsed,
                 previewSplitPct: state.previewSplitPct,
-                // always-on-top outlives a restart; the Tauri window state does not,
-                // so Navbar re-applies it on mount
+                // persisted; the window state isn't, so Navbar re-applies it
                 pinned: state.pinned,
                 howToUseExpanded: state.howToUseExpanded,
                 flowPlayerHeightPx: state.flowPlayerHeightPx,

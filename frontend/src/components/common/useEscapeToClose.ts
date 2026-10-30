@@ -1,14 +1,6 @@
 import { useEffect, useRef } from "react";
 
-/**
- * Escape closes whichever dialog or popover is on top, and only that one.
- *
- * every modal registers while it is open; they stack in the order they opened, so a
- * confirm opened over Settings closes before Settings does. the key is taken at the
- * window in the capture phase, before any other listener, so it never also closes
- * the dialog underneath or opens the quick menu behind it. with nothing open it is
- * left alone, and the quick menu's own Escape works as before
- */
+/** Escape closes only the topmost open dialog; taken at the window in capture phase so nothing underneath also reacts */
 const stack: Array<{ close: () => void }> = [];
 let listening = false;
 

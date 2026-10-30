@@ -18,10 +18,7 @@ type EventCardProps = {
   isOwn?: boolean;
 };
 
-/**
- * grid tile. kept presentational so the host form can preview a draft through
- * the same component the grid uses, a mockup would drift.
- */
+/** grid tile, kept presentational so the host form previews a draft with the same component */
 export default function EventCard({ event, onOpen, preview = false, onDelete, isNew = false, isOwn = false }: EventCardProps) {
   const ended = hasEnded(event);
   const avatar = hostAvatarUrl(event);
@@ -85,8 +82,7 @@ export default function EventCard({ event, onOpen, preview = false, onDelete, is
     return <div className={className}>{body}</div>;
   }
 
-  // the delete control sits outside the card button rather than inside it
-  // a button inside a button is invalid and swallows the click
+  // the delete control sits outside the card button, since nested buttons swallow the click
   return (
     <div className="event-card-slot">
       <button type="button" className={className} onClick={() => onOpen?.(event.id)}>

@@ -6,8 +6,7 @@ import SceneScoutPanel from "../sceneScout/SceneScoutPanel";
 import { useUIStateStore } from "../../stores/UIStore";
 
 export default function Sidebar() {
-  // panelPage, not activePage: the Events page has no panel of its own and
-  // leaves whichever one was already open in place
+  // panelPage, not activePage: Events has no panel and leaves the open one in place
   const panelPage = useUIStateStore((s) => s.panelPage);
 
   return (

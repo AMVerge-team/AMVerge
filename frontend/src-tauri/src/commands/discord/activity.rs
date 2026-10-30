@@ -3,20 +3,13 @@
 use serde::Deserialize;
 use serde_json::{json, Value};
 
-/// public by design: it identifies the app on a profile. only a client
-/// *secret* would be sensitive
+/// public by design: it identifies the app; only a client secret is sensitive
 pub(super) const APP_ID: &str = "1497922104065134823";
 
 pub(super) const DEFAULT_LARGE_IMAGE: &str = "amverge_logo";
 pub(super) const DEFAULT_LARGE_TEXT: &str = "AMVerge";
 
-/// where a presence can send someone. the per-field urls (`details_url`,
-/// `assets.large_url`, `assets.small_url`) turn parts of the card into links:
-/// the art to the server, the first line to the site. `state_url` exists too,
-/// but a second clickable line is clutter.
-///
-/// the activity-level `url` is an older field, meaningful only for type 1
-/// (Streaming), which the RPC path rejects outright. do not reach for it
+/// where the card's links go (art and first line); the activity-level `url` is Streaming-only and rejected over RPC
 const DISCORD_URL: &str = "https://discord.gg/bmXjTgsAaN";
 const WEBSITE_URL: &str = "https://amverge.app/";
 
@@ -24,8 +17,7 @@ const WEBSITE_URL: &str = "https://amverge.app/";
 const TEXT_MIN: usize = 2;
 const TEXT_MAX: usize = 128;
 
-/// what the UI asks to be shown. unknown fields are ignored, so the payload can
-/// grow on the frontend without breaking older builds
+/// what the UI asks to show; unknown fields are ignored so the payload can grow
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
 pub struct PresenceUpdate {
     #[serde(default)]
@@ -50,8 +42,7 @@ fn yes() -> bool {
     true
 }
 
-/// Discord wants 2..=128 characters. truncation is on a char boundary: a cut
-/// multi-byte character would make the whole frame invalid UTF-8
+/// Discord wants 2..=128 chars, cut on a char boundary so the frame stays valid UTF-8
 fn clamp_text(value: Option<&String>) -> Option<String> {
     let text = value?.trim();
     if text.chars().count() < TEXT_MIN {
@@ -84,8 +75,7 @@ pub(super) fn build_activity(update: &PresenceUpdate, started_at: u64) -> Value 
     }
 
     let mut activity = json!({ "assets": assets });
-    // a url without its line would have nothing to hang on, so each is attached
-    // only alongside the text it makes clickable
+    // each url is attached only with the text it makes clickable
     if let Some(details) = clamp_text(update.details.as_ref()) {
         activity["details"] = json!(details);
         if update.links {
@@ -93,8 +83,7 @@ pub(super) fn build_activity(update: &PresenceUpdate, started_at: u64) -> Value 
         }
     }
     if let Some(state) = clamp_text(update.state.as_ref()) {
-        // no url here on purpose: the first line already carries the link, and
-        // two clickable lines side by side read as clutter
+        // no url: the first line already links, two read as clutter
         activity["state"] = json!(state);
     }
     if update.show_elapsed {

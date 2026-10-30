@@ -8,8 +8,7 @@ import {
   FaGithub,
 } from "react-icons/fa";
 
-// navigator.platform is deprecated but still the only synchronous read here, and
-// the Tauri OS plugin would be an async round trip for one label
+// navigator.platform is deprecated but the only synchronous read
 const IS_MAC = /mac/i.test(navigator.platform);
 
 export default function About() {

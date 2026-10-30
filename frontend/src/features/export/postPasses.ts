@@ -1,5 +1,4 @@
-// post-export passes: extra CLI steps run on each exported file after export
-// completes. global (not per-profile) config lives in general settings
+// post-export passes: extra cli steps on each exported file; global config in general settings
 
 export type DepthEncoder = "vits" | "vitb" | "vitl";
 export type DepthColormap =
@@ -121,8 +120,7 @@ export function anyPassEnabled(passes: PostExportPasses): boolean {
   return passes.depth.enabled || passes.interpolation.enabled;
 }
 
-// deep-merge persisted (possibly partial/old) config over the defaults so a
-// missing or corrupt sub-field never breaks the settings UI or orchestration
+// deep-merges persisted config over defaults so a missing or corrupt field never breaks anything
 export function normalizePostExportPasses(raw: unknown): PostExportPasses {
   const r = (raw ?? {}) as Partial<PostExportPasses>;
   return {

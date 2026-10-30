@@ -3,17 +3,7 @@ import { importClipsToDavinci } from "../davinci/resolveImport";
 import { useAppStateStore } from "../../stores/appStore";
 import { useGeneralSettingsStore } from "../../stores/settingsStore";
 
-/**
- * what happens to files once an export finished: the DaVinci Resolve timeline
- * when the export panel's Resolve toggle is on, the file explorer otherwise
- *
- * single seam on purpose: every export path (full export, merged export, single
- * clip download) ends here, so a new destination is added in one place and the
- * DaVinci one is removed by deleting its branch
- *
- * a failed hand-off still falls back to revealing the files: the export itself
- * succeeded, only the delivery did not.
- */
+/** delivers finished exports to Resolve when its toggle is on, else reveals them; the one seam for every export path */
 export async function deliverExportedFiles(files: string[]): Promise<void> {
   if (files.length === 0) return;
 

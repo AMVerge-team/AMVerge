@@ -1,10 +1,4 @@
-//! optional AI dependency management.
-//!
-//! the shipped sidecar carries everything that runs on ffmpeg/opencv. the heavy
-//! AI packages (torch and friends) are installed on demand into an app-managed
-//! venv at `<app data>/pyenv`, provisioned by the bundled `uv` binary. each
-//! feature maps to a "pack"; installing a pack installs torch once plus that
-//! pack's extra, pinned to the CLI version baked into the sidecar
+//! optional AI dependencies: torch packs installed on demand into an app-managed uv venv, pinned to the sidecar's CLI version
 
 use tauri::{AppHandle, State};
 

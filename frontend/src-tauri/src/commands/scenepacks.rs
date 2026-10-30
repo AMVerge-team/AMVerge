@@ -11,11 +11,7 @@ use crate::utils::logging::{console_log, sanitize_for_console};
 use crate::utils::paths::{resolve_scenepacks_storage_dir, sanitize_episode_cache_id};
 use crate::utils::sidecar::amverge_command;
 
-/// one clip to materialize into a Scenepack's own storage. either an
-/// already-cut clip file to copy in (video mode) or a `[start_sec, end_sec]`
-/// range to cut from a source episode (webp mode): mirrors `ClipSpec` in
-/// `export.rs`: snake_case fields, sent as-is from the frontend into the CLI's
-/// `--inputs-json`
+/// one clip to materialize: a cut file to copy, or a source range to cut; mirrors export's `ClipSpec`
 #[derive(Deserialize, Serialize)]
 pub(crate) struct MaterializeClipSpec {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -56,11 +52,7 @@ impl MaterializedClip {
 /// called from the CLI reader thread as each item finishes (`MATERIALIZED|<json>`)
 pub(crate) type OnMaterialized = Box<dyn Fn(MaterializedClip) + Send + 'static>;
 
-/// cut/copy a batch of clips into `<scene_packs>/<scenepack_id>/`, each as a
-/// standalone .mp4 + poster .jpg. this is what makes a Scenepack independent
-/// of episode storage, deleting the source episode can never touch these
-/// copies, and lets every Scenepack clip load like a normal pre-cut video
-/// clip instead of needing a per-episode WebP cache lookup
+/// cuts or copies clips into the pack's own folder, so it never depends on episode storage
 #[tauri::command]
 pub async fn materialize_scenepack_clips(
     app: AppHandle,
@@ -83,10 +75,7 @@ pub async fn materialize_scenepack_clips(
     run_materialize_clips(&app, &clips, &out_dir, "reencode", true, None, None).await
 }
 
-/// runs `amverge materialize-clips` for `clips` into `out_dir`. `cut_mode` is the
-/// CLI's `--cut-mode` (reencode/auto/copy); `emit_progress` forwards its PROGRESS
-/// lines as `scene_progress`; `pids` tracks the child so it is killed on app close;
-/// `on_item` sees each item as soon as it finishes
+/// runs `amverge materialize-clips` into `out_dir`, forwarding progress and each finished item
 pub(crate) async fn run_materialize_clips(
     app: &AppHandle,
     clips: &[MaterializeClipSpec],
@@ -96,9 +85,7 @@ pub(crate) async fn run_materialize_clips(
     pids: Option<Arc<Mutex<Vec<u32>>>>,
     on_item: Option<OnMaterialized>,
 ) -> Result<Vec<MaterializedClip>, String> {
-    // a per-call name, not a per-process one: two adds started close together
-    // shared a single path, so the second wrote its list over the first before
-    // that CLI had read it, and the first pack received the wrong clip
+    // a per-call name: a shared path let a second add overwrite the first's list before it was read
     let inputs_path = std::env::temp_dir().join(format!(
         "amverge_materialize_{}_{}.json",
         std::process::id(),
@@ -225,10 +212,7 @@ pub(crate) async fn run_materialize_clips(
     })
 }
 
-/// remove specific materialized clip files (mp4+jpg pairs) from a Scenepack's
-/// storage, called when a clip is removed from the pack. only deletes files
-/// that actually live inside that pack's own folder, regardless of what path
-/// the caller passes in
+/// removes a pack's clip files, only ever inside that pack's own folder
 #[tauri::command]
 pub async fn delete_scenepack_clip_files(
     app: AppHandle,
@@ -251,13 +235,7 @@ pub async fn delete_scenepack_clip_files(
     Ok(())
 }
 
-/// copies a chosen image into the scenepack's own storage folder and returns
-/// the stored path.
-///
-/// the picked file could be anywhere, a download, a temp folder, a removable
-/// drive, and the panel keeps only a path, so pointing at the original would
-/// leave a broken thumbnail the moment that file moved. animated formats are
-/// copied byte for byte rather than re-encoded, so a GIF still animates
+/// copies a chosen cover into the pack's folder (byte for byte, so GIFs animate) and returns its path
 #[tauri::command]
 pub async fn save_scenepack_thumbnail(
     app: AppHandle,
@@ -285,8 +263,7 @@ pub async fn save_scenepack_thumbnail(
     std::fs::create_dir_all(&pack_dir)
         .map_err(|e| format!("Failed to create scenepack folder: {e}"))?;
 
-    // a changing filename per save, so the webview's image cache cannot keep
-    // showing the previous thumbnail after it is replaced
+    // a new filename per save so the webview's image cache can't show the old one
     let stamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_millis())
@@ -315,8 +292,7 @@ pub async fn save_scenepack_thumbnail(
     Ok(destination.to_string_lossy().to_string())
 }
 
-/// remove a whole Scenepack's storage folder, called when the pack itself is
-/// deleted
+/// removes a deleted pack's storage folder
 #[tauri::command]
 pub async fn delete_scenepack_storage(
     app: AppHandle,
@@ -331,13 +307,7 @@ pub async fn delete_scenepack_storage(
     Ok(())
 }
 
-/// remove ALL Scenepacks' storage, the "Clear Scenepack Storage" settings
-/// button, and what runs if the user opts to delete their Scenepacks when
-/// disabling the feature. unlike `clear_episode_panel_cache`, this wipes
-/// `scene_packs/` outright rather than filtering child-by-child: that folder
-/// is created and populated by AMVerge alone, never a user-chosen location
-/// that might hold unrelated files, so there's nothing else in there to
-/// preserve
+/// wipes `scene_packs/` outright; AMVerge alone fills it, unlike the user-chosen episodes folder
 #[tauri::command]
 pub async fn clear_scenepacks_storage(
     app: AppHandle,

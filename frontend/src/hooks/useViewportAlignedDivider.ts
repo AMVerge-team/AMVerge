@@ -4,12 +4,7 @@ import { useCallback, useRef } from "react";
 const TOP_FRACTION = 0.3;
 const HEIGHT_FRACTION = 0.4;
 
-/**
- * places a side-by-side splitter at the same height in the window as every other one.
- * the sidebar splitter and the grid/preview splitter sit in containers that start at
- * different heights (one is below the toolbar), so sizing each by its own container
- * left them different lengths and positions
- */
+/** puts every side-by-side splitter at the same window height, though their containers start at different heights */
 export function useViewportAlignedDivider() {
   const cleanupRef = useRef<(() => void) | null>(null);
 

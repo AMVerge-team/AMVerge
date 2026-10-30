@@ -150,10 +150,7 @@ pub(crate) fn install_ai_pack_inner(
         None
     };
 
-    // turning GPU decode off is only ever removing Nelux. nothing else in the
-    // environment changes, so there is no resolution to run and nothing to
-    // download; rebuilding for it re-fetched several GB to arrive somewhere
-    // strictly worse
+    // turning GPU decode off only removes Nelux; a full rebuild re-fetched gigabytes for nothing
     if gpu_decode == Some(false) && existing_python.is_some() {
         if has_nelux {
             emit_progress(app, pack.id, "packages", 50, true, "Removing GPU decode...");
@@ -305,8 +302,7 @@ pub(crate) fn install_ai_pack_inner(
 
     run_uv_step(app, install_state, pack.id, cmd, "Package install")?;
 
-    // uv only warns about an extra the published wheel doesn't define, so the
-    // step "succeeds" while installing none of the pack's packages. verify
+    // uv only warns about an extra the wheel lacks, so the step can "succeed" installing nothing; verify
     let after = installed_distributions(app, &python)?;
     let missing: Vec<&str> = pack
         .requires
@@ -337,8 +333,7 @@ pub(crate) fn install_ai_pack_inner(
         }
     }
 
-    // 4. the wheel cache holds a second copy of every download (torch alone is
-    //    gigabytes), so drop it once the env is built
+    // 4. drop the wheel cache, a second copy of every download (torch alone is gigabytes)
     emit_progress(app, pack.id, "cleanup", 95, false, "Cleaning up...");
     if let Ok(cache) = uv_cache_dir(app) {
         let _ = std::fs::remove_dir_all(cache);

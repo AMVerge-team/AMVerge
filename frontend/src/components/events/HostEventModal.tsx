@@ -25,8 +25,7 @@ const DESCRIPTION_MAX = 4000;
 // digits only; the leading $ is added on submit and is not editable
 const PRIZE_DIGITS_MAX = 9;
 const INVITE_MAX = 200;
-// matches AMVERGE_MAX_EVENT_THUMBNAIL_BYTES on the server. sized for animated
-// GIF covers, which are far heavier than a still image
+// matches the server's AMVERGE_MAX_EVENT_THUMBNAIL_BYTES, sized for animated GIF covers
 const MAX_THUMBNAIL_BYTES = 10 * 1024 * 1024;
 const MAX_THUMBNAIL_MB = Math.round(MAX_THUMBNAIL_BYTES / (1024 * 1024));
 const ALLOWED_THUMBNAIL_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
@@ -82,10 +81,7 @@ function toIso(localValue: string): string | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 
-/**
- * same allowlist the server enforces. checking here too means a typo is caught
- * before the submission is spent against the rate limit.
- */
+/** the server's invite allowlist, checked here so a typo doesn't spend a rate-limited submission */
 function isValidDiscordInvite(value: string): boolean {
   try {
     const url = new URL(value);
@@ -135,8 +131,7 @@ export default function HostEventModal() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  // cleared on unmount and on reopen, so a pending auto-close can never fire
-  // against a form the host has already returned to
+  // cleared on unmount and reopen so a pending auto-close never hits a returned-to form
   const closeTimerRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -145,15 +140,10 @@ export default function HostEventModal() {
     [editingId, mine]
   );
 
-  // which target the form currently holds: the event id being edited, or
-  // "new". `editing` is derived from the `mine` array, so it becomes a fresh
-  // object every time that list refetches; keying off the id instead means a
-  // background refresh cannot reset a form the host is in the middle of
+  // the target the form holds (event id or "new"), keyed by id so a background refetch can't reset it
   const populatedFor = useRef<string | null>(null);
 
-  // transient UI, reset when the form opens or changes target. deliberately not
-  // keyed on `editing`: a refetch used to land here and wipe the error the host
-  // had just been shown, which is why a rate limit message vanished instantly
+  // transient UI reset on open or target change, not on `editing`, so a refetch can't wipe a shown error
   useEffect(() => {
     if (!open) {
       populatedFor.current = null;
@@ -172,8 +162,7 @@ export default function HostEventModal() {
     }
   }, [open, editingId]);
 
-  // fill the fields once per target. waits for the event to arrive when the
-  // list is still loading, then leaves the form alone
+  // fill the fields once per target, waiting for the event if the list is still loading
   useEffect(() => {
     if (!open) return;
 
@@ -201,8 +190,7 @@ export default function HostEventModal() {
     }
   }, [open, editingId, editing]);
 
-  // a close scheduled after a successful submit must not fire once this
-  // component is gone
+  // a close scheduled after a submit must not fire once unmounted
   useEffect(
     () => () => {
       if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
@@ -214,10 +202,7 @@ export default function HostEventModal() {
     setForm((previous) => ({ ...previous, [field]: value }));
   };
 
-  /**
-   * moving the start past the end would leave the form in a state the host has
-   * to notice and fix, so the end follows it to a day later instead.
-   */
+  /** moving the start past the end pushes the end to a day later */
   const setStartsAt = (next: string) => {
     setForm((previous) => {
       if (!next || !previous.endsAt || new Date(previous.endsAt) > new Date(next)) {
@@ -232,20 +217,17 @@ export default function HostEventModal() {
 
   const thumbnailDataUrl = thumbnail
     ? `data:${thumbnail.mimeType};base64,${thumbnail.dataBase64}`
-    // an event still in review has no public thumbnail URL, so its cover comes
-    // inline on the host's own copy. approved ones use the cacheable URL
+    // an event in review has no public thumbnail url, so its cover comes inline
     : editing?.thumbnailDataUrl ?? editing?.thumbnailUrl ?? null;
 
-  // the preview renders through the real EventCard and EventDetail, so what the
-  // host sees here cannot drift from what the grid will show
+  // the preview uses the real EventCard and EventDetail, so it can't drift from the grid
   const draftHours = Math.min(
     MAX_HOURS,
     Math.max(MIN_HOURS, Number.parseInt(form.durationHours, 10) || MIN_HOURS)
   );
 
   const draftStartsAt = toIso(form.startsAt) ?? new Date().toISOString();
-  // hour contests derive their end server-side; mirroring it here keeps the
-  // preview honest about what will actually be stored
+  // hour contests derive their end server-side; mirrored here for the preview
   const draftEndsAt =
     form.eventType === "hour"
       ? new Date(new Date(draftStartsAt).getTime() + draftHours * HOUR_MS).toISOString()
@@ -262,8 +244,7 @@ export default function HostEventModal() {
     durationHours: draftHours,
     startsAt: draftStartsAt,
     endsAt: draftEndsAt,
-    // the preview mirrors what the grid will show, so anonymity hides the host
-    // here too rather than only after submitting
+    // anonymity hides the host in the preview too
     hostDiscordId: form.isAnonymous ? null : profile?.id ?? "",
     hostUsername: form.isAnonymous ? null : profile?.username ?? "You",
     hostAvatarHash: null,
@@ -335,8 +316,7 @@ export default function HostEventModal() {
   };
 
   const handleSubmit = async () => {
-    // a second click while the first is still in flight would submit the event
-    // twice; the disabled button alone does not cover Enter in a field
+    // the disabled button doesn't cover Enter in a field, so guard double submits here
     if (submitting) return;
 
     const problem = validate();
@@ -369,10 +349,7 @@ export default function HostEventModal() {
       return;
     }
 
-    // deliberately stays disabled: the submission succeeded, so the form must
-    // not accept another one. the confirmation shows briefly, then the modal
-    // closes itself rather than leaving the host to work out that Cancel is
-    // now the way out
+    // stays disabled after success; the confirmation shows briefly, then the modal closes itself
     setMessage(
       editing
         ? "Edit submitted. It goes live once a moderator approves it."
@@ -606,9 +583,7 @@ export default function HostEventModal() {
                     inputMode="numeric"
                     maxLength={PRIZE_DIGITS_MAX}
                     value={form.prizePool}
-                    // digits only. everything else (currency symbols, words,
-                    // and above all links) is stripped as it is typed, which
-                    // is what makes this field safe to edit without review
+                    // digits only, stripped as typed, which keeps this field safe without review
                     onChange={(changeEvent) =>
                       setField("prizePool", changeEvent.target.value.replace(/\D/g, ""))
                     }

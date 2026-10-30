@@ -139,9 +139,7 @@ pub(super) async fn import_into_after_effects(
             }
         };
 
-        // use UI automation instead of AfterFX -r scripting because some AE
-        // installations intermittently report "scripting plugin is not installed"
-        // for command-line script execution
+        // UI automation, since AfterFX -r scripting intermittently reports the scripting plugin missing
         let script_path = write_temp_script(
             "amverge_afterfx_import_ui",
             "ps1",

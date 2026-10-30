@@ -21,11 +21,7 @@ const SORT_OPTIONS: DropdownOption<EventSort>[] = [
   { value: "prize-asc", label: "Prize pool, smallest", description: "Smallest prize first" },
 ];
 
-/**
- * Takes the place of the import row on the Events page: hosting, Discord
- * identity, search, and the filter. Mirrors `.clips-import`'s right padding so
- * its controls line up with the grid's right edge as the divider moves.
- */
+/** the Events page's toolbar in place of the import row: hosting, Discord identity, search, filter */
 export default function EventsToolbar() {
   const previewCollapsed = useUIStateStore((s) => s.previewCollapsed);
   const setPreviewCollapsed = useUIStateStore((s) => s.setPreviewCollapsed);
@@ -51,8 +47,7 @@ export default function EventsToolbar() {
   const ban = useEventsStore((s) => s.ban);
   const openBanNotice = useEventsStore((s) => s.openBanNotice);
 
-  // hosting is rate limited and ban-gated server-side; this only reflects it,
-  // so the button reads as unavailable instead of failing on click
+  // hosting limits are enforced server-side; this only shows them
   const cooldownRemaining = useCooldown(submitCooldownUntil);
   const isBanned = Boolean(ban?.banned);
 

@@ -47,11 +47,7 @@ import { useUIStateStore } from "./stores/UIStore";
 import { applyThemeSettings, useGeneralSettingsStore, useThemeSettingsStore } from "./stores/settingsStore";
 import { useEpisodePanelRuntimeStore } from "./stores/episodeStore";
 
-/**
- * shove the sidebar divider left of this and the sidebar folds away, the same
- * gesture the preview pane answers to on the other side of the grid. sits well
- * under the 220px minimum width, so brushing the stop does not dismiss it.
- */
+/** dragging the sidebar divider past this folds the sidebar away, well under its 220px minimum */
 const SIDEBAR_COLLAPSE_BELOW_PX = 140;
 
 
@@ -72,8 +68,7 @@ function App() {
   const webpLoadDone = useWebpLoadingStore((s) => s.done);
   const webpLoadTotalRaw = useWebpLoadingStore((s) => s.total);
   const webpDismissed = useWebpLoadingStore((s) => s.dismissed);
-  // closing the card hides the preview counter for the rest of this episode;
-  // the queue keeps filling the cache in the background
+  // closing the card hides the preview counter for this episode; the queue keeps filling the cache
   const webpLoadTotal = webpDismissed ? 0 : webpLoadTotalRaw;
 
   const aiStage = useAiDepsStore((s) => s.stage);
@@ -106,9 +101,7 @@ function App() {
 
   const [splashVisible, setSplashVisible] = useState(true);
 
-  // hide every background layer while the splash is up, so the gradient and any
-  // wallpaper fade in with the app rather than being there all along. before
-  // paint, or the first frame shows the background at full strength
+  // background layers stay hidden under the splash and fade in with the app; before paint, or frame one shows them
   useLayoutEffect(() => {
     document.body.style.setProperty("--app-bg-reveal", "0");
   }, []);
@@ -128,8 +121,7 @@ function App() {
 
   const handleResetGeneralSettings = async () => {
     try {
-      // release the clip files the grid holds open, or Windows blocks the move
-      // of anything currently on screen
+      // release the clip files the grid holds open, or windows blocks moving them
       useAppStateStore.getState().setClips([]);
       useAppStateStore.getState().setSelectedClips(new Set());
       await new Promise((resolve) => setTimeout(resolve, 250));
@@ -156,11 +148,9 @@ function App() {
   const [showStartupNotification, setShowStartupNotification] = useState(false);
   const startupUpdateNotification = useStartupUpdateNotification();
   useExtensionSync();
-  // mounted at app level: the browser round-trip can finish after the events
-  // modal is closed, and the result still has to land somewhere
+  // app-level, since a login can finish after the events modal closed
   useDiscordAuth();
-  // polls in the background so a newly approved event badges the sidebar
-  // without the user opening the page first
+  // polls so a newly approved event badges the sidebar
   useEventsWatch();
 
   const parseThumbnailProgress = (message: string): { done: number; total: number } | null => {
@@ -195,9 +185,7 @@ function App() {
       const maxWidth = Math.max(minWidth, Math.floor(rect.width * 0.6));
       const proposed = Math.round(ev.clientX - rect.left);
 
-      // past the last stop the sidebar folds away, live, and pulling back right
-      // brings it straight back. folded, the divider stays at the window's left
-      // edge, so the sidebar can be dragged back out from there too
+      // past the last stop the sidebar folds away live; folded, the divider stays at the left edge to drag back out
       if (proposed < SIDEBAR_COLLAPSE_BELOW_PX) {
         setSidebarEnabled(false);
         return;
@@ -326,8 +314,7 @@ function App() {
     }
   }, [loading, bgActive]);
 
-  // auto-minimize once the heavy phase (scene detect + first clip cuts) is done
-  // and only background thumbnail/reencode/preview work remains
+  // auto-minimize once only background thumbnail, re-encode and preview work remains
   const scoutOperation =
     activeOperation === "scout_add" ||
     activeOperation === "scout_open" ||

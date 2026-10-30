@@ -89,8 +89,7 @@ pub(crate) fn uv_command(app: &AppHandle) -> Result<Command, String> {
     Ok(cmd)
 }
 
-/// interpreter to inspect for installed packages: the AI env when it exists,
-/// otherwise (dev only) the CLI checkout's venv, which already has every extra
+/// interpreter to inspect: the AI env, else (dev) the CLI checkout's venv
 pub(crate) fn status_python(app: &AppHandle) -> Option<PathBuf> {
     if ai_env_ready(app) {
         return ai_env_python(app).ok();
@@ -121,8 +120,7 @@ pub(crate) fn installed_distributions(
         .map_err(|e| format!("Failed to run uv pip list: {e}"))?;
 
     if !output.status.success() {
-        // a venv that exists but can't be listed is treated as empty rather than
-        // fatal; the UI then offers a (re)install
+        // a venv that can't be listed counts as empty, so the UI offers a reinstall
         return Ok(HashMap::new());
     }
 
@@ -195,8 +193,7 @@ fn run_nvidia_smi(exe: &Path) -> SmiOutcome {
         Err(e) => return SmiOutcome::Failed(e.to_string()),
     };
 
-    // std has no timeout, and a wedged nvidia-smi would hang the whole status call.
-    // polling before draining the pipes is safe: `-L` prints far less than one buffer
+    // std has no timeout and a wedged nvidia-smi would hang the call; `-L` output never fills a pipe buffer
     let start = Instant::now();
     loop {
         match child.try_wait() {
@@ -377,8 +374,7 @@ pub(crate) fn mps_available() -> bool {
     cfg!(all(target_os = "macos", target_arch = "aarch64"))
 }
 
-/// the cli's own folder for downloaded weights, the same path `infra/config.py`
-/// `get_amverge_config_dir()` builds: APPDATA first, then the per-OS default
+/// the cli's weights folder, the same path as its `get_amverge_config_dir()`
 pub(crate) fn cli_models_dir() -> Option<PathBuf> {
     let config = match std::env::var_os("APPDATA").filter(|v| !v.is_empty()) {
         Some(appdata) => PathBuf::from(appdata).join("com.amverge.cli"),
@@ -396,8 +392,7 @@ pub(crate) fn cli_models_dir() -> Option<PathBuf> {
     Some(config.join("models"))
 }
 
-/// where transformers keeps SigLIP 2: Hugging Face's own lookup order
-/// (HF_HUB_CACHE, HF_HOME/hub, XDG_CACHE_HOME/huggingface/hub, ~/.cache/huggingface/hub)
+/// where transformers keeps SigLIP 2, in Hugging Face's own lookup order
 pub(crate) fn scout_model_dir() -> Option<PathBuf> {
     let env_dir = |key: &str| std::env::var_os(key).filter(|v| !v.is_empty()).map(PathBuf::from);
     let hub = env_dir("HF_HUB_CACHE")
@@ -413,8 +408,7 @@ fn home_dir() -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
-/// total size of the files under `path`. symlinks are counted as links, never followed,
-/// so a Hugging Face snapshot (links into its blobs) is not counted twice
+/// total size under `path`; symlinks aren't followed, so HF snapshots aren't counted twice
 pub(crate) fn dir_size_bytes(path: &Path) -> u64 {
     let Ok(entries) = std::fs::read_dir(path) else {
         return 0;
@@ -515,8 +509,7 @@ pub(crate) fn compute_status(app: &AppHandle) -> Result<AiEnvStatus, String> {
 mod disk_usage_tests {
     use super::*;
 
-    /// prints what Settings > Features would report on this machine, to compare against
-    /// the folders by hand. ignored by default: it reads real user folders
+    /// prints what Settings > Features would report here; ignored since it reads real user folders
     #[test]
     #[ignore]
     fn print_disk_usage_on_this_machine() {

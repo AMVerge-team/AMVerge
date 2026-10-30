@@ -1,5 +1,4 @@
-// the shapes crossing the Tauri bridge for Rich Presence. mirrors of the
-// Rust payloads: change one side and this one has to follow
+// Rich Presence shapes crossing the tauri bridge, mirroring the rust payloads
 
 /** what a caller describes: the activity itself, without the display toggles */
 export type RPCActivity = {

@@ -1,18 +1,12 @@
 // optional AI dependency packs.
 //
-// the installer ships everything that runs on ffmpeg/opencv. anything that needs
-// torch is installed on demand into an app-managed Python env (see
-// src-tauri/src/commands/deps.rs). this module is the single source of truth for
-// what a pack is called, what it unlocks, and how big the download is; the
-// gating UI, the confirm dialog and the Dependencies tab all read it
+// torch features install on demand into an app-managed env; this is the source of truth for each pack's name, unlocks and size
 
 export type AiPackId = "ml" | "depth" | "interpolation" | "upscale" | "scout";
 
 export type TorchVariant = "cuda" | "cpu";
 
-/** what the NVIDIA probe concluded. "absent" is a claim about the hardware,
- *  "unknown" means the probe could not run - never tell a user they have no GPU
- *  on the strength of "unknown" */
+/** the NVIDIA probe result; "unknown" means it couldn't run, so never claim no GPU from it */
 export type GpuProbe = "detected" | "absent" | "unknown";
 
 /** mirrors `AiEnvStatus` in src-tauri/src/commands/deps.rs */
@@ -106,8 +100,7 @@ export const AI_PACKS: Record<AiPackId, AiPack> = {
   },
 };
 
-/// packs surfaced in the UI today. upscaling has no screen yet, so it is
-/// registered but not listed
+/// packs shown in the UI; upscaling is registered but has no screen yet
 export const VISIBLE_PACK_IDS: AiPackId[] = ["ml", "depth", "interpolation", "scout"];
 
 const TORCH_SIZE_MB: Record<TorchVariant, number> = {

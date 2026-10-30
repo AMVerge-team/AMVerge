@@ -79,9 +79,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     [episodes, openedEpisodeId]
   );
   const previewMethod = openedEpisode?.importMethod ?? importMethod;
-  // Scenepack clips are materialized video files no matter which import method
-  // produced the episode they came from, so the episode's method says nothing
-  // about them. asking it left a WebP-imported pack previewing as a still
+  // pack clips are always materialized videos, whatever import method their episode used
   const activePageForPreview = useUIStateStore(s => s.activePage);
   const webpPreviewMode =
     activePageForPreview === "scenepacks" || activePageForPreview === "sceneScout"
@@ -108,9 +106,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     () =>
       audioStreams.map((stream) => ({
         value: stream.audioStreamIndex,
-        // the language alone: the full track description made the closed
-        // picker a wall of codec detail. the title still identifies a track
-        // when two share a language, so it moves to the option's description
+        // the language alone keeps the closed picker short; the title moves to the option description
         label: stream.languageLabel || stream.label,
         description: stream.title || undefined,
       })),
@@ -119,8 +115,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
 
   const hasSelectedClips = selectedClips.size > 0;
 
-  // subscribe to only the focused clip's preview so unrelated WebP results
-  // streaming in from the grid queue don't re-render the preview panel
+  // only the focused clip's preview, so grid WebP results don't re-render the panel
   const previewImageSrc = useScenePreviewStore(s =>
     focusedClipId ? (s.animatedByClipId[focusedClipId] ?? null) : null
   );
@@ -131,9 +126,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   );
   const hasSource = !!props.sourceClip && !!sourceClipObj;
 
-  // a scene scout result is a range inside a whole episode, often a 10-bit HEVC MKV the
-  // webview renders black. it plays the same short x264 cut its grid tile uses (same
-  // cache), never the source, which also spared transcoding a full episode for one scene
+  // a scout result plays its tile's short x264 cut (same cache), never the source, which may be a 10-bit HEVC MKV
   const scoutRange =
     !sourceClipObj?.clipPath &&
     Boolean(sourceClipObj?.database) &&
@@ -154,8 +147,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const sceneStartTime = isCutClip ? undefined : sourceClipObj?.startSec;
   const sceneEndTime = isCutClip ? undefined : sourceClipObj?.endSec;
 
-  // a non-default Preview Language needs the chosen audio track remuxed in; the
-  // default (index 0 / null) plays straight from the cut clip's default track
+  // a non-default Preview Language needs its audio track remuxed in
   const selectedMappedAudioStreamIndex =
     previewAudioStreamIndex !== null && previewAudioStreamIndex > 0 ? previewAudioStreamIndex : null;
   const [languageProxySrc, setLanguageProxySrc] = React.useState<string | null>(null);
@@ -183,9 +175,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scoutRangeKey, webpPreviewMode, transcodePreset]);
 
-  // build the proxy this clip needs: a playable codec and/or the chosen audio
-  // track. webp previews are images, so this is video mode only. a scout range cut
-  // is already a playable x264 file
+  // builds the proxy this clip needs (playable codec and/or audio track); video mode only, scout cuts are already x264
   React.useEffect(() => {
     setLanguageProxySrc(null);
     if (webpPreviewMode) return;
@@ -211,8 +201,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     transcodePreset,
   ]);
 
-  // while a transcode is pending the raw clip would render black, so hold the
-  // player on the proxy path and let it mount once ffmpeg finishes
+  // the raw clip renders black while a transcode is pending, so the player waits for the proxy
   const playableVideoSrc = scoutRange
     ? scoutRangeSrc
     : needsPreviewTranscode
@@ -261,9 +250,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     }
   }, [showMergeNameModal]);
 
-  // one clip per source episode, capped: clips from the same episode carry the
-  // same tracks, and probing every clip in a large pack spawns an ffprobe per
-  // clip all at once
+  // one clip per source episode, capped: same episode means same tracks, and probing every clip spawns too many ffprobes
   const scenepackProbeKey = React.useMemo(() => {
     if (activePageForPreview !== "scenepacks") return "";
     const seen = new Set<string>();
@@ -297,9 +284,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     )
       .then((results) => {
         if (cancelled) return;
-        // union by language: clips can order their tracks differently, so the
-        // index is only meaningful per file. export resolves the language again
-        // against each clip
+        // union by language, since track order varies per file; export resolves the language per clip
         const byLanguage = new Map<string, PreviewAudioStream>();
         for (const streams of results) {
           for (const stream of streams ?? []) {
@@ -510,8 +495,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                     );
                   }}
                   preferredDirection="up"
-                  // the closed picker shows the language only; the track title
-                  // stays in the open list where it is needed to choose
+                  // the closed picker shows the language; the title stays in the open list
                   showTriggerDescription={false}
                   disabled={audioStreamOptions.length === 0 || webpPreviewMode}
                 />

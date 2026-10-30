@@ -12,8 +12,7 @@ type Params = {
   reportStaggerDemand: LazyClipProps["reportStaggerDemand"];
 };
 
-// preview-all lights tiles up top-left to bottom-right instead of all at once:
-// tiles register demand and a central queue calls onReady when it is their turn
+// preview-all lights tiles in order through a central queue that calls onReady on their turn
 export function useClipStagger({
   clipId,
   index,

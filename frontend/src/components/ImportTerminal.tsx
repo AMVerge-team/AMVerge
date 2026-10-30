@@ -58,8 +58,7 @@ const SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", 
 const BAR_WIDTH = 30;
 const MAX_LINES = 500;
 
-// Rust re-emits every PROGRESS| event as a "PROGRESS xx% - msg" console line.
-// those are represented by the live bar, so keep them out of the scroll log
+// rust echoes PROGRESS events as console lines; the live bar shows them, so they stay out of the log
 const isProgressEcho = (msg: string) => /^PROGRESS\s+\d/.test(msg.trim());
 
 function fileNameOf(p: string): string {
@@ -99,8 +98,7 @@ export default function ImportTerminal({
   const startedRef = useRef<number>(Date.now());
   const headerPushedRef = useRef(false);
 
-  // minimized-card drag state. the card floats free of the dark backdrop so the
-  // grid stays visible while thumbnails/reencodes stream in behind it
+  // minimized card drag state; the card floats free so the grid stays visible behind it
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [cardPos, setCardPos] = useState<{ x: number; y: number } | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -158,8 +156,7 @@ export default function ImportTerminal({
     });
   };
 
-  // seed the synthesized command header once. guarded so React StrictMode's
-  // double-invoked mount effect can't push it twice
+  // seeds the command header once, guarded against StrictMode's double mount
   useEffect(() => {
     if (headerPushedRef.current) return;
     headerPushedRef.current = true;
@@ -301,8 +298,7 @@ export default function ImportTerminal({
   const barEmpty = "─".repeat(BAR_WIDTH - filled);
   const done = clamped >= 100;
 
-  // batch import (multiple videos). batchDone is the 0-based index of the video
-  // being processed, so it's also the count already finished
+  // batchDone is the 0-based index of the current video, so also the count finished
   const isBatch = batchTotal > 1;
   const currentVideoNum = Math.min(batchDone + 1, batchTotal);
   // smooth overall progress: finished videos + the current one's fraction

@@ -21,12 +21,7 @@ export type GridWindow = {
 /** rows rendered before the first measurement lands */
 const SEED_ROWS = 4;
 
-/**
- * Windows a uniform CSS grid: only the rows near the viewport stay mounted, and
- * the rest is replaced by padding on the grid itself (padding adds no extra gap,
- * unlike spacer children). an episode with a thousand scenes mounts a few dozen
- * tiles instead of a thousand IntersectionObservers and video elements.
- */
+/** windows a uniform css grid: only rows near the viewport mount, the rest becomes grid padding */
 export function useGridWindow({
   scrollRef,
   gridEl,
@@ -41,8 +36,7 @@ export function useGridWindow({
     padBottom: 0,
   });
 
-  // measured once per layout: row pitch (tile + gap), the grid's offset inside
-  // the scroller, and the grid's own padding before we start adding to it
+  // measured once per layout: row pitch, the grid's offset in the scroller, and its own padding
   const rowPitchRef = useRef(0);
   const gridTopRef = useRef(0);
   const basePadRef = useRef<number | null>(null);
@@ -122,15 +116,13 @@ export function useGridWindow({
     });
   }, [update]);
 
-  // re-measure whenever the layout inputs change; tile height follows column
-  // count and container width, so both invalidate the pitch
+  // tile height follows column count and width, so both invalidate the pitch
   useLayoutEffect(() => {
     if (measure()) {
       update();
       return;
     }
-    // nothing to measure yet - the pitch comes from a rendered tile, so an empty
-    // window can never measure its way out. seed a first batch to break that
+    // the pitch comes from a rendered tile, so an empty window seeds a first batch
     if (itemCount > 0) {
       setWindow((prev) => {
         const seedEnd = Math.min(itemCount, SEED_ROWS * Math.max(1, columns));
