@@ -10,13 +10,7 @@ import type {
   ScoutVideo,
 } from "./types";
 
-/**
- * Thin wrappers over the Rust commands, matching `utils/eventsApi.ts`.
- *
- * `customPath` is the storage location from Settings. It is threaded through
- * every call rather than read once, because the user can change it while the
- * page is open and the next call has to land in the new location.
- */
+// thin wrappers over the rust commands; `customPath` is passed per call since storage can move while the page is open
 
 export function scoutListDatabases(customPath: string | null): Promise<ScoutDatabase[]> {
   return invoke<ScoutDatabase[]>("scout_list_databases", { customPath });

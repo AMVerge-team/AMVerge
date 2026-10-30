@@ -201,7 +201,7 @@ frontend/
         bug_report.rs               # Bug report submit (HTTP POST, HMAC signed)
         deps.rs                     # AI env (uv venv), pack install/status
         models.rs                   # AI model weights (list/download/delete)
-        scene_scout.rs              # Scene Scout search, add, databases, open, daemon
+        scene_scout/                # Scene Scout: mod.rs commands, cli.rs one-shot runs, worker.rs daemon, types.rs wire types
         discord.rs                  # Discord RPC (currently no-op)
 
         export/                     # Export sub-modules
@@ -313,17 +313,17 @@ frontend/
 | `list_models` | models.rs | Spawn `amverge models --json` → depth + interpolation weights |
 | `download_model` | models.rs | `amverge models --json --download <key>` |
 | `delete_model` | models.rs | `amverge models --json --delete <key>` |
-| `scout_list_databases` | scene_scout.rs | List all databases in root |
-| `scout_database_info` | scene_scout.rs | Fetch info for a single database |
-| `scout_create_database` | scene_scout.rs | Create a new database |
-| `scout_open_database` | scene_scout.rs | Open external database with validation and migration |
-| `scout_delete_database` | scene_scout.rs | Delete database file |
-| `scout_list_videos` | scene_scout.rs | List videos in a database |
-| `scout_status` | scene_scout.rs | Get Scene Scout model and root status |
-| `scout_search` | scene_scout.rs | Query scenes with SigLIP 2 embeddings (daemon or one-shot) |
-| `scout_add_video` | scene_scout.rs | Index video scenes into a database. Optional `scenes` (`[start_ms, end_ms]` pairs from a home episode's manifest) skips detection: sent as `scenes` to the daemon, as `--scenes-json <tmp file>` to the CLI (CLI ≥ 0.9.0) |
-| `abort_scout_index` | scene_scout.rs | Kill active indexing process tree |
-| `scout_unload_model` | scene_scout.rs | Unload model weights from memory |
+| `scout_list_databases` | scene_scout/ | List all databases in root |
+| `scout_database_info` | scene_scout/ | Fetch info for a single database |
+| `scout_create_database` | scene_scout/ | Create a new database |
+| `scout_open_database` | scene_scout/ | Open external database with validation and migration |
+| `scout_delete_database` | scene_scout/ | Delete database file |
+| `scout_list_videos` | scene_scout/ | List videos in a database |
+| `scout_status` | scene_scout/ | Get Scene Scout model and root status |
+| `scout_search` | scene_scout/ | Query scenes with SigLIP 2 embeddings (daemon or one-shot) |
+| `scout_add_video` | scene_scout/ | Index video scenes into a database. Optional `scenes` (`[start_ms, end_ms]` pairs from a home episode's manifest) skips detection: sent as `scenes` to the daemon, as `--scenes-json <tmp file>` to the CLI (CLI ≥ 0.9.0) |
+| `abort_scout_index` | scene_scout/ | Kill active indexing process tree |
+| `scout_unload_model` | scene_scout/ | Unload model weights from memory |
 
 ---
 

@@ -24,8 +24,7 @@ export default function SceneScoutPage() {
 
   useScoutThumbnailQueue();
 
-  // the grid is shared with the episode pages, so whatever was in it has to be
-  // put back on the way out or leaving Scene Scout would blank the Home grid
+  // the grid is shared with home, so its clips are restored on the way out
   const prevClipsRef = useRef<ReturnType<typeof useAppStateStore.getState>["clips"] | null>(null);
   const prevVideoPathRef = useRef<string | null>(null);
   const mountedRef = useRef(false);
@@ -45,8 +44,7 @@ export default function SceneScoutPage() {
       state.setImportToken(Date.now().toString());
       state.setFocusedClip(null);
       state.setFocusedClipId(null);
-      // selection is keyed by clip id and the ids differ per page, so anything
-      // left selected here would keep inflating the episode grid's count
+      // clip ids differ per page, so a leftover selection would inflate home's count
       state.setSelectedClips(new Set());
     };
   }, []);
@@ -67,13 +65,10 @@ export default function SceneScoutPage() {
     state.setFocusedClipId(null);
   }, [clips]);
 
-  // until the first search or flow of the session, both tabs show the centered first-visit
-  // layout. after that each tab has its own toolbar and view. the preview pane stays on both:
-  // it plays the clicked result and exports it
+  // both tabs show the centered layout until the session's first search or flow
   const firstVisit = !heroDismissed;
 
-  // the first-visit layout keeps its controls in the centre, but still reserves the toolbar
-  // row, so the preview pane starts at the same height as on home and both tabs
+  // an empty toolbar row keeps the preview pane at home's height on the first-visit layout
   let toolbar: ReactNode = <div className="clips-import grid-toolbar" aria-hidden="true" />;
   let left: ReactNode;
   if (firstVisit) left = <SceneScoutHero />;

@@ -34,8 +34,7 @@ function restartPlayback(videoRef: RefObject<HTMLVideoElement | null>) {
   }, 0);
 }
 
-// owns which file the <video> actually plays: the raw source, an HEVC or
-// audio-mapped proxy, or a concat preview for merged clips
+// which file the <video> plays: the source, an HEVC or audio-mapped proxy, or a merged-clip concat
 export function useClipVideoSource({
   clip,
   index,
@@ -63,8 +62,7 @@ export function useClipVideoSource({
   // the source file itself is gone, so there is nothing to fall back to either
   const [sourceMissingKey, setSourceMissingKey] = useState<string | null>(null);
 
-  // refs, not state: these guard against a second request starting in the same
-  // tick, so the write has to land synchronously
+  // refs, not state, so a second request in the same tick sees the guard
   const proxyInFlightRef = useRef(false);
   const mergedInFlightRef = useRef(false);
   const mergedFetchedKeyRef = useRef<string | null>(null);
@@ -78,8 +76,7 @@ export function useClipVideoSource({
   const proxyAudioStreamIndex =
     selectedMappedAudioStreamIndex !== null && audioPlaybackHover ? selectedMappedAudioStreamIndex : null;
 
-  // identifies exactly which proxy this tile wants, so a quality or language
-  // change rebuilds it instead of reusing a stale file
+  // the exact proxy this tile wants, so a quality or language change rebuilds it
   const targetVideoPath = clip.clipPath ?? clip.src;
   const videoProxyKey =
     isVideoMode && targetVideoPath
@@ -151,9 +148,7 @@ export function useClipVideoSource({
       return;
     }
 
-    // gated on decodability, not on the transcode preference: this queue exists so
-    // an unplayable source can be previewed at all, and using the preference here
-    // would queue encodes in WebP mode, which never plays video
+    // gated on decodability, not the transcode preference, or WebP mode would queue encodes it never plays
     const wantsProxyNow = needsHevcProxy && isVisible && effectiveSrc === originalPath;
     if (wantsProxyNow) {
       reportProxyDemand(originalPath, { order: index, priority: isHovered });
@@ -161,8 +156,7 @@ export function useClipVideoSource({
       clear();
     }
 
-    // tiles unmount as they scroll out, so demand has to be withdrawn or the queue
-    // keeps entries for tiles that are gone
+    // withdrawn on unmount, or the queue keeps entries for tiles scrolled away
     return clear;
   }, [
     gridPreview,
@@ -176,16 +170,14 @@ export function useClipVideoSource({
     reportProxyDemand,
   ]);
 
-  // video mode proxies the cut clip: one call covers both an undecodable codec and
-  // a non-default preview language, so a tile never builds two files
+  // video mode proxies the cut clip once, covering both an undecodable codec and a non-default language
   useEffect(() => {
     if (!isVideoMode || !clip.clipPath || !videoProxyKey) return;
     if (videoProxySrc) return;
 
     const wantsAudioMapped = proxyAudioStreamIndex !== null && isHovered;
     if (!needsPreviewTranscode && !wantsAudioMapped) return;
-    // mirrors shouldMountVideo: keying this off visibility queued an encode per
-    // on-screen tile and froze the app
+    // mirrors shouldMountVideo; keying off visibility queued an encode per tile and froze the app
     if (!isHovered && !(gridPreview && staggerReady)) return;
 
     const requestedKey = videoProxyKey;
@@ -284,8 +276,7 @@ export function useClipVideoSource({
     ensurePreviewProxyPath,
   ]);
 
-  // stream-copy concat preview for merged clips, skipped for HEVC since the proxy
-  // above already covers it
+  // stream-copy concat preview for merged clips (HEVC is covered by the proxy above)
   useEffect(() => {
     if (!mergedSrcsKey || !clip.mergedSrcs) return;
     if (needsHevcProxy || !isVisible) return;

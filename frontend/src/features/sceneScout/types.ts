@@ -1,9 +1,4 @@
-/**
- * Scene Scout wire types.
- *
- * These mirror `frontend/src-tauri/src/commands/scene_scout.rs`, which in turn
- * mirrors the CLI's JSON. All three have to move together.
- */
+// wire types mirroring `src-tauri/src/commands/scene_scout/types.rs` and the cli's json; all three move together
 
 /** A search database on disk, and what it holds. */
 export type ScoutDatabase = {
@@ -85,12 +80,7 @@ export type ScoutIndexProgress = {
   video: string | null;
 };
 
-/**
- * What the search settings dropdown controls.
- *
- * Persisted with the rest of the app's settings, so a user's tuning survives a
- * restart the way every other preference does.
- */
+/** what the search settings dropdown controls, persisted like every other preference */
 export type ScoutSearchSettings = {
   /** how many results a search returns */
   topK: number;

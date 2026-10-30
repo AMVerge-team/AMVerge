@@ -14,10 +14,7 @@ import { ScoutModeTabs } from "./ScoutModeTabs";
 import { AddEpisodeButton } from "./AddEpisodeButton";
 import { FlowHeroClip } from "./flow/FlowHeroClip";
 
-/**
- * the centered layout Scene Scout opens with, once per app session: pick or create a
- * database, index episodes, run the first search. that search slides the bar to the top
- */
+/** the centered layout Scene Scout opens with each session, until the first search slides the bar up */
 export function SceneScoutHero() {
   const databases = useSceneScoutStore((s) => s.databases);
   const loading = useSceneScoutStore((s) => s.loading);

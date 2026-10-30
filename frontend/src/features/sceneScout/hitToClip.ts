@@ -27,12 +27,7 @@ export function hitToClipItem(hit: ScoutHit, index: number): ClipItem {
   };
 }
 
-/**
- * Cache id for a database's animated previews.
- *
- * Prefixed so it can never collide with a real episode cache id, which is
- * derived from a filename.
- */
+/** cache id for a database's animated previews, prefixed so it never collides with an episode's */
 export function scoutCacheId(database: string): string {
   const sanitized = database.replace(/[^A-Za-z0-9_-]+/g, "_");
   if (sanitized.length <= 60) return `scoutcache_${sanitized}`;

@@ -13,11 +13,7 @@ import { FlowPlayer } from "./FlowPlayer";
 const MIN_PLAYER_PX = 120;
 const MIN_GRID_PX = 160;
 
-/**
- * The Flow tab: the clip being cut from on top, every scene that could follow
- * it underneath, with a draggable bar between them. Clicking a result plays it
- * in the regular preview pane, which also exports it, exactly as on the Search tab.
- */
+/** the Flow tab: the inputted clip on top, the scenes that could follow it below, a draggable bar between */
 export function SceneScoutFlowView() {
   const flowFrom = useSceneScoutStore((s) => s.flowFrom);
   const noDatabase = useSceneScoutStore((s) => s.selectedDatabases.length === 0);
@@ -27,8 +23,7 @@ export function SceneScoutFlowView() {
   const viewRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLDivElement>(null);
 
-  // the tallest the clip area can usefully be: past this the video is already as wide as
-  // the pane, so a taller area would only add empty space above it
+  // past this height the video is already full width, so more would only add empty space
   const fullVideoHeight = (input: HTMLDivElement) => {
     const style = getComputedStyle(input);
     const innerWidth = input.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);

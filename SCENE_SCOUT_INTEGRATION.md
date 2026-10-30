@@ -9,7 +9,7 @@ I created the commands of the feature like the database creation, deletion, etc 
 ```
 AMVerge V2 (React)                AMVerge V2 (Rust)              AMVerge-CLI (Python)
 ────────────────────              ─────────────────              ────────────────────
-SceneScoutPage                    scene_scout.rs                 amverge scout ...
+SceneScoutPage                    scene_scout/                   amverge scout ...
 SceneScoutToolbar        invoke   - resolves --root      spawn   - core/scenescout/
 SceneScoutPanel        ────────►  - parses JSON        ────────► - SQLite + SigLIP 2
 sceneScoutStore                   - streams progress             - JSON on --json
@@ -239,7 +239,7 @@ frontend/src/
 ├── pages/SceneScoutPage.tsx
 └── styles/sceneScout.css
 
-frontend/src-tauri/src/commands/scene_scout.rs
+frontend/src-tauri/src/commands/scene_scout/
 ```
 
 Everything Scene Scout owns is under a `sceneScout` folder in each layer.

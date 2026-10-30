@@ -16,11 +16,7 @@ type DragState = {
   pointerId: number;
 };
 
-/**
- * pointer-driven drag between the panel's two lists, like usePackDrag. the
- * window intercepts native drag events, so rows are dragged by hand and the list
- * under the cursor is found with elementFromPoint via `data-scout-list`
- */
+/** pointer drag between the panel's two lists (the window eats native drag events), like usePackDrag */
 export function useScoutDbDrag(onDrop: (paths: string[], to: ScoutList) => void) {
   const [dropList, setDropList] = useState<ScoutList | null>(null);
   const [ghost, setGhost] = useState<{ x: number; y: number; count: number } | null>(null);

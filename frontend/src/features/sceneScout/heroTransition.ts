@@ -1,5 +1,4 @@
-// where the first-visit search bar sat when it was first used; the top layout reads it
-// once on mount and slides its own copy from there
+// where the first-visit search bar sat when first used; the top layout slides its bar from there
 let pending: DOMRect | null = null;
 
 export function setHeroFlip(rect: DOMRect): void {

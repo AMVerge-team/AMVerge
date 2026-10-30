@@ -1,6 +1,7 @@
 //! capped, least-recently-used cache of playable previews for files the app does not own (scout ranges, flow picks)
 
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, SystemTime};
 
 use tauri::{AppHandle, Manager};
@@ -87,10 +88,19 @@ fn prune(dir: &Path, max_bytes: u64) {
     console_log("PREVIEW|cache", &format!("pruned {} MB, {} MB left", (before - total) >> 20, total >> 20));
 }
 
+/// set while a prune runs, so a burst of new previews scans the folder once, not once each
+static PRUNING: AtomicBool = AtomicBool::new(false);
+
 /// prunes on a blocking thread without making the caller wait
 pub(crate) fn prune_in_background(app: &AppHandle) {
     let Ok(dir) = preview_cache_dir(app) else { return };
-    tauri::async_runtime::spawn_blocking(move || prune(&dir, MAX_CACHE_BYTES));
+    if PRUNING.swap(true, Ordering::AcqRel) {
+        return;
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        prune(&dir, MAX_CACHE_BYTES);
+        PRUNING.store(false, Ordering::Release);
+    });
 }
 
 #[cfg(test)]

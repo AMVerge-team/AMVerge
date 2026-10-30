@@ -2,13 +2,7 @@ import { useSceneScoutStore } from "../../../stores/sceneScoutStore";
 import { pickFlowClip } from "../../../features/sceneScout/pickFlowClip";
 import { FindMatchesIcon } from "../../icons/ToolbarIcons";
 
-/**
- * The Flow tab's part of the first-visit layout: a dashed bar, the same size as
- * the Search tab's search bar, that picks the clip to continue.
- *
- * `blockedHint` says why nothing can be searched yet (no database selected, or
- * an empty one); while it is set the bar stays disabled and shows the hint.
- */
+/** the Flow tab's first-visit clip picker; `blockedHint` disables it and says why nothing can be searched yet */
 export function FlowHeroClip({ blockedHint }: { blockedHint: string | null }) {
   const startFlowSearch = useSceneScoutStore((s) => s.startFlowSearch);
 

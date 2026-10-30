@@ -6,10 +6,6 @@ const MAX_CONCURRENCY = 2;
 const MAX_CACHE_SIZE = 300;
 const THUMB_CACHE = new Map<string, string>();
 
-function cacheGet(key: string): string | undefined {
-  return THUMB_CACHE.get(key);
-}
-
 function cacheSet(key: string, value: string): void {
   if (THUMB_CACHE.size >= MAX_CACHE_SIZE) {
     const oldestKey = THUMB_CACHE.keys().next().value;
@@ -18,119 +14,64 @@ function cacheSet(key: string, value: string): void {
   THUMB_CACHE.set(key, value);
 }
 
+/** marks clips as having their thumbnail settled, with the frame when one was found */
+function applyThumbnails(thumbs: Map<string, string | null>): void {
+  const state = useAppStateStore.getState();
+  state.setClips(
+    state.clips.map((c) => {
+      if (!thumbs.has(c.id)) return c;
+      const thumbnail = thumbs.get(c.id);
+      return thumbnail ? { ...c, thumbnail, scoutNeedsThumb: false } : { ...c, scoutNeedsThumb: false };
+    })
+  );
+}
+
+/** shows a frame right away for hits without a stored thumbnail, while the database backfill writes the permanent one */
 export function useScoutThumbnailQueue(): void {
   const clips = useAppStateStore((s) => s.clips);
   const importToken = useAppStateStore((s) => s.importToken);
 
   const activeWorkersRef = useRef(0);
-  const queueRef = useRef<string[]>([]);
-  const pendingClipsRef = useRef(new Map<string, { src: string; startSec: number }>());
-  const cancelledEpochRef = useRef(0);
+  // survives re-runs: every finished thumbnail changes `clips`, and the others must not restart
+  const inFlightRef = useRef(new Set<string>());
+  const epochRef = useRef(0);
 
   useEffect(() => {
-    cancelledEpochRef.current += 1;
-    const currentEpoch = cancelledEpochRef.current;
-
-    // shows a frame right away while the database backfill writes the permanent one
-    const needed: string[] = [];
-    const clipMap = new Map<string, { src: string; startSec: number }>();
-    const immediateUpdates: Array<{ id: string; thumbnail: string }> = [];
+    const epoch = ++epochRef.current;
+    const cached = new Map<string, string | null>();
+    const queue: Array<{ id: string; src: string; startSec: number }> = [];
 
     for (const clip of clips) {
-      if (!clip.scoutNeedsThumb) continue;
-      const cached = cacheGet(clip.id);
-      if (cached) {
-        immediateUpdates.push({ id: clip.id, thumbnail: cached });
-      } else {
-        needed.push(clip.id);
-        clipMap.set(clip.id, {
-          src: clip.originalPath || clip.src,
-          startSec: clip.startSec ?? 0,
-        });
-      }
+      if (!clip.scoutNeedsThumb || inFlightRef.current.has(clip.id)) continue;
+      const hit = THUMB_CACHE.get(clip.id);
+      if (hit) cached.set(clip.id, hit);
+      else queue.push({ id: clip.id, src: clip.originalPath || clip.src, startSec: clip.startSec ?? 0 });
     }
+    if (cached.size) applyThumbnails(cached);
 
-    if (immediateUpdates.length > 0) {
-      const state = useAppStateStore.getState();
-      const updatedClips = state.clips.map((c) => {
-        const match = immediateUpdates.find((u) => u.id === c.id);
-        if (match) {
-          return { ...c, thumbnail: match.thumbnail, scoutNeedsThumb: false };
-        }
-        return c;
-      });
-      state.setClips(updatedClips);
-    }
-
-    queueRef.current = needed;
-    pendingClipsRef.current = clipMap;
-
-    const pumpQueue = async () => {
-      while (
-        activeWorkersRef.current < MAX_CONCURRENCY &&
-        queueRef.current.length > 0 &&
-        currentEpoch === cancelledEpochRef.current
-      ) {
-        const nextId = queueRef.current.shift();
-        if (!nextId) break;
-
-        const info = pendingClipsRef.current.get(nextId);
-        if (!info) continue;
-
+    const pump = () => {
+      while (activeWorkersRef.current < MAX_CONCURRENCY && queue.length && epoch === epochRef.current) {
+        const job = queue.shift()!;
         activeWorkersRef.current += 1;
+        inFlightRef.current.add(job.id);
 
-        (async () => {
-          try {
-            const dataUrl = await invoke<string | null>(
-              "extract_scout_thumbnail_memory",
-              {
-                videoPath: info.src,
-                timestampSec: info.startSec,
-              }
-            );
-
-            if (currentEpoch !== cancelledEpochRef.current) return;
-
-            const state = useAppStateStore.getState();
-            if (dataUrl) {
-              cacheSet(nextId, dataUrl);
-              state.setClips(
-                state.clips.map((c) =>
-                  c.id === nextId
-                    ? { ...c, thumbnail: dataUrl, scoutNeedsThumb: false }
-                    : c
-                )
-              );
-            } else {
-              state.setClips(
-                state.clips.map((c) =>
-                  c.id === nextId ? { ...c, scoutNeedsThumb: false } : c
-                )
-              );
-            }
-          } catch {
-            if (currentEpoch === cancelledEpochRef.current) {
-              const state = useAppStateStore.getState();
-              state.setClips(
-                state.clips.map((c) =>
-                  c.id === nextId ? { ...c, scoutNeedsThumb: false } : c
-                )
-              );
-            }
-          } finally {
+        invoke<string | null>("extract_scout_thumbnail_memory", { videoPath: job.src, timestampSec: job.startSec })
+          .catch(() => null)
+          .then((dataUrl) => {
+            if (dataUrl) cacheSet(job.id, dataUrl);
+            applyThumbnails(new Map([[job.id, dataUrl]]));
+          })
+          .finally(() => {
+            inFlightRef.current.delete(job.id);
             activeWorkersRef.current = Math.max(0, activeWorkersRef.current - 1);
-            if (currentEpoch === cancelledEpochRef.current) {
-              void pumpQueue();
-            }
-          }
-        })();
+            pump();
+          });
       }
     };
-
-    void pumpQueue();
+    pump();
 
     return () => {
-      cancelledEpochRef.current += 1;
+      epochRef.current += 1;
     };
   }, [clips, importToken]);
 }

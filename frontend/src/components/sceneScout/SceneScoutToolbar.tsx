@@ -29,13 +29,7 @@ import {
 
 const OPTIONS_POP_WIDTH = 300;
 
-/**
- * Toolbar for the Scene Scout Search tab: Add Episode, the tabs, and the search
- * settings dropdown. The search field sits in the left pane (SceneScoutSearchView).
- *
- * Takes the place of the import row, exactly as `EventsToolbar` does, so the
- * page keeps the same frame as the rest of the app.
- */
+/** the Search tab's toolbar (Add Episode, tabs, search settings), in place of home's import row */
 export function SceneScoutToolbar() {
   const query = useSceneScoutStore((s) => s.query);
   const runSearch = useSceneScoutStore((s) => s.runSearch);
@@ -49,8 +43,7 @@ export function SceneScoutToolbar() {
   const loading = useSceneScoutStore((s) => s.loading);
   const storeError = useSceneScoutStore((s) => s.error);
 
-  // the row is padded to clear the preview pane, so the search field ends at
-  // the grid's right edge instead of running under the panel
+  // padded so the row ends at the grid's edge instead of running under the preview pane
   const clearOfPreview = usePreviewPaneClearance();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -91,10 +84,7 @@ export function SceneScoutToolbar() {
   const noDatabaseOpen = !opened && selectedDatabases.length === 0;
   const GATE_HINT = "Please select a Database or Create one on the left panel first.";
 
-  // sticky, so picking Custom keeps the box open while the field is empty and
-  // topK still holds its previous preset value
-  // while true the trigger is a text field rather than a dropdown, so the
-  // number is typed in place instead of in a box beside it
+  // while set, the result count trigger is a text field; sticky so an empty Custom box stays open
   const [editingTopK, setEditingTopK] = useState(false);
   const [topKDraft, setTopKDraft] = useState("");
 
@@ -178,8 +168,7 @@ export function SceneScoutToolbar() {
   const { startAddEpisodes, modal: addModal, error: addError } = useAddEpisodes();
   const error = addError;
 
-  // arriving from the centered first-visit layout: fade in the controls that were hidden there.
-  // read on first render, before the search view below uses the slide up
+  // coming from the first-visit layout, fade in its hidden controls (read before the search view uses the slide)
   const [revealed] = useState(heroFlipPending);
 
   return (

@@ -15,12 +15,7 @@ const VIDEO_EXTENSIONS = ["mp4", "mkv", "mov", "avi"];
 
 type IndexDetection = "transnetv2_gpu" | "keyframe_detection";
 
-/**
- * Add Episode, in two ways. The first popup offers both: episodes already imported
- * on home (left), whose scenes are reused so detection is skipped, or a full video
- * file (right), which then asks how scenes should be found, defaulting to the last
- * choice. With no home episodes to offer it goes straight to the file picker.
- */
+/** Add Episode: reuse a home episode's scenes, or pick a full video and choose detection; no home episodes skips to the picker */
 export function useAddEpisodes() {
   const addVideos = useSceneScoutStore((s) => s.addVideos);
   const lastIndexDetection = useSceneScoutStore((s) => s.settings.lastIndexDetection);

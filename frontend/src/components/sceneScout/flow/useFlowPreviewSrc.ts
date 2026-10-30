@@ -3,13 +3,7 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 
 import type { FlowSource } from "../../../features/sceneScout/types";
 
-/**
- * A browser-playable URL for a flow clip.
- *
- * A range inside an episode gets the same short 480p cut Scene Scout tiles use
- * (`ensure_scene_range_preview`); a whole file gets the usual x264 proxy, since
- * a picked clip is often HEVC or MKV the webview cannot play directly.
- */
+/** a playable url for a flow clip: a range gets the tiles' scene cut, a whole file the x264 proxy */
 export function useFlowPreviewSrc(source: FlowSource | null): { src: string | null; failed: boolean } {
   const [state, setState] = useState<{ key: string; src: string | null; failed: boolean }>({
     key: "",

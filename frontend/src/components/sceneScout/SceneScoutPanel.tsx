@@ -25,19 +25,7 @@ import { useCreateScoutDatabase } from "./useCreateScoutDatabase";
 
 type DbMenu = { list: ScoutList; paths: string[]; x: number; y: number };
 
-/**
- * Sidebar panel for Scene Scout: the search databases, and what is indexed into
- * whichever one is open.
- *
- * Built on the same `eps-container` / `episode-panel` shell the episode and
- * Scenepacks panels use, so the border, scrollbar, header and search field are
- * literally the same components rather than a lookalike. A row is an
- * `episode-panel-row episode-row`, which is what gives it the hover and
- * selected states for free.
- *
- * TODO(scene-scout): context menus (rename, reveal in explorer) and drag-drop of
- * a video onto a database. `components/sidebar/episodePanel/` is the reference.
- */
+/** sidebar panel for the databases and their episodes, on the same shell as the episode and Scenepacks panels */
 export function SceneScoutPanel() {
   const databases = useSceneScoutStore((s) => s.databases);
   const opened = useSceneScoutStore((s) => s.openedDatabase);
@@ -120,8 +108,7 @@ export function SceneScoutPanel() {
 
   useEscapeToClose(() => setMenu(null), menu !== null);
 
-  // filters the panel's own lists. unrelated to searching scenes, which is the
-  // bar above the grid
+  // filters the panel's own lists, not scenes
   const visible = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return databases;

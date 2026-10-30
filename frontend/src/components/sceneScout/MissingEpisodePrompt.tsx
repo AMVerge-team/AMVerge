@@ -6,10 +6,7 @@ import { useSceneScoutStore } from "../../stores/sceneScoutStore";
 
 type Missing = { database: string; videoPath: string; name: string };
 
-/**
- * a scout hit plays a range of its source episode. a database brought in from elsewhere
- * can point at episodes this computer does not have, so clicking one asks to drop it
- */
+/** clicking a hit whose source episode isn't on this computer offers to drop it from the database */
 export function MissingEpisodePrompt() {
   const focusedClipId = useAppStateStore((s) => s.focusedClipId);
   const [missing, setMissing] = useState<Missing | null>(null);

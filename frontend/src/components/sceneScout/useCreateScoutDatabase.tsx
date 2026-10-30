@@ -5,10 +5,7 @@ import { FaDatabase } from "react-icons/fa";
 import ModalShell from "../common/ModalShell";
 import { useSceneScoutStore } from "../../stores/sceneScoutStore";
 
-/**
- * pick a location, create the file, then ask what to call it in the app.
- * shared by the sidebar panel and the centered first-visit layout
- */
+/** pick a location, create the file, then name it in the app (panel and first-visit layout) */
 export function useCreateScoutDatabase(onCreated?: (path: string) => void) {
   const createDatabase = useSceneScoutStore((s) => s.createDatabase);
   const renameDatabase = useSceneScoutStore((s) => s.renameDatabase);
@@ -33,8 +30,7 @@ export function useCreateScoutDatabase(onCreated?: (path: string) => void) {
       return;
     }
 
-    // default the label to the file they just named, keyed by the cli's resolved path
-    // so it matches the entry in the database list
+    // label defaults to the file name, keyed by the cli's resolved path like the database list
     const fileStem = result.path.split(/[/\\]/).pop()?.replace(/\.scoutdb$/i, "") ?? "Database";
     setDraftName(fileStem);
     setNamingPath(result.path);

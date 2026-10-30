@@ -39,11 +39,7 @@ function customPath(): string | null {
   return useGeneralSettingsStore.getState().episodesPath;
 }
 
-/**
- * Removes episodes an add-episode run stopped part way through. The CLI marks an
- * episode `indexing` until its last write, so whatever still says that after a stop
- * or failure is half-done. Completed episodes are never touched.
- */
+/** removes episodes a stopped add left half-indexed (the cli marks them `indexing` until the last write) */
 async function discardUnfinishedVideos(database: string): Promise<void> {
   try {
     const videos = await scoutListVideos(database, customPath());
@@ -56,12 +52,7 @@ async function discardUnfinishedVideos(database: string): Promise<void> {
   }
 }
 
-/**
- * Runs a search, showing the "Loading SigLIP 2 model weights…" card if the
- * model has to load first (the first Search or Flow of a session, or after it
- * was unloaded). Rust announces that with a `loading_model` progress event; a
- * search that finds the model already loaded never opens the card.
- */
+/** runs a search, showing the model loading card only when rust announces a `loading_model` stage */
 async function withModelLoadingCard<T>(search: () => Promise<T>): Promise<T> {
   const appState = useAppStateStore.getState();
   let cardOpened = false;
@@ -109,15 +100,13 @@ type SceneScoutState = {
 
   settings: ScoutSearchSettings;
 
-  /** absolute paths of databases the user saved outside the managed folder.
-   *  they never show up in the root listing, so the app has to remember them */
+  /** databases saved outside the managed folder, which the root listing never shows */
   externalPaths: string[];
   unloadedPaths: string[];
   displayNames: Record<string, string>;
   /** height of the panel's searching box, as a percent of the two boxes together */
   panelSplitPct: number;
-  /** runtime only: the centered first-visit layout gives way to the top layout after the first
-   *  search or flow, on both tabs */
+  /** runtime only: the first search or flow swaps the centered first-visit layout for the top one */
   heroDismissed: boolean;
   /** runtime only: which Scene Scout tab is showing; search and flow keep separate results */
   mode: ScoutMode;
@@ -140,8 +129,8 @@ type SceneScoutActions = {
   deleteDatabase: (name: string) => Promise<void>;
   openDatabase: (name: string | null) => Promise<void>;
   toggleDatabaseExpanded: (path: string) => Promise<void>;
-  selectDatabase: (path: string, mode?: "single" | "toggle" | "range", allPaths?: string[]) => void;
-  selectVideo: (videoPath: string, parentDbPath: string, mode?: "single" | "toggle" | "range", allVideoPaths?: string[]) => void;
+  selectDatabase: (path: string, mode?: SelectMode, allPaths?: string[]) => void;
+  selectVideo: (videoPath: string, parentDbPath: string, mode?: SelectMode, allVideoPaths?: string[]) => void;
   selectAllDatabases: () => void;
   clearSelection: () => void;
   addToSearch: (paths: string[]) => void;
@@ -229,6 +218,63 @@ function isUnderRoot(path: string, root: string | null | undefined): boolean {
   return path.replace(/\\/g, "/").toLowerCase().startsWith(`${dir}/`);
 }
 
+type SelectMode = "single" | "toggle" | "range";
+
+/** click, ctrl-click or shift-click selection over an ordered list */
+function nextSelection(current: string[], item: string, mode: SelectMode, all: string[]): string[] {
+  if (mode === "toggle") {
+    return current.includes(item) ? current.filter((p) => p !== item) : [...current, item];
+  }
+  if (mode === "range" && current.length > 0 && all.length > 0) {
+    const startIdx = all.indexOf(current[current.length - 1]);
+    const endIdx = all.indexOf(item);
+    if (startIdx >= 0 && endIdx >= 0) {
+      const range = all.slice(Math.min(startIdx, endIdx), Math.max(startIdx, endIdx) + 1);
+      return Array.from(new Set([...current, ...range]));
+    }
+  }
+  return [item];
+}
+
+/** why a search or flow can't run yet, or null when it can */
+async function searchBlocker(): Promise<string | null> {
+  // an empty list makes the CLI fall back to every file in the managed folder, which is not what the panel shows
+  if (useSceneScoutStore.getState().selectedDatabases.length === 0) {
+    return "Add a database to the Searching list on the left first.";
+  }
+  if (!(await useAiDepsStore.getState().ensurePack("scout"))) return "Scene Scout needs its AI pack installed.";
+  return null;
+}
+
+/** remembers a database outside the managed folder, which the root listing can't find on its own */
+async function rememberIfExternal(path: string): Promise<void> {
+  const store = useSceneScoutStore.getState();
+  // a null root must not misclassify an in-root database as external
+  if (!store.status) await store.refreshStatus();
+  const { status, externalPaths } = useSceneScoutStore.getState();
+  const isExternal = !status?.root || !isUnderRoot(path, status.root);
+  if (isExternal && !externalPaths.some((p) => samePath(p, path))) {
+    useSceneScoutStore.setState({ externalPaths: [...externalPaths, path] });
+  }
+}
+
+/** the panel state with one database forgotten, shared by unload and delete */
+function forgetDatabase(state: SceneScoutState, path: string) {
+  const expandedDatabases = { ...state.expandedDatabases };
+  delete expandedDatabases[path];
+  const videosByDatabase = { ...state.videosByDatabase };
+  delete videosByDatabase[path];
+  const wasOpen = !!state.openedDatabase && samePath(state.openedDatabase, path);
+  return {
+    selectedDatabases: state.selectedDatabases.filter((p) => !samePath(p, path)),
+    expandedDatabases,
+    videosByDatabase,
+    externalPaths: state.externalPaths.filter((p) => !samePath(p, path)),
+    openedDatabase: wasOpen ? null : state.openedDatabase,
+    videos: wasOpen ? [] : state.videos,
+  };
+}
+
 export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
   persist(
     (set, get) => ({
@@ -238,16 +284,13 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         try {
           set({ status: await scoutStatus(customPath()) });
         } catch (err) {
-          // a failing status is not fatal: databases still list, and the page
-          // explains a missing model rather than blocking on it
+          // not fatal: databases still list, and the page explains a missing model
           set({ status: null, error: message(err) });
         }
       },
 
       loadDatabases: async () => {
-        // only show a spinner when there is genuinely nothing to display. with a
-        // cached list the panel renders instantly, like the episode and
-        // Scenepacks panels do, and this refresh happens silently behind it
+        // a cached list renders at once and refreshes silently; the spinner is only for an empty panel
         set({ loading: get().databases.length === 0, error: null });
         try {
           const inRoot = await scoutListDatabases(customPath());
@@ -269,15 +312,13 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           }
           set({ databases, externalPaths: externalOnly, loading: false });
 
-          // the opened database can vanish (deleted here or elsewhere), and a
-          // panel pointing at nothing would keep showing its stale video list
+          // the opened database can vanish (deleted here or elsewhere); drop its stale video list
           const opened = get().openedDatabase;
           if (opened && !databases.some((d) => samePath(d.path, opened))) {
             set({ openedDatabase: null, videos: [] });
           }
 
-          // "Search in" selections persist; drop any that no longer resolve to
-          // a real database so the chips never point at nothing
+          // persisted "Search in" chips must never point at a database that is gone
           const settings = get().settings;
           const kept = settings.selectedDatabases.filter((p) =>
             databases.some((d) => samePath(d.path, p))
@@ -294,19 +335,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       createDatabase: async (pathOrName) => {
         try {
           const created = await scoutCreateDatabase(pathOrName, customPath());
-
-          // status may still be mid round-trip on a freshly opened page, and a
-          // null root must not misclassify an in-root database as external
-          if (!get().status) await get().refreshStatus();
-
-          // remember it only when it landed outside the managed folder, which is
-          // the case the root listing cannot find on its own
-          const root = get().status?.root;
-          const isExternal = !root || !isUnderRoot(created.path, root);
-          if (isExternal && !get().externalPaths.some((p) => samePath(p, created.path))) {
-            set({ externalPaths: [...get().externalPaths, created.path] });
-          }
-
+          await rememberIfExternal(created.path);
           await get().loadDatabases();
           return { ok: true, message: null, path: created.path };
         } catch (err) {
@@ -322,14 +351,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         appState.setProgressMsg(`Opening database ${baseName}…`);
         try {
           const db = await scoutOpenDatabase(filePath, customPath());
-
-          if (!get().status) await get().refreshStatus();
-
-          const root = get().status?.root;
-          const isExternal = !root || !isUnderRoot(db.path, root);
-          if (isExternal && !get().externalPaths.some((p) => samePath(p, db.path))) {
-            set({ externalPaths: [...get().externalPaths, db.path] });
-          }
+          await rememberIfExternal(db.path);
 
           if (get().unloadedPaths.some((p) => samePath(p, db.path))) {
             set({ unloadedPaths: get().unloadedPaths.filter((p) => !samePath(p, db.path)) });
@@ -360,30 +382,13 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
 
       unloadDatabase: (path) => {
         set((state) => {
-          const nextSelected = state.selectedDatabases.filter((p) => !samePath(p, path));
-          const nextExpanded = { ...state.expandedDatabases };
-          delete nextExpanded[path];
-          const nextVByDb = { ...state.videosByDatabase };
-          delete nextVByDb[path];
-          const nextExternal = state.externalPaths.filter((p) => !samePath(p, path));
-
-          const root = state.status?.root;
-          const isUnderManagedRoot = root && isUnderRoot(path, root);
-          const nextUnloaded = isUnderManagedRoot && !state.unloadedPaths.some((p) => samePath(p, path))
-            ? [...state.unloadedPaths, path]
-            : state.unloadedPaths;
-
-          const nextDatabases = state.databases.filter((d) => !samePath(d.path, path));
-
+          // a database in the managed folder would come back with the next listing unless it is remembered as unloaded
+          const hideFromListing =
+            isUnderRoot(path, state.status?.root) && !state.unloadedPaths.some((p) => samePath(p, path));
           return {
-            databases: nextDatabases,
-            selectedDatabases: nextSelected,
-            expandedDatabases: nextExpanded,
-            videosByDatabase: nextVByDb,
-            externalPaths: nextExternal,
-            unloadedPaths: nextUnloaded,
-            openedDatabase: state.openedDatabase && samePath(state.openedDatabase, path) ? null : state.openedDatabase,
-            videos: state.openedDatabase && samePath(state.openedDatabase, path) ? [] : state.videos,
+            ...forgetDatabase(state, path),
+            databases: state.databases.filter((d) => !samePath(d.path, path)),
+            unloadedPaths: hideFromListing ? [...state.unloadedPaths, path] : state.unloadedPaths,
           };
         });
       },
@@ -391,24 +396,10 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       deleteDatabase: async (name) => {
         try {
           await scoutDeleteDatabase(name, customPath());
-          set((state) => {
-            const nextSelected = state.selectedDatabases.filter((p) => !samePath(p, name));
-            const nextExpanded = { ...state.expandedDatabases };
-            delete nextExpanded[name];
-            const nextVByDb = { ...state.videosByDatabase };
-            delete nextVByDb[name];
-            const nextExternal = state.externalPaths.filter((p) => !samePath(p, name));
-            const nextUnloaded = state.unloadedPaths.filter((p) => !samePath(p, name));
-            return {
-              selectedDatabases: nextSelected,
-              expandedDatabases: nextExpanded,
-              videosByDatabase: nextVByDb,
-              externalPaths: nextExternal,
-              unloadedPaths: nextUnloaded,
-              openedDatabase: state.openedDatabase && samePath(state.openedDatabase, name) ? null : state.openedDatabase,
-              videos: state.openedDatabase && samePath(state.openedDatabase, name) ? [] : state.videos,
-            };
-          });
+          set((state) => ({
+            ...forgetDatabase(state, name),
+            unloadedPaths: state.unloadedPaths.filter((p) => !samePath(p, name)),
+          }));
           await get().loadDatabases();
         } catch (err) {
           set({ error: message(err) });
@@ -434,27 +425,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       },
 
       selectDatabase: (path, mode = "single", allPaths = []) => {
-        const currentSelected = get().selectedDatabases;
-        let nextSelected: string[] = [];
-        if (mode === "toggle") {
-          nextSelected = currentSelected.includes(path)
-            ? currentSelected.filter((p) => p !== path)
-            : [...currentSelected, path];
-        } else if (mode === "range" && currentSelected.length > 0 && allPaths.length > 0) {
-          const last = currentSelected[currentSelected.length - 1];
-          const startIdx = allPaths.indexOf(last);
-          const endIdx = allPaths.indexOf(path);
-          if (startIdx >= 0 && endIdx >= 0) {
-            const lo = Math.min(startIdx, endIdx);
-            const hi = Math.max(startIdx, endIdx);
-            const range = allPaths.slice(lo, hi + 1);
-            nextSelected = Array.from(new Set([...currentSelected, ...range]));
-          } else {
-            nextSelected = [path];
-          }
-        } else {
-          nextSelected = [path];
-        }
+        const nextSelected = nextSelection(get().selectedDatabases, path, mode, allPaths);
         set({
           selectedDatabases: nextSelected,
           selectedVideos: [],
@@ -463,30 +434,9 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       },
 
       selectVideo: (videoPath, parentDbPath, mode = "single", allVideoPaths = []) => {
-        const currentSelected = get().selectedVideos;
-        let nextSelected: string[] = [];
-        if (mode === "toggle") {
-          nextSelected = currentSelected.includes(videoPath)
-            ? currentSelected.filter((p) => p !== videoPath)
-            : [...currentSelected, videoPath];
-        } else if (mode === "range" && currentSelected.length > 0 && allVideoPaths.length > 0) {
-          const last = currentSelected[currentSelected.length - 1];
-          const startIdx = allVideoPaths.indexOf(last);
-          const endIdx = allVideoPaths.indexOf(videoPath);
-          if (startIdx >= 0 && endIdx >= 0) {
-            const lo = Math.min(startIdx, endIdx);
-            const hi = Math.max(startIdx, endIdx);
-            const range = allVideoPaths.slice(lo, hi + 1);
-            nextSelected = Array.from(new Set([...currentSelected, ...range]));
-          } else {
-            nextSelected = [videoPath];
-          }
-        } else {
-          nextSelected = [videoPath];
-        }
         // episode picks narrow the search; which databases are searched stays as is
         set({
-          selectedVideos: nextSelected,
+          selectedVideos: nextSelection(get().selectedVideos, videoPath, mode, allVideoPaths),
           openedDatabase: parentDbPath,
         });
       },
@@ -743,8 +693,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           console.log(`SCOUT|queue all ${totalVideos} videos indexed successfully`);
           return { ok: true, message: null };
         } catch (err) {
-          // episodes finished before the stop are kept; the one it stopped on is removed,
-          // so the database never holds a half-indexed episode
+          // finished episodes stay; the half-indexed one it stopped on is removed
           await discardUnfinishedVideos(database);
           await Promise.all([get().loadVideos(database), get().loadDatabases()]);
           if (isScoutCanceled(err)) {
@@ -783,15 +732,9 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       runSearch: async () => {
         const query = get().query.trim();
         if (!query) return;
-
-        // an empty list makes the CLI fall back to every file in the managed folder, which is not what the panel shows
-        if (get().selectedDatabases.length === 0) {
-          set({ error: "Add a database to the Searching list on the left first." });
-          return;
-        }
-
-        if (!(await useAiDepsStore.getState().ensurePack("scout"))) {
-          set({ error: "Scene Scout needs its AI pack installed." });
+        const blocker = await searchBlocker();
+        if (blocker) {
+          set({ error: blocker });
           return;
         }
 
@@ -895,12 +838,9 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       runFlowSearch: async () => {
         const source = get().flowFrom;
         if (!source) return;
-        if (get().selectedDatabases.length === 0) {
-          set({ flowError: "Add a database to the Searching list on the left first." });
-          return;
-        }
-        if (!(await useAiDepsStore.getState().ensurePack("scout"))) {
-          set({ flowError: "Scene Scout needs its AI pack installed." });
+        const blocker = await searchBlocker();
+        if (blocker) {
+          set({ flowError: blocker });
           return;
         }
 
@@ -922,17 +862,13 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
     }),
     {
       name: "amverge.scenescout.v1",
-      // only the user's own tuning persists. databases, results and status are
-      // all re-read from disk on open, and a stale copy would be worse than none
+      // results and status are re-read on open; a stale copy would be worse than none
       partialize: (state) => ({
         settings: state.settings,
         openedDatabase: state.openedDatabase,
-        // cached so the panel has something to draw on mount rather than
-        // waiting on a CLI spawn. re-read from disk immediately afterwards, so
-        // a stale entry corrects itself within a second
+        // drawn on mount instead of waiting on a cli spawn, then re-read from disk
         databases: state.databases,
         selectedDatabases: state.selectedDatabases,
-        // the only record that a database outside the managed folder exists
         externalPaths: state.externalPaths,
         unloadedPaths: state.unloadedPaths,
         displayNames: state.displayNames,

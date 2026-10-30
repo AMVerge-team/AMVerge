@@ -2,8 +2,7 @@ import { RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ClipItem } from "../../types/domain";
 
-// milliseconds a supposedly-supported HEVC variant gets to produce a frame before
-// we give up and proxy it anyway
+// how long a supposedly playable HEVC source gets to show a frame before it is proxied anyway
 const HEVC_STALL_TIMEOUT_MS = 1200;
 const CLIP_RETRY_DELAY_MS = 300;
 
@@ -97,19 +96,10 @@ export function useClipVideoElement({
     setIsVideoReady(false);
   }, [effectiveSrc, resetKey, cancelFrameCallback]);
 
-  // removing a <video> from the DOM does not free chromium's decoder until GC, and
-  // hover plus scroll churn accumulates zombie players until every new video fails
-  // with MEDIA_ERR_SRC_NOT_SUPPORTED. clearing src and calling load() in cleanup
-  // releases the player synchronously.
-  //
-  // the setup half restores a stripped src attribute because StrictMode re-runs
-  // cleanup and setup on the SAME element, and React will not re-apply a src prop
-  // it considers unchanged. must run before the playback effect so the src is back
-  // by the time playback calls load()
+  // cleanup clears src + load() so chromium frees the decoder now (zombies break new videos); setup restores src for StrictMode, before playback runs
   useEffect(() => {
     if (!shouldMountVideo) return;
-    // capture the element now: refs detach before passive cleanup runs, and
-    // releasing a detached element still frees its media player
+    // captured now: the ref detaches before cleanup runs
     const v = videoRef.current;
     if (!v) return;
     if (videoSrcUrl && v.getAttribute("src") !== videoSrcUrl) {
@@ -128,8 +118,7 @@ export function useClipVideoElement({
     };
   }, [shouldMountVideo, videoSrcUrl, cancelFrameCallback]);
 
-  // play on hover, or in preview-all once the stagger queue reaches this tile.
-  // otherwise pause and rewind so the next hover starts from the beginning
+  // play on hover or on this tile's preview-all turn; otherwise pause and rewind
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
@@ -182,9 +171,7 @@ export function useClipVideoElement({
     startTime,
   ]);
 
-  // some HEVC variants report as supported but black-screen in HTML video, so if
-  // no frame arrives shortly after playback starts, force the proxy fallback.
-  // clip files are pre-cut H.264 and never need this
+  // some HEVC variants claim support but render black, so no early frame forces the proxy (cut clips are H.264)
   useEffect(() => {
     if (isVideoMode) return;
     if (!showVideo || !shouldMountVideo) return;
@@ -300,10 +287,7 @@ export function useClipVideoElement({
         errorCode,
       }).catch(() => {});
 
-      // video mode plays the pre-cut H.264 clip directly, so the source-proxy
-      // fallback below would transcode the full episode and set an effectiveSrc
-      // that video mode ignores. retry the clip itself once instead, since
-      // transient decoder and IO hiccups recover on a fresh load
+      // video mode retries the cut clip once; the source proxy below would transcode the whole episode for nothing
       if (isVideoMode) {
         const vid = videoRef.current;
         window.setTimeout(() => {

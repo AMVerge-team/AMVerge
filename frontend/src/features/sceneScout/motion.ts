@@ -38,13 +38,7 @@ export function describeMotion(tags: MotionTags): string {
   return `${subject} · camera ${cameraLabel(tags.camera)}`;
 }
 
-/**
- * The file (and range) a grid clip plays, for a flow search.
- *
- * A cut clip is its own file; a Scene Scout result or a WebP-mode episode clip
- * is a range inside the source episode. Merged clips span several files and have
- * no single ending to continue, so they are not offered.
- */
+/** the file (or range of the source) a grid clip plays, for a flow search; merged clips have no single ending */
 export function flowSourceForClip(clip: ClipItem): FlowSource | null {
   if (clip.mergedSrcs?.length) return null;
   const label = clip.originalName ?? clip.src.split(/[/\\]/).pop() ?? "clip";
