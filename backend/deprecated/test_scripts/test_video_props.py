@@ -159,7 +159,6 @@ def _stream_dict(stream: Any) -> dict[str, Any]:
         cc_fps, err = safe_get("cc.framerate", lambda: getattr(cc, "framerate", None))
         if err:
             cc_errs.append(err)
-        # NOTE: cc.time_base may throw "Cannot access 'time_base' as a decoder" in PyAV.
         cc_tb, err = safe_get("cc.time_base", lambda: getattr(cc, "time_base", None))
         if err:
             cc_errs.append(err)

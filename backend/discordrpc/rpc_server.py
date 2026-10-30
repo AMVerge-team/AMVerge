@@ -81,8 +81,6 @@ def main():
                         # Find if parent_pid is in the tasklist
                         res = subprocess.call(['tasklist', '/FI', f'PID eq {parent_pid}'], 
                                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                        # Note: tasklist returns 0 even if not found, we check the output usually
-                        # Instead, we rely on the fact that stdin will close.
                         pass
                 except:
                     pass

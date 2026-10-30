@@ -1,3 +1,6 @@
+## v1.3.3
+- Premptive update to prepare for V2 changes.
+
 ## v1.3.2
 - Readded "select all" feature, if you click the selected checkbox while no clips are selected, it will select all the clips in the grid
 

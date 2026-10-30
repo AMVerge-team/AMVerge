@@ -3,6 +3,8 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./styles/index.css";
 import { initConsoleCapture } from "./utils/appConsole";
+import { exportForV2, useV2UpgradeStore } from "./stores/v2UpgradeStore";
+import { useEpisodePanelMetadataStore, useEpisodePanelRuntimeStore } from "./stores/episodeStore";
 
 initConsoleCapture();
 
@@ -25,6 +27,12 @@ async function maybeCheckForUpdatesOnStartup() {
 
     const update = await check();
     if (!update) return;
+
+    // AMVerge 2 gets its own modal, which carries settings and episodes over before installing
+    if (update.version.startsWith("2.")) {
+      useV2UpgradeStore.setState({ update });
+      return;
+    }
 
     const ok = await confirm(
       `A new update is available (v${update.version}). Install now?`,
@@ -68,6 +76,35 @@ async function maybeCheckForUpdatesOnStartup() {
 }
 
 void maybeCheckForUpdatesOnStartup();
+
+// kept fresh on every launch, so AMVerge 2 can import it however it gets installed
+async function prepareForV2() {
+  if (!("__TAURI_INTERNALS__" in window)) return;
+  try {
+    await exportForV2();
+  } catch (error) {
+    console.error("[v2-upgrade] could not export data for AMVerge 2:", error);
+  }
+}
+
+void prepareForV2();
+
+// re-export after library changes, so episodes imported this session carry over too
+let exportTimer: number | undefined;
+function scheduleExportForV2() {
+  window.clearTimeout(exportTimer);
+  // waits for persist to finish writing, since the export reads the saved copy
+  exportTimer = window.setTimeout(() => {
+    exportForV2().catch((error) => console.error("[v2-upgrade] could not export data for AMVerge 2:", error));
+  }, 2000);
+}
+
+if ("__TAURI_INTERNALS__" in window) {
+  useEpisodePanelRuntimeStore.subscribe((state, prev) => {
+    if (state.episodes !== prev.episodes) scheduleExportForV2();
+  });
+  useEpisodePanelMetadataStore.subscribe(scheduleExportForV2);
+}
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>

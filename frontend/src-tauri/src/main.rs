@@ -55,6 +55,7 @@ fn main() {
             commands::settings::reveal_in_file_manager,
             commands::settings::move_episodes_to_new_dir,
             commands::settings::get_default_episodes_dir,
+            commands::migration::write_v2_migration,
             commands::discord::start_discord_rpc,
             commands::discord::update_discord_rpc,
             commands::discord::stop_discord_rpc,

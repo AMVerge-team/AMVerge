@@ -81,7 +81,8 @@ export default function useStartupUpdateNotification(): StartupNotification | nu
           fetchLatestGitHubVersion(),
         ]);
 
-        if (cancelled || !latestVersion) {
+        // AMVerge 2 has its own in-app installer (V2UpgradeModal), not a link to the website
+        if (cancelled || !latestVersion || parseVersionParts(latestVersion)[0] >= 2) {
           return;
         }
 
