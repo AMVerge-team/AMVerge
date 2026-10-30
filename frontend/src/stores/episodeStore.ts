@@ -1,34 +1,7 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import type { EpisodeEntry, EpisodeFolder } from "../types/domain";
-
-const MAX_PERSISTED_EPISODE_BYTES = 3_500_000;
-
-function estimateUtf8Bytes(text: string): number {
-    // TextEncoder gives a consistent UTF-8 byte estimate for localStorage payload sizing
-    return new TextEncoder().encode(text).length;
-}
-
-function trimEpisodesForPersistence(episodes: EpisodeEntry[]): EpisodeEntry[] {
-    if (episodes.length === 0) return episodes;
-
-    const kept: EpisodeEntry[] = [];
-    let usedBytes = 2; // Array brackets: []
-
-    for (const episode of episodes) {
-        const serializedEpisode = JSON.stringify(episode);
-        const episodeBytes = estimateUtf8Bytes(serializedEpisode) + 1;
-
-        if (usedBytes + episodeBytes > MAX_PERSISTED_EPISODE_BYTES) {
-            continue;
-        }
-
-        kept.push(episode);
-        usedBytes += episodeBytes;
-    }
-
-    return kept;
-}
+import { episodePersistStorage } from "../utils/episodePersistStorage";
 
 export type EpisodePanelRuntimeState = {
     episodes: EpisodeEntry[];
@@ -59,20 +32,6 @@ export const DEFAULT_EPISODE_PANEL_RUNTIME_STATE: EpisodePanelRuntimeState = {
     isHydratingEpisodes: false,
 };
 
-// migrate old raw-format data to Zustand persist format
-try {
-    const _raw = localStorage.getItem("amverge_episode_panel_v1");
-    if (_raw) {
-        const _parsed = JSON.parse(_raw);
-        if (_parsed && !_parsed.state && Array.isArray(_parsed.episodes)) {
-            localStorage.setItem("amverge_episode_panel_v1", JSON.stringify({
-                state: { episodes: _parsed.episodes },
-                version: 0,
-            }));
-        }
-    }
-} catch { /* ignore */ }
-
 export const useEpisodePanelRuntimeStore = create<EpisodePanelRuntimeStore>()(
     persist(
         (set) => ({
@@ -97,7 +56,9 @@ export const useEpisodePanelRuntimeStore = create<EpisodePanelRuntimeStore>()(
         }),
         {
             name: "amverge_episode_panel_v1",
-            partialize: (state) => ({ episodes: trimEpisodesForPersistence(state.episodes) }),
+            // async: App renders only after it has loaded (`waitForEpisodes` in main.tsx)
+            storage: createJSONStorage(() => episodePersistStorage),
+            partialize: (state) => ({ episodes: state.episodes }),
         }
     )
 );
@@ -203,8 +164,20 @@ export const useEpisodePanelMetadataStore = create<EpisodePanelMetadataStore>()(
     )
 );
 
+/** resolves once the episode list has loaded from IndexedDB */
+export function waitForEpisodes(): Promise<void> {
+    const { persist: store } = useEpisodePanelRuntimeStore;
+    if (store.hasHydrated()) return Promise.resolve();
+    return new Promise((resolve) => {
+        const unsubscribe = store.onFinishHydration(() => {
+            unsubscribe();
+            resolve();
+        });
+    });
+}
+
 export function clearEpisodePanelStores() {
-    localStorage.removeItem("amverge_episode_panel_v1");
+    void episodePersistStorage.removeItem("amverge_episode_panel_v1");
     localStorage.removeItem("amverge_episode_panel_metadata_v1");
     localStorage.removeItem("amverge_episode_panel_migrated_v1");
     localStorage.removeItem("amverge_episode_panel_migrated_v2");

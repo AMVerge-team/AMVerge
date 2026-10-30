@@ -5,6 +5,11 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      promote_to_latest:
+        description: "Make this the latest release. Every V1 install auto-updates to it, so only tick once the migration checklist in RELEASING.md has passed"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -766,6 +771,8 @@ jobs:
 
           ls -la release-assets
 
+      # always created as a pre-release: /releases/latest skips those, and that url is the
+      # feed every V1 install polls, so a V2 build going live there migrates all of them
       - name: Create or update GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -774,6 +781,7 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --title "$GITHUB_REF_NAME" \
             --notes "Automated multi-platform release for $GITHUB_REF_NAME" \
+            --prerelease \
             || true
 
       - name: Upload assets to release
@@ -781,3 +789,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload "$GITHUB_REF_NAME" release-assets/* --clobber --repo "$GITHUB_REPOSITORY"
+
+      # promoted only after every asset is up, so latest.json never points at a missing file.
+      # a tag with a suffix (v2.0.0-rc1) can never be promoted
+      - name: Promote to latest release
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.promote_to_latest && !contains(github.ref_name, '-') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --prerelease=false --latest

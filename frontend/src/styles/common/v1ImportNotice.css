@@ -1,0 +1,136 @@
+.v1-import-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 12000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(4px);
+}
+
+.v1-import-modal {
+    width: min(480px, 100%);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    background: rgba(0, 0, 0, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 14px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.7);
+    overflow: hidden;
+    animation: v1-import-in 0.22s ease-out;
+}
+
+/* banner keeps a fixed 2.4:1 shape so any image link crops the same */
+.v1-import-banner {
+    width: 100%;
+    aspect-ratio: 2.4 / 1;
+    object-fit: cover;
+    display: block;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.v1-import-banner--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+        radial-gradient(120% 140% at 15% 0%, rgb(var(--accent-rgb) / 0.55), transparent 60%),
+        radial-gradient(100% 120% at 100% 100%, rgb(var(--accent-rgb) / 0.25), transparent 55%),
+        #050505;
+}
+
+.v1-import-banner--placeholder span {
+    font-family: var(--app-font);
+    font-size: 2.4rem;
+    letter-spacing: 3px;
+    color: #fff;
+    text-shadow: 0 4px 24px rgb(var(--accent-rgb) / 0.6);
+}
+
+.v1-import-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px 22px 22px;
+    overflow-y: auto;
+}
+
+.v1-import-title {
+    margin: 0;
+    font-size: 1.45rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.v1-import-lead {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.v1-import-list {
+    margin: 0;
+    padding: 12px 14px;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+    color: #fff;
+}
+
+.v1-import-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.v1-import-list li::before {
+    content: "✓";
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.v1-import-note {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.v1-import-note strong {
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 600;
+}
+
+.v1-import-confirm {
+    align-self: flex-end;
+    min-width: 50px;
+    min-height: 38px;
+    margin-top: 4px;
+    padding: 0 18px;
+    border-radius: 9px;
+    border: 1px solid rgb(var(--accent-rgb) / 0.88);
+    background: rgb(var(--accent-rgb) / 0.15);
+    color: #fff;
+    font-family: var(--app-font);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.v1-import-confirm:hover {
+    background: var(--accent);
+    color: #000;
+}
+
+@keyframes v1-import-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
+}

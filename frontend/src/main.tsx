@@ -4,6 +4,8 @@ import App from "./App";
 import "./styles/index.css";
 import { initConsoleCapture } from "./utils/appConsole";
 import { applyThemeSettings, useThemeSettingsStore } from "./stores/settingsStore";
+import { importFromV1 } from "./features/migration/importV1";
+import { waitForEpisodes } from "./stores/episodeStore";
 
 initConsoleCapture();
 
@@ -65,14 +67,28 @@ void maybeCheckForUpdatesOnStartup();
 // guarded: at module scope a throw here would take the whole render with it,
 // where the same call inside App's effect could only cost the theme. App
 // re-applies it either way, so failing quietly is the right trade
-try {
-  applyThemeSettings(useThemeSettingsStore.getState());
-} catch (err) {
-  console.warn("Could not pre-apply theme settings", err);
+async function bootstrap() {
+  // the episode list loads from IndexedDB asynchronously; the app reads it on its first render
+  await waitForEpisodes();
+
+  // before the first render, so every store starts out already holding what came over from V1
+  try {
+    await importFromV1();
+  } catch (err) {
+    console.error("[migration] import from AMVerge 1 failed", err);
+  }
+
+  try {
+    applyThemeSettings(useThemeSettingsStore.getState());
+  } catch (err) {
+    console.warn("Could not pre-apply theme settings", err);
+  }
+
+  ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  );
 }
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
+void bootstrap();

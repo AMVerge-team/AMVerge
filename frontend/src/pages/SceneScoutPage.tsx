@@ -5,6 +5,7 @@ import SceneScoutHero from "../components/sceneScout/SceneScoutHero";
 import { SceneScoutSearchView } from "../components/sceneScout/SceneScoutSearchView";
 import { SceneScoutFlowToolbar } from "../components/sceneScout/flow/SceneScoutFlowToolbar";
 import { SceneScoutFlowView } from "../components/sceneScout/flow/SceneScoutFlowView";
+import { MissingEpisodePrompt } from "../components/sceneScout/MissingEpisodePrompt";
 import { useAppStateStore } from "../stores/appStore";
 import { useSceneScoutStore } from "../stores/sceneScoutStore";
 import { selectOverlayOpen, useUIStateStore } from "../stores/UIStore";
@@ -93,6 +94,8 @@ export default function SceneScoutPage() {
 
         <div className="info-bar" />
       </div>
+
+      <MissingEpisodePrompt />
     </>
   );
 }

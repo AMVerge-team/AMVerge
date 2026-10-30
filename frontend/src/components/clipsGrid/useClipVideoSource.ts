@@ -60,6 +60,8 @@ export function useClipVideoSource({
   const [videoProxy, setVideoProxy] = useState<{ key: string; path: string } | null>(null);
   const [rangeProxy, setRangeProxy] = useState<{ key: string; path: string } | null>(null);
   const [rangeFailedKey, setRangeFailedKey] = useState<string | null>(null);
+  // the source file itself is gone, so there is nothing to fall back to either
+  const [sourceMissingKey, setSourceMissingKey] = useState<string | null>(null);
 
   // refs, not state: these guard against a second request starting in the same
   // tick, so the write has to land synchronously
@@ -94,6 +96,7 @@ export function useClipVideoSource({
       : null;
   const rangeProxySrc = rangeProxy && rangeProxy.key === rangeKey ? rangeProxy.path : null;
   const rangeFailed = rangeKey !== null && rangeFailedKey === rangeKey;
+  const sourceMissing = rangeKey !== null && sourceMissingKey === rangeKey;
 
   const mergedSrcsKey = clip.mergedSrcs
     ? `${clip.mergedSrcs.join("|")}::audio:${previewAudioStreamIndex ?? "default"}`
@@ -233,7 +236,9 @@ export function useClipVideoSource({
       })
       .catch((err) => {
         console.warn("scene range preview failed", err);
-        if (!cancelled) setRangeFailedKey(requestedKey);
+        if (cancelled) return;
+        setRangeFailedKey(requestedKey);
+        if (String(err).startsWith("Video not found")) setSourceMissingKey(requestedKey);
       });
     return () => {
       cancelled = true;
@@ -312,6 +317,7 @@ export function useClipVideoSource({
     videoProxySrc,
     rangeProxySrc,
     rangeFailed,
+    sourceMissing,
     needsPreviewTranscode,
     proxyInFlightRef,
     ensurePreviewProxyPath,

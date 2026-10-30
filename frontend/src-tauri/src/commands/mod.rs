@@ -8,6 +8,7 @@ pub mod editor_import;
 pub mod events;
 pub mod export;
 pub mod extension_sync;
+pub mod migration;
 pub mod models;
 pub mod notifications;
 pub mod preview;

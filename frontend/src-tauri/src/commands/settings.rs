@@ -13,6 +13,12 @@ use crate::utils::paths::{
 };
 use crate::utils::process::apply_no_window;
 
+/// true when a file is still at `path`; the webview cannot stat files itself
+#[tauri::command]
+pub fn path_exists(path: String) -> bool {
+    Path::new(&path).is_file()
+}
+
 #[tauri::command]
 pub fn get_default_episodes_dir(app: AppHandle) -> Result<String, String> {
     let path = resolve_episodes_storage_dir(&app, None)?;
@@ -106,7 +112,7 @@ fn move_storage(old_root: &Path, new_root: &Path) -> Result<(), String> {
 /// already deleted part of the episode, leaving the copy intact but the source
 /// gutted. a survivor is recorded as a leftover, never treated as a reason to
 /// abort the rest of the move.
-fn move_entry(src: &Path, dest: &Path, leftovers: &mut Vec<String>) -> Result<(), String> {
+pub(crate) fn move_entry(src: &Path, dest: &Path, leftovers: &mut Vec<String>) -> Result<(), String> {
     // fast path: same volume, nothing holding the files open
     if fs::rename(src, dest).is_ok() {
         return Ok(());

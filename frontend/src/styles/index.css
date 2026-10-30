@@ -14,6 +14,7 @@
 @import "./common/overlays/appModal.css";
 @import "./common/overlays/splash.css";
 @import "./common/startupNotification.css";
+@import "./common/v1ImportNotice.css";
 @import "./common/tooltip.css";
 @import "./home/clipsGrid.css";
 @import "./home/importButtons.css";

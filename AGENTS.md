@@ -249,7 +249,7 @@ frontend/
 | **useAppPersistedStore** | Yes | `exportDir`, `dismissedNotificationIds` |
 | **useGeneralSettingsStore** | Yes (`amverge.generalSettings.v2`) | All user settings, export profiles, paths |
 | **useThemeSettingsStore** | Yes (`amverge.theme.v2`) | Accent color, background, clip tile settings |
-| **useEpisodePanelRuntimeStore** | Yes | `episodes[]`, `selectedEpisodeId`, `openedEpisodeId` |
+| **useEpisodePanelRuntimeStore** | Yes (IndexedDB) | `episodes[]`, `selectedEpisodeId`, `openedEpisodeId`. Only `episodes` persists, in IndexedDB (`utils/episodePersistStorage.ts`, same db/key as V1), so there is no localStorage size cap; it loads async, so `main.tsx` awaits `waitForEpisodes()` before rendering |
 | **useEpisodePanelMetadataStore** | Yes | `episodeFolders`, `episodeNamesById`, folder assignments |
 | **useUIStateStore** | Yes (partial) | `sidebarWidthPx`, `cols`, `sidebarEnabled`, `activePage` |
 
@@ -295,6 +295,8 @@ frontend/
 | `crop_and_save_profile_icon` | settings.rs | Crop profile icon |
 | `delete_profile_icon_file` | settings.rs | Delete icon (with path traversal check) |
 | `reveal_in_file_manager` | settings.rs | Open Explorer/Finder at path |
+| `v1_migration_source` / `import_v1_files` | migration.rs | First launch after AMVerge 1 (`features/migration/importV1.ts`, awaited in `main.tsx` before render). V1 (`com.amiri.amverge`) 1.3.3 writes `v2-migration.json` (its localStorage + IndexedDB episode list) on every launch; V2 rehydrates its stores from it (feature switches forced off), moves V1 episode folders into `episodes_storage/` with a written manifest, copies backgrounds/profile icons, then writes the `v1-imported` marker. With no `v2-migration.json` at all (user skipped 1.3.3), a fresh V2 rebuilds episodes from V1's default `episodes/` folders (`Name_NNNN.mp4` + `.jpg`): clips play and export, but there are no scene times or source video, so no Scene Scout. On a later launch (release builds only), `remove_v1_data_in_background` deletes V1's roaming and local `com.amiri.amverge` folders, unless V1's `episodes/` still holds any file. Release flow: `RELEASING.md` |
+| `path_exists` | settings.rs | Is a file still there. Clicking a Scene Scout hit whose source episode is gone (e.g. an imported database from another PC) opens `MissingEpisodePrompt`, which offers to remove that episode from the database (`removeMissingVideo`) |
 | `move_episodes_to_new_dir` | settings.rs | Relocate episode cache folders |
 | `get_default_episodes_dir` | settings.rs | Return app_data_dir/episodes |
 | `start_discord_rpc` | discord.rs | **NO-OP** |

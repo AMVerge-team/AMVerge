@@ -19,6 +19,7 @@ import SceneScoutPage from "./pages/SceneScoutPage";
 import ImportTerminal from "./components/ImportTerminal";
 import BgProgressBar from "./components/BgProgressBar";
 import StartupNotificationModal, { type StartupNotification } from "./components/StartupNotificationModal";
+import { V1ImportNotice } from "./components/V1ImportNotice";
 import SplashScreen from "./components/SplashScreen";
 import PostExportPassesModal from "./components/PostExportPassesModal";
 import AiInstallModal from "./components/AiInstallModal";
@@ -584,6 +585,7 @@ function App() {
       ) : null}
       <PostExportPassesModal />
       <AiInstallModal />
+      {splashVisible ? null : <V1ImportNotice />}
       {splashVisible ? <SplashScreen onFinished={handleSplashFinished} /> : null}
       </AppLayout>
   );

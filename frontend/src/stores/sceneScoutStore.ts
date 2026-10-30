@@ -150,6 +150,8 @@ type SceneScoutActions = {
   setPanelSplitPct: (pct: number) => void;
   loadVideos: (name: string) => Promise<void>;
   deleteVideo: (databasePath: string, videoId: number) => Promise<void>;
+  /** drop an episode whose source file is gone from the searched database a hit came from */
+  removeMissingVideo: (database: string, videoPath: string) => Promise<void>;
   addVideo: (videoPath: string) => Promise<{ ok: boolean; message: string | null }>;
   /** `precutScenes` maps a video to the scenes it was already cut into on home; those skip detection */
   addVideos: (
@@ -581,16 +583,15 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
               return db;
             });
 
-            const nextResults = deletedFilePath
-              ? state.results.filter((hit) => !samePath(hit.videoPath, deletedFilePath))
-              : state.results;
+            const keepHit = (hit: ScoutHit) => !deletedFilePath || !samePath(hit.videoPath, deletedFilePath);
 
             return {
               videos: nextVideos,
               videosByDatabase: nextVByDb,
               selectedVideos: nextSelectedVideos,
               databases: nextDatabases,
-              results: nextResults,
+              results: state.results.filter(keepHit),
+              flowResults: state.flowResults.filter(keepHit),
             };
           });
 
@@ -606,6 +607,21 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           void get().loadDatabases();
         } catch (err) {
           set({ error: message(err) });
+        }
+      },
+
+      removeMissingVideo: async (database, videoPath) => {
+        // hits name their database by file stem, so map back to the searched paths
+        const databasePaths = get().selectedDatabases.filter((p) => fileStem(p) === database.toLowerCase());
+        for (const databasePath of databasePaths) {
+          try {
+            const videos = await scoutListVideos(databasePath, customPath());
+            set((state) => ({ videosByDatabase: { ...state.videosByDatabase, [databasePath]: videos } }));
+            const video = videos.find((v) => samePath(v.filepath, videoPath));
+            if (video) await get().deleteVideo(databasePath, video.id);
+          } catch (err) {
+            set({ error: message(err) });
+          }
         }
       },
 

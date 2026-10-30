@@ -145,6 +145,8 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const scoutRangeKey = scoutRange ? `${scoutRange.videoPath}|${scoutRange.startSec}|${scoutRange.endSec}` : null;
   const [scoutRangeCut, setScoutRangeCut] = React.useState<{ key: string; path: string } | null>(null);
   const scoutRangeSrc = scoutRangeCut && scoutRangeCut.key === scoutRangeKey ? scoutRangeCut.path : null;
+  const [scoutRangeErrorKey, setScoutRangeErrorKey] = React.useState<string | null>(null);
+  const scoutRangeFailed = scoutRangeKey !== null && scoutRangeErrorKey === scoutRangeKey;
 
   const previewVideoSrc = scoutRange ? scoutRangeSrc : (sourceClipObj?.clipPath || props.sourceClip);
   // a scout range cut is already just the scene, so it plays from 0 like a cut clip
@@ -172,7 +174,10 @@ export default function PreviewContainer(props: PreviewContainerProps) {
       previewCrf: transcodePreset.crf,
     })
       .then((path) => { if (!cancelled && path) setScoutRangeCut({ key: scoutRangeKey, path }); })
-      .catch((err) => { console.warn("scene range preview failed", err); });
+      .catch((err) => {
+        console.warn("scene range preview failed", err);
+        if (!cancelled) setScoutRangeErrorKey(scoutRangeKey);
+      });
     return () => { cancelled = true; };
     // scoutRange is rebuilt every render; its key is what identifies it
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -382,7 +387,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                 />
               ) : (
                 <div className="preview-window empty">
-                  <p>Loading preview...</p>
+                  <p>{scoutRangeFailed ? "Couldn't load this scene. Its episode may have moved." : "Loading preview..."}</p>
                 </div>
               )}
             </div>

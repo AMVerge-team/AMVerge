@@ -147,7 +147,7 @@ export const LazyClip = memo(function LazyClip({
     isVideoPlayable &&
     (isHovered || (gridPreview && staggerReady)) &&
     (usesRangePreview
-      ? Boolean(source.rangeProxySrc) || (source.rangeFailed && isHovered)
+      ? Boolean(source.rangeProxySrc) || (source.rangeFailed && !source.sourceMissing && isHovered)
       : !source.needsPreviewTranscode || Boolean(source.videoProxySrc));
 
   // single source of truth for the <video> src: the JSX and the media-release

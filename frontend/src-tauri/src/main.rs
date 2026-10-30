@@ -105,7 +105,9 @@ fn main() {
             commands::settings::delete_profile_icon_file,
             commands::settings::reveal_in_file_manager,
             commands::settings::move_storage_to_new_dir,
-            commands::scene_scout::scout_list_databases,
+            commands::settings::path_exists,
+            commands::migration::v1_migration_source,
+            commands::migration::import_v1_files,            commands::scene_scout::scout_list_databases,
             commands::scene_scout::scout_database_info,
             commands::scene_scout::scout_open_database,
             commands::scene_scout::scout_create_database,
@@ -129,6 +131,7 @@ fn main() {
         .setup(|app| {
             // the preview cache only grows while the app runs, so it is brought under its cap on launch
             commands::preview::cache::prune_in_background(app.handle());
+            commands::migration::remove_v1_data_in_background(app.handle());
             Ok(())
         })
         .on_window_event(|window, event| {
