@@ -14,13 +14,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: macos-14
+          - runner: macos-15
             arch_label: apple-silicon
             rust_target: aarch64-apple-darwin
             tauri_config: tauri.macos.conf.json
             sidecar_dir: backend_script-aarch64-apple-darwin
             app_artifact_name: amverge-macos-arm64-app
-          - runner: macos-14
+          - runner: macos-15
             arch_label: intel
             rust_target: x86_64-apple-darwin
             tauri_config: tauri.macos.intel.conf.json
@@ -193,7 +193,7 @@ jobs:
   package-universal-macos:
     name: Package Universal macOS DMG
     needs: build-macos-arch
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
       APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
