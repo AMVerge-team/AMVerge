@@ -186,13 +186,13 @@ export default function GeneralSettings({
                   video can be cut without rebuilding it.
                 </p>
                 <p>
-                  This method cuts at those points and nowhere else, so it is instant and
+                  This method cuts at those points only, so it is instant and
                   works on any PC with no GPU needed. It is by far the fastest way to import.
                 </p>
                 <p>
                   The tradeoff is accuracy. Cuts land on the nearest keyframe rather than the
                   exact shot change, so a clip can start slightly early or late, and shot
-                  changes that happen between keyframes are missed entirely.
+                  changes that happen between keyframes are missed entirely. This was the traditional method on launch of AMVerge.
                 </p>
               </InfoButton>
             }
@@ -246,16 +246,16 @@ export default function GeneralSettings({
               <h4>Video Files</h4>
               <p>
                 Cuts a real video clip for every scene. Hovering a tile plays the actual
-                video, so what you see is exactly what you get when you export.
+                video, so what you see is exactly what you get when you export (unless you lower the preview quality).
               </p>
               <p>
-                Each tile that plays is a real video being decoded, so a long episode with
+                Each tile that plays is an actual video being decoded, so a long episode with
                 hundreds of scenes asks a lot of your PC. This is the heavier option.
               </p>
 
               <h4>WebP Files</h4>
               <p>
-                Builds a small animated preview for each scene instead, similar to a GIF.
+                Builds a small animated preview for each scene instead, sorta similar to a GIF.
                 They are far lighter than video, so scrolling and hovering stay smooth even
                 with hundreds of scenes. If the app feels slow, this is the option to pick.
               </p>

@@ -23,7 +23,7 @@ function SearchInfo() {
           databases lists everything you have; only the ones in Searching are searched.
         </li>
         <li>
-          Press Import and pick one or more videos. Indexing watches every scene once and stores a
+          Press Add Episode and pick one or more videos. Indexing watches every scene once and stores a
           fingerprint of each, which takes a while but only happens once per episode.
         </li>
         <li>Describe the scene you want in plain language and press Enter.</li>

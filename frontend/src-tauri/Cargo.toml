@@ -20,7 +20,7 @@ tokio = { version = "1", features = ["full"] }
 tauri-plugin-shell = "2"
 tempfile = "3"
 fs_extra = "1.3.0"
-image = { version = "0.24", features = ["gif", "jpeg", "png", "webp"] }
+image = { version = "0.24", features = ["gif", "jpeg", "png", "webp", "bmp"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 dotenvy = "0.15"
 hmac = "0.12"

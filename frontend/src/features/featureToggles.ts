@@ -40,7 +40,7 @@ export const FEATURES: FeatureDef[] = [
   {
     id: "scenepacks",
     label: "Scenepacks",
-    description: "Group clips into themed collections.",
+    description: "Group clips into collections.",
     setting: "scenepacksEnabled",
   },
   {

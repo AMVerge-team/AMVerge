@@ -8,7 +8,8 @@ export default function Credits() {
         { name: 'Moongetsu', username: 'Moongetsu', role: 'Settings, AI Installer, Discord RPC & Multi-Platform' },
         { name: 'Lewis', username: 'lew-is', role: 'macOS Engine, Background Import & Optimization' },
         { name: '0xkhaosoccured', username: '0xkhaosoccured', role: 'Grid Virtualization & Rendering Fixes' },
-        { name: 'TOSINIRL', username: 'TOSINIRL', role: 'macOS Demux & Video Compatibility' }
+        { name: 'TOSINIRL', username: 'TOSINIRL', role: 'macOS Demux & Video Compatibility' },
+        { name: 'Mark Shun', username: 'Mark-Shun', role: 'Scene Scout' }
     ];
 
     return (

@@ -50,8 +50,6 @@ export default function AppearanceSection({
             "webp",
             "gif",
             "bmp",
-            "tif",
-            "tiff",
             "mp4",
             "webm",
             "mov",

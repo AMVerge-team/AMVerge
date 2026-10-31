@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { FaInfo, FaTimes } from "react-icons/fa";
 
 import Tooltip from "./Tooltip";
@@ -30,7 +31,8 @@ export default function InfoButton({ title, children, variant = "inline" }: Info
         </button>
       </Tooltip>
 
-      {open && (
+      {/* portalled to <body>: inside a blurred or animated panel "fixed" pins to that panel and scrolls with it */}
+      {open && createPortal(
         <div
           className="info-modal-overlay"
           onMouseDown={(e) => {
@@ -53,7 +55,8 @@ export default function InfoButton({ title, children, variant = "inline" }: Info
             </div>
             <div className="info-modal-body">{children}</div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

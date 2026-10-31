@@ -1,7 +1,7 @@
 import Tooltip from "../common/Tooltip";
 import { useSceneScoutStore } from "../../stores/sceneScoutStore";
 
-/** scene scout's add episode: the same Import button as home's import episode */
+/** scene scout's add episode, styled like home's import button */
 export function AddEpisodeButton({
   hint,
   onClick,
@@ -22,7 +22,7 @@ export function AddEpisodeButton({
           onClick={onClick}
           disabled={disabled || Boolean(indexing)}
         >
-          Import
+          Add Episode
         </button>
       </span>
     </Tooltip>

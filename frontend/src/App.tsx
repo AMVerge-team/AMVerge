@@ -22,6 +22,7 @@ import StartupNotificationModal, { type StartupNotification } from "./components
 import { V1ImportNotice } from "./components/V1ImportNotice";
 import SplashScreen from "./components/SplashScreen";
 import PostExportPassesModal from "./components/PostExportPassesModal";
+import PassTargetsModal from "./components/PassTargetsModal";
 import AiInstallModal from "./components/AiInstallModal";
 import ProcessConflictModal from "./components/ProcessConflictModal";
 import { registerProcessAbort } from "./features/processes/singleProcess";
@@ -576,6 +577,7 @@ function App() {
         />
       ) : null}
       <PostExportPassesModal />
+      <PassTargetsModal />
       <AiInstallModal />
       {splashVisible ? null : <V1ImportNotice />}
       {splashVisible ? <SplashScreen onFinished={handleSplashFinished} /> : null}

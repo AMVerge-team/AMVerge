@@ -3,8 +3,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { message as showMessage, open, save } from "@tauri-apps/plugin-dialog";
 import { ClipItem } from "../types/domain";
 import { fileNameFromPath } from "../utils/episodeUtils";
-import { runPostExportPasses } from "../features/export/runPostExportPasses";
+import { runPostExportPasses, type PassTarget } from "../features/export/runPostExportPasses";
 import { anyPassEnabled, PASS_SUFFIX, type PostExportPasses } from "../features/export/postPasses";
+import { pickPassTargets, type PassClipPicks } from "../features/export/passTargets";
 import { clipExportSpecs } from "../features/export/clipSpecs";
 import { deliverExportedFiles } from "../features/export/deliverExports";
 import { claimProcess } from "../features/processes/singleProcess";
@@ -23,6 +24,11 @@ import { useAppStateStore, useAppPersistedStore } from "../stores/appStore";
 import { useGeneralSettingsStore } from "../stores/settingsStore";
 
 const ERROR_MESSAGE_TIMEOUT_MS = 8000;
+
+/** the clip id behind each export spec, in order: the cli returns one file per spec, in spec order */
+function specOwners(clips: ClipItem[]): string[] {
+  return clips.flatMap((c) => clipExportSpecs(c).map(() => c.id));
+}
 
 type Params = {
   onRPCUpdate?: (data: any) => void;
@@ -127,9 +133,15 @@ export function useExport({ onRPCUpdate }: Params) {
     });
   };
 
-  /** merge plus interpolation: interpolate per clip first so frames are never synthesized across a cut */
-  const exportMergedWithInterpolation = useCallback(
-    async (selected: ClipItem[], dir: string, mergeFileName: string | undefined, passes: PostExportPasses) => {
+  /** merge plus picked passes: interpolation runs per clip so frames are never synthesized across a cut, depth on a merge of its picks */
+  const exportMergedWithPasses = useCallback(
+    async (
+      selected: ClipItem[],
+      dir: string,
+      mergeFileName: string | undefined,
+      passes: PostExportPasses,
+      picks: PassClipPicks
+    ) => {
       const sep = pathSeparatorFor(dir);
       const { exportOptions, format } = await exportContextForClips(selected);
       const baseName = await mergeBaseName(selected, dir, format, mergeFileName);
@@ -174,12 +186,35 @@ export function useExport({ onRPCUpdate }: Params) {
         // the plain merge keeps the chosen name; passes never overwrite it
         mergedFiles = await mergeInto(clipFiles, finalSavePath);
 
+        const owners = specOwners(selected);
+        const pickedFiles = (ids: Set<string>) =>
+          clipFiles.filter((_, i) => owners[i] !== undefined && ids.has(owners[i]));
+
+        const targets: PassTarget[] = pickedFiles(picks.interpolation).map((path) => ({
+          path,
+          depth: false,
+          interpolation: true,
+        }));
+        // depth needs no per-clip run: the whole merge when every clip is picked, else a staged merge of the picks
+        if (picks.depth.size > 0) {
+          if (picks.depth.size === selected.length) {
+            targets.push({ path: mergedFiles[0], depth: true, interpolation: false });
+          } else {
+            const [depthSource] = await mergeInto(
+              pickedFiles(picks.depth),
+              `${stagingDir}${stagingSep}${baseName}.${format}`
+            );
+            targets.push({
+              path: depthSource,
+              depth: true,
+              interpolation: false,
+              outputStem: `${dir}${sep}${baseName}`,
+            });
+          }
+        }
+
         // interpolation and dead frames each merge into their own suffixed file
-        const interpOnly: PostExportPasses = {
-          ...passes,
-          depth: { ...passes.depth, enabled: false },
-        };
-        const passOutputs = await runPostExportPasses(clipFiles, interpOnly);
+        const passOutputs = await runPostExportPasses(targets, passes);
         if (passOutputs.interpolated.length > 0) {
           await mergeInto(
             passOutputs.interpolated,
@@ -197,7 +232,6 @@ export function useExport({ onRPCUpdate }: Params) {
         rpcFinished();
       } catch (err) {
         reportFailure(err, "Export failed:", true);
-        return;
       } finally {
         setLoading(false);
         setActiveOperation(null);
@@ -207,15 +241,6 @@ export function useExport({ onRPCUpdate }: Params) {
         } catch (err) {
           console.warn("Failed to remove export staging folder:", err);
         }
-      }
-
-      // remaining passes run on the merged file
-      const passesForMerged: PostExportPasses = {
-        ...passes,
-        interpolation: { ...passes.interpolation, enabled: false },
-      };
-      if (mergedFiles.length > 0 && anyPassEnabled(passesForMerged)) {
-        void runPostExportPasses(mergedFiles, passesForMerged);
       }
     },
     [exportContext, runExportClips, rpcFinished, reportFailure, setActiveOperation, setLoading]
@@ -237,13 +262,18 @@ export function useExport({ onRPCUpdate }: Params) {
         persistedState.setExportDir(dir);
       }
 
+      const passesSnapshot = generalSettings.postExportPasses;
+      // which selected clips get each pass; cancelling drops the export
+      const picks = await pickPassTargets(selected, passesSnapshot, mergeEnabled);
+      if (!picks) return;
+
       // one long job at a time: asks to stop whatever runs, or keeps it and drops this export
       if (!(await claimProcess("export"))) return;
 
-      const passesSnapshot = generalSettings.postExportPasses;
-
-      if (mergeEnabled && passesSnapshot.interpolation.enabled) {
-        await exportMergedWithInterpolation(selected, dir, mergeFileName, passesSnapshot);
+      // a direct merge only fits when depth (if any) covers every clip and nothing interpolates
+      const partialDepth = picks.depth.size > 0 && picks.depth.size < selected.length;
+      if (mergeEnabled && (picks.interpolation.size > 0 || partialDepth)) {
+        await exportMergedWithPasses(selected, dir, mergeFileName, passesSnapshot, picks);
         return;
       }
 
@@ -278,13 +308,23 @@ export function useExport({ onRPCUpdate }: Params) {
 
       // the export loader is closed now, and the passes modal drives itself
       if (producedFiles.length > 0 && anyPassEnabled(passesSnapshot)) {
-        void runPostExportPasses(producedFiles, passesSnapshot);
+        const owners = mergeEnabled ? [] : specOwners(selected);
+        const targets: PassTarget[] = producedFiles.map((path, i) =>
+          mergeEnabled
+            ? { path, depth: picks.depth.size > 0, interpolation: false }
+            : {
+                path,
+                depth: picks.depth.has(owners[i] ?? ""),
+                interpolation: picks.interpolation.has(owners[i] ?? ""),
+              }
+        );
+        void runPostExportPasses(targets, passesSnapshot);
       }
     },
     [
       persistedState,
       generalSettings.postExportPasses,
-      exportMergedWithInterpolation,
+      exportMergedWithPasses,
       exportContextForClips,
       runExportClips,
       rpcFinished,

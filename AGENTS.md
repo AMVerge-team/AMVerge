@@ -425,7 +425,9 @@ useImportExport.ts: handleExport(selectedClips, mergeEnabled)
   ├─ reveal_in_file_manager(exportedFiles[0])
   │
   └─ IF postExportPasses enabled:
-      └─ runPostExportPasses(producedFiles, passesSnapshot)
+      ├─ before export, 2+ clips: PassTargetsModal (`features/export/passTargets.ts`) picks which clips get each pass (default all; cancel drops the export)
+      ├─ merge on: interpolation runs per picked clip then merges into `_interpolated`; depth runs on the merge itself when every clip is picked, else on a staged merge of its picks (`exportMergedWithPasses`)
+      └─ runPostExportPasses(targets: PassTarget[], passesSnapshot)
            ├─ For each pass: invoke("run_export_pass", { pass, inputPath, outputPath, args })
            └─ Drive passRunStore (modal UI with progress/preview/logs)
 ```

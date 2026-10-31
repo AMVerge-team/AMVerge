@@ -1,4 +1,4 @@
-/// >=3.12 because depth-anything-v2 needs it, and every pack shares this env
+/// every pack shares this env (GPU decode needs 3.13, below)
 pub(crate) const AI_ENV_PYTHON_VERSION: &str = "3.12";
 
 /// CUDA wheel index used when an NVIDIA GPU is present
@@ -13,10 +13,11 @@ pub(crate) const AI_ENV_PYTHON_VERSION_GPU_DECODE: &str = "3.13";
 pub(crate) const TORCH_CUDA_INDEX_GPU_DECODE: &str = "https://download.pytorch.org/whl/cu130";
 
 /// pinned, not a floor: Nelux checks torch's minor on import and refuses a mismatch
-pub(crate) const TORCH_PIN_GPU_DECODE: &str = "torch==2.13.*";
+pub(crate) const TORCH_PIN_GPU_DECODE: &str = "torch==2.14.*";
 
-/// the last Nelux built for torch 2.13 (0.19+ is 2.14); its metadata names no torch, so move both pins together
-pub(crate) const NELUX_PIN_GPU_DECODE: &str = "nelux==0.18.*";
+/// built for torch 2.14; 0.21 fixed a read_frame deadlock 0.18 hit at random on long 10-bit hevc.
+/// its metadata names no torch, so move both pins together
+pub(crate) const NELUX_PIN_GPU_DECODE: &str = "nelux==0.21.*";
 
 /// Turing. read from `nvidia-smi --query-gpu=compute_cap`, so no torch needed
 pub(crate) const GPU_DECODE_MIN_COMPUTE: f32 = 7.5;
@@ -41,7 +42,8 @@ pub(crate) const PACKS: &[Pack] = &[
     Pack {
         id: "depth",
         extra: "depth",
-        requires: &["torch", "depth-anything-v2", "opencv-python-headless"],
+        // the model code is vendored in amverge (>= 0.10), so it has no distribution of its own
+        requires: &["torch", "torchvision", "opencv-python-headless"],
     },
     Pack {
         id: "interpolation",

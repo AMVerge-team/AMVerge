@@ -102,11 +102,27 @@ pub async fn uninstall_ai_pack(
     let app_for_task = app.clone();
     tokio::task::spawn_blocking(move || -> Result<(), String> {
         let python = ai_env_python(&app_for_task)?;
-        let mut cmd = uv_command(&app_for_task)?;
-        cmd.arg("pip").arg("uninstall").arg("--python").arg(&python);
-        for dist in target.requires.iter().filter(|d| **d != "torch") {
-            cmd.arg(dist);
+        // never torch/torchvision, and nothing another installed pack still needs (opencv is shared)
+        let installed = installed_distributions(&app_for_task, &python)?;
+        let has = |dist: &str| installed.contains_key(&dist.to_lowercase());
+        let still_needed: Vec<&str> = PACKS
+            .iter()
+            .filter(|p| p.id != target.id && p.requires.iter().all(|d| has(d)))
+            .flat_map(|p| p.requires.iter().copied())
+            .collect();
+        let removable: Vec<&str> = target
+            .requires
+            .iter()
+            .copied()
+            .filter(|d| !TORCH_FAMILY.contains(d) && !still_needed.contains(d) && has(d))
+            .collect();
+        if removable.is_empty() {
+            console_log("DEPS|uninstall", &format!("pack={} has nothing of its own to remove", target.id));
+            return Ok(());
         }
+
+        let mut cmd = uv_command(&app_for_task)?;
+        cmd.arg("pip").arg("uninstall").arg("--python").arg(&python).args(&removable);
         let output = cmd
             .output()
             .map_err(|e| format!("Failed to run uv pip uninstall: {e}"))?;
