@@ -76,11 +76,24 @@ pub(crate) fn uv_command(app: &AppHandle) -> Result<Command, String> {
         ));
     }
     let mut cmd = Command::new(uv);
-    apply_no_window(&mut cmd);
+    // below normal priority: unpacking torch pegs every core, and the window must still get cpu first
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        use windows_sys::Win32::System::Threading::{BELOW_NORMAL_PRIORITY_CLASS, CREATE_NO_WINDOW};
+        cmd.creation_flags(CREATE_NO_WINDOW | BELOW_NORMAL_PRIORITY_CLASS);
+    }
     #[cfg(not(windows))]
     {
         use std::os::unix::process::CommandExt;
         cmd.process_group(0);
+        // children inherit the niceness, so the python uv spawns stays low too
+        unsafe {
+            cmd.pre_exec(|| {
+                libc::nice(10);
+                Ok(())
+            });
+        }
     }
     cmd.env("UV_PYTHON_INSTALL_DIR", uv_python_dir(app)?);
     cmd.env("UV_CACHE_DIR", uv_cache_dir(app)?);
