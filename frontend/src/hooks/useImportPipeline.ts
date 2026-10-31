@@ -15,8 +15,8 @@ import { useAiDepsStore } from "../stores/aiDepsStore";
 import { useAppStateStore } from "../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
 import { useGeneralSettingsStore } from "../stores/settingsStore";
+import { VIDEO_EXTENSIONS } from "../utils/videoExtensions";
 
-const VIDEO_EXTENSIONS = ["mp4", "mkv", "mov", "avi"];
 
 type Params = {
   abortedRef: React.RefObject<boolean>;

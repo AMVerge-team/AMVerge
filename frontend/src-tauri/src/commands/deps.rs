@@ -2,6 +2,7 @@
 
 use tauri::{AppHandle, State};
 
+use crate::commands::scene_scout::SceneScoutWorkerState;
 use crate::state::ActiveInstall;
 use crate::utils::logging::console_log;
 use crate::utils::process::kill_process_tree;
@@ -31,6 +32,7 @@ pub async fn ai_env_status(app: AppHandle) -> Result<AiEnvStatus, String> {
 pub async fn install_ai_pack(
     app: AppHandle,
     install_state: State<'_, ActiveInstall>,
+    worker_state: State<'_, SceneScoutWorkerState>,
     pack: String,
     gpu: bool,
     gpu_decode: Option<bool>,
@@ -47,6 +49,7 @@ pub async fn install_ai_pack(
 
     let state = install_state.inner().clone();
     state.begin()?;
+    worker_state.stop_daemon("the install").await;
 
     let app_for_task = app.clone();
     let state_for_task = state.clone();
@@ -85,11 +88,16 @@ pub async fn abort_ai_install(install_state: State<'_, ActiveInstall>) -> Result
 
 /// remove one pack's own packages. torch stays; use `remove_ai_env` for that space
 #[tauri::command]
-pub async fn uninstall_ai_pack(app: AppHandle, pack: String) -> Result<AiEnvStatus, String> {
+pub async fn uninstall_ai_pack(
+    app: AppHandle,
+    worker_state: State<'_, SceneScoutWorkerState>,
+    pack: String,
+) -> Result<AiEnvStatus, String> {
     let target = pack_by_id(&pack)?;
     if !ai_env_ready(&app) {
         return Err("There is no AI environment to remove from.".to_string());
     }
+    worker_state.stop_daemon("the uninstall").await;
 
     let app_for_task = app.clone();
     tokio::task::spawn_blocking(move || -> Result<(), String> {
@@ -119,7 +127,11 @@ pub async fn uninstall_ai_pack(app: AppHandle, pack: String) -> Result<AiEnvStat
 
 /// delete the whole AI environment (venv + managed interpreters + wheel cache)
 #[tauri::command]
-pub async fn remove_ai_env(app: AppHandle) -> Result<AiEnvStatus, String> {
+pub async fn remove_ai_env(
+    app: AppHandle,
+    worker_state: State<'_, SceneScoutWorkerState>,
+) -> Result<AiEnvStatus, String> {
+    worker_state.stop_daemon("removing the AI environment").await;
     let app_for_task = app.clone();
     tokio::task::spawn_blocking(move || -> Result<(), String> {
         for dir in [

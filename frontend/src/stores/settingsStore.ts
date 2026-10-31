@@ -510,8 +510,13 @@ function hexToRgbTriplet(hex: string): string | null {
     return `${r} ${g} ${b}`;
 }
 
+// calibri everywhere it is installed; carlito is its metric twin on linux
 export const DEFAULT_FONT_STACK =
-    "'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+    "Calibri, Carlito, 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+
+/** the bundled pixel font, offered right under the default */
+export const JERSEY_FONT = "Jersey 10";
+const JERSEY_FONT_STACK = "'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
 
 export function applyThemeSettings(settings: ThemeSettings) {
     const root = document.documentElement;
@@ -556,15 +561,14 @@ export function applyThemeSettings(settings: ThemeSettings) {
     root.style.setProperty("--clip-tile-aspect", clipTileAspect);
     body.style.setProperty("--clip-tile-aspect", clipTileAspect);
 
-    const appFont = settings.appFontFamily
-        ? `"${settings.appFontFamily}", ${DEFAULT_FONT_STACK}`
-        : DEFAULT_FONT_STACK;
+    const family = settings.appFontFamily;
+    const appFont =
+        family === JERSEY_FONT ? JERSEY_FONT_STACK : family ? `"${family}", ${DEFAULT_FONT_STACK}` : DEFAULT_FONT_STACK;
     root.style.setProperty("--app-font", appFont);
     body.style.setProperty("--app-font", appFont);
 
-    const fontAdjust = settings.appFontFamily
-        ? String(settings.appFontAdjust ?? 0.47)
-        : "none";
+    // the pixel font's sizes were tuned without an adjust; every other font is scaled to match them
+    const fontAdjust = family === JERSEY_FONT ? "none" : String(settings.appFontAdjust ?? 0.47);
     root.style.setProperty("--app-font-adjust", fontAdjust);
     body.style.setProperty("--app-font-adjust", fontAdjust);
 }

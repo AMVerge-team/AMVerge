@@ -1,8 +1,7 @@
 import { open } from "@tauri-apps/plugin-dialog";
 
 import type { FlowSource } from "./types";
-
-const VIDEO_EXTENSIONS = ["mp4", "mkv", "mov", "avi", "webm", "m4v"];
+import { VIDEO_EXTENSIONS } from "../../utils/videoExtensions";
 
 /** asks for a video file to run Flow from; null when the picker is cancelled */
 export async function pickFlowClip(): Promise<FlowSource | null> {

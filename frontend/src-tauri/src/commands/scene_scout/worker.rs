@@ -75,6 +75,16 @@ pub struct SceneScoutWorkerState {
     pub inner: Arc<tokio::sync::Mutex<Option<SceneScoutWorkerSession>>>,
 }
 
+impl SceneScoutWorkerState {
+    /// windows cannot change files a running daemon has loaded, so the AI env's installers stop it first; it respawns on the next search
+    pub async fn stop_daemon(&self, reason: &str) {
+        if let Some(mut session) = self.inner.lock().await.take() {
+            console_log("SCOUT|daemon", &format!("stopping the daemon for {reason}"));
+            session.shutdown().await;
+        }
+    }
+}
+
 fn spawn_scout_worker(app: &AppHandle, root: &str, gpu_standby: bool) -> Result<SceneScoutWorkerSession, String> {
     console_log("SCOUT|daemon", &format!("spawning daemon root={root} standby={gpu_standby}"));
 

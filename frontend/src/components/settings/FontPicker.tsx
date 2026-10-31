@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FaChevronDown } from "react-icons/fa";
 import Tooltip from "../common/Tooltip";
-import { useThemeSettingsStore } from "../../stores/settingsStore";
+import { JERSEY_FONT, useThemeSettingsStore } from "../../stores/settingsStore";
 
 // common faces filtered to installed ones, shown with no permission prompt (the full list needs a user gesture)
 const CURATED_FONTS = [
@@ -117,7 +117,7 @@ export default function FontPicker() {
         onClick={() => setOpen((o) => !o)}
         style={{ fontFamily: appFontFamily ? `"${appFontFamily}"` : "var(--app-font)" }}
       >
-        <span>{appFontFamily ?? "Default (Jersey 10)"}</span>
+        <span>{appFontFamily ?? "Default (Calibri)"}</span>
         <FaChevronDown className={`font-picker-caret${open ? " open" : ""}`} aria-hidden="true" />
       </button>
 
@@ -154,13 +154,22 @@ export default function FontPicker() {
               className={`font-picker-option${appFontFamily === null ? " active" : ""}`}
               onClick={() => setAppFontFamily(null)}
             >
-              Default (Jersey 10)
+              Default (Calibri)
+            </button>
+
+            <button
+              type="button"
+              className={`font-picker-option${appFontFamily === JERSEY_FONT ? " active" : ""}`}
+              style={{ fontFamily: `"${JERSEY_FONT}"` }}
+              onClick={() => setAppFontFamily(JERSEY_FONT)}
+            >
+              {JERSEY_FONT}
             </button>
 
             {filtered.length === 0 ? (
               <p className="font-picker-empty">No fonts found</p>
             ) : (
-              filtered.map((font) => (
+              filtered.filter((font) => font !== JERSEY_FONT).map((font) => (
                 <button
                   key={font}
                   type="button"

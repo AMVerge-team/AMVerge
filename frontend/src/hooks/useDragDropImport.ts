@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useUIStateStore } from "../stores/UIStore";
 import { useSceneScoutStore } from "../stores/sceneScoutStore";
+import { isVideoPath } from "../utils/videoExtensions";
 
 type UseDragDropImportProps = {
   handleImport: (file: string) => void | Promise<void>;
@@ -49,12 +50,7 @@ export default function useDragDropImport({
 
         lastExternalDropRef.current = { path: paths[0], ts: now };
 
-        const videoExtensions = ["mp4", "mkv", "mov"];
-
-        const videoFiles = paths.filter((path: string) => {
-          const ext = path.split(".").pop()?.toLowerCase() || "";
-          return videoExtensions.includes(ext);
-        });
+        const videoFiles = paths.filter(isVideoPath);
 
         if (videoFiles.length === 0) return;
 

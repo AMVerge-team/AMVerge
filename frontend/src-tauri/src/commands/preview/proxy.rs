@@ -14,15 +14,28 @@ use crate::utils::logging::console_log;
 use crate::utils::paths::file_name_only;
 use crate::utils::process::{apply_no_window, bind_to_app_lifetime, output_bound};
 
+/// codecs chromium (webview2) decodes on its own; hevc also needs the system extension
+const BROWSER_CODECS: &[&str] = &["h264", "hevc", "vp8", "vp9", "av1"];
+
+#[derive(serde::Serialize, Clone, Copy)]
+#[serde(rename_all = "camelCase")]
+pub struct VideoCodecInfo {
+    pub hevc: bool,
+    /// false for codecs no webview can show (xvid, mpeg-2, prores...), which always need a proxy
+    pub browser_playable: bool,
+}
+
+const PLAYABLE_FALLBACK: VideoCodecInfo = VideoCodecInfo { hevc: false, browser_playable: true };
+
 #[tauri::command]
-pub async fn check_hevc(app: AppHandle, video_path: String) -> Result<bool, String> {
+pub async fn check_video_codec(app: AppHandle, video_path: String) -> Result<VideoCodecInfo, String> {
     if video_path.trim().is_empty() {
         return Err("video_path is empty".to_string());
     }
 
-    // a moved or deleted source just takes the safe non-HEVC path instead of an ffprobe error
+    // a moved or deleted source just takes the safe direct-play path instead of an ffprobe error
     if !Path::new(&video_path).is_file() {
-        return Ok(false);
+        return Ok(PLAYABLE_FALLBACK);
     }
 
     let video_name = file_name_only(&video_path);
@@ -61,12 +74,12 @@ pub async fn check_hevc(app: AppHandle, video_path: String) -> Result<bool, Stri
 
         if !stderr.is_empty() {
             console_log(
-                "ERROR|check_hevc",
+                "ERROR|check_video_codec",
                 &format!("{ffprobe_name} failed for {video_name}: {stderr}"),
             );
         } else {
             console_log(
-                "ERROR|check_hevc",
+                "ERROR|check_video_codec",
                 &format!("{ffprobe_name} failed for {video_name}"),
             );
         }
@@ -82,7 +95,10 @@ pub async fn check_hevc(app: AppHandle, video_path: String) -> Result<bool, Stri
         .trim()
         .to_ascii_lowercase();
 
-    Ok(codec == "hevc")
+    Ok(VideoCodecInfo {
+        hevc: codec == "hevc",
+        browser_playable: BROWSER_CODECS.contains(&codec.as_str()),
+    })
 }
 
 #[tauri::command]

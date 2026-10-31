@@ -65,7 +65,7 @@
     background: rgb(8 8 10 / 0.98);
     box-shadow: 0 20px 50px rgb(0 0 0 / 0.55);
 
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: var(--ui-font);
     animation: app-modal-rise 0.12s ease;
 }
 

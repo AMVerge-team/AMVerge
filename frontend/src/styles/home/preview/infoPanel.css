@@ -22,7 +22,7 @@
     border-radius: 999px;
 }
 
-/* the guide is read, not glanced at, so it stays in arial whatever font the user picks */
+/* the guide is read, not glanced at, so it stays in calibri whatever font the user picks */
 .info-panel {
     font-family: var(--ui-font);
     font-size-adjust: none;

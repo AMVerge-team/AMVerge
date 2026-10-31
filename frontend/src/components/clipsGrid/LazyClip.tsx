@@ -2,6 +2,7 @@ import { memo, useCallback, useDeferredValue, useEffect, useRef, useState } from
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { FaCheck, FaPlus, FaTrashAlt } from "react-icons/fa";
 import { LazyClipProps } from "./types.ts";
+import type { ClipItem } from "../../types/domain.ts";
 import { DownloadButton } from "./DownloadButton.tsx";
 import Tooltip from "../common/Tooltip.tsx";
 import { useWebpPreview } from "./useWebpPreview.ts";
@@ -50,6 +51,7 @@ export const LazyClip = memo(function LazyClip({
   const activePage = useUIStateStore((s) => s.activePage);
   const videoIsHEVC = useAppStateStore((s) => s.videoIsHEVC);
   const userHasHEVC = useAppStateStore((s) => s.userHasHEVC);
+  const videoNeedsProxy = useAppStateStore((s) => s.videoNeedsProxy);
   const audioPlaybackHover = useGeneralSettingsStore((s) => s.audioPlaybackHover);
   const previewAudioStreamIndex = useGeneralSettingsStore((s) => s.previewAudioStreamIndex);
   const playbackVolume = useGeneralSettingsStore((s) => s.playbackVolume);
@@ -67,6 +69,8 @@ export const LazyClip = memo(function LazyClip({
   const isHovered = hovered && !settingsOpen;
   const [showScenepackModal, setShowScenepackModal] = useState(false);
   const [scenepackMenu, setScenepackMenu] = useState<{ x: number; y: number } | null>(null);
+  // fixed when the menu opens, so the modal it leads to adds the same clips
+  const [scenepackTargets, setScenepackTargets] = useState<ClipItem[]>([clip]);
   const [dragOver, setDragOver] = useState(false);
   const [videoThumbFailed, setVideoThumbFailed] = useState(false);
   const [videoThumbRetry, setVideoThumbRetry] = useState(0);
@@ -95,7 +99,7 @@ export const LazyClip = memo(function LazyClip({
     clip.originalName === "Merging..." ||
     clip.originalName === "Splitting..." ||
     clip.originalName === "Adding...";
-  const needsHevcProxy = videoIsHEVC === true && userHasHEVC === false;
+  const needsDecodeProxy = (videoIsHEVC === true && userHasHEVC === false) || videoNeedsProxy;
   const resetKey = `${clip.src}::${importToken}::${previewAudioStreamIndex ?? "default"}`;
 
   useEffect(() => {
@@ -109,7 +113,7 @@ export const LazyClip = memo(function LazyClip({
     gridPreview,
     isHovered,
     isVisible,
-    needsHevcProxy,
+    needsDecodeProxy,
     resetKey,
     reportStaggerDemand,
   });
@@ -124,7 +128,7 @@ export const LazyClip = memo(function LazyClip({
     staggerReady,
     showVideo: isVideoPlayable,
     importToken,
-    needsHevcProxy,
+    needsDecodeProxy,
     audioPlaybackHover,
     previewAudioStreamIndex,
     videoRef,
@@ -267,6 +271,11 @@ export const LazyClip = memo(function LazyClip({
       e.preventDefault();
       e.stopPropagation();
       useContextMenuStore.getState().openContextMenu("clip-scenepack-picker");
+      // right-clicking part of a selection adds all of it, in grid order; anything else adds just this clip
+      const { selectedClips, clips } = useAppStateStore.getState();
+      setScenepackTargets(
+        selectedClips.has(clip.id) && selectedClips.size > 1 ? clips.filter((c) => selectedClips.has(c.id)) : [clip]
+      );
       setScenepackMenu({ x: e.clientX, y: e.clientY });
       return;
     }
@@ -461,6 +470,7 @@ export const LazyClip = memo(function LazyClip({
           {scenepackMenu && (
             <ScenepackPickerMenu
               clip={clip}
+              clips={scenepackTargets}
               episodeId={episodeId}
               anchor={scenepackMenu}
               onClose={() => setScenepackMenu(null)}
@@ -490,7 +500,7 @@ export const LazyClip = memo(function LazyClip({
 
           {showScenepackModal && (
             <AddToScenepackModal
-              clip={clip}
+              clips={scenepackTargets}
               episodeId={episodeId}
               onClose={() => setShowScenepackModal(false)}
             />

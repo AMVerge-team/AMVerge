@@ -278,7 +278,7 @@ frontend/
 | `abort_editor_import` | editor_import.rs | Set abort flag |
 | `detect_davinci_resolve` | editor_import.rs | Is DaVinci Resolve installed (path lookup) |
 | `import_clips_to_davinci` | editor_import.rs | Media Pool + append to Resolve timeline |
-| `check_hevc` | preview.rs | ffprobe codec detection |
+| `check_video_codec` | preview/proxy.rs | ffprobe the episode's video codec: `{hevc, browserPlayable}`. HEVC proxies only without the system decoder; codecs no webview decodes (XviD, MPEG-2, ProRes...) always get the h264 proxy (`videoNeedsProxy`). Importable types are one list, `utils/videoExtensions.ts` |
 | `get_audio_streams` | preview.rs | ffprobe audio stream listing |
 | `hover_preview_error` | preview.rs | Log hover preview errors |
 | `ensure_preview_proxy` | preview.rs | Transcode to x264 proxy (480p, CRF 32), beside the clip for app-owned clips; `inCache: true` (Flow's picked files) writes it to the preview cache instead, never into the user's folder |
