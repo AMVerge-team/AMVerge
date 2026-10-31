@@ -6,11 +6,13 @@ import { SceneScoutSearchView } from "../components/sceneScout/SceneScoutSearchV
 import { SceneScoutFlowToolbar } from "../components/sceneScout/flow/SceneScoutFlowToolbar";
 import { SceneScoutFlowView } from "../components/sceneScout/flow/SceneScoutFlowView";
 import { MissingEpisodePrompt } from "../components/sceneScout/MissingEpisodePrompt";
+import { SceneScoutTour } from "../components/sceneScout/SceneScoutTour";
 import { useAppStateStore } from "../stores/appStore";
 import { useSceneScoutStore } from "../stores/sceneScoutStore";
 import { selectOverlayOpen, useUIStateStore } from "../stores/UIStore";
 import { hitToClipItem } from "../features/sceneScout/hitToClip";
 import { useScoutThumbnailQueue } from "../features/sceneScout/useScoutThumbnailQueue";
+import { useScoutPreviewPrefetch } from "../features/sceneScout/useScoutPreviewPrefetch";
 
 export default function SceneScoutPage() {
   const overlayOpen = useUIStateStore(selectOverlayOpen);
@@ -21,6 +23,7 @@ export default function SceneScoutPage() {
   const results = mode === "flow" ? flowResults : searchResults;
   const refreshStatus = useSceneScoutStore((s) => s.refreshStatus);
   const heroDismissed = useSceneScoutStore((s) => s.heroDismissed);
+  const tourSeen = useUIStateStore((s) => s.sceneScoutTourSeen);
 
   useScoutThumbnailQueue();
 
@@ -54,6 +57,7 @@ export default function SceneScoutPage() {
   }, [refreshStatus]);
 
   const clips = useMemo(() => results.map(hitToClipItem), [results]);
+  useScoutPreviewPrefetch(clips);
 
   useEffect(() => {
     const state = useAppStateStore.getState();
@@ -91,6 +95,7 @@ export default function SceneScoutPage() {
       </div>
 
       <MissingEpisodePrompt />
+      {!tourSeen && !overlayOpen && <SceneScoutTour />}
     </>
   );
 }

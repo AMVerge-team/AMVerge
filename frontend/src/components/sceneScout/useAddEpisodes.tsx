@@ -23,7 +23,12 @@ export function useAddEpisodes() {
   const aiSceneDetectionEnabled = useGeneralSettingsStore((s) => s.aiSceneDetectionEnabled);
   const homeEpisodes = useEpisodePanelRuntimeStore((s) => s.episodes);
   const targetDatabase = useSceneScoutStore((s) => s.openedDatabase || s.selectedDatabases[0] || null);
-  const indexedVideos = useSceneScoutStore((s) => (targetDatabase ? s.videosByDatabase[targetDatabase] : undefined));
+  const targetName = useSceneScoutStore((s) =>
+    targetDatabase
+      ? s.displayNames[targetDatabase] ?? s.databases.find((d) => samePath(d.path, targetDatabase))?.name ?? null
+      : null
+  );
+  const indexedVideos =useSceneScoutStore((s) => (targetDatabase ? s.videosByDatabase[targetDatabase] : undefined));
 
   const [choosing, setChoosing] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
@@ -92,7 +97,7 @@ export function useAddEpisodes() {
   const chooser = choosing ? (
     <ModalShell open onClose={() => setChoosing(false)} label="Add episodes" className="scout-add-modal">
       <div className="scout-add">
-        <h2 className="scout-add-title">Add episodes</h2>
+        <h2 className="scout-add-title">{targetName ? `Add episodes to ${targetName}` : "Add episodes"}</h2>
 
         <div className="scout-add-columns">
           <section className="scout-add-column">

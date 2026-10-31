@@ -21,7 +21,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 2px;
     text-align: center;
 }
 
@@ -46,7 +46,7 @@
 .splash-tagline {
     margin: 0;
     font-family: var(--ui-font);
-    font-size: 13px;
+    font-size: 17px;
     letter-spacing: 0.4px;
     color: rgb(255 255 255 / 0.62);
     animation: splashRise 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.22s both;

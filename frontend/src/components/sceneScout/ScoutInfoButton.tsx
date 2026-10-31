@@ -17,12 +17,16 @@ function SearchInfo() {
 
       <h4>Getting started</h4>
       <ol>
-        <li>Create a database. One per series works well.</li>
+        <li>Create or open a database in the left panel. One per series works well.</li>
         <li>
-          Select it, press Add Episode and pick one or more videos. Indexing watches every scene once
-          and stores a fingerprint of each, which takes a while but only happens once per episode.
+          Move it into Searching by double-clicking it, dragging it up, or right-clicking it. All
+          databases lists everything you have; only the ones in Searching are searched.
         </li>
-        <li>Search for what you want in plain language.</li>
+        <li>
+          Press Import and pick one or more videos. Indexing watches every scene once and stores a
+          fingerprint of each, which takes a while but only happens once per episode.
+        </li>
+        <li>Describe the scene you want in plain language and press Enter.</li>
       </ol>
 
       <h4>Search settings</h4>

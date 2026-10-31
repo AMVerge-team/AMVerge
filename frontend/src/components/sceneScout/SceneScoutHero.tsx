@@ -99,7 +99,7 @@ export function SceneScoutHero() {
         <div className="scene-scout-hero-actions">
           <SidebarToggle />
           <AddEpisodeButton
-            hint={addTargetName ? `Add episode to ${addTargetName}` : "Select or create a database below first"}
+            hint={addTargetName ? `Add episodes to ${addTargetName}` : "Select or create a database below first"}
             onClick={onAddEpisodes}
             disabled={!addTarget || searching}
           />
@@ -117,7 +117,7 @@ export function SceneScoutHero() {
           </div>
         )}
 
-        <div className="scene-scout-hero-dbs">
+        <div className="scene-scout-hero-dbs" data-scout-tour="hero-dbs">
           <div className="scene-scout-hero-dbs-head">
             <span>Your databases</span>
             <button type="button" className="scene-scout-hero-new" onClick={() => void startCreate()}>

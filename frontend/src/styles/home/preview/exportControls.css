@@ -295,7 +295,7 @@
 /* merge, resolve and language wrap onto their own lines in a narrow pane instead of overlapping */
 .export-options-row .export-dir-row {
     flex-wrap: wrap;
-    gap: 8px 20px;
+    gap: 8px 12px;
 }
 
 .davinci-export-toggle {

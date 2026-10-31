@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import VideoPlayer from "../../previewPanel/VideoPlayer";
+import LoadingSpinner from "../../common/LoadingSpinner";
 import type { FlowSource } from "../../../features/sceneScout/types";
 import { useFlowPreviewSrc } from "./useFlowPreviewSrc";
 
@@ -26,7 +27,9 @@ export function FlowPlayer({ source, empty }: Props) {
           ) : failed ? (
             <div className="scene-scout-flow-player-empty">Could not prepare a preview of this clip.</div>
           ) : !src ? (
-            <div className="scene-scout-flow-player-empty is-loading">Preparing preview…</div>
+            <div className="scene-scout-flow-player-empty">
+              <LoadingSpinner label="Preparing preview" />
+            </div>
           ) : (
             // same custom player and timebar as the preview pane, always silent so it never talks over the match
             <VideoPlayer key={src} src={src} volume={0} silent />

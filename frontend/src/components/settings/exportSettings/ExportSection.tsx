@@ -27,6 +27,7 @@ import ExportCodecSettings from "./ExportCodecSettings";
 import ExportHardwareSettings from "./ExportHardwareSettings";
 import PostExportPassesSection from "./PostExportPassesSection";
 import SettingsSection from "../../common/SettingsSection";
+import { useFeature } from "../../../features/featureToggles";
 
 function resolveGpuEncoderForCodec(
   codec: ExportProfile["codec"],
@@ -58,6 +59,11 @@ export default function ExportSection() {
   const setOpenFileLocationAfterExport = useGeneralSettingsStore(
     (state) => state.setOpenFileLocationAfterExport
   );
+
+  // with both passes hidden the section would be an empty header
+  const depthFeature = useFeature("depthPass");
+  const interpolationFeature = useFeature("interpolationPass");
+  const passesHidden = depthFeature.hidden && interpolationFeature.hidden;
 
   const {
     nvidiaDetection,
@@ -335,10 +341,14 @@ export default function ExportSection() {
         )}
         </SettingsSection>
 
-        <div className="settings-section-divider" />
-        <SettingsSection id="export.postPasses" title="Post-export passes">
-          <PostExportPassesSection />
-        </SettingsSection>
+        {!passesHidden && (
+          <>
+            <div className="settings-section-divider" />
+            <SettingsSection id="export.postPasses" title="Post-export passes">
+              <PostExportPassesSection />
+            </SettingsSection>
+          </>
+        )}
       </div>
     </section>
   );

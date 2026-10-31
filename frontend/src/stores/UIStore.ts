@@ -27,6 +27,8 @@ export type UIState = {
     howToUseExpanded: boolean;
     /** height of scene scout flow's input clip area, set by dragging the bar under it */
     flowPlayerHeightPx: number;
+    /** the scene scout walkthrough was finished or skipped, so it no longer opens on its own */
+    sceneScoutTourSeen: boolean;
 };
 
 export type UIStateStore = UIState & {
@@ -57,6 +59,7 @@ export type UIStateStore = UIState & {
     togglePinned: () => void;
     setHowToUseExpanded: (expanded: boolean) => void;
     setFlowPlayerHeightPx: (px: number) => void;
+    setSceneScoutTourSeen: (seen: boolean) => void;
 };
 
 /** true while a full-screen modal covers the app, so previews can stand down */
@@ -82,6 +85,7 @@ export const DEFAULT_UI_STATE: UIState = {
     pinned: false,
     howToUseExpanded: true,
     flowPlayerHeightPx: 300,
+    sceneScoutTourSeen: false,
 };
 
 export const useUIStateStore = create<UIStateStore>()(
@@ -147,6 +151,7 @@ export const useUIStateStore = create<UIStateStore>()(
             togglePinned: () => set((state) => ({ pinned: !state.pinned })),
             setHowToUseExpanded: (howToUseExpanded) => set({ howToUseExpanded }),
             setFlowPlayerHeightPx: (flowPlayerHeightPx) => set({ flowPlayerHeightPx }),
+            setSceneScoutTourSeen: (sceneScoutTourSeen) => set({ sceneScoutTourSeen }),
         }),
         {
             name: "amverge.ui.v1",
@@ -161,6 +166,7 @@ export const useUIStateStore = create<UIStateStore>()(
                 pinned: state.pinned,
                 howToUseExpanded: state.howToUseExpanded,
                 flowPlayerHeightPx: state.flowPlayerHeightPx,
+                sceneScoutTourSeen: state.sceneScoutTourSeen,
             }),
         }
     )

@@ -32,7 +32,8 @@ function steps(guide: Guide, mod: string): React.ReactNode[] {
     case "sceneScoutSearch":
       return [
         <>Create or open a <b>Database</b> in the left panel</>,
-        <>Click <b>Add Episode</b> to index episodes into it</>,
+        <>Move it into <b>Searching</b>: <b>Double Click</b> it, drag it up, or right click it. Only databases in Searching are searched</>,
+        <>Click <b>Import</b> to index episodes into it</>,
         <>Describe a scene in the search bar and press <b>Enter</b></>,
         <>Single click a result to <b>Preview</b> it</>,
         exportNow,
@@ -62,6 +63,7 @@ export default function HowToUse() {
   const setIsExpanded = useUIStateStore((s) => s.setHowToUseExpanded);
   const activePage = useUIStateStore((s) => s.activePage);
   const scoutMode = useSceneScoutStore((s) => s.mode);
+  const setTourSeen = useUIStateStore((s) => s.setSceneScoutTourSeen);
 
   // the guide follows the page the preview pane sits beside
   const guide: Guide =
@@ -115,6 +117,11 @@ export default function HowToUse() {
                 </li>
               ))}
             </ul>
+            {guide === "sceneScoutSearch" && (
+              <button type="button" className="info-tour-link" onClick={() => setTourSeen(false)}>
+                Show the walkthrough again
+              </button>
+            )}
           </div>
         </div>
       )}

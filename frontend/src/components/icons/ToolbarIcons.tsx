@@ -18,6 +18,19 @@ export function ImportIcon() {
   );
 }
 
+/** a three-disk database with a down arrow beside it ("import a database file") */
+export function DatabaseImportIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="1.6em" height="1.6em" fill="currentColor" aria-hidden="true">
+      <ellipse cx="8" cy="4.5" rx="6" ry="2.5" />
+      <path d="M2 5.9v4.6c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V5.9c-1.2 1.5-3.5 2.5-6 2.5S3.2 7.4 2 5.9z" />
+      <path d="M2 11.9v4.6c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-4.6c-1.2 1.5-3.5 2.5-6 2.5s-4.8-1-6-2.5z" />
+      <rect x="18" y="6.5" width="2.6" height="9" rx="1.3" />
+      <path d="M15 14.2h8.6l-4.3 6.3z" />
+    </svg>
+  );
+}
+
 /** one gear with a smaller, dimmer gear tucked behind its bottom right */
 export function SettingsIcon() {
   return (

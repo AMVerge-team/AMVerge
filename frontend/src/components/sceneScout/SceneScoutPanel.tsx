@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
+import { open as openUrl } from "@tauri-apps/plugin-shell";
 import {
   FaChevronRight,
   FaDatabase,
-  FaFolderOpen,
-  FaImage,
   FaPlus,
   FaSearch,
   FaSpinner,
@@ -13,6 +12,7 @@ import {
   FaVideo,
 } from "react-icons/fa";
 import { FiDatabase } from "react-icons/fi";
+import { DatabaseImportIcon } from "../icons/ToolbarIcons";
 
 import ModalShell from "../common/ModalShell";
 import Tooltip from "../common/Tooltip";
@@ -23,7 +23,9 @@ import type { ScoutDatabase, ScoutVideo } from "../../features/sceneScout/types"
 import { useScoutDbDrag, type ScoutList } from "./useScoutDbDrag";
 import { useCreateScoutDatabase } from "./useCreateScoutDatabase";
 
-type DbMenu = { list: ScoutList; paths: string[]; x: number; y: number };
+const SONICFREAK_URL = "https://www.youtube.com/@sonicfreak1111";
+
+type DbMenu ={ list: ScoutList; paths: string[]; x: number; y: number };
 
 /** sidebar panel for the databases and their episodes, on the same shell as the episode and Scenepacks panels */
 export function SceneScoutPanel() {
@@ -50,7 +52,6 @@ export function SceneScoutPanel() {
   const deleteVideo = useSceneScoutStore((s) => s.deleteVideo);
   const unloadDatabase = useSceneScoutStore((s) => s.unloadDatabase);
   const displayNames = useSceneScoutStore((s) => s.displayNames);
-  const generateThumbnails = useSceneScoutStore((s) => s.generateThumbnails);
 
   const { startCreate, modal: createModal, error: createError } = useCreateScoutDatabase();
   const [panelError, setError] = useState("");
@@ -61,7 +62,6 @@ export function SceneScoutPanel() {
   const [databaseToDelete, setDatabaseToDelete] = useState<ScoutDatabase | null>(null);
   const [videoToDelete, setVideoToDelete] = useState<{ video: ScoutVideo; database: ScoutDatabase } | null>(null);
   const [isDeletingVideo, setIsDeletingVideo] = useState(false);
-  const [generatingThumbsDb, setGeneratingThumbsDb] = useState<string | null>(null);
   // explorer-style highlight for click, ctrl and shift; separate from which databases are searched
   const [highlight, setHighlight] = useState<{ list: ScoutList; paths: string[] }>({ list: "all", paths: [] });
   const [menu, setMenu] = useState<DbMenu | null>(null);
@@ -219,19 +219,6 @@ export function SceneScoutPanel() {
     }
   };
 
-  const handleGenerateThumbnails = async (database: ScoutDatabase) => {
-    setError("");
-    setGeneratingThumbsDb(database.path);
-    try {
-      const res = await generateThumbnails(database.path);
-      if (!res.ok && res.message) {
-        setError(res.message);
-      }
-    } finally {
-      setGeneratingThumbsDb(null);
-    }
-  };
-
   // episodes are only pickable in the searching list, where picking one narrows the search
   const renderVideos = (database: ScoutDatabase, pickable: boolean) => {
     const dbVideos = videosByDatabase[database.path] ?? (samePath(opened, database.path) ? videos : []);
@@ -329,45 +316,21 @@ export function SceneScoutPanel() {
           )}
           <span className="episode-panel-episode-name">{labelFor(path, database.name)}</span>
           <span className="episode-panel-count">{database.sceneCount}</span>
-          {list === "all" && (
-            <>
-              <Tooltip content="Generate missing thumbnails into database">
-                <button
-                  type="button"
-                  className="episode-panel-import-icon episode-folder-btn"
-                  disabled={generatingThumbsDb === path}
-                  onPointerDown={stop}
-                  onDoubleClick={stop}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void handleGenerateThumbnails(database);
-                  }}
-                  aria-label={`Generate missing thumbnails for ${database.name}`}
-                >
-                  {generatingThumbsDb === path ? (
-                    <FaSpinner className="spinner" style={{ animation: "spin 1s linear infinite" }} />
-                  ) : (
-                    <FaImage aria-hidden="true" />
-                  )}
-                </button>
-              </Tooltip>
-              <Tooltip content="Delete database from disk">
-                <button
-                  type="button"
-                  className="episode-panel-import-icon episode-folder-btn episode-delete-btn"
-                  onPointerDown={stop}
-                  onDoubleClick={stop}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDatabaseToDelete(database);
-                  }}
-                  aria-label={`Delete ${database.name}`}
-                >
-                  <FaTrashAlt aria-hidden="true" />
-                </button>
-              </Tooltip>
-            </>
-          )}
+          <Tooltip content="Delete database from disk">
+            <button
+              type="button"
+              className="episode-panel-import-icon episode-folder-btn episode-delete-btn"
+              onPointerDown={stop}
+              onDoubleClick={stop}
+              onClick={(e) => {
+                e.stopPropagation();
+                setDatabaseToDelete(database);
+              }}
+              aria-label={`Delete ${database.name}`}
+            >
+              <FaTrashAlt aria-hidden="true" />
+            </button>
+          </Tooltip>
         </div>
 
         {isExpanded && (
@@ -384,18 +347,23 @@ export function SceneScoutPanel() {
           <div className="episode-panel-title">
             Scene Scout
             {/* upstream author, credited where the feature actually lives */}
-            <span className="scene-scout-credit">By Mark Shun/Sonicfreak</span>
+            <span className="scene-scout-credit">
+              By{" "}
+              <button type="button" className="scene-scout-credit-link" onClick={() => void openUrl(SONICFREAK_URL)}>
+                Mark Shun/Sonicfreak
+              </button>
+            </span>
           </div>
-          <div className="episode-panel-actions">
-            <Tooltip content={isOpening ? "Opening database…" : "Open database"}>
+          <div className="episode-panel-actions" data-scout-tour="db-actions">
+            <Tooltip content={isOpening ? "Opening database…" : "Import a database file"}>
               <button
                 type="button"
                 className="episode-panel-action icon-only"
                 onClick={() => void startOpen()}
                 disabled={isOpening}
-                aria-label="Open database"
+                aria-label="Import a database file"
               >
-                {isOpening ? <FaSpinner className="spinner" aria-hidden="true" /> : <FaFolderOpen aria-hidden="true" />}
+                {isOpening ? <FaSpinner className="spinner" aria-hidden="true" /> : <DatabaseImportIcon />}
               </button>
             </Tooltip>
             <Tooltip content="New database">
@@ -436,7 +404,7 @@ export function SceneScoutPanel() {
         {error && <p className="events-error scene-scout-panel-error">{error}</p>}
 
         {databases.length === 0 ? (
-        <div className="episode-panel-list">
+        <div className="episode-panel-list" data-scout-tour="db-empty">
           {loading ? (
             <div className="scenepacks-empty-cta">
               <FaSpinner
@@ -464,6 +432,7 @@ export function SceneScoutPanel() {
         <div className="scene-scout-split" ref={splitRef}>
           <div
             data-scout-list="search"
+            data-scout-tour="searching"
             className={`episode-panel-list scene-scout-db-box${dropList === "search" ? " is-drop-target-root" : ""}`}
             style={{ flex: `0 0 calc(${splitPct}% - 5px)` }}
           >
@@ -471,7 +440,7 @@ export function SceneScoutPanel() {
             {searchVisible.length === 0 ? (
               <div className="scene-scout-drop-hint">
                 {selectedDatabases.length === 0
-                  ? "Double-click, drag or right-click a database below to search it"
+                  ? "Nothing is searched yet. Double-click, drag or right-click a database below to search it"
                   : "No searched databases match that filter."}
               </div>
             ) : (
@@ -489,6 +458,7 @@ export function SceneScoutPanel() {
 
           <div
             data-scout-list="all"
+            data-scout-tour="all-databases"
             className={`episode-panel-list scene-scout-db-box${dropList === "all" ? " is-drop-target-root" : ""}`}
           >
             <div className="scene-scout-section-label">All databases · {databases.length}</div>
@@ -543,19 +513,6 @@ export function SceneScoutPanel() {
                 }}
               >
                 {n > 1 ? `Deselect ${n} databases` : "Deselect this database"}
-              </button>
-            )}
-            {single && (
-              <button
-                type="button"
-                className="episode-context-menu-item"
-                disabled={generatingThumbsDb === single.path}
-                onClick={() => {
-                  void handleGenerateThumbnails(single);
-                  close();
-                }}
-              >
-                Generate missing thumbnails
               </button>
             )}
             <div className="episode-context-menu-separator" />

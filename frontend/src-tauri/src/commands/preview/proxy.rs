@@ -405,37 +405,49 @@ pub async fn ensure_scene_range_preview(
     let duration = end_sec - start_sec;
 
     let ffmpeg_output = tokio::task::spawn_blocking(move || {
-        let mut cmd = Command::new(&ffmpeg);
-        apply_no_window(&mut cmd);
-        #[cfg(not(windows))]
-        cmd.process_group(0);
-        // input-side seek is frame accurate when re-encoding and skips decoding everything before the scene
-        cmd.args(["-y", "-ss", &format!("{start_sec:.3}"), "-i"]);
-        cmd.arg(&input);
-        cmd.args(["-t", &format!("{duration:.3}")]);
-        cmd.args(["-map", "0:v:0", "-map", "0:a:0?"]);
-        cmd.args(["-c:v", "libx264"]);
-        cmd.args(["-vf", &format!("scale=-2:'min({preview_height},ih)'")]);
-        cmd.args(["-g", "1"]);
-        cmd.args(["-preset", "veryfast"]);
-        cmd.args(["-threads", &encode_threads.to_string()]);
-        cmd.args(["-crf", &preview_crf.to_string()]);
-        cmd.args(["-pix_fmt", "yuv420p"]);
-        cmd.args(["-c:a", "aac", "-b:a", "128k", "-ac", "2", "-ar", "48000"]);
-        cmd.args(["-movflags", "+faststart"]);
-        cmd.arg(&output);
+        let run = |hw_decode: bool| -> Result<std::process::Output, String> {
+            let mut cmd = Command::new(&ffmpeg);
+            apply_no_window(&mut cmd);
+            #[cfg(not(windows))]
+            cmd.process_group(0);
+            // decoding the (often 10-bit HEVC) source is most of the cost on a weak CPU; the GPU does it at a fixed cost
+            if hw_decode {
+                cmd.args(["-hwaccel", "auto"]);
+            }
+            // input-side seek is frame accurate when re-encoding and skips decoding everything before the scene
+            cmd.args(["-y", "-ss", &format!("{start_sec:.3}"), "-i"]);
+            cmd.arg(&input);
+            cmd.args(["-t", &format!("{duration:.3}")]);
+            cmd.args(["-map", "0:v:0", "-map", "0:a:0?"]);
+            cmd.args(["-c:v", "libx264"]);
+            cmd.args(["-vf", &format!("scale=-2:'min({preview_height},ih)'")]);
+            // a half-second gop keeps scrubbing snappy at a third of all-intra's size
+            cmd.args(["-g", "12"]);
+            cmd.args(["-preset", "ultrafast"]);
+            cmd.args(["-threads", &encode_threads.to_string()]);
+            cmd.args(["-crf", &preview_crf.to_string()]);
+            cmd.args(["-pix_fmt", "yuv420p"]);
+            cmd.args(["-c:a", "aac", "-b:a", "128k", "-ac", "2", "-ar", "48000"]);
+            cmd.args(["-movflags", "+faststart"]);
+            cmd.arg(&output);
 
-        let child = cmd
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|e| format!("Failed to run ffmpeg: {e}"))?;
-        let pid = child.id();
-        bind_to_app_lifetime(pid);
-        if let Ok(mut l) = pids.lock() { l.push(pid); }
-        let result = child.wait_with_output().map_err(|e| format!("Failed waiting for ffmpeg: {e}"))?;
-        if let Ok(mut l) = pids.lock() { l.retain(|p| *p != pid); }
-        Ok::<std::process::Output, String>(result)
+            let child = cmd
+                .stdout(Stdio::null())
+                .stderr(Stdio::piped())
+                .spawn()
+                .map_err(|e| format!("Failed to run ffmpeg: {e}"))?;
+            let pid = child.id();
+            bind_to_app_lifetime(pid);
+            if let Ok(mut l) = pids.lock() { l.push(pid); }
+            let result = child.wait_with_output().map_err(|e| format!("Failed waiting for ffmpeg: {e}"))?;
+            if let Ok(mut l) = pids.lock() { l.retain(|p| *p != pid); }
+            Ok(result)
+        };
+        // a driver that can't decode this stream fails the hardware run; software always can
+        match run(true) {
+            Ok(out) if out.status.success() => Ok(out),
+            _ => run(false),
+        }
     })
     .await
     .map_err(|e| format!("ffmpeg task panicked: {e}"))??;

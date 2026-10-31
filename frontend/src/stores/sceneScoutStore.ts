@@ -154,7 +154,6 @@ type SceneScoutActions = {
   runSearch: () => Promise<void>;
   clearResults: () => void;
   updateSettings: (changes: Partial<ScoutSearchSettings>) => void;
-  generateThumbnails: (path: string) => Promise<{ ok: boolean; generated: number; message: string | null }>;
   backfillThumbnails: (paths: string[]) => void;
   refresh: () => Promise<void>;
   setMode: (mode: ScoutMode) => void;
@@ -765,45 +764,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       updateSettings: (changes) =>
         set((state) => ({ settings: { ...state.settings, ...changes } })),
 
-      generateThumbnails: async (path: string) => {
-        if (!(await claimProcess("scout_thumbnails"))) return { ok: false, generated: 0, message: null };
-        let stopListening: (() => void) | null = null;
-        try {
-          const appState = useAppStateStore.getState();
-          appState.setActiveOperation("scout_thumbnails");
-          appState.setLoading(true);
-          appState.setProgress(0);
-          appState.setProgressMsg("Finding missing and low-resolution thumbnails…");
-
-          // the cli reports every frame it decodes, so the bar moves throughout a long season
-          stopListening = await listen<ScoutIndexProgress>("scout_progress", (e) => {
-            const { stage, done, total } = e.payload;
-            if (stage !== "thumbnails" || total <= 0) return;
-            appState.setProgress(Math.round((done / total) * 100));
-            appState.setProgressMsg(`Generating thumbnails ${done}/${total}`);
-          });
-
-          const res = await scoutGenerateThumbnails(path, customPath(), true);
-          await get().loadDatabases();
-          return { ok: true, generated: res.generated, message: null };
-        } catch (err) {
-          // closing the window pauses: finished episodes are saved and the next run carries on
-          if (isScoutCanceled(err)) {
-            console.log("SCOUT|thumbs paused; generating again resumes from the next episode");
-            return { ok: false, generated: 0, message: null };
-          }
-          return { ok: false, generated: 0, message: message(err) };
-        } finally {
-          stopListening?.();
-          const appState = useAppStateStore.getState();
-          appState.setActiveOperation(null);
-          appState.setLoading(false);
-          appState.setProgress(0);
-          appState.setProgressMsg("");
-        }
-      },
-
-      /** silent, background version of generateThumbnails: no loading card, once per database per session */
+      /** fills missing thumbnails in the background: no loading card, once per database per session */
       backfillThumbnails: (paths) => {
         for (const path of paths) {
           const key = path.toLowerCase();

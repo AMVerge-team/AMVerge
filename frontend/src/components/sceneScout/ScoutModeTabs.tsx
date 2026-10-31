@@ -12,7 +12,7 @@ export function ScoutModeTabs() {
   const setMode = useSceneScoutStore((s) => s.setMode);
 
   return (
-    <div className="scene-scout-mode-tabs" role="tablist" aria-label="Scene Scout mode">
+    <div className="scene-scout-mode-tabs" data-scout-tour="mode-tabs" role="tablist" aria-label="Scene Scout mode">
       {TABS.map((tab) => (
         <Tooltip key={tab.mode} content={tab.hint}>
           <button

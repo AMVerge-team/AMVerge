@@ -4,6 +4,7 @@ import Console from "../components/menu/Console";
 import PatchNotes from "../components/menu/PatchNotes";
 import Credits from "../components/menu/Credits";
 import BugReport from "../components/menu/BugReport";
+import Resources from "../components/menu/Resources";
 import { useTabKeys } from "../components/common/useTabKeys";
 import {
   FaInfoCircle,
@@ -11,6 +12,7 @@ import {
   FaHistory,
   FaUsers,
   FaBug,
+  FaToolbox,
 } from "react-icons/fa";
 
 const PAGES = [
@@ -18,6 +20,7 @@ const PAGES = [
   { key: "console", label: "Console", icon: FaTerminal },
   { key: "logs", label: "Update Logs", icon: FaHistory },
   { key: "credits", label: "Credits", icon: FaUsers },
+  { key: "resources", label: "Resources", icon: FaToolbox },
   { key: "bugreport", label: "Report Bug", icon: FaBug },
 ];
 
@@ -51,6 +54,7 @@ export default function Menu() {
           {activePage === "console" && <Console />}
           {activePage === "logs" && <PatchNotes />}
           {activePage === "credits" && <Credits />}
+          {activePage === "resources" && <Resources />}
           {activePage === "bugreport" && <BugReport />}
         </div>
       </div>

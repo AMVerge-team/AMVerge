@@ -234,6 +234,20 @@
     font-weight: 500;
 }
 
+.info-tour-link {
+    margin-top: 12px;
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.info-tour-link:hover {
+    text-decoration: underline;
+}
+
 @media (max-width: 980px) {
     .preview-container {
         padding: 12px;

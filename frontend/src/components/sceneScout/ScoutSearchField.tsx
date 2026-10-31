@@ -53,7 +53,7 @@ export function ScoutSearchField({ fieldRef, onSubmit, blockedHint = null }: Pro
 
   return (
     <Tooltip content={blocked ? placeholder : "Search the selected databases and episodes"}>
-      <div ref={fieldRef} className={`scene-scout-search-field${blocked ? " is-disabled" : ""}`}>
+      <div ref={fieldRef} data-scout-tour="search-field" className={`scene-scout-search-field${blocked ? " is-disabled" : ""}`}>
         <FaSearch aria-hidden="true" className="scene-scout-search-icon" />
         <input
           type="text"

@@ -7,7 +7,7 @@ import Tooltip from "../common/Tooltip";
 import { useEscapeToClose } from "../common/useEscapeToClose";
 import PreviewAllToggle from "../common/PreviewAllToggle";
 import { SettingsIcon } from "../icons/ToolbarIcons";
-import { useSceneScoutStore } from "../../stores/sceneScoutStore";
+import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
 import { AddEpisodeButton } from "./AddEpisodeButton";
 import { heroFlipPending } from "../../features/sceneScout/heroTransition";
 import { ScoutInfoButton } from "./ScoutInfoButton";
@@ -36,6 +36,8 @@ export function SceneScoutToolbar() {
   const searching = useSceneScoutStore((s) => s.searching);
   const opened = useSceneScoutStore((s) => s.openedDatabase);
   const selectedDatabases = useSceneScoutStore((s) => s.selectedDatabases);
+  const databases = useSceneScoutStore((s) => s.databases);
+  const displayNames = useSceneScoutStore((s) => s.displayNames);
   const settings = useSceneScoutStore((s) => s.settings);
   const updateSettings = useSceneScoutStore((s) => s.updateSettings);
   const unloadModel = useSceneScoutStore((s) => s.unloadModel);
@@ -82,6 +84,11 @@ export function SceneScoutToolbar() {
   useEscapeToClose(() => setSettingsOpen(false), settingsOpen);
 
   const noDatabaseOpen = !opened && selectedDatabases.length === 0;
+  // same pick as addVideos: the last clicked database, else the first searched one
+  const addTarget = opened || selectedDatabases[0] || null;
+  const addTargetName = addTarget
+    ? displayNames[addTarget] ?? databases.find((d) => samePath(d.path, addTarget))?.name ?? "database"
+    : null;
   const GATE_HINT = "Please select a Database or Create one on the left panel first.";
 
   // while set, the result count trigger is a text field; sticky so an empty Custom box stays open
@@ -179,7 +186,7 @@ export function SceneScoutToolbar() {
           <SidebarToggle />
 
           <AddEpisodeButton
-            hint={noDatabaseOpen ? GATE_HINT : "Add episode to the open database"}
+            hint={addTargetName ? `Add episodes to ${addTargetName}` : GATE_HINT}
             onClick={() => void startAddEpisodes()}
             disabled={searching || noDatabaseOpen}
           />

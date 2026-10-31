@@ -15,7 +15,7 @@ export function AddEpisodeButton({
   return (
     // wrapper span: a disabled button fires no pointer events, so the tooltip listens on it instead
     <Tooltip content={indexing ? "Indexing..." : hint}>
-      <span className="tooltip-anchor">
+      <span className="tooltip-anchor" data-scout-tour="add-episode">
         <button
           type="button"
           className="import-button icon-action-button import-text-button"

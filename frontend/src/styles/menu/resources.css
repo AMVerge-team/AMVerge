@@ -1,0 +1,221 @@
+.resources-panel {
+    overflow-y: auto !important;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--accent-rgb) / 0.34) rgb(255 255 255 / 0.02);
+    padding: 20px 24px;
+    gap: 16px;
+}
+
+.resources-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.resource-card {
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
+}
+
+.resource-card.is-open {
+    border-color: rgba(var(--accent-rgb), 0.35);
+}
+
+.resource-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 14px 18px;
+    background: none;
+    border: none;
+    color: inherit;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.resource-logo {
+    width: 48px;
+    height: 48px;
+    flex: none;
+    border-radius: 10px;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.resource-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    min-width: 0;
+}
+
+.resource-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.resource-tagline {
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.resource-chevron {
+    flex: none;
+    color: rgba(255, 255, 255, 0.5);
+    transition: transform 0.2s ease;
+}
+
+.resource-card.is-open .resource-chevron {
+    transform: rotate(180deg);
+    color: var(--accent);
+}
+
+.resource-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 18px 16px;
+}
+
+.resource-visit {
+    flex: none;
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.resource-videos {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-top: 6px;
+}
+
+.resource-video {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.resource-video-frame {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.resource-video-frame iframe,
+.resource-video-poster {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.resource-video-poster {
+    padding: 0;
+    background: none;
+    cursor: pointer;
+}
+
+.resource-video-poster img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.resource-video-play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 52px;
+    height: 52px;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.65);
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    font-size: 18px;
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.resource-video-poster:hover .resource-video-play {
+    transform: translate(-50%, -50%) scale(1.08);
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.resource-video-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.resource-video-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.84rem;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.resource-video-external {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.8);
+    font-family: inherit;
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+
+.resource-video-external:hover {
+    border-color: #ff0033;
+    color: #ffffff;
+}
+
+/* the creator's personal take, set apart from the neutral description */
+.resource-dev-note {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 14px;
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    background: rgba(var(--accent-rgb), 0.07);
+}
+
+.resource-dev-note-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+.resource-dev-note .about-card-text {
+    font-style: italic;
+}

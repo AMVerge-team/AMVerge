@@ -17,6 +17,7 @@ import { useAppPersistedStore } from "../../stores/appStore.ts";
 import { useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
 import { usePreviewTranscode } from "../../features/preview/usePreviewTranscode.ts";
+import LoadingSpinner from "../common/LoadingSpinner";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
 import useImportExport from "../../hooks/useImportExport";
@@ -372,7 +373,11 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                 />
               ) : (
                 <div className="preview-window empty">
-                  <p>{scoutRangeFailed ? "Couldn't load this scene. Its episode may have moved." : "Loading preview..."}</p>
+                  {scoutRangeFailed ? (
+                    <p>Couldn't load this scene. Its episode may have moved.</p>
+                  ) : (
+                    <LoadingSpinner label="Loading preview" />
+                  )}
                 </div>
               )}
             </div>
