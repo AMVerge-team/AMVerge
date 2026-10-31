@@ -92,16 +92,6 @@ export default function AiInstallModal() {
   const install = () => void useAiDepsStore.getState().startInstall();
   const cancel = () => useAiDepsStore.getState().cancel();
 
-  let etaText = "Calculating…";
-  if (stage === "installing") {
-    if (percent > 3 && elapsed > 2) {
-      const remainingSec = (elapsed / (percent / 100)) - elapsed;
-      if (remainingSec > 0 && Number.isFinite(remainingSec)) {
-        etaText = formatDuration(remainingSec);
-      }
-    }
-  }
-
   // extract speed (e.g. "24.5MB/s" or "12.3 MiB/s") and size (e.g. "450MB / 2.7GB") if present
   let speedText: string | null = null;
   let transferredText: string | null = null;
@@ -226,9 +216,7 @@ export default function AiInstallModal() {
                     {transferredText && (
                       <span>Size: <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{transferredText}</strong></span>
                     )}
-                    <span>Elapsed: <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{formatDuration(elapsed)}</strong></span>
-                    <span>ETA: <strong style={{ color: "var(--accent)", fontFamily: "monospace" }}>{etaText}</strong></span>
-                  </div>
+                    <span>Elapsed: <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{formatDuration(elapsed)}</strong></span>                  </div>
                 )}
               </div>
               <div className="progress-bar pxm-bar">

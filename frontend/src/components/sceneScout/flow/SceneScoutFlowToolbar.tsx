@@ -5,6 +5,7 @@ import { useSceneScoutStore } from "../../../stores/sceneScoutStore";
 import { pickFlowClip } from "../../../features/sceneScout/pickFlowClip";
 import { ScoutModeTabs } from "../ScoutModeTabs";
 import { ScoutInfoButton } from "../ScoutInfoButton";
+import { ScoutSettingsButton } from "../ScoutSettingsButton";
 import { PreviewToggle, SidebarToggle, usePreviewPaneClearance } from "../PanelToggles";
 
 /** the Flow tab's row: pick the clip to continue, or re-run it against the current databases */
@@ -59,6 +60,8 @@ export function SceneScoutFlowToolbar() {
               <FaSyncAlt aria-hidden="true" />
             </button>
           </Tooltip>
+
+          <ScoutSettingsButton rerun={() => { if (flowFrom && !busy) void runFlowSearch(); }} />
 
           {/* inline, so the row keeps home's height and the preview pane never shifts */}
           {flowError && (

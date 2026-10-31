@@ -506,7 +506,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
               : activePage === "sceneScout" && scoutFlowMode
               ? (
                 scoutHasFlowClip ? (
-                  <>No scenes found for this clip.<br/>Add a database to the Searching list on the left, or lower the minimum score in Search options.</>
+                  <>No scenes found for this clip.<br/>Add a database to the Searching list on the left.</>
                 ) : (
                   <>No clip to continue yet.<br/>Input an episode above, or select a clip in your Library and click Find flowing clips.</>
                 )
@@ -514,7 +514,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
               : activePage === "sceneScout"
               ? (
                 scoutLastQuery ? (
-                  <>No scenes matched your search.<br/>Try lowering the minimum score or changing your search terms.</>
+                  <>No scenes matched your search.<br/>Try changing your search terms.</>
                 ) : (
                   <>No scenes found.<br/>Select one or more databases on the left, describe a scene, and press Enter to search.</>
                 )

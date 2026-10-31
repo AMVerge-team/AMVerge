@@ -1,5 +1,6 @@
 use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
+use std::sync::{Arc, Mutex};
 
 use tauri::AppHandle;
 
@@ -14,7 +15,7 @@ use super::packs::{
     TORCH_CUDA_INDEX, TORCH_CUDA_INDEX_GPU_DECODE, TORCH_FAMILY, TORCH_PIN_GPU_DECODE,
 };
 use super::status::env_python_version_of;
-use super::progress::{emit_log, emit_progress, report_uv_progress};
+use super::progress::{emit_log, emit_progress, report_uv_progress, DiskWatcher, LiveStatus};
 use super::status::{installed_distributions, uv_command};
 
 pub(crate) fn run_uv_step(
@@ -49,8 +50,12 @@ pub(crate) fn run_uv_step(
 
     let mut tail: Vec<String> = Vec::new();
     let track_progress = step_label == "Package install";
-    let mut total_packages = 0usize;
-    let mut downloaded = 0usize;
+    let live = Arc::new(Mutex::new(LiveStatus::new()));
+    // stops itself when dropped at the end of this step
+    let _watcher = match (track_progress, uv_cache_dir(app), ai_env_dir(app)) {
+        (true, Ok(cache), Ok(env)) => Some(DiskWatcher::spawn(app.clone(), pack.to_string(), live.clone(), cache, env)),
+        _ => None,
+    };
     if let Some(stderr) = child.stderr.take() {
         let mut reader = BufReader::new(stderr);
         let mut buf = Vec::new();
@@ -70,13 +75,7 @@ pub(crate) fn run_uv_step(
                 emit_log(app, pack, &sanitized);
 
                 if track_progress {
-                    report_uv_progress(
-                        app,
-                        pack,
-                        &sanitized,
-                        &mut total_packages,
-                        &mut downloaded,
-                    );
+                    report_uv_progress(app, pack, &sanitized, &live);
                 }
 
                 tail.push(sanitized);

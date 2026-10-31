@@ -65,7 +65,6 @@ export function scoutSearch(
       databases: settings.selectedDatabases,
       videos: settings.selectedVideos,
       topK: settings.topK,
-      threshold: settings.threshold,
       includeThumbnails: settings.includeThumbnails,
       // always the warm daemon with idle gpu offload; a cold process per search is just slower
       keepModelInMemory: true,

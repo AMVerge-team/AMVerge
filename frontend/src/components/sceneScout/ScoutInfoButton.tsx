@@ -31,8 +31,8 @@ function SearchInfo() {
 
       <h4>Search settings</h4>
       <p>
-        Results controls how many matches come back. Min score hides results below that score. Scene
-        detection is chosen each time you add episodes.
+        Results controls how many matches come back. Scene detection is chosen each time you add
+        episodes.
       </p>
     </InfoButton>
   );
