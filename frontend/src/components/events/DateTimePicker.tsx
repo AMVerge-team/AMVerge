@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FaChevronLeft, FaChevronRight, FaRegCalendarAlt } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight, FaRegCalendarAlt } from '../icons/animated';
 import { useEscapeToClose } from "../common/useEscapeToClose";
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];

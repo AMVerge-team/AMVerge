@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import changelog from "../../data/CHANGELOG.md?raw";
-import { FaChevronDown, FaArrowLeft, FaFileAlt } from "react-icons/fa";
+import { FaChevronDown, FaArrowLeft, FaFileAlt } from '../icons/animated';
 
 type ReleaseSummary = {
   version: string;

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { FaEdit, FaExclamationTriangle } from "react-icons/fa";
+import { FaEdit, FaExclamationTriangle } from '../icons/animated';
 
 import ModalShell from "../common/ModalShell";
 import { useEventsStore } from "../../stores/eventsStore";

@@ -1,6 +1,6 @@
 import React from "react";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
-import { FaBolt, FaFolderOpen } from "react-icons/fa";
+import { FaBolt, FaFolderOpen } from '../icons/animated';
 import { CommandItem } from "./types";
 
 type Props = {

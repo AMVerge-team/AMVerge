@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FaExclamationTriangle, FaTrash } from "react-icons/fa";
+import { FaExclamationTriangle, FaTrash } from '../icons/animated';
 
 import ModalShell from "../common/ModalShell";
 import type { CommunityEvent } from "./types";

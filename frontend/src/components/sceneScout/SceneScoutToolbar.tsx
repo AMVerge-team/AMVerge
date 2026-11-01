@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FaSyncAlt } from "react-icons/fa";
+import { FaSyncAlt } from '../icons/animated';
 
 import Tooltip from "../common/Tooltip";
 import PreviewAllToggle from "../common/PreviewAllToggle";

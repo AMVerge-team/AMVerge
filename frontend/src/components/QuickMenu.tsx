@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
-import { FaBars, FaCog, FaTimes, FaDiscord, FaGithub, FaSearch } from "react-icons/fa";
+import { FaBars, FaCog, FaTimes, FaDiscord, FaGithub, FaSearch } from './icons/animated';
 import Tooltip from "./common/Tooltip";
 import { useUIStateStore } from "../stores/UIStore";
 

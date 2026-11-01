@@ -1,5 +1,5 @@
-import { FaCog } from "react-icons/fa";
-import { LuFileSearch } from "react-icons/lu";
+import { FaCog } from './animated';
+import { LuFileSearch } from './animated';
 
 /** flow's "input a file to find matches": a file with a magnifier, kept apart from the import icon */
 export function FindMatchesIcon() {

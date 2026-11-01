@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FaChevronDown, FaChevronUp, FaQuestionCircle, FaWindows, FaApple } from "react-icons/fa";
+import { FaChevronDown, FaChevronUp, FaQuestionCircle, FaWindows, FaApple } from '../icons/animated';
 
 import Tooltip from "../common/Tooltip";
 import { useUIStateStore } from "../../stores/UIStore";

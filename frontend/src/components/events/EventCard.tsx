@@ -1,4 +1,4 @@
-import { FaCalendarAlt, FaTrash, FaTrophy } from "react-icons/fa";
+import { FaCalendarAlt, FaTrash, FaTrophy } from '../icons/animated';
 
 import Tooltip from "../common/Tooltip";
 

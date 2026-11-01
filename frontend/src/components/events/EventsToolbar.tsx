@@ -1,4 +1,4 @@
-import { FaBan, FaCalendarPlus, FaDiscord, FaSearch, FaSignOutAlt, FaSyncAlt, FaTimes } from "react-icons/fa";
+import { FaBan, FaCalendarPlus, FaDiscord, FaSearch, FaSignOutAlt, FaSyncAlt, FaTimes } from '../icons/animated';
 
 import Dropdown, { type DropdownOption } from "../common/Dropdown";
 import Tooltip from "../common/Tooltip";

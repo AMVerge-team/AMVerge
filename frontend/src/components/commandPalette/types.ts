@@ -1,5 +1,5 @@
 import React from "react";
-import { FaSearch, FaPlay, FaLayerGroup, FaBolt, FaCog, FaTerminal, FaSearchPlus } from "react-icons/fa";
+import { FaSearch, FaPlay, FaLayerGroup, FaBolt, FaCog, FaTerminal, FaSearchPlus } from '../icons/animated';
 import type { FeatureId } from "../../features/featureToggles";
 
 export type CategoryFilter = "all" | "episodes" | "scenepacks" | "sceneScout" | "actions" | "settings" | "menu";

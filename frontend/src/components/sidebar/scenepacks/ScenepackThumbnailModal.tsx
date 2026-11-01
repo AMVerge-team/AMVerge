@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { FaImage } from "react-icons/fa";
+import { FaImage } from '../../icons/animated';
 
 import { useGeneralSettingsStore } from "../../../stores/settingsStore";
 import { useEscapeToClose } from "../../common/useEscapeToClose";

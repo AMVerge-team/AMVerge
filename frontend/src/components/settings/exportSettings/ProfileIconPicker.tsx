@@ -1,11 +1,7 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  FaEllipsisH,
-  FaPlus,
-  FaThumbtack,
-} from "react-icons/fa";
+import { FaEllipsisH, FaPlus, FaThumbtack } from '../../icons/animated';
 import CropModal from "../../common/CropModal"
 import Tooltip from "../../common/Tooltip"
 import { useEscapeToClose } from "../../common/useEscapeToClose";

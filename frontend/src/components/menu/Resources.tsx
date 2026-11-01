@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { open } from "@tauri-apps/plugin-shell";
-import { FaChevronDown, FaCommentDots, FaExternalLinkAlt, FaPlay, FaYoutube } from "react-icons/fa";
+import { FaChevronDown, FaCommentDots, FaExternalLinkAlt, FaPlay, FaYoutube } from '../icons/animated';
 
 import resyncbotLogo from "../../assets/resources/resyncbot.png";
 import sammieRotoLogo from "../../assets/resources/sammie-roto.png";

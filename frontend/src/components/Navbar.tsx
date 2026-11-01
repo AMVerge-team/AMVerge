@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FaBars } from "react-icons/fa";
+import { FaBars } from './icons/animated';
 import Tooltip from "./common/Tooltip";
 import { MAX_EVENT_COLUMNS } from "./events/EventsBrowser";
 import { useUIStateStore } from "../stores/UIStore";

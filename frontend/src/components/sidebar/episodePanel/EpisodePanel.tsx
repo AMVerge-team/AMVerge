@@ -1,7 +1,7 @@
 // main Episode Panel coordinator. wires together structure, menus, drag/drop, keyboard shortcuts, and UI sections
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FaSearch, FaTimes, FaVideo } from "react-icons/fa";
+import { FaSearch, FaTimes, FaVideo } from '../../icons/animated';
 import { useEscapeToClose } from "../../common/useEscapeToClose";
 
 import Tooltip from "../../common/Tooltip";

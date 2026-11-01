@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
-import { FaSearch, FaTimes, FaAngleRight, FaDiscord, FaGithub, FaArrowUp, FaArrowDown } from "react-icons/fa";
-import { MdKeyboardReturn } from "react-icons/md";
+import { FaSearch, FaTimes, FaAngleRight, FaDiscord, FaGithub, FaArrowUp, FaArrowDown } from './icons/animated';
+import { MdKeyboardReturn } from './icons/animated';
 import { useUIStateStore } from "../stores/UIStore";
 import { useEpisodePanelRuntimeStore, useEpisodePanelMetadataStore } from "../stores/episodeStore";
 import { useScenepacksStore } from "../stores/scenepackStore";

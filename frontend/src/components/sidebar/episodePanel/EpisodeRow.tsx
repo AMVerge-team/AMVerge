@@ -1,5 +1,5 @@
 import type React from "react";
-import { FaFolderOpen, FaImage, FaPlay, FaVideo } from "react-icons/fa";
+import { FaFolderOpen, FaImage, FaPlay, FaVideo } from '../../icons/animated';
 import Tooltip from "../../common/Tooltip";
 import { useAppStateStore } from "../../../stores/appStore";
 import { isEpisodePaused } from "../../../features/import/resumeEpisode";

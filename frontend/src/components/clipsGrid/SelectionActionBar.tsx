@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FaLayerGroup, FaSpinner, FaWater } from "react-icons/fa";
+import { FaLayerGroup, FaSpinner, FaWater } from '../icons/animated';
 import Tooltip from "../common/Tooltip";
 import { useEscapeToClose } from "../common/useEscapeToClose";
 import { useAppStateStore } from "../../stores/appStore";

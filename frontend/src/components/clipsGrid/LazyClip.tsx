@@ -1,6 +1,6 @@
 import { memo, useCallback, useDeferredValue, useEffect, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { FaCheck, FaPlus, FaTrashAlt } from "react-icons/fa";
+import { FaCheck, FaPlus, FaTrashAlt } from '../icons/animated';
 import { LazyClipProps } from "./types.ts";
 import { DownloadButton } from "./DownloadButton.tsx";
 import Tooltip from "../common/Tooltip.tsx";

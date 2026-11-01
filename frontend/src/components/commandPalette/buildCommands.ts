@@ -1,30 +1,5 @@
-import {
-  FaPlay,
-  FaFolder,
-  FaLayerGroup,
-  FaBolt,
-  FaCog,
-  FaTerminal,
-  FaBug,
-  FaHistory,
-  FaFolderOpen,
-  FaThLarge,
-  FaTimes,
-  FaThumbtack,
-  FaFileExport,
-  FaInfoCircle,
-  FaColumns,
-  FaVolumeUp,
-  FaVolumeMute,
-  FaExpand,
-  FaSlidersH,
-  FaCodeBranch,
-  FaCalendarAlt,
-  FaSearchPlus,
-  FaWater,
-  FaDatabase,
-} from "react-icons/fa";
-import { IoLibrary } from "react-icons/io5";
+import { FaPlay, FaFolder, FaLayerGroup, FaBolt, FaCog, FaTerminal, FaBug, FaHistory, FaFolderOpen, FaThLarge, FaTimes, FaThumbtack, FaFileExport, FaInfoCircle, FaColumns, FaVolumeUp, FaVolumeMute, FaExpand, FaSlidersH, FaCodeBranch, FaCalendarAlt, FaSearchPlus, FaWater, FaDatabase } from '../icons/animated';
+import { IoLibrary } from '../icons/animated';
 import { CommandItem } from "./types";
 import { ClipItem, EpisodeEntry, ScenepackEntry } from "../../types/domain";
 import type { ScoutDatabase } from "../../features/sceneScout/types";

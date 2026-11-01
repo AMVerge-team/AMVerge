@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FaChevronDown } from "react-icons/fa";
+import { FaChevronDown } from '../icons/animated';
 
 import EventCard from "./EventCard";
 import EventDetail from "./EventDetail";
