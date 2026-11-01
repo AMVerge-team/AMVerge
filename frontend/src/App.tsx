@@ -77,7 +77,7 @@ function App() {
   const aiModalOpen = useAiDepsStore((s) => s.open);
   const aiPack = useAiDepsStore((s) => s.pack);
   const aiInstalling = aiStage === "installing";
-  const aiPackName = aiPack ? (aiPack === "ml" ? "AI Scene Detection" : aiPack === "interpolation" ? "AI Interpolation" : aiPack === "depth" ? "Depth Maps" : "AI Models") : "AI Models";
+  const aiPackName = aiPack ? (aiPack === "ml" ? "AI Scene Detection" : aiPack === "depth" ? "Depth Maps" : "AI Models") : "AI Models";
 
   const sceneDetectionMethod = useGeneralSettingsStore((s) => s.sceneDetectionMethod);
   const importMethodSetting = useGeneralSettingsStore((s) => s.importMethod);
