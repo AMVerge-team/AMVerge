@@ -325,12 +325,10 @@ pub async fn export_clips(
     })
 }
 
-/// a pass's CLI subcommand and whether it needs the AI env (dead frames is opencv-only)
+/// a pass's CLI subcommand and whether it needs the AI env
 fn pass_cli_command(pass: &str) -> Result<(&'static str, bool), String> {
     match pass {
         "depth" => Ok(("depth-map", true)),
-        "deadframes" => Ok(("deadframes", false)),
-        "interpolate" => Ok(("interpolate", true)),
         other => Err(format!("Unknown export pass: {other}")),
     }
 }
