@@ -61,7 +61,6 @@ export type GeneralSettings = {
     aiSceneDetectionEnabled: boolean;
     sceneScoutEnabled: boolean;
     depthPassEnabled: boolean;
-    interpolationPassEnabled: boolean;
     /** a switched-off feature disappears from the ui instead of being greyed out */
     hideDisabledFeatures: boolean;
     davinciResolveEnabled: boolean;
@@ -135,7 +134,6 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     aiSceneDetectionEnabled: false,
     sceneScoutEnabled: false,
     depthPassEnabled: false,
-    interpolationPassEnabled: false,
     hideDisabledFeatures: false,
     davinciResolveEnabled: false,
     davinciExportSelected: false,
@@ -340,7 +338,6 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                               aiSceneDetectionEnabled: true,
                               sceneScoutEnabled: true,
                               depthPassEnabled: true,
-                              interpolationPassEnabled: true,
                           }
                         : {};
 
