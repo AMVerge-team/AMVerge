@@ -7,8 +7,6 @@ import { useFeature } from "../../../features/featureToggles";
 import {
   DEPTH_COLORMAP_OPTIONS,
   DEPTH_ENCODER_OPTIONS,
-  INTERPOLATION_FACTOR_OPTIONS,
-  INTERPOLATION_MODEL_OPTIONS,
   type DepthColormap,
   type DepthEncoder,
 } from "../../../features/export/postPasses";
@@ -41,13 +39,11 @@ function ToggleControl({
 export default function PostExportPassesSection() {
   const passes = useGeneralSettingsStore((s) => s.postExportPasses);
   const update = useGeneralSettingsStore((s) => s.updatePostExportPasses);
-  const { depth, deadframes, interpolation } = passes;
+  const { depth } = passes;
   // each pass is a feature in Settings > Features: off greys its switch, hidden leaves it out
   const depthFeature = useFeature("depthPass");
-  const interpolationFeature = useFeature("interpolationPass");
   const OFF_NOTE = " Turn it on in Settings › Features.";
 
-  // depth and interpolation need torch, so the install is offered when the pass is switched on
   const aiStatus = useAiDepsStore((s) => s.status);
 
   const enableGatedPass = async (packId: AiPackId, enabled: boolean) => {
@@ -55,7 +51,7 @@ export default function PostExportPassesSection() {
       const installed = await useAiDepsStore.getState().ensurePack(packId);
       if (!installed) return;
     }
-    update(packId === "depth" ? "depth" : "interpolation", { enabled });
+    update("depth", { enabled });
   };
 
   return (
@@ -108,122 +104,6 @@ export default function PostExportPassesSection() {
                 label="Toggle grayscale depth"
                 checked={depth.grayscale}
                 onChange={(grayscale) => update("depth", { grayscale })}
-              />
-            }
-          />
-        </div>
-      )}
-
-      {!interpolationFeature.hidden && (
-        <SettingRow
-          label="Interpolation pass"
-          description={`Removes still frames, then adds new ones for smoother motion. Saved as <name>_interpolated.${interpolationFeature.enabled ? "" : OFF_NOTE}`}
-          control={
-            <ToggleControl
-              label="Toggle interpolation pass"
-              checked={interpolation.enabled && interpolationFeature.enabled}
-              disabled={!interpolationFeature.enabled}
-              onChange={(enabled) => void enableGatedPass("interpolation", enabled)}
-            />
-          }
-        />
-      )}
-      {interpolation.enabled && interpolationFeature.enabled && (
-        <div className="pass-config">
-          <SettingRow
-            label="Interpolation model"
-            description="Which RIFE model to use."
-            control={
-              <Dropdown
-                className="settings-wide-dropdown"
-                options={INTERPOLATION_MODEL_OPTIONS}
-                value={interpolation.model}
-                onChange={(model) => update("interpolation", { model })}
-              />
-            }
-          />
-          <SettingRow
-            label="FPS multiplier"
-            description="How much to multiply the frame rate by."
-            control={
-              <Dropdown
-                className="settings-wide-dropdown"
-                options={INTERPOLATION_FACTOR_OPTIONS}
-                value={interpolation.factor}
-                onChange={(factor) => update("interpolation", { factor: Number(factor) })}
-              />
-            }
-          />
-          <SettingRow
-            label="Also export dead frames video"
-            description="Save the still-frames-removed video too, as <name>_deadframes."
-            control={
-              <ToggleControl
-                label="Toggle dead frames export"
-                checked={deadframes.exportCopy}
-                onChange={(exportCopy) => update("deadframes", { exportCopy })}
-              />
-            }
-          />
-          <p className="pass-subheading">Dead frame removal</p>
-          <SettingRow
-            label="Auto-calibrate"
-            description="Work out the right settings for each video automatically."
-            control={
-              <ToggleControl
-                label="Toggle deadframes auto"
-                checked={deadframes.auto}
-                onChange={(auto) => update("deadframes", { auto })}
-              />
-            }
-          />
-          <SettingRow
-            label="Keep talking motion"
-            description="Keep frames that only have small mouth movement."
-            control={
-              <ToggleControl
-                label="Toggle keep talking"
-                checked={deadframes.keepTalking}
-                onChange={(keepTalking) => update("deadframes", { keepTalking })}
-              />
-            }
-          />
-          <SettingRow
-            label="Keep camera motion"
-            description="Keep frames that only have camera pan, zoom, or shake."
-            control={
-              <ToggleControl
-                label="Toggle keep camera"
-                checked={deadframes.keepCamera}
-                onChange={(keepCamera) => update("deadframes", { keepCamera })}
-              />
-            }
-          />
-          <SettingRow
-            label="Safe mode"
-            description="Only remove frames that are completely still."
-            control={
-              <ToggleControl
-                label="Toggle safe mode"
-                checked={deadframes.safe}
-                onChange={(safe) => update("deadframes", { safe })}
-              />
-            }
-          />
-          <SettingRow
-            label="Cadence"
-            description="How many still frames in a row before any are removed."
-            control={
-              <input
-                type="number"
-                className="settings-text-input pass-number-input"
-                min={1}
-                max={16}
-                value={deadframes.cadence}
-                onChange={(event) => {
-                  const next = Math.max(1, Math.min(16, Number(event.target.value) || 1));
-                  update("deadframes", { cadence: next });
-                }}
               />
             }
           />

@@ -62,8 +62,7 @@ export default function ExportSection() {
 
   // with both passes hidden the section would be an empty header
   const depthFeature = useFeature("depthPass");
-  const interpolationFeature = useFeature("interpolationPass");
-  const passesHidden = depthFeature.hidden && interpolationFeature.hidden;
+  const passesHidden = depthFeature.hidden;
 
   const {
     nvidiaDetection,
