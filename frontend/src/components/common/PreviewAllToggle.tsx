@@ -1,3 +1,4 @@
+import { GridPreviewIcon } from "../icons/chrome/ChromeIcons";
 import Tooltip from "./Tooltip";
 import { useUIStateStore } from "../../stores/UIStore";
 
@@ -14,12 +15,7 @@ export default function PreviewAllToggle() {
         aria-label="Preview all clips"
         aria-pressed={gridPreview}
       >
-        <svg viewBox="0 0 24 24" width="17" height="17" fill={gridPreview ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
-          <rect x="3" y="3" width="7.5" height="7.5" rx="1.5" />
-          <rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5" />
-          <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5" />
-          <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5" />
-        </svg>
+        <GridPreviewIcon filled={gridPreview} />
       </button>
     </Tooltip>
   );

@@ -36,8 +36,12 @@ export function FaMinusIcon({ size = '1em', className, ...rest }: FaMinusIconPro
       initial="rest"
       animate={playing}
     >
-    <motion.rect initial="rest" animate={playing} x={2.375} y={9.938} width={12} height={4.125} rx={1.375} variants={{ rest: { x: 0, y: 0 }, dip: { x: [0,2.125,0], y: [0,0,0], transition: { x: { duration: 0.28, times: [0,0.4,1], ease: ["easeOut", "easeInOut"] }, y: { duration: 0.28, times: [0,0.4,1], ease: ["easeOut", "easeInOut"] } } }, less: { x: [0,2.125,2.125,0], y: [0,0,0,0], transition: { x: { duration: 0.54, times: [0,0.3,0.6,1], ease: ["easeOut", "linear", "easeOut"] }, y: { duration: 0.54, times: [0,0.3,0.6,1], ease: ["easeOut", "linear", "easeOut"] } } } }} style={{ transformBox: 'view-box', transformOrigin: '12px 12px' }} />
-    <motion.rect initial="rest" animate={playing} x={9.625} y={9.938} width={12} height={4.125} rx={1.375} variants={{ rest: { x: 0, y: 0 }, dip: { x: [0,-2.125,0], y: [0,0,0], transition: { x: { duration: 0.28, times: [0,0.4,1], ease: ["easeOut", "easeInOut"] }, y: { duration: 0.28, times: [0,0.4,1], ease: ["easeOut", "easeInOut"] } } }, less: { x: [0,-2.125,-2.125,0], y: [0,0,0,0], transition: { x: { duration: 0.54, times: [0,0.3,0.6,1], ease: ["easeOut", "linear", "easeOut"] }, y: { duration: 0.54, times: [0,0.3,0.6,1], ease: ["easeOut", "linear", "easeOut"] } } } }} style={{ transformBox: 'view-box', transformOrigin: '12px 12px' }} />
+    <motion.g initial="rest" animate={playing} variants={{ rest: { x: 0, y: 0 }, dip: { x: [0,2.125,0], y: [0,0,0], transition: { x: { duration: 0.28, times: [0,0.4,1], ease: ["easeOut", "easeInOut"] }, y: { duration: 0.28, times: [0,0.4,1], ease: ["easeOut", "easeInOut"] } } }, less: { x: [0,2.125,2.125,0], y: [0,0,0,0], transition: { x: { duration: 0.54, times: [0,0.3,0.6,1], ease: ["easeOut", "linear", "easeOut"] }, y: { duration: 0.54, times: [0,0.3,0.6,1], ease: ["easeOut", "linear", "easeOut"] } } } }} style={{ transformBox: 'view-box', originX: '12px', originY: '12px' }}>
+      <rect x={2.375} y={9.938} width={12} height={4.125} rx={1.375} />
+    </motion.g>
+    <motion.g initial="rest" animate={playing} variants={{ rest: { x: 0, y: 0 }, dip: { x: [0,-2.125,0], y: [0,0,0], transition: { x: { duration: 0.28, times: [0,0.4,1], ease: ["easeOut", "easeInOut"] }, y: { duration: 0.28, times: [0,0.4,1], ease: ["easeOut", "easeInOut"] } } }, less: { x: [0,-2.125,-2.125,0], y: [0,0,0,0], transition: { x: { duration: 0.54, times: [0,0.3,0.6,1], ease: ["easeOut", "linear", "easeOut"] }, y: { duration: 0.54, times: [0,0.3,0.6,1], ease: ["easeOut", "linear", "easeOut"] } } } }} style={{ transformBox: 'view-box', originX: '12px', originY: '12px' }}>
+      <rect x={9.625} y={9.938} width={12} height={4.125} rx={1.375} />
+    </motion.g>
     </motion.svg>
   );
 }

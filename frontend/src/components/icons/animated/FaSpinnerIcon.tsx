@@ -21,7 +21,7 @@ export function FaSpinnerIcon({ size = '1em', className, ...rest }: FaSpinnerIco
       initial="rest"
       animate="turn"
     >
-    <motion.g variants={{ rest: { rotate: 0 }, turn: { rotate: [0,360], transition: { rotate: { duration: 1, times: [0,1], ease: ["linear"], repeat: Infinity } } } }} style={{ transformBox: 'view-box', transformOrigin: '12px 12px' }}>
+    <motion.g variants={{ rest: { rotate: 0 }, turn: { rotate: [0,360], transition: { rotate: { duration: 1, times: [0,1], ease: ["linear"], repeat: Infinity } } } }} style={{ transformBox: 'view-box', originX: '12px', originY: '12px' }}>
       <path d="M14.062 3.062 C14.062 4.202 13.139 5.125 12 5.125 S9.938 4.202 9.938 3.062 S10.861 1 12 1 S14.062 1.923 14.062 3.062 Z" />
       <path d="M12 18.875 C10.861 18.875 9.938 19.798 9.938 20.938 S10.861 23 12 23 S14.062 22.077 14.062 20.938 S13.139 18.875 12 18.875 Z" />
       <path d="M20.938 9.938 C19.798 9.938 18.875 10.861 18.875 12 S19.798 14.062 20.938 14.062 S23 13.139 23 12 S22.077 9.938 20.938 9.938 Z" />

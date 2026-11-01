@@ -1,3 +1,4 @@
+import { PanelLeftIcon, PanelRightIcon } from "../icons/chrome/ChromeIcons";
 import { FaBan, FaCalendarPlus, FaDiscord, FaSearch, FaSignOutAlt, FaSyncAlt, FaTimes } from '../icons/animated';
 
 import Dropdown, { type DropdownOption } from "../common/Dropdown";
@@ -70,13 +71,7 @@ export default function EventsToolbar() {
             aria-label={sidebarEnabled ? "Hide episode panel" : "Show episode panel"}
             aria-pressed={sidebarEnabled}
           >
-            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <path d="M9 3v18" />
-              {sidebarEnabled && (
-                <rect x="3" y="3" width="6" height="18" rx="2" fill="currentColor" stroke="none" />
-              )}
-            </svg>
+            <PanelLeftIcon filled={sidebarEnabled} />
           </button>
         </Tooltip>
 
@@ -207,13 +202,7 @@ export default function EventsToolbar() {
               aria-label={previewCollapsed ? "Show preview panel" : "Hide preview panel"}
               aria-pressed={!previewCollapsed}
             >
-              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <path d="M15 3v18" />
-                {!previewCollapsed && (
-                  <rect x="15" y="3" width="6" height="18" rx="2" fill="currentColor" stroke="none" />
-                )}
-              </svg>
+              <PanelRightIcon filled={!previewCollapsed} />
             </button>
           </Tooltip>
         </div>

@@ -36,7 +36,7 @@ export function FaGithubIcon({ size = '1em', className, ...rest }: FaGithubIconP
       initial="rest"
       animate={playing}
     >
-    <motion.g initial="rest" animate={playing} variants={{ rest: { scale: 1 }, tick: { scale: [1,0.95,1], transition: { scale: { duration: 0.22, times: [0,0.4,1], ease: ["easeOut", "easeOut"] } } }, press: { scale: [1,1.04,0.95,0.95,1], transition: { scale: { duration: 0.46, times: [0,0.1003,0.3261,0.4718,1], ease: ["easeOut", "easeOut", "easeOut", "linear"] } } } }} style={{ transformBox: 'view-box', transformOrigin: '12px 12px' }}>
+    <motion.g initial="rest" animate={playing} variants={{ rest: { scale: 1 }, tick: { scale: [1,0.95,1], transition: { scale: { duration: 0.22, times: [0,0.4,1], ease: ["easeOut", "easeOut"] } } }, press: { scale: [1,1.04,0.95,0.95,1], transition: { scale: { duration: 0.46, times: [0,0.1003,0.3261,0.4718,1], ease: ["easeOut", "easeOut", "easeOut", "linear"] } } } }} style={{ transformBox: 'view-box', originX: '12px', originY: '12px' }}>
       <path d="M8.472 18.076 C8.472 18.162 8.373 18.23 8.249 18.23 C8.107 18.243 8.008 18.175 8.008 18.076 C8.008 17.99 8.107 17.921 8.232 17.921 C8.361 17.908 8.472 17.977 8.472 18.076 Z" />
       <path d="M7.136 17.882 C7.106 17.968 7.192 18.067 7.321 18.093 C7.432 18.136 7.561 18.093 7.587 18.007 S7.531 17.822 7.402 17.784 C7.291 17.754 7.166 17.796 7.136 17.882 Z" />
       <path d="M9.035 17.809 C8.911 17.839 8.825 17.921 8.838 18.02 C8.85 18.106 8.962 18.162 9.091 18.132 C9.216 18.102 9.302 18.02 9.289 17.934 C9.276 17.852 9.16 17.796 9.035 17.809 Z" />

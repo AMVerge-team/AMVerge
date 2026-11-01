@@ -1,3 +1,4 @@
+import { PanelLeftIcon, PanelRightIcon } from "../icons/chrome/ChromeIcons";
 import type { CSSProperties } from "react";
 
 import Tooltip from "../common/Tooltip";
@@ -24,11 +25,7 @@ export function SidebarToggle() {
         aria-label={label}
         aria-pressed={sidebarEnabled}
       >
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <path d="M9 3v18" />
-          {sidebarEnabled && <rect x="3" y="3" width="6" height="18" rx="2" fill="currentColor" stroke="none" />}
-        </svg>
+        <PanelLeftIcon filled={sidebarEnabled} />
       </button>
     </Tooltip>
   );
@@ -48,11 +45,7 @@ export function PreviewToggle() {
         aria-label={label}
         aria-pressed={!previewCollapsed}
       >
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <path d="M15 3v18" />
-          {!previewCollapsed && <rect x="15" y="3" width="6" height="18" rx="2" fill="currentColor" stroke="none" />}
-        </svg>
+        <PanelRightIcon filled={!previewCollapsed} />
       </button>
     </Tooltip>
   );

@@ -1,19 +1,50 @@
 import { useEffect, useState, type RefObject } from "react";
 
 /**
- * React to the button the icon sits in, not to the icon itself.
+ * React to the control the icon sits in, not to the icon itself.
  *
  * A 14 px glyph covers about a sixth of a 34 px button, so an icon that
  * listens to its own pointer events stays still for most of the area people
  * actually aim at. react-icons had no behaviour of its own and the app's CSS
  * drove everything from `:hover` on the button, which is the behaviour to
- * keep. So each icon finds the nearest thing that is pressed - a button, a
- * link, a label, anything with a click handler - and follows that.
+ * keep. So each icon walks up to the nearest thing that is pressed and
+ * follows that.
  *
- * Falls back to the svg itself when the icon is not inside one (a decorative
- * glyph in a card header), which is harmless: nothing hovers those anyway.
+ * Half the app's controls are not buttons: episode rows, dropdown items,
+ * video controls and the clip tiles are divs with an onClick, which the DOM
+ * cannot be asked about. A computed `cursor: pointer` is the mark the app
+ * puts on every one of them, so that counts as a host too - without it those
+ * icons fell back to the svg and read as frozen.
  */
-const HOST = 'button, a, [role="button"], [role="tab"], [role="menuitem"], label, summary';
+const HOST = 'button, a, [role="button"], [role="tab"], [role="menuitem"], [role="option"], [role="switch"], label, summary, [tabindex]:not([tabindex="-1"])';
+const MAX_UP = 6;
+
+function pressable(el: Element) {
+  if (el.matches(HOST)) return true;
+  const cs = getComputedStyle(el);
+  return cs.cursor === "pointer" && cs.pointerEvents !== "none";
+}
+
+function findHost(svg: SVGSVGElement): Element {
+  let el: Element | null = svg.parentElement;
+  for (let up = 0; el && up < MAX_UP; up += 1, el = el.parentElement) {
+    if (!pressable(el)) continue;
+    // A disabled button fires no pointer events at all, so an icon inside one
+    // would never react - the sidebar disables the tab you are already on, and
+    // the app itself puts its handlers on the row around it for that reason.
+    // Follow the same route: listen to the wrapper instead.
+    let host: Element = el;
+    while (
+      ((host as HTMLButtonElement).disabled ||
+        getComputedStyle(host).pointerEvents === "none") &&
+      host.parentElement
+    ) {
+      host = host.parentElement;
+    }
+    return host;
+  }
+  return svg.parentElement ?? svg;
+}
 
 export function useIconHost(ref: RefObject<SVGSVGElement | null>) {
   const [hovered, setHovered] = useState(false);
@@ -22,14 +53,7 @@ export function useIconHost(ref: RefObject<SVGSVGElement | null>) {
   useEffect(() => {
     const svg = ref.current;
     if (!svg) return;
-    let host: Element = svg.closest(HOST) ?? svg;
-    // A disabled button fires no pointer events at all, so an icon inside one
-    // would never react - the sidebar disables the tab you are already on, and
-    // the app itself puts its handlers on the row around it for that reason.
-    // Follow the same route: listen to the wrapper instead.
-    if ((host as HTMLButtonElement).disabled && host.parentElement) {
-      host = host.parentElement;
-    }
+    const host = findHost(svg);
 
     const enter = () => setHovered(true);
     const leave = () => setHovered(false);
