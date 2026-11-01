@@ -73,7 +73,7 @@
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.05);
     color: rgba(255, 255, 255, 0.85);
-    /* Arial: labels on controls are read, not glanced at like the display type */
+    /* Calibri: labels on controls are read, not glanced at like the display type */
     font-family: var(--ui-font);
     font-size: 12px;
     cursor: pointer;
@@ -119,7 +119,7 @@
 }
 
 /* scoped to these rows rather than `.settings-value` itself, which the other
-   settings tabs share. version strings and sizes are read, so Arial */
+   settings tabs share. version strings and sizes are read, so Calibri */
 .aid-pack-row .settings-value {
     font-family: var(--ui-font);
     font-size: 12px;

@@ -33,7 +33,7 @@ function steps(guide: Guide, mod: string): React.ReactNode[] {
       return [
         <>Create or open a <b>Database</b> in the left panel</>,
         <>Move it into <b>Searching</b>: <b>Double Click</b> it, drag it up, or right click it. Only databases in Searching are searched</>,
-        <>Click <b>Import</b> to index episodes into it</>,
+        <>Click <b>Add Episode</b> to index episodes into it</>,
         <>Describe a scene in the search bar and press <b>Enter</b></>,
         <>Single click a result to <b>Preview</b> it</>,
         exportNow,

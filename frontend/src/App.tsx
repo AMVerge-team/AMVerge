@@ -22,6 +22,7 @@ import StartupNotificationModal, { type StartupNotification } from "./components
 import { V1ImportNotice } from "./components/V1ImportNotice";
 import SplashScreen from "./components/SplashScreen";
 import PostExportPassesModal from "./components/PostExportPassesModal";
+import PassTargetsModal from "./components/PassTargetsModal";
 import AiInstallModal from "./components/AiInstallModal";
 import ProcessConflictModal from "./components/ProcessConflictModal";
 import { registerProcessAbort } from "./features/processes/singleProcess";
@@ -88,6 +89,7 @@ function App() {
   const setProgress = useAppStateStore((s) => s.setProgress);
   const setProgressMsg = useAppStateStore((s) => s.setProgressMsg);
   const setVideoIsHEVC = useAppStateStore((s) => s.setVideoIsHEVC);
+  const setVideoNeedsProxy = useAppStateStore((s) => s.setVideoNeedsProxy);
   const importedVideoPath = useAppStateStore((s) => s.importedVideoPath);
   const importToken = useAppStateStore((s) => s.importToken);
 
@@ -434,6 +436,7 @@ function App() {
   }, []);
 
   useEffect(() => {
+    setVideoNeedsProxy(false);
     if (!importedVideoPath) {
       setVideoIsHEVC(null);
       return;
@@ -445,10 +448,13 @@ function App() {
 
     (async () => {
       try {
-        const hevc = await invoke<boolean>("check_hevc", { videoPath: importedVideoPath });
+        const codec = await invoke<{ hevc: boolean; browserPlayable: boolean }>("check_video_codec", {
+          videoPath: importedVideoPath,
+        });
 
         if (!cancelled) {
-          setVideoIsHEVC(hevc);
+          setVideoIsHEVC(codec.hevc);
+          setVideoNeedsProxy(!codec.browserPlayable);
         }
       } catch (err) {
         console.error("codec probe failed:", err);
@@ -462,7 +468,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [importedVideoPath, importToken, setVideoIsHEVC]);
+  }, [importedVideoPath, importToken, setVideoIsHEVC, setVideoNeedsProxy]);
 
   // shared by the bar attached to the mini window and the standalone one
   const clipProgress = reencodeProgress ?? bgProgress;
@@ -571,6 +577,7 @@ function App() {
         />
       ) : null}
       <PostExportPassesModal />
+      <PassTargetsModal />
       <AiInstallModal />
       {splashVisible ? null : <V1ImportNotice />}
       {splashVisible ? <SplashScreen onFinished={handleSplashFinished} /> : null}

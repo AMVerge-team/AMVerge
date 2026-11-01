@@ -80,7 +80,7 @@ fn main() {
             commands::editor_import::abort_editor_import,
             commands::editor_import::davinci_resolve::detect_davinci_resolve,
             commands::editor_import::davinci_resolve::import_clips_to_davinci,
-            commands::preview::check_hevc,
+            commands::preview::check_video_codec,
             commands::preview::get_audio_streams,
             commands::preview::probe_export_source_streams,
             commands::preview::hover_preview_error,

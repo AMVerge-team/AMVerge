@@ -148,33 +148,120 @@ fn remove_with_retries(path: &Path) -> bool {
     false
 }
 
+/// copying or converting a video can take a while, so it never runs on the main thread
 #[tauri::command]
-pub fn save_background_image(app: tauri::AppHandle, source_path: String) -> Result<String, String> {
-    let source = Path::new(&source_path);
+pub async fn save_background_image(app: tauri::AppHandle, source_path: String) -> Result<String, String> {
+    tokio::task::spawn_blocking(move || save_background_media(&app, &source_path))
+        .await
+        .map_err(|e| e.to_string())?
+}
 
+fn save_background_media(app: &AppHandle, source_path: &str) -> Result<String, String> {
+    let source = Path::new(source_path);
     if !source.exists() {
-        return Err("Selected image does not exist.".to_string());
+        return Err("Selected file does not exist.".to_string());
     }
 
-    let app_data_dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to get app data directory: {e}"))?;
-
-    let backgrounds_dir = app_data_dir.join("backgrounds");
-
-    fs::create_dir_all(&backgrounds_dir)
-        .map_err(|e| format!("Failed to create backgrounds directory: {e}"))?;
-
+    let backgrounds_dir = backgrounds_dir(app)?;
     let extension = source
         .extension()
         .and_then(|ext| ext.to_str())
-        .unwrap_or("png");
+        .unwrap_or("png")
+        .to_lowercase();
 
-    let file_name = format!("background.{}", extension);
-    let destination = backgrounds_dir.join(file_name);
+    let saved = if is_video_extension(&extension) && !webview_plays_video(app, source_path, &extension) {
+        let destination = new_background_path(&backgrounds_dir, "mp4");
+        transcode_background_video(app, source_path, &destination)?
+    } else {
+        let destination = new_background_path(&backgrounds_dir, &extension);
+        fs::copy(source, &destination).map_err(|e| format!("Failed to copy background: {e}"))?;
+        destination.to_string_lossy().to_string()
+    };
 
-    fs::copy(source, &destination).map_err(|e| format!("Failed to copy background image: {e}"))?;
+    remove_old_backgrounds(&backgrounds_dir, Path::new(&saved));
+    Ok(saved)
+}
+
+fn backgrounds_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {e}"))?
+        .join("backgrounds");
+    fs::create_dir_all(&dir).map_err(|e| format!("Failed to create backgrounds directory: {e}"))?;
+    Ok(dir)
+}
+
+/// a fresh name per pick: the webview may still be playing the old file, which windows refuses to overwrite
+fn new_background_path(dir: &Path, ext: &str) -> PathBuf {
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    dir.join(format!("background-{stamp}.{ext}"))
+}
+
+/// earlier backgrounds go; one the webview still holds open is skipped and cleared on a later pick
+fn remove_old_backgrounds(dir: &Path, keep: &Path) {
+    let Ok(entries) = fs::read_dir(dir) else { return };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let is_background = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.starts_with("background"));
+        if is_background && path != keep {
+            let _ = fs::remove_file(&path);
+        }
+    }
+}
+
+/// webview2 plays these straight from the file; anything else (avi, prores, hevc...) is converted once
+fn webview_plays_video(app: &AppHandle, source_path: &str, extension: &str) -> bool {
+    const CONTAINERS: &[&str] = &["mp4", "m4v", "webm", "mov"];
+    const CODECS: &[&str] = &["h264", "vp8", "vp9", "av1"];
+    if !CONTAINERS.contains(&extension) {
+        return false;
+    }
+    let Ok(ffprobe) = resolve_bundled_tool(app, "ffprobe") else { return false };
+    let mut cmd = Command::new(&ffprobe);
+    apply_no_window(&mut cmd);
+    cmd.args(["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_name", "-of", "default=nk=1:nw=1"])
+        .arg(source_path);
+    crate::utils::process::output_bound(&mut cmd)
+        .map(|out| CODECS.contains(&String::from_utf8_lossy(&out.stdout).trim()))
+        .unwrap_or(false)
+}
+
+/// silent, faststart h264 any webview plays; shared by converted and cropped video backgrounds
+const BACKGROUND_VIDEO_ARGS: &[&str] = &[
+    "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+];
+
+fn transcode_background_video(app: &AppHandle, source_path: &str, destination: &Path) -> Result<String, String> {
+    let ffmpeg = resolve_bundled_tool(app, "ffmpeg")?;
+    let mut cmd = Command::new(&ffmpeg);
+    apply_no_window(&mut cmd);
+    // yuv420p needs even dimensions
+    cmd.arg("-y")
+        .arg("-i")
+        .arg(source_path)
+        .args(["-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2"])
+        .args(BACKGROUND_VIDEO_ARGS)
+        .arg(destination);
+    run_background_ffmpeg(&mut cmd, &ffmpeg, destination)
+}
+
+fn run_background_ffmpeg(cmd: &mut Command, ffmpeg: &Path, destination: &Path) -> Result<String, String> {
+    let output = crate::utils::process::output_bound(cmd)
+        .map_err(|e| format!("Failed to run ffmpeg ({}): {e}", ffmpeg.display()))?;
+
+    if !output.status.success() {
+        // ffmpeg's full output goes to the console; the ui only gets one line
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        console_log("ERROR|background", &stderr);
+        return Err("Could not process that image or video. Check the console for details.".to_string());
+    }
 
     Ok(destination.to_string_lossy().to_string())
 }
@@ -256,35 +343,10 @@ fn run_ffmpeg_transform(
             .arg("0")
             .arg(destination);
     } else {
-        cmd.arg("-vf")
-            .arg(base_filter)
-            .args([
-                "-an",
-                "-c:v",
-                "libx264",
-                "-preset",
-                "veryfast",
-                "-crf",
-                "20",
-                "-pix_fmt",
-                "yuv420p",
-                "-movflags",
-                "+faststart",
-            ])
-            .arg(destination);
+        cmd.arg("-vf").arg(base_filter).args(BACKGROUND_VIDEO_ARGS).arg(destination);
     }
 
-    let output = crate::utils::process::output_bound(&mut cmd)
-        .map_err(|e| format!("Failed to run ffmpeg ({}): {e}", ffmpeg.display()))?;
-
-    if !output.status.success() {
-        // ffmpeg's full output goes to the console; the ui only gets one line
-        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-        crate::utils::logging::console_log("ERROR|background", &stderr);
-        return Err("Could not process that image or video. Check the console for details.".to_string());
-    }
-
-    Ok(destination.to_string_lossy().to_string())
+    run_background_ffmpeg(&mut cmd, &ffmpeg, destination)
 }
 
 fn sanitize_icon_id(input: &str) -> String {
@@ -383,14 +445,7 @@ pub async fn crop_and_save_image(
     source_path: String,
     crop: CropData,
 ) -> Result<String, String> {
-    let app_data_dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to get app data directory: {e}"))?;
-
-    let backgrounds_dir = app_data_dir.join("backgrounds");
-    fs::create_dir_all(&backgrounds_dir)
-        .map_err(|e| format!("Failed to create backgrounds directory: {e}"))?;
+    let backgrounds_dir = backgrounds_dir(&app)?;
 
     let ext = Path::new(&source_path)
         .extension()
@@ -399,16 +454,16 @@ pub async fn crop_and_save_image(
         .to_lowercase();
 
     let destination = if ext == "gif" {
-        backgrounds_dir.join("background.gif")
+        new_background_path(&backgrounds_dir, "gif")
     } else if is_video_extension(&ext) {
-        backgrounds_dir.join("background.mp4")
+        new_background_path(&backgrounds_dir, "mp4")
     } else {
-        backgrounds_dir.join("background.jpg")
+        new_background_path(&backgrounds_dir, "jpg")
     };
 
     let source_path_for_worker = source_path.clone();
     let app_for_worker = app.clone();
-    tokio::task::spawn_blocking(move || {
+    let saved = tokio::task::spawn_blocking(move || {
         let source_ext = Path::new(&source_path_for_worker)
             .extension()
             .and_then(|s| s.to_str())
@@ -449,7 +504,12 @@ pub async fn crop_and_save_image(
         run_native_crop(&source_path_for_worker, &destination, &crop)
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())?;
+
+    if let Ok(saved) = &saved {
+        remove_old_backgrounds(&backgrounds_dir, Path::new(saved));
+    }
+    saved
 }
 
 #[tauri::command]

@@ -14,6 +14,8 @@ export type AppState = {
   selectedClips: Set<string>;
   clips: ClipItem[];
   videoIsHEVC: boolean | null;
+  /** the episode's codec is one no webview decodes (xvid, mpeg-2...), so previews always go through a proxy */
+  videoNeedsProxy: boolean;
   userHasHEVC: boolean;
   importedVideoPath: string | null;
   
@@ -46,6 +48,7 @@ export type AppStateStore = AppState & {
   setSelectedClips: (clips: SetterValue<Set<string>>) => void;
   setClips: (clips: SetterValue<ClipItem[]>) => void;
   setVideoIsHEVC: (isHEVC: SetterValue<boolean | null>) => void;
+  setVideoNeedsProxy: (needsProxy: boolean) => void;
   setUserHasHEVC: (hasHEVC: boolean) => void;
   setImportedVideoPath: (path: SetterValue<string | null>) => void;
   
@@ -69,6 +72,7 @@ export const DEFAULT_APP_STATE: AppState = {
   selectedClips: new Set(),
   clips: [],
   videoIsHEVC: null,
+  videoNeedsProxy: false,
   userHasHEVC: false,
   importedVideoPath: null,
   
@@ -98,6 +102,7 @@ export const useAppStateStore = create<AppStateStore>()((set) => ({
   setSelectedClips: (val) => set((s) => ({ selectedClips: resolveSetterValue(s.selectedClips, val) })),
   setClips: (val) => set((s) => ({ clips: resolveSetterValue(s.clips, val) })),
   setVideoIsHEVC: (val) => set((s) => ({ videoIsHEVC: resolveSetterValue(s.videoIsHEVC, val) })),
+  setVideoNeedsProxy: (videoNeedsProxy) => set({ videoNeedsProxy }),
   setUserHasHEVC: (hasHEVC) => set({ userHasHEVC: hasHEVC }),
   setImportedVideoPath: (val) => set((s) => ({ importedVideoPath: resolveSetterValue(s.importedVideoPath, val) })),
   

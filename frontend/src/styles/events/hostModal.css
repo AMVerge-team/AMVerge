@@ -288,7 +288,7 @@
 }
 
 /* Two separate statements, so each keeps its own line instead of reflowing into
-   one block that breaks wherever the width lands. Arial for the same reason the
+   one block that breaks wherever the width lands. Calibri for the same reason the
    ban list uses it: the pixel body font is hard to read at this size. */
 .host-event-signin p {
     font-family: var(--ui-font);

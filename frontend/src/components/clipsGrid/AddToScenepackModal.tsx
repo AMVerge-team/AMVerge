@@ -8,12 +8,13 @@ import { materializeClipsForScenepack } from "../../utils/scenepackMaterialize";
 import { useEscapeToClose } from "../common/useEscapeToClose";
 
 type AddToScenepackModalProps = {
-  clip: ClipItem;
+  /** one clip, or the whole selection it was opened from */
+  clips: ClipItem[];
   episodeId: string;
   onClose: () => void;
 };
 
-export function AddToScenepackModal({ clip, episodeId, onClose }: AddToScenepackModalProps) {
+export function AddToScenepackModal({ clips: sourceClips, episodeId, onClose }: AddToScenepackModalProps) {
   const scenepacks = useScenepacksStore((s) => s.scenepacks);
   const addClipToScenepack = useScenepacksStore((s) => s.addClipToScenepack);
   const addScenepack = useScenepacksStore((s) => s.addScenepack);
@@ -32,7 +33,10 @@ export function AddToScenepackModal({ clip, episodeId, onClose }: AddToScenepack
     }
   }, [mode]);
 
-  const sceneIndex = clip.sceneIndex ?? 0;
+  const count = sourceClips.length;
+  const noun = count === 1 ? "clip" : `${count} clips`;
+  const isInPack = (clipsInPack: { episodeId: string; sceneIndex: number }[], c: ClipItem) =>
+    clipsInPack.some((p) => p.episodeId === episodeId && p.sceneIndex === (c.sceneIndex ?? 0));
 
   const handleAdd = async () => {
     let targetId: string | null = null;
@@ -48,12 +52,14 @@ export function AddToScenepackModal({ clip, episodeId, onClose }: AddToScenepack
     setBusy(true);
     setError(null);
     try {
-      const { clips, failedCount } = await materializeClipsForScenepack([clip], targetId, episodeId);
+      const pack = useScenepacksStore.getState().scenepacks.find((sp) => sp.id === targetId);
+      const toAdd = sourceClips.filter((c) => !pack || !isInPack(pack.clips, c));
+      const { clips, failedCount } = await materializeClipsForScenepack(toAdd, targetId, episodeId);
       if (clips.length === 0) {
-        setError(failedCount > 0 ? "Failed to add clip to Scenepack." : "Nothing to add.");
+        setError(failedCount > 0 ? `Failed to add ${noun} to Scenepack.` : "Nothing to add.");
         return;
       }
-      addClipToScenepack(targetId, clips[0]);
+      for (const data of clips) addClipToScenepack(targetId, data);
       setActivePage("scenepacks");
       onClose();
     } catch (err) {
@@ -70,7 +76,7 @@ export function AddToScenepackModal({ clip, episodeId, onClose }: AddToScenepack
   return createPortal(
     <div className="episode-modal-overlay" onClick={onClose}>
       <div className="episode-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="episode-modal-title">Add to Scenepack</div>
+        <div className="episode-modal-title">{count === 1 ? "Add to Scenepack" : `Add ${count} clips to Scenepack`}</div>
 
         <div className="episode-modal-message" style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
           <button
@@ -95,9 +101,7 @@ export function AddToScenepackModal({ clip, episodeId, onClose }: AddToScenepack
               </div>
             ) : (
               scenepacks.map((sp) => {
-                const hasClip = sp.clips.some(
-                  (c) => c.episodeId === episodeId && c.sceneIndex === sceneIndex
-                );
+                const hasClip = sourceClips.every((c) => isInPack(sp.clips, c));
                 return (
                   <div
                     key={sp.id}
@@ -147,7 +151,7 @@ export function AddToScenepackModal({ clip, episodeId, onClose }: AddToScenepack
           >
             {busy ? (
               <><FaSpinner className="scenepack-spinner" aria-hidden="true" /> Adding...</>
-            ) : mode === "create" ? "Create & Add" : "Add Clip"}
+            ) : mode === "create" ? "Create & Add" : count === 1 ? "Add Clip" : `Add ${count} Clips`}
           </button>
         </div>
       </div>

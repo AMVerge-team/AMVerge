@@ -65,7 +65,7 @@ const STEPS: Step[] = [
     title: "4. Add episodes",
     body: (
       <>
-        <b>Import</b> indexes episodes into the selected database. It takes a while, but only once per
+        <b>Add Episode</b> indexes episodes into the selected database. It takes a while, but only once per
         episode.
       </>
     ),

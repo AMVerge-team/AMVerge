@@ -12,7 +12,7 @@ export const INLINE_DEFAULT_ICONS: ExportProfileIcon[] = [
   "prores",
 ];
 
-export const ICON_FILE_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "gif", "bmp", "tif", "tiff"];
+export const ICON_FILE_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "gif", "bmp"];
 
 export type PersistedFeaturedIcons = {
   builtIn: ExportProfileIcon[];

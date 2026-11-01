@@ -272,7 +272,7 @@ export default function ExportSection() {
         <SettingsSection id="export.workflow" title="Workflow & Encoding">
         <SettingRow
           label="Workflow"
-          description="Re-encode at exact scene boundaries, or stream-copy with boundaries snapped outward to keyframes."
+          description="Re-encode at exact scene boundaries, or stream-copy with boundaries snapped to keyframes."
           control={
             <Dropdown
               className="settings-wide-dropdown"

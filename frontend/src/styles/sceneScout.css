@@ -446,7 +446,7 @@
     color: rgba(255, 255, 255, 0.5);
 }
 
-/* fixed Arial, never the user's chosen app font */
+/* fixed Calibri, never the user's chosen app font */
 .scene-scout-hero-empty {
     padding: 14px 8px;
     font-family: var(--ui-font);
@@ -888,7 +888,7 @@
     width: min(100cqw, (100cqh - var(--flow-label-height)) * 16 / 9);
 }
 
-/* fixed Arial, never the user's chosen app font */
+/* fixed Calibri, never the user's chosen app font */
 .scene-scout-flow-player-role {
     font-family: var(--ui-font);
     font-size-adjust: none;
@@ -1033,7 +1033,7 @@ body.scene-scout-resizing {
     user-select: none;
 }
 
-/* "Searching" / "All databases": arial so they stay readable whatever font the user picks */
+/* "Searching" / "All databases": calibri so they stay readable whatever font the user picks */
 .scene-scout-section-label {
     font-family: var(--ui-font);
     font-size-adjust: none;

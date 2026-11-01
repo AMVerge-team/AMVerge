@@ -10,8 +10,8 @@ import { useGeneralSettingsStore, type SceneDetectionMethod } from "../../stores
 import { useAiDepsStore } from "../../stores/aiDepsStore";
 import { sceneDetectionOptions } from "../settings/general/options";
 import { episodeSceneRanges, precutEpisodes, type SceneRange } from "../../features/sceneScout/precutEpisodes";
+import { VIDEO_EXTENSIONS } from "../../utils/videoExtensions";
 
-const VIDEO_EXTENSIONS = ["mp4", "mkv", "mov", "avi"];
 
 type IndexDetection = "transnetv2_gpu" | "keyframe_detection";
 

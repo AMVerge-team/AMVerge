@@ -23,7 +23,7 @@
     backdrop-filter: blur(6px);
     box-shadow: 0 10px 26px rgb(0 0 0 / 0.5);
     color: rgb(255 255 255 / 0.92);
-    /* fixed Arial, never the user's chosen app font: tooltips must stay readable */
+    /* fixed Calibri, never the user's chosen app font: tooltips must stay readable */
     font-family: var(--ui-font);
     font-size: 13px;
     line-height: 1.35;

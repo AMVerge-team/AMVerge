@@ -6,7 +6,10 @@ import type { ClipItem, ScenepackEntry } from "../../types/domain";
 import { useEscapeToClose } from "../common/useEscapeToClose";
 
 type ScenepackPickerMenuProps = {
+  /** the tile the menu opened on */
   clip: ClipItem;
+  /** what gets added: that clip, or the whole selection when it is part of it */
+  clips: ClipItem[];
   episodeId: string;
   /** where the menu opens, the click that spawned it */
   anchor: { x: number; y: number };
@@ -15,9 +18,10 @@ type ScenepackPickerMenuProps = {
   onCreateNew: () => void;
 };
 
-/** picks the Scenepack a clip goes into, right on the tile, without leaving the grid */
+/** picks the Scenepack clips go into, right on the tile, without leaving the grid */
 export function ScenepackPickerMenu({
   clip,
+  clips,
   episodeId,
   anchor,
   onClose,
@@ -104,17 +108,17 @@ export function ScenepackPickerMenu({
     setPlacement({ left, top });
   }, [anchor, scenepacks.length]);
 
-  const sceneIndex = clip.sceneIndex ?? 0;
+  const isInPack = (pack: ScenepackEntry, c: ClipItem) =>
+    pack.clips.some((p) => p.episodeId === episodeId && p.sceneIndex === (c.sceneIndex ?? 0));
 
+  // a pack is greyed out only once every one of these clips is already in it
   const alreadyIn = useMemo(() => {
     const ids = new Set<string>();
     for (const pack of scenepacks) {
-      if (pack.clips.some((c) => c.episodeId === episodeId && c.sceneIndex === sceneIndex)) {
-        ids.add(pack.id);
-      }
+      if (clips.every((c) => isInPack(pack, c))) ids.add(pack.id);
     }
     return ids;
-  }, [scenepacks, episodeId, sceneIndex]);
+  }, [scenepacks, episodeId, clips]);
 
   // grouped by folder; packs outside any folder come first
   const groups = useMemo(() => {
@@ -140,9 +144,9 @@ export function ScenepackPickerMenu({
     ].filter((g) => g.packs.length > 0);
   }, [scenepacks, scenepackFolders]);
 
-  // starts the add and closes; the clip shows as a placeholder in the pack until it is cut
+  // starts the add and closes; clips show as placeholders in the pack until they are cut
   const handlePick = (pack: ScenepackEntry) => {
-    addClipsToScenepack([clip], pack.id, episodeId);
+    addClipsToScenepack(clips.filter((c) => !isInPack(pack, c)), pack.id, episodeId);
     onClose();
   };
 
@@ -156,7 +160,11 @@ export function ScenepackPickerMenu({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {openedScenepackId && clip.thumbnail && (
+      {clips.length > 1 && (
+        <div className="episode-context-menu-label">Add {clips.length} clips to Scenepack</div>
+      )}
+
+      {openedScenepackId && clips.length === 1 && clip.thumbnail && (
         <>
           <button
             type="button"

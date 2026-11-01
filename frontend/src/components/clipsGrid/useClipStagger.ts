@@ -7,7 +7,7 @@ type Params = {
   gridPreview: boolean;
   isHovered: boolean;
   isVisible: boolean;
-  needsHevcProxy: boolean;
+  needsDecodeProxy: boolean;
   resetKey: unknown;
   reportStaggerDemand: LazyClipProps["reportStaggerDemand"];
 };
@@ -19,7 +19,7 @@ export function useClipStagger({
   gridPreview,
   isHovered,
   isVisible,
-  needsHevcProxy,
+  needsDecodeProxy,
   resetKey,
   reportStaggerDemand,
 }: Params) {
@@ -55,7 +55,7 @@ export function useClipStagger({
     }
 
     // already mounted and still visible, or serialised by the proxy queue instead
-    if (doneRef.current || needsHevcProxy) {
+    if (doneRef.current || needsDecodeProxy) {
       setStaggerReady(true);
       clear();
       return;
@@ -70,7 +70,7 @@ export function useClipStagger({
     });
 
     return clear;
-  }, [gridPreview, isHovered, isVisible, needsHevcProxy, clipId, index, reportStaggerDemand]);
+  }, [gridPreview, isHovered, isVisible, needsDecodeProxy, clipId, index, reportStaggerDemand]);
 
   return staggerReady;
 }

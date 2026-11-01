@@ -4,6 +4,7 @@ import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import {
   getDarkerColor,
   isVideoBackgroundPath,
+  JERSEY_FONT,
   useThemeSettingsStore,
 } from "../../stores/settingsStore";
 import {
@@ -49,8 +50,6 @@ export default function AppearanceSection({
             "webp",
             "gif",
             "bmp",
-            "tif",
-            "tiff",
             "mp4",
             "webm",
             "mov",
@@ -293,7 +292,7 @@ export default function AppearanceSection({
                   max="0.6"
                   step="0.01"
                   value={themeSettings.appFontAdjust ?? 0.47}
-                  disabled={themeSettings.appFontFamily === null}
+                  disabled={themeSettings.appFontFamily === JERSEY_FONT}
                   onChange={(e) =>
                     setThemeSettings((prev) => ({
                       ...prev,

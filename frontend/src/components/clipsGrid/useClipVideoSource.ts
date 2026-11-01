@@ -14,7 +14,7 @@ type Params = {
   staggerReady: boolean;
   showVideo: boolean;
   importToken: unknown;
-  needsHevcProxy: boolean;
+  needsDecodeProxy: boolean;
   audioPlaybackHover: boolean;
   previewAudioStreamIndex: number | null;
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -45,7 +45,7 @@ export function useClipVideoSource({
   staggerReady,
   showVideo,
   importToken,
-  needsHevcProxy,
+  needsDecodeProxy,
   audioPlaybackHover,
   previewAudioStreamIndex,
   videoRef,
@@ -149,7 +149,7 @@ export function useClipVideoSource({
     }
 
     // gated on decodability, not the transcode preference, or WebP mode would queue encodes it never plays
-    const wantsProxyNow = needsHevcProxy && isVisible && effectiveSrc === originalPath;
+    const wantsProxyNow = needsDecodeProxy && isVisible && effectiveSrc === originalPath;
     if (wantsProxyNow) {
       reportProxyDemand(originalPath, { order: index, priority: isHovered });
     } else {
@@ -161,7 +161,7 @@ export function useClipVideoSource({
   }, [
     gridPreview,
     isVideoMode,
-    needsHevcProxy,
+    needsDecodeProxy,
     isVisible,
     effectiveSrc,
     originalPath,
@@ -279,7 +279,7 @@ export function useClipVideoSource({
   // stream-copy concat preview for merged clips (HEVC is covered by the proxy above)
   useEffect(() => {
     if (!mergedSrcsKey || !clip.mergedSrcs) return;
-    if (needsHevcProxy || !isVisible) return;
+    if (needsDecodeProxy || !isVisible) return;
     if (mergedFetchedKeyRef.current === mergedSrcsKey || mergedInFlightRef.current) return;
 
     mergedFetchedKeyRef.current = mergedSrcsKey;
@@ -299,7 +299,7 @@ export function useClipVideoSource({
       .finally(() => {
         mergedInFlightRef.current = false;
       });
-  }, [mergedSrcsKey, needsHevcProxy, isVisible, clip.mergedSrcs, previewAudioStreamIndex]);
+  }, [mergedSrcsKey, needsDecodeProxy, isVisible, clip.mergedSrcs, previewAudioStreamIndex]);
 
   return {
     originalPath,

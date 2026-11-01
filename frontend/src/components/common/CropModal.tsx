@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import ReactCrop, { centerCrop, makeAspectCrop, Crop, PixelCrop } from "react-image-crop";
 import { FaUndo, FaRedo, FaArrowsAltH, FaArrowsAltV, FaExpand, FaSyncAlt } from '../icons/animated';
 import "react-image-crop/dist/ReactCrop.css";
@@ -138,7 +139,8 @@ export default function CropModal({
     }
   };
 
-  return (
+  // portalled to <body>: inside the blurred, animated settings panel "fixed" pins to that panel
+  return createPortal(
     <div className="crop-modal-overlay">
       <div className="crop-modal">
         <div className="crop-modal-header">
@@ -280,6 +282,7 @@ export default function CropModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -417,7 +417,7 @@ body.is-resizing-sidebar {
     margin-bottom: 10px;
 }
 
-/* the message and the buttons are read, not glanced at: arial whatever font the user picks */
+/* the message and the buttons are read, not glanced at: calibri whatever font the user picks */
 .episode-modal-message {
     font-family: var(--ui-font);
     font-size-adjust: none;

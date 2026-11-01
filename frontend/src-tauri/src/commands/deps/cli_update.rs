@@ -138,14 +138,7 @@ pub async fn update_ai_cli(
         return Ok(CliUpdateResult::new("skipped", installed, Some(latest), Some("a dependency install is running".into())));
     }
 
-    // windows cannot replace amverge.exe while the scout daemon runs from it; it respawns on the next search
-    {
-        let mut guard = worker_state.inner.lock().await;
-        if let Some(mut session) = guard.take() {
-            console_log("DEPS|cli-update", "stopping the scene scout daemon for the update");
-            session.shutdown().await;
-        }
-    }
+    worker_state.stop_daemon("the CLI update").await;
 
     console_log(
         "DEPS|cli-update",

@@ -8,6 +8,7 @@
 @import "./common/overlays/dragAndProgress.css";
 @import "./common/overlays/loaderModal.css";
 @import "./common/overlays/postExportModal.css";
+@import "./common/overlays/passTargets.css";
 @import "./common/overlays/aiInstall.css";
 @import "./common/overlays/quickMenu.css";
 @import "./common/overlays/spotlight.css";

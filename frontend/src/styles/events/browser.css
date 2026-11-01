@@ -283,9 +283,12 @@
     color: #fff;
 }
 
+/* fixed Calibri, never the user's chosen app font: error text has to be read exactly */
 .events-error {
     margin: 0;
     color: #ff9e9e;
+    font-family: var(--ui-font);
+    font-size-adjust: none;
     font-size: 0.84rem;
 }
 

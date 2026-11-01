@@ -2,6 +2,7 @@
 
 use tauri::{AppHandle, State};
 
+use crate::commands::scene_scout::SceneScoutWorkerState;
 use crate::state::ActiveInstall;
 use crate::utils::logging::console_log;
 use crate::utils::process::kill_process_tree;
@@ -31,6 +32,7 @@ pub async fn ai_env_status(app: AppHandle) -> Result<AiEnvStatus, String> {
 pub async fn install_ai_pack(
     app: AppHandle,
     install_state: State<'_, ActiveInstall>,
+    worker_state: State<'_, SceneScoutWorkerState>,
     pack: String,
     gpu: bool,
     gpu_decode: Option<bool>,
@@ -47,6 +49,7 @@ pub async fn install_ai_pack(
 
     let state = install_state.inner().clone();
     state.begin()?;
+    worker_state.stop_daemon("the install").await;
 
     let app_for_task = app.clone();
     let state_for_task = state.clone();
@@ -85,20 +88,41 @@ pub async fn abort_ai_install(install_state: State<'_, ActiveInstall>) -> Result
 
 /// remove one pack's own packages. torch stays; use `remove_ai_env` for that space
 #[tauri::command]
-pub async fn uninstall_ai_pack(app: AppHandle, pack: String) -> Result<AiEnvStatus, String> {
+pub async fn uninstall_ai_pack(
+    app: AppHandle,
+    worker_state: State<'_, SceneScoutWorkerState>,
+    pack: String,
+) -> Result<AiEnvStatus, String> {
     let target = pack_by_id(&pack)?;
     if !ai_env_ready(&app) {
         return Err("There is no AI environment to remove from.".to_string());
     }
+    worker_state.stop_daemon("the uninstall").await;
 
     let app_for_task = app.clone();
     tokio::task::spawn_blocking(move || -> Result<(), String> {
         let python = ai_env_python(&app_for_task)?;
-        let mut cmd = uv_command(&app_for_task)?;
-        cmd.arg("pip").arg("uninstall").arg("--python").arg(&python);
-        for dist in target.requires.iter().filter(|d| **d != "torch") {
-            cmd.arg(dist);
+        // never torch/torchvision, and nothing another installed pack still needs (opencv is shared)
+        let installed = installed_distributions(&app_for_task, &python)?;
+        let has = |dist: &str| installed.contains_key(&dist.to_lowercase());
+        let still_needed: Vec<&str> = PACKS
+            .iter()
+            .filter(|p| p.id != target.id && p.requires.iter().all(|d| has(d)))
+            .flat_map(|p| p.requires.iter().copied())
+            .collect();
+        let removable: Vec<&str> = target
+            .requires
+            .iter()
+            .copied()
+            .filter(|d| !TORCH_FAMILY.contains(d) && !still_needed.contains(d) && has(d))
+            .collect();
+        if removable.is_empty() {
+            console_log("DEPS|uninstall", &format!("pack={} has nothing of its own to remove", target.id));
+            return Ok(());
         }
+
+        let mut cmd = uv_command(&app_for_task)?;
+        cmd.arg("pip").arg("uninstall").arg("--python").arg(&python).args(&removable);
         let output = cmd
             .output()
             .map_err(|e| format!("Failed to run uv pip uninstall: {e}"))?;
@@ -119,7 +143,11 @@ pub async fn uninstall_ai_pack(app: AppHandle, pack: String) -> Result<AiEnvStat
 
 /// delete the whole AI environment (venv + managed interpreters + wheel cache)
 #[tauri::command]
-pub async fn remove_ai_env(app: AppHandle) -> Result<AiEnvStatus, String> {
+pub async fn remove_ai_env(
+    app: AppHandle,
+    worker_state: State<'_, SceneScoutWorkerState>,
+) -> Result<AiEnvStatus, String> {
+    worker_state.stop_daemon("removing the AI environment").await;
     let app_for_task = app.clone();
     tokio::task::spawn_blocking(move || -> Result<(), String> {
         for dir in [

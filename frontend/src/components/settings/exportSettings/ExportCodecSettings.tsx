@@ -67,7 +67,7 @@ export default function ExportCodecSettings({
       {showAudioSetting && (
         <SettingRow
           label="Audio Codec"
-          description="Re-encode the audio, copy it as it is, or drop it. Copying keeps the original exactly."
+          description="Re-encode the audio, copy it as it is, or drop it."
           control={
             <Dropdown
               className="settings-wide-dropdown"

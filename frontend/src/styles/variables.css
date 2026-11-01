@@ -33,10 +33,11 @@
     /* multiplies every background layer: 0 hides them, 1 shows them at the
        opacity the user chose. the splash fades this up on the way out */
     --app-bg-reveal: 1;
-    --app-font: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-    --app-font-adjust: none;
+    --app-font: Calibri, Carlito, 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    --app-font-adjust: 0.47;
 
-    --ui-font: Arial, Helvetica, sans-serif;
+    /* text that is read rather than glanced at; never follows the user's font choice */
+    --ui-font: Calibri, Carlito, Arial, Helvetica, sans-serif;
     /* the AMVerge wordmark (navbar, splash); never follows the user's font choice */
     --logo-font: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
