@@ -101,7 +101,7 @@ export const AI_PACKS: Record<AiPackId, AiPack> = {
 };
 
 /// packs shown in the UI; upscaling is registered but has no screen yet
-export const VISIBLE_PACK_IDS: AiPackId[] = ["ml", "depth", "interpolation", "scout"];
+export const VISIBLE_PACK_IDS: AiPackId[] = ["ml", "depth", "scout"];
 
 const TORCH_SIZE_MB: Record<TorchVariant, number> = {
   cuda: 2700,

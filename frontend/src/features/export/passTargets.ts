@@ -6,7 +6,7 @@ import type { PostExportPasses } from "./postPasses";
 
 // which selected clips get each post-export pass; asked in PassTargetsModal before an export starts
 
-export type PassTargetKind = "depth" | "interpolation";
+export type PassTargetKind = "depth";
 
 /** clip ids picked for each pass; a pass that won't run has none */
 export type PassClipPicks = Record<PassTargetKind, Set<string>>;
@@ -15,7 +15,6 @@ export type PassClipPicks = Record<PassTargetKind, Set<string>>;
 export function activePassKinds(passes: PostExportPasses): PassTargetKind[] {
   const kinds: PassTargetKind[] = [];
   if (passes.depth.enabled && isFeatureEnabled("depthPass")) kinds.push("depth");
-  if (passes.interpolation.enabled && isFeatureEnabled("interpolationPass")) kinds.push("interpolation");
   return kinds;
 }
 
@@ -32,7 +31,6 @@ function picksFor(clips: ClipItem[], kinds: PassTargetKind[]): PassClipPicks {
   const all = () => new Set(clips.map((c) => c.id));
   return {
     depth: kinds.includes("depth") ? all() : new Set(),
-    interpolation: kinds.includes("interpolation") ? all() : new Set(),
   };
 }
 
@@ -49,10 +47,4 @@ export function pickPassTargets(
   return new Promise((resolve) => {
     usePassTargetsStore.setState({ request: { clips, kinds, mergeEnabled, resolve } });
   });
-}
-
-export function answerPassTargets(picks: PassClipPicks | null): void {
-  const request = usePassTargetsStore.getState().request;
-  usePassTargetsStore.setState({ request: null });
-  request?.resolve(picks);
 }

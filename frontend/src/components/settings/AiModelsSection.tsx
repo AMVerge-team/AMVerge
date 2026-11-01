@@ -8,7 +8,6 @@ import {
   isPackInstalled,
   type AiPackId,
 } from "../../features/aiDeps/packs";
-import { INTERPOLATION_MODEL_OPTIONS } from "../../features/export/postPasses";
 
 type ModelInfo = {
   key: string;
@@ -25,7 +24,7 @@ type ModelInfo = {
 
 type ModelsList = {
   depth: ModelInfo[];
-  interpolation: ModelInfo[];
+  interpolation?: ModelInfo[];
 };
 
 type ActionResult = {
@@ -35,23 +34,17 @@ type ActionResult = {
   message: string;
 };
 
-type Category = "depth" | "interpolation";
+type Category = "depth";
 
 const CATEGORY_PACK: Record<Category, AiPackId> = {
   depth: "depth",
-  interpolation: "interpolation",
 };
 
 const CATEGORY_TITLE: Record<Category, string> = {
   depth: "Depth Models",
-  interpolation: "Interpolation Models",
 };
 
-const ALLOWED_INTERPOLATION_KEYS = new Set(
-  INTERPOLATION_MODEL_OPTIONS.map((opt) => opt.value)
-);
-
-/** downloads or deletes the depth and interpolation model weights the export settings use */
+/** downloads or deletes the depth model weights the export settings use */
 export default function AiModelsSection() {
   const aiStatus = useAiDepsStore((s) => s.status);
   const [models, setModels] = useState<ModelsList | null>(null);
@@ -59,7 +52,6 @@ export default function AiModelsSection() {
   const [error, setError] = useState<string | null>(null);
 
   const depthInstalled = isPackInstalled(aiStatus, "depth");
-  const interpInstalled = isPackInstalled(aiStatus, "interpolation");
 
   const load = useCallback(async () => {
     try {
@@ -73,7 +65,7 @@ export default function AiModelsSection() {
 
   useEffect(() => {
     void load();
-  }, [load, depthInstalled, interpInstalled]);
+  }, [load, depthInstalled]);
 
   const act = async (key: string, kind: "download" | "delete") => {
     setBusyKey(`${kind}:${key}`);
@@ -93,12 +85,8 @@ export default function AiModelsSection() {
   };
 
   const renderGroup = (category: Category) => {
-    const installed = category === "depth" ? depthInstalled : interpInstalled;
-    const rawList = models?.[category] ?? [];
-    const list =
-      category === "interpolation"
-        ? rawList.filter((m) => ALLOWED_INTERPOLATION_KEYS.has(m.key))
-        : rawList;
+    const installed = depthInstalled;
+    const list = models?.[category] ?? [];
 
     return (
       <div key={category} style={{ marginBottom: 16 }}>
@@ -237,7 +225,6 @@ export default function AiModelsSection() {
   return (
     <>
       {renderGroup("depth")}
-      {renderGroup("interpolation")}
 
       {error ? <p className="pxm-errors" style={{ marginTop: 8 }}>{error}</p> : null}
     </>

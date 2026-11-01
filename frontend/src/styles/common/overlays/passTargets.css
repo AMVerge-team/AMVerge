@@ -117,7 +117,7 @@
     gap: 6px;
 }
 
-/* two passes: one full-width toggle per row so "Interpolation Disabled" fits */
+/* toggles row */
 .pass-targets-toggles.stacked {
     flex-direction: column;
     gap: 4px;

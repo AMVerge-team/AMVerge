@@ -5,7 +5,6 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { useEscapeToClose } from "./common/useEscapeToClose";
 import { PASS_LABEL } from "../features/export/postPasses";
 import {
-  answerPassTargets,
   usePassTargetsStore,
   type PassClipPicks,
   type PassTargetKind,
@@ -14,7 +13,14 @@ import { imageThumbnail, mediaSrc } from "../utils/mediaSrc";
 import { usePreviewTranscode, type PreviewTranscode } from "../features/preview/usePreviewTranscode";
 import type { ClipItem } from "../types/domain";
 
-const TOGGLE_NAME: Record<PassTargetKind, string> = { depth: "Depth", interpolation: "Interpolation" };
+const TOGGLE_NAME: Record<PassTargetKind, string> = { depth: "Depth" };
+
+function answerPassTargets(picks: PassClipPicks | null) {
+  const req = usePassTargetsStore.getState().request;
+  if (!req) return;
+  usePassTargetsStore.setState({ request: null });
+  req.resolve(picks);
+}
 
 /** a file the webview can play for the hover: the cut clip (proxied when undecodable), else a short cut of its source range */
 function resolvePreview(clip: ClipItem, { needed, preset }: PreviewTranscode): Promise<string> | null {
@@ -53,7 +59,6 @@ function PassTargetsDialog() {
   const { clips, kinds, mergeEnabled } = request;
   const [picks, setPicks] = useState<PassClipPicks>(() => ({
     depth: new Set(kinds.includes("depth") ? clips.map((c) => c.id) : []),
-    interpolation: new Set(kinds.includes("interpolation") ? clips.map((c) => c.id) : []),
   }));
   const dialogRef = useRef<HTMLDivElement>(null);
   const transcode = usePreviewTranscode();
@@ -142,7 +147,6 @@ function PassTargetsDialog() {
                 <button
                   type="button"
                   className="pass-targets-thumb"
-                  // with one pass the whole tile toggles it
                   onClick={kinds.length === 1 ? () => toggle(kinds[0], clip.id) : undefined}
                   tabIndex={kinds.length === 1 ? 0 : -1}
                   title={clip.originalName}
@@ -164,9 +168,7 @@ function PassTargetsDialog() {
                     >
                       {picks[kind].has(clip.id)
                         ? `${TOGGLE_NAME[kind]} Enabled`
-                        : kinds.length > 1
-                          ? `${TOGGLE_NAME[kind]} Disabled`
-                          : "Disabled"}
+                        : "Disabled"}
                     </button>
                   ))}
                 </div>
