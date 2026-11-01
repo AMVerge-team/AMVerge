@@ -133,7 +133,7 @@ export function useExport({ onRPCUpdate }: Params) {
     });
   };
 
-  /** merge plus picked passes: interpolation runs per clip so frames are never synthesized across a cut, depth on a merge of its picks */
+  /** merge plus picked passes: depth on a merge of its picks */
   const exportMergedWithPasses = useCallback(
     async (
       selected: ClipItem[],
@@ -190,15 +190,11 @@ export function useExport({ onRPCUpdate }: Params) {
         const pickedFiles = (ids: Set<string>) =>
           clipFiles.filter((_, i) => owners[i] !== undefined && ids.has(owners[i]));
 
-        const targets: PassTarget[] = pickedFiles(picks.interpolation).map((path) => ({
-          path,
-          depth: false,
-          interpolation: true,
-        }));
+        const targets: PassTarget[] = [];
         // depth needs no per-clip run: the whole merge when every clip is picked, else a staged merge of the picks
         if (picks.depth.size > 0) {
           if (picks.depth.size === selected.length) {
-            targets.push({ path: mergedFiles[0], depth: true, interpolation: false });
+            targets.push({ path: mergedFiles[0], depth: true });
           } else {
             const [depthSource] = await mergeInto(
               pickedFiles(picks.depth),
@@ -207,26 +203,12 @@ export function useExport({ onRPCUpdate }: Params) {
             targets.push({
               path: depthSource,
               depth: true,
-              interpolation: false,
               outputStem: `${dir}${sep}${baseName}`,
             });
           }
         }
 
-        // interpolation and dead frames each merge into their own suffixed file
-        const passOutputs = await runPostExportPasses(targets, passes);
-        if (passOutputs.interpolated.length > 0) {
-          await mergeInto(
-            passOutputs.interpolated,
-            `${dir}${sep}${baseName}${PASS_SUFFIX.interpolation}.${format}`
-          );
-        }
-        if (passOutputs.deadframes.length > 0) {
-          await mergeInto(
-            passOutputs.deadframes,
-            `${dir}${sep}${baseName}${PASS_SUFFIX.deadframes}.${format}`
-          );
-        }
+        await runPostExportPasses(targets, passes);
 
         await deliverExportedFiles(mergedFiles);
         rpcFinished();
@@ -270,9 +252,9 @@ export function useExport({ onRPCUpdate }: Params) {
       // one long job at a time: asks to stop whatever runs, or keeps it and drops this export
       if (!(await claimProcess("export"))) return;
 
-      // a direct merge only fits when depth (if any) covers every clip and nothing interpolates
+      // a direct merge only fits when depth (if any) covers every clip
       const partialDepth = picks.depth.size > 0 && picks.depth.size < selected.length;
-      if (mergeEnabled && (picks.interpolation.size > 0 || partialDepth)) {
+      if (mergeEnabled && partialDepth) {
         await exportMergedWithPasses(selected, dir, mergeFileName, passesSnapshot, picks);
         return;
       }
@@ -311,11 +293,10 @@ export function useExport({ onRPCUpdate }: Params) {
         const owners = mergeEnabled ? [] : specOwners(selected);
         const targets: PassTarget[] = producedFiles.map((path, i) =>
           mergeEnabled
-            ? { path, depth: picks.depth.size > 0, interpolation: false }
+            ? { path, depth: picks.depth.size > 0 }
             : {
                 path,
                 depth: picks.depth.has(owners[i] ?? ""),
-                interpolation: picks.interpolation.has(owners[i] ?? ""),
               }
         );
         void runPostExportPasses(targets, passesSnapshot);

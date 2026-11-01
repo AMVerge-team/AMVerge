@@ -7,14 +7,12 @@ import { AI_PACKS } from "../aiDeps/packs";
 import { isFeatureEnabled } from "../featureToggles";
 import {
   anyPassEnabled,
-  deadframesArgs,
   depthArgs,
-  interpolationArgs,
   PASS_SUFFIX,
   type PostExportPasses,
 } from "./postPasses";
 
-type CliPass = "depth" | "deadframes" | "interpolate";
+type CliPass = "depth";
 
 type CliCall = {
   pass: CliPass;
@@ -30,14 +28,13 @@ type Job = { label: string; calls: CliCall[] };
 export type PassTarget = {
   path: string;
   depth: boolean;
-  interpolation: boolean;
   /** dir + stem the outputs are named from, when they shouldn't land beside the input (a staged merge) */
   outputStem?: string;
 };
 
 /** every enabled pass on each file */
 export function everyPassTargets(paths: string[]): PassTarget[] {
-  return paths.map((path) => ({ path, depth: true, interpolation: true }));
+  return paths.map((path) => ({ path, depth: true }));
 }
 
 function splitPath(p: string): { dir: string; stem: string; ext: string; sep: string } {
@@ -54,10 +51,8 @@ function splitPath(p: string): { dir: string; stem: string; ext: string; sep: st
 function buildJobs(
   targets: PassTarget[],
   passes: PostExportPasses
-): { jobs: Job[]; interpOutputs: string[]; deadframesOutputs: string[] } {
+): { jobs: Job[] } {
   const jobs: Job[] = [];
-  const interpOutputs: string[] = [];
-  const deadframesOutputs: string[] = [];
   for (const target of targets) {
     const out = target.path;
     const { dir, stem, ext, sep } = splitPath(out);
@@ -71,66 +66,36 @@ function buildJobs(
         calls: [{ pass: "depth", input: out, output, args: depthArgs(passes.depth) }],
       });
     }
-    if (passes.interpolation.enabled && target.interpolation) {
-      // dead frames first, then interpolation; keeping the copy just means not deleting it
-      const keepDeadframes = passes.deadframes.exportCopy;
-      const deadframesOut = keepDeadframes ? path(PASS_SUFFIX.deadframes) : path("_df_tmp");
-      const output = path(PASS_SUFFIX.interpolation);
-      interpOutputs.push(output);
-      if (keepDeadframes) deadframesOutputs.push(deadframesOut);
-      jobs.push({
-        label: `Interpolation · ${stem}`,
-        calls: [
-          { pass: "deadframes", input: out, output: deadframesOut, args: deadframesArgs(passes.deadframes) },
-          {
-            pass: "interpolate",
-            input: deadframesOut,
-            output,
-            args: interpolationArgs(passes.interpolation),
-            deleteInput: !keepDeadframes,
-          },
-        ],
-      });
-    }
   }
-  return { jobs, interpOutputs, deadframesOutputs };
+  return { jobs };
 }
 
 /** runs each target's enabled passes in sequence, driving the pass modal; stop is honored between and within jobs */
 export async function runPostExportPasses(
   targets: PassTarget[],
   passes: PostExportPasses,
-): Promise<{ interpolated: string[]; deadframes: string[] }> {
-  if (targets.length === 0 || !anyPassEnabled(passes)) return { interpolated: [], deadframes: [] };
+): Promise<void> {
+  if (targets.length === 0 || !anyPassEnabled(passes)) return;
 
-  // depth and interpolation need the AI env, which a removed pack or foreign settings file may lack
+  // depth needs the AI env, which a removed pack or foreign settings file may lack
   const effective: PostExportPasses = { ...passes };
   // a pass switched off in Settings > Features never runs, whatever its own toggle says
   if (!isFeatureEnabled("depthPass")) effective.depth = { ...effective.depth, enabled: false };
-  if (!isFeatureEnabled("interpolationPass")) effective.interpolation = { ...effective.interpolation, enabled: false };
   // no file picked for a pass: don't install or ask for its pack
   if (!targets.some((t) => t.depth)) effective.depth = { ...effective.depth, enabled: false };
-  if (!targets.some((t) => t.interpolation)) effective.interpolation = { ...effective.interpolation, enabled: false };
-  if (!anyPassEnabled(effective)) return { interpolated: [], deadframes: [] };
+  if (!anyPassEnabled(effective)) return;
   const skipped: string[] = [];
-  const skipNote = (packId: "depth" | "interpolation") =>
+  const skipNote = (packId: "depth") =>
     `[skipped] ${packId} pass: ${AI_PACKS[packId].dependencyName} is not installed`;
 
   if (effective.depth.enabled && !(await useAiDepsStore.getState().ensurePack("depth"))) {
     effective.depth = { ...effective.depth, enabled: false };
     skipped.push(skipNote("depth"));
   }
-  if (
-    effective.interpolation.enabled &&
-    !(await useAiDepsStore.getState().ensurePack("interpolation"))
-  ) {
-    effective.interpolation = { ...effective.interpolation, enabled: false };
-    skipped.push(skipNote("interpolation"));
-  }
-  if (!anyPassEnabled(effective)) return { interpolated: [], deadframes: [] };
+  if (!anyPassEnabled(effective)) return;
 
-  const { jobs, interpOutputs, deadframesOutputs } = buildJobs(targets, effective);
-  if (jobs.length === 0) return { interpolated: [], deadframes: [] };
+  const { jobs } = buildJobs(targets, effective);
+  if (jobs.length === 0) return;
 
   const store = usePassRunStore.getState();
   store.begin(jobs.length);
@@ -184,6 +149,4 @@ export async function runPostExportPasses(
     unlisteners.forEach((stop) => stop());
     usePassRunStore.getState().finish();
   }
-
-  return { interpolated: interpOutputs, deadframes: deadframesOutputs };
 }
