@@ -24,6 +24,9 @@ import { removeClipsFromScenepack } from "../../utils/scenepackStorage.ts";
 import type { ClipItem } from "../../types/domain.ts";
 import type { ExportContainer } from "../../features/export/profileTypes.ts";
 
+const SCROLL_SAVE_DELAY_MS = 250;
+const SCROLL_RESTORE_MAX_FRAMES = 120;
+
 export default function ClipsContainer({ cols }: { cols?: number }) {
   const clips = useAppStateStore((state) => state.clips);
   const loading = useAppStateStore((state) => state.loading);
@@ -298,17 +301,43 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
 
   // the grid stays mounted on other pages, but display:none can drop its scroll offset, so it is restored
   const lastScrollTopRef = useRef(0);
+  const restoringScrollRef = useRef(false);
+  const scrollSaveTimerRef = useRef<number | null>(null);
+
+  // debounced, since the store writes to localStorage; the episode is read now so a quick switch can't save under the next one
+  const rememberEpisodeScroll = useCallback((top: number) => {
+    const ui = useUIStateStore.getState();
+    const episodeId = useEpisodePanelRuntimeStore.getState().openedEpisodeId;
+    if (ui.activePage !== "home" || !episodeId) return;
+    if (scrollSaveTimerRef.current !== null) window.clearTimeout(scrollSaveTimerRef.current);
+    scrollSaveTimerRef.current = window.setTimeout(() => {
+      scrollSaveTimerRef.current = null;
+      const live = new Set(useEpisodePanelRuntimeStore.getState().episodes.map((e) => e.id));
+      const next = Object.fromEntries(
+        Object.entries(useUIStateStore.getState().episodeScrollTops).filter(([id]) => id !== episodeId && live.has(id))
+      );
+      if (top > 0 && live.has(episodeId)) next[episodeId] = top;
+      useUIStateStore.getState().setEpisodeScrollTops(next);
+    }, SCROLL_SAVE_DELAY_MS);
+  }, []);
+
+  useEffect(() => () => {
+    if (scrollSaveTimerRef.current !== null) window.clearTimeout(scrollSaveTimerRef.current);
+  }, []);
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const onScroll = () => {
       // skeletons replace the grid while loading and clamp scrollTop, so ignore those events
       if (useAppStateStore.getState().loading) return;
+      // switching episodes clamps the offset on the way, which must not overwrite where it was left
+      if (restoringScrollRef.current) return;
       lastScrollTopRef.current = el.scrollTop;
+      rememberEpisodeScroll(el.scrollTop);
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [rememberEpisodeScroll]);
   useLayoutEffect(() => {
     if (activePage !== "home") return;
     const el = containerRef.current;
@@ -351,6 +380,39 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     // every fresh episode view starts with Preview All off
     useUIStateStore.getState().setGridPreview(false);
   }, [importToken, resetWebpQueue]);
+
+  // an episode reopens where it was left; the grid needs a few frames to reach its full height first
+  useEffect(() => {
+    const ui = useUIStateStore.getState();
+    const target = ui.activePage === "home" && openedEpisodeId ? ui.episodeScrollTops[openedEpisodeId] ?? 0 : 0;
+    if (target <= 0) return;
+
+    lastScrollTopRef.current = target;
+    restoringScrollRef.current = true;
+    let frames = 0;
+    let frame = 0;
+    const attempt = () => {
+      const el = containerRef.current;
+      const roomy = el && el.scrollHeight - el.clientHeight >= target;
+      if (el && !useAppStateStore.getState().loading && (roomy || frames >= SCROLL_RESTORE_MAX_FRAMES)) {
+        el.scrollTop = target;
+        lastScrollTopRef.current = el.scrollTop;
+        restoringScrollRef.current = false;
+        return;
+      }
+      if (frames >= SCROLL_RESTORE_MAX_FRAMES) {
+        restoringScrollRef.current = false;
+        return;
+      }
+      frames += 1;
+      frame = requestAnimationFrame(attempt);
+    };
+    frame = requestAnimationFrame(attempt);
+    return () => {
+      cancelAnimationFrame(frame);
+      restoringScrollRef.current = false;
+    };
+  }, [importToken, openedEpisodeId]);
 
   // the open episode was deleted or closed: its webp previews stop with it
   useEffect(() => {

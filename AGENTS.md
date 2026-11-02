@@ -251,7 +251,7 @@ frontend/
 | **useThemeSettingsStore** | Yes (`amverge.theme.v2`) | Accent color, background, clip tile settings |
 | **useEpisodePanelRuntimeStore** | Yes (IndexedDB) | `episodes[]`, `selectedEpisodeId`, `openedEpisodeId`. Only `episodes` persists, in IndexedDB (`utils/episodePersistStorage.ts`, same db/key as V1), so there is no localStorage size cap; it loads async, so `main.tsx` awaits `waitForEpisodes()` before rendering |
 | **useEpisodePanelMetadataStore** | Yes | `episodeFolders`, `episodeNamesById`, folder assignments |
-| **useUIStateStore** | Yes (partial) | `sidebarWidthPx`, `cols`, `sidebarEnabled`, `activePage` |
+| **useUIStateStore** | Yes (partial) | `sidebarWidthPx`, `cols`, `sidebarEnabled`, `activePage`, `episodeScrollTops` (each episode's grid offset, saved by `ClipsContainer` and restored when it reopens) |
 
 **Never persist:** `useScenePreviewStore`, `usePassRunStore`, `useWebpLoadingStore`
 

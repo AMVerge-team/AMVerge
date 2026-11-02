@@ -133,7 +133,7 @@ export function useExport({ onRPCUpdate }: Params) {
     });
   };
 
-  /** merge plus picked passes: depth on a merge of its picks */
+  /** merge with depth on only some clips: the full merge as usual, depth on its own staged merge of the picks */
   const exportMergedWithPasses = useCallback(
     async (
       selected: ClipItem[],
@@ -147,26 +147,9 @@ export function useExport({ onRPCUpdate }: Params) {
       const baseName = await mergeBaseName(selected, dir, format, mergeFileName);
       const finalSavePath = `${dir}${sep}${baseName}.${format}`;
 
-      // parts are staged elsewhere, so the picked folder only receives merged results
+      // the depth source is staged elsewhere, so the picked folder only receives merged results
       const stagingDir = await invoke<string>("create_export_staging_dir");
       const stagingSep = pathSeparatorFor(stagingDir);
-
-      const remuxOptions: ExportOptionsPayload = {
-        profileId: exportOptions?.profileId ?? "",
-        workflow: "video_remux",
-        editorTarget: "none",
-        codec: "copy",
-        audioMode: "copy",
-        hardwareMode: "cpu",
-        parallelExports: 1,
-      };
-      const mergeInto = (inputs: string[], savePath: string) =>
-        invoke<string[]>("export_clips", {
-          clips: inputs.map((input) => ({ input })),
-          savePath,
-          mergeEnabled: true,
-          exportOptions: remuxOptions,
-        });
 
       let mergedFiles: string[] = [];
 
@@ -175,40 +158,22 @@ export function useExport({ onRPCUpdate }: Params) {
       setLoading(true);
 
       try {
-        const clipFiles = await runExportClips(
-          selected.flatMap(clipExportSpecs),
-          `${stagingDir}${stagingSep}${baseName}_####.${format}`,
-          false,
+        // both go through the cli's merge, which keeps the profile's codec and fits mixed sizes with black bars
+        mergedFiles = await runExportClips(selected.flatMap(clipExportSpecs), finalSavePath, true, exportOptions);
+        if (mergedFiles.length === 0) throw new Error("Export produced no files.");
+
+        const [depthSource] = await runExportClips(
+          selected.filter((clip) => picks.depth.has(clip.id)).flatMap(clipExportSpecs),
+          `${stagingDir}${stagingSep}${baseName}.${format}`,
+          true,
           exportOptions
         );
-        if (clipFiles.length === 0) throw new Error("Export produced no files.");
 
-        // the plain merge keeps the chosen name; passes never overwrite it
-        mergedFiles = await mergeInto(clipFiles, finalSavePath);
-
-        const owners = specOwners(selected);
-        const pickedFiles = (ids: Set<string>) =>
-          clipFiles.filter((_, i) => owners[i] !== undefined && ids.has(owners[i]));
-
-        const targets: PassTarget[] = [];
-        // depth needs no per-clip run: the whole merge when every clip is picked, else a staged merge of the picks
-        if (picks.depth.size > 0) {
-          if (picks.depth.size === selected.length) {
-            targets.push({ path: mergedFiles[0], depth: true });
-          } else {
-            const [depthSource] = await mergeInto(
-              pickedFiles(picks.depth),
-              `${stagingDir}${stagingSep}${baseName}.${format}`
-            );
-            targets.push({
-              path: depthSource,
-              depth: true,
-              outputStem: `${dir}${sep}${baseName}`,
-            });
-          }
-        }
-
-        await runPostExportPasses(targets, passes);
+        // the staging folder goes in the finally below, so depth runs here, inside the export's loading span
+        await runPostExportPasses(
+          [{ path: depthSource, depth: true, outputStem: `${dir}${sep}${baseName}` }],
+          passes
+        );
 
         await deliverExportedFiles(mergedFiles);
         rpcFinished();

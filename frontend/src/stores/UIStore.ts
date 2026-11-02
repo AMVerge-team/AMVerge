@@ -25,6 +25,8 @@ export type UIState = {
     pinned: boolean;
     /** the preview pane's How to use guide, open or folded */
     howToUseExpanded: boolean;
+    /** where each episode's clip grid was left, by episode id; only non-zero offsets are kept */
+    episodeScrollTops: Record<string, number>;
     /** height of scene scout flow's input clip area, set by dragging the bar under it */
     flowPlayerHeightPx: number;
     /** the scene scout walkthrough was finished or skipped, so it no longer opens on its own */
@@ -58,6 +60,7 @@ export type UIStateStore = UIState & {
     setPreviewSplitPct: (pct: number) => void;
     togglePinned: () => void;
     setHowToUseExpanded: (expanded: boolean) => void;
+    setEpisodeScrollTops: (scrollTops: Record<string, number>) => void;
     setFlowPlayerHeightPx: (px: number) => void;
     setSceneScoutTourSeen: (seen: boolean) => void;
 };
@@ -84,6 +87,7 @@ export const DEFAULT_UI_STATE: UIState = {
     previewSplitPct: 65,
     pinned: false,
     howToUseExpanded: true,
+    episodeScrollTops: {},
     flowPlayerHeightPx: 300,
     sceneScoutTourSeen: false,
 };
@@ -150,6 +154,7 @@ export const useUIStateStore = create<UIStateStore>()(
             setPreviewSplitPct: (previewSplitPct) => set({ previewSplitPct }),
             togglePinned: () => set((state) => ({ pinned: !state.pinned })),
             setHowToUseExpanded: (howToUseExpanded) => set({ howToUseExpanded }),
+            setEpisodeScrollTops: (episodeScrollTops) => set({ episodeScrollTops }),
             setFlowPlayerHeightPx: (flowPlayerHeightPx) => set({ flowPlayerHeightPx }),
             setSceneScoutTourSeen: (sceneScoutTourSeen) => set({ sceneScoutTourSeen }),
         }),
@@ -165,6 +170,7 @@ export const useUIStateStore = create<UIStateStore>()(
                 // persisted; the window state isn't, so Navbar re-applies it
                 pinned: state.pinned,
                 howToUseExpanded: state.howToUseExpanded,
+                episodeScrollTops: state.episodeScrollTops,
                 flowPlayerHeightPx: state.flowPlayerHeightPx,
                 sceneScoutTourSeen: state.sceneScoutTourSeen,
             }),
