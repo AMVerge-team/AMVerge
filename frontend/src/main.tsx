@@ -62,8 +62,14 @@ void maybeCheckForUpdatesOnStartup();
 
 // applies the theme before the first paint so the splash never flashes the default accent; guarded, App re-applies it
 async function bootstrap() {
+  // the logo font loads before the first paint, or the wordmark flashes in the fallback font
+  const logoFont = Promise.race([
+    document.fonts.load("1em 'Jersey 10'", "AMVerge").catch(() => []),
+    new Promise((resolve) => setTimeout(resolve, 1500)),
+  ]);
+
   // the episode list loads from IndexedDB asynchronously; the app reads it on its first render
-  await waitForEpisodes();
+  await Promise.all([waitForEpisodes(), logoFont]);
 
   // before the first render, so every store starts out already holding what came over from V1
   try {
