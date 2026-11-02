@@ -34,16 +34,21 @@ function findHost(svg: SVGSVGElement): Element {
     // the app itself puts its handlers on the row around it for that reason.
     // Follow the same route: listen to the wrapper instead.
     let host: Element = el;
-    while (
-      ((host as HTMLButtonElement).disabled ||
-        getComputedStyle(host).pointerEvents === "none") &&
-      host.parentElement
-    ) {
+    while (host.parentElement && cannotFire(host)) {
       host = host.parentElement;
     }
     return host;
   }
   return svg.parentElement ?? svg;
+}
+
+// a none inherited from a parent means hidden for now (hover-revealed controls), so the control itself is still the host
+function cannotFire(el: Element) {
+  if ((el as HTMLButtonElement).disabled) return true;
+  return (
+    getComputedStyle(el).pointerEvents === "none" &&
+    (!el.parentElement || getComputedStyle(el.parentElement).pointerEvents !== "none")
+  );
 }
 
 export function useIconHost(ref: RefObject<SVGSVGElement | null>) {

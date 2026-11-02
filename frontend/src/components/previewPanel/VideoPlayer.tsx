@@ -1,6 +1,6 @@
 /** custom-skinned preview player, rendering the markup the preview css targets */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FaPlay, FaPause, FaVolumeUp, FaVolumeDown, FaVolumeMute, FaExpand } from '../icons/animated';
+import { FaPlay, FaPause, FaVolumeUp, FaVolumeDown, FaVolumeMute, FaExpand } from "react-icons/fa";
 
 import Tooltip from "../common/Tooltip";
 

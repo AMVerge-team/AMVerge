@@ -58,10 +58,11 @@
     border: none;
     color: var(--accent);
     cursor: pointer;
+    transition: transform 0.12s ease;
 }
 
 .controls button:hover {
-    transform: scale(1.05);
+    transform: scale(1.15);
     filter:
         drop-shadow(0 0 4px var(--accent)) drop-shadow(0 0 12px rgb(var(--accent-rgb) / 0.6));
 }
