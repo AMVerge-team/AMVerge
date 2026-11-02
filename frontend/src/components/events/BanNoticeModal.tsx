@@ -1,4 +1,4 @@
-import { FaBan } from "react-icons/fa";
+import { FaBan } from '../icons/animated';
 
 import ModalShell from "../common/ModalShell";
 import { formatDateTimeShort } from "./format";

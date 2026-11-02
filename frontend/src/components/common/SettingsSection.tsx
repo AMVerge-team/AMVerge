@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { FaChevronDown } from "react-icons/fa";
+import { FaChevronDown } from '../icons/animated';
 import { useSettingsSectionsStore } from "../../stores/settingsSectionsStore";
 
 type SettingsSectionProps = {

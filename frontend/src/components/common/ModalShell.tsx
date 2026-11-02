@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { FaTimes } from "react-icons/fa";
+import { FaTimes } from '../icons/animated';
 
 import Tooltip from "./Tooltip";
 import { useEscapeToClose } from "./useEscapeToClose";

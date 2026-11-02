@@ -1,17 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
-import {
-  FaChevronRight,
-  FaDatabase,
-  FaPlus,
-  FaSearch,
-  FaSpinner,
-  FaTimes,
-  FaTrashAlt,
-  FaVideo,
-} from "react-icons/fa";
-import { FiDatabase } from "react-icons/fi";
+import { FaChevronRight, FaDatabase, FaPlus, FaSearch, FaSpinner, FaTimes, FaTrashAlt, FaVideo } from '../icons/animated';
+import { FiDatabase } from '../icons/animated';
 import { DatabaseImportIcon } from "../icons/ToolbarIcons";
 
 import ModalShell from "../common/ModalShell";

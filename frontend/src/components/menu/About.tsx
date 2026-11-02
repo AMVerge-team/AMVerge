@@ -1,12 +1,5 @@
 import { open } from "@tauri-apps/plugin-shell";
-import {
-  FaQuestionCircle,
-  FaWrench,
-  FaKeyboard,
-  FaGlobe,
-  FaDiscord,
-  FaGithub,
-} from "react-icons/fa";
+import { FaQuestionCircle, FaWrench, FaKeyboard, FaGlobe, FaDiscord, FaGithub } from '../icons/animated';
 
 // navigator.platform is deprecated but the only synchronous read
 const IS_MAC = /mac/i.test(navigator.platform);

@@ -1,5 +1,5 @@
 import React from "react";
-import { FiDownload } from "react-icons/fi";
+import { FiDownload } from '../icons/animated';
 
 import Tooltip from "../common/Tooltip";
 

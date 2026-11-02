@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { FaCheckCircle } from "react-icons/fa";
+import { FaCheckCircle } from '../icons/animated';
 
 import ModalShell from "../common/ModalShell";
 import { useEventsStore } from "../../stores/eventsStore";

@@ -1,14 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  FaChevronLeft,
-  FaChevronRight,
-  FaDiscord,
-  FaImage,
-  FaMinus,
-  FaPaperPlane,
-  FaPlus,
-  FaSpinner,
-} from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight, FaDiscord, FaImage, FaMinus, FaPaperPlane, FaPlus, FaSpinner } from '../icons/animated';
 
 import ModalShell from "../common/ModalShell";
 import Tooltip from "../common/Tooltip";

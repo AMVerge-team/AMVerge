@@ -1,4 +1,4 @@
-import { FaSyncAlt } from "react-icons/fa";
+import { FaSyncAlt } from '../../icons/animated';
 
 import Tooltip from "../../common/Tooltip";
 import { useSceneScoutStore } from "../../../stores/sceneScoutStore";

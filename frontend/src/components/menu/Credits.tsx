@@ -1,5 +1,5 @@
 import { open } from '@tauri-apps/plugin-shell';
-import { FaHeart, FaGithub, FaCodeBranch } from 'react-icons/fa';
+import { FaHeart, FaGithub, FaCodeBranch } from '../icons/animated';
 
 export default function Credits() {
     const team = [

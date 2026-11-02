@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { FaDatabase, FaPlus } from "react-icons/fa";
-import { FiDatabase } from "react-icons/fi";
+import { FaDatabase, FaPlus } from '../icons/animated';
+import { FiDatabase } from '../icons/animated';
 
 import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
 import { setHeroFlip } from "../../features/sceneScout/heroTransition";

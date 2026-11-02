@@ -6,14 +6,7 @@ import Credits from "../components/menu/Credits";
 import BugReport from "../components/menu/BugReport";
 import Resources from "../components/menu/Resources";
 import { useTabKeys } from "../components/common/useTabKeys";
-import {
-  FaInfoCircle,
-  FaTerminal,
-  FaHistory,
-  FaUsers,
-  FaBug,
-  FaToolbox,
-} from "react-icons/fa";
+import { FaInfoCircle, FaTerminal, FaHistory, FaUsers, FaBug, FaToolbox } from '../components/icons/animated';
 
 const PAGES = [
   { key: "about", label: "About", icon: FaInfoCircle },

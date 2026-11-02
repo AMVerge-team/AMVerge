@@ -1,4 +1,4 @@
-import { FaFolderOpen, FaFolderPlus, FaSortAlphaDown, FaSortAlphaUp, FaTrashAlt } from "react-icons/fa";
+import { FaFolderOpen, FaFolderPlus, FaSortAlphaDown, FaSortAlphaUp, FaTrashAlt } from '../../icons/animated';
 import { invoke } from "@tauri-apps/api/core";
 
 import Tooltip from "../../common/Tooltip";

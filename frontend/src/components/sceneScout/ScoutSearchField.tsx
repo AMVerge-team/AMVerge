@@ -1,5 +1,5 @@
 import { useMemo, type Ref } from "react";
-import { FaSearch, FaTimes } from "react-icons/fa";
+import { FaSearch, FaTimes } from '../icons/animated';
 
 import Tooltip from "../common/Tooltip";
 import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";

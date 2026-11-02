@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
-import { FaDatabase } from "react-icons/fa";
+import { FaDatabase } from '../icons/animated';
 
 import ModalShell from "../common/ModalShell";
 import { useSceneScoutStore } from "../../stores/sceneScoutStore";

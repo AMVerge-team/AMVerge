@@ -2,12 +2,8 @@ import HowToUse from "./HowToUse.tsx"
 import VideoPlayer from "./VideoPlayer.tsx"
 import React from "react";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
-import {
-  FaFolderOpen,
-  FaFileExport,
-  FaPencilAlt,
-} from "react-icons/fa";
-import { SiDavinciresolve } from "react-icons/si";
+import { FaFolderOpen, FaFileExport, FaPencilAlt } from '../icons/animated';
+import { SiDavinciresolve } from '../icons/animated';
 import Dropdown from "../common/Dropdown";
 import { useDavinciAvailable } from "../../features/davinci/useDavinciAvailable.ts";
 import Tooltip from "../common/Tooltip";

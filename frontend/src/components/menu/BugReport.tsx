@@ -18,18 +18,7 @@ import Dropdown, { type DropdownOption } from "../common/Dropdown";
 import Tooltip from "../common/Tooltip";
 import { useDiscordRPCStatus } from "../../hooks/useDiscordRPC";
 import { useEventsStore } from "../../stores/eventsStore";
-import {
-  FaBug,
-  FaPaperPlane,
-  FaSpinner,
-  FaFileVideo,
-  FaDesktop,
-  FaImage,
-  FaDiscord,
-  FaGithub,
-  FaInfoCircle,
-  FaMicrochip,
-} from "react-icons/fa";
+import { FaBug, FaPaperPlane, FaSpinner, FaFileVideo, FaDesktop, FaImage, FaDiscord, FaGithub, FaInfoCircle, FaMicrochip } from '../icons/animated';
 
 const ENABLE_SUBMIT_COOLDOWN = false;
 const BUG_REPORT_COOLDOWN_MS = 60 * 60 * 1000;

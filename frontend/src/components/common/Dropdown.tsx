@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useLayoutEffect, type ReactNode } from "react";
-import { FaChevronDown } from "react-icons/fa";
+import { FaChevronDown } from '../icons/animated';
 
 export interface DropdownOption<T> {
   value: T;

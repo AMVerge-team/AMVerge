@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FaChevronDown } from "react-icons/fa";
+import { FaChevronDown } from '../icons/animated';
 import Tooltip from "../common/Tooltip";
 import { JERSEY_FONT, useThemeSettingsStore } from "../../stores/settingsStore";
 

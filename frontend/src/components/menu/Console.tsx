@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FaCopy, FaTrashAlt, FaSearch } from "react-icons/fa";
+import { FaCopy, FaTrashAlt, FaSearch } from '../icons/animated';
 import Tooltip from "../common/Tooltip";
 import {
   clearConsoleLogs,

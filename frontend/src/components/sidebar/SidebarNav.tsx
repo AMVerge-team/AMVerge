@@ -1,7 +1,7 @@
 // sidebar navigation buttons. handles switching between top-level pages like Home and Scenepacks
 import type { IconType } from "react-icons";
-import { FaCalendarAlt, FaLayerGroup, FaSearch } from "react-icons/fa";
-import { IoLibrary } from "react-icons/io5";
+import { FaCalendarAlt, FaLayerGroup, FaSearch } from '../icons/animated';
+import { IoLibrary } from '../icons/animated';
 import type { Page } from "./types";
 import Tooltip from "../common/Tooltip";
 import { useUIStateStore } from "../../stores/UIStore";

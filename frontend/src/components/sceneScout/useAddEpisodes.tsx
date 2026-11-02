@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { FaCheck, FaVideo } from "react-icons/fa";
+import { FaCheck, FaVideo } from '../icons/animated';
 
 import ModalShell from "../common/ModalShell";
 import { ImportIcon } from "../icons/ToolbarIcons";

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { FaSpinner } from "react-icons/fa";
+import { FaSpinner } from '../icons/animated';
 import { useScenepacksStore } from "../../stores/scenepackStore";
 import { useUIStateStore } from "../../stores/UIStore";
 import type { ClipItem } from "../../types/domain";

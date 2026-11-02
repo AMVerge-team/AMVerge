@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FaBold } from "react-icons/fa";
+import { FaBold } from '../icons/animated';
 
 import Tooltip from "../common/Tooltip";
 import { SIZE_TO_FONT, readActiveFormat, renderInto, serializeRoot } from "./editorDom";

@@ -1,9 +1,6 @@
 import type React from "react";
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
-import {
-  FaLayerGroup, FaFolderPlus, FaSortAlphaDown, FaSortAlphaUp,
-  FaTrashAlt, FaSearch, FaTimes, FaSpinner, FaFolderOpen,
-} from "react-icons/fa";
+import { FaLayerGroup, FaFolderPlus, FaSortAlphaDown, FaSortAlphaUp, FaTrashAlt, FaSearch, FaTimes, FaSpinner, FaFolderOpen } from '../../icons/animated';
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import Tooltip from "../../common/Tooltip";
 import { useScenepacksStore } from "../../../stores/scenepackStore";

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { open } from "@tauri-apps/plugin-shell";
-import { FaArrowLeft, FaCalendarAlt, FaCheckCircle, FaDiscord, FaEdit, FaTrash, FaTrophy } from "react-icons/fa";
+import { FaArrowLeft, FaCalendarAlt, FaCheckCircle, FaDiscord, FaEdit, FaTrash, FaTrophy } from '../icons/animated';
 
 import RichText from "./RichText";
 import { formatCooldown, useCooldown } from "./useCooldown";

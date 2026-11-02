@@ -1,4 +1,4 @@
-import { FaPlus, FaTrash } from "react-icons/fa";
+import { FaPlus, FaTrash } from '../../icons/animated';
 
 type ProfileActionsProps = {
   canDelete: boolean;
