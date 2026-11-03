@@ -27,9 +27,13 @@ import type { ExportContainer } from "../../features/export/profileTypes.ts";
 const SCROLL_SAVE_DELAY_MS = 250;
 const SCROLL_RESTORE_MAX_FRAMES = 120;
 
+// an export leaves the clips as they are, so the grid stays usable while it runs
+const loadingReplacesGrid = (s: { loading: boolean; activeOperation: string | null }) =>
+  s.loading && s.activeOperation !== "export";
+
 export default function ClipsContainer({ cols }: { cols?: number }) {
   const clips = useAppStateStore((state) => state.clips);
-  const loading = useAppStateStore((state) => state.loading);
+  const gridBusy = useAppStateStore(loadingReplacesGrid);
   const scoutFlowMode = useSceneScoutStore((state) => state.mode === "flow");
   const isScoutSearching = useSceneScoutStore((state) =>
     state.mode === "flow" ? state.flowSearching : state.searching
@@ -139,7 +143,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   // staggered mount queue: mounts videos one at a time in grid preview
   const { reportStaggerDemand } = useStaggeredMountQueue();
 
-  const gridColumns = loading
+  const gridColumns = gridBusy
     ? activeCols
     : Math.max(1, Math.min(activeCols, clips.length));
 
@@ -329,7 +333,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     if (!el) return;
     const onScroll = () => {
       // skeletons replace the grid while loading and clamp scrollTop, so ignore those events
-      if (useAppStateStore.getState().loading) return;
+      if (loadingReplacesGrid(useAppStateStore.getState())) return;
       // switching episodes clamps the offset on the way, which must not overwrite where it was left
       if (restoringScrollRef.current) return;
       lastScrollTopRef.current = el.scrollTop;
@@ -348,19 +352,19 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     }
   }, [activePage]);
 
-  // keep the scroll position across non-import loading toggles (e.g. exporting)
+  // keep the scroll position across non-import loading toggles
   const savedScrollRef = useRef<number | null>(null);
-  const prevLoadingRef = useRef(loading);
+  const prevLoadingRef = useRef(gridBusy);
   useEffect(() => {
     const el = containerRef.current;
     if (!el) {
-      prevLoadingRef.current = loading;
+      prevLoadingRef.current = gridBusy;
       return;
     }
-    if (loading && !prevLoadingRef.current) {
+    if (gridBusy && !prevLoadingRef.current) {
       // loading just started; el.scrollTop is already clamped by the skeletons, use the last real position
       savedScrollRef.current = lastScrollTopRef.current;
-    } else if (!loading && prevLoadingRef.current && savedScrollRef.current !== null) {
+    } else if (!gridBusy && prevLoadingRef.current && savedScrollRef.current !== null) {
       // loading finished, restore scroll once the grid and its window padding have re-rendered
       const target = savedScrollRef.current;
       savedScrollRef.current = null;
@@ -368,8 +372,8 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
         containerRef.current?.scrollTo({ top: target });
       }));
     }
-    prevLoadingRef.current = loading;
-  }, [loading]);
+    prevLoadingRef.current = gridBusy;
+  }, [gridBusy]);
 
   useEffect(() => {
     // new import - discard any pending scroll restore and go to the top
@@ -394,7 +398,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     const attempt = () => {
       const el = containerRef.current;
       const roomy = el && el.scrollHeight - el.clientHeight >= target;
-      if (el && !useAppStateStore.getState().loading && (roomy || frames >= SCROLL_RESTORE_MAX_FRAMES)) {
+      if (el && !loadingReplacesGrid(useAppStateStore.getState()) && (roomy || frames >= SCROLL_RESTORE_MAX_FRAMES)) {
         el.scrollTop = target;
         lastScrollTopRef.current = el.scrollTop;
         restoringScrollRef.current = false;
@@ -544,7 +548,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     return () => el.removeEventListener("wheel", onWheel);
   }, [colsOverridden, setStoreCols]);
 
-  const showLoadingSkeletons = loading || (activePage === "sceneScout" && isScoutSearching);
+  const showLoadingSkeletons = gridBusy || (activePage === "sceneScout" && isScoutSearching);
 
   return (
     <main className="clips-container" ref={containerRef}>

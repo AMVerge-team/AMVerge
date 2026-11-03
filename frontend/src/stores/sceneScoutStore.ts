@@ -63,6 +63,8 @@ async function withModelLoadingCard<T>(search: () => Promise<T>): Promise<T> {
   let cardOpened = false;
   const stopListening = await listen<ScoutIndexProgress>("scout_progress", (e) => {
     if (e.payload.stage !== "loading_model") return;
+    // this card shares the job window's state, so closing it would close a running export's window
+    if (useAppStateStore.getState().activeOperation) return;
     cardOpened = true;
     appState.setActiveOperation("scout_search");
     appState.setLoading(true);

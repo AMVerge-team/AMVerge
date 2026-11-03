@@ -4,7 +4,6 @@ import { WindowCloseIcon, WindowMaximizeIcon, WindowMinimizeIcon, WindowPinIcon,
 import Tooltip from "./common/Tooltip";
 import { MAX_EVENT_COLUMNS } from "./events/EventsBrowser";
 import { useUIStateStore } from "../stores/UIStore";
-import { useAppStateStore } from "../stores/appStore";
 import { useAiDepsStore } from "../stores/aiDepsStore";
 import { open } from "@tauri-apps/plugin-shell";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -23,8 +22,6 @@ export default function Navbar({}: NavbarProps) {
     const setQuickMenuOpen = useUIStateStore((s) => s.setQuickMenuOpen);
     const activePage = useUIStateStore((s) => s.activePage);
 
-    const clips = useAppStateStore(s => s.clips);
-    const selectedClips = useAppStateStore(s => s.selectedClips);
     const refreshAiStatus = useAiDepsStore(s => s.refresh);
 
     const [isMaximized, setIsMaximized] = useState(false);
@@ -114,15 +111,6 @@ export default function Navbar({}: NavbarProps) {
                         </button>
                     </Tooltip>
                 </div>
-
-                {clips.length > 0 && (
-                    <div className="navbar-selection-badge" data-tauri-drag-region>
-                        <span className="selection-badge-dot" />
-                        <span className="selection-badge-text">
-                            <strong>{selectedClips.size}</strong> / {clips.length} selected
-                        </span>
-                    </div>
-                )}
             </div>
 
             <div className="window-controls" data-tauri-drag-region>

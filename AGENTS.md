@@ -320,7 +320,7 @@ frontend/
 | `scout_delete_database` | scene_scout/ | Delete database file |
 | `scout_list_videos` | scene_scout/ | List videos in a database |
 | `scout_status` | scene_scout/ | Get Scene Scout model and root status |
-| `scout_search` | scene_scout/ | Query scenes with SigLIP 2 embeddings (daemon or one-shot) |
+| `scout_search` | scene_scout/ | Query scenes with SigLIP 2 embeddings (daemon or one-shot). `skipEdgesMs` (search settings' "Skip openings and endings", 2:30, CLI ≥ 1.2.0) leaves out scenes that close to their episode's start or end, measured from its last indexed scene, before ranking so the result count holds |
 | `scout_add_video` | scene_scout/ | Index video scenes into a database. Optional `scenes` (`[start_ms, end_ms]` pairs from a home episode's manifest) skips detection: sent as `scenes` to the daemon, as `--scenes-json <tmp file>` to the CLI (CLI ≥ 0.9.0). AI detection's stderr `PROGRESS|` lines become `scout_progress` stage `detecting` (`cli.rs: forward_stderr`), since detection is most of the time; a batch shows Overall and Current bars |
 | `abort_scout_index` | scene_scout/ | Kill active indexing process tree |
 | `scout_unload_model` | scene_scout/ | Unload model weights from memory |
@@ -585,11 +585,13 @@ App starts → main.tsx: maybeCheckForUpdatesOnStartup()
 
 7. **Preview proxy locks**: per-clip `AsyncMutex` prevents duplicate transcodes of the same file.
 
-8. **Export modes**: remux profiles use stream copy snapped outward to source keyframes; encode profiles always re-encode source ranges. GPU contention can fall back from GPU to CPU encoding, but never changes a copy export into an encode.
+8. **Export modes**: encode profiles always re-encode source ranges. Remux merges stream-copy each contiguous run snapped outward to source keyframes. Separate remux exports pass `--exact-copy`: scenes exactly on keyframes stream-copy, the rest re-encode in the source's codec and bit depth, because snapping made neighbours inside one keyframe interval export identical files (AVI is copy only, so it still snaps). GPU contention can fall back from GPU to CPU encoding, but never changes a copy into an encode.
 
 9. **Animated WebP cache**: fingerprinted by SHA-256 of file head/mid/tail bytes. Cache invalidated if source changes.
 
 10. **All child processes killed on close**: `on_window_event(CloseRequested)` walks all PID lists and kills every subprocess. That only runs on a normal close, so on Windows every ffmpeg / ffprobe / CLI / uv child also joins a kill-on-close Job Object right after spawning (`utils/process.rs`: `bind_to_app_lifetime`, or `output_bound` in place of `.output()`); a crash or Task Manager kill still takes the whole tree down. Any new ffmpeg or CLI spawn must do the same. Editors, Explorer and the updater are never bound, so they outlive the app.
+
+10a. **Export leaves the grid usable**: `loading` is global, but `ClipsContainer` only swaps in skeletons when it is not an export (`loadingReplacesGrid`). Searching stays possible during an export: `withModelLoadingCard` opens no card while another job holds `activeOperation`, since closing it would close that job's window.
 
 10b. **One long job at a time**: import, export, resume, Scene Scout add-episode and thumbnail generation each `await claimProcess(kind)` (the re-encode queue is the one exception: it runs beside the import that fed it) (`features/processes/singleProcess.ts`) before starting. If another job runs, `ProcessConflictModal` (the shared `ConfirmModal`) asks to stop it (App's abort, same as the progress window's ✕, then waits until idle) or keep it and drop the new one. Their buttons stay enabled so the question can be asked. A new long job must claim too.
 

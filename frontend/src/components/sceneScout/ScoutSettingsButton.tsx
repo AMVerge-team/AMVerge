@@ -168,6 +168,20 @@ export function ScoutSettingsButton({ rerun, className = "" }: Props) {
                 />
               )}
             </div>
+
+            <Tooltip content="Leaves out scenes in each episode's first and last 2 minutes 30 seconds, where openings and endings usually sit">
+              <label className="scene-scout-setting scene-scout-setting-inline scene-scout-skip-edges">
+                <input
+                  type="checkbox"
+                  checked={Boolean(settings.skipEpisodeEdges)}
+                  onChange={(e) => {
+                    updateSettings({ skipEpisodeEdges: e.target.checked });
+                    rerun();
+                  }}
+                />
+                Skip openings and endings
+              </label>
+            </Tooltip>
           </div>
 
           <div className="scene-scout-options-footer">

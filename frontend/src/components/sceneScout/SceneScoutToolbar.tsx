@@ -3,6 +3,7 @@ import { FaSyncAlt } from '../icons/animated';
 
 import Tooltip from "../common/Tooltip";
 import PreviewAllToggle from "../common/PreviewAllToggle";
+import { SelectionCount } from "../clipsGrid/SelectionCount";
 import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
 import { AddEpisodeButton } from "./AddEpisodeButton";
 import { heroFlipPending } from "../../features/sceneScout/heroTransition";
@@ -77,6 +78,7 @@ export function SceneScoutToolbar() {
           <ScoutSettingsButton rerun={rerunSearch} className={revealed ? "scene-scout-reveal" : ""} />
 
           <PreviewAllToggle />
+          <SelectionCount />
 
           {/* inline, so the row keeps home's height and the preview pane never shifts */}
           {(error || storeError) && (

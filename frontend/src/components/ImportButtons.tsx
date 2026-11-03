@@ -1,8 +1,9 @@
 import { PanelLeftIcon, PanelRightIcon } from "./icons/chrome/ChromeIcons";
 import { useState } from "react";
-import { FaSyncAlt, FaTimes } from './icons/animated';
+import { FaSyncAlt } from './icons/animated';
 import Tooltip from "./common/Tooltip";
 import PreviewAllToggle from "./common/PreviewAllToggle";
+import { SelectionCount } from "./clipsGrid/SelectionCount";
 import { useAppStateStore } from "../stores/appStore";
 import { useUIStateStore } from "../stores/UIStore";
 import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
@@ -10,8 +11,7 @@ import { openEpisodeById } from "../hooks/useEpisodePanelState";
 import useImportExport from "../hooks/useImportExport";
 
 export default function ImportButtons({ showImportControls = true }: { showImportControls?: boolean }) {
-  const selectedClips = useAppStateStore((s: any) => s.selectedClips);
-  const setSelectedClips = useAppStateStore((s: any) => s.setSelectedClips);
+  const hasSelection = useAppStateStore((s: any) => s.selectedClips.size > 0);
   const loading = useAppStateStore((s: any) => s.loading);
   const bgProgress = useAppStateStore((s: any) => s.bgProgress);
   const bgImportProgress = useAppStateStore((s: any) => s.bgImportProgress);
@@ -26,7 +26,6 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
   // drives the one-shot spin animation on the refresh icon
   const [refreshSpinning, setRefreshSpinning] = useState(false);
 
-  const hasSelection = selectedClips.size > 0;
   const importBusy = loading || Boolean(bgProgress) || Boolean(bgImportProgress);
 
   // re-opens the current episode with the same reset as switching away and back
@@ -99,15 +98,8 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
           )}
         </div>
         <div className="grid-checkboxes">
-          {/* only there while something is selected; the x clears the selection */}
-          {hasSelection ? (
-            <button type="button" className="selection-pill" onClick={() => setSelectedClips(new Set())}>
-              {selectedClips.size} selected
-              <FaTimes aria-hidden="true" />
-            </button>
-          ) : (
-            <span />
-          )}
+          {/* the span keeps the panel toggle at the row's far end with nothing selected */}
+          {hasSelection ? <SelectionCount /> : <span />}
 
           <Tooltip content={previewCollapsed ? "Show preview panel" : "Hide preview panel"} placement="bottom-end">
             <button

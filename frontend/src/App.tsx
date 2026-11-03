@@ -59,6 +59,7 @@ function App() {
   const batchTotal = useAppStateStore((s) => s.batchTotal);
   const batchDone = useAppStateStore((s) => s.batchDone);
   const batchCurrentFile = useAppStateStore((s) => s.batchCurrentFile);
+  const exportMerges = useAppStateStore((s) => s.exportMerges);
   const bgProgress = useAppStateStore((s) => s.bgProgress);
   const bgImportProgress = useAppStateStore((s) => s.bgImportProgress);
   const reencodeProgress = useAppStateStore((s) => s.reencodeProgress);
@@ -497,6 +498,7 @@ function App() {
             operation={activeOperation ?? (resumingEpisodeId ? "resume" : previewsOnly ? "previews" : "import")}
             detectionMethod={sceneDetectionMethod}
             importMethod={importMethodSetting}
+            exportMerges={exportMerges}
             minimized={overlayMinimized}
             onToggleMinimize={() =>
               setMinimizeOverride((prev) => !(prev ?? autoMinimized))

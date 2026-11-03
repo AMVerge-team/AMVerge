@@ -111,37 +111,6 @@
     flex: 0 0 auto;
 }
 
-.navbar-selection-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 4px 12px;
-    background: rgba(var(--accent-rgb), 0.08);
-    border: 1px solid rgba(var(--accent-rgb), 0.28);
-    border-radius: 999px;
-    user-select: none;
-}
-
-.selection-badge-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 8px var(--accent);
-}
-
-.selection-badge-text {
-    font-size: 0.82rem;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.9);
-    letter-spacing: 0.3px;
-}
-
-.selection-badge-text strong {
-    color: var(--accent);
-    font-weight: 700;
-}
-
 .zoomWrapper {
     display: inline-flex;
     align-items: center;
@@ -305,7 +274,6 @@
 }
 
 .navbar h1 span,
-.zoom-label,
-.navbar-selection-badge > * {
+.zoom-label {
     pointer-events: none;
 }

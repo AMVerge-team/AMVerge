@@ -23,6 +23,8 @@ interface ImportTerminalProps {
   detectionMethod?: string;
   /** import method for the synthesized command line (video_files / webp_files) */
   importMethod?: string;
+  /** whether an export merges, for the synthesized command line */
+  exportMerges?: boolean;
   /** collapsed into a small draggable card with the progress bar attached */
   minimized?: boolean;
   /** toggle between the centered terminal and the minimized card */
@@ -84,6 +86,7 @@ export default function ImportTerminal({
   commandLabel,
   detectionMethod = "transnetv2_gpu",
   importMethod = "video_files",
+  exportMerges = false,
   minimized = false,
   onToggleMinimize,
   onClose,
@@ -162,7 +165,7 @@ export default function ImportTerminal({
     headerPushedRef.current = true;
     if (operation === "export") {
       const target = commandLabel ? `"${commandLabel}"` : "<clips>";
-      pushLine("cmd", `amverge export ${target} --merge`);
+      pushLine("cmd", `amverge export ${target}${exportMerges ? " --merge" : ""}`);
     } else if (operation === "scout_add") {
       const target = commandLabel ? `"${commandLabel}"` : "<video>";
       pushLine("cmd", `amverge scout add ${target}`);

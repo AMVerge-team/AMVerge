@@ -93,7 +93,11 @@ export type ScoutSearchSettings = {
   selectedVideos: string[];
   /** scene detection last picked when indexing, preselected next time */
   lastIndexDetection?: "transnetv2_gpu" | "keyframe_detection";
+  /** leave scenes near each episode's start and end out of results, where openings and endings usually sit */
+  skipEpisodeEdges?: boolean;
 };
+
+export const EPISODE_EDGE_MS = 150_000;
 
 export const DEFAULT_SEARCH_SETTINGS: ScoutSearchSettings = {
   topK: 24,

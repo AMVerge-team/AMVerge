@@ -10,7 +10,7 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::payloads::{PassLogPayload, PassPreviewPayload, PassProgressPayload, ProgressPayload};
 use crate::state::{ActiveFfmpegPids, ExportAbortState};
-use crate::utils::logging::{console_log, sanitize_for_console};
+use crate::utils::logging::{console_log, emit_console_log, sanitize_for_console};
 use crate::utils::paths::file_name_only;
 use crate::utils::sidecar::{amverge_ai_command, amverge_command, amverge_exe_name};
 
@@ -225,6 +225,9 @@ pub async fn export_clips(
     }
     if merge_enabled {
         cmd.arg("--merge");
+    } else if codec == "copy" {
+        // neighbouring scenes in one keyframe interval would otherwise export the same frames
+        cmd.arg("--exact-copy");
     }
     cmd.arg("--ipc")
         .stdout(Stdio::piped())
@@ -264,10 +267,19 @@ pub async fn export_clips(
                 if let Ok(p) = pct.parse::<u8>() {
                     let _ = app_for_err.emit("scene_progress", ProgressPayload { percent: p, message: msg });
                 }
-            } else if line.starts_with("CLIP_READY|") {
-                // per-clip completion; the export UI tracks the aggregate bar only
+            } else if let Some(rest) = line.strip_prefix("CLIP_READY|") {
+                // a log line, not a clip_ready event: that one updates the imported episode's clips
+                let mut parts = rest.splitn(3, '|').skip(1);
+                let path = parts.next().unwrap_or("");
+                let mode = match parts.next().unwrap_or("") {
+                    "reencode" => "re-encoded",
+                    "copy" => "stream copy",
+                    other => other,
+                };
+                emit_console_log(&app_for_err, "python", "log", &format!("✓ {} · {mode}", file_name_only(path)));
             } else if !line.trim().is_empty() {
-                console_log("EXPORT|cli", &sanitize_for_console(&line));
+                // "python" is what the terminal window shows, so the cli's own lines reach it too
+                emit_console_log(&app_for_err, "python", "log", &sanitize_for_console(&line));
             }
         }
     });

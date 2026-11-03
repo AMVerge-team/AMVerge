@@ -766,6 +766,19 @@
     font-size: 11px;
 }
 
+.scene-scout-skip-edges {
+    height: auto;
+    color: rgb(255 255 255 / 0.85);
+    cursor: pointer;
+}
+
+.scene-scout-skip-edges input {
+    flex: none;
+    margin: 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
 .scene-scout-options-pop .scene-scout-dropdown,
 .scene-scout-options-pop .scene-scout-dropdown-detection {
     min-width: 0;

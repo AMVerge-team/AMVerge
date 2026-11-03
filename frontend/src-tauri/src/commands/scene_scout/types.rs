@@ -101,6 +101,9 @@ pub struct ScoutSearchArgs {
     pub threshold: Option<f64>,
     #[serde(default)]
     pub include_thumbnails: Option<bool>,
+    /// leave out scenes this close to their episode's start or end
+    #[serde(default)]
+    pub skip_edges_ms: Option<u64>,
     #[serde(default)]
     pub keep_model_in_memory: Option<bool>,
     #[serde(default)]

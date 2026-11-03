@@ -38,6 +38,8 @@ export type AppState = {
   batchTotal: number;
   batchDone: number;
   batchCurrentFile: string | null;
+  /** whether the running export merges, for the terminal's command line */
+  exportMerges: boolean;
   showLoaderCancel: boolean;
   loaderCancelLabel: string;
 };
@@ -90,6 +92,7 @@ export const DEFAULT_APP_STATE: AppState = {
   batchTotal: 0,
   batchDone: 0,
   batchCurrentFile: null,
+  exportMerges: false,
   showLoaderCancel: false,
   loaderCancelLabel: "Cancel",
 };

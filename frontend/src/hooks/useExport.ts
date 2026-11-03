@@ -154,6 +154,7 @@ export function useExport({ onRPCUpdate }: Params) {
       let mergedFiles: string[] = [];
 
       // one loading span across phases, or the terminal remounts and loses its log
+      useAppStateStore.setState({ exportMerges: true });
       setActiveOperation("export");
       setLoading(true);
 
@@ -228,6 +229,7 @@ export function useExport({ onRPCUpdate }: Params) {
       let producedFiles: string[] = [];
 
       try {
+        useAppStateStore.setState({ exportMerges: mergeEnabled });
         setActiveOperation("export");
         setLoading(true);
         const sep = pathSeparatorFor(dir);
@@ -296,10 +298,11 @@ export function useExport({ onRPCUpdate }: Params) {
         });
         if (!savePath) return;
 
+        const srcs = clipExportSpecs(clip);
+        useAppStateStore.setState({ exportMerges: srcs.length > 1 });
         setActiveOperation("export");
         setLoading(true);
 
-        const srcs = clipExportSpecs(clip);
         const exportedFiles = await runExportClips(srcs, savePath, srcs.length > 1, exportOptions);
         await deliverExportedFiles(exportedFiles);
       } catch (err) {

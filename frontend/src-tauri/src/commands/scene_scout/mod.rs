@@ -203,6 +203,7 @@ pub async fn scout_search(
                 "top_k": args.top_k.unwrap_or(24),
                 "threshold": args.threshold.unwrap_or(-1.0),
                 "include_thumbnails": args.include_thumbnails.unwrap_or(true),
+                "skip_edges_ms": args.skip_edges_ms.unwrap_or(0),
                 "flow_from": args.flow_from.as_ref().map(|f| serde_json::json!({
                     "path": f.path,
                     "start_ms": f.start_ms,
@@ -269,6 +270,9 @@ pub async fn scout_search(
     }
     if args.include_thumbnails == Some(false) {
         argv.push("--no-thumbnails".into());
+    }
+    if let Some(ms) = args.skip_edges_ms.filter(|ms| *ms > 0) {
+        argv.extend(["--skip-edges-ms".into(), ms.to_string()]);
     }
 
     let borrowed: Vec<&str> = argv.iter().map(String::as_str).collect();

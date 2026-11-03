@@ -1,13 +1,14 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { SceneRange } from "./precutEpisodes";
 
-import type {
-  FlowSource,
-  ScoutDatabase,
-  ScoutHit,
-  ScoutSearchSettings,
-  ScoutStatus,
-  ScoutVideo,
+import {
+  EPISODE_EDGE_MS,
+  type FlowSource,
+  type ScoutDatabase,
+  type ScoutHit,
+  type ScoutSearchSettings,
+  type ScoutStatus,
+  type ScoutVideo,
 } from "./types";
 
 // thin wrappers over the rust commands; `customPath` is passed per call since storage can move while the page is open
@@ -66,6 +67,7 @@ export function scoutSearch(
       videos: settings.selectedVideos,
       topK: settings.topK,
       includeThumbnails: settings.includeThumbnails,
+      skipEdgesMs: settings.skipEpisodeEdges ? EPISODE_EDGE_MS : 0,
       // always the warm daemon with idle gpu offload; a cold process per search is just slower
       keepModelInMemory: true,
       gpuStandby: true,

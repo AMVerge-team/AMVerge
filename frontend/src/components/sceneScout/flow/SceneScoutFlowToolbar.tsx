@@ -1,6 +1,7 @@
 import { FaSyncAlt } from '../../icons/animated';
 
 import Tooltip from "../../common/Tooltip";
+import { SelectionCount } from "../../clipsGrid/SelectionCount";
 import { useSceneScoutStore } from "../../../stores/sceneScoutStore";
 import { pickFlowClip } from "../../../features/sceneScout/pickFlowClip";
 import { ScoutModeTabs } from "../ScoutModeTabs";
@@ -62,6 +63,7 @@ export function SceneScoutFlowToolbar() {
           </Tooltip>
 
           <ScoutSettingsButton rerun={() => { if (flowFrom && !busy) void runFlowSearch(); }} />
+          <SelectionCount />
 
           {/* inline, so the row keeps home's height and the preview pane never shifts */}
           {flowError && (

@@ -55,6 +55,25 @@
     padding: 2px;
 }
 
+/* same thin accent scrollbar as the episode panel and the clip grid */
+.pass-targets-grid::-webkit-scrollbar {
+    width: 8px;
+    background: transparent;
+}
+
+.pass-targets-grid::-webkit-scrollbar-thumb {
+    background: rgb(var(--accent-rgb) / 0.35);
+    border-radius: 999px;
+}
+
+.pass-targets-grid::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--accent-rgb) / 0.6);
+}
+
+.pass-targets-grid::-webkit-scrollbar-button {
+    display: none;
+}
+
 .pass-targets-tile {
     display: flex;
     flex-direction: column;
