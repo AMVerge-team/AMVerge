@@ -51,8 +51,9 @@ export function SceneScoutPanel() {
   const [isOpening, setIsOpening] = useState(false);
   const [openingName, setOpeningName] = useState<string | null>(null);
   const [databaseToDelete, setDatabaseToDelete] = useState<ScoutDatabase | null>(null);
-  const [videoToDelete, setVideoToDelete] = useState<{ video: ScoutVideo; database: ScoutDatabase } | null>(null);
+  const [videosToDelete, setVideosToDelete] = useState<{ videos: ScoutVideo[]; database: ScoutDatabase } | null>(null);
   const [isDeletingVideo, setIsDeletingVideo] = useState(false);
+  const [videosDeleted, setVideosDeleted] = useState(0);
   // explorer-style highlight for click, ctrl and shift; separate from which databases are searched
   const [highlight, setHighlight] = useState<{ list: ScoutList; paths: string[] }>({ list: "all", paths: [] });
   const [menu, setMenu] = useState<DbMenu | null>(null);
@@ -214,9 +215,15 @@ export function SceneScoutPanel() {
   const renderVideos = (database: ScoutDatabase, pickable: boolean) => {
     const dbVideos = videosByDatabase[database.path] ?? (samePath(opened, database.path) ? videos : []);
     const allDbVideoPaths = dbVideos.map((v) => v.filepath);
+    const isIndexingVideo = (video: ScoutVideo) =>
+      video.status === "indexing" || (indexing !== null && samePath(indexing.video, video.filepath));
+    const isPicked = (video: ScoutVideo) => pickable && selectedVideos.some((vp) => samePath(vp, video.filepath));
+    const pickedHere = dbVideos.filter((video) => isPicked(video) && !isIndexingVideo(video));
     return dbVideos.map((video) => {
-      const isVideoSelected = pickable && selectedVideos.some((vp) => samePath(vp, video.filepath));
-      const isVideoIndexing = video.status === "indexing" || (indexing !== null && samePath(indexing.video, video.filepath));
+      const isVideoSelected = isPicked(video);
+      const isVideoIndexing = isIndexingVideo(video);
+      // a selected row's trash takes the whole selection in this database with it
+      const deleteTargets = isVideoSelected && pickedHere.length > 1 ? pickedHere : [video];
       let videoRowClass = "episode-panel-row episode-row";
       if (isVideoSelected) videoRowClass += " is-focused is-selected";
 
@@ -242,16 +249,28 @@ export function SceneScoutPanel() {
           <span className="episode-panel-count">
             {video.status === "indexing" ? "..." : video.sceneCount}
           </span>
-          <Tooltip content={isVideoIndexing ? "Cannot delete while indexing" : "Remove video from database"}>
+          <Tooltip
+            content={
+              isVideoIndexing
+                ? "Cannot delete while indexing"
+                : deleteTargets.length > 1
+                ? `Remove ${deleteTargets.length} videos from database`
+                : "Remove video from database"
+            }
+          >
             <button
               type="button"
               className="episode-panel-import-icon episode-folder-btn episode-delete-btn"
               disabled={isVideoIndexing}
               onClick={(e) => {
                 e.stopPropagation();
-                setVideoToDelete({ video, database });
+                setVideosToDelete({ videos: deleteTargets, database });
               }}
-              aria-label={`Remove ${video.name} from ${database.name}`}
+              aria-label={
+                deleteTargets.length > 1
+                  ? `Remove ${deleteTargets.length} videos from ${database.name}`
+                  : `Remove ${video.name} from ${database.name}`
+              }
             >
               <FaTrashAlt aria-hidden="true" />
             </button>
@@ -595,31 +614,50 @@ export function SceneScoutPanel() {
         </ModalShell>
       )}
 
-      {videoToDelete && (
+      {videosToDelete && (
         <ModalShell
           open
-          onClose={() => !isDeletingVideo && setVideoToDelete(null)}
-          label="Remove video from database"
+          onClose={() => !isDeletingVideo && setVideosToDelete(null)}
+          label={videosToDelete.videos.length > 1 ? "Remove videos from database" : "Remove video from database"}
           className="scene-scout-delete-modal"
         >
           <div className="denial-notice">
             <FaTrashAlt aria-hidden="true" className="denial-notice-icon" style={{ color: "#ef4444" }} />
-            <h2>Remove Video from Database?</h2>
+            <h2>{videosToDelete.videos.length > 1 ? `Remove ${videosToDelete.videos.length} Videos from Database?` : "Remove Video from Database?"}</h2>
 
             <p className="events-subtitle ban-notice-note scene-scout-delete-question" style={{ color: "rgba(255,255,255,0.85)" }}>
-              Are you sure you want to remove <strong>{videoToDelete.video.name}</strong> from <strong>{videoToDelete.database.name}</strong>?
+              Are you sure you want to remove{" "}
+              <strong>
+                {videosToDelete.videos.length > 1 ? `${videosToDelete.videos.length} videos` : videosToDelete.videos[0].name}
+              </strong>{" "}
+              from <strong>{videosToDelete.database.name}</strong>?
             </p>
 
             <div className="scene-scout-delete-details">
-              <div style={{ color: "rgba(255,255,255,0.5)", marginBottom: "4px" }}>File path:</div>
-              <div style={{ fontFamily: "monospace", color: "rgba(255,255,255,0.9)" }}>{videoToDelete.video.filepath}</div>
+              {videosToDelete.videos.length > 1 ? (
+                <div className="scene-scout-delete-list">
+                  {videosToDelete.videos.map((video) => (
+                    <div key={video.id} title={video.filepath}>{video.name}</div>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div style={{ color: "rgba(255,255,255,0.5)", marginBottom: "4px" }}>File path:</div>
+                  <div style={{ fontFamily: "monospace", color: "rgba(255,255,255,0.9)" }}>{videosToDelete.videos[0].filepath}</div>
+                </>
+              )}
               <div style={{ marginTop: "6px", color: "rgba(255,255,255,0.6)" }}>
-                {videoToDelete.video.sceneCount} indexed {videoToDelete.video.sceneCount === 1 ? "scene" : "scenes"}
+                {(() => {
+                  const scenes = videosToDelete.videos.reduce((sum, video) => sum + video.sceneCount, 0);
+                  return `${scenes} indexed ${scenes === 1 ? "scene" : "scenes"}`;
+                })()}
               </div>
             </div>
 
             <p className="scene-scout-delete-warning">
-              This will remove the video entry and all its scene embeddings and thumbnails from this database. The video file on your computer will NOT be deleted.
+              {videosToDelete.videos.length > 1
+                ? "This will remove these video entries and all their scene embeddings and thumbnails from this database. The video files on your computer will NOT be deleted."
+                : "This will remove the video entry and all its scene embeddings and thumbnails from this database. The video file on your computer will NOT be deleted."}
             </p>
 
             <div className="denial-notice-actions">
@@ -627,7 +665,7 @@ export function SceneScoutPanel() {
                 type="button"
                 className="event-host-btn"
                 style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}
-                onClick={() => setVideoToDelete(null)}
+                onClick={() => setVideosToDelete(null)}
                 disabled={isDeletingVideo}
               >
                 Cancel
@@ -638,17 +676,28 @@ export function SceneScoutPanel() {
                 style={{ background: "#ef4444", borderColor: "#ef4444", color: "white" }}
                 disabled={isDeletingVideo}
                 onClick={async () => {
-                  const target = videoToDelete;
+                  const target = videosToDelete;
                   setIsDeletingVideo(true);
+                  setVideosDeleted(0);
                   try {
-                    await deleteVideo(target.database.path, target.video.id);
-                    setVideoToDelete(null);
+                    // one at a time: each is its own cli run against the same database file
+                    for (const video of target.videos) {
+                      await deleteVideo(target.database.path, video.id);
+                      setVideosDeleted((count) => count + 1);
+                    }
+                    setVideosToDelete(null);
                   } finally {
                     setIsDeletingVideo(false);
                   }
                 }}
               >
-                {isDeletingVideo ? "Removing..." : "Remove Video"}
+                {isDeletingVideo
+                  ? videosToDelete.videos.length > 1
+                    ? `Removing ${videosDeleted}/${videosToDelete.videos.length}...`
+                    : "Removing..."
+                  : videosToDelete.videos.length > 1
+                  ? `Remove ${videosToDelete.videos.length} Videos`
+                  : "Remove Video"}
               </button>
             </div>
           </div>

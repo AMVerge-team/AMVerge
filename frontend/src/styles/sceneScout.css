@@ -669,6 +669,13 @@
     word-break: break-all;
 }
 
+.scene-scout-delete-list {
+    max-height: 132px;
+    overflow-y: auto;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.6;
+}
+
 .scene-scout-delete-warning {
     margin: 0;
     font-size: 12px;

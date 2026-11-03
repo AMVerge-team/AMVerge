@@ -198,6 +198,12 @@
     letter-spacing: -0.5px;
 }
 
+.it-bar-label {
+    color: #9aa0aa;
+    min-width: 7ch;
+    letter-spacing: normal;
+}
+
 .it-bar { white-space: pre; }
 .it-bar-filled { color: var(--accent); }
 .it-bar-empty { color: #3a3f47; }

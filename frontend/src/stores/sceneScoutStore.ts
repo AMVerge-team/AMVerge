@@ -34,6 +34,11 @@ import { useAppStateStore } from "./appStore";
 import { useGeneralSettingsStore } from "./settingsStore";
 import { useUIStateStore } from "./UIStore";
 
+// the cli's PROGRESS percent when ai detection has read the whole video
+const AI_DETECTION_DONE_PERCENT = 50;
+// how much of an episode's bar ai detection fills: it is most of the wait
+const AI_DETECTION_SHARE = 80;
+
 /** The storage root every call has to be told about, read fresh each time. */
 function customPath(): string | null {
   return useGeneralSettingsStore.getState().episodesPath;
@@ -604,6 +609,12 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         appState.setProgressMsg("Initializing Scene Scout…");
 
         let stopListener: (() => void) | null = null;
+        let runsDetection = false;
+        // late stderr lines can arrive after the next stage started, so the bar never moves back
+        const advance = (pct: number) => {
+          appState.setProgress(Math.max(useAppStateStore.getState().progress, Math.round(pct)));
+        };
+        const fraction = (done: number, total: number) => (total > 0 ? done / total : 0);
 
         try {
           stopListener = await listen<ScoutIndexProgress>("scout_progress", (e) => {
@@ -622,15 +633,16 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
 
             if (stage === "loading_model") {
               appState.setProgressMsg("Loading SigLIP 2 model weights…");
-              appState.setProgress(0);
               useAppStateStore.setState((s) => ({ ...s, bgProgress: null }));
             } else if (stage === "detecting") {
               appState.setProgressMsg("Detecting scenes…");
-              appState.setProgress(10);
+              if (runsDetection) {
+                advance(Math.min(1, fraction(done, AI_DETECTION_DONE_PERCENT)) * AI_DETECTION_SHARE);
+              }
             } else if (stage === "sampling") {
-              // the cli streams sampling progress, so it fills its own 10..20 slice of the bar
               const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-              appState.setProgress(10 + Math.round(pct / 10));
+              const [from, to] = runsDetection ? [AI_DETECTION_SHARE, 95] : [0, 80];
+              advance(from + fraction(done, total) * (to - from));
               appState.setProgressMsg(
                 done > 0
                   ? `Sampling representative frames ${done}/${total} (${pct}%)`
@@ -642,8 +654,8 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
               }));
             } else if (stage === "embedding") {
               const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-              const currentProgress = Math.min(100, Math.max(0, 20 + Math.round((pct * 80) / 100)));
-              appState.setProgress(currentProgress);
+              const from = runsDetection ? 95 : 80;
+              advance(from + fraction(done, total) * (100 - from));
               appState.setProgressMsg(`Embedding scenes ${done}/${total} (${pct}%)`);
               useAppStateStore.setState((s) => ({
                 ...s,
@@ -663,6 +675,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             const videoPath = videoPaths[i];
             const name = videoPath.split(/[/\\]/).pop() || videoPath;
             console.log(`SCOUT|queue [${i + 1}/${totalVideos}] indexing ${name}`);
+            runsDetection = detector === "transnetv2_gpu" && !precutScenes?.[videoPath];
             appState.setBatchDone(i);
             appState.setBatchCurrentFile(name);
             appState.setProgress(0);

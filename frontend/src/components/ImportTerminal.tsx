@@ -238,7 +238,11 @@ export default function ImportTerminal({
             if (stage === "loading_model") {
               pushLine("event", "loading SigLIP 2 model weights…");
             } else if (stage === "detecting") {
-              pushLine("event", "detecting scenes…");
+              // repeats as detection streams its percent; the live bar shows that
+              if (!(stage in lastStep)) {
+                lastStep[stage] = 0;
+                pushLine("event", "detecting scenes…");
+              }
             } else if (stage === "sampling") {
               pushCounted(stage, `sampling ${total} representative frames…`, "sampled frames", done, total);
             } else if (stage === "embedding") {
@@ -293,10 +297,17 @@ export default function ImportTerminal({
   }, [lines, minimized]);
 
   const clamped = Math.max(0, Math.min(100, progress));
-  const filled = Math.round((clamped / 100) * BAR_WIDTH);
-  const barFilled = "━".repeat(filled);
-  const barEmpty = "─".repeat(BAR_WIDTH - filled);
   const done = clamped >= 100;
+
+  const renderBar = (pct: number) => {
+    const filled = Math.round((pct / 100) * BAR_WIDTH);
+    return (
+      <span className="it-bar">
+        <span className="it-bar-filled">{"━".repeat(filled)}</span>
+        <span className="it-bar-empty">{"─".repeat(BAR_WIDTH - filled)}</span>
+      </span>
+    );
+  };
 
   // batchDone is the 0-based index of the current video, so also the count finished
   const isBatch = batchTotal > 1;
@@ -442,16 +453,22 @@ export default function ImportTerminal({
             <span className="it-spinner">{done ? "✓" : SPINNER[spinnerFrame]}</span>
             <span className="it-stage">{progressMsg || "Working…"}</span>
           </div>
+          {isBatch && (
+            <div className="it-progress">
+              <span className="it-bar-label">Overall</span>
+              {renderBar(overallPct)}
+              <span className="it-pct">{overallPct}%</span>
+              <span className="it-elapsed">{formatElapsed(elapsed)}</span>
+            </div>
+          )}
           <div className="it-progress">
-            <span className="it-bar">
-              <span className="it-bar-filled">{barFilled}</span>
-              <span className="it-bar-empty">{barEmpty}</span>
-            </span>
+            {isBatch && <span className="it-bar-label">Current</span>}
+            {renderBar(clamped)}
             <span className="it-pct">{clamped}%</span>
-            <span className="it-elapsed">{formatElapsed(elapsed)}</span>
+            {!isBatch && <span className="it-elapsed">{formatElapsed(elapsed)}</span>}
           </div>
 
-          {batchTotal > 1 && (
+          {isBatch && (
             <div className="it-batch">
               {operation === "scout_add" ? "Embedding videos" : "Cutting videos"} {batchDone + 1}/{batchTotal} · {batchCurrentFile}
             </div>

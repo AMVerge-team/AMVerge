@@ -4,8 +4,10 @@ use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 use tokio::io::{AsyncBufReadExt, BufReader};
+
+use super::types::ScoutIndexProgress;
 
 use crate::utils::logging::{console_log, emit_console_log, sanitize_for_console};
 use crate::utils::paths::resolve_scene_scout_storage_dir;
@@ -34,6 +36,10 @@ pub(super) fn forward_stderr(
         let mut reader = BufReader::new(stderr).lines();
         while let Ok(Some(line)) = reader.next_line().await {
             let sanitized = sanitize_for_console(&line);
+            // only scene detection prints these during indexing; json lines carry every later stage
+            if let Some(percent) = sanitized.strip_prefix("PROGRESS|").and_then(|rest| rest.split('|').next()).and_then(|p| p.parse().ok()) {
+                let _ = app.emit("scout_progress", ScoutIndexProgress { stage: "detecting".into(), done: percent, total: 100, video: None });
+            }
             if sanitized.trim().is_empty()
                 || sanitized.starts_with("PROGRESS|")
                 || sanitized.contains("Loading weights:")
