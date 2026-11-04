@@ -5,6 +5,7 @@ import { FaChevronDown, FaCommentDots, FaExternalLinkAlt, FaPlay, FaYoutube } fr
 import resyncbotLogo from "../../assets/resources/resyncbot.png";
 import sammieRotoLogo from "../../assets/resources/sammie-roto.png";
 import animeclipsLogo from "../../assets/resources/animeclips.png";
+import hyettaLogo from "../../assets/resources/hyetta.png";
 
 type ResourceVideo = {
   title: string;
@@ -58,10 +59,21 @@ const RESOURCES: Resource[] = [
     details: [
       "With over 450,000+ clips, this is the largest library and resource for high quality anime clips.",
     ],
-    devNote: "This is a tool I've used for a while now if I can't find a download for an anime I'm looking to edit, and a website trusted by thousands of editors today. Highly recommend!",
+    devNote: "This is a resource I've used for a while now if I can't find a download for an anime I'm looking to edit, and a website trusted by thousands of editors today. Highly recommend!",
     videos: [
       { title: "how to get anime clips for edits", url: "https://youtu.be/uC2ipIQKmkY" }
     ],
+  },
+  {
+    name: "Hyetta",
+    tagline: "The #1 editing contest manager & platform.",
+    logo: hyettaLogo,
+    url: "https://hyetta.net/",
+    details: [
+      "A place to host editing contests, catered towards hour contests (HCs). It has its own judging sheet with an scorer that automates things like score sums and late penalties, is super intuitive, and gives you one easy place to hold all of an event's entries.",
+    ],
+    devNote: "This platform handles all the annoying parts of hosting an HC for you, aside from the anime selection / limitations.",
+    videos: [],
   },
 ];
 
@@ -70,7 +82,7 @@ function youtubeId(url: string): string | null {
   return match ? match[1] : null;
 }
 
-const YT_ORIGIN = "https://www.youtube-nocookie.com";
+const YT_ORIGIN = "https://www.youtube-nocookie.com"
 
 // the player ignores commands until it is ready, so volume is resent for a few seconds after load
 function startAtHalfVolume(frame: HTMLIFrameElement) {

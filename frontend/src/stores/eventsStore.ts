@@ -11,6 +11,7 @@ import {
   deleteEventRequest,
   discordLogout,
   fetchEvents,
+  fetchHyettaEvents,
   fetchMyEvents,
   readDiscordSession,
   submitEventRequest,
@@ -22,6 +23,8 @@ import type {
   DiscordProfile,
   EventSubmission,
 } from "../components/events/types";
+import { hasEnded } from "../components/events/format";
+import { listedHyettaEvents } from "../components/events/hyetta";
 
 // not persisted: events are server state and the Discord session lives in the OS credential store
 /** Which slice of the catalogue the grid is showing */
@@ -33,6 +36,8 @@ export type EventsState = {
   active: CommunityEvent[];
   past: CommunityEvent[];
   mine: CommunityEvent[];
+  /** events listed on hyetta, past ones included; loaded apart so either source can fail alone */
+  hyetta: CommunityEvent[];
   loading: boolean;
   error: string | null;
 
@@ -70,6 +75,7 @@ export type EventsStore = EventsState & {
   setSort: (sort: EventSort) => void;
   loadEvents: () => Promise<void>;
   refreshEvents: () => Promise<void>;
+  loadHyetta: () => Promise<void>;
   loadMine: () => Promise<void>;
   refreshSession: () => Promise<void>;
   startLogin: () => Promise<void>;
@@ -93,11 +99,17 @@ export type EventsStore = EventsState & {
 /** plenty for any realistic catalogue, and bounds the persisted payload */
 const SEEN_ID_LIMIT = 500;
 
+/** background polls hit a third party's api from every install, so they stay rarer than our own */
+const HYETTA_POLL_MS = 5 * 60_000;
+let lastHyettaLoad = 0;
+
 /** approved, unfinished events a badge may count, excluding the host's own */
-function visibleEventIds(state: Pick<EventsState, "active" | "profile">): string[] {
-  return state.active
-    .filter((event) => event.hostDiscordId !== state.profile?.id)
-    .map((event) => event.id);
+function visibleEventIds(state: Pick<EventsState, "active" | "hyetta" | "mine">): string[] {
+  // public copies carry no host id, so the host's own are recognised from their own list
+  const own = new Set(state.mine.map((event) => event.id));
+  return [...state.active, ...state.hyetta.filter((event) => !hasEnded(event))]
+    .map((event) => event.id)
+    .filter((id) => !own.has(id));
 }
 
 /** ids that are visible but not yet seen. drives the sidebar badge */
@@ -110,6 +122,7 @@ const INITIAL_STATE: EventsState = {
   active: [],
   past: [],
   mine: [],
+  hyetta: [],
   loading: false,
   error: null,
   search: "",
@@ -142,7 +155,12 @@ export const useEventsStore = create<EventsStore>()(
    *  so a poll cannot flash the grid or surface a transient network blip */
   refreshEvents: async () => {
     try {
-      const [active, past] = await Promise.all([fetchEvents("active"), fetchEvents("past")]);
+      const hyettaDue = Date.now() - lastHyettaLoad >= HYETTA_POLL_MS;
+      const [active, past] = await Promise.all([
+        fetchEvents("active"),
+        fetchEvents("past"),
+        hyettaDue ? get().loadHyetta() : undefined,
+      ]);
       if (!active.ok || !past.ok) return;
 
       set({ active: active.events, past: past.events });
@@ -167,6 +185,7 @@ export const useEventsStore = create<EventsStore>()(
       const [active, past] = await Promise.all([
         fetchEvents("active"),
         fetchEvents("past"),
+        get().loadHyetta(),
       ]);
 
       if (!active.ok || !past.ok) {
@@ -188,6 +207,16 @@ export const useEventsStore = create<EventsStore>()(
       }
     } catch (err) {
       set({ loading: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  },
+
+  loadHyetta: async () => {
+    lastHyettaLoad = Date.now();
+
+    try {
+      set({ hyetta: listedHyettaEvents(await fetchHyettaEvents()) });
+    } catch {
+      // keeps the last list: hyetta being down must not touch amverge's own events
     }
   },
 

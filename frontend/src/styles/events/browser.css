@@ -554,26 +554,10 @@
 
 .event-card-host,
 .event-detail-host {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.event-card-avatar {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    object-fit: cover;
-    flex-shrink: 0;
-}
-
-.event-card-avatar-empty {
-    background: rgba(255, 255, 255, 0.12);
-    display: inline-block;
 }
 
 .event-card-prize {

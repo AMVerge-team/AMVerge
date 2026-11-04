@@ -88,6 +88,7 @@ export default function EventsBrowser() {
   const active = useEventsStore((s) => s.active);
   const past = useEventsStore((s) => s.past);
   const mine = useEventsStore((s) => s.mine);
+  const hyetta = useEventsStore((s) => s.hyetta);
   const loading = useEventsStore((s) => s.loading);
   const error = useEventsStore((s) => s.error);
   const search = useEventsStore((s) => s.search);
@@ -139,7 +140,7 @@ export default function EventsBrowser() {
 
   useEffect(() => {
     markEventsSeen();
-  }, [markEventsSeen, active]);
+  }, [markEventsSeen, active, hyetta]);
 
   //
   // collapsed sections by title, not persisted; "Requested events" starts folded
@@ -202,19 +203,19 @@ export default function EventsBrowser() {
     const requested = matching(mine).filter((event) => event.status !== "approved");
 
     // includes your own approved events, or the page looks empty when you host most of it
-    const activeSection = matching(active).filter((event) => !hasEnded(event));
+    const activeSection = matching([...active, ...hyetta]).filter((event) => !hasEnded(event));
 
     return [
       { title: "Requested events", events: requested },
       { title: "Active & Upcoming", events: activeSection },
-      { title: "Past", events: matching(past) },
+      { title: "Past", events: matching([...past, ...hyetta.filter((event) => hasEnded(event))]) },
     ];
-  }, [active, past, mine, search, filter, sort, profile?.id]);
+  }, [active, past, mine, hyetta, search, filter, sort, profile?.id]);
 
   const detailEvent = useMemo(() => {
     if (!detailId) return null;
-    return [...mine, ...active, ...past].find((event) => event.id === detailId) ?? null;
-  }, [detailId, mine, active, past]);
+    return [...mine, ...active, ...past, ...hyetta].find((event) => event.id === detailId) ?? null;
+  }, [detailId, mine, active, past, hyetta]);
 
   if (detailEvent) {
     return (

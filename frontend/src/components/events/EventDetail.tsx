@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { open } from "@tauri-apps/plugin-shell";
-import { FaArrowLeft, FaCalendarAlt, FaCheckCircle, FaDiscord, FaEdit, FaTrash, FaTrophy } from '../icons/animated';
+import { FaArrowLeft, FaCalendarAlt, FaCheckCircle, FaDiscord, FaEdit, FaExternalLinkAlt, FaTrash, FaTrophy } from '../icons/animated';
 
 import RichText from "./RichText";
 import { formatCooldown, useCooldown } from "./useCooldown";
@@ -11,7 +11,6 @@ import {
   formatDuration,
   hasEnded,
   isLive,
-  hostAvatarUrl,
   statusLabel,
 } from "./format";
 import type { CommunityEvent } from "./types";
@@ -34,7 +33,6 @@ export default function EventDetail({ event, onBack, onEdit, onDelete, preview =
   );
   const editCooldown = useCooldown(editCooldownUntil);
   const ended = hasEnded(event);
-  const avatar = hostAvatarUrl(event);
   const status = statusLabel(event);
 
   const handleJoin = () => {
@@ -128,19 +126,13 @@ export default function EventDetail({ event, onBack, onEdit, onDelete, preview =
       {/* Capped height with its own scroll: the actions sit directly under a
           short description, and a long one scrolls rather than pushing them
           off the bottom of the pane. */}
-      <RichText value={event.description} className="event-detail-description" />
+      {/* hyetta's feed has no description */}
+      {event.description && (
+        <RichText value={event.description} className="event-detail-description" />
+      )}
 
       <div className="event-detail-actions">
-        {!event.isAnonymous && (
-          <span className="event-detail-host">
-            {avatar ? (
-              <img src={avatar} alt="" className="event-card-avatar" draggable={false} />
-            ) : (
-              <span className="event-card-avatar event-card-avatar-empty" aria-hidden="true" />
-            )}
-            Hosted by {event.hostUsername || "Unknown host"}
-          </span>
-        )}
+        {event.hostName && <span className="event-detail-host">Hosted by {event.hostName}</span>}
 
         <div className="event-detail-buttons">
           {!preview && onDelete && (
@@ -168,14 +160,27 @@ export default function EventDetail({ event, onBack, onEdit, onDelete, preview =
                   : "Edit"}
             </button>
           )}
-          <button
-            type="button"
-            className="event-join-btn"
-            onClick={handleJoin}
-            disabled={preview}
-          >
-            <FaDiscord aria-hidden="true" /> Join on Discord
-          </button>
+          {event.hyettaUrl && (
+            <button
+              type="button"
+              className="event-secondary-btn"
+              onClick={() => void open(event.hyettaUrl as string)}
+              disabled={preview}
+            >
+              <FaExternalLinkAlt aria-hidden="true" /> View on Hyetta
+            </button>
+          )}
+          {/* a hyetta group may have no discord */}
+          {(preview || event.discordInviteUrl) && (
+            <button
+              type="button"
+              className="event-join-btn"
+              onClick={handleJoin}
+              disabled={preview}
+            >
+              <FaDiscord aria-hidden="true" /> Join on Discord
+            </button>
+          )}
         </div>
       </div>
     </div>

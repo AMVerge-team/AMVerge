@@ -6,12 +6,17 @@ import type {
   EventSubmission,
   EventsResult,
 } from "../components/events/types";
+import type { HyettaEvent } from "../components/events/hyetta";
 
 
 // thin wrappers over the rust commands, the only way past the CSP; the session token stays in rust
 
 export function fetchEvents(scope: "active" | "past"): Promise<EventsResult> {
   return invoke<EventsResult>("fetch_events", { scope });
+}
+
+export function fetchHyettaEvents(): Promise<HyettaEvent[]> {
+  return invoke<HyettaEvent[]>("fetch_hyetta_events");
 }
 
 export function fetchMyEvents(): Promise<EventsResult> {

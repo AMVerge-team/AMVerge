@@ -11,16 +11,12 @@ export type CommunityEvent = {
   eventType: EventType;
   /** how many hours an hour contest runs. ignored for a contest */
   durationHours: number;
-  /** hides the host's identity publicly; moderators still see who submitted it */
-  isAnonymous?: boolean;
   startsAt: string;
   endsAt: string;
-  /** null on an anonymous event unless this is the host's own copy */
+  /** only set on the host's own copy; publicly a host is just the name they typed */
   hostDiscordId: string | null;
-  hostUsername: string | null;
-  hostAvatarHash: string | null;
-  /** only set on a local draft, where the avatar is known but its hash is not */
-  hostAvatarUrl?: string | null;
+  /** the name shown publicly; null is anonymous */
+  hostName: string | null;
   hasThumbnail: boolean;
   /** absolute by the time it reaches the webview; Rust rewrites it */
   thumbnailUrl: string | null;
@@ -39,6 +35,8 @@ export type CommunityEvent = {
   pendingRevision?: EventSubmission | null;
   /** seconds left before this event may be edited again */
   editCooldownSeconds?: number | null;
+  /** the event's page on hyetta: from the feed, or linked by the host */
+  hyettaUrl?: string | null;
 };
 
 export type EventThumbnail = {
@@ -50,10 +48,11 @@ export type EventSubmission = {
   title: string;
   description: string;
   discordInviteUrl: string;
+  hyettaUrl: string | null;
   prizePool: string | null;
   eventType: EventType;
-  /** hide the host's name and avatar on the public grid */
-  isAnonymous: boolean;
+  /** the name shown publicly; null hosts anonymously */
+  hostName: string | null;
   /** 1-24. only meaningful for an hour contest */
   durationHours: number;
   startsAt: string;

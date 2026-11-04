@@ -39,6 +39,7 @@ fn main() {
             commands::auth::discord_session,
             commands::auth::discord_logout,
             commands::events::fetch_events,
+            commands::events::fetch_hyetta_events,
             commands::events::fetch_my_events,
             commands::events::submit_event_request,
             commands::events::update_event_request,

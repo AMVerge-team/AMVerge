@@ -2,7 +2,7 @@ import { FaCalendarAlt, FaTrash, FaTrophy } from '../icons/animated';
 
 import Tooltip from "../common/Tooltip";
 
-import { countdownLabel, eventTypeBadge, eventTypeLabel, formatSchedule, hasEnded, isLive, hostAvatarUrl, statusLabel } from "./format";
+import { countdownLabel, eventTypeBadge, eventTypeLabel, formatSchedule, hasEnded, isLive, statusLabel } from "./format";
 import type { CommunityEvent } from "./types";
 
 type EventCardProps = {
@@ -21,7 +21,6 @@ type EventCardProps = {
 /** grid tile, kept presentational so the host form previews a draft with the same component */
 export default function EventCard({ event, onOpen, preview = false, onDelete, isNew = false, isOwn = false }: EventCardProps) {
   const ended = hasEnded(event);
-  const avatar = hostAvatarUrl(event);
   const countdown = countdownLabel(event);
   const status = statusLabel(event);
 
@@ -54,16 +53,7 @@ export default function EventCard({ event, onOpen, preview = false, onDelete, is
         </div>
 
         <div className="event-card-footer">
-          {!event.isAnonymous && (
-            <span className="event-card-host">
-              {avatar ? (
-                <img src={avatar} alt="" className="event-card-avatar" draggable={false} />
-              ) : (
-                <span className="event-card-avatar event-card-avatar-empty" aria-hidden="true" />
-              )}
-              {event.hostUsername || "Unknown host"}
-            </span>
-          )}
+          {event.hostName && <span className="event-card-host">{event.hostName}</span>}
 
           {event.prizePool && (
             <span className="event-card-prize">

@@ -81,7 +81,7 @@ export function formatDateTime(value: string): string {
   });
 }
 
-/** days until an event starts or ends; null once over */
+/** hours (under a day) or days until an event starts or ends; null once over */
 export function countdownLabel(event: CommunityEvent): string | null {
   const now = Date.now();
   const starts = parse(event.startsAt)?.getTime();
@@ -92,12 +92,14 @@ export function countdownLabel(event: CommunityEvent): string | null {
   const target = starts !== undefined && starts > now ? starts : ends;
   if (target === undefined) return null;
 
-  const days = Math.ceil((target - now) / 86_400_000);
+  const hours = Math.ceil((target - now) / 3_600_000);
   const prefix = starts !== undefined && starts > now ? "Starts" : "Ends";
 
-  if (days <= 0) return `${prefix} today`;
-  if (days === 1) return `${prefix} tomorrow`;
-  return `${prefix} in ${days} days`;
+  if (hours === 1) return `${prefix} in under an hour`;
+  if (hours < 24) return `${prefix} in ${hours} hours`;
+
+  const days = Math.round(hours / 24);
+  return days === 1 ? `${prefix} in 1 day` : `${prefix} in ${days} days`;
 }
 
 /** review status for a host's own events; public ones are approved by definition */
@@ -135,7 +137,7 @@ export function matchesSearch(event: CommunityEvent, query: string): boolean {
   const needle = query.trim().toLowerCase();
   if (!needle) return true;
 
-  return [event.title, event.description, event.prizePool, event.isAnonymous ? null : event.hostUsername]
+  return [event.title, event.description, event.prizePool, event.hostName]
     .filter((field): field is string => typeof field === "string")
     .some((field) => field.toLowerCase().includes(needle));
 }
@@ -182,12 +184,4 @@ export function dedupeById(events: CommunityEvent[]): CommunityEvent[] {
     seen.add(event.id);
     return true;
   });
-}
-
-export function hostAvatarUrl(event: CommunityEvent): string | null {
-  // checks the flag, since the host's own copy of an anonymous event still has their identity
-  if (event.isAnonymous) return null;
-  if (event.hostAvatarUrl) return event.hostAvatarUrl;
-  if (!event.hostAvatarHash || !event.hostDiscordId) return null;
-  return `https://cdn.discordapp.com/avatars/${event.hostDiscordId}/${event.hostAvatarHash}.png?size=64`;
 }

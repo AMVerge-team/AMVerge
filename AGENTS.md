@@ -302,6 +302,7 @@ frontend/
 | `start_discord_rpc` | discord.rs | **NO-OP** |
 | `update_discord_rpc` | discord.rs | **NO-OP** |
 | `stop_discord_rpc` | discord.rs | Kill RPC child process |
+| `fetch_hyetta_events` | events.rs | GET `hyetta.net/api/events` (raw). `components/events/hyetta.ts` drops events whose submission deadline passed over a month ago (mirrors the server's `PUBLIC_PAST_EVENT_RETENTION`, change both together) and maps the rest to grid events (always HC, id `hyetta-<id>`, group as host); they join Active & Upcoming or Past from their own store slice, so either source can fail alone. Polled every 5 minutes, since it is a third party's API. Hosts can also link their own event's page (`hyettaUrl`, optional, `hyetta.net/event/<id>` only, changes without review like the invite); the same event can then show twice, deliberately not deduped |
 | `submit_bug_report` | bug_report.rs | HTTP POST (HMAC signed) |
 | `fetch_startup_notification` | notifications.rs | HTTP GET startup notification |
 | `ai_env_status` | deps.rs | AI env status: packs, torch variant, GPU, sizes |

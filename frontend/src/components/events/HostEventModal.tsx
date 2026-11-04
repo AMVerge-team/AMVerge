@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FaChevronLeft, FaChevronRight, FaDiscord, FaImage, FaMinus, FaPaperPlane, FaPlus, FaSpinner } from '../icons/animated';
+import { open as openExternal } from "@tauri-apps/plugin-shell";
+import { FaChevronLeft, FaChevronRight, FaDiscord, FaExternalLinkAlt, FaImage, FaMinus, FaPaperPlane, FaPlus, FaSpinner } from '../icons/animated';
 
 import ModalShell from "../common/ModalShell";
-import Tooltip from "../common/Tooltip";
 import DateTimePicker from "./DateTimePicker";
 import DescriptionEditor from "./DescriptionEditor";
 import EventDetail from "./EventDetail";
@@ -16,6 +16,8 @@ const DESCRIPTION_MAX = 4000;
 // digits only; the leading $ is added on submit and is not editable
 const PRIZE_DIGITS_MAX = 9;
 const INVITE_MAX = 200;
+const HOST_NAME_MAX = 40;
+const HYETTA_EVENTS_URL = "https://hyetta.net/events";
 // matches the server's AMVERGE_MAX_EVENT_THUMBNAIL_BYTES, sized for animated GIF covers
 const MAX_THUMBNAIL_BYTES = 10 * 1024 * 1024;
 const MAX_THUMBNAIL_MB = Math.round(MAX_THUMBNAIL_BYTES / (1024 * 1024));
@@ -25,9 +27,10 @@ type FormState = {
   title: string;
   description: string;
   discordInviteUrl: string;
+  hyettaUrl: string;
   prizePool: string;
   eventType: EventType;
-  isAnonymous: boolean;
+  hostName: string;
   durationHours: string;
   startsAt: string;
   endsAt: string;
@@ -37,9 +40,10 @@ const EMPTY_FORM: FormState = {
   title: "",
   description: "",
   discordInviteUrl: "",
+  hyettaUrl: "",
   prizePool: "",
   eventType: "contest",
-  isAnonymous: false,
+  hostName: "",
   durationHours: "1",
   startsAt: "",
   endsAt: "",
@@ -82,6 +86,20 @@ function isValidDiscordInvite(value: string): boolean {
       return url.pathname.startsWith("/invite/") && url.pathname.length > "/invite/".length;
     }
     return false;
+  } catch {
+    return false;
+  }
+}
+
+/** mirrors the server: an event page on hyetta, e.g. https://hyetta.net/event/67 */
+function isValidHyettaLink(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      url.hostname === "hyetta.net" &&
+      /^\/event\/\d+(\/.*)?$/.test(url.pathname)
+    );
   } catch {
     return false;
   }
@@ -169,9 +187,10 @@ export default function HostEventModal() {
         title: editing.title,
         description: editing.description,
         discordInviteUrl: editing.discordInviteUrl,
+        hyettaUrl: editing.hyettaUrl ?? "",
         prizePool: (editing.prizePool ?? "").replace(/\D/g, ""),
         eventType: editing.eventType,
-        isAnonymous: editing.isAnonymous === true,
+        hostName: editing.hostName ?? "",
         durationHours: String(editing.durationHours || MIN_HOURS),
         startsAt: toLocalInputValue(editing.startsAt),
         endsAt: toLocalInputValue(editing.endsAt),
@@ -224,22 +243,22 @@ export default function HostEventModal() {
       ? new Date(new Date(draftStartsAt).getTime() + draftHours * HOUR_MS).toISOString()
       : toIso(form.endsAt) ?? new Date(Date.now() + 86400000).toISOString();
 
+  // the field only exists for hour contests, so a link typed before switching type is dropped
+  const hyettaUrl = form.eventType === "hour" ? form.hyettaUrl.trim() || null : null;
+
   const draft: CommunityEvent = {
     id: editing?.id ?? "preview",
     title: form.title || "Your event title",
     description: form.description || "Your description will appear here.",
     discordInviteUrl: form.discordInviteUrl,
+    hyettaUrl,
     prizePool: form.prizePool ? `$${form.prizePool}` : null,
     eventType: form.eventType,
-    isAnonymous: form.isAnonymous,
     durationHours: draftHours,
     startsAt: draftStartsAt,
     endsAt: draftEndsAt,
-    // anonymity hides the host in the preview too
-    hostDiscordId: form.isAnonymous ? null : profile?.id ?? "",
-    hostUsername: form.isAnonymous ? null : profile?.username ?? "You",
-    hostAvatarHash: null,
-    hostAvatarUrl: profile?.avatarUrl ?? null,
+    hostDiscordId: profile?.id ?? "",
+    hostName: form.hostName.trim() || null,
     hasThumbnail: Boolean(thumbnailDataUrl),
     thumbnailUrl: thumbnailDataUrl,
     createdAt: new Date().toISOString(),
@@ -282,6 +301,8 @@ export default function HostEventModal() {
       return `Discord invite must be ${INVITE_MAX} characters or fewer.`;
     if (!isValidDiscordInvite(form.discordInviteUrl.trim()))
       return "Enter a discord.gg or discord.com/invite link.";
+    if (hyettaUrl && !isValidHyettaLink(hyettaUrl))
+      return "Enter a hyetta.net/event link, or leave it blank.";
 
     const startsAt = toIso(form.startsAt);
     if (!startsAt) {
@@ -325,9 +346,10 @@ export default function HostEventModal() {
       title: form.title.trim(),
       description: form.description.trim(),
       discordInviteUrl: form.discordInviteUrl.trim(),
+      hyettaUrl,
       prizePool: form.prizePool ? `$${form.prizePool}` : null,
       eventType: form.eventType,
-      isAnonymous: form.isAnonymous,
+      hostName: form.hostName.trim() || null,
       durationHours: draftHours,
       startsAt: draftStartsAt,
       endsAt: draftEndsAt,
@@ -479,18 +501,47 @@ export default function HostEventModal() {
                 />
               </div>
 
-              <div className="bugreport-field">
-                <label className="bugreport-label" htmlFor="host-event-invite">
-                  Discord invite<span className="required-star">*</span>
-                </label>
-                <input
-                  id="host-event-invite"
-                  type="url"
-                  maxLength={INVITE_MAX}
-                  value={form.discordInviteUrl}
-                  onChange={(changeEvent) => setField("discordInviteUrl", changeEvent.target.value)}
-                  placeholder="https://discord.gg/..."
-                />
+              <div className={`host-event-row${form.eventType === "hour" ? "" : " is-single"}`}>
+                <div className="bugreport-field">
+                  <label className="bugreport-label" htmlFor="host-event-invite">
+                    Discord invite<span className="required-star">*</span>
+                  </label>
+                  <input
+                    id="host-event-invite"
+                    type="url"
+                    maxLength={INVITE_MAX}
+                    value={form.discordInviteUrl}
+                    onChange={(changeEvent) => setField("discordInviteUrl", changeEvent.target.value)}
+                    placeholder="https://discord.gg/..."
+                  />
+                </div>
+
+                {form.eventType === "hour" && (
+                  <div className="bugreport-field">
+                    <label className="bugreport-label" htmlFor="host-event-hyetta">
+                      <a
+                        className="host-event-hyetta-site"
+                        href={HYETTA_EVENTS_URL}
+                        onClick={(clickEvent) => {
+                          clickEvent.preventDefault();
+                          void openExternal(HYETTA_EVENTS_URL);
+                        }}
+                      >
+                        Hyetta
+                        <FaExternalLinkAlt aria-hidden="true" />
+                      </a>{" "}
+                      link
+                    </label>
+                    <input
+                      id="host-event-hyetta"
+                      type="url"
+                      maxLength={INVITE_MAX}
+                      value={form.hyettaUrl}
+                      onChange={(changeEvent) => setField("hyettaUrl", changeEvent.target.value)}
+                      placeholder="If it's already on Hyetta"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="host-event-row">
@@ -587,22 +638,16 @@ export default function HostEventModal() {
               {message && <p className="events-success">{message}</p>}
 
               <div className="host-event-actions">
-                <Tooltip content="Your name and avatar are hidden on the events grid. Moderators still see who submitted it, and you can change this later without another review.">
-                  <label className="event-anon-toggle">
-                    <span className="custom-checkbox">
-                      <input
-                        type="checkbox"
-                        className="checkbox"
-                        checked={form.isAnonymous}
-                        onChange={(changeEvent) =>
-                          setField("isAnonymous", changeEvent.target.checked)
-                        }
-                      />
-                      <span className="checkmark" />
-                    </span>
-                    <span className="event-anon-title">Host anonymously</span>
-                  </label>
-                </Tooltip>
+                <div className="bugreport-field host-event-name">
+                  <input
+                    type="text"
+                    aria-label="Host name"
+                    maxLength={HOST_NAME_MAX}
+                    value={form.hostName}
+                    onChange={(changeEvent) => setField("hostName", changeEvent.target.value)}
+                    placeholder="Host name (blank = anonymous)"
+                  />
+                </div>
 
                 <button type="button" className="event-secondary-btn" onClick={closeHostForm}>
                   Cancel

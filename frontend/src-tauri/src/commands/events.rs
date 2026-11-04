@@ -1,10 +1,16 @@
 //! community events: browsing is public, hosting needs a Discord session whose token stays in rust
 
+use std::time::Duration;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::auth::{discard_rejected_session, session_token};
 use super::backend::{api_base_url, api_url, http_client};
+
+const HYETTA_EVENTS_URL: &str = "https://hyetta.net/api/events";
+/// the grid waits on this fetch, so a slow hyetta can't hold it for the client's full 20s
+const HYETTA_TIMEOUT: Duration = Duration::from_secs(8);
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -45,11 +51,13 @@ pub struct EventSubmission {
     pub title: String,
     pub description: String,
     pub discord_invite_url: String,
+    /// the event's page if it is also on hyetta; the server checks the host
+    pub hyetta_url: Option<String>,
     pub prize_pool: Option<String>,
     /// "contest" or "hour"; the server rejects anything else back to "contest"
     pub event_type: Option<String>,
-    /// hides the host from the public grid; moderators still see them
-    pub is_anonymous: Option<bool>,
+    /// the name shown publicly; empty hosts anonymously. moderators still see the account
+    pub host_name: Option<String>,
     /// 1-24, only meaningful for an hour contest. the server validates the range
     pub duration_hours: Option<u32>,
     pub starts_at: String,
@@ -161,6 +169,29 @@ pub async fn fetch_events(scope: Option<String>) -> Result<EventsResponse, Strin
     };
 
     read_events(api_url(&format!("/api/events?scope={scope}"))?, None).await
+}
+
+/// hyetta's public events, raw; the webview date-filters and maps them onto its own event shape
+#[tauri::command]
+pub async fn fetch_hyetta_events() -> Result<Vec<Value>, String> {
+    let response = http_client()?
+        .get(HYETTA_EVENTS_URL)
+        .timeout(HYETTA_TIMEOUT)
+        .send()
+        .await
+        .map_err(|e| format!("Could not reach Hyetta: {e}"))?;
+
+    let status = response.status();
+    if !status.is_success() {
+        return Err(format!("Hyetta events request failed with HTTP {}.", status.as_u16()));
+    }
+
+    let body = response
+        .json::<ApiEventsBody>()
+        .await
+        .map_err(|e| format!("Could not read Hyetta events: {e}"))?;
+
+    Ok(body.events.unwrap_or_default())
 }
 
 /// the signed-in host's own events, including ones still awaiting review
@@ -327,6 +358,22 @@ pub async fn update_event_request(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn submission_keeps_the_hyetta_link_on_its_way_to_the_api() {
+        let submission: EventSubmission = serde_json::from_value(serde_json::json!({
+            "title": "t",
+            "description": "d",
+            "discordInviteUrl": "https://discord.gg/x",
+            "hyettaUrl": "https://hyetta.net/event/67",
+            "startsAt": "2026-01-01T00:00:00Z",
+            "endsAt": "2026-01-02T00:00:00Z",
+        }))
+        .unwrap();
+
+        let sent = serde_json::to_value(&submission).unwrap();
+        assert_eq!(sent["hyettaUrl"], "https://hyetta.net/event/67");
+    }
 
     #[test]
     fn rewrites_only_relative_thumbnail_urls() {
