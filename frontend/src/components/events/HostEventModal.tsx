@@ -59,6 +59,33 @@ const EVENT_TYPES: { value: EventType; label: string; hint: string }[] = [
 
 const HOUR_MS = 60 * 60 * 1000;
 
+// in page order, so the first problem is the one scrolled to
+const FIELD_ORDER = [
+  "title",
+  "thumbnail",
+  "description",
+  "discordInviteUrl",
+  "hyettaUrl",
+  "startsAt",
+  "durationHours",
+  "endsAt",
+  "prizePool",
+] as const;
+type FieldKey = (typeof FIELD_ORDER)[number];
+type FieldErrors = Partial<Record<FieldKey, string>>;
+
+const FIELD_LABELS: Record<FieldKey, string> = {
+  title: "Title",
+  thumbnail: "Thumbnail",
+  description: "Description",
+  discordInviteUrl: "Discord invite",
+  hyettaUrl: "Hyetta link",
+  startsAt: "Start",
+  durationHours: "Hours",
+  endsAt: "End",
+  prizePool: "Prize pool",
+};
+
 type PreviewMode = "tile" | "detail";
 
 /** `datetime-local` wants `YYYY-MM-DDTHH:mm` in local time, not an ISO string */
@@ -138,7 +165,9 @@ export default function HostEventModal() {
   const [thumbnail, setThumbnail] = useState<EventThumbnail | null>(null);
   const [previewMode, setPreviewMode] = useState<PreviewMode>("tile");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [message, setMessage] = useState("");
+  const formRef = useRef<HTMLFormElement | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // cleared on unmount and reopen so a pending auto-close never hits a returned-to form
   const closeTimerRef = useRef<number | null>(null);
@@ -160,6 +189,7 @@ export default function HostEventModal() {
     }
 
     setError("");
+    setFieldErrors({});
     setMessage("");
     setSubmitting(false);
     setThumbnail(null);
@@ -208,12 +238,35 @@ export default function HostEventModal() {
     []
   );
 
+  // editing a field clears its own error, and the banner's list with it
+  const clearFieldError = (...keys: FieldKey[]) => {
+    setFieldErrors((previous) => {
+      if (!keys.some((key) => previous[key])) return previous;
+      const next = { ...previous };
+      for (const key of keys) delete next[key];
+      return next;
+    });
+  };
+
+  const invalidKeys = FIELD_ORDER.filter((key) => fieldErrors[key]);
+  const banner =
+    invalidKeys.length > 0
+      ? `Fix ${invalidKeys.length === 1 ? "this field" : "these fields"}: ${invalidKeys.map((key) => FIELD_LABELS[key]).join(", ")}.`
+      : error;
+
   const setField = <K extends keyof FormState>(field: K, value: FormState[K]) => {
     setForm((previous) => ({ ...previous, [field]: value }));
+    if (field === "eventType") clearFieldError("startsAt", "endsAt", "durationHours", "hyettaUrl");
+    else if ((FIELD_ORDER as readonly string[]).includes(field)) clearFieldError(field as FieldKey);
   };
+
+  const fieldClass = (key: FieldKey) => `bugreport-field${fieldErrors[key] ? " is-invalid" : ""}`;
+  const fieldError = (key: FieldKey) =>
+    fieldErrors[key] ? <p className="bugreport-field-error">{fieldErrors[key]}</p> : null;
 
   /** moving the start past the end pushes the end to a day later */
   const setStartsAt = (next: string) => {
+    clearFieldError("startsAt", "endsAt");
     setForm((previous) => {
       if (!next || !previous.endsAt || new Date(previous.endsAt) > new Date(next)) {
         return { ...previous, startsAt: next };
@@ -281,65 +334,86 @@ export default function HostEventModal() {
     try {
       setThumbnail(await readThumbnail(file));
       setError("");
+      clearFieldError("thumbnail");
     } catch (readError) {
       setError(readError instanceof Error ? readError.message : String(readError));
     }
   };
 
-  const validate = (): string | null => {
+  /** every problem at once, keyed by field, so the host fixes them in one go */
+  const validate = (): FieldErrors => {
+    const errors: FieldErrors = {};
     const title = form.title.trim();
     const description = form.description.trim();
+    const invite = form.discordInviteUrl.trim();
 
-    if (!title) return "Title is required.";
-    if (title.length > TITLE_MAX) return `Title must be ${TITLE_MAX} characters or fewer.`;
-    if (!description) return "Description is required.";
-    if (description.length > DESCRIPTION_MAX)
-      return `Description must be ${DESCRIPTION_MAX} characters or fewer.`;
-    if (form.prizePool.length > PRIZE_DIGITS_MAX)
-      return `Prize pool must be ${PRIZE_DIGITS_MAX} digits or fewer.`;
-    if (form.discordInviteUrl.trim().length > INVITE_MAX)
-      return `Discord invite must be ${INVITE_MAX} characters or fewer.`;
-    if (!isValidDiscordInvite(form.discordInviteUrl.trim()))
-      return "Enter a discord.gg or discord.com/invite link.";
+    if (!title) errors.title = "Add a title.";
+    else if (title.length > TITLE_MAX) errors.title = `Keep it to ${TITLE_MAX} characters or fewer.`;
+
+    if (!editing && !thumbnail) errors.thumbnail = "Choose a thumbnail.";
+
+    if (!description) errors.description = "Write a description.";
+    else if (description.length > DESCRIPTION_MAX)
+      errors.description = `Keep it to ${DESCRIPTION_MAX} characters or fewer.`;
+
+    if (!invite) errors.discordInviteUrl = "Add your server's invite link.";
+    else if (invite.length > INVITE_MAX)
+      errors.discordInviteUrl = `Keep it to ${INVITE_MAX} characters or fewer.`;
+    else if (!isValidDiscordInvite(invite))
+      errors.discordInviteUrl = "Use a discord.gg or discord.com/invite link.";
+
     if (hyettaUrl && !isValidHyettaLink(hyettaUrl))
-      return "Enter a hyetta.net/event link, or leave it blank.";
+      errors.hyettaUrl = "Use a hyetta.net/event link, or leave it blank.";
 
     const startsAt = toIso(form.startsAt);
     if (!startsAt) {
-      return form.eventType === "hour"
-        ? "Pick the date and time it happens."
-        : "Start date is required.";
+      errors.startsAt = form.eventType === "hour" ? "Pick the date and time." : "Pick when it starts.";
     }
 
     if (form.eventType === "contest") {
       const endsAt = toIso(form.endsAt);
-      if (!endsAt) return "End date is required.";
-      if (new Date(endsAt).getTime() <= new Date(startsAt).getTime())
-        return "The end date must be after the start date.";
+      if (!endsAt) errors.endsAt = "Pick when it ends.";
+      else if (startsAt && new Date(endsAt).getTime() <= new Date(startsAt).getTime())
+        errors.endsAt = "It has to end after it starts.";
     } else {
       const hours = Number(form.durationHours);
       if (!Number.isInteger(hours) || hours < MIN_HOURS || hours > MAX_HOURS)
-        return `Hours must be a whole number between ${MIN_HOURS} and ${MAX_HOURS}.`;
+        errors.durationHours = `A whole number from ${MIN_HOURS} to ${MAX_HOURS}.`;
     }
 
-    if (!editing && !thumbnail) return "A thumbnail is required.";
+    if (form.prizePool.length > PRIZE_DIGITS_MAX)
+      errors.prizePool = `${PRIZE_DIGITS_MAX} digits or fewer.`;
 
-    return null;
+    return errors;
+  };
+
+  const showProblems = (errors: FieldErrors) => {
+    const keys = FIELD_ORDER.filter((key) => errors[key]);
+    setFieldErrors(errors);
+    setMessage("");
+    setError("");
+
+    // bring the first one into view and put the cursor in it
+    requestAnimationFrame(() => {
+      const field = formRef.current?.querySelector<HTMLElement>(`[data-field="${keys[0]}"]`);
+      field?.scrollIntoView({ block: "center", behavior: "smooth" });
+      field?.querySelector<HTMLElement>("input:not([type=file]), [contenteditable], button")?.focus({ preventScroll: true });
+    });
   };
 
   const handleSubmit = async () => {
     // the disabled button doesn't cover Enter in a field, so guard double submits here
     if (submitting) return;
 
-    const problem = validate();
-    if (problem) {
-      setError(problem);
-      setMessage("");
+    const problems = validate();
+    if (Object.keys(problems).length > 0) {
+      showProblems(problems);
       return;
     }
 
     setSubmitting(true);
     setError("");
+    setFieldErrors({});
     setMessage("");
 
     const result = await saveEvent({
@@ -357,8 +431,13 @@ export default function HostEventModal() {
     });
 
     if (!result.ok) {
+      const reason = result.message || "Could not submit the event.";
+      console.warn("[events] submission refused:", reason);
       setSubmitting(false);
-      setError(result.message || "Could not submit the event.");
+      setError(reason);
+      requestAnimationFrame(() =>
+        formRef.current?.querySelector(".host-event-alert")?.scrollIntoView({ block: "nearest", behavior: "smooth" })
+      );
       return;
     }
 
@@ -421,6 +500,7 @@ export default function HostEventModal() {
         ) : (
           <div className="bugreport-grid host-event-grid">
             <form
+              ref={formRef}
               className="about-card bugreport-card-main"
               noValidate
               onSubmit={(submitEvent) => {
@@ -449,7 +529,7 @@ export default function HostEventModal() {
                 </div>
               </div>
 
-              <div className="bugreport-field">
+              <div className={fieldClass("title")} data-field="title">
                 <label className="bugreport-label" htmlFor="host-event-title">
                   Title<span className="required-star">*</span>
                 </label>
@@ -460,10 +540,12 @@ export default function HostEventModal() {
                   value={form.title}
                   onChange={(changeEvent) => setField("title", changeEvent.target.value)}
                   placeholder="Summer AMV Contest"
+                  aria-invalid={fieldErrors.title ? true : undefined}
                 />
+                {fieldError("title")}
               </div>
 
-              <div className="bugreport-field">
+              <div className={fieldClass("thumbnail")} data-field="thumbnail">
                 <label className="bugreport-label">Thumbnail<span className="required-star">*</span></label>
                 <p className="bugreport-help">
                   PNG, JPEG, WebP, or GIF. Up to {MAX_THUMBNAIL_MB} MB.
@@ -486,9 +568,10 @@ export default function HostEventModal() {
                   <FaImage aria-hidden="true" />
                   {thumbnailDataUrl ? "Replace thumbnail" : "Choose thumbnail"}
                 </button>
+                {fieldError("thumbnail")}
               </div>
 
-              <div className="bugreport-field">
+              <div className={fieldClass("description")} data-field="description">
                 <label className="bugreport-label" htmlFor="host-event-description">
                   Description<span className="required-star">*</span>
                 </label>
@@ -499,10 +582,11 @@ export default function HostEventModal() {
                   onChange={(next) => setField("description", next)}
                   placeholder="What the event is, how to enter, and how entries are judged."
                 />
+                {fieldError("description")}
               </div>
 
               <div className={`host-event-row${form.eventType === "hour" ? "" : " is-single"}`}>
-                <div className="bugreport-field">
+                <div className={fieldClass("discordInviteUrl")} data-field="discordInviteUrl">
                   <label className="bugreport-label" htmlFor="host-event-invite">
                     Discord invite<span className="required-star">*</span>
                   </label>
@@ -513,11 +597,13 @@ export default function HostEventModal() {
                     value={form.discordInviteUrl}
                     onChange={(changeEvent) => setField("discordInviteUrl", changeEvent.target.value)}
                     placeholder="https://discord.gg/..."
+                    aria-invalid={fieldErrors.discordInviteUrl ? true : undefined}
                   />
+                  {fieldError("discordInviteUrl")}
                 </div>
 
                 {form.eventType === "hour" && (
-                  <div className="bugreport-field">
+                  <div className={fieldClass("hyettaUrl")} data-field="hyettaUrl">
                     <label className="bugreport-label" htmlFor="host-event-hyetta">
                       <a
                         className="host-event-hyetta-site"
@@ -539,13 +625,15 @@ export default function HostEventModal() {
                       value={form.hyettaUrl}
                       onChange={(changeEvent) => setField("hyettaUrl", changeEvent.target.value)}
                       placeholder="If it's already on Hyetta"
+                      aria-invalid={fieldErrors.hyettaUrl ? true : undefined}
                     />
+                    {fieldError("hyettaUrl")}
                   </div>
                 )}
               </div>
 
               <div className="host-event-row">
-                <div className="bugreport-field">
+                <div className={fieldClass("startsAt")} data-field="startsAt">
                   <label className="bugreport-label" htmlFor="host-event-start">
                     {form.eventType === "hour" ? "Date and time" : "Starts"}
                     <span className="required-star">*</span>
@@ -556,10 +644,11 @@ export default function HostEventModal() {
                     onChange={setStartsAt}
                     placeholder="Pick a date and time"
                   />
+                  {fieldError("startsAt")}
                 </div>
 
                 {form.eventType === "hour" && (
-                  <div className="bugreport-field">
+                  <div className={fieldClass("durationHours")} data-field="durationHours">
                     <label className="bugreport-label" htmlFor="host-event-hours">
                       Hours<span className="required-star">*</span>
                     </label>
@@ -594,11 +683,12 @@ export default function HostEventModal() {
                         <FaPlus aria-hidden="true" />
                       </button>
                     </div>
+                    {fieldError("durationHours")}
                   </div>
                 )}
 
                 {form.eventType === "contest" && (
-                  <div className="bugreport-field">
+                  <div className={fieldClass("endsAt")} data-field="endsAt">
                     <label className="bugreport-label" htmlFor="host-event-end">
                       Ends<span className="required-star">*</span>
                     </label>
@@ -609,11 +699,12 @@ export default function HostEventModal() {
                       placeholder="Pick a date and time"
                       minDate={form.startsAt ? new Date(form.startsAt) : undefined}
                     />
+                    {fieldError("endsAt")}
                   </div>
                 )}
               </div>
 
-              <div className="bugreport-field">
+              <div className={fieldClass("prizePool")} data-field="prizePool">
                 <label className="bugreport-label" htmlFor="host-event-prize">
                   Prize pool
                 </label>
@@ -632,10 +723,19 @@ export default function HostEventModal() {
                     placeholder="100, or leave blank"
                   />
                 </div>
+                {fieldError("prizePool")}
               </div>
 
-              {error && <p className="events-error">{error}</p>}
-              {message && <p className="events-success">{message}</p>}
+              {banner && (
+                <div className="bugreport-alert error host-event-alert" role="alert">
+                  {banner}
+                </div>
+              )}
+              {message && (
+                <div className="bugreport-alert success host-event-alert" role="status">
+                  {message}
+                </div>
+              )}
 
               <div className="host-event-actions">
                 <div className="bugreport-field host-event-name">

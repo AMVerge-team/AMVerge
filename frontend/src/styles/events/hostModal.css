@@ -288,6 +288,29 @@
     color: rgba(255, 255, 255, 0.5);
 }
 
+/* a field the host still has to fix: its control outlined red, its message underneath */
+.host-event-modal .bugreport-field.is-invalid input[type="text"],
+.host-event-modal .bugreport-field.is-invalid input[type="url"],
+.host-event-modal .bugreport-field.is-invalid input[type="number"],
+.host-event-modal .bugreport-field.is-invalid .event-datetime-trigger,
+.host-event-modal .bugreport-field.is-invalid .event-description-editor,
+.host-event-modal .bugreport-field.is-invalid .event-secondary-btn,
+.host-event-modal .bugreport-field.is-invalid .event-prize-field {
+    border-color: rgba(248, 113, 113, 0.75);
+}
+
+/* the form is a fixed-height column, which squeezed messages down to nothing */
+.host-event-modal .bugreport-field-error {
+    flex-shrink: 0;
+    font-family: var(--ui-font);
+    font-size: 0.78rem;
+}
+
+.host-event-alert {
+    flex-shrink: 0;
+    font-family: var(--ui-font);
+}
+
 /* The sign-in gate is a fraction of the form's content, so the modal is sized
    to it rather than staying at the full editor's footprint with the prompt
    floating in the middle of an empty sheet. */
