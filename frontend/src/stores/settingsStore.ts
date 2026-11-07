@@ -61,6 +61,7 @@ export type GeneralSettings = {
     aiSceneDetectionEnabled: boolean;
     sceneScoutEnabled: boolean;
     depthPassEnabled: boolean;
+    upscalePassEnabled: boolean;
     /** a switched-off feature disappears from the ui instead of being greyed out */
     hideDisabledFeatures: boolean;
     davinciResolveEnabled: boolean;
@@ -134,6 +135,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     aiSceneDetectionEnabled: false,
     sceneScoutEnabled: false,
     depthPassEnabled: false,
+    upscalePassEnabled: false,
     hideDisabledFeatures: false,
     davinciResolveEnabled: false,
     davinciExportSelected: false,

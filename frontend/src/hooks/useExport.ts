@@ -4,9 +4,15 @@ import { message as showMessage, open, save } from "@tauri-apps/plugin-dialog";
 import { ClipItem } from "../types/domain";
 import { fileNameFromPath } from "../utils/episodeUtils";
 import { runPostExportPasses, type PassTarget } from "../features/export/runPostExportPasses";
-import { anyPassEnabled, PASS_SUFFIX, type PostExportPasses } from "../features/export/postPasses";
+import {
+  anyPassEnabled,
+  PASS_SUFFIX,
+  POST_EXPORT_PASS_KINDS,
+  type PostExportPassKind,
+  type PostExportPasses,
+} from "../features/export/postPasses";
 import { pickPassTargets, type PassClipPicks } from "../features/export/passTargets";
-import { clipExportSpecs } from "../features/export/clipSpecs";
+import { clipExportSpecs, separateExportNumbers } from "../features/export/clipSpecs";
 import { deliverExportedFiles } from "../features/export/deliverExports";
 import { claimProcess } from "../features/processes/singleProcess";
 import { remuxAudioModeForSource, remuxContainerForSource, type ExportSourceStreams } from "../features/export/remuxPolicy";
@@ -133,7 +139,7 @@ export function useExport({ onRPCUpdate }: Params) {
     });
   };
 
-  /** merge with depth on only some clips: the full merge as usual, depth on its own staged merge of the picks */
+  /** merge with a pass on only some clips: the full merge as usual, that pass on its own staged merge of the picks */
   const exportMergedWithPasses = useCallback(
     async (
       selected: ClipItem[],
@@ -147,7 +153,7 @@ export function useExport({ onRPCUpdate }: Params) {
       const baseName = await mergeBaseName(selected, dir, format, mergeFileName);
       const finalSavePath = `${dir}${sep}${baseName}.${format}`;
 
-      // the depth source is staged elsewhere, so the picked folder only receives merged results
+      // partial pass sources are staged elsewhere, so the picked folder only receives merged results
       const stagingDir = await invoke<string>("create_export_staging_dir");
       const stagingSep = pathSeparatorFor(stagingDir);
 
@@ -163,18 +169,30 @@ export function useExport({ onRPCUpdate }: Params) {
         mergedFiles = await runExportClips(selected.flatMap(clipExportSpecs), finalSavePath, true, exportOptions);
         if (mergedFiles.length === 0) throw new Error("Export produced no files.");
 
-        const [depthSource] = await runExportClips(
-          selected.filter((clip) => picks.depth.has(clip.id)).flatMap(clipExportSpecs),
-          `${stagingDir}${stagingSep}${baseName}.${format}`,
-          true,
-          exportOptions
-        );
+        const covers = (kind: PostExportPassKind) => picks[kind].size === selected.length;
+        const targets: PassTarget[] = [];
+        // a pass covering every clip just uses the full merge
+        if (POST_EXPORT_PASS_KINDS.some(covers)) {
+          targets.push({ path: mergedFiles[0], depth: covers("depth"), upscale: covers("upscale") });
+        }
+        for (const kind of POST_EXPORT_PASS_KINDS) {
+          if (picks[kind].size === 0 || covers(kind)) continue;
+          const [source] = await runExportClips(
+            selected.filter((clip) => picks[kind].has(clip.id)).flatMap(clipExportSpecs),
+            `${stagingDir}${stagingSep}${baseName}_${kind}.${format}`,
+            true,
+            exportOptions
+          );
+          targets.push({
+            path: source,
+            depth: kind === "depth",
+            upscale: kind === "upscale",
+            outputStem: `${dir}${sep}${baseName}`,
+          });
+        }
 
-        // the staging folder goes in the finally below, so depth runs here, inside the export's loading span
-        await runPostExportPasses(
-          [{ path: depthSource, depth: true, outputStem: `${dir}${sep}${baseName}` }],
-          passes
-        );
+        // the staging folder goes in the finally below, so passes run here, inside the export's loading span
+        await runPostExportPasses(targets, passes);
 
         await deliverExportedFiles(mergedFiles);
         rpcFinished();
@@ -218,9 +236,11 @@ export function useExport({ onRPCUpdate }: Params) {
       // one long job at a time: asks to stop whatever runs, or keeps it and drops this export
       if (!(await claimProcess("export"))) return;
 
-      // a direct merge only fits when depth (if any) covers every clip
-      const partialDepth = picks.depth.size > 0 && picks.depth.size < selected.length;
-      if (mergeEnabled && partialDepth) {
+      // a direct merge only fits when each pass (if any) covers every clip
+      const partialPass = POST_EXPORT_PASS_KINDS.some(
+        (kind) => picks[kind].size > 0 && picks[kind].size < selected.length
+      );
+      if (mergeEnabled && partialPass) {
         await exportMergedWithPasses(selected, dir, mergeFileName, passesSnapshot, picks);
         return;
       }
@@ -234,7 +254,7 @@ export function useExport({ onRPCUpdate }: Params) {
         setLoading(true);
         const sep = pathSeparatorFor(dir);
         const { exportOptions, format } = await exportContextForClips(selected);
-        const clipArray = selected.flatMap(clipExportSpecs);
+        let clipArray = selected.flatMap(clipExportSpecs);
 
         let savePath: string;
         if (mergeEnabled) {
@@ -242,7 +262,17 @@ export function useExport({ onRPCUpdate }: Params) {
         } else {
           const firstFile = (selected[0]?.src || "").split(/[/\\]/).pop() || `episode_0000.${format}`;
           const defaultBase = firstFile.replace(/\.[^/.]+$/, "").replace(/_\d{4}$/, "");
-          savePath = `${dir}${sep}${defaultBase}_####.${format}`;
+          const numbers = separateExportNumbers(selected);
+          clipArray = clipArray.map((spec, i) => ({ ...spec, scene_index: numbers[i] }));
+          // never overwrite: any of these files (or their pass outputs) existing bumps the name to "name (1)", ...
+          const tails = numbers.map((n) => `_${String(n).padStart(4, "0")}`);
+          const base = await invoke<string>("unique_export_base_name", {
+            dir,
+            base: sanitizeExportBaseName(defaultBase),
+            extension: format,
+            suffixes: tails.flatMap((tail) => [tail, ...Object.values(PASS_SUFFIX).map((pass) => `${tail}${pass}`)]),
+          });
+          savePath = `${dir}${sep}${base}_####.${format}`;
         }
 
         producedFiles = await runExportClips(clipArray, savePath, mergeEnabled, exportOptions);
@@ -260,10 +290,11 @@ export function useExport({ onRPCUpdate }: Params) {
         const owners = mergeEnabled ? [] : specOwners(selected);
         const targets: PassTarget[] = producedFiles.map((path, i) =>
           mergeEnabled
-            ? { path, depth: picks.depth.size > 0 }
+            ? { path, depth: picks.depth.size > 0, upscale: picks.upscale.size > 0 }
             : {
                 path,
                 depth: picks.depth.has(owners[i] ?? ""),
+                upscale: picks.upscale.has(owners[i] ?? ""),
               }
         );
         void runPostExportPasses(targets, passesSnapshot);

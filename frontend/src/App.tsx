@@ -36,6 +36,7 @@ import useStartupUpdateNotification from "./hooks/useStartupUpdateNotification";
 import useExtensionSync from "./hooks/useExtensionSync";
 import useDiscordAuth from "./hooks/useDiscordAuth";
 import useEventsWatch from "./hooks/useEventsWatch";
+import useContextMenuCloseOnScroll from "./hooks/useContextMenuCloseOnScroll";
 
 import { remapClipPaths, remapPathRoot } from "./utils/episodeUtils";
 import { useScenePreviewStore } from "./stores/scenePreviewStore";
@@ -78,7 +79,7 @@ function App() {
   const aiModalOpen = useAiDepsStore((s) => s.open);
   const aiPack = useAiDepsStore((s) => s.pack);
   const aiInstalling = aiStage === "installing";
-  const aiPackName = aiPack ? (aiPack === "ml" ? "AI Scene Detection" : aiPack === "depth" ? "Depth Maps" : "AI Models") : "AI Models";
+  const aiPackName = aiPack ? (aiPack === "ml" ? "AI Scene Detection" : aiPack === "depth" ? "Depth Maps" : aiPack === "upscale" ? "Upscaling" : "AI Models") : "AI Models";
 
   const sceneDetectionMethod = useGeneralSettingsStore((s) => s.sceneDetectionMethod);
   const importMethodSetting = useGeneralSettingsStore((s) => s.importMethod);
@@ -155,6 +156,7 @@ function App() {
   useDiscordAuth();
   // polls so a newly approved event badges the sidebar
   useEventsWatch();
+  useContextMenuCloseOnScroll();
 
   const parseThumbnailProgress = (message: string): { done: number; total: number } | null => {
     const match = message.match(/generating thumbnails\.\.\.\s*(\d+)\s*\/\s*(\d+)/i);

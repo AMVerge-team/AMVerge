@@ -13,7 +13,7 @@ import { imageThumbnail, mediaSrc } from "../utils/mediaSrc";
 import { usePreviewTranscode, type PreviewTranscode } from "../features/preview/usePreviewTranscode";
 import type { ClipItem } from "../types/domain";
 
-const TOGGLE_NAME: Record<PassTargetKind, string> = { depth: "Depth" };
+const TOGGLE_NAME: Record<PassTargetKind, string> = { depth: "Depth", upscale: "Upscale" };
 
 function answerPassTargets(picks: PassClipPicks | null) {
   const req = usePassTargetsStore.getState().request;
@@ -59,6 +59,7 @@ function PassTargetsDialog() {
   const { clips, kinds, mergeEnabled } = request;
   const [picks, setPicks] = useState<PassClipPicks>(() => ({
     depth: new Set(kinds.includes("depth") ? clips.map((c) => c.id) : []),
+    upscale: new Set(kinds.includes("upscale") ? clips.map((c) => c.id) : []),
   }));
   const dialogRef = useRef<HTMLDivElement>(null);
   const transcode = usePreviewTranscode();

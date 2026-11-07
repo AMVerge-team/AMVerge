@@ -2,7 +2,7 @@
 //
 // torch features install on demand into an app-managed env; this is the source of truth for each pack's name, unlocks and size
 
-export type AiPackId = "ml" | "depth" | "interpolation" | "upscale" | "scout";
+export type AiPackId = "ml" | "depth" | "upscale" | "scout";
 
 export type TorchVariant = "cuda" | "cpu";
 
@@ -39,7 +39,7 @@ export type AiEnvStatus = {
   envSizeBytes: number;
   /** the standalone Python interpreter uv downloaded for that venv */
   pythonSizeBytes: number;
-  /** depth / interpolation / upscale weights in the cli's config folder */
+  /** depth / upscale weights in the cli's config folder */
   modelsSizeBytes: number;
   /** Scene Scout's SigLIP 2 checkpoint in the shared Hugging Face cache */
   scoutModelSizeBytes: number;
@@ -74,14 +74,6 @@ export const AI_PACKS: Record<AiPackId, AiPack> = {
     description: "Creates a depth map of each exported file.",
     extraSizeMb: 60,
   },
-  interpolation: {
-    id: "interpolation",
-    label: "Interpolation pass",
-    dependencyName: "RIFE interpolation",
-    description:
-      "Smooths motion by adding frames to each exported file.",
-    extraSizeMb: 80,
-  },
   scout: {
     id: "scout",
     label: "Scene Scout",
@@ -93,15 +85,15 @@ export const AI_PACKS: Record<AiPackId, AiPack> = {
   },
   upscale: {
     id: "upscale",
-    label: "Upscaling",
+    label: "Upscale pass",
     dependencyName: "Spandrel / ONNX Runtime",
-    description: "Upscales exported files using AI models.",
-    extraSizeMb: 250,
+    description: "Creates a higher resolution copy of each exported file.",
+    extraSizeMb: 120,
   },
 };
 
-/// packs shown in the UI; upscaling is registered but has no screen yet
-export const VISIBLE_PACK_IDS: AiPackId[] = ["ml", "depth", "scout"];
+/// packs shown in the UI
+export const VISIBLE_PACK_IDS: AiPackId[] = ["ml", "depth", "upscale", "scout"];
 
 const TORCH_SIZE_MB: Record<TorchVariant, number> = {
   cuda: 2700,

@@ -301,6 +301,9 @@ export function useClipVideoSource({
       });
   }, [mergedSrcsKey, needsDecodeProxy, isVisible, clip.mergedSrcs, previewAudioStreamIndex]);
 
+  // stable, since the stall-check effect lists it as a dependency and would otherwise rerun every render
+  const restart = useCallback(() => restartPlayback(videoRef), [videoRef]);
+
   return {
     originalPath,
     effectiveSrc,
@@ -312,6 +315,6 @@ export function useClipVideoSource({
     needsPreviewTranscode,
     proxyInFlightRef,
     ensurePreviewProxyPath,
-    restartPlayback: () => restartPlayback(videoRef),
+    restartPlayback: restart,
   };
 }

@@ -8,6 +8,10 @@ const LUMINANCE_THRESHOLD = 158;
 
 export type DownloadTone = "light" | "dark";
 
+// each thumbnail is sampled once: tiles remount constantly while the grid scrolls
+const toneByImage = new Map<string, DownloadTone>();
+const TONE_CACHE_LIMIT = 4000;
+
 // picks a light or dark download icon by sampling the thumbnail's top-right corner
 export function useDownloadTone() {
   const [tone, setTone] = useState<DownloadTone>("light");
@@ -15,6 +19,12 @@ export function useDownloadTone() {
 
   const sample = useCallback((img: HTMLImageElement | null) => {
     if (!img || img.naturalWidth === 0 || img.naturalHeight === 0) return;
+    const key = img.currentSrc || img.src;
+    const known = toneByImage.get(key);
+    if (known) {
+      setTone(known);
+      return;
+    }
 
     // getImageData forces a sync decode, so it is deferred to idle time and coalesced
     if (idleRef.current !== null) cancelIdle(idleRef.current);
@@ -45,7 +55,10 @@ export function useDownloadTone() {
         }
 
         const avg = alphaSum > 0 ? luminanceSum / alphaSum : 128;
-        setTone(avg >= LUMINANCE_THRESHOLD ? "dark" : "light");
+        const next: DownloadTone = avg >= LUMINANCE_THRESHOLD ? "dark" : "light";
+        if (toneByImage.size >= TONE_CACHE_LIMIT) toneByImage.clear();
+        toneByImage.set(key, next);
+        setTone(next);
       } catch {
         // keep the previous tone if sampling fails
       }

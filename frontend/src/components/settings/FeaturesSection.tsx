@@ -66,6 +66,7 @@ export default function FeaturesSection() {
       useSceneScoutStore.getState().updateSettings({ lastIndexDetection: "keyframe_detection" });
     }
     if (id === "depthPass") settings.updatePostExportPasses("depth", { enabled: false });
+    if (id === "upscalePass") settings.updatePostExportPasses("upscale", { enabled: false });
   };
 
   const toggle = async (id: FeatureId, next: boolean) => {
@@ -232,7 +233,7 @@ export default function FeaturesSection() {
           />
           <SettingRow
             label="Pass model weights"
-            description="Depth map models you downloaded under Model weights."
+            description="Depth and upscale models you downloaded under Model weights."
             control={<span className="settings-value aid-size">{formatBytes(modelsBytes)}</span>}
           />
           <SettingRow

@@ -8,7 +8,9 @@ export type ContextMenuId =
   | "scenepack-panel-empty"
   | "clip-scenepack-picker"
   | "scenepack-clip"
-  | "scene-scout-database";
+  | "scene-scout-database"
+  | "sidebar-events"
+  | "clip-flow";
 
 type ContextMenuStore = {
   activeMenu: ContextMenuId | null;
@@ -16,6 +18,8 @@ type ContextMenuStore = {
   openContextMenu: (id: ContextMenuId) => void;
   /** releases the slot, but only if this menu still holds it */
   closeContextMenu: (id: ContextMenuId) => void;
+  /** empties the slot, which closes whichever menu is open */
+  closeAllContextMenus: () => void;
 };
 
 export const useContextMenuStore = create<ContextMenuStore>()((set, get) => ({
@@ -25,4 +29,5 @@ export const useContextMenuStore = create<ContextMenuStore>()((set, get) => ({
     // a menu closing after another claimed the slot must not clear the newcomer
     if (get().activeMenu === id) set({ activeMenu: null });
   },
+  closeAllContextMenus: () => set({ activeMenu: null }),
 }));

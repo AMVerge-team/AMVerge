@@ -47,6 +47,18 @@
 
 .events-toolbar-row .refresh-button {
     margin-left: 0;
+    /* import-button's side padding left ~10px of width and squeezed the icon */
+    padding: 0;
+    font-size: 19px;
+}
+
+.events-toolbar-row .refresh-button svg {
+    flex: none;
+}
+
+/* the bell's glyph fills more of its box than the refresh arrows do */
+.events-toolbar-row .events-mute-button {
+    font-size: 14px;
 }
 
 .events-toolbar-row .panel-toggle-button {

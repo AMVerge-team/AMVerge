@@ -64,8 +64,14 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
   const loadTotalRef = useRef(0);
   const loadDoneRef = useRef(0);
 
+  // once per frame at most: App reads this counter, and scrolling a webp episode moves it for every tile
+  const publishFrameRef = useRef<number | null>(null);
   const publishLoadProgress = useCallback(() => {
-    useWebpLoadingStore.getState().setProgress(loadTotalRef.current, loadDoneRef.current);
+    if (publishFrameRef.current !== null) return;
+    publishFrameRef.current = requestAnimationFrame(() => {
+      publishFrameRef.current = null;
+      useWebpLoadingStore.getState().setProgress(loadTotalRef.current, loadDoneRef.current);
+    });
   }, []);
 
   const markLoading = useCallback((demandKey: string) => {
@@ -92,6 +98,11 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
   }, [publishLoadProgress]);
 
   const resetLoadProgress = useCallback(() => {
+    // a frame queued before the reset would republish the old counts over it
+    if (publishFrameRef.current !== null) {
+      cancelAnimationFrame(publishFrameRef.current);
+      publishFrameRef.current = null;
+    }
     pendingLoadRef.current.clear();
     loadTotalRef.current = 0;
     loadDoneRef.current = 0;

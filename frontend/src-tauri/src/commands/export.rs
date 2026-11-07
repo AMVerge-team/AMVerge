@@ -30,6 +30,9 @@ pub(crate) struct ClipSpec {
     start_sec: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     end_sec: Option<f64>,
+    /// the number a separate export's "####" becomes; the CLI uses the position when absent
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    scene_index: Option<u32>,
 }
 
 struct ExportAbortGuard {
@@ -341,6 +344,7 @@ pub async fn export_clips(
 fn pass_cli_command(pass: &str) -> Result<(&'static str, bool), String> {
     match pass {
         "depth" => Ok(("depth-map", true)),
+        "upscale" => Ok(("upscale", true)),
         other => Err(format!("Unknown export pass: {other}")),
     }
 }

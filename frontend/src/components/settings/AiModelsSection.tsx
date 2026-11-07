@@ -8,6 +8,7 @@ import {
   isPackInstalled,
   type AiPackId,
 } from "../../features/aiDeps/packs";
+import { UPSCALE_MODEL_OPTIONS } from "../../features/export/postPasses";
 
 type ModelInfo = {
   key: string;
@@ -24,7 +25,7 @@ type ModelInfo = {
 
 type ModelsList = {
   depth: ModelInfo[];
-  interpolation?: ModelInfo[];
+  upscale: ModelInfo[];
 };
 
 type ActionResult = {
@@ -34,17 +35,21 @@ type ActionResult = {
   message: string;
 };
 
-type Category = "depth";
+type Category = "depth" | "upscale";
 
 const CATEGORY_PACK: Record<Category, AiPackId> = {
   depth: "depth",
+  upscale: "upscale",
 };
 
 const CATEGORY_TITLE: Record<Category, string> = {
   depth: "Depth Models",
+  upscale: "Upscale Models",
 };
 
-/** downloads or deletes the depth model weights the export settings use */
+const OFFERED_UPSCALE_MODELS = new Set<string>(UPSCALE_MODEL_OPTIONS.map((option) => option.value));
+
+/** downloads or deletes the depth and upscale model weights the export settings use */
 export default function AiModelsSection() {
   const aiStatus = useAiDepsStore((s) => s.status);
   const [models, setModels] = useState<ModelsList | null>(null);
@@ -52,6 +57,7 @@ export default function AiModelsSection() {
   const [error, setError] = useState<string | null>(null);
 
   const depthInstalled = isPackInstalled(aiStatus, "depth");
+  const upscaleInstalled = isPackInstalled(aiStatus, "upscale");
 
   const load = useCallback(async () => {
     try {
@@ -65,7 +71,7 @@ export default function AiModelsSection() {
 
   useEffect(() => {
     void load();
-  }, [load, depthInstalled]);
+  }, [load, depthInstalled, upscaleInstalled]);
 
   const act = async (key: string, kind: "download" | "delete") => {
     setBusyKey(`${kind}:${key}`);
@@ -85,8 +91,10 @@ export default function AiModelsSection() {
   };
 
   const renderGroup = (category: Category) => {
-    const installed = depthInstalled;
-    const list = models?.[category] ?? [];
+    const installed = category === "depth" ? depthInstalled : upscaleInstalled;
+    const list = (models?.[category] ?? []).filter(
+      (model) => category !== "upscale" || OFFERED_UPSCALE_MODELS.has(model.key),
+    );
 
     return (
       <div key={category} style={{ marginBottom: 16 }}>
@@ -95,7 +103,7 @@ export default function AiModelsSection() {
           description={
             installed
               ? "Model weights used by this feature. Download them ahead of time for fast offline exporting."
-              : `Install the ${CATEGORY_PACK[category]} feature in AI Packs to manage its models.`
+              : `Turn on the ${CATEGORY_PACK[category]} pass above to manage its models.`
           }
           control={
             installed ? (
@@ -225,6 +233,7 @@ export default function AiModelsSection() {
   return (
     <>
       {renderGroup("depth")}
+      {renderGroup("upscale")}
 
       {error ? <p className="pxm-errors" style={{ marginTop: 8 }}>{error}</p> : null}
     </>

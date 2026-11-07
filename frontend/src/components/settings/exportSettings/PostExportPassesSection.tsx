@@ -7,8 +7,13 @@ import { useFeature } from "../../../features/featureToggles";
 import {
   DEPTH_COLORMAP_OPTIONS,
   DEPTH_ENCODER_OPTIONS,
+  UPSCALE_MODEL_OPTIONS,
+  UPSCALE_QUALITY_OPTIONS,
   type DepthColormap,
   type DepthEncoder,
+  type PostExportPassKind,
+  type UpscaleModel,
+  type UpscaleQuality,
 } from "../../../features/export/postPasses";
 
 function ToggleControl({
@@ -39,19 +44,20 @@ function ToggleControl({
 export default function PostExportPassesSection() {
   const passes = useGeneralSettingsStore((s) => s.postExportPasses);
   const update = useGeneralSettingsStore((s) => s.updatePostExportPasses);
-  const { depth } = passes;
+  const { depth, upscale } = passes;
   // each pass is a feature in Settings > Features: off greys its switch, hidden leaves it out
   const depthFeature = useFeature("depthPass");
+  const upscaleFeature = useFeature("upscalePass");
   const OFF_NOTE = " Turn it on in Settings › Features.";
 
   const aiStatus = useAiDepsStore((s) => s.status);
 
-  const enableGatedPass = async (packId: AiPackId, enabled: boolean) => {
-    if (enabled && !isPackInstalled(aiStatus, packId)) {
-      const installed = await useAiDepsStore.getState().ensurePack(packId);
+  const enableGatedPass = async (kind: PostExportPassKind & AiPackId, enabled: boolean) => {
+    if (enabled && !isPackInstalled(aiStatus, kind)) {
+      const installed = await useAiDepsStore.getState().ensurePack(kind);
       if (!installed) return;
     }
-    update("depth", { enabled });
+    update(kind, { enabled });
   };
 
   return (
@@ -104,6 +110,48 @@ export default function PostExportPassesSection() {
                 label="Toggle grayscale depth"
                 checked={depth.grayscale}
                 onChange={(grayscale) => update("depth", { grayscale })}
+              />
+            }
+          />
+        </div>
+      )}
+      {!upscaleFeature.hidden && (
+        <SettingRow
+          label="Upscale pass"
+          description={`Also save a higher resolution copy of each export as <name>_upscaled.${upscaleFeature.enabled ? "" : OFF_NOTE}`}
+          control={
+            <ToggleControl
+              label="Toggle upscale pass"
+              checked={upscale.enabled && upscaleFeature.enabled}
+              disabled={!upscaleFeature.enabled}
+              onChange={(enabled) => void enableGatedPass("upscale", enabled)}
+            />
+          }
+        />
+      )}
+      {upscale.enabled && upscaleFeature.enabled && (
+        <div className="pass-config">
+          <SettingRow
+            label="Upscale model"
+            description="All are trained on anime. Downloads the first time you use it."
+            control={
+              <Dropdown
+                className="settings-wide-dropdown"
+                options={UPSCALE_MODEL_OPTIONS}
+                value={upscale.model}
+                onChange={(model) => update("upscale", { model: model as UpscaleModel })}
+              />
+            }
+          />
+          <SettingRow
+            label="File quality"
+            description="How the upscaled video is compressed. Outputs are always H.264."
+            control={
+              <Dropdown
+                className="settings-wide-dropdown"
+                options={UPSCALE_QUALITY_OPTIONS}
+                value={upscale.quality}
+                onChange={(quality) => update("upscale", { quality: quality as UpscaleQuality })}
               />
             }
           />

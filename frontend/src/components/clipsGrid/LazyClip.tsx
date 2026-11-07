@@ -22,7 +22,9 @@ import { ScenepackPickerMenu } from "./ScenepackPickerMenu.tsx";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
 import { useScenepacksStore } from "../../stores/scenepackStore.ts";
 import { removeClipsFromScenepack } from "../../utils/scenepackStorage.ts";
-import { describeMotion } from "../../features/sceneScout/motion.ts";
+import { canFindFlowFrom, describeMotion, flowSourceForClip } from "../../features/sceneScout/motion.ts";
+import { useSceneScoutStore } from "../../stores/sceneScoutStore.ts";
+import { isGridScrolling, whenGridScrollSettles } from "./gridScroll.ts";
 
 const VIDEO_THUMB_MAX_RETRIES = 2;
 
@@ -56,6 +58,7 @@ export const LazyClip = memo(function LazyClip({
   const previewAudioStreamIndex = useGeneralSettingsStore((s) => s.previewAudioStreamIndex);
   const playbackVolume = useGeneralSettingsStore((s) => s.playbackVolume);
   const scenepacksEnabled = useGeneralSettingsStore((s) => s.scenepacksEnabled);
+  const sceneScoutEnabled = useGeneralSettingsStore((s) => s.sceneScoutEnabled);
   const gridPreviewSpeed = useThemeSettingsStore((s) => s.gridPreviewSpeed ?? 1);
   const showDownloadButton = useThemeSettingsStore((s) => s.showDownloadButton);
   const showClipTimestamps = useThemeSettingsStore((s) => s.showClipTimestamps);
@@ -78,6 +81,9 @@ export const LazyClip = memo(function LazyClip({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const thumbnailRef = useRef<HTMLImageElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  // a hover that arrived mid-scroll, waiting for the scroll to settle
+  const pendingHoverRef = useRef<(() => void) | null>(null);
+  useEffect(() => () => pendingHoverRef.current?.(), []);
 
   // another menu claimed the slot, so this tile's menu is stale
   const activeContextMenu = useContextMenuStore((s) => s.activeMenu);
@@ -265,6 +271,17 @@ export const LazyClip = memo(function LazyClip({
     [clip.id, clip.src, clip.thumbnailReady, index, onClipDoubleClick]
   );
 
+  const beginHover = () => {
+    // the IntersectionObserver can lag a tick; hovering must mount immediately
+    setIsVisible(true);
+    setIsHovered(true);
+    // a tile whose poster gave up gets another chance on interaction
+    if (videoThumbFailed) {
+      setVideoThumbFailed(false);
+      setVideoThumbRetry(0);
+    }
+  };
+
   const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
     // adding to a pack is a right-click on home; the Scenepacks page has its own menu
     if (activePage === "home" && scenepacksEnabled) {
@@ -334,16 +351,20 @@ export const LazyClip = memo(function LazyClip({
       }}
       onDragEnd={() => setDragOver(false)}
       onMouseEnter={() => {
-        // the IntersectionObserver can lag a tick; hovering must mount immediately
-        setIsVisible(true);
-        setIsHovered(true);
-        // a tile whose poster gave up gets another chance on interaction
-        if (videoThumbFailed) {
-          setVideoThumbFailed(false);
-          setVideoThumbRetry(0);
+        if (isGridScrolling()) {
+          // still under the pointer once scrolling stops: hover then
+          pendingHoverRef.current?.();
+          pendingHoverRef.current = whenGridScrollSettles(() => {
+            pendingHoverRef.current = null;
+            if (wrapperRef.current?.matches(":hover")) beginHover();
+          });
+          return;
         }
+        beginHover();
       }}
       onMouseLeave={() => {
+        pendingHoverRef.current?.();
+        pendingHoverRef.current = null;
         setIsHovered(false);
         video.resetOnLeave();
       }}
@@ -475,6 +496,14 @@ export const LazyClip = memo(function LazyClip({
               anchor={scenepackMenu}
               onClose={() => setScenepackMenu(null)}
               onCreateNew={() => setShowScenepackModal(true)}
+              onFindFlow={
+                canFindFlowFrom(clip, activePage, sceneScoutEnabled)
+                  ? () => {
+                      const source = flowSourceForClip(clip);
+                      if (source) void useSceneScoutStore.getState().startFlowSearch(source);
+                    }
+                  : undefined
+              }
             />
           )}
 

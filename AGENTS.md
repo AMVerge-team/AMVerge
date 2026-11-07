@@ -79,8 +79,7 @@ Sibling repos sit next to this one: `../AMVerge-CLI` (the Python backend this ap
 │  - backend   │    │  - libx264       │
 │  - export    │    │  - nvenc/amf/qsv │
 │  - depth-map │    │  - concat demux  │
-│  - deadframes│    │  - aac encoder   │
-│  -interpolate│    │                  │
+│  - upscale   │    │  - aac encoder   │
 └──────────────┘    └──────────────────┘
 ```
 
@@ -134,12 +133,12 @@ frontend/
       settings/
         GeneralSettings.tsx, AppearanceSection.tsx, DiscordRPCSection.tsx
         DependenciesSection.tsx    # AI packs/models/storage categories
-        AiModelsSection.tsx        # depth + interpolation model weights manager
+        AiModelsSection.tsx        # depth + upscale model weights manager
         exportSettings/            # Export + PostExportPasses sections
 
     features/export/
       profiles.ts                   # Export profile definitions, codec/container logic
-      postPasses.ts                 # Post-export pass types (depth, deadframes, interpolate)
+      postPasses.ts                 # Post-export pass types (depth, upscale)
       runPostExportPasses.ts        # Post-export pass runner
 
     features/theme/colorPresets.ts
@@ -268,7 +267,7 @@ frontend/
 | `abort_resume_episode` | scene_resume.rs | Pause a running resume (kills its cutter; remaining clips stay unfinished, not failed) |
 | `unique_export_base_name` | export.rs | First free `name`, `name (1)`, ... in the export folder so merged exports never overwrite |
 | `export_clips` | export.rs | Spawn CLI export, stream progress |
-| `run_export_pass` | export.rs | Post-export passes (depth, deadframes, interpolate) |
+| `run_export_pass` | export.rs | Post-export passes (depth, upscale). Upscale needs CLI ≥ 1.2.0's `upscale --ipc`; the app only offers torch models at their native scale (`UPSCALE_MODEL_OPTIONS`), since the CLI's other scales are a plain resize and its ArtCNN models run on onnxruntime's CPU build |
 | `abort_export` | export.rs | Kill export processes |
 | `detect_nvidia_encoder_profile` | export.rs | nvidia-smi GPU profile detection |
 | `detect_gpu_encoder_capabilities` | export.rs | ffmpeg encoder probing |
@@ -311,7 +310,7 @@ frontend/
 | `uninstall_ai_pack` | deps.rs | Remove one pack's packages (torch kept) |
 | `remove_ai_env` | deps.rs | Delete the whole AI environment |
 | `update_ai_cli` | deps.rs | Upgrade the AI env's amverge to the newest PyPI patch in the bundled major.minor series (silent, ~20s after launch, prod only) |
-| `list_models` | models.rs | Spawn `amverge models --json` → depth + interpolation weights |
+| `list_models` | models.rs | Spawn `amverge models --json` → depth + upscale weights |
 | `download_model` | models.rs | `amverge models --json --download <key>` |
 | `delete_model` | models.rs | `amverge models --json --delete <key>` |
 | `scout_list_databases` | scene_scout/ | List all databases in root |
@@ -427,7 +426,7 @@ useImportExport.ts: handleExport(selectedClips, mergeEnabled)
   │
   └─ IF postExportPasses enabled:
       ├─ before export, 2+ clips: PassTargetsModal (`features/export/passTargets.ts`) picks which clips get each pass (default all; cancel drops the export)
-      ├─ merge on: interpolation runs per picked clip then merges into `_interpolated`; depth runs on the merge itself when every clip is picked, else on a staged merge of its picks (`exportMergedWithPasses`)
+      ├─ merge on: each pass runs on the merge itself when every clip is picked for it, else on a staged merge of its picks (`exportMergedWithPasses`)
       └─ runPostExportPasses(targets: PassTarget[], passesSnapshot)
            ├─ For each pass: invoke("run_export_pass", { pass, inputPath, outputPath, args })
            └─ Drive passRunStore (modal UI with progress/preview/logs)
@@ -437,12 +436,12 @@ useImportExport.ts: handleExport(selectedClips, mergeEnabled)
 
 ## AI Models Manager
 
-Settings → Dependencies tab (categories: **AI Packs**, **AI Models**, **Storage**) manages the model weights for the depth-map and interpolation passes. Thin bridge over the CLI `amverge models --json` command:
+Settings → Features (Model weights) manages the model weights for the depth-map and upscale passes. Thin bridge over the CLI `amverge models --json` command:
 
 ```
 AiModelsSection.tsx → invoke("list_models") → Rust models.rs → amverge models --json
   → CLI prints {"depth":[{key,name,method,file,sizeBytes,downloaded}],
-                 "interpolation":[...]}
+                 "upscale":[...]}
   → parsed into ModelInfo[] → rendered with Download/Delete buttons
 
 Download/Delete → invoke("download_model"|"delete_model", { key })
@@ -450,7 +449,7 @@ Download/Delete → invoke("download_model"|"delete_model", { key })
   → CLI prints {"result":{ok, action, key, message}} → surfaced, list refreshed
 ```
 
-Each category is gated on its AI pack (`depth`, `interpolation`) being installed in the AI env. Model files live under `%APPDATA%/com.amverge.cli/models/{depth|interpolation}/`.
+Each category is gated on its AI pack (`depth`, `upscale`) being installed in the AI env. Model files live under `%APPDATA%/com.amverge.cli/models/`.
 
 ---
 
@@ -596,7 +595,7 @@ App starts → main.tsx: maybeCheckForUpdatesOnStartup()
 
 10b. **One long job at a time**: import, export, resume, Scene Scout add-episode and thumbnail generation each `await claimProcess(kind)` (the re-encode queue is the one exception: it runs beside the import that fed it) (`features/processes/singleProcess.ts`) before starting. If another job runs, `ProcessConflictModal` (the shared `ConfirmModal`) asks to stop it (App's abort, same as the progress window's ✕, then waits until idle) or keep it and drop the new one. Their buttons stay enabled so the question can be asked. A new long job must claim too.
 
-10c. **Settings > Features** (`FeaturesSection.tsx`, was Dependencies): one switch per major feature (`features/featureToggles.ts`: AI Scene Detection, Scene Scout, Scenepacks, Depth / Interpolation pass), persisted as `*Enabled` in general settings. Switching an AI feature on installs its pack; off keeps the files ("Free up space" removes them) and resets settings that pointed at it. A switched-off feature is greyed out wherever it appears, or left out when `hideDisabledFeatures` is on: read it with `useFeature(id)` (`isFeatureEnabled` outside components). GPU decode (Nelux) is its own switch in Settings > General under Scene Detection Method (`aiDepsStore.setGpuDecode` → `install_ai_pack` with `gpuDecode`), shown only while AI Scene Detection is on and installed; installing a pack leaves it as it is. Fresh installs start with every feature off; settings saved before the switches existed keep them on (`settingsStore` merge). Storage lists every byte: venv + uv Python, the CLI's `models` folder, and SigLIP 2 in the shared Hugging Face cache (counted, never deleted by the app).
+10c. **Settings > Features** (`FeaturesSection.tsx`, was Dependencies): one switch per major feature (`features/featureToggles.ts`: AI Scene Detection, Scene Scout, Scenepacks, Depth / Upscale pass), persisted as `*Enabled` in general settings. Switching an AI feature on installs its pack; off keeps the files ("Free up space" removes them) and resets settings that pointed at it. A switched-off feature is greyed out wherever it appears, or left out when `hideDisabledFeatures` is on: read it with `useFeature(id)` (`isFeatureEnabled` outside components). GPU decode (Nelux) is its own switch in Settings > General under Scene Detection Method (`aiDepsStore.setGpuDecode` → `install_ai_pack` with `gpuDecode`), shown only while AI Scene Detection is on and installed; installing a pack leaves it as it is. Fresh installs start with every feature off; settings saved before the switches existed keep them on (`settingsStore` merge). Storage lists every byte: venv + uv Python, the CLI's `models` folder, and SigLIP 2 in the shared Hugging Face cache (counted, never deleted by the app).
 
 11. **Dev builds never install AI**: `ai_env_status` reports `managed: false`, and `ensurePack`/`install_ai_pack` short-circuit in dev. AI runs from the CLI checkout's venv; install extras there with `pip install -e .[all]`. A `managed`-mode (production) build shows the real install dialog.
 

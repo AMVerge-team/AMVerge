@@ -2,7 +2,7 @@ import type { AiPackId } from "./aiDeps/packs";
 import { useGeneralSettingsStore, type GeneralSettings } from "../stores/settingsStore";
 
 /** the features switched in Settings > Features; off greys them out (or hides them), AI files are kept */
-export type FeatureId = "aiSceneDetection" | "sceneScout" | "scenepacks" | "depthPass";
+export type FeatureId = "aiSceneDetection" | "sceneScout" | "scenepacks" | "depthPass" | "upscalePass";
 
 type FeatureDef = {
   id: FeatureId;
@@ -15,6 +15,7 @@ type FeatureDef = {
     | "sceneScoutEnabled"
     | "scenepacksEnabled"
     | "depthPassEnabled"
+    | "upscalePassEnabled"
   >;
   /** the ai pack it needs, downloaded when it is switched on */
   pack?: AiPackId;
@@ -48,6 +49,13 @@ export const FEATURES: FeatureDef[] = [
     description: "Creates a depth map of each exported file.",
     setting: "depthPassEnabled",
     pack: "depth",
+  },
+  {
+    id: "upscalePass",
+    label: "Upscale Pass",
+    description: "Creates a higher resolution copy of each exported file with AI.",
+    setting: "upscalePassEnabled",
+    pack: "upscale",
   },
 ];
 

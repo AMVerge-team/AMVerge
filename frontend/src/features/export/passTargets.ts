@@ -2,11 +2,11 @@ import { create } from "zustand";
 
 import type { ClipItem } from "../../types/domain";
 import { isFeatureEnabled } from "../featureToggles";
-import type { PostExportPasses } from "./postPasses";
+import type { PostExportPassKind, PostExportPasses } from "./postPasses";
 
 // which selected clips get each post-export pass; asked in PassTargetsModal before an export starts
 
-export type PassTargetKind = "depth";
+export type PassTargetKind = PostExportPassKind;
 
 /** clip ids picked for each pass; a pass that won't run has none */
 export type PassClipPicks = Record<PassTargetKind, Set<string>>;
@@ -15,6 +15,7 @@ export type PassClipPicks = Record<PassTargetKind, Set<string>>;
 export function activePassKinds(passes: PostExportPasses): PassTargetKind[] {
   const kinds: PassTargetKind[] = [];
   if (passes.depth.enabled && isFeatureEnabled("depthPass")) kinds.push("depth");
+  if (passes.upscale.enabled && isFeatureEnabled("upscalePass")) kinds.push("upscale");
   return kinds;
 }
 
@@ -31,6 +32,7 @@ function picksFor(clips: ClipItem[], kinds: PassTargetKind[]): PassClipPicks {
   const all = () => new Set(clips.map((c) => c.id));
   return {
     depth: kinds.includes("depth") ? all() : new Set(),
+    upscale: kinds.includes("upscale") ? all() : new Set(),
   };
 }
 

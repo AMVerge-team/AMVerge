@@ -1,6 +1,9 @@
 import { create } from "zustand";
 
+import type { JobLine, JobLineKind } from "../components/BackgroundJobCard";
+
 const MAX_LOGS = 200;
+let nextLineId = 0;
 
 // UI state for the post-export passes modal, driven by runPostExportPasses; stop via `stopRequested`
 export type PassRunStore = {
@@ -12,7 +15,7 @@ export type PassRunStore = {
   percent: number;
   message: string;
   previewSrc: string | null;
-  logs: string[];
+  logs: JobLine[];
   finished: boolean;
   stopRequested: boolean;
   errors: string[];
@@ -21,7 +24,7 @@ export type PassRunStore = {
   startJob: (label: string) => void;
   setProgress: (percent: number, message: string) => void;
   setPreview: (src: string) => void;
-  pushLog: (line: string) => void;
+  pushLog: (line: string, kind?: JobLineKind) => void;
   addError: (label: string) => void;
   completeJob: () => void;
   finish: () => void;
@@ -62,9 +65,9 @@ export const usePassRunStore = create<PassRunStore>((set) => ({
   startJob: (label) => set({ label, percent: 0, message: "Starting...", previewSrc: null }),
   setProgress: (percent, message) => set({ percent, message }),
   setPreview: (src) => set({ previewSrc: src }),
-  pushLog: (line) =>
+  pushLog: (line, kind = "log") =>
     set((s) => {
-      const logs = [...s.logs, line];
+      const logs = [...s.logs, { id: nextLineId++, kind, text: line }];
       return { logs: logs.length > MAX_LOGS ? logs.slice(logs.length - MAX_LOGS) : logs };
     }),
   addError: (label) => set((s) => ({ errors: [...s.errors, label] })),

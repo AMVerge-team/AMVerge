@@ -1,5 +1,5 @@
 import { PanelLeftIcon, PanelRightIcon } from "../icons/chrome/ChromeIcons";
-import { FaBan, FaCalendarPlus, FaDiscord, FaSearch, FaSignOutAlt, FaSyncAlt, FaTimes } from '../icons/animated';
+import { FaBan, FaBell, FaCalendarPlus, FaDiscord, FaSearch, FaSignOutAlt, FaSyncAlt, FaTimes } from '../icons/animated';
 
 import Dropdown, { type DropdownOption } from "../common/Dropdown";
 import Tooltip from "../common/Tooltip";
@@ -47,6 +47,8 @@ export default function EventsToolbar() {
   const submitCooldownUntil = useEventsStore((s) => s.submitCooldownUntil);
   const ban = useEventsStore((s) => s.ban);
   const openBanNotice = useEventsStore((s) => s.openBanNotice);
+  const notificationsMuted = useEventsStore((s) => s.notificationsMuted);
+  const setNotificationsMuted = useEventsStore((s) => s.setNotificationsMuted);
 
   // hosting limits are enforced server-side; this only shows them
   const cooldownRemaining = useCooldown(submitCooldownUntil);
@@ -145,6 +147,18 @@ export default function EventsToolbar() {
             </li>
           </ol>
         </InfoButton>
+
+        <Tooltip content={notificationsMuted ? "Unmute new event notifications" : "Mute new event notifications"}>
+          <button
+            type="button"
+            className={`import-button refresh-button events-mute-button${notificationsMuted ? " is-muted" : ""}`}
+            onClick={() => setNotificationsMuted(!notificationsMuted)}
+            aria-label={notificationsMuted ? "Unmute new event notifications" : "Mute new event notifications"}
+            aria-pressed={notificationsMuted}
+          >
+            <FaBell aria-hidden="true" muted={notificationsMuted} />
+          </button>
+        </Tooltip>
 
         <Tooltip content="Refresh events">
           <button

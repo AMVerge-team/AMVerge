@@ -46,11 +46,6 @@ pub(crate) const PACKS: &[Pack] = &[
         requires: &["torch", "torchvision", "opencv-python-headless"],
     },
     Pack {
-        id: "interpolation",
-        extra: "interpolation",
-        requires: &["torch", "scipy", "opencv-python-headless"],
-    },
-    Pack {
         id: "scout",
         extra: "scout",
         requires: &["torch", "transformers", "pillow"],
@@ -58,7 +53,7 @@ pub(crate) const PACKS: &[Pack] = &[
     Pack {
         id: "upscale",
         extra: "upscale",
-        requires: &["torch", "spandrel", "onnxruntime"],
+        requires: &["torch", "spandrel", "onnxruntime", "opencv-python-headless"],
     },
 ];
 

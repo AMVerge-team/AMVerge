@@ -22,6 +22,8 @@ import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
 import { useSceneScoutStore } from "../../stores/sceneScoutStore.ts";
 import { removeClipsFromScenepack } from "../../utils/scenepackStorage.ts";
 import type { ClipItem } from "../../types/domain.ts";
+import { canFindFlowFrom, flowSourceForClip } from "../../features/sceneScout/motion.ts";
+import { noteGridScroll } from "./gridScroll.ts";
 import type { ExportContainer } from "../../features/export/profileTypes.ts";
 
 const SCROLL_SAVE_DELAY_MS = 250;
@@ -51,6 +53,8 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     x: number;
     y: number;
     targets: ClipItem[];
+    /** flow: the one-item menu where no Scenepack picker opens (Scene Scout, or Scenepacks off) */
+    kind: "scenepack" | "flow";
   } | null>(null);
 
   const defaultCols = useUIStateStore((state) => state.cols);
@@ -65,12 +69,21 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   // another menu claimed the slot, so this one is stale
   const activeContextMenu = useContextMenuStore((s) => s.activeMenu);
   useEffect(() => {
-    if (activeContextMenu !== "scenepack-clip") setClipMenu(null);
+    if (activeContextMenu !== "scenepack-clip" && activeContextMenu !== "clip-flow") setClipMenu(null);
   }, [activeContextMenu]);
+
+  const sceneScoutEnabled = useGeneralSettingsStore((s) => s.sceneScoutEnabled);
 
   const handleClipContextMenu = useCallback(
     (event: React.MouseEvent, clip: ClipItem) => {
-      if (activePage !== "scenepacks") return;
+      if (activePage !== "scenepacks") {
+        if (!canFindFlowFrom(clip, activePage, sceneScoutEnabled)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        useContextMenuStore.getState().openContextMenu("clip-flow");
+        setClipMenu({ x: event.clientX, y: event.clientY, targets: [clip], kind: "flow" });
+        return;
+      }
       event.preventDefault();
       event.stopPropagation();
 
@@ -83,9 +96,9 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
       if (!inSelection) setSelectedClips(new Set([clip.id]));
 
       useContextMenuStore.getState().openContextMenu("scenepack-clip");
-      setClipMenu({ x: event.clientX, y: event.clientY, targets });
+      setClipMenu({ x: event.clientX, y: event.clientY, targets, kind: "scenepack" });
     },
-    [activePage, setSelectedClips],
+    [activePage, sceneScoutEnabled, setSelectedClips],
   );
 
   const handleDeleteFromScenepack = useCallback(async () => {
@@ -332,6 +345,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     const el = containerRef.current;
     if (!el) return;
     const onScroll = () => {
+      noteGridScroll();
       // skeletons replace the grid while loading and clamp scrollTop, so ignore those events
       if (loadingReplacesGrid(useAppStateStore.getState())) return;
       // switching episodes clamps the offset on the way, which must not overwrite where it was left
@@ -340,7 +354,12 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
       rememberEpisodeScroll(el.scrollTop);
     };
     el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
+    // the wheel lands before the scroll event, and the browser can re-hover a tile in between
+    el.addEventListener("wheel", noteGridScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      el.removeEventListener("wheel", noteGridScroll);
+    };
   }, [rememberEpisodeScroll]);
   useLayoutEffect(() => {
     if (activePage !== "home") return;
@@ -574,7 +593,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
                 scoutHasFlowClip ? (
                   <>No scenes found for this clip.<br/>Add a database to the Searching list on the left.</>
                 ) : (
-                  <>No clip to continue yet.<br/>Input an episode above, or select a clip in your Library and click Find flowing clips.</>
+                  <>No clip to continue yet.<br/>Input an episode above, or right-click a clip in your Library and pick Find clips that flow.</>
                 )
               )
               : activePage === "sceneScout"
@@ -628,6 +647,19 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
               style={{ left: clipMenu.x, top: clipMenu.y }}
               onClick={(e) => e.stopPropagation()}
             >
+              {clipMenu.kind === "flow" ? (
+                <button
+                  className="episode-context-menu-item"
+                  onClick={() => {
+                    const source = flowSourceForClip(clipMenu.targets[0]);
+                    setClipMenu(null);
+                    if (source) void useSceneScoutStore.getState().startFlowSearch(source);
+                  }}
+                >
+                  Find clips that flow
+                </button>
+              ) : (
+              <>
               {clipMenu.targets.length === 1 && clipMenu.targets[0].thumbnail && (
                 <button
                   className="episode-context-menu-item"
@@ -652,6 +684,8 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
                   ? `Delete ${clipMenu.targets.length} clips`
                   : "Delete clip"}
               </button>
+              </>
+              )}
             </div>
           )}
         </>

@@ -16,6 +16,8 @@ type ScenepackPickerMenuProps = {
   onClose: () => void;
   /** opens the full modal, which is where a new Scenepack gets named */
   onCreateNew: () => void;
+  /** set when Scene Scout can continue this clip */
+  onFindFlow?: () => void;
 };
 
 /** picks the Scenepack clips go into, right on the tile, without leaving the grid */
@@ -26,6 +28,7 @@ export function ScenepackPickerMenu({
   anchor,
   onClose,
   onCreateNew,
+  onFindFlow,
 }: ScenepackPickerMenuProps) {
   const scenepacks = useScenepacksStore((s) => s.scenepacks);
   const scenepackFolders = useScenepacksStore((s) => s.scenepackFolders);
@@ -50,7 +53,7 @@ export function ScenepackPickerMenu({
       onCloseRef.current();
     };
     const onBlur = () => onCloseRef.current();
-    // a scroll under the menu closes it at once; scrolling the pack list inside it doesn't
+    // a scroll under the menu closes it (the wheel already does, in useContextMenuCloseOnScroll); scrolling the pack list inside it doesn't
     const onScroll = (e: Event) => {
       const target = e.target as Element | null;
       if (target?.closest?.(".scenepack-picker-menu")) return;
@@ -61,12 +64,10 @@ export function ScenepackPickerMenu({
     window.addEventListener("mousedown", onPointerDown, true);
     window.addEventListener("blur", onBlur);
     window.addEventListener("scroll", onScroll, true);
-    window.addEventListener("wheel", onScroll, { capture: true, passive: true });
     return () => {
       window.removeEventListener("mousedown", onPointerDown, true);
       window.removeEventListener("blur", onBlur);
       window.removeEventListener("scroll", onScroll, true);
-      window.removeEventListener("wheel", onScroll, true);
     };
   }, [clip.id]);
 
@@ -160,6 +161,22 @@ export function ScenepackPickerMenu({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
+      {onFindFlow && (
+        <>
+          <button
+            type="button"
+            className="episode-context-menu-item"
+            onClick={() => {
+              onClose();
+              onFindFlow();
+            }}
+          >
+            Find clips that flow
+          </button>
+          <div className="episode-context-menu-separator" />
+        </>
+      )}
+
       {clips.length > 1 && (
         <div className="episode-context-menu-label">Add {clips.length} clips to Scenepack</div>
       )}

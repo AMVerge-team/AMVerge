@@ -62,7 +62,8 @@ export default function ExportSection() {
 
   // with both passes hidden the section would be an empty header
   const depthFeature = useFeature("depthPass");
-  const passesHidden = depthFeature.hidden;
+  const upscaleFeature = useFeature("upscalePass");
+  const passesHidden = depthFeature.hidden && upscaleFeature.hidden;
 
   const {
     nvidiaDetection,

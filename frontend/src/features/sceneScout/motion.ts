@@ -52,3 +52,8 @@ export function flowSourceForClip(clip: ClipItem): FlowSource | null {
     label,
   };
 }
+
+/** the right-click option: only where flow can run, on a clip it can read */
+export function canFindFlowFrom(clip: ClipItem, page: string, sceneScoutEnabled: boolean): boolean {
+  return sceneScoutEnabled && (page === "home" || page === "sceneScout") && flowSourceForClip(clip) !== null;
+}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FaLayerGroup, FaSpinner, FaWater } from '../icons/animated';
+import { FaLayerGroup, FaSpinner } from '../icons/animated';
 import Tooltip from "../common/Tooltip";
 import { useEscapeToClose } from "../common/useEscapeToClose";
 import { useAppStateStore } from "../../stores/appStore";
@@ -7,8 +7,6 @@ import { useUIStateStore } from "../../stores/UIStore";
 import { useFeature } from "../../features/featureToggles";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore";
 import { useScenepacksStore } from "../../stores/scenepackStore";
-import { useSceneScoutStore } from "../../stores/sceneScoutStore";
-import { flowSourceForClip } from "../../features/sceneScout/motion";
 import { materializeClipsForScenepack } from "../../utils/scenepackMaterialize";
 
 export function SelectionActionBar() {
@@ -16,23 +14,12 @@ export function SelectionActionBar() {
   const setSelectedClips = useAppStateStore((s) => s.setSelectedClips);
   const activePage = useUIStateStore((s) => s.activePage);
   const scenepacks = useFeature("scenepacks");
-  const sceneScout = useFeature("sceneScout");
   const [showModal, setShowModal] = useState(false);
 
   // home only: pack clips are already materialized copies; hidden when the feature is off
   const showAddToScenepack = activePage === "home" && scenepacks.enabled;
 
-  // continuing a clip needs exactly one, from a grid that holds playable source clips
-  const flowSource =
-    selectedClips.size === 1 && (activePage === "home" || activePage === "sceneScout") && sceneScout.enabled
-      ? (() => {
-          const [id] = selectedClips;
-          const clip = useAppStateStore.getState().clips.find((c) => c.id === id);
-          return clip ? flowSourceForClip(clip) : null;
-        })()
-      : null;
-
-  if (selectedClips.size === 0 || (!showAddToScenepack && !flowSource)) return null;
+  if (selectedClips.size === 0 || !showAddToScenepack) return null;
 
   return (
     <>
@@ -40,20 +27,6 @@ export function SelectionActionBar() {
         <span className="selection-action-bar-count">
           {selectedClips.size} selected
         </span>
-        {flowSource && (
-          <Tooltip content="Find Scene Scout scenes that look like they follow this clip's last frame">
-            <button
-              className="selection-action-bar-btn"
-              onClick={() => {
-                setSelectedClips(new Set());
-                void useSceneScoutStore.getState().startFlowSearch(flowSource);
-              }}
-            >
-              <FaWater />
-              <span>Find clips that flow</span>
-            </button>
-          </Tooltip>
-        )}
         {showAddToScenepack && (
           <Tooltip content="Add selected clips to Scenepack">
             <button

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
 import Tooltip from "./common/Tooltip";
+import BackgroundJobCard from "./BackgroundJobCard";
 import { useEscapeToClose } from "./common/useEscapeToClose";
 import { usePassRunStore } from "../stores/passRunStore";
 
@@ -51,41 +52,55 @@ export default function PostExportPassesModal() {
   const setMinimized = (v: boolean) => usePassRunStore.getState().setMinimized(v);
 
   if (minimized) {
+    const shownOverall = finished ? 100 : overallPct;
     return (
-      <div className="pxm-mini" role="status" aria-label="Post-export passes (minimized)">
-        <div className="pxm-mini-head">
-          <span className="pxm-mini-title">
-            {finished ? "Passes complete" : label || "Post-export passes"}
-          </span>
-          <div className="pxm-actions">
-            <Tooltip content="Expand">
-              <button type="button" className="pxm-btn" onClick={() => setMinimized(false)} aria-label="Expand">
-                ▢
-              </button>
-            </Tooltip>
-            {finished ? (
-              <Tooltip content="Close">
-                <button type="button" className="pxm-btn" onClick={close} aria-label="Close">
-                  ✕
-                </button>
-              </Tooltip>
-            ) : (
-              <Tooltip content="Stop">
-                <button type="button" className="pxm-btn pxm-stop" onClick={stop} aria-label="Stop">
-                  ✕
-                </button>
-              </Tooltip>
-            )}
-          </div>
+      <BackgroundJobCard
+        id="passes"
+        ariaLabel="Post-export passes (minimized)"
+        done={finished}
+        lines={logs}
+        title={
+          finished
+            ? errors.length > 0
+              ? "Passes finished with errors"
+              : "Passes complete"
+            : message || "Post-export passes"
+        }
+        onExpand={() => setMinimized(false)}
+        onClose={finished ? close : stop}
+        closeLabel={finished ? "Close" : "Stop"}
+        footer={finished && errors.length > 0 ? <p className="pxm-errors">Failed: {errors.join(", ")}</p> : null}
+      >
+        <div className="lm-batch-row">
+          <span className="lm-batch-count">{finished ? "Done" : `Pass ${currentJobNum}/${jobTotal}`}</span>
+          {label ? <span className="lm-batch-file">{label}</span> : null}
         </div>
-        <div className="pxm-progress">
-          <span className="pxm-bar-label">{finished ? "Done" : `Pass ${currentJobNum}/${jobTotal}`}</span>
-          <div className="progress-bar pxm-bar">
-            <div className="progress-fill" style={{ width: `${finished ? 100 : overallPct}%` }} />
+        {jobTotal > 1 ? (
+          <>
+            <div className="lm-progress">
+              <span className="lm-bar-label">Overall</span>
+              <div className="progress-bar lm-progress-bar">
+                <div className="progress-fill" style={{ width: `${shownOverall}%` }} />
+              </div>
+              <span className="lm-pct">{shownOverall}%</span>
+            </div>
+            <div className="lm-progress">
+              <span className="lm-bar-label">Current</span>
+              <div className="progress-bar lm-progress-bar">
+                <div className="progress-fill" style={{ width: `${finished ? 100 : percent}%` }} />
+              </div>
+              <span className="lm-pct">{finished ? 100 : percent}%</span>
+            </div>
+          </>
+        ) : (
+          <div className="lm-progress">
+            <div className="progress-bar lm-progress-bar">
+              <div className="progress-fill" style={{ width: `${shownOverall}%` }} />
+            </div>
+            <span className="lm-pct">{shownOverall}%</span>
           </div>
-          <span className="pxm-pct">{finished ? 100 : overallPct}%</span>
-        </div>
-      </div>
+        )}
+      </BackgroundJobCard>
     );
   }
 
@@ -154,9 +169,10 @@ export default function PostExportPassesModal() {
         <p className="pxm-message">{message}</p>
 
         <div className="pxm-logs" ref={logRef}>
-          {logs.map((line, i) => (
-            <div key={i} className="pxm-log-line">
-              {line}
+          {logs.map((line) => (
+            <div key={line.id} className={`pxm-log-line it-line it-line-${line.kind}`}>
+              {line.kind === "cmd" && <span className="it-prompt">$ </span>}
+              {line.text}
             </div>
           ))}
         </div>

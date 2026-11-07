@@ -58,7 +58,7 @@ pub struct AiEnvStatus {
     pub env_size_bytes: u64,
     /// the standalone Python interpreter uv downloaded for that venv
     pub python_size_bytes: u64,
-    /// depth / interpolation / upscale weights the cli downloads into its own config folder
+    /// depth / upscale weights the cli downloads into its own config folder
     pub models_size_bytes: u64,
     /// Scene Scout's SigLIP 2 checkpoint in the shared Hugging Face cache
     pub scout_model_size_bytes: u64,

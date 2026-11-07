@@ -67,6 +67,8 @@ export type EventsState = {
   ban: HostBan | null;
   /** true while the user is reading why they were banned */
   banNoticeOpen: boolean;
+  /** hides the sidebar's new-event badge; persisted */
+  notificationsMuted: boolean;
 };
 
 export type EventsStore = EventsState & {
@@ -94,6 +96,7 @@ export type EventsStore = EventsState & {
   markEventsSeen: () => void;
   /** starts the countdown from a server-supplied number of seconds */
   startSubmitCooldown: (seconds: number) => void;
+  setNotificationsMuted: (muted: boolean) => void;
 };
 
 /** plenty for any realistic catalogue, and bounds the persisted payload */
@@ -140,6 +143,7 @@ const INITIAL_STATE: EventsState = {
   submitCooldownUntil: null,
   ban: null,
   banNoticeOpen: false,
+  notificationsMuted: false,
 };
 
 export const useEventsStore = create<EventsStore>()(
@@ -150,6 +154,7 @@ export const useEventsStore = create<EventsStore>()(
   setSearch: (search) => set({ search }),
   setFilter: (filter) => set({ filter }),
   setSort: (sort) => set({ sort }),
+  setNotificationsMuted: (notificationsMuted) => set({ notificationsMuted }),
 
   /** background refresh: same fetch, but never touches `loading` or `error`,
    *  so a poll cannot flash the grid or surface a transient network blip */
@@ -407,6 +412,7 @@ export const useEventsStore = create<EventsStore>()(
         hasSeededSeenEvents: state.hasSeededSeenEvents,
         // an absolute deadline, so the button is grey on first paint; loadMine still overwrites it
         submitCooldownUntil: state.submitCooldownUntil,
+        notificationsMuted: state.notificationsMuted,
       }),
     }
   )

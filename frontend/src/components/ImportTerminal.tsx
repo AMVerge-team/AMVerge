@@ -4,11 +4,11 @@ import {
   useRef,
   useState,
   type ReactNode,
-  type PointerEventHandler,
 } from "react";
 import { listen, type Event, type UnlistenFn } from "@tauri-apps/api/event";
 
 import Tooltip from "./common/Tooltip";
+import BackgroundJobCard, { type JobLine, type JobLineKind } from "./BackgroundJobCard";
 
 interface ImportTerminalProps {
   progress: number;
@@ -33,14 +33,6 @@ interface ImportTerminalProps {
   onClose?: () => void;
   /** BgProgressBar (in `attached` mode) rendered below the minimized card */
   bgBar?: ReactNode;
-}
-
-type LineKind = "cmd" | "log" | "warn" | "error" | "event";
-
-interface TerminalLine {
-  id: number;
-  kind: LineKind;
-  text: string;
 }
 
 interface ConsoleLogEvent {
@@ -92,67 +84,15 @@ export default function ImportTerminal({
   onClose,
   bgBar,
 }: ImportTerminalProps) {
-  const [lines, setLines] = useState<TerminalLine[]>([]);
+  const [lines, setLines] = useState<JobLine[]>([]);
   const [spinnerFrame, setSpinnerFrame] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const bodyRef = useRef<HTMLDivElement | null>(null);
-  const miniBodyRef = useRef<HTMLDivElement | null>(null);
   const idRef = useRef(0);
   const startedRef = useRef<number>(Date.now());
   const headerPushedRef = useRef(false);
 
-  // minimized card drag state; the card floats free so the grid stays visible behind it
-  const cardRef = useRef<HTMLDivElement | null>(null);
-  const [cardPos, setCardPos] = useState<{ x: number; y: number } | null>(null);
-  const [dragging, setDragging] = useState(false);
-  const dragOffsetRef = useRef<{ x: number; y: number } | null>(null);
-
-  const clampCardPos = (x: number, y: number) => {
-    const el = cardRef.current;
-    if (!el) return { x, y };
-    const rect = el.getBoundingClientRect();
-    const maxX = Math.max(8, window.innerWidth - rect.width - 8);
-    const maxY = Math.max(8, window.innerHeight - rect.height - 8);
-    return { x: Math.min(maxX, Math.max(8, x)), y: Math.min(maxY, Math.max(8, y)) };
-  };
-
-  useEffect(() => {
-    if (!cardPos) return;
-    const onResize = () => setCardPos((p) => (p ? clampCardPos(p.x, p.y) : p));
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [cardPos]);
-
-  const handleCardPointerDown: PointerEventHandler<HTMLDivElement> = (event) => {
-    if (event.button !== 0) return;
-    // don't start a drag when a control (expand/close) is pressed
-    if ((event.target as HTMLElement).closest("button")) return;
-    const el = cardRef.current;
-    if (!el) return;
-
-    const rect = el.getBoundingClientRect();
-    dragOffsetRef.current = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-    setDragging(true);
-    event.preventDefault();
-
-    const onMove = (moveEvent: PointerEvent) => {
-      const offset = dragOffsetRef.current;
-      if (!offset) return;
-      setCardPos(clampCardPos(moveEvent.clientX - offset.x, moveEvent.clientY - offset.y));
-    };
-    const onUp = () => {
-      dragOffsetRef.current = null;
-      setDragging(false);
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
-  };
-
-  const pushLine = (kind: LineKind, text: string) => {
+  const pushLine = (kind: JobLineKind, text: string) => {
     setLines((prev) => {
       const next = [...prev, { id: idRef.current++, kind, text }];
       return next.length > MAX_LINES ? next.slice(next.length - MAX_LINES) : next;
@@ -292,11 +232,9 @@ export default function ImportTerminal({
     };
   }, []);
 
-  // keep the newest line in view (whichever body, full or mini, is mounted)
+  // keep the newest line in view; the minimized card scrolls its own log
   useLayoutEffect(() => {
-    for (const body of [bodyRef.current, miniBodyRef.current]) {
-      if (body) body.scrollTop = body.scrollHeight;
-    }
+    if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
   }, [lines, minimized]);
 
   const clamped = Math.max(0, Math.min(100, progress));
@@ -321,50 +259,23 @@ export default function ImportTerminal({
     : clamped;
 
   if (minimized) {
-    const cardStyle = cardPos
-      ? { left: `${cardPos.x}px`, top: `${cardPos.y}px`, right: "auto", bottom: "auto" }
-      : undefined;
     return (
-      <div
-        ref={cardRef}
-        className={`loading-minimized${dragging ? " dragging" : ""}`}
-        style={cardStyle}
-        role="status"
-        aria-label="Import progress (minimized)"
+      <BackgroundJobCard
+        id="cli"
+        ariaLabel="Import progress (minimized)"
+        done={done}
+        lines={lines}
+        title={
+          isBatch
+            ? (operation === "scout_add" ? "Embedding videos" : "Importing videos")
+            : progressMsg || (operation === "scout_add" ? "Embedding scenes…" : operation === "scout_open" ? "Opening database…" : operation === "scout_search" ? "Searching scenes…" : operation === "scout_thumbnails" ? "Generating thumbnails…" : operation === "previews" ? "Generating previews…" : "Finishing import…")
+        }
+        onExpand={onToggleMinimize}
+        onClose={onClose}
+        // In batch mode the batch rows are the progress; the per-clip bgBar
+        // would be redundant/misleading, so only show it for single import.
+        footer={isBatch ? null : bgBar}
       >
-        <div className="lm-head" onPointerDown={handleCardPointerDown}>
-          <span className="lm-spinner">{done ? "✓" : SPINNER[spinnerFrame]}</span>
-          <span className="lm-title">
-            {isBatch
-              ? (operation === "scout_add" ? "Embedding videos" : "Importing videos")
-              : progressMsg || (operation === "scout_add" ? "Embedding scenes…" : operation === "scout_open" ? "Opening database…" : operation === "scout_search" ? "Searching scenes…" : operation === "scout_thumbnails" ? "Generating thumbnails…" : operation === "previews" ? "Generating previews…" : "Finishing import…")}
-          </span>
-          <div className="lm-actions">
-            <Tooltip content="Expand">
-              <button
-                type="button"
-                className="lm-btn"
-                onClick={onToggleMinimize}
-                aria-label="Expand"
-              >
-                ▢
-              </button>
-            </Tooltip>
-            {onClose ? (
-              <Tooltip content="Dismiss">
-                <button
-                  type="button"
-                  className="lm-btn lm-close"
-                  onClick={onClose}
-                  aria-label="Dismiss"
-                >
-                  ✕
-                </button>
-              </Tooltip>
-            ) : null}
-          </div>
-        </div>
-
         {isBatch ? (
           <>
             <div className="lm-batch-row">
@@ -398,19 +309,7 @@ export default function ImportTerminal({
             <span className="lm-pct">{clamped}%</span>
           </div>
         )}
-
-        <div className="lm-body" ref={miniBodyRef}>
-          {lines.map((line) => (
-            <div key={line.id} className={`it-line it-line-${line.kind}`}>
-              {line.kind === "cmd" && <span className="it-prompt">$ </span>}
-              {line.text}
-            </div>
-          ))}
-        </div>
-        {/* In batch mode the batch rows above are the progress; the per-clip
-            bgBar would be redundant/misleading, so only show it for single import. */}
-        {isBatch ? null : bgBar}
-      </div>
+      </BackgroundJobCard>
     );
   }
 

@@ -30,14 +30,14 @@ pub struct ModelInfo {
     pub summary: String,
 }
 
-/// the `amverge models --json` listing payload (only depth + interpolation)
+/// the `amverge models --json` listing payload (only depth + upscale)
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModelsListPayload {
     #[serde(default)]
     pub depth: Vec<ModelInfo>,
     #[serde(default)]
-    pub interpolation: Vec<ModelInfo>,
+    pub upscale: Vec<ModelInfo>,
 }
 
 /// Result of a download/delete action
@@ -145,7 +145,7 @@ fn parse_models_json<T: serde::de::DeserializeOwned>(stdout: &str) -> Result<T, 
     ))
 }
 
-/// list all depth + interpolation models with their download status and size
+/// list all depth + upscale models with their download status and size
 #[tauri::command]
 pub async fn list_models(app: AppHandle) -> Result<ModelsListPayload, String> {
     let app_for_task = app.clone();
@@ -192,8 +192,9 @@ mod models_json_tests {
     #[test]
     fn reads_clean_json() {
         let payload: ModelsListPayload =
-            parse_models_json(r#"{"depth":[],"interpolation":[]}"#).unwrap();
+            parse_models_json(r#"{"depth":[],"upscale":[{"key":"adore","name":"Adore","method":"ml","downloaded":false,"scales":[2,4]}]}"#).unwrap();
         assert!(payload.depth.is_empty());
+        assert_eq!(payload.upscale[0].key, "adore");
     }
 
     #[test]
