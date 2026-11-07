@@ -298,6 +298,19 @@
     transform: translateY(0) scale(1);
 }
 
+/* the buttons mount on first hover or selection, already in their shown state, so they fade in from here */
+@starting-style {
+    .clip-wrapper:hover .clip-selected,
+    .clip-selected.active {
+        opacity: 0;
+    }
+
+    .clip-wrapper:hover .clip-download-btn {
+        opacity: 0;
+        transform: translateY(-4px) scale(0.96);
+    }
+}
+
 .clip-download-btn:hover,
 .clip-download-btn:focus-visible {
     background-color: rgb(8 12 22 / 0.42);

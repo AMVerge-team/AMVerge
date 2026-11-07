@@ -25,8 +25,16 @@ import { removeClipsFromScenepack } from "../../utils/scenepackStorage.ts";
 import { canFindFlowFrom, describeMotion, flowSourceForClip } from "../../features/sceneScout/motion.ts";
 import { useSceneScoutStore } from "../../stores/sceneScoutStore.ts";
 import { isGridScrolling, whenGridScrollSettles } from "./gridScroll.ts";
+import { scheduleIdle } from "../../utils/idle.ts";
 
 const VIDEO_THUMB_MAX_RETRIES = 2;
+
+// decodes in idle time once loaded, so an overscan row is ready before it scrolls into view
+function predecode(img: HTMLImageElement) {
+  scheduleIdle(() => {
+    img.decode?.().catch(() => {});
+  });
+}
 
 // one grid tile; playback, proxying, stagger and tone sampling live in their own hooks
 export const LazyClip = memo(function LazyClip({
@@ -75,6 +83,8 @@ export const LazyClip = memo(function LazyClip({
   // fixed when the menu opens, so the modal it leads to adds the same clips
   const [scenepackTargets, setScenepackTargets] = useState<ClipItem[]>([clip]);
   const [dragOver, setDragOver] = useState(false);
+  // the select and download buttons stay invisible until hover, so they mount on first hover or selection and then stay
+  const [controlsMounted, setControlsMounted] = useState(false);
   const [videoThumbFailed, setVideoThumbFailed] = useState(false);
   const [videoThumbRetry, setVideoThumbRetry] = useState(0);
 
@@ -275,6 +285,7 @@ export const LazyClip = memo(function LazyClip({
     // the IntersectionObserver can lag a tick; hovering must mount immediately
     setIsVisible(true);
     setIsHovered(true);
+    setControlsMounted(true);
     // a tile whose poster gave up gets another chance on interaction
     if (videoThumbFailed) {
       setVideoThumbFailed(false);
@@ -369,15 +380,17 @@ export const LazyClip = memo(function LazyClip({
         video.resetOnLeave();
       }}
     >
-      <Tooltip content={isSelected ? "Deselect clip" : "Select clip"}>
-        <button
-          className={`clip-selected ${isSelected ? "active" : ""}`}
-          onClick={(e) => onToggleSelection(clip.id, e)}
-          aria-label={isSelected ? "Deselect clip" : "Select clip"}
-        >
-          {isSelected ? <FaCheck /> : <FaPlus />}
-        </button>
-      </Tooltip>
+      {(controlsMounted || isSelected) && (
+        <Tooltip content={isSelected ? "Deselect clip" : "Select clip"}>
+          <button
+            className={`clip-selected ${isSelected ? "active" : ""}`}
+            onClick={(e) => onToggleSelection(clip.id, e)}
+            aria-label={isSelected ? "Deselect clip" : "Select clip"}
+          >
+            {isSelected ? <FaCheck /> : <FaPlus />}
+          </button>
+        </Tooltip>
+      )}
 
       {videoClipPending ? (
         <div className="clip clip-skeleton" style={{ borderRadius: 15 }} />
@@ -404,6 +417,7 @@ export const LazyClip = memo(function LazyClip({
                 onLoad={(e) => {
                   webp.setThumbnailLoaded(true);
                   if (showDownloadButton) sampleDownloadTone(e.currentTarget);
+                  predecode(e.currentTarget);
                 }}
                 onError={webp.handleThumbnailError}
                 onDragStart={stopDrag}
@@ -414,6 +428,7 @@ export const LazyClip = memo(function LazyClip({
           {isVideoPlayable && clip.thumbnailReady !== false && !videoThumbFailed && imageThumbnail(clip.thumbnail) && (
             <img
               className="clip"
+              onLoad={(e) => predecode(e.currentTarget)}
               src={`${mediaSrcVersioned(clip.thumbnail, importToken)}${videoThumbRetry > 0 ? `&r=${videoThumbRetry}` : ""}`}
               style={{ opacity: shouldShowThumbnail ? 1 : 0 }}
               draggable={false}
@@ -484,7 +499,7 @@ export const LazyClip = memo(function LazyClip({
             </div>
           )}
 
-          {showDownloadButton && (
+          {showDownloadButton && controlsMounted && (
             <DownloadButton tone={downloadTone} onClick={() => onDownloadClip(clip)} />
           )}
 

@@ -346,6 +346,8 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     if (!el) return;
     const onScroll = () => {
       noteGridScroll();
+      // the open's fade-in would animate every row scrolled into view on top of mounting it
+      setTilesAppearing(false);
       // skeletons replace the grid while loading and clamp scrollTop, so ignore those events
       if (loadingReplacesGrid(useAppStateStore.getState())) return;
       // switching episodes clamps the offset on the way, which must not overwrite where it was left
