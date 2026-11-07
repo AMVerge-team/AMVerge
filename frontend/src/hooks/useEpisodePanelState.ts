@@ -24,7 +24,8 @@ export function openEpisodeById(episodeId: string) {
 	episodeRuntimeState.setSelectedFolderId(null);
 	episodeMetadataState.setLastOpenedEpisodeId(episodeId);
 	appState.setImportedVideoPath(selectedEpisode.videoPath);
-	appState.setImportToken(Date.now().toString());
+	// fixed per episode import, not per open: the token versions every thumbnail url, so a new one each open threw the image cache away
+	appState.setImportToken(`${episodeId}:${selectedEpisode.importedAt ?? 0}`);
 
 	// opening from Events would load it behind a page with no clips, so switch to home (like handleOpenScenepack)
 	useUIStateStore.getState().setActivePage("home");
