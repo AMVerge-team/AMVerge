@@ -58,8 +58,8 @@ export const PREVIEW_TRANSCODE_MODE_OPTIONS: DropdownOption<PreviewTranscodeMode
 ];
 
 export const PREVIEW_TRANSCODE_QUALITY_OPTIONS: DropdownOption<PreviewTranscodeQuality>[] = [
-  { value: "360p", label: "360p", description: "Smallest and fastest to generate." },
-  { value: "480p", label: "480p", description: "Balanced. Recommended." },
-  { value: "720p", label: "720p", description: "Sharper previews, slower to generate." },
-  { value: "1080p", label: "1080p", description: "Full detail. Slowest, largest cache." },
+  { value: "360p", label: "360p", description: "Lower quality, fast" },
+  { value: "480p", label: "480p", description: "Balanced" },
+  { value: "720p", label: "720p", description: "Higher quality, slow" },
+  { value: "1080p", label: "1080p", description: "Full quality, slowest" },
 ];

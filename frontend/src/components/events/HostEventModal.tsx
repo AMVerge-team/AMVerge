@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { open as openExternal } from "@tauri-apps/plugin-shell";
-import { FaChevronLeft, FaChevronRight, FaDiscord, FaExternalLinkAlt, FaImage, FaMinus, FaPaperPlane, FaPlus, FaSpinner } from '../icons/animated';
+import { FaChevronLeft, FaChevronRight, FaDiscord, FaExternalLinkAlt, FaImage, FaMinus, FaPlus, FaSpinner } from '../icons/animated';
 
 import ModalShell from "../common/ModalShell";
 import DateTimePicker from "./DateTimePicker";
@@ -759,7 +759,7 @@ export default function HostEventModal() {
                     </>
                   ) : (
                     <>
-                      <FaPaperPlane aria-hidden="true" /> {editing ? "Submit edit" : "Submit for review"}
+                      {editing ? "Submit edit" : "Submit for review"}
                     </>
                   )}
                 </button>

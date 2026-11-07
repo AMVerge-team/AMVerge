@@ -79,14 +79,29 @@
     background: rgba(255, 255, 255, 0.15);
 }
 
+/* sized like the path beside it, not the 20px app-font default that overflowed its 100px box */
+.buttons.settings-path-btn {
+    width: auto;
+    padding: 0 12px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.buttons.settings-path-btn:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+/* block, not flex: text-overflow only clips a block's own text */
 .settings-path-value {
-    display: flex;
-    align-items: center;
+    display: block;
 
     min-width: 0;
     max-width: 360px;
 
     height: 30px;
+    line-height: 28px;
     margin-bottom: 5px;
     padding: 0 8px;
 
@@ -105,6 +120,11 @@
 
 .settings-path-value:hover {
     border-color: rgba(255,255,255,0.35);
+}
+
+.settings-path-value.is-moving {
+    color: var(--accent);
+    border-color: rgb(var(--accent-rgb) / 0.4);
 }
 
 .settings-select {

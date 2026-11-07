@@ -49,6 +49,8 @@ export default function GeneralSettings({
       : generalSettings.previewTranscodeMode;
   const setGridPreview = useUIStateStore((s) => s.setGridPreview);
   const [loading, setLoading] = useState(false);
+  // a move to another drive copies every episode, which can take minutes; the row says so meanwhile
+  const [movingTo, setMovingTo] = useState<string | null>(null);
   const [showFactoryResetConfirm, setShowFactoryResetConfirm] = useState(false);
   const [showClearPanelConfirm, setShowClearPanelConfirm] = useState(false);
   const [clearingPanel, setClearingPanel] = useState(false);
@@ -116,6 +118,7 @@ export default function GeneralSettings({
     if (selected && typeof selected === "string") {
       if (generalSettings.episodesPath !== selected) {
         setLoading(true);
+        setMovingTo(selected);
 
         try {
           // windows won't delete files the grid's tiles hold open, so drop the grid first
@@ -135,10 +138,15 @@ export default function GeneralSettings({
           window.alert("Failed to move existing episodes: " + String(err));
         } finally {
           setLoading(false);
+          setMovingTo(null);
         }
       }
     }
   };
+
+  const storagePathLabel = movingTo
+    ? `Moving to ${movingTo}...`
+    : generalSettings.episodesPath || defaultEpisodesPathLabel;
 
   return (
     <section className="panel menu-panel settings-panel">
@@ -403,19 +411,16 @@ export default function GeneralSettings({
           control={
             <div className="settings-control">
               <button
-                className="buttons"
+                className="buttons settings-path-btn"
                 type="button"
                 onClick={handlePickDir}
                 disabled={loading}
               >
-                {generalSettings.episodesPath ? "Change" : "Select Path"}
+                {movingTo ? "Moving..." : generalSettings.episodesPath ? "Change" : "Select Path"}
               </button>
-              <Tooltip
-                content={generalSettings.episodesPath || defaultEpisodesPathLabel}
-                maxWidth={360}
-              >
-                <span className="settings-path-value">
-                  {generalSettings.episodesPath || defaultEpisodesPathLabel}
+              <Tooltip content={storagePathLabel} maxWidth={360}>
+                <span className={`settings-path-value${movingTo ? " is-moving" : ""}`}>
+                  {storagePathLabel}
                 </span>
               </Tooltip>
             </div>
