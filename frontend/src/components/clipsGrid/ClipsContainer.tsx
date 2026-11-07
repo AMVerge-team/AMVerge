@@ -62,7 +62,10 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   // one field, not the whole settings store, so a settings change doesn't re-render the grid
   const episodesPath = useGeneralSettingsStore((state) => state.episodesPath);
   const openedEpisodeId = useEpisodePanelRuntimeStore((state) => state.openedEpisodeId);
-  const episodes = useEpisodePanelRuntimeStore((state) => state.episodes);
+  // just the opened episode's import method: the whole list changes on every import frame, even for other episodes
+  const openedImportMethod = useEpisodePanelRuntimeStore(
+    (state) => state.episodes.find((e) => e.id === state.openedEpisodeId)?.importMethod
+  );
 
   const activeCols = cols ?? defaultCols;
 
@@ -139,12 +142,11 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     // scout results play a bounded range of the source video
     if (activePage === "sceneScout") return true;
 
-    const openedEpisode = episodes.find((e) => e.id === openedEpisodeId);
     return (
-      openedEpisode?.importMethod === "video_files" ||
-      (openedEpisode?.importMethod === undefined && clips.some((c) => Boolean(c.clipPath)))
+      openedImportMethod === "video_files" ||
+      (openedImportMethod === undefined && clips.some((c) => Boolean(c.clipPath)))
     );
-  }, [activePage, episodes, openedEpisodeId, clips]);
+  }, [activePage, openedImportMethod, clips]);
 
   // proxy queue: manages HEVC/H.264 proxy generation and prioritization
   const { requestProxySequential, reportProxyDemand } = useViewportAwareProxyQueue();

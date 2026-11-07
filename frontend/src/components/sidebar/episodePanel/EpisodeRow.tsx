@@ -1,4 +1,5 @@
 import type React from "react";
+import { memo } from "react";
 import { FaFolderOpen, FaImage, FaPlay, FaVideo } from '../../icons/animated';
 import Tooltip from "../../common/Tooltip";
 import { useAppStateStore } from "../../../stores/appStore";
@@ -14,9 +15,9 @@ type EpisodeRowProps = {
   folderId: string | null;
   depth?: number;
 
-  openedEpisodeId: string | null;
-  selectedEpisodeId: string | null;
-  multiSelectedIds: Set<string>;
+  isOpen: boolean;
+  isSelected: boolean;
+  isMultiSelected: boolean;
   isDropTarget: boolean;
 
   beginPointerDrag: (
@@ -29,13 +30,14 @@ type EpisodeRowProps = {
   onRevealEpisode?: (episodeId: string) => void;
 };
 
-export default function EpisodeRow({
+// memoized: a big library re-rendered every row on each selection and each frame of an import
+export default memo(function EpisodeRow({
   episode,
   folderId,
   depth = 0,
-  openedEpisodeId,
-  selectedEpisodeId,
-  multiSelectedIds,
+  isOpen,
+  isSelected,
+  isMultiSelected,
   isDropTarget,
   beginPointerDrag,
   handleEpisodeClick,
@@ -43,9 +45,6 @@ export default function EpisodeRow({
   onOpenEpisode,
   onRevealEpisode,
 }: EpisodeRowProps) {
-  const isOpen = openedEpisodeId === episode.id;
-  const isSelected = selectedEpisodeId === episode.id;
-  const isMultiSelected = multiSelectedIds.has(episode.id);
 
   let rowClass = "episode-panel-row episode-row";
   if (isOpen) rowClass += " is-open";
@@ -140,4 +139,4 @@ export default function EpisodeRow({
       </Tooltip>
     </div>
   );
-}
+});

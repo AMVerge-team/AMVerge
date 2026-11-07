@@ -1,5 +1,5 @@
 // recursive Episode Panel tree renderer. displays folders, nested folders, and episode rows
-import React from "react";
+import React, { useMemo, useRef } from "react";
 import EpisodeRow from "./EpisodeRow";
 import FolderRow from "./FolderRow";
 import type { EpisodePanelProps, PointerDragSource, PointerDropTarget } from "../types";
@@ -60,6 +60,23 @@ export default function EpisodePanelTree({
   onToggleFolderExpanded,
   forceExpanded = false,
 }: EpisodePanelTreeProps) {
+  // stable handlers that call the newest ones, so memoized rows skip renders they don't need
+  const latest = useRef({ beginPointerDrag, handleEpisodeClick, openContextMenu, onOpenEpisode, onRevealEpisode });
+  latest.current = { beginPointerDrag, handleEpisodeClick, openContextMenu, onOpenEpisode, onRevealEpisode };
+  const rowHandlers = useMemo(
+    () => ({
+      beginPointerDrag: (source: PointerDragSource) => (e: React.PointerEvent) =>
+        latest.current.beginPointerDrag(source)(e),
+      handleEpisodeClick: (episodeId: string) => (e: React.MouseEvent) =>
+        latest.current.handleEpisodeClick(episodeId)(e),
+      openContextMenu: (episodeId: string, e: React.MouseEvent) =>
+        latest.current.openContextMenu(episodeId, e),
+      onOpenEpisode: (episodeId: string) => latest.current.onOpenEpisode(episodeId),
+      onRevealEpisode: (episodeId: string) => latest.current.onRevealEpisode?.(episodeId),
+    }),
+    []
+  );
+
   const renderEpisodeRow = (
     episode: Episode,
     folderId: string | null,
@@ -75,15 +92,11 @@ export default function EpisodePanelTree({
         episode={episode}
         folderId={folderId}
         depth={depth}
-        openedEpisodeId={openedEpisodeId}
-        selectedEpisodeId={selectedEpisodeId}
-        multiSelectedIds={multiSelectedIds}
+        isOpen={openedEpisodeId === episode.id}
+        isSelected={selectedEpisodeId === episode.id}
+        isMultiSelected={multiSelectedIds.has(episode.id)}
         isDropTarget={isDrop}
-        beginPointerDrag={beginPointerDrag}
-        handleEpisodeClick={handleEpisodeClick}
-        openContextMenu={openContextMenu}
-        onOpenEpisode={onOpenEpisode}
-        onRevealEpisode={onRevealEpisode}
+        {...rowHandlers}
       />
     );
   };

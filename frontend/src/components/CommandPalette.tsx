@@ -99,9 +99,10 @@ export default function CommandPalette() {
     return { effectiveFilter: activeFilter, cleanQuery: trimmed };
   }, [searchQuery, activeFilter]);
 
+  // nothing to show while closed; building it then reran for every clip and episode update
   const allCommands = useMemo(
     () =>
-      buildCommands({
+      !open ? [] : buildCommands({
         episodes,
         episodeNamesById,
         scenepacks,
@@ -149,6 +150,7 @@ export default function CommandPalette() {
         featureState,
       }),
     [
+      open,
       episodes,
       episodeNamesById,
       scenepacks,

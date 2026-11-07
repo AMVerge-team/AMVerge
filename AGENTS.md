@@ -248,7 +248,7 @@ frontend/
 | **useAppPersistedStore** | Yes | `exportDir`, `dismissedNotificationIds` |
 | **useGeneralSettingsStore** | Yes (`amverge.generalSettings.v2`) | All user settings, export profiles, paths |
 | **useThemeSettingsStore** | Yes (`amverge.theme.v2`) | Accent color, background, clip tile settings |
-| **useEpisodePanelRuntimeStore** | Yes (IndexedDB) | `episodes[]`, `selectedEpisodeId`, `openedEpisodeId`. Only `episodes` persists, in IndexedDB (`utils/episodePersistStorage.ts`, same db/key as V1), so there is no localStorage size cap; it loads async, so `main.tsx` awaits `waitForEpisodes()` before rendering |
+| **useEpisodePanelRuntimeStore** | Yes (IndexedDB) | `episodes[]`, `selectedEpisodeId`, `openedEpisodeId`. Only `episodes` persists, in IndexedDB (`utils/episodePersistStorage.ts`, same db as V1), so there is no localStorage size cap. `coalescedPersistStorage` keeps one key per episode plus an ordered id list under V1's key, writes only episodes whose object changed (one write at a time, 300ms apart), and converts V1's whole-list value on the first save. Keep unchanged episodes' objects when updating the list, or every save rewrites them. It loads async, so `main.tsx` awaits `waitForEpisodes()` before rendering |
 | **useEpisodePanelMetadataStore** | Yes | `episodeFolders`, `episodeNamesById`, folder assignments |
 | **useUIStateStore** | Yes (partial) | `sidebarWidthPx`, `cols`, `sidebarEnabled`, `activePage`, `episodeScrollTops` (each episode's grid offset, saved by `ClipsContainer` and restored when it reopens) |
 

@@ -49,22 +49,26 @@ export default function useDiscordRPC() {
     const selectedCount = useAppStateStore((s) => s.selectedClips.size);
 
     const openedEpisodeId = useEpisodePanelRuntimeStore((s) => s.openedEpisodeId);
-    const episodes = useEpisodePanelRuntimeStore((s) => s.episodes);
+    // the name fields only: the whole list changes every frame of an import, and this hook runs in App
+    const openedDisplayName = useEpisodePanelRuntimeStore(
+        (s) => s.episodes.find((e) => e.id === s.openedEpisodeId)?.displayName ?? null
+    );
+    const openedVideoPath = useEpisodePanelRuntimeStore(
+        (s) => s.episodes.find((e) => e.id === s.openedEpisodeId)?.videoPath ?? null
+    );
     const episodeNamesById = useEpisodePanelMetadataStore((s) => s.episodeNamesById);
 
     //
     // the app's episode-name precedence, extension stripped (displayName keeps the container)
     const episodeName = useMemo(() => {
-        if (!openedEpisodeId) return null;
-        const episode = episodes.find((e) => e.id === openedEpisodeId);
-        if (!episode) return null;
+        if (!openedEpisodeId || (openedDisplayName === null && openedVideoPath === null)) return null;
         const named =
-            episodeNamesById[episode.id] ||
-            episode.displayName ||
-            episode.videoPath ||
-            `Episode ${episode.id}`;
+            episodeNamesById[openedEpisodeId] ||
+            openedDisplayName ||
+            openedVideoPath ||
+            `Episode ${openedEpisodeId}`;
         return mediaName(named);
-    }, [openedEpisodeId, episodes, episodeNamesById]);
+    }, [openedEpisodeId, openedDisplayName, openedVideoPath, episodeNamesById]);
 
     // Settings read inside callbacks that must not be re-created on every flip
     const flagsRef = useRef({ showMiniIcons, showElapsed, showLinks });

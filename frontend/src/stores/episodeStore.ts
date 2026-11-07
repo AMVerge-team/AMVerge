@@ -1,7 +1,7 @@
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { persist } from "zustand/middleware";
 import type { EpisodeEntry, EpisodeFolder } from "../types/domain";
-import { episodePersistStorage } from "../utils/episodePersistStorage";
+import { coalescedPersistStorage, removeSplit } from "../utils/episodePersistStorage";
 
 export type EpisodePanelRuntimeState = {
     episodes: EpisodeEntry[];
@@ -57,7 +57,7 @@ export const useEpisodePanelRuntimeStore = create<EpisodePanelRuntimeStore>()(
         {
             name: "amverge_episode_panel_v1",
             // async: App renders only after it has loaded (`waitForEpisodes` in main.tsx)
-            storage: createJSONStorage(() => episodePersistStorage),
+            storage: coalescedPersistStorage<{ episodes: EpisodeEntry[] }>(),
             partialize: (state) => ({ episodes: state.episodes }),
         }
     )
@@ -177,7 +177,7 @@ export function waitForEpisodes(): Promise<void> {
 }
 
 export function clearEpisodePanelStores() {
-    void episodePersistStorage.removeItem("amverge_episode_panel_v1");
+    void removeSplit("amverge_episode_panel_v1");
     localStorage.removeItem("amverge_episode_panel_metadata_v1");
     localStorage.removeItem("amverge_episode_panel_migrated_v1");
     localStorage.removeItem("amverge_episode_panel_migrated_v2");
