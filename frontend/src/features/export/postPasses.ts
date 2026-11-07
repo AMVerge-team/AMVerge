@@ -20,8 +20,7 @@ export type UpscaleModel =
   | "shufflecugan"
   | "adore"
   | "fallin_soft"
-  | "fallin_strong"
-  | "realesrgan-anime";
+  | "fallin_strong";
 export type UpscaleQuality = "archival" | "high" | "balanced" | "fast";
 
 export type UpscalePassConfig = {
@@ -64,9 +63,7 @@ export const UPSCALE_MODEL_OPTIONS: { value: UpscaleModel; label: string; scale:
   { value: "fallin_soft", label: "Fallin Soft - 2x, cleanest", scale: 2 },
   { value: "adore", label: "Adore - 2x, high quality", scale: 2 },
   { value: "fallin_strong", label: "Fallin Strong - 2x, sharper", scale: 2 },
-  { value: "shufflecugan", label: "ShuffleCUGAN - 2x, general purpose", scale: 2 },
-  { value: "realesrgan-anime", label: "Real-ESRGAN Anime - 4x, much slower", scale: 4 },
-];
+  { value: "shufflecugan", label: "ShuffleCUGAN - 2x, general purpose", scale: 2 },];
 
 export const UPSCALE_QUALITY_OPTIONS: { value: UpscaleQuality; label: string }[] = [
   { value: "archival", label: "Archival (largest file)" },
