@@ -4,6 +4,8 @@
     "windows": {
       "nsis": {
         "installerIcon": "icons/amverge-mini-logo.ico",
+        "headerImage": "icons/installer/header.bmp",
+        "sidebarImage": "icons/installer/sidebar.bmp",
         "startMenuFolder": "AMVerge"
       }
     },
