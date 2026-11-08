@@ -38,8 +38,7 @@ import useDiscordAuth from "./hooks/useDiscordAuth";
 import useEventsWatch from "./hooks/useEventsWatch";
 import useContextMenuCloseOnScroll from "./hooks/useContextMenuCloseOnScroll";
 
-import { remapClipPaths, remapPathRoot } from "./utils/episodeUtils";
-import { useScenePreviewStore } from "./stores/scenePreviewStore";
+import { rebaseStoragePaths } from "./features/storage/rebaseStoragePaths";
 
 import { useAiDepsStore } from "./stores/aiDepsStore";
 import { useAppStateStore } from "./stores/appStore";
@@ -130,15 +129,14 @@ function App() {
       useAppStateStore.getState().setSelectedClips(new Set());
       await new Promise((resolve) => setTimeout(resolve, 250));
 
-      const resolvedOldPath = await invoke<string>("move_storage_to_new_dir", {
+      await invoke<string>("move_storage_to_new_dir", {
         oldDir: useGeneralSettingsStore.getState().episodesPath,
         newDir: null,
       });
 
-      const defaultEpisodesPath = await invoke<string>("get_default_episodes_dir");
-
-      remapEpisodePaths(resolvedOldPath, defaultEpisodesPath);      
       useGeneralSettingsStore.setState(DEFAULT_GENERAL_SETTINGS);
+      // no custom path now, so this resolves to app data's storage root
+      await rebaseStoragePaths();
     } catch (err) {
       window.alert("Failed to reset episode directory: " + String(err));
     }
@@ -211,33 +209,6 @@ function App() {
     window.addEventListener("pointerup", stop);
     window.addEventListener("pointercancel", stop);
   }
-
-  const remapEpisodePaths = (oldRoot: string, newRoot: string) => {
-    useEpisodePanelRuntimeStore.setState((s) => ({
-      episodes: s.episodes.map((episode) => ({
-        ...episode,
-        videoPath: remapPathRoot(episode.videoPath, oldRoot, newRoot),
-        clips: episode.clips.map((clip) => remapClipPaths(clip, oldRoot, newRoot)),
-      }))
-    }));
-
-    useAppStateStore.setState((s) => ({
-      clips: s.clips.map((clip) => remapClipPaths(clip, oldRoot, newRoot)),
-      importedVideoPath: s.importedVideoPath
-        ? remapPathRoot(s.importedVideoPath, oldRoot, newRoot)
-        : s.importedVideoPath,
-    }));
-
-    useScenePreviewStore.setState((s) => {
-      const next: Record<string, string> = {};
-      for (const [clipId, path] of Object.entries(s.animatedByClipId)) {
-        next[clipId] = remapPathRoot(path, oldRoot, newRoot);
-      }
-      return { animatedByClipId: next };
-    });
-
-    useAppStateStore.getState().setImportToken(Date.now().toString());
-  };
 
   const { updateRPC } = useDiscordRPC();
 
@@ -571,7 +542,6 @@ function App() {
       <ApprovalNoticeModal />
       <SettingsModal
         onGeneralSettingsReset={handleResetGeneralSettings}
-        onEpisodesPathChanged={remapEpisodePaths}
         onThemeReset={handleResetTheme}
       />
       {showStartupNotification && startupNotification ? (

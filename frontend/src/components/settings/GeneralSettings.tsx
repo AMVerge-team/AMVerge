@@ -25,15 +25,14 @@ import {
   sceneDetectionOptions,
 } from "./general/options";
 import { ConfirmModal } from "./general/ConfirmModal";
+import { rebaseStoragePaths } from "../../features/storage/rebaseStoragePaths";
 
 type GeneralSettingsProps = {
   onGeneralSettingsReset: () => void;
-  onEpisodesPathChanged: (oldPath: string, newPath: string) => void;
 };
 
 export default function GeneralSettings({
   onGeneralSettingsReset,
-  onEpisodesPathChanged,
 }: GeneralSettingsProps) {
   const generalSettings = useGeneralSettingsStore();
   const setGeneralSettings = useGeneralSettingsStore.setState;
@@ -126,14 +125,14 @@ export default function GeneralSettings({
           useAppStateStore.getState().setSelectedClips(new Set());
           await new Promise((resolve) => setTimeout(resolve, 250));
 
-          const resolvedOldPath = await invoke<string>("move_storage_to_new_dir", {
+          await invoke<string>("move_storage_to_new_dir", {
             oldDir: generalSettings.episodesPath,
             newDir: selected,
           });
 
-          onEpisodesPathChanged(resolvedOldPath, selected);
-          
           setGeneralSettings((prev) => ({ ...prev, episodesPath: selected }));
+          // `selected` is the storage root; episodes sit in its episodes_storage folder
+          await rebaseStoragePaths(selected);
         } catch (err) {
           window.alert("Failed to move existing episodes: " + String(err));
         } finally {

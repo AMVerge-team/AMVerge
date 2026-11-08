@@ -6,6 +6,7 @@ import { initConsoleCapture } from "./utils/appConsole";
 import { applyThemeSettings, useThemeSettingsStore } from "./stores/settingsStore";
 import { importFromV1 } from "./features/migration/importV1";
 import { waitForEpisodes } from "./stores/episodeStore";
+import { rebaseStoragePaths } from "./features/storage/rebaseStoragePaths";
 
 initConsoleCapture();
 
@@ -76,6 +77,15 @@ async function bootstrap() {
     await importFromV1();
   } catch (err) {
     console.error("[migration] import from AMVerge 1 failed", err);
+  }
+
+  // repairs paths an earlier storage move left pointing at the wrong folder; a correct library writes nothing
+  if ("__TAURI_INTERNALS__" in window) {
+    try {
+      await rebaseStoragePaths();
+    } catch (err) {
+      console.error("[storage] could not check episode paths", err);
+    }
   }
 
   try {

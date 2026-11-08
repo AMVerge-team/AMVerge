@@ -4,7 +4,6 @@ import { useUIStateStore } from "../../stores/UIStore";
 
 type SettingsModalProps = {
   onGeneralSettingsReset: () => void;
-  onEpisodesPathChanged: (oldPath: string, newPath: string) => void;
   onThemeReset: () => void;
 };
 

@@ -16,13 +16,11 @@ const PAGES = [
 
 type SettingsProps = {
   onGeneralSettingsReset: () => void;
-  onEpisodesPathChanged: (oldPath: string, newPath: string) => void;
   onThemeReset: () => void;
 };
 
 export default function Settings({
   onGeneralSettingsReset,
-  onEpisodesPathChanged,
   onThemeReset,
 }: SettingsProps) {
   const activeTab = useUIStateStore(s => s.settingsTab);
@@ -50,10 +48,7 @@ export default function Settings({
         <div className="menu-section">
           <div className="settings-tab-content">
             {activeTab === "general" && (
-              <GeneralSettings
-                onGeneralSettingsReset={onGeneralSettingsReset}
-                onEpisodesPathChanged={onEpisodesPathChanged}
-              />
+              <GeneralSettings onGeneralSettingsReset={onGeneralSettingsReset} />
             )}
 
             {activeTab === "appearance" && (
