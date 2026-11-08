@@ -38,7 +38,7 @@ import useDiscordAuth from "./hooks/useDiscordAuth";
 import useEventsWatch from "./hooks/useEventsWatch";
 import useContextMenuCloseOnScroll from "./hooks/useContextMenuCloseOnScroll";
 
-import { rebaseStoragePaths } from "./features/storage/rebaseStoragePaths";
+import { rebaseStoragePaths, restoreOpenedEpisodeGrid } from "./features/storage/rebaseStoragePaths";
 
 import { useAiDepsStore } from "./stores/aiDepsStore";
 import { useAppStateStore } from "./stores/appStore";
@@ -139,6 +139,8 @@ function App() {
       await rebaseStoragePaths();
     } catch (err) {
       window.alert("Failed to reset episode directory: " + String(err));
+    } finally {
+      restoreOpenedEpisodeGrid();
     }
   };
 

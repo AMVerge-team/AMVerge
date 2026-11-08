@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { importClipsToDavinci } from "../davinci/resolveImport";
+import { detectDavinciResolve, importClipsToDavinci } from "../davinci/resolveImport";
 import { useAppStateStore } from "../../stores/appStore";
 import { useGeneralSettingsStore } from "../../stores/settingsStore";
 
@@ -9,7 +9,12 @@ export async function deliverExportedFiles(files: string[]): Promise<void> {
 
   const settings = useGeneralSettingsStore.getState();
 
-  if (settings.davinciResolveEnabled && settings.davinciExportSelected) {
+  // a toggle left on from before Resolve was removed (its settings are hidden then) falls through to the reveal
+  if (
+    settings.davinciResolveEnabled &&
+    settings.davinciExportSelected &&
+    (await detectDavinciResolve()).installed
+  ) {
     try {
       console.log("[export] " + (await importClipsToDavinci(files)));
       return;

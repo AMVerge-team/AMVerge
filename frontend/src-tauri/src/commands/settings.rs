@@ -8,7 +8,7 @@ use tauri::{AppHandle, Manager};
 use crate::utils::ffmpeg::resolve_bundled_tool;
 use crate::utils::logging::console_log;
 use crate::utils::paths::{
-    is_episode_cache_dir, resolve_episodes_storage_dir, resolve_storage_root, EPISODES_DIR_NAME,
+    resolve_episodes_storage_dir, resolve_storage_root,
     OWNED_STORAGE_DIRS,
 };
 use crate::utils::process::apply_no_window;
@@ -55,6 +55,15 @@ fn move_storage(old_root: &Path, new_root: &Path) -> Result<(), String> {
     // source folders that were copied but could not be deleted (locked files)
     let mut leftovers: Vec<String> = Vec::new();
 
+    // a root inside one of the folders being moved would move that folder into itself
+    for dir_name in OWNED_STORAGE_DIRS {
+        if new_root.starts_with(old_root.join(dir_name)) {
+            return Err(format!("Pick a folder outside the current {dir_name} folder."));
+        }
+    }
+
+    fs::create_dir_all(new_root).map_err(|e| format!("Failed to create new directory: {e}"))?;
+
     for dir_name in OWNED_STORAGE_DIRS {
         let src_dir = old_root.join(dir_name);
         if !src_dir.is_dir() {
@@ -62,21 +71,23 @@ fn move_storage(old_root: &Path, new_root: &Path) -> Result<(), String> {
         }
 
         let dest_dir = new_root.join(dir_name);
-        fs::create_dir_all(&dest_dir)
-            .map_err(|e| format!("Failed to create new directory: {e}"))?;
 
+        // the whole folder goes over as one, so nothing of it stays behind at the old root
+        if !dest_dir.exists() {
+            move_entry(&src_dir, &dest_dir, &mut leftovers)?;
+            continue;
+        }
+
+        // the new root already has one: merge everything into it, then drop the emptied old folder
         for entry in
             fs::read_dir(&src_dir).map_err(|e| format!("Failed to read old directory: {e}"))?
         {
             let entry = entry.map_err(|e| format!("Failed to read entry: {e}"))?;
-            let src = entry.path();
+            move_entry(&entry.path(), &dest_dir.join(entry.file_name()), &mut leftovers)?;
+        }
 
-            // only manifest-marked episode folders move; the user may keep their own files there
-            if *dir_name == EPISODES_DIR_NAME && !is_episode_cache_dir(&src) {
-                continue;
-            }
-
-            move_entry(&src, &dest_dir.join(entry.file_name()), &mut leftovers)?;
+        if fs::read_dir(&src_dir).map(|mut it| it.next().is_none()).unwrap_or(false) {
+            let _ = fs::remove_dir(&src_dir);
         }
     }
 
@@ -101,8 +112,9 @@ pub(crate) fn move_entry(src: &Path, dest: &Path, leftovers: &mut Vec<String>) -
     }
 
     if src.is_dir() {
+        // contents only: with `copy_inside` and an existing `dest`, fs_extra nested the folder as `dest/<name>`
         let mut options = fs_extra::dir::CopyOptions::new();
-        options.copy_inside = true;
+        options.content_only = true;
         options.overwrite = true;
 
         fs::create_dir_all(dest)
@@ -642,4 +654,64 @@ pub fn reveal_in_file_manager(file_path: String) -> Result<(), String> {
         .map_err(|e| format!("Failed to open file manager: {e}"))?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn touch(path: &Path) {
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, b"x").unwrap();
+    }
+
+    #[test]
+    fn moves_each_owned_folder_whole() {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = tmp.path().join("old");
+        let new = tmp.path().join("new");
+        touch(&old.join("episodes_storage/ep1/manifest.json"));
+        touch(&old.join("episodes_storage/no_manifest/scenes/a.jpg"));
+        touch(&old.join("scene_packs/p1/clip.mp4"));
+
+        move_storage(&old, &new).unwrap();
+
+        assert!(new.join("episodes_storage/ep1/manifest.json").is_file());
+        assert!(new.join("episodes_storage/no_manifest/scenes/a.jpg").is_file());
+        assert!(new.join("scene_packs/p1/clip.mp4").is_file());
+        assert!(!old.join("episodes_storage").exists());
+        assert!(!old.join("scene_packs").exists());
+    }
+
+    #[test]
+    fn merges_into_an_existing_folder_without_nesting() {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = tmp.path().join("old");
+        let new = tmp.path().join("new");
+        touch(&old.join("episodes_storage/ep1/manifest.json"));
+        touch(&old.join("episodes_storage/ep1/clips/a.mp4"));
+        // the same episode already at the new root makes rename fail, so this takes the copy path
+        touch(&new.join("episodes_storage/ep1/older.txt"));
+        touch(&new.join("episodes_storage/ep2/manifest.json"));
+
+        move_storage(&old, &new).unwrap();
+
+        assert!(new.join("episodes_storage/ep1/manifest.json").is_file());
+        assert!(new.join("episodes_storage/ep1/clips/a.mp4").is_file());
+        assert!(new.join("episodes_storage/ep1/older.txt").is_file());
+        assert!(new.join("episodes_storage/ep2/manifest.json").is_file());
+        assert!(!new.join("episodes_storage/ep1/ep1").exists());
+        assert!(!old.join("episodes_storage").exists());
+    }
+
+    #[test]
+    fn refuses_a_root_inside_a_folder_being_moved() {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = tmp.path().join("old");
+        touch(&old.join("episodes_storage/ep1/manifest.json"));
+
+        let err = move_storage(&old, &old.join("episodes_storage/inner")).unwrap_err();
+        assert!(err.contains("episodes_storage"));
+        assert!(old.join("episodes_storage/ep1/manifest.json").is_file());
+    }
 }

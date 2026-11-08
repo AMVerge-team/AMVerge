@@ -307,3 +307,88 @@ fn copy_assets(src: &Path, dest: &Path) -> Result<(), String> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn touch(path: &Path) {
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, b"x").unwrap();
+    }
+
+    fn episode(id: &str) -> V1EpisodeMove {
+        V1EpisodeMove { id: id.to_string(), manifest: serde_json::json!({ "importedFromV1": true }) }
+    }
+
+    #[test]
+    fn moves_a_v1_episode_and_writes_its_manifest_beside_the_clips() {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = tmp.path().join("v1/episodes");
+        let new = tmp.path().join("v2/episodes/episodes_storage");
+        touch(&old.join("Show_ab12cd34/Show_0000.mp4"));
+        touch(&old.join("Show_ab12cd34/Show_0000.jpg"));
+        fs::create_dir_all(&new).unwrap();
+
+        move_episode(&old, &new, &episode("Show_ab12cd34"), &mut Vec::new()).unwrap();
+
+        let dest = new.join("Show_ab12cd34");
+        assert!(dest.join("Show_0000.mp4").is_file());
+        assert!(dest.join("Show_0000.jpg").is_file());
+        assert!(dest.join("manifest.json").is_file());
+        assert!(!old.join("Show_ab12cd34").exists());
+    }
+
+    #[test]
+    fn a_copied_episode_is_not_nested_in_a_folder_of_its_own_name() {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = tmp.path().join("v1/episodes");
+        let new = tmp.path().join("v2/episodes/episodes_storage");
+        touch(&old.join("Show_ab12cd34/Show_0000.mp4"));
+        // an existing destination makes rename fail, which is the cross-drive copy path
+        touch(&new.join("Show_ab12cd34/stale.txt"));
+
+        move_episode(&old, &new, &episode("Show_ab12cd34"), &mut Vec::new()).unwrap();
+
+        let dest = new.join("Show_ab12cd34");
+        assert!(dest.join("Show_0000.mp4").is_file());
+        assert!(dest.join("manifest.json").is_file());
+        assert!(!dest.join("Show_ab12cd34").exists());
+    }
+
+    #[test]
+    fn reads_v1s_custom_episodes_path_from_the_export() {
+        let settings = serde_json::json!({ "state": { "episodesPath": " D:\\AMV\\Episodes " } }).to_string();
+        let migration = serde_json::json!({ "localStorage": { "amverge.generalSettings.v2": settings } });
+        assert_eq!(v1_custom_episodes_path(Some(&migration)).as_deref(), Some("D:\\AMV\\Episodes"));
+
+        let unset = serde_json::json!({ "state": { "episodesPath": null } }).to_string();
+        let migration = serde_json::json!({ "localStorage": { "amverge.generalSettings.v2": unset } });
+        assert_eq!(v1_custom_episodes_path(Some(&migration)), None);
+    }
+
+    #[test]
+    fn recovers_v1_episodes_from_their_scene_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().join("Show_ab12cd34");
+        touch(&dir.join("Show_0001.mp4"));
+        touch(&dir.join("Show_0000.mp4"));
+        touch(&dir.join("Show_0000.preview.mp4"));
+
+        let recovered = recover_episodes(tmp.path());
+        assert_eq!(recovered.len(), 1);
+        assert_eq!(recovered[0].name, "Show");
+        assert_eq!(recovered[0].clips.len(), 2);
+        assert!(recovered[0].clips[0].src.ends_with("Show_0000.mp4"));
+        assert!(recovered[0].clips[0].thumbnail.ends_with("Show_0000.jpg"));
+    }
+
+    #[test]
+    fn never_deletes_a_folder_not_named_like_v1s() {
+        let tmp = tempfile::tempdir().unwrap();
+        let other = tmp.path().join("app.amverge");
+        fs::create_dir_all(&other).unwrap();
+        assert!(remove_v1_dir(&other).is_err());
+        assert!(other.exists());
+    }
+}

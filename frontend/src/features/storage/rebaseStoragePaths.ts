@@ -101,6 +101,14 @@ function rebaseScenepack(pack: ScenepackEntry, root: string): ScenepackEntry {
   return changed ? { ...pack, thumbnail, clips } : pack;
 }
 
+/** a storage move empties the grid so windows can move the files; this puts the open episode back afterwards */
+export function restoreOpenedEpisodeGrid(): void {
+  const { episodes, openedEpisodeId } = useEpisodePanelRuntimeStore.getState();
+  const opened = openedEpisodeId ? episodes.find((episode) => episode.id === openedEpisodeId) : null;
+  if (!opened) return;
+  useAppStateStore.getState().setClips(opened.clips);
+}
+
 /**
  * points every stored episode, scenepack and preview path at the storage root in use; untouched entries keep
  * their objects, so an already-correct library writes nothing. returns how many episodes and packs changed

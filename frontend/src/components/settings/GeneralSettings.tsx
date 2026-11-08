@@ -25,7 +25,8 @@ import {
   sceneDetectionOptions,
 } from "./general/options";
 import { ConfirmModal } from "./general/ConfirmModal";
-import { rebaseStoragePaths } from "../../features/storage/rebaseStoragePaths";
+import { rebaseStoragePaths, restoreOpenedEpisodeGrid } from "../../features/storage/rebaseStoragePaths";
+import { useDavinciInstalled } from "../../features/davinci/useDavinciAvailable";
 
 type GeneralSettingsProps = {
   onGeneralSettingsReset: () => void;
@@ -48,6 +49,7 @@ export default function GeneralSettings({
       : generalSettings.previewTranscodeMode;
   const setGridPreview = useUIStateStore((s) => s.setGridPreview);
   const [loading, setLoading] = useState(false);
+  const davinciInstalled = useDavinciInstalled();
   // a move to another drive copies every episode, which can take minutes; the row says so meanwhile
   const [movingTo, setMovingTo] = useState<string | null>(null);
   const [showFactoryResetConfirm, setShowFactoryResetConfirm] = useState(false);
@@ -136,6 +138,8 @@ export default function GeneralSettings({
         } catch (err) {
           window.alert("Failed to move existing episodes: " + String(err));
         } finally {
+          // the grid was emptied for the move; failed or not, the open episode comes back
+          restoreOpenedEpisodeGrid();
           setLoading(false);
           setMovingTo(null);
         }
@@ -378,6 +382,8 @@ export default function GeneralSettings({
         </SettingsSection>
 
         {/* scenepacks and the other major features moved to Settings > Features */}
+        {/* only Resolve lives here, so the section shows only where Resolve is installed */}
+        {davinciInstalled && (
         <SettingsSection id="general.integrations" title="Integrations">
         <SettingRow
           label="DaVinci Resolve Compatibility"
@@ -402,6 +408,7 @@ export default function GeneralSettings({
           }
         />
         </SettingsSection>
+        )}
 
         <SettingsSection id="general.storage" title="Storage">
         <SettingRow
