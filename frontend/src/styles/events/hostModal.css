@@ -293,7 +293,7 @@
 .host-event-modal .bugreport-field.is-invalid input[type="url"],
 .host-event-modal .bugreport-field.is-invalid input[type="number"],
 .host-event-modal .bugreport-field.is-invalid .event-datetime-trigger,
-.host-event-modal .bugreport-field.is-invalid .event-description-editor,
+.host-event-modal .bugreport-field.is-invalid .event-description-input,
 .host-event-modal .bugreport-field.is-invalid .event-secondary-btn,
 .host-event-modal .bugreport-field.is-invalid .event-prize-field {
     border-color: rgba(248, 113, 113, 0.75);

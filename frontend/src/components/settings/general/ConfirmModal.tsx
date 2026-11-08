@@ -11,6 +11,7 @@ type Props = {
   busy?: boolean;
   secondary?: { label: string; onClick: () => void };
   cancelLabel?: string;
+  confirmDisabled?: boolean;
 };
 
 // shared shape for the destructive confirmations in General settings
@@ -23,6 +24,7 @@ export function ConfirmModal({
   busy = false,
   secondary,
   cancelLabel = "Cancel",
+  confirmDisabled = false,
 }: Props) {
   const dialogRef = useRef<HTMLDivElement>(null);
   useEscapeToClose(onClose, !busy);
@@ -62,7 +64,7 @@ export function ConfirmModal({
             type="button"
             className="episode-modal-btn primary"
             onClick={onConfirm}
-            disabled={busy}
+            disabled={busy || confirmDisabled}
           >
             {confirmLabel}
           </button>

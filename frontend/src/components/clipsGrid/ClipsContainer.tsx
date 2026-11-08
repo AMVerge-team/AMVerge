@@ -685,7 +685,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
                     onClick={() => {
                       const source = flowSourceForClip(clipMenu.targets[0]);
                       setClipMenu(null);
-                      if (source) void useSceneScoutStore.getState().startFlowSearch(source);
+                      if (source) void useSceneScoutStore.getState().startFlowSearch(source, { pick: true });
                     }}
                   >
                     Find clips that flow

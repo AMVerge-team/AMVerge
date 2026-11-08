@@ -10,7 +10,7 @@ export default function About() {
       <div className="about-hero">
         <h2 className="about-hero-title">About AMVerge</h2>
         <p className="about-hero-subtitle">
-          AMVerge makes scene selection easier. It splits an episode into every shot up front, so you skim a grid instead of scrubbing a timeline, then cut the clips you picked losslessly and send them straight to your editor.
+          AMVerge makes scene selection easier. It splits an episode into every scene, so you can skim through it much faster and miss less scenes than you would in a video editor.
         </p>
       </div>
 

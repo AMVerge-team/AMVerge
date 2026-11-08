@@ -515,7 +515,7 @@ export const LazyClip = memo(function LazyClip({
                 canFindFlowFrom(clip, activePage, sceneScoutEnabled)
                   ? () => {
                       const source = flowSourceForClip(clip);
-                      if (source) void useSceneScoutStore.getState().startFlowSearch(source);
+                      if (source) void useSceneScoutStore.getState().startFlowSearch(source, { pick: true });
                     }
                   : undefined
               }

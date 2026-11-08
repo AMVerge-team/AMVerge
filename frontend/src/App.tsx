@@ -10,6 +10,7 @@ import QuickMenu from "./components/QuickMenu";
 import CommandPalette from "./components/CommandPalette";
 import MenuModal from "./components/menu/MenuModal";
 import ToolsModal from "./components/tools/ToolsModal";
+import { FlowDatabasePrompt } from "./components/sceneScout/FlowDatabasePrompt";
 import EventsPage from "./pages/EventsPage";
 import HostEventModal from "./components/events/HostEventModal";
 import BanNoticeModal from "./components/events/BanNoticeModal";
@@ -540,6 +541,7 @@ function App() {
       <CommandPalette />
       <MenuModal />
       <ToolsModal />
+      <FlowDatabasePrompt />
       <HostEventModal />
       <BanNoticeModal />
       <DenialNoticeModal />

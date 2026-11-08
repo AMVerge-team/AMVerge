@@ -19,7 +19,7 @@ const STEPS: Step[] = [
     body: (
       <>
         Find any scene by describing it, like <i>"girl crying in the rain"</i>. Scene Scout indexes your
-        episodes into a <b>database</b> once, then searches them in seconds. Here is how it fits together.
+        episodes into a <b>database</b> once, then searches them in seconds.
       </>
     ),
   },
@@ -74,8 +74,8 @@ const STEPS: Step[] = [
     targets: ["search-field"],
     title: "5. Describe a scene",
     body: (
-      <>
-        Type what you remember and press <b>Enter</b>. Click a result to preview it, then export it like
+      <>``
+        Describe the scene you want, press <b>Enter</b>, select the clips you're looking for, then export it like
         any clip.
       </>
     ),

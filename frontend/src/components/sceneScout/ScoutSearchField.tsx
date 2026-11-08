@@ -26,7 +26,8 @@ export function ScoutSearchField({ fieldRef, onSubmit, blockedHint = null }: Pro
   const displayNames = useSceneScoutStore((s) => s.displayNames);
 
   const hasSelection = selectedDatabases.length > 0 || selectedVideos.length > 0;
-  const blocked = Boolean(blockedHint) || !hasSelection;
+  // nothing selected still searches: submitting asks which databases first
+  const blocked = Boolean(blockedHint) || (!hasSelection && databases.length === 0);
   const submit = onSubmit ?? (() => void runSearch());
 
   const placeholder = useMemo(() => {
@@ -46,7 +47,8 @@ export function ScoutSearchField({ fieldRef, onSubmit, blockedHint = null }: Pro
       }
       return `Describe a scene to search across ${selectedDatabases.length} selected databases...`;
     }
-    return "Add a database to the Searching list on the left to search...";
+    if (databases.length > 0) return "Describe a scene to search for...";
+    return "Create a database to start searching...";
   }, [blockedHint, selectedDatabases, selectedVideos, databases, displayNames]);
 
   const canSubmit = !blocked && !searching && !indexing && Boolean(query.trim());

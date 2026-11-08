@@ -122,7 +122,11 @@ type SceneScoutState = {
   flowResults: ScoutHit[];
   flowSearching: boolean;
   flowError: string | null;
+  /** runtime only: a flow or search waiting here while the user picks which databases to search */
+  dbPrompt: DbPrompt | null;
 };
+
+export type DbPrompt = { kind: "flow"; source: FlowSource } | { kind: "search" };
 
 export type ScoutMode = "search" | "flow";
 
@@ -164,10 +168,12 @@ type SceneScoutActions = {
   backfillThumbnails: (paths: string[]) => void;
   refresh: () => Promise<void>;
   setMode: (mode: ScoutMode) => void;
-  /** open the Flow tab with a clip and find the scenes most like its last frame */
-  startFlowSearch: (source: FlowSource) => Promise<void>;
+  /** open the Flow tab with a clip and find the scenes most like its last frame; `pick` asks for databases first */
+  startFlowSearch: (source: FlowSource, options?: { pick?: boolean }) => Promise<void>;
   /** re-run the Flow tab's search for the current clip (databases or result count changed) */
   runFlowSearch: () => Promise<void>;
+  /** the database prompt's answer: search those, then run the flow or search that was waiting; empty cancels */
+  answerDbPrompt: (paths: string[]) => Promise<void>;
 };
 
 const INITIAL: SceneScoutState = {
@@ -197,6 +203,7 @@ const INITIAL: SceneScoutState = {
   flowResults: [],
   flowSearching: false,
   flowError: null,
+  dbPrompt: null,
 };
 
 // databases already backfilled this session, so a repeat search does not respawn the cli for nothing
@@ -250,6 +257,13 @@ async function searchBlocker(): Promise<string | null> {
   }
   if (!(await useAiDepsStore.getState().ensurePack("scout"))) return "Scene Scout needs its AI pack installed.";
   return null;
+}
+
+/** whether there is any database to offer in the picker, loading the list once if it is still empty */
+async function hasDatabases(): Promise<boolean> {
+  const store = useSceneScoutStore.getState();
+  if (store.databases.length === 0) await store.loadDatabases().catch(() => {});
+  return useSceneScoutStore.getState().databases.length > 0;
 }
 
 /** remembers a database outside the managed folder, which the root listing can't find on its own */
@@ -332,6 +346,10 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           if (kept.length !== settings.selectedDatabases.length) {
             set({ settings: { ...settings, selectedDatabases: kept } });
           }
+          // same for the Searching list: a gone path counted there but showed nothing and blocked the prompt
+          const searching = get().selectedDatabases;
+          const stillThere = searching.filter((p) => databases.some((d) => samePath(d.path, p)));
+          if (stillThere.length !== searching.length) set({ selectedDatabases: stillThere });
         } catch (err) {
           set({ loading: false, error: message(err) });
         }
@@ -746,13 +764,18 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       runSearch: async () => {
         const query = get().query.trim();
         if (!query) return;
+        // nothing to search in: ask which databases, the answer runs this search
+        if (get().selectedDatabases.length === 0 && get().selectedVideos.length === 0 && (await hasDatabases())) {
+          set({ dbPrompt: { kind: "search" } });
+          return;
+        }
         const blocker = await searchBlocker();
         if (blocker) {
           set({ error: blocker });
           return;
         }
 
-        set({ searching: true, error: null });
+        set({ searching: true, error: null, heroDismissed: true });
         try {
           const searchSettings = {
             ...get().settings,
@@ -804,11 +827,29 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
 
       setMode: (mode) => set({ mode }),
 
-      startFlowSearch: async (source) => {
+      startFlowSearch: async (source, options) => {
+        // asked for, or nothing in the Searching list: pick the databases rather than failing with a hint
+        if ((options?.pick || get().selectedDatabases.length === 0) && (await hasDatabases())) {
+          set({ dbPrompt: { kind: "flow", source } });
+          return;
+        }
         // using flow ends the first-visit layout for both tabs, exactly like the first search does
         set({ heroDismissed: true, mode: "flow", flowFrom: source, flowResults: [], flowError: null });
         useUIStateStore.getState().setActivePage("sceneScout");
         await get().runFlowSearch();
+      },
+
+      answerDbPrompt: async (paths) => {
+        const prompt = get().dbPrompt;
+        set({ dbPrompt: null });
+        if (!prompt || paths.length === 0) return;
+        set({
+          selectedDatabases: paths,
+          selectedVideos: [],
+          openedDatabase: paths.length === 1 ? paths[0] : get().openedDatabase,
+        });
+        if (prompt.kind === "flow") await get().startFlowSearch(prompt.source);
+        else await get().runSearch();
       },
 
       runFlowSearch: async () => {

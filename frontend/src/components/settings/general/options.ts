@@ -10,12 +10,12 @@ export const SCENE_DETECTION_OPTIONS: DropdownOption<SceneDetectionMethod>[] = [
   {
     value: "transnetv2_gpu",
     label: "AI Scene Detection",
-    description: "The most accurate way to find scene cuts. Uses AI.",
+    description: "Runs AI to accurately find scene cuts",
   },
   {
     value: "keyframe_detection",
     label: "Keyframe Detection",
-    description: "Fast, and works on any PC. Cuts at keyframes.",
+    description: "Cuts at keyframes which is fast, and works on any PC",
   },
 ];
 

@@ -261,7 +261,7 @@ export default function GeneralSettings({
               </p>
               <p>
                 Each tile that plays is an actual video being decoded, so a long episode with
-                hundreds of scenes asks a lot of your PC. This is the heavier option.
+                hundreds of scenes can be demanding.
               </p>
 
               <h4>WebP Files</h4>

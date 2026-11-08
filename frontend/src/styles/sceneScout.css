@@ -921,14 +921,82 @@
 }
 
 /* 16:9 at the box's width, so the border always hugs the video */
+/* min-height 0: an aspect-ratio box still grows to fit its content, so a 4:3 clip made it taller than its room,
+   and the bottom-anchored player then pushed the extra off the top where it can't be scrolled to */
 .scene-scout-flow-player-frame {
     position: relative;
     width: 100%;
     aspect-ratio: 16 / 9;
+    min-height: 0;
     border-radius: 12px;
     overflow: hidden;
     background: black;
     border: 1px solid rgb(255 255 255 / 0.08);
+}
+
+/* the database prompt for a flow started with nothing in the Searching list */
+.flow-db-prompt-all {
+    display: block;
+    margin: 0 0 8px auto;
+    padding: 2px 0;
+    border: none;
+    background: none;
+    color: var(--accent);
+    font-family: var(--ui-font);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.flow-db-prompt-all:hover {
+    text-decoration: underline;
+}
+
+.flow-db-prompt-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.flow-db-prompt-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid rgb(255 255 255 / 0.12);
+    background: rgb(0 0 0 / 0.3);
+    color: rgb(255 255 255 / 0.85);
+    font-family: var(--ui-font);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.flow-db-prompt-option:hover {
+    border-color: rgb(var(--accent-rgb) / 0.5);
+}
+
+.flow-db-prompt-option.is-selected {
+    border-color: var(--accent);
+    background: rgb(var(--accent-rgb) / 0.14);
+    color: #fff;
+}
+
+.flow-db-prompt-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.flow-db-prompt-detail {
+    flex: none;
+    font-size: 12px;
+    color: rgb(255 255 255 / 0.5);
 }
 
 /* the custom player brings its own rounded accent frame; clipping it here cut its corners off */

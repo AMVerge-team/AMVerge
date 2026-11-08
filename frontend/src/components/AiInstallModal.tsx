@@ -159,10 +159,10 @@ export default function AiInstallModal() {
                     ? `already installed (${status.torchVariant?.toUpperCase()})`
                     : variant === "cuda"
                       ? gpuPreference === "cuda"
-                        ? "GPU / CUDA (chosen by you)"
+                        ? "GPU / CUDA"
                         : "GPU / CUDA (NVIDIA GPU detected)"
                       : gpuUndetermined
-                        ? "CPU (couldn't check for an NVIDIA GPU)"
+                        ? "CPU (failed to check for NVIDIA GPU)"
                         : "CPU (no NVIDIA GPU detected)"}
                 </dd>
               </div>
@@ -171,7 +171,7 @@ export default function AiInstallModal() {
               <p className="aid-note">
                 {gpuUndetermined
                   ? "AMVerge couldn't run nvidia-smi to check for a GPU, so it's planning the CPU build."
-                  : "No NVIDIA GPU was found, so it's planning the CPU build."}{" "}
+                  : "No NVIDIA GPU was found, planning the CPU build."}{" "}
                 <button
                   type="button"
                   className="aid-link-btn"

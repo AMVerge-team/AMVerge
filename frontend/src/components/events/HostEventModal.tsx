@@ -74,18 +74,6 @@ const FIELD_ORDER = [
 type FieldKey = (typeof FIELD_ORDER)[number];
 type FieldErrors = Partial<Record<FieldKey, string>>;
 
-const FIELD_LABELS: Record<FieldKey, string> = {
-  title: "Title",
-  thumbnail: "Thumbnail",
-  description: "Description",
-  discordInviteUrl: "Discord invite",
-  hyettaUrl: "Hyetta link",
-  startsAt: "Start",
-  durationHours: "Hours",
-  endsAt: "End",
-  prizePool: "Prize pool",
-};
-
 type PreviewMode = "tile" | "detail";
 
 /** `datetime-local` wants `YYYY-MM-DDTHH:mm` in local time, not an ISO string */
@@ -166,7 +154,6 @@ export default function HostEventModal() {
   const [previewMode, setPreviewMode] = useState<PreviewMode>("tile");
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const [message, setMessage] = useState("");
   const formRef = useRef<HTMLFormElement | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // cleared on unmount and reopen so a pending auto-close never hits a returned-to form
@@ -190,7 +177,6 @@ export default function HostEventModal() {
 
     setError("");
     setFieldErrors({});
-    setMessage("");
     setSubmitting(false);
     setThumbnail(null);
     setPreviewMode("tile");
@@ -248,11 +234,8 @@ export default function HostEventModal() {
     });
   };
 
-  const invalidKeys = FIELD_ORDER.filter((key) => fieldErrors[key]);
-  const banner =
-    invalidKeys.length > 0
-      ? `Fix ${invalidKeys.length === 1 ? "this field" : "these fields"}: ${invalidKeys.map((key) => FIELD_LABELS[key]).join(", ")}.`
-      : error;
+  // a field to fix is only outlined; the banner is for what the server refused
+  const banner = Object.keys(fieldErrors).length > 0 ? "" : error;
 
   const setField = <K extends keyof FormState>(field: K, value: FormState[K]) => {
     setForm((previous) => ({ ...previous, [field]: value }));
@@ -261,8 +244,6 @@ export default function HostEventModal() {
   };
 
   const fieldClass = (key: FieldKey) => `bugreport-field${fieldErrors[key] ? " is-invalid" : ""}`;
-  const fieldError = (key: FieldKey) =>
-    fieldErrors[key] ? <p className="bugreport-field-error">{fieldErrors[key]}</p> : null;
 
   /** moving the start past the end pushes the end to a day later */
   const setStartsAt = (next: string) => {
@@ -390,7 +371,6 @@ export default function HostEventModal() {
   const showProblems = (errors: FieldErrors) => {
     const keys = FIELD_ORDER.filter((key) => errors[key]);
     setFieldErrors(errors);
-    setMessage("");
     setError("");
 
     // bring the first one into view and put the cursor in it
@@ -414,7 +394,6 @@ export default function HostEventModal() {
     setSubmitting(true);
     setError("");
     setFieldErrors({});
-    setMessage("");
 
     const result = await saveEvent({
       title: form.title.trim(),
@@ -441,17 +420,8 @@ export default function HostEventModal() {
       return;
     }
 
-    // stays disabled after success; the confirmation shows briefly, then the modal closes itself
-    setMessage(
-      editing
-        ? "Edit submitted. It goes live once a moderator approves it."
-        : "Submitted. Your event appears once a moderator approves it."
-    );
-
-    closeTimerRef.current = window.setTimeout(() => {
-      closeTimerRef.current = null;
-      closeHostForm();
-    }, 1600);
+    // accepted: the event now waits in the host's own list, so the form just closes
+    closeHostForm();
   };
 
   return (
@@ -542,7 +512,6 @@ export default function HostEventModal() {
                   placeholder="Summer AMV Contest"
                   aria-invalid={fieldErrors.title ? true : undefined}
                 />
-                {fieldError("title")}
               </div>
 
               <div className={fieldClass("thumbnail")} data-field="thumbnail">
@@ -568,7 +537,6 @@ export default function HostEventModal() {
                   <FaImage aria-hidden="true" />
                   {thumbnailDataUrl ? "Replace thumbnail" : "Choose thumbnail"}
                 </button>
-                {fieldError("thumbnail")}
               </div>
 
               <div className={fieldClass("description")} data-field="description">
@@ -582,7 +550,6 @@ export default function HostEventModal() {
                   onChange={(next) => setField("description", next)}
                   placeholder="What the event is, how to enter, and how entries are judged."
                 />
-                {fieldError("description")}
               </div>
 
               <div className={`host-event-row${form.eventType === "hour" ? "" : " is-single"}`}>
@@ -599,7 +566,6 @@ export default function HostEventModal() {
                     placeholder="https://discord.gg/..."
                     aria-invalid={fieldErrors.discordInviteUrl ? true : undefined}
                   />
-                  {fieldError("discordInviteUrl")}
                 </div>
 
                 {form.eventType === "hour" && (
@@ -627,7 +593,6 @@ export default function HostEventModal() {
                       placeholder="If it's already on Hyetta"
                       aria-invalid={fieldErrors.hyettaUrl ? true : undefined}
                     />
-                    {fieldError("hyettaUrl")}
                   </div>
                 )}
               </div>
@@ -644,7 +609,6 @@ export default function HostEventModal() {
                     onChange={setStartsAt}
                     placeholder="Pick a date and time"
                   />
-                  {fieldError("startsAt")}
                 </div>
 
                 {form.eventType === "hour" && (
@@ -683,7 +647,6 @@ export default function HostEventModal() {
                         <FaPlus aria-hidden="true" />
                       </button>
                     </div>
-                    {fieldError("durationHours")}
                   </div>
                 )}
 
@@ -699,7 +662,6 @@ export default function HostEventModal() {
                       placeholder="Pick a date and time"
                       minDate={form.startsAt ? new Date(form.startsAt) : undefined}
                     />
-                    {fieldError("endsAt")}
                   </div>
                 )}
               </div>
@@ -723,17 +685,11 @@ export default function HostEventModal() {
                     placeholder="100, or leave blank"
                   />
                 </div>
-                {fieldError("prizePool")}
               </div>
 
               {banner && (
                 <div className="bugreport-alert error host-event-alert" role="alert">
                   {banner}
-                </div>
-              )}
-              {message && (
-                <div className="bugreport-alert success host-event-alert" role="status">
-                  {message}
                 </div>
               )}
 

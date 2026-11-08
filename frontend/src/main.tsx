@@ -33,7 +33,7 @@ async function maybeCheckForUpdatesOnStartup() {
 
     console.log(`[updater] starting install for v${update.version}`);
     await message(
-      `Starting update to v${update.version}. Download/install may take a bit on macOS.\n\nPlease keep AMVerge open until it completes.`,
+      `Starting update to v${update.version}. \n\nPlease keep the app open until it completes.`,
       { title: "AMVerge Update" },
     );
 

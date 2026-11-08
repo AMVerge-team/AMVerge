@@ -105,8 +105,8 @@ export default function EventsToolbar() {
 
         <InfoButton title="Community Events" variant="toolbar">
           <p>
-            The community is big, and editing contests get lost in the noise. This page
-            gathers them in one place so editors can find opportunities worth entering,
+            The community is pretty huge, and editing contests often go unnoticed as a result.
+            This page gathers them in one place so editors can find opportunities worth entering,
             and hosts reach the people most likely to show up. Better turnout makes for
             better events, and events that go well encourage the next person to run one.
           </p>
@@ -115,7 +115,7 @@ export default function EventsToolbar() {
           <p>
             A short, fixed window. Editors get a set number of hours, usually on a single
             day, to make an edit from start to finish. These are lower commitment and I personally
-            love participating in these (-crptk)
+            love participating in these (crptk)
           </p>
 
           <h4>Editing Contest (EC)</h4>
@@ -130,7 +130,7 @@ export default function EventsToolbar() {
             <li>Sign in with Discord using the Login button so you can manage the event going forward. 
               All logins are done through Discord's official API, so we have no access to your data.
             </li>
-            <li>Press Host Event and pick the format: HC for a timedj contest, EC for a longer contest.</li>
+            <li>Press Host Event and pick the format: HC for a timed contest, EC for a longer contest.</li>
             <li>
               Fill in the title, cover image, description, dates, and an invite to the
               Discord server where the event actually happens. Add a prize pool if there

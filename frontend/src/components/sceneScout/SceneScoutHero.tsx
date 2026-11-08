@@ -56,10 +56,11 @@ export function SceneScoutHero() {
     : null;
 
   const selectedHaveScenes = databases.some((d) => inSearch(d.path) && d.sceneCount > 0);
+  // with nothing selected, searching asks which databases to use
   const blockedHint =
-    selectedDatabases.length === 0
-      ? "Select a database below to search it..."
-      : !selectedHaveScenes
+    databases.length === 0
+      ? "Create a database below to start searching..."
+      : selectedDatabases.length > 0 && !selectedHaveScenes
         ? "Add episodes to the selected database before searching..."
         : null;
 
@@ -79,7 +80,8 @@ export function SceneScoutHero() {
   const startFirstSearch = () => {
     const rect = fieldRef.current?.getBoundingClientRect();
     if (rect) setHeroFlip(rect);
-    dismissHero();
+    // the picker opens over the hero; the search it runs dismisses the hero then
+    if (selectedDatabases.length > 0) dismissHero();
     void runSearch();
   };
 

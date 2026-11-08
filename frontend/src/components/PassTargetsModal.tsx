@@ -113,8 +113,8 @@ function PassTargetsDialog() {
         <div className="episode-modal-title">Choose clips for each pass</div>
         <div className="episode-modal-message">
           {mergeEnabled
-            ? "The clips picked for a pass are merged into that pass's own file."
-            : "Each picked clip gets its own output file for that pass."}
+            ? "The clips picked for a pass are merged into its own file"
+            : "Each picked clip gets its own output file for that pass"}
         </div>
 
         <div className="pass-targets-header">
