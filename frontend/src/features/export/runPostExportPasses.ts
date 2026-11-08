@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useAiDepsStore } from "../../stores/aiDepsStore";
 import { usePassRunStore } from "../../stores/passRunStore";
 import { AI_PACKS } from "../aiDeps/packs";
+import { passErrorMessage } from "./passErrors";
 import { isFeatureEnabled } from "../featureToggles";
 import {
   anyPassEnabled,
@@ -169,7 +170,7 @@ export async function runPostExportPasses(
           usePassRunStore.getState().pushLog(`✓ ${out.stem}.${out.ext}`, "event");
         } catch (err) {
           jobOk = false;
-          usePassRunStore.getState().pushLog(`${job.label}: ${String(err)}`, "error");
+          usePassRunStore.getState().pushLog(`${job.label}: ${passErrorMessage(err)}`, "error");
           break;
         }
       }

@@ -7,6 +7,7 @@ import { useAppPersistedStore } from "../../stores/appStore";
 import { useToolsStore, type ToolKind } from "../../stores/toolsStore";
 import { depthArgs, PASS_SUFFIX, upscaleArgs } from "../export/postPasses";
 import { claimProcess, registerToolsAbort, useToolsRunState } from "../processes/singleProcess";
+import { isOutdatedCliError, passErrorMessage } from "../export/passErrors";
 import type { FlowSource } from "../sceneScout/types";
 
 let stopRequested = false;
@@ -161,8 +162,8 @@ export async function runTool(): Promise<void> {
     try {
       await runPass(input, output);
     } catch (err) {
-      // a file the pass couldn't read as it is gets one more try as an H.264 copy
-      if (stopRequested || input !== source.path) throw err;
+      // a file the pass couldn't read as it is gets one more try as an H.264 copy; an outdated cli fails either way
+      if (stopRequested || input !== source.path || isOutdatedCliError(err)) throw err;
       console.warn("[tools] direct run failed, converting the input first:", err);
       setRun({ status: "preparing", percent: 0, message: "Converting the video so it can be read..." });
       input = await prepare(true);
@@ -184,7 +185,7 @@ export async function runTool(): Promise<void> {
     if (stopRequested) setRun({ status: "stopped", message: "Stopped", error: null, liveFrame: null, liveAt: null });
     else {
       console.error("[tools] run failed:", text);
-      setRun({ status: "error", error: text, liveFrame: null, liveAt: null });
+      setRun({ status: "error", error: passErrorMessage(err), liveFrame: null, liveAt: null });
     }
   } finally {
     unlisteners.forEach((off) => off());

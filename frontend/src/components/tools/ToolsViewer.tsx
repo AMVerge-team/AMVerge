@@ -353,8 +353,12 @@ export default function ToolsViewer() {
     );
   }
 
+  // both players take the clip's shape (4:3, ultrawide...), 16:9 until its size is known; the result keeps it
+  const aspect = inputSize && inputSize.width > 0 && inputSize.height > 0 ? inputSize.width / inputSize.height : 16 / 9;
+  const pairStyle = { "--tools-aspect": aspect } as React.CSSProperties;
+
   return (
-    <div className="tools-pair">
+    <div className="tools-pair" style={pairStyle}>
       {player(leftFrameRef, "Original", left, true, inputSize)}
       {player(rightFrameRef, RESULT_LABEL[kind], right, rightHasVideo, outputSize)}
     </div>

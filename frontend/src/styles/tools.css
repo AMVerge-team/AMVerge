@@ -72,13 +72,13 @@
     background: rgb(var(--accent-rgb) / 0.06);
 }
 
-/* two separate 16:9 players, the largest pair that fits */
+/* two separate players in the clip's shape (--tools-aspect, set by the viewer), the largest pair that fits */
 .tools-pair {
     --tools-gap: 14px;
     display: flex;
     gap: var(--tools-gap);
-    /* each player is 16:9, with its size line (21px) under it */
-    width: min(100%, (var(--tools-viewer-max-h, 60vh) - 21px) * 32 / 9 + var(--tools-gap));
+    /* each player is as tall as the room allows, less its size line (21px), and as wide as its shape makes it */
+    width: min(100%, (var(--tools-viewer-max-h, 60vh) - 21px) * var(--tools-aspect, 1.7778) * 2 + var(--tools-gap));
 }
 
 .tools-player {
@@ -89,8 +89,11 @@
     gap: 6px;
 }
 
+/* min-height 0 so a video's own shape can never stretch the box past the clip's */
 .tools-player-box {
-    aspect-ratio: 16 / 9;
+    aspect-ratio: var(--tools-aspect, 1.7778);
+    min-height: 0;
+    overflow: hidden;
 }
 
 /* the timeline can be held and dragged; the pointer stays with it even off the bar */

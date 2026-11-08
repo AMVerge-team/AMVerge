@@ -173,9 +173,9 @@ function ToolsPage() {
       </>
     );
   } else if (status === "stopped") {
-    statusLine = <span className="tools-run-status-text">Stopped. Nothing was saved.</span>;
+    statusLine = <span className="tools-run-status-text">Stopped, nothing was saved</span>;
   } else if (status === "error") {
-    statusLine = <span className="tools-run-status-text tools-run-status-error">It didn't finish. The reason is below.</span>;
+    statusLine = <span className="tools-run-status-text tools-run-status-error">Ran into an error</span>;
   }
 
   return (

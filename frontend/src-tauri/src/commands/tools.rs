@@ -316,8 +316,23 @@ fn color_args(app: &AppHandle, input: &Path) -> Vec<String> {
 pub fn tools_snapshot_live_frame(app: AppHandle, frame_path: String, seq: u64) -> Result<String, String> {
     let dir = live_dir(&app)?;
     let ext = Path::new(&frame_path).extension().and_then(|e| e.to_str()).unwrap_or("jpg");
-    let snapshot = dir.join(format!("frame_{}.{ext}", seq % 6));
+    // one file per frame: reused slots got overwritten mid-encode when a fast pass sent frames quicker than they encode
+    let snapshot = dir.join(format!("frame_{seq}.{ext}"));
     std::fs::copy(&frame_path, &snapshot).map_err(|e| format!("Could not read the live frame: {e}"))?;
+    // frames this far behind were skipped or are long encoded
+    if let Ok(entries) = std::fs::read_dir(&dir) {
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            let old = name
+                .strip_prefix("frame_")
+                .and_then(|rest| rest.split('.').next())
+                .and_then(|n| n.parse::<u64>().ok())
+                .is_some_and(|n| n + 30 < seq || n > seq);
+            if old {
+                let _ = std::fs::remove_file(entry.path());
+            }
+        }
+    }
     Ok(snapshot.to_string_lossy().to_string())
 }
 
