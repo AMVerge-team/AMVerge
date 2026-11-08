@@ -13,7 +13,7 @@ export async function deliverExportedFiles(files: string[]): Promise<void> {
   if (
     settings.davinciResolveEnabled &&
     settings.davinciExportSelected &&
-    (await detectDavinciResolve()).installed
+    (await detectDavinciResolve())?.installed
   ) {
     try {
       console.log("[export] " + (await importClipsToDavinci(files)));

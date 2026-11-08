@@ -314,7 +314,8 @@ export function useExport({ onRPCUpdate }: Params) {
   );
 
   const handlePickExportDir = useCallback(async () => {
-    const dir = await open({ directory: true, multiple: false });
+    // opens where the last export went, which Tools' exports update too
+    const dir = await open({ directory: true, multiple: false, defaultPath: persistedState.exportDir ?? undefined });
     if (dir) persistedState.setExportDir(dir as string);
   }, [persistedState]);
 

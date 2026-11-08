@@ -66,10 +66,10 @@ export const UPSCALE_MODEL_OPTIONS: { value: UpscaleModel; label: string; scale:
   { value: "shufflecugan", label: "ShuffleCUGAN - 2x, general purpose", scale: 2 },];
 
 export const UPSCALE_QUALITY_OPTIONS: { value: UpscaleQuality; label: string }[] = [
-  { value: "archival", label: "Archival (largest file)" },
+  { value: "archival", label: "Lossless" },
   { value: "high", label: "High" },
   { value: "balanced", label: "Balanced" },
-  { value: "fast", label: "Fast (smallest file)" },
+  { value: "fast", label: "Fast" },
 ];
 
 // filename suffix each pass appends to the exported stem

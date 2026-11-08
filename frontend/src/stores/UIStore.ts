@@ -16,6 +16,8 @@ export type UIState = {
     settingsTab: string;
     settingsOpen: boolean;
     menuOpen: boolean;
+    /** the Tools modal: one clip in, one upscale or depth map out */
+    toolsOpen: boolean;
     quickMenuOpen: boolean;
     commandPaletteOpen: boolean;
     previewCollapsed: boolean;
@@ -54,6 +56,8 @@ export type UIStateStore = UIState & {
     closeSettings: () => void;
     openMenu: () => void;
     closeMenu: () => void;
+    openTools: () => void;
+    closeTools: () => void;
     setQuickMenuOpen: (open: boolean) => void;
     setCommandPaletteOpen: (open: boolean) => void;
     setPreviewCollapsed: (collapsed: boolean) => void;
@@ -67,7 +71,7 @@ export type UIStateStore = UIState & {
 
 /** true while a full-screen modal covers the app, so previews can stand down */
 export const selectOverlayOpen = (state: UIState) =>
-    state.settingsOpen || state.menuOpen;
+    state.settingsOpen || state.menuOpen || state.toolsOpen;
 
 export const DEFAULT_UI_STATE: UIState = {
     cols: 6,
@@ -81,6 +85,7 @@ export const DEFAULT_UI_STATE: UIState = {
     settingsTab: "general",
     settingsOpen: false,
     menuOpen: false,
+    toolsOpen: false,
     quickMenuOpen: false,
     commandPaletteOpen: false,
     previewCollapsed: false,
@@ -148,6 +153,9 @@ export const useUIStateStore = create<UIStateStore>()(
             closeSettings: () => set({ settingsOpen: false }),
             openMenu: () => set({ menuOpen: true, quickMenuOpen: false, commandPaletteOpen: false }),
             closeMenu: () => set({ menuOpen: false }),
+            openTools: () =>
+                set({ toolsOpen: true, menuOpen: false, settingsOpen: false, quickMenuOpen: false, commandPaletteOpen: false }),
+            closeTools: () => set({ toolsOpen: false }),
             setQuickMenuOpen: (quickMenuOpen) => set({ quickMenuOpen }),
             setCommandPaletteOpen: (commandPaletteOpen) => set({ commandPaletteOpen }),
             setPreviewCollapsed: (previewCollapsed) => set({ previewCollapsed }),

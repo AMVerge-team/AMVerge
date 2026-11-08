@@ -23,6 +23,7 @@ import { useSceneScoutStore } from "../../stores/sceneScoutStore.ts";
 import { removeClipsFromScenepack } from "../../utils/scenepackStorage.ts";
 import type { ClipItem } from "../../types/domain.ts";
 import { canFindFlowFrom, flowSourceForClip } from "../../features/sceneScout/motion.ts";
+import { openTools } from "../../stores/toolsStore.ts";
 import { noteGridScroll } from "./gridScroll.ts";
 import type { ExportContainer } from "../../features/export/profileTypes.ts";
 
@@ -80,7 +81,8 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
   const handleClipContextMenu = useCallback(
     (event: React.MouseEvent, clip: ClipItem) => {
       if (activePage !== "scenepacks") {
-        if (!canFindFlowFrom(clip, activePage, sceneScoutEnabled)) return;
+        // the menu has Find clips that flow (where it can run) and Open in Tools (any clip with a file)
+        if (!canFindFlowFrom(clip, activePage, sceneScoutEnabled) && !flowSourceForClip(clip)) return;
         event.preventDefault();
         event.stopPropagation();
         useContextMenuStore.getState().openContextMenu("clip-flow");
@@ -103,6 +105,30 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     },
     [activePage, sceneScoutEnabled, setSelectedClips],
   );
+
+  // one clip only: Tools takes a single input, never a batch
+  const openInToolsItem = (targets: ClipItem[]) => {
+    const clip = targets.length === 1 ? targets[0] : null;
+    const found = clip ? flowSourceForClip(clip) : null;
+    if (!clip || !found) return null;
+    // a cut clip is named after its episode and scene, so two scenes of one episode never share a result name
+    const episodeStem = found.label.replace(/\.[^.]+$/, "");
+    const source =
+      found.startMs === undefined && typeof clip.sceneIndex === "number"
+        ? { ...found, label: `${episodeStem}_scene${clip.sceneIndex + 1}` }
+        : found;
+    return (
+      <button
+        className="episode-context-menu-item"
+        onClick={() => {
+          setClipMenu(null);
+          openTools(source);
+        }}
+      >
+        Open in Tools
+      </button>
+    );
+  };
 
   const handleDeleteFromScenepack = useCallback(async () => {
     const menu = clipMenu;
@@ -652,18 +678,24 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
               onClick={(e) => e.stopPropagation()}
             >
               {clipMenu.kind === "flow" ? (
-                <button
-                  className="episode-context-menu-item"
-                  onClick={() => {
-                    const source = flowSourceForClip(clipMenu.targets[0]);
-                    setClipMenu(null);
-                    if (source) void useSceneScoutStore.getState().startFlowSearch(source);
-                  }}
-                >
-                  Find clips that flow
-                </button>
+                <>
+                {canFindFlowFrom(clipMenu.targets[0], activePage, sceneScoutEnabled) && (
+                  <button
+                    className="episode-context-menu-item"
+                    onClick={() => {
+                      const source = flowSourceForClip(clipMenu.targets[0]);
+                      setClipMenu(null);
+                      if (source) void useSceneScoutStore.getState().startFlowSearch(source);
+                    }}
+                  >
+                    Find clips that flow
+                  </button>
+                )}
+                {openInToolsItem(clipMenu.targets)}
+                </>
               ) : (
               <>
+              {openInToolsItem(clipMenu.targets)}
               {clipMenu.targets.length === 1 && clipMenu.targets[0].thumbnail && (
                 <button
                   className="episode-context-menu-item"

@@ -109,15 +109,14 @@
   border-radius: 4px;
 }
 
+/* the icon turns itself when the dropdown opens; a transform here would add a second turn */
 .dropdown-icon {
   font-size: 0.75rem;
   margin-left: 8px;
-  transition: transform 0.3s ease;
   opacity: 0.7;
 }
 
-.dropdown-icon.rotate {
-  transform: rotate(180deg);
+.dropdown-icon.is-open {
   opacity: 1;
 }
 

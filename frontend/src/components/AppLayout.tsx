@@ -4,6 +4,7 @@ import Navbar from "./Navbar";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { isVideoBackgroundPath, useThemeSettingsStore } from "../stores/settingsStore";
 import { useViewportAlignedDivider } from "../hooks/useViewportAlignedDivider";
+import { useUIStateStore } from "../stores/UIStore";
 
 export interface AppLayoutProps {
   windowWrapperRef: React.RefObject<HTMLDivElement | null>;
@@ -28,6 +29,8 @@ export default function AppLayout({
   isDragging,
 }: AppLayoutProps) {
   const backgroundMediaPath = useThemeSettingsStore((s) => s.backgroundImagePath);
+  // Tools lights up its own drop zone, and a drop there never imports
+  const toolsOpen = useUIStateStore((s) => s.toolsOpen);
   const alignDivider = useViewportAlignedDivider();
   const backgroundVideoSrc = React.useMemo(() => {
     if (!backgroundMediaPath || !isVideoBackgroundPath(backgroundMediaPath)) {
@@ -52,7 +55,7 @@ export default function AppLayout({
         />
       )}
       {loadingOverlay}
-      {isDragging && (
+      {isDragging && !toolsOpen && (
         <div className="dragging-overlay">
           <h1>Drag file(s) here.</h1>
         </div>

@@ -18,3 +18,4 @@ pub mod scenepacks;
 pub mod scenes;
 pub mod settings;
 pub mod system_specs;
+pub mod tools;

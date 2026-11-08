@@ -4,7 +4,7 @@ import { useAppStateStore } from "../../stores/appStore";
 
 // one long job at a time: starting one while another runs asks to stop it or drop the new one; every job calls `claimProcess`
 
-export type ProcessKind = "import" | "export" | "resume" | "scout_add" | "scout_thumbnails";
+export type ProcessKind = "import" | "export" | "resume" | "scout_add" | "scout_thumbnails" | "tools";
 
 export const PROCESS_LABELS: Record<ProcessKind, string> = {
   import: "importing an episode",
@@ -12,10 +12,19 @@ export const PROCESS_LABELS: Record<ProcessKind, string> = {
   resume: "finishing episode clips",
   scout_add: "adding episodes to a Scene Scout database",
   scout_thumbnails: "generating Scene Scout thumbnails",
+  tools: "upscaling or depth mapping a clip in Tools",
 };
+
+/** a Tools run, which keeps no app-wide progress state of its own */
+export const useToolsRunState = create<{ running: boolean }>(() => ({ running: false }));
+let abortTools: (() => Promise<void>) | null = null;
+export function registerToolsAbort(abort: () => Promise<void>): void {
+  abortTools = abort;
+}
 
 /** the job running right now, read from the state every job already keeps */
 export function runningProcess(): ProcessKind | null {
+  if (useToolsRunState.getState().running) return "tools";
   const s = useAppStateStore.getState();
   if (s.activeOperation === "export") return "export";
   if (s.activeOperation === "scout_add") return "scout_add";
@@ -68,19 +77,22 @@ function waitUntilIdle(): Promise<boolean> {
       stopWatching();
       resolve(false);
     }, STOP_TIMEOUT_MS);
-    const stopWatching = useAppStateStore.subscribe(() => {
+    const check = () => {
       if (runningProcess()) return;
       window.clearTimeout(timer);
       stopWatching();
       resolve(true);
-    });
+    };
+    const unsubscribers = [useAppStateStore.subscribe(check), useToolsRunState.subscribe(check)];
+    const stopWatching = () => unsubscribers.forEach((off) => off());
   });
 }
 
 /** stops the running long job (the ✕) and resolves once unwound; used before deleting what it writes to */
 export async function stopRunningProcess(): Promise<boolean> {
-  if (!runningProcess()) return true;
-  await abortRunning?.();
+  const running = runningProcess();
+  if (!running) return true;
+  await (running === "tools" ? abortTools : abortRunning)?.();
   return waitUntilIdle();
 }
 

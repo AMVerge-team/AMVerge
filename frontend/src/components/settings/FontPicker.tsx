@@ -118,7 +118,7 @@ export default function FontPicker() {
         style={{ fontFamily: appFontFamily ? `"${appFontFamily}"` : "var(--app-font)" }}
       >
         <span>{appFontFamily ?? "Default (Calibri)"}</span>
-        <FaChevronDown className={`font-picker-caret${open ? " open" : ""}`} aria-hidden="true" />
+        <FaChevronDown className={`font-picker-caret${open ? " open" : ""}`} open={open} aria-hidden="true" />
       </button>
 
       {open && (

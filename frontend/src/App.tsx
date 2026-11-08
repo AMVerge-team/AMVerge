@@ -9,6 +9,7 @@ import SettingsModal from "./components/settings/SettingsModal";
 import QuickMenu from "./components/QuickMenu";
 import CommandPalette from "./components/CommandPalette";
 import MenuModal from "./components/menu/MenuModal";
+import ToolsModal from "./components/tools/ToolsModal";
 import EventsPage from "./pages/EventsPage";
 import HostEventModal from "./components/events/HostEventModal";
 import BanNoticeModal from "./components/events/BanNoticeModal";
@@ -538,6 +539,7 @@ function App() {
       <ProcessConflictModal />
       <CommandPalette />
       <MenuModal />
+      <ToolsModal />
       <HostEventModal />
       <BanNoticeModal />
       <DenialNoticeModal />

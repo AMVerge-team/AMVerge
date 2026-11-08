@@ -1,0 +1,589 @@
+/* Tools: one clip in, an upscale or a depth map out. a workspace: the two players on top, the settings below */
+
+/* as tall as its content: the players' height comes from their width, never stretched to fill the screen */
+.app-modal.tools-modal {
+    width: min(1760px, 100%);
+    height: auto;
+    max-height: 100%;
+    overflow-y: auto;
+    scrollbar-gutter: auto;
+}
+
+/* the players are sized to fit, so this only shows on a window too small for the settings themselves */
+.app-modal.tools-modal::-webkit-scrollbar {
+    width: 8px;
+    background: transparent;
+}
+
+.app-modal.tools-modal::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.app-modal.tools-modal::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--accent-rgb) / 0.3);
+    border-radius: 999px;
+}
+
+.app-modal.tools-modal::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(var(--accent-rgb) / 0.6);
+}
+
+.tools-page {
+    display: flex;
+    flex-direction: column;
+}
+
+.tools-workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 4px 18px 24px;
+}
+
+.tools-viewer-col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* --tools-viewer-max-h is set by the modal: the height the rest of it (header, clip strip, settings bar) leaves */
+.tools-viewer {
+    position: relative;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+}
+
+.tools-viewer.is-empty {
+    width: 100%;
+    aspect-ratio: 32 / 9;
+    max-height: var(--tools-viewer-max-h, 60vh);
+}
+
+.tools-viewer.is-empty {
+    background: rgb(255 255 255 / 0.02);
+    border: 1.5px dashed rgb(255 255 255 / 0.18);
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.tools-viewer.is-empty:hover,
+.tools-viewer.is-drop-target {
+    border-color: var(--accent);
+    background: rgb(var(--accent-rgb) / 0.06);
+}
+
+/* two separate 16:9 players, the largest pair that fits */
+.tools-pair {
+    --tools-gap: 14px;
+    display: flex;
+    gap: var(--tools-gap);
+    /* each player is 16:9, with its size line (21px) under it */
+    width: min(100%, (var(--tools-viewer-max-h, 60vh) - 21px) * 32 / 9 + var(--tools-gap));
+}
+
+.tools-player {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tools-player-box {
+    aspect-ratio: 16 / 9;
+}
+
+/* the timeline can be held and dragged; the pointer stays with it even off the bar */
+.tools-scrub {
+    cursor: pointer;
+    touch-action: none;
+    user-select: none;
+}
+
+.tools-scrub progress {
+    pointer-events: none;
+}
+
+/* the controls hide when the mouse leaves the player, which would cut a drag off; held, they stay */
+.video-wrapper.is-scrubbing .controls {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* the real resolution under each player: the source's, and what the export will be */
+.tools-dims {
+    min-height: 15px;
+    text-align: center;
+    font-family: var(--ui-font);
+    font-size-adjust: none;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: rgb(255 255 255 / 0.6);
+}
+
+.tools-player-frame {
+    background: black;
+}
+
+.tools-player-frame > video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+/* the live frames stack: the one on screen, and the next one decoding unseen on top of it */
+.tools-player-frame > .tools-live-video {
+    position: absolute;
+    inset: 0;
+}
+
+.tools-player-frame > .tools-live-video.is-incoming {
+    opacity: 0;
+}
+
+.tools-pane-label {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 2;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgb(0 0 0 / 0.6);
+    border: 1px solid rgb(255 255 255 / 0.12);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    font-family: var(--ui-font);
+    font-size-adjust: none;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.85);
+    pointer-events: none;
+}
+
+.tools-player:last-child .tools-pane-label {
+    color: var(--accent);
+}
+
+.tools-pane-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 24px;
+    text-align: center;
+    font-family: var(--ui-font);
+    font-size: 13px;
+    color: rgb(255 255 255 / 0.45);
+}
+
+.tools-pane-waiting {
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tools-waiting-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgb(255 255 255 / 0.85);
+}
+
+.tools-waiting-hint {
+    max-width: 320px;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+/* the drop zone that stands in for the players before there is a clip */
+.tools-drop {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: none;
+    background: transparent;
+    color: rgb(255 255 255 / 0.75);
+    cursor: pointer;
+    font-family: var(--ui-font);
+}
+
+.tools-drop-icon {
+    font-size: 28px;
+    color: var(--accent);
+    margin-bottom: 4px;
+}
+
+.tools-drop-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.tools-drop-hint {
+    font-size: 12.5px;
+    color: rgb(255 255 255 / 0.5);
+}
+
+/* the clip's name, under the players */
+.tools-strip {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    min-height: 30px;
+    font-family: var(--ui-font);
+    font-size: 13px;
+    color: rgb(255 255 255 / 0.8);
+}
+
+.tools-strip-hint {
+    color: rgb(255 255 255 / 0.45);
+    font-size: 12.5px;
+}
+
+.tools-file-icon {
+    flex: none;
+    font-size: 13px;
+    color: rgb(255 255 255 / 0.5);
+}
+
+.tools-strip > :nth-child(2) {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.tools-file-name {
+    display: block;
+    max-width: 100%;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.tools-file-name:hover:not(:disabled) {
+    color: var(--accent);
+}
+
+.tools-file-name:disabled {
+    cursor: default;
+}
+
+.tools-file-range {
+    color: rgb(255 255 255 / 0.45);
+}
+
+/* buttons a step smaller than the events ones, icons kept small */
+.tools-small-btn {
+    flex: none;
+    padding: 5px 10px;
+    font-size: 12px;
+    gap: 6px;
+}
+
+.tools-small-btn svg,
+.tools-run-btn svg {
+    font-size: 11px;
+    flex: none;
+}
+
+.tools-small-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* the settings bar: what it is, the options, then the run, left to right */
+.tools-bottom {
+    --tools-control-height: 32px;
+    --tools-label-height: 15px;
+    flex: none;
+    display: grid;
+    grid-template-columns: minmax(200px, 0.9fr) minmax(0, 2.6fr) 280px;
+    align-items: start;
+    gap: 22px;
+    padding: 20px 22px;
+}
+
+@media (max-width: 1100px) {
+    .tools-bottom {
+        grid-template-columns: minmax(0, 1fr) 260px;
+    }
+
+    .tools-bottom-intro {
+        grid-column: 1 / -1;
+    }
+}
+
+.tools-bottom-intro {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+.tools-panel-head {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.tools-panel-title {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.tools-panel-blurb {
+    margin: 0;
+    font-family: var(--ui-font);
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: rgb(255 255 255 / 0.55);
+}
+
+.tools-notice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1px solid rgb(250 204 21 / 0.35);
+    background: rgb(250 204 21 / 0.08);
+    font-family: var(--ui-font);
+    font-size: 12.5px;
+    color: #fde68a;
+}
+
+.tools-notice > svg {
+    flex: none;
+    font-size: 12px;
+}
+
+.tools-notice > span {
+    flex: 1 1 auto;
+}
+
+/* the options sit side by side in the bar */
+/* a flexible row: the dropdowns share it, a checkbox takes only its own width, and the folder path gets the most */
+.tools-fields {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 12px 14px;
+    min-width: 0;
+}
+
+.tools-fields > .tools-field {
+    flex: 1 1 130px;
+}
+
+.tools-fields > .tools-field-inline {
+    flex: 0 0 auto;
+}
+
+.tools-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.tools-field-inline {
+    justify-content: flex-start;
+}
+
+/* the checkbox gets the same 32px row as the dropdowns and the path, its box centred in it */
+.tools-field-inline .custom-checkbox {
+    align-self: flex-start;
+    height: var(--tools-control-height);
+    margin-right: 0;
+}
+
+/* the square stays square; only the row it sits in is taller */
+.tools-field-inline .custom-checkbox > .checkmark {
+    height: 25px;
+}
+
+.tools-field-label {
+    height: var(--tools-label-height);
+    line-height: var(--tools-label-height);
+    font-family: var(--ui-font);
+    font-size: 12px;
+    font-weight: 600;
+    color: rgb(255 255 255 / 0.7);
+}
+
+.tools-bottom .dropdown-trigger {
+    height: var(--tools-control-height);
+}
+
+.tools-link-btn {
+    align-self: flex-start;
+    padding: 0;
+    border: none;
+    background: none;
+    color: rgb(255 255 255 / 0.5);
+    font-family: var(--ui-font);
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.tools-link-btn:hover:not(:disabled) {
+    color: var(--accent);
+}
+
+/* the run column is laid out like the other fields: a status line where their labels are, then the buttons
+   level with their inputs, so nothing it says can push the buttons out of line */
+.tools-run {
+    min-width: 0;
+}
+
+.tools-run-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: var(--tools-label-height);
+    min-width: 0;
+    font-family: var(--ui-font);
+    font-size: 12px;
+    line-height: var(--tools-label-height);
+    color: rgb(255 255 255 / 0.6);
+    white-space: nowrap;
+}
+
+.tools-run-status-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tools-run-status-pct {
+    margin-left: auto;
+    flex: none;
+    font-variant-numeric: tabular-nums;
+    color: rgb(255 255 255 / 0.8);
+}
+
+.tools-run-status-done {
+    color: #86efac;
+}
+
+.tools-run-status-error {
+    color: #fca5a5;
+}
+
+.tools-run-status-link {
+    flex: none;
+    margin-left: auto;
+}
+
+/* under the buttons, so the progress never shifts them */
+.tools-run-bar {
+    width: 100%;
+    height: 4px;
+    margin: 2px 0 0;
+}
+
+.tools-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.tools-progress .lm-pct {
+    min-width: 34px;
+    text-align: right;
+    font-family: var(--ui-font);
+    font-size: 12px;
+    color: rgb(255 255 255 / 0.7);
+}
+
+.tools-progress-message {
+    font-family: var(--ui-font);
+    font-size: 12px;
+    color: rgb(255 255 255 / 0.55);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* no percent yet (cutting, loading the model), so the bar sweeps instead */
+.progress-fill.tools-progress-indeterminate {
+    animation: tools-sweep 1.2s ease-in-out infinite;
+}
+
+@keyframes tools-sweep {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(290%); }
+}
+
+.tools-alert {
+    font-family: var(--ui-font);
+}
+
+.tools-status-line {
+    font-family: var(--ui-font);
+    font-size: 12.5px;
+    color: rgb(255 255 255 / 0.55);
+}
+
+.tools-done {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-family: var(--ui-font);
+    font-size: 12.5px;
+    color: #86efac;
+}
+
+.tools-done-icon {
+    flex: none;
+    font-size: 13px;
+}
+
+.tools-done-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tools-run-btn {
+    justify-content: center;
+    width: 100%;
+    height: var(--tools-control-height);
+    padding: 0 16px;
+}
+
+/* Generate, then Export once there is something to save; Export is the accent one when it can go */
+.tools-run-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.tools-run-buttons .tools-run-btn {
+    padding: 0 12px;
+    white-space: nowrap;
+}
+
+.tools-run-buttons .tools-run-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
-import { FaBars, FaCog, FaTimes, FaDiscord, FaGithub, FaSearch } from './icons/animated';
+import { FaBars, FaCog, FaTimes, FaDiscord, FaGithub, FaSearch, FaWrench } from './icons/animated';
 import Tooltip from "./common/Tooltip";
 import { useUIStateStore } from "../stores/UIStore";
 
@@ -13,6 +13,7 @@ export default function QuickMenu() {
   const setQuickMenuOpen = useUIStateStore((s) => s.setQuickMenuOpen);
   const openMenu = useUIStateStore((s) => s.openMenu);
   const openSettings = useUIStateStore((s) => s.openSettings);
+  const openTools = useUIStateStore((s) => s.openTools);
   const setCommandPaletteOpen = useUIStateStore((s: any) => s.setCommandPaletteOpen);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -22,6 +23,12 @@ export default function QuickMenu() {
       desc: "Search across episodes, scenepacks, settings, and commands",
       icon: FaSearch,
       run: () => setCommandPaletteOpen(true),
+    },
+    {
+      title: "Tools",
+      desc: "Upscale a clip or turn it into a depth map",
+      icon: FaWrench,
+      run: () => openTools(),
     },
     {
       title: "Menu",
@@ -45,13 +52,13 @@ export default function QuickMenu() {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      const { quickMenuOpen, settingsOpen, menuOpen, commandPaletteOpen } =
+      const { quickMenuOpen, settingsOpen, menuOpen, toolsOpen, commandPaletteOpen } =
         useUIStateStore.getState() as any;
       if (quickMenuOpen) {
         setQuickMenuOpen(false);
         return;
       }
-      if (settingsOpen || menuOpen || commandPaletteOpen || document.querySelector(BLOCKING_OVERLAYS)) {
+      if (settingsOpen || menuOpen || toolsOpen || commandPaletteOpen || document.querySelector(BLOCKING_OVERLAYS)) {
         return;
       }
       setQuickMenuOpen(true);

@@ -30,11 +30,11 @@
     flex: none;
     font-size: 12px;
     opacity: 0.6;
-    transition: transform 0.15s ease;
 }
 
+/* the caret turns itself from its open prop; a rotation here doubled it */
 .font-picker-caret.open {
-    transform: rotate(180deg);
+    opacity: 1;
 }
 
 .font-picker-body {

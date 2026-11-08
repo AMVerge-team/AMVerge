@@ -3,6 +3,8 @@ import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { useUIStateStore } from "../stores/UIStore";
 import { useSceneScoutStore } from "../stores/sceneScoutStore";
 import { isVideoPath } from "../utils/videoExtensions";
+import { useToolsStore } from "../stores/toolsStore";
+import { useToolsRunState } from "../features/processes/singleProcess";
 
 type UseDragDropImportProps = {
   handleImport: (file: string) => void | Promise<void>;
@@ -53,6 +55,15 @@ export default function useDragDropImport({
         const videoFiles = paths.filter(isVideoPath);
 
         if (videoFiles.length === 0) return;
+
+        // an open Tools modal takes the first dropped video as its clip; one clip, never a batch
+        if (useUIStateStore.getState().toolsOpen) {
+          if (!useToolsRunState.getState().running) {
+            const path = videoFiles[0];
+            useToolsStore.getState().setSource({ path, label: path.split(/[/\\]/).pop() ?? path });
+          }
+          return;
+        }
 
         // the Flow tab takes a dropped video as the clip to continue, same as its Import button
         const scout = useSceneScoutStore.getState();

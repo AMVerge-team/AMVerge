@@ -120,7 +120,8 @@ export default function Dropdown<T extends string | number>({
         ) : (
           <span className="dropdown-value">{String(value)}</span>
         )}
-        <FaChevronDown className={`dropdown-icon ${isOpen ? "rotate" : ""}`} />
+        {/* the arrow animates its own turn from the open state; a css rotation on top doubled it into a full spin */}
+        <FaChevronDown className={`dropdown-icon${isOpen ? " is-open" : ""}`} open={isOpen} />
       </div>
 
       {isOpen && (

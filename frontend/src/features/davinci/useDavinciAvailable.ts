@@ -9,7 +9,7 @@ export function useDavinciInstalled(): boolean {
   useEffect(() => {
     let alive = true;
     void detectDavinciResolve().then((detection) => {
-      if (alive) setInstalled(detection.installed);
+      if (alive) setInstalled(Boolean(detection?.installed));
     });
     return () => {
       alive = false;
