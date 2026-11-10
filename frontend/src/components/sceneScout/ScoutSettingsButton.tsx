@@ -23,7 +23,7 @@ type Props = {
   className?: string;
 };
 
-/** results count and unload model; Search and Flow share the same settings */
+/** results count, library cutting and unload model; Search and Flow share the same settings */
 export function ScoutSettingsButton({ rerun, className = "" }: Props) {
   const settings = useSceneScoutStore((s) => s.settings);
   const updateSettings = useSceneScoutStore((s) => s.updateSettings);
@@ -180,6 +180,17 @@ export function ScoutSettingsButton({ rerun, className = "" }: Props) {
                   }}
                 />
                 Skip openings and endings
+              </label>
+            </Tooltip>
+
+            <Tooltip content="Adding a full episode also cuts it into your Library, in a folder named after the database. Results then play those clips. Off: episodes are only indexed">
+              <label className="scene-scout-setting scene-scout-setting-inline scene-scout-skip-edges">
+                <input
+                  type="checkbox"
+                  checked={settings.cutToLibrary !== false}
+                  onChange={(e) => updateSettings({ cutToLibrary: e.target.checked })}
+                />
+                Cut episodes into Library
               </label>
             </Tooltip>
           </div>

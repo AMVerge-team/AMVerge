@@ -455,6 +455,62 @@ body.is-resizing-sidebar {
     margin-bottom: 12px;
 }
 
+/* in-app notices keep the line breaks their text was written with */
+.app-notice-message {
+    white-space: pre-line;
+}
+
+/* episodes a delete would also remove from scene scout databases */
+.episode-modal-link-list {
+    list-style: none;
+    margin: -4px 0 14px;
+    padding: 6px 10px;
+    max-height: 140px;
+    overflow-y: auto;
+    border: 1px solid rgb(var(--accent-rgb) / 0.3);
+    border-radius: 8px;
+    background: rgb(var(--accent-rgb) / 0.06);
+    font-family: var(--ui-font);
+    font-size-adjust: none;
+    font-size: 12px;
+}
+
+.episode-modal-link-list li {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 4px 0;
+}
+
+.episode-modal-link-list li + li {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.episode-modal-link-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.episode-modal-link-dbs {
+    color: var(--accent);
+    opacity: 0.85;
+}
+
+.episode-modal-link-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.episode-modal-link-list::-webkit-scrollbar-thumb {
+    background: rgb(var(--accent-rgb) / 0.35);
+    border-radius: 999px;
+}
+
+.episode-modal-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
 .episode-modal-input {
     width: 100%;
     padding: 10px 12px;

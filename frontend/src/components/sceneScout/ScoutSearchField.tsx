@@ -51,7 +51,8 @@ export function ScoutSearchField({ fieldRef, onSubmit, blockedHint = null }: Pro
     return "Create a database to start searching...";
   }, [blockedHint, selectedDatabases, selectedVideos, databases, displayNames]);
 
-  const canSubmit = !blocked && !searching && !indexing && Boolean(query.trim());
+  // a search while one is loading replaces it (the newest wins in the store)
+  const canSubmit = !blocked && !indexing && Boolean(query.trim());
 
   return (
     <Tooltip content={blocked ? placeholder : "Search the selected databases and episodes"}>
@@ -60,7 +61,7 @@ export function ScoutSearchField({ fieldRef, onSubmit, blockedHint = null }: Pro
         <input
           type="text"
           value={query}
-          disabled={blocked || searching || Boolean(indexing)}
+          disabled={blocked || Boolean(indexing)}
           placeholder={placeholder}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {

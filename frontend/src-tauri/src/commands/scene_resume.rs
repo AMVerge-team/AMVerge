@@ -117,6 +117,8 @@ pub async fn resume_episode_clips(
     resume_state: State<'_, ActiveResume>,
     episode_cache_id: String,
     clips: Vec<ResumeClipSpec>,
+    // scene scout's background re-encodes: below normal priority, so they never take over the machine
+    low_priority: Option<bool>,
 ) -> Result<(), String> {
     resume_state.cancel_requested.store(false, Ordering::SeqCst);
     // a paused (aborted) resume leaves its remaining clips untouched, never marked failed
@@ -189,6 +191,7 @@ pub async fn resume_episode_clips(
         &scenes_dir,
         cut_mode,
         false,
+        low_priority.unwrap_or(false),
         Some(resume_state.pids.clone()),
         Some(on_item),
     )

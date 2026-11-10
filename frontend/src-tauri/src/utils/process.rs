@@ -18,6 +18,26 @@ pub fn apply_no_window(cmd: &mut Command) {
     }
 }
 
+/// below normal priority (and no window): children inherit it, so the app and other jobs get the cpu first
+pub fn apply_low_priority(cmd: &mut Command) {
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::System::Threading::BELOW_NORMAL_PRIORITY_CLASS;
+        cmd.creation_flags(CREATE_NO_WINDOW | BELOW_NORMAL_PRIORITY_CLASS);
+    }
+
+    #[cfg(not(windows))]
+    {
+        use std::os::unix::process::CommandExt;
+        unsafe {
+            cmd.pre_exec(|| {
+                libc::nice(10);
+                Ok(())
+            });
+        }
+    }
+}
+
 /// ties a child's whole tree to the app's lifetime via a kill-on-close job object (windows), so even a crash kills it; never used for editors or the updater
 pub fn bind_to_app_lifetime(pid: u32) {
     #[cfg(windows)]

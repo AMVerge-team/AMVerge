@@ -7,6 +7,7 @@ import { applyThemeSettings, useThemeSettingsStore } from "./stores/settingsStor
 import { importFromV1 } from "./features/migration/importV1";
 import { waitForEpisodes } from "./stores/episodeStore";
 import { rebaseStoragePaths } from "./features/storage/rebaseStoragePaths";
+import { askNotice, showNotice } from "./features/notice/notice";
 
 initConsoleCapture();
 
@@ -16,46 +17,37 @@ async function maybeCheckForUpdatesOnStartup() {
   }
 
   try {
-    const [{ check }, { confirm, message }] = await Promise.all([
-      import("@tauri-apps/plugin-updater"),
-      import("@tauri-apps/plugin-dialog"),
-    ]);
+    const { check } = await import("@tauri-apps/plugin-updater");
 
     const update = await check();
     if (!update) return;
 
-    const ok = await confirm(
+    const ok = await askNotice(
+      "AMVerge Update",
       `A new update is available (v${update.version}). Install now?`,
-      { title: "AMVerge Update" },
+      "Install",
     );
 
     if (!ok) return;
 
     console.log(`[updater] starting install for v${update.version}`);
-    await message(
-      `Starting update to v${update.version}. \n\nPlease keep the app open until it completes.`,
-      { title: "AMVerge Update" },
+    await showNotice(
+      "AMVerge Update",
+      `Starting update to v${update.version}.\n\nPlease keep the app open until it completes.`,
     );
 
     await update.downloadAndInstall();
     console.log(`[updater] install finished for v${update.version}`);
 
-    await message(
+    await showNotice(
+      "AMVerge Update Installed",
       `Update v${update.version} was installed.\n\nIf the app does not restart automatically on macOS, please close and reopen AMVerge once.`,
-      { title: "AMVerge Update Installed" },
     );
   } catch (error) {
     // show a visible error instead of silently dismissing the update flow
-    const [{ message }] = await Promise.all([
-      import("@tauri-apps/plugin-dialog"),
-    ]);
-
     const errorText = error instanceof Error ? `${error.name}: ${error.message}` : "Update download/install failed.";
     console.error("[updater] update flow failed:", error);
-    await message(
-      `Could not install the update. ${errorText}`,
-      { title: "AMVerge Update Failed" },
-    );
+    await showNotice("AMVerge Update Failed", `Could not install the update. ${errorText}`);
   }
 }
 

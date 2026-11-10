@@ -38,6 +38,8 @@ export type EpisodeEntry = {
   importedAt: number;
   clips: ClipItem[];
   importMethod?: "video_files" | "webp_files";
+  /** cut into the library by a scene scout import: its re-encodes trickle in the background */
+  cutsInBackground?: boolean;
 };
 
 export type ScenepackClip = {

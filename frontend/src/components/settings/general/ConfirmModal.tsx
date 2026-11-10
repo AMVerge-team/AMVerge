@@ -10,7 +10,8 @@ type Props = {
   onClose: () => void;
   busy?: boolean;
   secondary?: { label: string; onClick: () => void };
-  cancelLabel?: string;
+  /** null drops the cancel button, for a notice with only an OK */
+  cancelLabel?: string | null;
   confirmDisabled?: boolean;
 };
 
@@ -52,9 +53,11 @@ export function ConfirmModal({
         <div className="episode-modal-title">{title}</div>
         <div className="episode-modal-message">{message}</div>
         <div className="episode-modal-actions">
-          <button type="button" className="episode-modal-btn" onClick={onClose} disabled={busy}>
-            {cancelLabel}
-          </button>
+          {cancelLabel !== null && (
+            <button type="button" className="episode-modal-btn" onClick={onClose} disabled={busy}>
+              {cancelLabel}
+            </button>
+          )}
           {secondary && (
             <button type="button" className="episode-modal-btn" onClick={secondary.onClick}>
               {secondary.label}

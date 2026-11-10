@@ -11,6 +11,8 @@ import CommandPalette from "./components/CommandPalette";
 import MenuModal from "./components/menu/MenuModal";
 import ToolsModal from "./components/tools/ToolsModal";
 import { FlowDatabasePrompt } from "./components/sceneScout/FlowDatabasePrompt";
+import { AppNotice } from "./components/AppNotice";
+import { errorText, showNotice } from "./features/notice/notice";
 import EventsPage from "./pages/EventsPage";
 import HostEventModal from "./components/events/HostEventModal";
 import BanNoticeModal from "./components/events/BanNoticeModal";
@@ -28,7 +30,7 @@ import PassTargetsModal from "./components/PassTargetsModal";
 import AiInstallModal from "./components/AiInstallModal";
 import ProcessConflictModal from "./components/ProcessConflictModal";
 import { registerProcessAbort } from "./features/processes/singleProcess";
-import { clearReencodeQueue } from "./features/import/reencodeQueue";
+import { clearReencodeQueue, resumeBackgroundCuts } from "./features/import/reencodeQueue";
 
 import useDiscordRPC from "./hooks/useDiscordRPC";
 import useHEVCSupport from "./hooks/useHEVCSupport";
@@ -140,7 +142,7 @@ function App() {
       // no custom path now, so this resolves to app data's storage root
       await rebaseStoragePaths();
     } catch (err) {
-      window.alert("Failed to reset episode directory: " + String(err));
+      void showNotice("Reset failed", "Failed to reset episode directory: " + errorText(err));
     } finally {
       restoreOpenedEpisodeGrid();
     }
@@ -255,6 +257,8 @@ function App() {
 
   useEffect(() => {
     void useAiDepsStore.getState().refresh();
+    // scene scout's library cuts from earlier sessions go on in the background
+    resumeBackgroundCuts();
   }, []);
 
   const resumingEpisodeId = useAppStateStore((s) => s.resumingEpisodeId);
@@ -542,6 +546,7 @@ function App() {
       <MenuModal />
       <ToolsModal />
       <FlowDatabasePrompt />
+      <AppNotice />
       <HostEventModal />
       <BanNoticeModal />
       <DenialNoticeModal />

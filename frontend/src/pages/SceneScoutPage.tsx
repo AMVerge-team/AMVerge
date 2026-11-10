@@ -8,6 +8,8 @@ import { SceneScoutFlowView } from "../components/sceneScout/flow/SceneScoutFlow
 import { MissingEpisodePrompt } from "../components/sceneScout/MissingEpisodePrompt";
 import { SceneScoutTour } from "../components/sceneScout/SceneScoutTour";
 import { useAppStateStore } from "../stores/appStore";
+import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
+import { linkLibraryClips } from "../features/sceneScout/library";
 import { useSceneScoutStore } from "../stores/sceneScoutStore";
 import { selectOverlayOpen, useUIStateStore } from "../stores/UIStore";
 import { hitToClipItem } from "../features/sceneScout/hitToClip";
@@ -56,8 +58,21 @@ export default function SceneScoutPage() {
     void refreshStatus();
   }, [refreshStatus]);
 
-  const clips = useMemo(() => results.map(hitToClipItem), [results]);
+  // hits play their library clip when one is cut; read once here, later cuts are patched in below
+  const clips = useMemo(() => linkLibraryClips(results.map(hitToClipItem)), [results]);
   useScoutPreviewPrefetch(clips);
+
+  // a background cut finishing swaps its tile to the clip in place, without resetting the grid
+  useEffect(
+    () =>
+      useEpisodePanelRuntimeStore.subscribe((state, prev) => {
+        if (state.episodes === prev.episodes) return;
+        const current = useAppStateStore.getState().clips;
+        const linked = linkLibraryClips(current, state.episodes);
+        if (linked !== current) useAppStateStore.setState({ clips: linked });
+      }),
+    []
+  );
 
   useEffect(() => {
     const state = useAppStateStore.getState();

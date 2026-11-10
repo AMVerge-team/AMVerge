@@ -1,17 +1,15 @@
 import { useCallback, useRef, startTransition } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { EpisodeEntry } from "../types/domain";
-import { fileNameFromPath, truncateFileName, loadEpisodeManifest } from "../utils/episodeUtils";
+import { fileNameFromPath, truncateFileName } from "../utils/episodeUtils";
+import { buildEpisodeCacheId, logImportError } from "../features/import/manifest";
 import {
-  buildEpisodeCacheId,
-  logImportError,
-  parseManifestInitialClips,
-} from "../features/import/manifest";
-import { startVideoStreamingListeners } from "../features/import/streamListeners";
+  discardEpisodeCache,
+  hasLanded,
+  runImportPipeline as runEpisodeImport,
+} from "../features/import/importPipeline";
 import { queueReencode } from "../features/import/reencodeQueue";
 import { claimProcess } from "../features/processes/singleProcess";
-import { useAiDepsStore } from "../stores/aiDepsStore";
 import { useAppStateStore } from "../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
 import { useGeneralSettingsStore } from "../stores/settingsStore";
@@ -36,145 +34,21 @@ export function useImportPipeline({ abortedRef }: Params) {
 
   // bumped per import so a stale run cannot clear the loader of a newer one
   const importGenRef = useRef(0);
-  const streamCleanupRef = useRef<(() => void) | null>(null);
 
-  // an aborted episode whose scenes already landed in the sidebar is kept as paused, not deleted
-  const hasLanded = (episodeId: string) =>
-    useEpisodePanelRuntimeStore.getState().episodes.some((ep) => ep.id === episodeId && ep.clips.length > 0);
-
-  const discardEpisodeCache = (episodeId: string) => {
-    invoke("delete_episode_cache", {
-      episodeCacheId: episodeId,
-      customPath: generalSettings.episodesPath,
-    }).catch(() => {});
-  };
-
+  // a batch streams every episode but only the first one takes the view
   const runImportPipeline = useCallback(
-    async (
-      file: string,
-      episodeId: string,
-      streamToGrid = false,
-      // a batch streams every episode but only the first one takes the view
-      focusGrid = streamToGrid
-    ): Promise<{ episodeEntry: EpisodeEntry; sceneCount: number }> => {
-      // video mode streams clips in and resolves after the preview phase; AI previews finish in the background
-      const videoStreaming = streamToGrid && generalSettings.importMethod === "video_files";
-
-      // the ml pack may be gone since it was chosen, so prompt now instead of failing mid-import
-      if (generalSettings.sceneDetectionMethod === "transnetv2_gpu") {
-        const ready = await useAiDepsStore.getState().ensurePack("ml");
-        if (!ready) {
-          throw new Error(
-            "TransNetV2 is not installed. Install it, or switch scene detection to Keyframe Detection in Settings."
-          );
-        }
-      }
-
-      const detectScenes = () =>
-        invoke("detect_scenes", {
-          videoPath: file,
-          episodeCacheId: episodeId,
-          customPath: generalSettings.episodesPath,
-          sceneDetectionMethod: generalSettings.sceneDetectionMethod,
-          importMethod: generalSettings.importMethod,
-        });
-
-      if (videoStreaming) {
-        // events carry their episode id, so an earlier import's phase 2 keeps patching its own episode
-        const { stop, phase1Done, getClips } = await startVideoStreamingListeners(
-          file,
-          episodeId,
-          focusGrid,
-          {
-            selectedFolderId: episodeState.selectedFolderId,
-            importMethod: generalSettings.importMethod,
-            setEpisodes: episodeState.setEpisodes,
-            setSelectedEpisodeId: episodeState.setSelectedEpisodeId,
-            setOpenedEpisodeId: episodeState.setOpenedEpisodeId,
-          }
-        );
-        const previousCleanup = streamCleanupRef.current;
-        streamCleanupRef.current = () => {
-          previousCleanup?.();
-          stop();
-        };
-
-        // detection isn't awaited: phase 2 runs on after phase1_complete, listeners stop when the process ends
-        let invokeError: unknown = null;
-        const invokeSettled = detectScenes()
-          .catch((err) => {
-            invokeError = err;
-          })
-          .finally(stop);
-
-        // whichever first: phase 1 done, or the process ending before it
-        const winner = await Promise.race([
-          phase1Done.then(() => "phase1" as const),
-          invokeSettled.then(() => "invoke" as const),
-        ]);
-
-        if (winner === "phase1") {
-          // uncut clips are re-encodes: stop this cli and let the queue do them one episode at a time
-          if (getClips().some((clip) => !clip.clipPath)) {
-            await invoke("abort_detect_scenes", { episodeCacheId: episodeId }).catch(() => {});
-            await invokeSettled;
-            // the ✕ during the handoff stops everything, so nothing is queued after it
-            if (!abortedRef.current) queueReencode(episodeId);
-          }
-          // read from the session, not the grid: a background episode never wrote there
-          const streamedClips = getClips();
-          return {
-            episodeEntry: {
-              id: episodeId,
-              displayName: streamedClips[0]?.originalName || fileNameFromPath(file),
-              videoPath: file,
-              folderId: episodeState.selectedFolderId,
-              importedAt: Date.now(),
-              clips: streamedClips,
-              importMethod: "video_files",
-            },
-            sceneCount: streamedClips.length,
-          };
-        }
-
-        if (invokeError) throw invokeError;
-        // no scenes and no phase-1 signal: fall through to manifest hydration
-      } else {
-        // non-streaming imports run detection to completion so the manifest exists
-        await detectScenes();
-      }
-
-      const manifest = await loadEpisodeManifest(episodeId, generalSettings.episodesPath);
-      const clips = parseManifestInitialClips(manifest, episodeId);
-      if (clips.length === 0) throw new Error("Manifest import path produced no clips.");
-
-      const manifestMethod = manifest?.source?.importMethod;
-      return {
-        episodeEntry: {
-          id: episodeId,
-          displayName: clips[0]?.originalName || fileNameFromPath(file),
-          videoPath: file,
-          folderId: episodeState.selectedFolderId,
-          importedAt: Date.now(),
-          clips,
-          importMethod:
-            manifestMethod === "webp_files" || manifestMethod === "video_files"
-              ? manifestMethod
-              : generalSettings.importMethod,
+    (file: string, episodeId: string, focusGrid = true) =>
+      runEpisodeImport(file, episodeId, {
+        focusGrid,
+        folderId: episodeState.selectedFolderId,
+        importMethod: generalSettings.importMethod,
+        detection: generalSettings.sceneDetectionMethod,
+        // the ✕ during the handoff stops everything, so nothing is queued after it
+        onUncut: () => {
+          if (!abortedRef.current) queueReencode(episodeId);
         },
-        sceneCount: Array.isArray(manifest?.scenes) ? manifest.scenes.length : clips.length,
-      };
-    },
-    [
-      generalSettings.episodesPath,
-      generalSettings.sceneDetectionMethod,
-      generalSettings.importMethod,
-      abortedRef,
-      episodeState.selectedFolderId,
-      episodeState.setEpisodes,
-      episodeState.setSelectedEpisodeId,
-      episodeState.setOpenedEpisodeId,
-    ]
+      }),
+    [generalSettings.sceneDetectionMethod, generalSettings.importMethod, abortedRef, episodeState.selectedFolderId]
   );
 
   const handleImport = useCallback(
@@ -205,7 +79,7 @@ export function useImportPipeline({ abortedRef }: Params) {
         app.setVideoIsHEVC(null);
         setImportToken(Date.now().toString());
 
-        const { episodeEntry, sceneCount } = await runImportPipeline(file, episodeId, true);
+        const { episodeEntry, sceneCount } = await runImportPipeline(file, episodeId);
 
         // replace, not duplicate, the entry the streaming listener may have added
         episodeState.setEpisodes((prev) => [
@@ -298,7 +172,6 @@ export function useImportPipeline({ abortedRef }: Params) {
             const { episodeEntry, sceneCount } = await runImportPipeline(
               file,
               episodeId,
-              true,
               completedEpisodes.length === 0
             );
             console.info("[import] manifest verified", {

@@ -95,6 +95,8 @@ export type ScoutSearchSettings = {
   lastIndexDetection?: "transnetv2_gpu" | "keyframe_detection";
   /** leave scenes near each episode's start and end out of results, where openings and endings usually sit */
   skipEpisodeEdges?: boolean;
+  /** full episodes are cut into the library (a folder per database) and indexed on those scenes; unset means on */
+  cutToLibrary?: boolean;
 };
 
 export const EPISODE_EDGE_MS = 150_000;

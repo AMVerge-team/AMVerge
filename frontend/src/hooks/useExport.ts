@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { message as showMessage, open, save } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
+import { showNotice } from "../features/notice/notice";
 import { ClipItem } from "../types/domain";
 import { fileNameFromPath } from "../utils/episodeUtils";
 import { runPostExportPasses, type PassTarget } from "../features/export/runPostExportPasses";
@@ -30,6 +31,8 @@ import { useAppStateStore, useAppPersistedStore } from "../stores/appStore";
 import { useGeneralSettingsStore } from "../stores/settingsStore";
 
 const ERROR_MESSAGE_TIMEOUT_MS = 8000;
+// what export_clips rejects with after an abort (rust export.rs)
+const EXPORT_CANCELED = "Export canceled.";
 
 /** the clip id behind each export spec, in order: the cli returns one file per spec, in spec order */
 function specOwners(clips: ClipItem[]): string[] {
@@ -60,10 +63,15 @@ export function useExport({ onRPCUpdate }: Params) {
   const reportFailure = useCallback(
     (err: unknown, logLabel: string, notifyRPC: boolean) => {
       const message = errorMessage(err);
+      // a stop the user asked for (✕, or the job conflict prompt) is not a failure to report
+      if (message === EXPORT_CANCELED) {
+        console.info("Export canceled by the user");
+        return;
+      }
       console.error(logLabel, err);
       useAppStateStore.getState().setProgressMsg(`Export failed: ${message}`);
-      // the terminal closes in the caller's finally, so every failure gets a durable dialog
-      void showMessage(message, { title: "Export failed", kind: "error" });
+      // the terminal closes in the caller's finally, so every failure gets a notice that stays
+      void showNotice("Export failed", message);
       if (notifyRPC) {
         onRPCUpdate?.({
           type: "update",
