@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use serde_json::Value;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::payloads::{PassLogPayload, PassPreviewPayload, PassProgressPayload, ProgressPayload};
 use crate::state::{ActiveFfmpegPids, ExportAbortState};
@@ -33,6 +33,17 @@ pub(crate) struct ClipSpec {
     /// the number a separate export's "####" becomes; the CLI uses the position when absent
     #[serde(default, skip_serializing_if = "Option::is_none")]
     scene_index: Option<u32>,
+}
+
+/// per-session keyframe scans the CLI reuses across exports; wiped on launch and exit
+fn keyframe_cache_dir(app: &AppHandle) -> Option<PathBuf> {
+    app.path().app_cache_dir().ok().map(|dir| dir.join("export_keyframes"))
+}
+
+pub fn clear_keyframe_cache(app: &AppHandle) {
+    if let Some(dir) = keyframe_cache_dir(app) {
+        let _ = std::fs::remove_dir_all(dir);
+    }
 }
 
 struct ExportAbortGuard {
@@ -231,6 +242,9 @@ pub async fn export_clips(
     } else if codec == "copy" {
         // neighbouring scenes in one keyframe interval would otherwise export the same frames
         cmd.arg("--exact-copy");
+        if let Some(dir) = keyframe_cache_dir(&app) {
+            cmd.arg("--keyframe-cache-dir").arg(dir);
+        }
     }
     cmd.arg("--ipc")
         .stdout(Stdio::piped())

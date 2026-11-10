@@ -94,6 +94,8 @@ export type EventsStore = EventsState & {
   dismissBanNotice: () => void;
   dismissApprovalNotice: () => void;
   markEventsSeen: () => void;
+  /** drops this visit's NEW! flags when leaving Events */
+  clearEventHighlights: () => void;
   /** starts the countdown from a server-supplied number of seconds */
   startSubmitCooldown: (seconds: number) => void;
   setNotificationsMuted: (muted: boolean) => void;
@@ -393,16 +395,19 @@ export const useEventsStore = create<EventsStore>()(
     const seen = new Set(get().seenEventIds);
     const fresh = visible.filter((id) => !seen.has(id));
 
-    if (fresh.length === 0 && get().highlightedEventIds.length === 0) return;
+    if (fresh.length === 0) return;
 
     for (const id of visible) seen.add(id);
 
     set({
-      highlightedEventIds: fresh,
+      // reruns on every list refresh, so earlier flags this visit are kept
+      highlightedEventIds: [...get().highlightedEventIds, ...fresh],
       // bounded; ids that fall off are old events no longer listed
       seenEventIds: Array.from(seen).slice(-SEEN_ID_LIMIT),
     });
   },
+
+  clearEventHighlights: () => set({ highlightedEventIds: [] }),
     }),
     {
       name: "amverge.events.v1",

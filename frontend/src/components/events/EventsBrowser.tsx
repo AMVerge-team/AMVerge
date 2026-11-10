@@ -20,6 +20,8 @@ import type { CommunityEvent } from "./types";
 /** event cards stop being readable past four across; the shared `cols` is only clamped here */
 export const MAX_EVENT_COLUMNS = 4;
 
+let clearHighlightsTimer: number | undefined;
+
 function Section({
   title,
   events,
@@ -138,9 +140,19 @@ export default function EventsBrowser() {
   const highlightedEventIds = useEventsStore((s) => s.highlightedEventIds);
   const highlighted = useMemo(() => new Set(highlightedEventIds), [highlightedEventIds]);
 
+  const clearEventHighlights = useEventsStore((s) => s.clearEventHighlights);
+
   useEffect(() => {
     markEventsSeen();
   }, [markEventsSeen, active, hyetta]);
+
+  // deferred so strict mode's instant remount keeps the flags
+  useEffect(() => {
+    window.clearTimeout(clearHighlightsTimer);
+    return () => {
+      clearHighlightsTimer = window.setTimeout(clearEventHighlights, 0);
+    };
+  }, [clearEventHighlights]);
 
   //
   // collapsed sections by title, not persisted; "Requested events" starts folded

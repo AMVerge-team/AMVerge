@@ -587,7 +587,7 @@ App starts → main.tsx: maybeCheckForUpdatesOnStartup()
 
 7. **Preview proxy locks**: per-clip `AsyncMutex` prevents duplicate transcodes of the same file.
 
-8. **Export modes**: encode profiles always re-encode source ranges. Remux merges stream-copy each contiguous run snapped outward to source keyframes. Separate remux exports pass `--exact-copy`: scenes exactly on keyframes stream-copy, the rest re-encode in the source's codec and bit depth, because snapping made neighbours inside one keyframe interval export identical files (AVI is copy only, so it still snaps). GPU contention can fall back from GPU to CPU encoding, but never changes a copy into an encode.
+8. **Export modes**: encode profiles always re-encode source ranges. Remux merges stream-copy each contiguous run snapped outward to source keyframes. Separate remux exports pass `--exact-copy`: scenes exactly on keyframes stream-copy, the rest re-encode in the source's codec and bit depth, because snapping made neighbours inside one keyframe interval export identical files (AVI is copy only, so it still snaps). That check scans each source episode's keyframes in one demux pass, 4 sources in parallel, and reports "Checking keyframes n/total episodes"; scans are cached in `app_cache_dir/export_keyframes` (`--keyframe-cache-dir`, keyed by path + size + mtime), which `clear_keyframe_cache` wipes on exit and on launch. GPU contention can fall back from GPU to CPU encoding, but never changes a copy into an encode.
 
 9. **Animated WebP cache**: fingerprinted by SHA-256 of file head/mid/tail bytes. Cache invalidated if source changes.
 

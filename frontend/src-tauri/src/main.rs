@@ -140,6 +140,8 @@ fn main() {
             // the preview cache only grows while the app runs, so it is brought under its cap on launch
             commands::preview::cache::prune_in_background(app.handle());
             commands::migration::remove_v1_data_in_background(app.handle());
+            // leftovers from a crash, since exit normally clears it
+            commands::export::clear_keyframe_cache(app.handle());
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -152,6 +154,7 @@ fn main() {
         .run(|app, event| {
             if let tauri::RunEvent::Exit = event {
                 kill_all_child_processes(app);
+                commands::export::clear_keyframe_cache(app);
             }
         });
 }
