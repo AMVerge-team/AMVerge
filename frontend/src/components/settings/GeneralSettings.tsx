@@ -22,13 +22,85 @@ export default function GeneralSettings({
   // lock the toggle on and disabled.
   const hevcForced = !userHasHEVC;
   const [loading, setLoading] = useState(false);
+  const [updateState, setUpdateState] = useState<"idle" | "checking" | "installing">("idle");
+  const [updateStatus, setUpdateStatus] = useState("");
   const [showFactoryResetConfirm, setShowFactoryResetConfirm] = useState(false);
   const [showClearPanelConfirm, setShowClearPanelConfirm] = useState(false);
   const [clearingPanel, setClearingPanel] = useState(false);
+  const platformInfo = typeof navigator === "undefined"
+    ? ""
+    : `${navigator.platform} ${navigator.userAgent}`;
+  const updaterAvailable =
+    typeof window !== "undefined" &&
+    "__TAURI_INTERNALS__" in window &&
+    !/linux/i.test(platformInfo);
   const factoryResetConfirmation =
     "This will restore AMVerge to its default settings and move your episode storage folder back to AppData. Any custom settings or storage location changes you made will be reset.";
   const clearPanelConfirmation =
     "This will remove ALL episodes from the Episode Panel and move cached files to Recycle Bin/Trash. This action can affect many files in your episode cache folder.";
+
+  const handleCheckForUpdates = async () => {
+    setUpdateState("checking");
+    setUpdateStatus("");
+
+    try {
+      const [{ check }, { confirm, message }] = await Promise.all([
+        import("@tauri-apps/plugin-updater"),
+        import("@tauri-apps/plugin-dialog"),
+      ]);
+      const update = await check();
+
+      if (!update) {
+        setUpdateStatus("You're up to date.");
+        await message("You are already using the latest version of AMVerge.", {
+          title: "AMVerge Updates",
+        });
+        return;
+      }
+
+      const shouldInstall = await confirm(
+        `A new update is available (v${update.version}). Install now?`,
+        { title: "AMVerge Update" },
+      );
+      if (!shouldInstall) return;
+
+      setUpdateState("installing");
+      await message(
+        `Starting update to v${update.version}. Download/install may take a bit on macOS.\n\nPlease keep AMVerge open until it completes.`,
+        { title: "AMVerge Update" },
+      );
+      await update.downloadAndInstall();
+
+      if (/mac/i.test(platformInfo)) {
+        const { relaunch } = await import("@tauri-apps/plugin-process");
+        await relaunch();
+      } else {
+        setUpdateStatus(`Update v${update.version} installed.`);
+        await message(
+          `Update v${update.version} was installed.\n\nIf the app does not restart automatically, please close and reopen AMVerge.`,
+          { title: "AMVerge Update Installed" },
+        );
+      }
+    } catch (error) {
+      const errorText = error instanceof Error
+        ? `${error.name}: ${error.message}`
+        : "Update check or installation failed.";
+      console.error("[updater] manual update flow failed:", error);
+
+      try {
+        const { message } = await import("@tauri-apps/plugin-dialog");
+        await message(`Could not check for or install the update. ${errorText}`, {
+          title: "AMVerge Update Failed",
+        });
+      } catch (dialogError) {
+        console.error("[updater] could not display update error:", dialogError);
+        window.alert(`Could not check for or install the update. ${errorText}`);
+      }
+    } finally {
+      setUpdateState("idle");
+    }
+  };
+
   useEffect(() => {
     if (!showFactoryResetConfirm) return;
 
@@ -111,9 +183,29 @@ export default function GeneralSettings({
             <span className="settings-value" style={{ width: "auto" }}>
               v1.3.2
             </span>
+            {updaterAvailable && (
+              <button
+                className="buttons"
+                type="button"
+                onClick={() => void handleCheckForUpdates()}
+                disabled={updateState !== "idle"}
+                style={{ width: "auto", padding: "0 16px", marginBottom: 0 }}
+              >
+                {updateState === "checking"
+                  ? "Checking..."
+                  : updateState === "installing"
+                    ? "Installing..."
+                    : "Check for Updates"}
+              </button>
+            )}
           </div>
           }
         />
+        {updateStatus && (
+          <p className="setting-description" role="status" aria-live="polite">
+            {updateStatus}
+          </p>
+        )}
       
         <SettingRow
           label="Audio Playback Hover"
