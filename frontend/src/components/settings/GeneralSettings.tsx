@@ -1,4 +1,5 @@
 import { open } from "@tauri-apps/plugin-dialog";
+import { errorText, showNotice } from "../../features/notice/notice";
 import { invoke } from "@tauri-apps/api/core";
 import {
   PreviewTranscodeMode,
@@ -71,7 +72,7 @@ export default function GeneralSettings({
     try {
       await clearScenepacksStorage();
     } catch (err) {
-      window.alert("Failed to clear Scenepack storage: " + String(err));
+      void showNotice("Clear failed", "Failed to clear Scenepack storage: " + errorText(err));
     } finally {
       setClearingScenepacks(false);
       setShowClearScenepacksConfirm(false);
@@ -83,7 +84,7 @@ export default function GeneralSettings({
     try {
       await clearEpisodePanelCache();
     } catch (err) {
-      window.alert("Failed to clear episode panel: " + String(err));
+      void showNotice("Clear failed", "Failed to clear episode panel: " + errorText(err));
     } finally {
       setClearingPanel(false);
       setShowClearPanelConfirm(false);
@@ -136,7 +137,7 @@ export default function GeneralSettings({
           // `selected` is the storage root; episodes sit in its episodes_storage folder
           await rebaseStoragePaths(selected);
         } catch (err) {
-          window.alert("Failed to move existing episodes: " + String(err));
+          void showNotice("Move failed", "Failed to move existing episodes: " + errorText(err));
         } finally {
           // the grid was emptied for the move; failed or not, the open episode comes back
           restoreOpenedEpisodeGrid();

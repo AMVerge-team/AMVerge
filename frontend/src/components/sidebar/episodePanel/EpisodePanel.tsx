@@ -19,6 +19,12 @@ import useImportExport from "../../../hooks/useImportExport";
 import { useEpisodePanelMetadataStore, useEpisodePanelRuntimeStore } from "../../../stores/episodeStore";
 import { useGeneralSettingsStore } from "../../../stores/settingsStore";
 import { invoke } from "@tauri-apps/api/core";
+import {
+  findDatabaseLinks,
+  linksByEpisode,
+  removeDatabaseLinks,
+  type DatabaseLink,
+} from "../../../features/sceneScout/databaseLinks";
 
 export default function EpisodePanel() {
   const panelListRef = useRef<HTMLDivElement | null>(null);
@@ -36,6 +42,8 @@ export default function EpisodePanel() {
     kind: "episode" | "episodes" | "folder";
     ids: string[];
     label: string;
+    /** scene scout databases indexing these episodes; null while they are being checked */
+    links: DatabaseLink[] | null;
   } | null>(null);
 
   const episodeRuntimeState = useEpisodePanelRuntimeStore();
@@ -157,21 +165,21 @@ export default function EpisodePanel() {
     handleToggleFolderExpanded,
   } = useEpisodePanelState();
 
+  // the modal opens at once; the databases indexing these episodes fill in when checked
+  const askDeleteEpisodes = (kind: "episode" | "episodes", ids: string[], label: string) => {
+    setConfirmDelete({ kind, ids, label, links: null });
+    void findDatabaseLinks(ids).then((links) =>
+      setConfirmDelete((current) => (current?.ids === ids ? { ...current, links } : current))
+    );
+  };
+
   const confirmDeleteEpisode = (id: string) => {
     const ep = episodes.find((e) => e.id === id);
-    setConfirmDelete({
-      kind: "episode",
-      ids: [id],
-      label: ep?.displayName ?? ep?.id ?? "episode",
-    });
+    askDeleteEpisodes("episode", [id], ep?.displayName ?? ep?.id ?? "episode");
   };
 
   const confirmDeleteEpisodes = (ids: string[]) => {
-    setConfirmDelete({
-      kind: "episodes",
-      ids,
-      label: `${ids.length} episodes`,
-    });
+    askDeleteEpisodes("episodes", ids, `${ids.length} episodes`);
   };
 
   const confirmDeleteFolder = (id: string) => {
@@ -180,21 +188,26 @@ export default function EpisodePanel() {
       kind: "folder",
       ids: [id],
       label: f?.name ?? "folder",
+      links: [],
     });
   };
 
   useEscapeToClose(() => setConfirmDelete(null), confirmDelete !== null);
 
   const handleConfirmDelete = () => {
-    if (!confirmDelete) return;
+    if (!confirmDelete || confirmDelete.links === null) return;
     if (confirmDelete.kind === "folder") {
       for (const id of confirmDelete.ids) handleDeleteFolder(id);
     } else {
       for (const id of confirmDelete.ids) void handleDeleteEpisode(id);
+      // their scenes leave the databases too, so searches stop finding them
+      void removeDatabaseLinks(confirmDelete.links);
     }
     setConfirmDelete(null);
     setMultiSelectedIds(new Set());
   };
+
+  const linkedEpisodes = confirmDelete?.links ? linksByEpisode(confirmDelete.links) : [];
 
   useEffect(() => {
     if (openedEpisodeId) return;
@@ -476,18 +489,43 @@ export default function EpisodePanel() {
               <div className="episode-modal-title">
                 Delete {confirmDelete.kind === "folder" ? "Folder" : "Episode"}
               </div>
+              {linkedEpisodes.length > 0 && (
+                <div className="episode-modal-links">
+                  <div className="episode-modal-message">The following episodes are attached to databases:</div>
+                  <ul className="episode-modal-link-list">
+                    {linkedEpisodes.map((entry) => (
+                      <li key={entry.episodeName} title={entry.episodeName}>
+                        <span className="episode-modal-link-name">{entry.episodeName}</span>
+                        <span className="episode-modal-link-dbs">{entry.databases.join(", ")}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <div className="episode-modal-message">
-                Are you sure you want to delete this {confirmDelete.kind === "folder" ? "folder" : "episode"}?
+                {confirmDelete.kind === "folder"
+                  ? "Are you sure you want to delete this folder?"
+                  : `Are you sure you'd like to delete ${confirmDelete.kind === "episodes" ? "these episodes" : "this episode"}?`}
               </div>
               <div className="episode-modal-subject" title={confirmDelete.label}>
                 {confirmDelete.label}
               </div>
               <div className="episode-modal-note">
-                This will also delete all cached clip files on disk.
+                {confirmDelete.links === null
+                  ? "Checking Scene Scout databases…"
+                  : linkedEpisodes.length > 0
+                    ? "This also deletes the cached clip files and removes the episodes from those databases."
+                    : "This will also delete all cached clip files on disk."}
               </div>
               <div className="episode-modal-actions">
                 <button className="episode-modal-btn" onClick={() => setConfirmDelete(null)}>Cancel</button>
-                <button className="episode-modal-btn danger" onClick={handleConfirmDelete}>Delete</button>
+                <button
+                  className="episode-modal-btn danger"
+                  onClick={handleConfirmDelete}
+                  disabled={confirmDelete.links === null}
+                >
+                  Delete
+                </button>
               </div>
             </div>
           </div>

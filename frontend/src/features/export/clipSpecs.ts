@@ -22,8 +22,9 @@ export function separateExportNumbers(clips: ClipItem[]): number[] {
 /** an episode clip exports its source range (so copy snaps to keyframes); Scenepack clips export their own file */
 export function clipExportSpecs(c: ClipItem): ClipExportSpec[] {
   if (c.mergedSrcs && c.mergedSrcs.length > 0) return c.mergedSrcs.map((input) => ({ input }));
+  // scene scout hits too, even once they play a library clip: that clip can carry copy-mode bleed
   if (
-    !c.sourceKind &&
+    (!c.sourceKind || c.database) &&
     c.originalPath &&
     Number.isFinite(c.startSec) &&
     Number.isFinite(c.endSec)

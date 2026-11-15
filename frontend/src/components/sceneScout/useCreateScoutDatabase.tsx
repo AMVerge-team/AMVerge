@@ -1,19 +1,23 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 import { FaDatabase } from '../icons/animated';
 
 import ModalShell from "../common/ModalShell";
 import { useSceneScoutStore } from "../../stores/sceneScoutStore";
 
-/** pick a location, create the file, then name it in the app (panel and first-visit layout) */
+type Created = { ok: boolean; message: string | null; path: string | null };
+
+/** pick a location, then name it in the app while the file is created (panel and first-visit layout) */
 export function useCreateScoutDatabase(onCreated?: (path: string) => void) {
   const createDatabase = useSceneScoutStore((s) => s.createDatabase);
   const renameDatabase = useSceneScoutStore((s) => s.renameDatabase);
   const openDatabase = useSceneScoutStore((s) => s.openDatabase);
 
-  const [namingPath, setNamingPath] = useState<string | null>(null);
+  const [naming, setNaming] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [draftName, setDraftName] = useState("");
   const [error, setError] = useState("");
+  const creationRef = useRef<Promise<Created> | null>(null);
 
   const startCreate = async () => {
     setError("");
@@ -24,30 +28,37 @@ export function useCreateScoutDatabase(onCreated?: (path: string) => void) {
     });
     if (!picked) return;
 
-    const result = await createDatabase(picked);
+    // the name modal opens at once; the cli creates the file meanwhile
+    setDraftName(picked.split(/[/\\]/).pop()?.replace(/\.scoutdb$/i, "") ?? "Database");
+    setNaming(true);
+    setCreating(true);
+    const creation = createDatabase(picked);
+    creationRef.current = creation;
+    const result = await creation;
+    if (creationRef.current !== creation) return;
+    setCreating(false);
     if (!result.ok || !result.path) {
+      setNaming(false);
       setError(result.message || "Could not create the database.");
-      return;
     }
-
-    // label defaults to the file name, keyed by the cli's resolved path like the database list
-    const fileStem = result.path.split(/[/\\]/).pop()?.replace(/\.scoutdb$/i, "") ?? "Database";
-    setDraftName(fileStem);
-    setNamingPath(result.path);
   };
 
-  const confirmName = () => {
-    if (!namingPath) return;
+  const confirmName = async () => {
+    const creation = creationRef.current;
+    if (!creation || creating) return;
+    const result = await creation;
+    creationRef.current = null;
+    setNaming(false);
+    if (!result.ok || !result.path) return;
+    // label keyed by the cli's resolved path, like the database list
     const name = draftName.trim();
-    if (name) renameDatabase(namingPath, name);
-    const path = namingPath;
-    setNamingPath(null);
-    void openDatabase(path);
-    onCreated?.(path);
+    if (name) renameDatabase(result.path, name);
+    void openDatabase(result.path);
+    onCreated?.(result.path);
   };
 
-  const modal = namingPath ? (
-    <ModalShell open onClose={confirmName} label="Name this database" className="scene-scout-name-modal">
+  const modal = naming ? (
+    <ModalShell open onClose={() => void confirmName()} label="Name this database" className="scene-scout-name-modal">
       <div className="denial-notice">
         <FaDatabase aria-hidden="true" className="denial-notice-icon" />
         <h2>Name this database</h2>
@@ -63,13 +74,20 @@ export function useCreateScoutDatabase(onCreated?: (path: string) => void) {
           placeholder="Database name"
           onChange={(e) => setDraftName(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") confirmName();
+            if (e.key === "Enter") void confirmName();
           }}
         />
 
         <div className="denial-notice-actions">
-          <button type="button" className="event-host-btn" onClick={confirmName}>
-            Done
+          <button type="button" className="event-host-btn" onClick={() => void confirmName()} disabled={creating}>
+            {creating ? (
+              <>
+                <span className="loading-spinner scene-scout-create-spinner" aria-hidden="true" />
+                Creating database…
+              </>
+            ) : (
+              "Done"
+            )}
           </button>
         </div>
       </div>

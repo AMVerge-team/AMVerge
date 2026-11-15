@@ -38,7 +38,7 @@ export function SceneScoutToolbar() {
   const GATE_HINT = "Please select a Database or Create one on the left panel first.";
 
   const rerunSearch = () => {
-    if (query.trim() && !searching) void runSearch();
+    if (query.trim()) void runSearch();
   };
 
   const { startAddEpisodes, modal: addModal, error: addError } = useAddEpisodes();

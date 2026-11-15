@@ -23,11 +23,29 @@ export function isEpisodePaused(
   return episode.clips.some(isUnfinished);
 }
 
+/** a clip a resume can still cut: unfinished and with its scene range */
+export function isResumable(clip: ClipItem): boolean {
+  return (
+    isUnfinished(clip) &&
+    typeof clip.sceneIndex === "number" &&
+    typeof clip.startSec === "number" &&
+    typeof clip.endSec === "number"
+  );
+}
+
+export type FinishOptions = {
+  /** only these scenes, e.g. scene scout hits; all unfinished ones when unset */
+  scenes?: number[];
+  /** no progress bar or resuming state: background and search-driven cuts */
+  quiet?: boolean;
+  lowPriority?: boolean;
+};
+
 // the unfinished scenes in the shape `resume_episode_clips` takes
-function buildResumeSpecs(episode: EpisodeEntry) {
+function buildResumeSpecs(episode: EpisodeEntry, scenes?: number[]) {
   return episode.clips
-    .filter(isUnfinished)
-    .filter((c) => typeof c.sceneIndex === "number" && typeof c.startSec === "number" && typeof c.endSec === "number")
+    .filter(isResumable)
+    .filter((c) => !scenes || scenes.includes(c.sceneIndex as number))
     .map((c) => ({
       scene_index: c.sceneIndex,
       source_path: c.originalPath || episode.videoPath,
@@ -39,32 +57,41 @@ function buildResumeSpecs(episode: EpisodeEntry) {
     }));
 }
 
+/** scene indexes a resume can still cut, in episode order */
+export function resumableScenes(episodeId: string): number[] {
+  const episode = useEpisodePanelRuntimeStore.getState().episodes.find((e) => e.id === episodeId);
+  return episode ? episode.clips.filter(isResumable).map((c) => c.sceneIndex as number) : [];
+}
+
 /** whether the episode still has clips a resume can finish */
 export function hasClipsToFinish(episodeId: string): boolean {
-  const episode = useEpisodePanelRuntimeStore.getState().episodes.find((e) => e.id === episodeId);
-  return Boolean(episode && buildResumeSpecs(episode).length > 0);
+  return resumableScenes(episodeId).length > 0;
 }
 
 /** cuts the episode's unfinished clips; only the re-encode queue calls this, so one runs at a time */
-export async function finishEpisodeClips(episodeId: string): Promise<void> {
+export async function finishEpisodeClips(episodeId: string, options: FinishOptions = {}): Promise<void> {
+  const { scenes, quiet = false, lowPriority = false } = options;
   const episode = useEpisodePanelRuntimeStore.getState().episodes.find((e) => e.id === episodeId);
   if (!episode) return;
-  const specs = buildResumeSpecs(episode);
+  const specs = buildResumeSpecs(episode, scenes);
   if (specs.length === 0) return;
 
   const total = episode.clips.length;
-  let done = total - specs.length;
+  let done = total - episode.clips.filter(isResumable).length;
   const label = `Finishing clips for ${episode.displayName}`;
   // a running import owns the mini window's main bar, so this reports on the bar under it
-  const progressUpdate = () => ({
-    reencodeProgress: { done, total },
-    ...(useAppStateStore.getState().activeOperation !== "import"
-      ? { progress: Math.round((done / total) * 100), progressMsg: label }
-      : {}),
-  });
-  useAppStateStore.setState({ resumingEpisodeId: episodeId, ...progressUpdate() });
+  const progressUpdate = () =>
+    quiet
+      ? {}
+      : {
+          reencodeProgress: { done, total },
+          ...(useAppStateStore.getState().activeOperation !== "import"
+            ? { progress: Math.round((done / total) * 100), progressMsg: label }
+            : {}),
+        };
+  if (!quiet) useAppStateStore.setState({ resumingEpisodeId: episodeId, ...progressUpdate() });
 
-  console.info("[resume] finishing episode clips", { episodeId, clips: specs.length });
+  console.info("[resume] finishing episode clips", { episodeId, clips: specs.length, quiet, lowPriority });
 
   // buffered per frame like a live import, so a burst of events is one grid update
   const patches = createClipPatchBuffer((apply) => {
@@ -102,13 +129,13 @@ export async function finishEpisodeClips(episodeId: string): Promise<void> {
   );
 
   try {
-    await invoke("resume_episode_clips", { episodeCacheId: episodeId, clips: specs });
+    await invoke("resume_episode_clips", { episodeCacheId: episodeId, clips: specs, lowPriority });
   } catch (err) {
     console.error("[resume] failed:", err);
   } finally {
     patches.flushNow();
     unlistenClip();
     unlistenThumb();
-    useAppStateStore.setState({ resumingEpisodeId: null, reencodeProgress: null });
+    if (!quiet) useAppStateStore.setState({ resumingEpisodeId: null, reencodeProgress: null });
   }
 }

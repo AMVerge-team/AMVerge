@@ -29,6 +29,8 @@ import {
 } from "../features/sceneScout/types";
 import { claimProcess } from "../features/processes/singleProcess";
 import type { SceneRange } from "../features/sceneScout/precutEpisodes";
+import { cutIntoLibrary, prioritizeHits } from "../features/sceneScout/library";
+import { DETECT_CANCELED } from "../features/import/importPipeline";
 import { useAiDepsStore } from "./aiDepsStore";
 import { useAppStateStore } from "./appStore";
 import { useGeneralSettingsStore } from "./settingsStore";
@@ -209,6 +211,9 @@ const INITIAL: SceneScoutState = {
 // databases already backfilled this session, so a repeat search does not respawn the cli for nothing
 const backfilled = new Set<string>();
 
+// bumped per search: a newer search takes over, and an older one's results are dropped when they land
+let searchGen = 0;
+
 function fileStem(path: string): string {
   return (path.split(/[/\\]/).pop() ?? path).replace(/\.[^.]+$/, "").toLowerCase();
 }
@@ -267,10 +272,8 @@ async function hasDatabases(): Promise<boolean> {
 }
 
 /** remembers a database outside the managed folder, which the root listing can't find on its own */
-async function rememberIfExternal(path: string): Promise<void> {
-  const store = useSceneScoutStore.getState();
-  // a null root must not misclassify an in-root database as external
-  if (!store.status) await store.refreshStatus();
+function rememberIfExternal(path: string): void {
+  // with no status yet (it takes seconds) the path is kept anyway: loadDatabases drops it again if it is in the root
   const { status, externalPaths } = useSceneScoutStore.getState();
   const isExternal = !status?.root || !isUnderRoot(path, status.root);
   if (isExternal && !externalPaths.some((p) => samePath(p, path))) {
@@ -359,8 +362,14 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       createDatabase: async (pathOrName) => {
         try {
           const created = await scoutCreateDatabase(pathOrName, customPath());
-          await rememberIfExternal(created.path);
-          await get().loadDatabases();
+          rememberIfExternal(created.path);
+          // shown at once; the full listing (one cli run per external database) refreshes behind it
+          set((state) => ({
+            databases: state.databases.some((d) => samePath(d.path, created.path))
+              ? state.databases
+              : [...state.databases, created],
+          }));
+          void get().loadDatabases();
           return { ok: true, message: null, path: created.path };
         } catch (err) {
           return { ok: false, message: message(err), path: null };
@@ -375,7 +384,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         appState.setProgressMsg(`Opening database ${baseName}…`);
         try {
           const db = await scoutOpenDatabase(filePath, customPath());
-          await rememberIfExternal(db.path);
+          rememberIfExternal(db.path);
 
           if (get().unloadedPaths.some((p) => samePath(p, db.path))) {
             set({ unloadedPaths: get().unloadedPaths.filter((p) => !samePath(p, db.path)) });
@@ -691,11 +700,15 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             detectorArg ??
             get().settings.lastIndexDetection ??
             useGeneralSettingsStore.getState().sceneDetectionMethod;
+          const cutToLibrary = get().settings.cutToLibrary !== false;
+          const folderName =
+            get().displayNames[database] ??
+            get().databases.find((d) => samePath(d.path, database))?.name ??
+            fileStem(database);
           for (let i = 0; i < totalVideos; i++) {
             const videoPath = videoPaths[i];
             const name = videoPath.split(/[/\\]/).pop() || videoPath;
             console.log(`SCOUT|queue [${i + 1}/${totalVideos}] indexing ${name}`);
-            runsDetection = detector === "transnetv2_gpu" && !precutScenes?.[videoPath];
             appState.setBatchDone(i);
             appState.setBatchCurrentFile(name);
             appState.setProgress(0);
@@ -718,7 +731,15 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
               },
             });
 
-            await scoutAddVideo(database, videoPath, detector, customPath(), precutScenes?.[videoPath] ?? null);
+            let scenes = precutScenes?.[videoPath] ?? null;
+            if (!scenes && cutToLibrary) {
+              // detection runs once, in the library import; the index reuses its scenes
+              appState.setProgressMsg(`Cutting ${name} into the library…`);
+              scenes = await cutIntoLibrary(videoPath, folderName, detector);
+              appState.setProgress(0);
+            }
+            runsDetection = detector === "transnetv2_gpu" && !scenes;
+            await scoutAddVideo(database, videoPath, detector, customPath(), scenes);
             console.log(`SCOUT|queue [${i + 1}/${totalVideos}] completed ${name}`);
           }
           await Promise.all([get().loadVideos(database), get().loadDatabases()]);
@@ -728,7 +749,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           // finished episodes stay; the half-indexed one it stopped on is removed
           await discardUnfinishedVideos(database);
           await Promise.all([get().loadVideos(database), get().loadDatabases()]);
-          if (isScoutCanceled(err)) {
+          if (isScoutCanceled(err) || String(err) === DETECT_CANCELED) {
             console.log("SCOUT|queue stopped by the user");
             return { ok: false, message: null };
           }
@@ -775,6 +796,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           return;
         }
 
+        const gen = ++searchGen;
         set({ searching: true, error: null, heroDismissed: true });
         try {
           const searchSettings = {
@@ -783,7 +805,9 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             selectedVideos: get().selectedVideos,
           };
           const results = await withModelLoadingCard(() => scoutSearch(query, searchSettings, customPath()));
+          if (gen !== searchGen) return;
           set({ results, lastQuery: query });
+          prioritizeHits(results);
 
           // hits name their database by file stem, so map back to the searched paths
           const missing = new Set(results.filter((h) => !h.thumbnailB64).map((h) => h.database.toLowerCase()));
@@ -791,9 +815,9 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             get().backfillThumbnails(get().selectedDatabases.filter((p) => missing.has(fileStem(p))));
           }
         } catch (err) {
-          set({ results: [], error: message(err) });
+          if (gen === searchGen) set({ results: [], error: message(err) });
         } finally {
-          set({ searching: false });
+          if (gen === searchGen) set({ searching: false });
         }
       },
 
@@ -869,7 +893,10 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             selectedVideos: get().selectedVideos,
           };
           const flowResults = await withModelLoadingCard(() => scoutSearch("", flowSettings, customPath(), source));
-          if (get().flowFrom === source) set({ flowResults });
+          if (get().flowFrom === source) {
+            set({ flowResults });
+            prioritizeHits(flowResults);
+          }
         } catch (err) {
           if (get().flowFrom === source) set({ flowResults: [], flowError: message(err) });
         } finally {

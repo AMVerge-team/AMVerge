@@ -72,7 +72,7 @@ pub async fn materialize_scenepack_clips(
         "SCENEPACK|materialize_start",
         &format!("scenepack={scenepack_id} clips={}", clips.len()),
     );
-    run_materialize_clips(&app, &clips, &out_dir, "reencode", true, None, None).await
+    run_materialize_clips(&app, &clips, &out_dir, "reencode", true, false, None, None).await
 }
 
 /// runs `amverge materialize-clips` into `out_dir`, forwarding progress and each finished item
@@ -82,6 +82,7 @@ pub(crate) async fn run_materialize_clips(
     out_dir: &std::path::Path,
     cut_mode: &str,
     emit_progress: bool,
+    low_priority: bool,
     pids: Option<Arc<Mutex<Vec<u32>>>>,
     on_item: Option<OnMaterialized>,
 ) -> Result<Vec<MaterializedClip>, String> {
@@ -108,6 +109,9 @@ pub(crate) async fn run_materialize_clips(
     // only passed when needed, so Scenepacks keep the exact call older CLIs accept
     if cut_mode != "reencode" {
         cmd.arg("--cut-mode").arg(cut_mode);
+    }
+    if low_priority {
+        crate::utils::process::apply_low_priority(&mut cmd);
     }
     cmd.stdout(Stdio::piped())
         .stderr(Stdio::piped());

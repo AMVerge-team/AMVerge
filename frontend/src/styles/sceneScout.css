@@ -537,21 +537,29 @@
 }
 
 /* same thin accent scrollbar as the episode panel and the clip grid */
-.scout-add-list::-webkit-scrollbar {
+.scout-add-list::-webkit-scrollbar,
+.scene-scout-hero-db-list::-webkit-scrollbar,
+.scene-scout-delete-list::-webkit-scrollbar {
     width: 8px;
     background: transparent;
 }
 
-.scout-add-list::-webkit-scrollbar-thumb {
+.scout-add-list::-webkit-scrollbar-thumb,
+.scene-scout-hero-db-list::-webkit-scrollbar-thumb,
+.scene-scout-delete-list::-webkit-scrollbar-thumb {
     background: rgb(var(--accent-rgb) / 0.35);
     border-radius: 999px;
 }
 
-.scout-add-list::-webkit-scrollbar-thumb:hover {
+.scout-add-list::-webkit-scrollbar-thumb:hover,
+.scene-scout-hero-db-list::-webkit-scrollbar-thumb:hover,
+.scene-scout-delete-list::-webkit-scrollbar-thumb:hover {
     background: rgb(var(--accent-rgb) / 0.6);
 }
 
-.scout-add-list::-webkit-scrollbar-button {
+.scout-add-list::-webkit-scrollbar-button,
+.scene-scout-hero-db-list::-webkit-scrollbar-button,
+.scene-scout-delete-list::-webkit-scrollbar-button {
     display: none;
 }
 
@@ -1188,6 +1196,15 @@ body.scene-scout-resizing {
 .scene-scout-name-input:focus {
     outline: none;
     border-color: var(--accent);
+}
+
+/* the done button's busy state while the cli creates the file */
+.scene-scout-create-spinner {
+    width: 12px;
+    height: 12px;
+    border-width: 2px;
+    margin-right: 8px;
+    vertical-align: -2px;
 }
 
 /* no icon competing for the width, so the label takes the space instead */

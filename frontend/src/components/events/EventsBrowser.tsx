@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { askNotice } from "../../features/notice/notice";
 import { FaChevronDown } from '../icons/animated';
 
 import EventCard from "./EventCard";
@@ -179,9 +180,9 @@ export default function EventsBrowser() {
       return;
     }
 
-    if (window.confirm("Are you sure you want to delete this event?")) {
-      void deleteEvent(event.id);
-    }
+    void askNotice("Delete event", "Are you sure you want to delete this event?", "Delete").then((ok) => {
+      if (ok) void deleteEvent(event.id);
+    });
   };
 
   const confirmDelete = (event: CommunityEvent) => {

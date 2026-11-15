@@ -1,4 +1,5 @@
 import { useId, useRef, useState } from "react";
+import { errorText, showNotice } from "../../features/notice/notice";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import {
@@ -75,8 +76,7 @@ export default function AppearanceSection({
         }));
       } catch (error) {
         console.error("Failed to save background video:", error);
-        const message = error instanceof Error ? error.message : String(error);
-        window.alert(`Failed to apply background video: ${message}`);
+        void showNotice("Background not applied", `Failed to apply background video: ${errorText(error)}`);
       }
 
       return;
@@ -132,8 +132,7 @@ export default function AppearanceSection({
       setOriginalPath(null);
     } catch (error) {
       console.error("Failed to crop and save image:", error);
-      const message = error instanceof Error ? error.message : String(error);
-      window.alert(`Failed to apply background image: ${message}`);
+      void showNotice("Background not applied", `Failed to apply background image: ${errorText(error)}`);
     }
   };
 
