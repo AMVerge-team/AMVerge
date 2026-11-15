@@ -2,7 +2,8 @@ import type { EpisodeEntry } from "../../types/domain";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore";
 import { useGeneralSettingsStore } from "../../stores/settingsStore";
 import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
-import { scoutListVideos } from "./api";
+import { scoutListVideos, scoutListVideosBatch } from "./api";
+import type { ScoutVideo } from "./types";
 
 /** one library episode's video indexed in one scene scout database */
 export type DatabaseLink = {
@@ -21,27 +22,59 @@ export async function findDatabaseLinks(episodeIds: string[]): Promise<DatabaseL
   const targets = deleting.filter((e) => !kept.some((k) => samePath(k.videoPath, e.videoPath)));
   if (targets.length === 0) return [];
 
-  const { databases, displayNames } = useSceneScoutStore.getState();
+  const { databases, displayNames, videosByDatabase } = useSceneScoutStore.getState();
+  const nonEmptyDbs = databases.filter((db) => db.videoCount !== 0);
+  if (nonEmptyDbs.length === 0) return [];
+
   const customPath = useGeneralSettingsStore.getState().episodesPath;
-  // read fresh, since episodes may have been indexed since the panel last listed them
-  const perDatabase = await Promise.all(
-    databases.map(async (db) => {
-      const videos = await scoutListVideos(db.path, customPath).catch(() => []);
-      return videos.flatMap((video) => {
-        const episode = targets.find((e: EpisodeEntry) => samePath(e.videoPath, video.filepath));
-        return episode
-          ? [{
-              episodeName: episode.displayName,
-              videoPath: episode.videoPath,
-              databasePath: db.path,
-              databaseName: displayNames[db.path] ?? db.name,
-              videoId: video.id,
-            }]
-          : [];
-      });
-    })
-  );
-  return perDatabase.flat();
+  const resolvedVideos: Record<string, ScoutVideo[]> = {};
+  const missingPaths: string[] = [];
+
+  for (const db of nonEmptyDbs) {
+    const cached = videosByDatabase[db.path];
+    if (cached && cached.length === db.videoCount) {
+      resolvedVideos[db.path] = cached;
+    } else {
+      missingPaths.push(db.path);
+    }
+  }
+
+  if (missingPaths.length > 0) {
+    try {
+      const batch = await scoutListVideosBatch(missingPaths, customPath);
+      for (const path of missingPaths) {
+        resolvedVideos[path] = batch[path] ?? [];
+      }
+      useSceneScoutStore.setState((state) => ({
+        videosByDatabase: { ...state.videosByDatabase, ...resolvedVideos },
+      }));
+    } catch {
+      await Promise.all(
+        missingPaths.map(async (path) => {
+          resolvedVideos[path] = await scoutListVideos(path, customPath).catch(() => []);
+        })
+      );
+      useSceneScoutStore.setState((state) => ({
+        videosByDatabase: { ...state.videosByDatabase, ...resolvedVideos },
+      }));
+    }
+  }
+
+  return nonEmptyDbs.flatMap((db) => {
+    const videos = resolvedVideos[db.path] ?? [];
+    return videos.flatMap((video) => {
+      const episode = targets.find((e: EpisodeEntry) => samePath(e.videoPath, video.filepath));
+      return episode
+        ? [{
+            episodeName: episode.displayName,
+            videoPath: episode.videoPath,
+            databasePath: db.path,
+            databaseName: displayNames[db.path] ?? db.name,
+            videoId: video.id,
+          }]
+        : [];
+    });
+  });
 }
 
 /** drops each linked video from its database, one at a time */

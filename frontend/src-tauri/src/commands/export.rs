@@ -183,10 +183,16 @@ pub async fn export_clips(
         .as_ref()
         .map(|o| o.audio_mode.clone())
         .unwrap_or_else(|| "copy".to_string());
-    let hardware = export_options
-        .as_ref()
-        .map(|o| o.hardware_mode.clone())
-        .unwrap_or_else(|| "auto".to_string());
+    // remux profiles set hardware_mode="cpu" in the UI because pure remuxing
+    // doesn't encode; pass "auto" when codec=="copy" so --exact-copy can use NVENC
+    let hardware = if codec == "copy" {
+        "auto".to_string()
+    } else {
+        export_options
+            .as_ref()
+            .map(|o| o.hardware_mode.clone())
+            .unwrap_or_else(|| "auto".to_string())
+    };
     let workers = export_options
         .as_ref()
         .map(|o| o.parallel_exports())
@@ -238,8 +244,10 @@ pub async fn export_clips(
     }
     if merge_enabled {
         cmd.arg("--merge");
-    } else if codec == "copy" {
+    }
+    if codec == "copy" {
         // neighbouring scenes in one keyframe interval would otherwise export the same frames
+        // or bleed unselected scenes into a merged stream copy
         cmd.arg("--exact-copy");
         if let Some(dir) = keyframe_cache_dir(&app) {
             cmd.arg("--keyframe-cache-dir").arg(dir);

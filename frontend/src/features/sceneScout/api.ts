@@ -42,6 +42,16 @@ export function scoutListVideos(
   return invoke<ScoutVideo[]>("scout_list_videos", { database, customPath });
 }
 
+export function scoutListVideosBatch(
+  databases: string[],
+  customPath: string | null
+): Promise<Record<string, ScoutVideo[]>> {
+  return invoke<Record<string, ScoutVideo[]>>("scout_list_videos_batch", {
+    databases,
+    customPath,
+  });
+}
+
 export function scoutDeleteVideo(
   database: string,
   videoId: number,

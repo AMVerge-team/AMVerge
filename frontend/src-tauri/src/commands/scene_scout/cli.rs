@@ -7,12 +7,12 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 use tokio::io::{AsyncBufReadExt, BufReader};
 
-use super::types::ScoutIndexProgress;
+use super::types::{ScoutIndexProgress, ScoutVideo};
 
 use crate::utils::logging::{console_log, emit_console_log, sanitize_for_console};
 use crate::utils::paths::resolve_scene_scout_storage_dir;
-use crate::utils::process::bind_to_app_lifetime;
-use crate::utils::sidecar::{amverge_ai_command, amverge_exe_name};
+use crate::utils::process::{apply_no_window, bind_to_app_lifetime};
+use crate::utils::sidecar::{ai_env_python, amverge_ai_command, amverge_exe_name, dev_python_exe};
 
 /// tail of a child's stderr kept for error reporting; older lines are already in the console
 const STDERR_TAIL_BYTES: usize = 64 * 1024;
@@ -189,4 +189,89 @@ impl Drop for TempFile {
     fn drop(&mut self) {
         let _ = std::fs::remove_file(&self.0);
     }
+}
+
+/// Read `processed_videos` across one or more databases in a single stdlib-only
+/// `python -S` pass (~14 ms for 7 DBs vs spawning N full Typer/Rich CLI processes).
+pub(super) async fn fast_list_videos_batch(
+    app: &AppHandle,
+    root: &str,
+    databases: &[String],
+) -> Option<std::collections::HashMap<String, Vec<ScoutVideo>>> {
+    if databases.is_empty() {
+        return Some(std::collections::HashMap::new());
+    }
+
+    let py_exe = if cfg!(debug_assertions) {
+        dev_python_exe().ok().filter(|p| p.is_file())
+    } else {
+        ai_env_python(app).ok().filter(|p| p.is_file())
+    }?;
+
+    const PY_SCRIPT: &str = r#"import json, os, re, sqlite3, sys
+from pathlib import Path
+root = Path(sys.argv[1]).expanduser().resolve()
+SUFS = {'.scoutdb', '.db', '.scdb', '.sqlite', '.sqlite3'}
+UNSAFE = re.compile(r'[^A-Za-z0-9._-]+')
+def resolve_db(s):
+    low = s.lower()
+    if any(low.endswith(x) for x in SUFS) or '/' in s or '\\' in s:
+        p = Path(s).expanduser()
+        if p.is_file():
+            return p.resolve()
+        if p.suffix.lower() not in SUFS:
+            p = p.with_suffix('.scoutdb')
+        return p.resolve()
+    stem = UNSAFE.sub('_', s.strip()).strip('._-')[:64] or 'database'
+    return root / f'{stem}.scoutdb'
+
+out = {}
+for raw in sys.argv[2:]:
+    p = resolve_db(raw)
+    if not p.is_file():
+        out[raw] = []
+        continue
+    try:
+        conn = sqlite3.connect(str(p), timeout=5.0)
+        rows = conn.execute(
+            'SELECT v.id, v.filepath, v.status, v.modified_at, COUNT(s.id) '
+            'FROM processed_videos v LEFT JOIN scene_embeddings s ON s.video_id = v.id '
+            'GROUP BY v.id ORDER BY v.id DESC'
+        ).fetchall()
+        conn.close()
+        out[raw] = [{
+            'id': r[0],
+            'filepath': r[1],
+            'name': os.path.basename(r[1]),
+            'sceneCount': r[4],
+            'status': r[2],
+            'modifiedAt': r[3],
+        } for r in rows]
+    except Exception:
+        out[raw] = []
+print(json.dumps(out, separators=(',', ':')))"#;
+
+    let mut std_cmd = std::process::Command::new(py_exe);
+    apply_no_window(&mut std_cmd);
+    std_cmd
+        .env("PYTHONUTF8", "1")
+        .env("PYTHONIOENCODING", "utf-8")
+        .arg("-S")
+        .arg("-c")
+        .arg(PY_SCRIPT)
+        .arg(root)
+        .args(databases)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null());
+
+    let child = tokio::process::Command::from(std_cmd).spawn().ok()?;
+    let pid = child.id().unwrap_or_default();
+    bind_to_app_lifetime(pid);
+    let output = child.wait_with_output().await.ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let line = stdout.lines().rev().find(|l| !l.trim().is_empty())?;
+    serde_json::from_str(line).ok()
 }

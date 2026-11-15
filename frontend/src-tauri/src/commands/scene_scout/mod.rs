@@ -12,7 +12,10 @@ use tauri::{AppHandle, Emitter, State};
 use crate::utils::logging::{console_log, emit_console_log, sanitize_for_console};
 use crate::utils::paths::file_name_only;
 use crate::utils::process::{bind_to_app_lifetime, kill_process_tree_async};
-use cli::{forward_stderr, read_json_lines, scout_json, scout_root, spawn_scout, TempFile};
+use cli::{
+    fast_list_videos_batch, forward_stderr, read_json_lines, scout_json, scout_root, spawn_scout,
+    TempFile,
+};
 use worker::{emit_loading_model, ensure_worker};
 
 pub use types::*;
@@ -106,8 +109,34 @@ pub async fn scout_list_videos(
     custom_path: Option<String>,
 ) -> Result<Vec<ScoutVideo>, String> {
     let root = scout_root(&app, custom_path.as_deref())?;
+    if let Some(mut map) = fast_list_videos_batch(&app, &root, std::slice::from_ref(&database)).await {
+        if let Some(videos) = map.remove(&database) {
+            return Ok(videos);
+        }
+    }
     let envelope: VideosEnvelope = scout_json(&app, &["videos", &database, "--root", &root]).await?;
     Ok(envelope.videos)
+}
+
+#[tauri::command]
+pub async fn scout_list_videos_batch(
+    app: AppHandle,
+    databases: Vec<String>,
+    custom_path: Option<String>,
+) -> Result<std::collections::HashMap<String, Vec<ScoutVideo>>, String> {
+    let root = scout_root(&app, custom_path.as_deref())?;
+    if let Some(map) = fast_list_videos_batch(&app, &root, &databases).await {
+        return Ok(map);
+    }
+    let mut out = std::collections::HashMap::with_capacity(databases.len());
+    for db in databases {
+        let v = scout_json::<VideosEnvelope>(&app, &["videos", &db, "--root", &root])
+            .await
+            .map(|e| e.videos)
+            .unwrap_or_default();
+        out.insert(db, v);
+    }
+    Ok(out)
 }
 
 #[tauri::command]
