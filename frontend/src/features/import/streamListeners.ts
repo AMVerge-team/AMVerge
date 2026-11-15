@@ -48,6 +48,21 @@ export async function startVideoStreamingListeners(
   const isOnScreen = () =>
     useEpisodePanelRuntimeStore.getState().openedEpisodeId === episodeId;
 
+  let episodeSyncTimer: number | null = null;
+  let episodeSyncDirty = false;
+  const flushEpisodeSync = () => {
+    if (episodeSyncTimer !== null) {
+      window.clearTimeout(episodeSyncTimer);
+      episodeSyncTimer = null;
+    }
+    if (!episodeSyncDirty) return;
+    episodeSyncDirty = false;
+    const latest = sessionClips;
+    deps.setEpisodes((prev) =>
+      prev.map((ep) => (ep.id === episodeId ? { ...ep, clips: latest } : ep))
+    );
+  };
+
   // clip_ready bursts flush per frame; one setState each froze the UI
   const patches = createClipPatchBuffer((applyPatch) => {
     sessionClips = sessionClips.map(applyPatch);
@@ -61,9 +76,10 @@ export async function startVideoStreamingListeners(
             : s.bgProgress,
       }));
     }
-    deps.setEpisodes((prev) =>
-      prev.map((ep) => (ep.id === episodeId ? { ...ep, clips: ep.clips.map(applyPatch) } : ep))
-    );
+    episodeSyncDirty = true;
+    if (episodeSyncTimer === null) {
+      episodeSyncTimer = window.setTimeout(flushEpisodeSync, 350);
+    }
   });
 
   const unlistenInitial = await listen<{
@@ -138,6 +154,7 @@ export async function startVideoStreamingListeners(
       if (!isMine(event.payload)) return;
       // flushed so every finished preview is in the store before the import resolves
       patches.flushNow();
+      flushEpisodeSync();
       if (focusGrid) useAppStateStore.setState({ loading: false, bgProgress: null });
       resolvePhase1();
     }
@@ -146,6 +163,7 @@ export async function startVideoStreamingListeners(
   const stop = () => {
     // apply anything buffered right before teardown so no patch is dropped
     patches.flushNow();
+    flushEpisodeSync();
     useAppStateStore.setState((s) => ({
       liveImportEpisodeIds: s.liveImportEpisodeIds.filter((id) => id !== episodeId),
     }));

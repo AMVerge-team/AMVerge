@@ -35,36 +35,62 @@ function useWebpThumbnail(webpSrc: string | undefined, enabled: boolean): string
     if (cached) { setThumbnail(cached); return; }
     if (!enabled) return;
 
-    let cancelled = false;
+    let cancelled = { value: false };
     let idleHandle: IdleHandle | null = null;
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      if (cancelled) return;
-      // the decode and jpeg encode run at idle time so a burst of WebPs can't stall input
-      idleHandle = scheduleIdle(() => {
-        if (cancelled) return;
-        try {
-          const canvas = document.createElement("canvas");
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
-          const ctx = canvas.getContext("2d");
-          if (!ctx) return;
-          ctx.drawImage(img, 0, 0);
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
-          cacheWebpThumbnail(webpSrc, dataUrl);
-          setThumbnail(dataUrl);
-        } catch {
-          // canvas tainted or decode failed, no thumbnail extracted
-        }
-      });
+    let activeImg: HTMLImageElement | null = null;
+
+    const extractFromWebp = () => {
+      if (cancelled.value) return;
+      const img = new Image();
+      activeImg = img;
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        if (cancelled.value) return;
+        idleHandle = scheduleIdle(() => {
+          if (cancelled.value) return;
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return;
+            ctx.drawImage(img, 0, 0);
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+            cacheWebpThumbnail(webpSrc, dataUrl);
+            setThumbnail(dataUrl);
+          } catch {
+            // canvas tainted or decode failed, no thumbnail extracted
+          }
+        });
+      };
+      img.src = webpSrc;
     };
-    img.src = webpSrc;
+
+    const companionJpgUrl = webpSrc.replace(/\.webp(\?|$)/i, ".jpg$1");
+    if (companionJpgUrl !== webpSrc) {
+      const posterImg = new Image();
+      activeImg = posterImg;
+      posterImg.onload = () => {
+        if (cancelled.value) return;
+        cacheWebpThumbnail(webpSrc, companionJpgUrl);
+        setThumbnail(companionJpgUrl);
+      };
+      posterImg.onerror = () => {
+        if (!cancelled.value) extractFromWebp();
+      };
+      posterImg.src = companionJpgUrl;
+    } else {
+      extractFromWebp();
+    }
+
     return () => {
-      cancelled = true;
-      img.onload = null;
-      // an abandoned in-flight <img> keeps the decoded animation alive until GC
-      img.src = "";
+      cancelled.value = true;
+      if (activeImg) {
+        activeImg.onload = null;
+        activeImg.onerror = null;
+        // an abandoned in-flight <img> keeps the decoded animation alive until GC
+        activeImg.src = "";
+      }
       if (idleHandle !== null) cancelIdle(idleHandle);
     };
   }, [webpSrc, enabled]);

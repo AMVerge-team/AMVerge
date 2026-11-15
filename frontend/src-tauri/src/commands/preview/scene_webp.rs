@@ -99,6 +99,8 @@ pub(crate) async fn generate_scene_webp_inner(
     let prefix = if is_poster { "poster" } else { "scene" };
     let webp_path = base.join(format!("{prefix}_{key}.webp"));
     let webp_tmp_path = webp_path.with_extension("tmp.webp");
+    let poster_jpg_path = webp_path.with_extension("jpg");
+    let poster_tmp_path = webp_path.with_extension("tmp.jpg");
 
     let lock_key = webp_path.to_string_lossy().to_string();
     let clip_lock = {
@@ -131,10 +133,13 @@ pub(crate) async fn generate_scene_webp_inner(
         format!("fps={frame_rate},scale=-2:240:flags=fast_bilinear")
     };
     let _ = std::fs::remove_file(&webp_tmp_path);
+    let _ = std::fs::remove_file(&poster_tmp_path);
+    let write_companion_jpg = !is_poster && !poster_jpg_path.is_file();
 
     let ffmpeg_clone = ffmpeg.clone();
     let input = input_path.clone();
     let output = webp_tmp_path.clone();
+    let poster_output = poster_tmp_path.clone();
     let pids = ffmpeg_pids.clone();
 
     let encode_started = Instant::now();
@@ -154,9 +159,6 @@ pub(crate) async fn generate_scene_webp_inner(
         cmd.arg("-i");
         cmd.arg(&input);
         cmd.args(["-ss", &format!("{post_seek:.3}")]);
-        if !is_poster {
-            cmd.args(["-t", &format!("{duration:.3}")]);
-        }
         if is_poster {
             cmd.args([
                 "-frames:v",
@@ -175,7 +177,9 @@ pub(crate) async fn generate_scene_webp_inner(
                 "-q:v",
                 "70",
             ]);
+            cmd.arg(&output);
         } else {
+            cmd.args(["-t", &format!("{duration:.3}")]);
             cmd.args([
                 "-an",
                 "-vf",
@@ -193,8 +197,22 @@ pub(crate) async fn generate_scene_webp_inner(
                 "-loop",
                 "0",
             ]);
+            cmd.arg(&output);
+            if write_companion_jpg {
+                cmd.args([
+                    "-frames:v",
+                    "1",
+                    "-an",
+                    "-vf",
+                    "scale=-2:240:flags=fast_bilinear",
+                    "-q:v",
+                    "4",
+                    "-update",
+                    "1",
+                ]);
+                cmd.arg(&poster_output);
+            }
         }
-        cmd.arg(&output);
 
         let child = cmd
             .stdout(Stdio::null())
@@ -213,6 +231,7 @@ pub(crate) async fn generate_scene_webp_inner(
 
     if !ffmpeg_output.status.success() {
         let _ = std::fs::remove_file(&webp_tmp_path);
+        let _ = std::fs::remove_file(&poster_tmp_path);
         let stderr = String::from_utf8_lossy(&ffmpeg_output.stderr).trim().to_string();
         return Err(if stderr.is_empty() {
             "FFmpeg WebP generation failed".to_string()
@@ -224,6 +243,7 @@ pub(crate) async fn generate_scene_webp_inner(
     let meta = std::fs::metadata(&webp_tmp_path).map_err(|e| e.to_string())?;
     if meta.len() <= 1024 {
         let _ = std::fs::remove_file(&webp_tmp_path);
+        let _ = std::fs::remove_file(&poster_tmp_path);
         return Err("WebP generation produced an invalid file".to_string());
     }
 
@@ -237,6 +257,14 @@ pub(crate) async fn generate_scene_webp_inner(
         std::fs::copy(&webp_tmp_path, &webp_path)
             .map_err(|copy_err| format!("Failed to publish WebP (rename={e}, copy={copy_err})"))?;
         let _ = std::fs::remove_file(&webp_tmp_path);
+    }
+
+    if write_companion_jpg && poster_tmp_path.is_file() {
+        let _ = std::fs::remove_file(&poster_jpg_path);
+        if std::fs::rename(&poster_tmp_path, &poster_jpg_path).is_err() {
+            let _ = std::fs::copy(&poster_tmp_path, &poster_jpg_path);
+            let _ = std::fs::remove_file(&poster_tmp_path);
+        }
     }
 
     if episode_cache_id.is_none() {

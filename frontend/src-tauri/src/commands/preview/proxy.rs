@@ -235,7 +235,7 @@ pub async fn ensure_preview_proxy(
                 &format!("scale=-2:'min({preview_height},ih)'"),
             ]);
             cmd.args(["-g", "1"]);
-            cmd.args(["-preset", "veryfast"]);
+            cmd.args(["-preset", "ultrafast"]);
             cmd.args(["-threads", &encode_threads.to_string()]);
             cmd.args(["-crf", &preview_crf.to_string()]);
             cmd.args(["-pix_fmt", "yuv420p"]);

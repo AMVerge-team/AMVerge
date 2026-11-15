@@ -46,7 +46,9 @@ fn entries(dir: &Path) -> Vec<Entry> {
             let meta = item.metadata().ok().filter(|m| m.is_file())?;
             let path = item.path();
             let lossy = path.to_string_lossy();
-            let in_progress = lossy.ends_with(".tmp.mp4") || lossy.ends_with(".tmp.webp");
+            let in_progress = lossy.ends_with(".tmp.mp4")
+                || lossy.ends_with(".tmp.webp")
+                || lossy.ends_with(".tmp.jpg");
             Some(Entry { size: meta.len(), modified: meta.modified().unwrap_or(SystemTime::UNIX_EPOCH), path, in_progress })
         })
         .collect()

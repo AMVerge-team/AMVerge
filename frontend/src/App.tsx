@@ -1,38 +1,44 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Event, listen } from "@tauri-apps/api/event";
 import { DEFAULT_GENERAL_SETTINGS } from "./stores/settingsStore";
 
 import AppLayout from "./components/AppLayout";
 import HomePage from "./pages/HomePage";
-import SettingsModal from "./components/settings/SettingsModal";
-import QuickMenu from "./components/QuickMenu";
-import CommandPalette from "./components/CommandPalette";
-import MenuModal from "./components/menu/MenuModal";
-import ToolsModal from "./components/tools/ToolsModal";
-import { FlowDatabasePrompt } from "./components/sceneScout/FlowDatabasePrompt";
 import { AppNotice } from "./components/AppNotice";
 import { errorText, showNotice } from "./features/notice/notice";
-import EventsPage from "./pages/EventsPage";
-import HostEventModal from "./components/events/HostEventModal";
-import BanNoticeModal from "./components/events/BanNoticeModal";
-import DenialNoticeModal from "./components/events/DenialNoticeModal";
-import ApprovalNoticeModal from "./components/events/ApprovalNoticeModal";
-import ScenepacksPage from "./pages/ScenepacksPage";
-import SceneScoutPage from "./pages/SceneScoutPage";
+import type { StartupNotification } from "./components/StartupNotificationModal";
 import ImportTerminal from "./components/ImportTerminal";
 import BgProgressBar from "./components/BgProgressBar";
-import StartupNotificationModal, { type StartupNotification } from "./components/StartupNotificationModal";
-import { V1ImportNotice } from "./components/V1ImportNotice";
 import SplashScreen from "./components/SplashScreen";
 import { useIntroStore } from "./features/intro/introStore";
-import PostExportPassesModal from "./components/PostExportPassesModal";
-import PassTargetsModal from "./components/PassTargetsModal";
-import AiInstallModal from "./components/AiInstallModal";
 import ProcessConflictModal from "./components/ProcessConflictModal";
 import { registerProcessAbort } from "./features/processes/singleProcess";
 import { clearReencodeQueue, resumeBackgroundCuts } from "./features/import/reencodeQueue";
 import { importAbortRef } from "./features/import/importPipeline";
+
+const SettingsModal = lazy(() => import("./components/settings/SettingsModal"));
+const QuickMenu = lazy(() => import("./components/QuickMenu"));
+const CommandPalette = lazy(() => import("./components/CommandPalette"));
+const MenuModal = lazy(() => import("./components/menu/MenuModal"));
+const ToolsModal = lazy(() => import("./components/tools/ToolsModal"));
+const FlowDatabasePrompt = lazy(() =>
+  import("./components/sceneScout/FlowDatabasePrompt").then((m) => ({ default: m.FlowDatabasePrompt }))
+);
+const EventsPage = lazy(() => import("./pages/EventsPage"));
+const HostEventModal = lazy(() => import("./components/events/HostEventModal"));
+const BanNoticeModal = lazy(() => import("./components/events/BanNoticeModal"));
+const DenialNoticeModal = lazy(() => import("./components/events/DenialNoticeModal"));
+const ApprovalNoticeModal = lazy(() => import("./components/events/ApprovalNoticeModal"));
+const ScenepacksPage = lazy(() => import("./pages/ScenepacksPage"));
+const SceneScoutPage = lazy(() => import("./pages/SceneScoutPage"));
+const StartupNotificationModal = lazy(() => import("./components/StartupNotificationModal"));
+const V1ImportNotice = lazy(() =>
+  import("./components/V1ImportNotice").then((m) => ({ default: m.V1ImportNotice }))
+);
+const PostExportPassesModal = lazy(() => import("./components/PostExportPassesModal"));
+const PassTargetsModal = lazy(() => import("./components/PassTargetsModal"));
+const AiInstallModal = lazy(() => import("./components/AiInstallModal"));
 
 import useDiscordRPC from "./hooks/useDiscordRPC";
 import useHEVCSupport from "./hooks/useHEVCSupport";
@@ -538,35 +544,39 @@ function App() {
         <div style={{ display: activePage === "home" ? "contents" : "none" }}>
           <HomePage />
         </div>
-        {activePage === "scenepacks" && scenepacksEnabled && <ScenepacksPage />}
-        {activePage === "sceneScout" && sceneScoutEnabled && <SceneScoutPage />}
-        {activePage === "events" && <EventsPage />}
+        <Suspense fallback={null}>
+          {activePage === "scenepacks" && scenepacksEnabled && <ScenepacksPage />}
+          {activePage === "sceneScout" && sceneScoutEnabled && <SceneScoutPage />}
+          {activePage === "events" && <EventsPage />}
+        </Suspense>
       </div>
-      <QuickMenu />
-      <ProcessConflictModal />
-      <CommandPalette />
-      <MenuModal />
-      <ToolsModal />
-      <FlowDatabasePrompt />
       <AppNotice />
-      <HostEventModal />
-      <BanNoticeModal />
-      <DenialNoticeModal />
-      <ApprovalNoticeModal />
-      <SettingsModal
-        onGeneralSettingsReset={handleResetGeneralSettings}
-        onThemeReset={handleResetTheme}
-      />
-      {showStartupNotification && startupNotification ? (
-        <StartupNotificationModal
-          notification={startupNotification}
-          onClose={handleCloseStartupNotification}
+      <ProcessConflictModal />
+      <Suspense fallback={null}>
+        <QuickMenu />
+        <CommandPalette />
+        <MenuModal />
+        <ToolsModal />
+        <FlowDatabasePrompt />
+        <HostEventModal />
+        <BanNoticeModal />
+        <DenialNoticeModal />
+        <ApprovalNoticeModal />
+        <SettingsModal
+          onGeneralSettingsReset={handleResetGeneralSettings}
+          onThemeReset={handleResetTheme}
         />
-      ) : null}
-      <PostExportPassesModal />
-      <PassTargetsModal />
-      <AiInstallModal />
-      {splashVisible ? null : <V1ImportNotice />}
+        {showStartupNotification && startupNotification ? (
+          <StartupNotificationModal
+            notification={startupNotification}
+            onClose={handleCloseStartupNotification}
+          />
+        ) : null}
+        <PostExportPassesModal />
+        <PassTargetsModal />
+        <AiInstallModal />
+        {splashVisible ? null : <V1ImportNotice />}
+      </Suspense>
       {splashVisible ? <SplashScreen onFinished={handleSplashFinished} /> : null}
       </AppLayout>
   );
