@@ -535,32 +535,42 @@ jobs:
 
           rm -f "$DMG_PATH"
 
-          # Stage the .app alongside an /Applications symlink so the mounted
-          # DMG shows the standard drag-to-install layout (hdiutil -srcfolder
-          # on the .app alone produces a DMG with only the app icon in it).
-          STAGING_DIR="$RUNNER_TEMP/dmg-staging"
-          rm -rf "$STAGING_DIR"
-          mkdir -p "$STAGING_DIR"
-          cp -R "$UNIVERSAL_APP_PATH" "$STAGING_DIR/"
-          ln -s /Applications "$STAGING_DIR/Applications"
+          # dmgbuild writes the window layout (background, icon positions)
+          # straight into .DS_Store, so no Finder/AppleScript on the runner.
+          python3 -m venv "$RUNNER_TEMP/dmgbuild-venv"
+          "$RUNNER_TEMP/dmgbuild-venv/bin/pip" install --quiet "dmgbuild==1.6.7"
+          INSTALLER_DIR="frontend/src-tauri/icons/installer"
 
+          # Finder alias instead of a symlink: macOS 26 draws a DMG's
+          # /Applications symlink with a blank icon.
+          ALIAS_DIR="$RUNNER_TEMP/dmg-alias"
+          mkdir -p "$ALIAS_DIR"
+          rm -f "$ALIAS_DIR/Applications"
+          osascript -l JavaScript "$INSTALLER_DIR/make_applications_alias.js" "$ALIAS_DIR/Applications"
+
+          # Retry to tolerate transient hdiutil "Resource busy" flakiness.
           for attempt in 1 2 3; do
-            if hdiutil create -volname "$APP_VOLNAME" -srcfolder "$STAGING_DIR" -ov -format UDZO "$DMG_PATH"; then
+            if "$RUNNER_TEMP/dmgbuild-venv/bin/dmgbuild" \
+              -s "$INSTALLER_DIR/dmg_settings.py" \
+              -D app="$UNIVERSAL_APP_PATH" \
+              -D apps_alias="$ALIAS_DIR/Applications" \
+              -D background="$INSTALLER_DIR/dmg-background.png" \
+              "$APP_VOLNAME" \
+              "$DMG_PATH"; then
               break
             fi
 
             if [ "$attempt" -eq 3 ]; then
-              echo "hdiutil create failed after 3 attempts"
+              echo "dmgbuild failed after 3 attempts"
               exit 1
             fi
 
-            echo "hdiutil create failed (attempt $attempt), retrying..."
+            echo "dmgbuild failed (attempt $attempt), retrying..."
             hdiutil info | awk '/\/Volumes\/'"$APP_VOLNAME"'$/ {print $1}' | while read -r dev; do
               [ -n "$dev" ] && hdiutil detach "$dev" -force || true
             done
+            rm -f "$DMG_PATH"
           done
-
-          rm -rf "$STAGING_DIR"
 
       - name: Sign universal DMG
         run: |
