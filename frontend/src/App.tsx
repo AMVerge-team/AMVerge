@@ -340,6 +340,7 @@ function App() {
 
   useEffect(() => {
     applyThemeSettings(themeSettings);
+    void invoke("write_app_theme", { themeJson: JSON.stringify(themeSettings) }).catch(() => {});
   }, [themeSettings]);
 
   // keeps the AI env's cli on the newest compatible patch; delayed so it never competes with startup

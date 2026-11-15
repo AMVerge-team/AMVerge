@@ -11,6 +11,26 @@ fn extension_sync_dir(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 #[tauri::command]
+pub fn write_app_theme(app: AppHandle, theme_json: String) -> Result<(), String> {
+    let parsed: serde_json::Value = serde_json::from_str(&theme_json)
+        .map_err(|e| format!("Invalid theme JSON: {e}"))?;
+    let serialized = serde_json::to_vec_pretty(&parsed)
+        .map_err(|e| format!("Failed to serialize theme: {e}"))?;
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&data_dir).map_err(|e| e.to_string())?;
+    let theme_path = data_dir.join("theme.json");
+    let temp_path = data_dir.join("theme.json.tmp");
+    std::fs::write(&temp_path, serialized)
+        .map_err(|e| format!("Failed to write theme.json: {e}"))?;
+    std::fs::rename(&temp_path, &theme_path)
+        .map_err(|e| format!("Failed to finalize theme.json: {e}"))?;
+    Ok(())
+}
+
+#[tauri::command]
 pub fn read_extension_sync_theme(app: AppHandle) -> Result<Option<String>, String> {
     let theme_path = extension_sync_dir(&app)?.join("theme.json");
     if !theme_path.exists() {
