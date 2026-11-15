@@ -84,7 +84,10 @@ export default function PatchNotes() {
 
   const getFullDocForVersion = (versionStr: string) => {
     const normalized = versionStr.toLowerCase().replace(/[^a-z0-9.]/g, "");
-    // try exact match or prefix match (e.g. "v2.0.0 (Beta)" -> "v2.0.0")
+    if (fullDocsByVersion[normalized]) {
+      return fullDocsByVersion[normalized];
+    }
+    // fallback prefix match (e.g. "v2.0.0 (Beta)" -> "v2.0.0")
     for (const [key, doc] of Object.entries(fullDocsByVersion)) {
       if (normalized.startsWith(key) || key.startsWith(normalized)) {
         return doc;

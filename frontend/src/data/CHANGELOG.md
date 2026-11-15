@@ -1,4 +1,16 @@
-# v2.0.0-beta.2
+# v2.0.0
+
+- Complete ground-up rebuild on the standalone `amverge` CLI engine for faster performance and lower memory usage
+- Added AI Scene Detection (TransNetV2 with GPU acceleration) and a non-blocking background AI installer with live speed/ETA stats
+- Added Scene Scout natural-language search across indexed episodes with opening/ending skip, library integration, and fast batched DB checks
+- Added Scenepacks to collect and manage favorite clips across episodes
+- Added Depth Maps export and post-export AI upscaling passes
+- Added Exact-Copy & GPU smart merge exports with windowed keyframe checks, zero neighbor-scene bleed, live segment progress, and black-bar aspect fitting
+- Raised hover previews to 15s animated WebP clips with JPG posters, bounded caches, and fixed V1 RAM buildup
+- Redesigned UI chrome with animated icons, floating tooltips, AI/GPU navbar status badge, Discord Events/RPC, and Extension theme/cache sync
+- Added universal macOS DMG support and automatic V1 -> V2 episode & settings migration
+
+## v2.0.0-beta.2
 
 - Added interactive Show in Folder button on episode items with rounded border styling
 - Added Show in File Explorer option to the episode right-click context menu

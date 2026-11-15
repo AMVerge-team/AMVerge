@@ -654,6 +654,14 @@ jobs:
       - build-macos-arch
 
     steps:
+      - name: Checkout release changelog
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            updates
+            frontend/src/data/CHANGELOG.md
+          sparse-checkout-cone-mode: false
+
       - name: Download Windows installer artifact
         uses: actions/download-artifact@v4
         with:
@@ -790,19 +798,29 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RELEASE_BODY="$(printf '%s\n' \
-            "## AMVerge $GITHUB_REF_NAME" \
-            "" \
-            "- **AI Scene Detection** finds cuts more accurately than keyframes" \
-            "- **Scene Scout**: search your episodes by describing a scene" \
-            "- **Scenepacks**, post-export passes, and a faster, redesigned app" \
-            "- **macOS users upgrading from V1**: once in-app installation finishes, quit and reopen AMVerge once to launch AMVerge 2.")"
-          gh release create "$GITHUB_REF_NAME" \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "$GITHUB_REF_NAME" \
-            --notes "$RELEASE_BODY" \
-            --prerelease \
-            || true
+          NOTES_FILE="updates/${GITHUB_REF_NAME}.md"
+          if [ -f "$NOTES_FILE" ]; then
+            gh release create "$GITHUB_REF_NAME" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "$GITHUB_REF_NAME" \
+              --notes-file "$NOTES_FILE" \
+              --prerelease \
+              || gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --notes-file "$NOTES_FILE"
+          else
+            RELEASE_BODY="$(printf '%s\n' \
+              "## AMVerge $GITHUB_REF_NAME" \
+              "" \
+              "- **AI Scene Detection** finds cuts more accurately than keyframes" \
+              "- **Scene Scout**: search your episodes by describing a scene" \
+              "- **Scenepacks**, post-export passes, and a faster, redesigned app" \
+              "- **macOS users upgrading from V1**: once in-app installation finishes, quit and reopen AMVerge once to launch AMVerge 2.")"
+            gh release create "$GITHUB_REF_NAME" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "$GITHUB_REF_NAME" \
+              --notes "$RELEASE_BODY" \
+              --prerelease \
+              || true
+          fi
 
       - name: Upload assets to release
         env:
