@@ -243,7 +243,7 @@ export default function FeaturesSection() {
           />
           <SettingRow
             label="Preview cache"
-            description="Playable previews of Scene Scout results and Flow clips. Kept under 1 GB automatically, oldest first, and remade when needed."
+            description="Playable previews of Scene Scout results and Match clips. Kept under 1 GB automatically, oldest first, and remade when needed."
             control={
               <div className="aid-pack-row">
                 <span className="settings-value aid-size">{formatBytes(previewCacheBytes)}</span>

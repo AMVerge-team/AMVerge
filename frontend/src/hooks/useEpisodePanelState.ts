@@ -7,8 +7,8 @@ import { useGeneralSettingsStore } from "../stores/settingsStore";
 import { useUIStateStore } from "../stores/UIStore";
 import { stopRunningProcess } from "../features/processes/singleProcess";
 import { dropFromReencodeQueue } from "../features/import/reencodeQueue";
-/** opens an episode by id through getState, so small components can open one without subscribing */
-export function openEpisodeById(episodeId: string) {
+/** opens an episode by id through getState, so small components can open one without subscribing; `showHome` false keeps the page */
+export function openEpisodeById(episodeId: string, { showHome = true }: { showHome?: boolean } = {}) {
 	const appState = useAppStateStore.getState();
 	const episodeRuntimeState = useEpisodePanelRuntimeStore.getState();
 	const episodeMetadataState = useEpisodePanelMetadataStore.getState();
@@ -28,11 +28,19 @@ export function openEpisodeById(episodeId: string) {
 	appState.setImportToken(`${episodeId}:${selectedEpisode.importedAt ?? 0}`);
 
 	// opening from Events would load it behind a page with no clips, so switch to home (like handleOpenScenepack)
-	useUIStateStore.getState().setActivePage("home");
+	if (showHome) useUIStateStore.getState().setActivePage("home");
 
 	startTransition(() => {
 		appState.setClips(selectedEpisode.clips);
 	});
+}
+
+/** reopens the episode the last session had open, on whatever page the app starts on; run once before the first render */
+export function restoreLastOpenedEpisode() {
+	const lastOpened = useEpisodePanelMetadataStore.getState().lastOpenedEpisodeId;
+	const { episodes, openedEpisodeId } = useEpisodePanelRuntimeStore.getState();
+	if (!lastOpened || openedEpisodeId || !episodes.some((e) => e.id === lastOpened)) return;
+	openEpisodeById(lastOpened, { showHome: false });
 }
 
 export default function useEpisodePanelState() {

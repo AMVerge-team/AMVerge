@@ -3,7 +3,7 @@ import { useSceneScoutStore, type ScoutMode } from "../../stores/sceneScoutStore
 
 const TABS: { mode: ScoutMode; label: string; hint: string }[] = [
   { mode: "search", label: "Search", hint: "Find scenes by describing them" },
-  { mode: "flow", label: "Flow", hint: "Pick a clip and find scenes that look like they follow its last frame" },
+  { mode: "flow", label: "Match", hint: "Pick a clip and find scenes that look like they follow its last frame" },
 ];
 
 /** Search and Flow are separate tools over the same databases, each with its own results */

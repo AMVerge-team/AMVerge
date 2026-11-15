@@ -40,9 +40,9 @@ function SearchInfo() {
 
 function FlowInfo() {
   return (
-    <InfoButton title="Scene Scout: Flow" variant="toolbar">
+    <InfoButton title="Scene Scout: Match" variant="toolbar">
       <p>
-        Flow finds scenes that could come right after a clip you already have. It looks at the clip's
+        Match finds scenes that could come right after a clip you already have. It looks at the clip's
         last frame and returns the scenes in your databases that look most like it, so the cut between
         them feels continuous.
       </p>
@@ -52,7 +52,7 @@ function FlowInfo() {
         <li>Add the databases to search to the Searching list on the left.</li>
         <li>
           Press Import and pick a video file, or right-click a clip in your Library or in
-          Search results and pick Find clips that flow.
+          Search results and pick Find matching clips.
         </li>
         <li>Click a match to play it in the preview pane, and export it from there as usual.</li>
       </ol>

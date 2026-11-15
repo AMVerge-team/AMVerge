@@ -12,7 +12,7 @@ const TITLES: Record<Guide, string> = {
   library: "HOW TO USE",
   scenepacks: "HOW TO USE SCENEPACKS",
   sceneScoutSearch: "HOW TO USE SCENE SCOUT",
-  sceneScoutFlow: "HOW TO USE FLOW",
+  sceneScoutFlow: "HOW TO USE MATCH",
 };
 
 // `mod` is the multi-select key for the chosen platform
@@ -40,7 +40,7 @@ function steps(guide: Guide, mod: string): React.ReactNode[] {
       ];
     case "sceneScoutFlow":
       return [
-        <>Click <b>Import</b>, or right-click a clip and pick <b>Find clips that flow</b></>,
+        <>Click <b>Import</b>, or right-click a clip and pick <b>Find matching clips</b></>,
         <>Matches are scenes that look like they continue from your clip's last frame</>,
         <>Drag the line between your clip and the matches to resize them</>,
         <>Single click a match to <b>Preview</b> it</>,

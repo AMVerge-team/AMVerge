@@ -25,12 +25,14 @@ import BgProgressBar from "./components/BgProgressBar";
 import StartupNotificationModal, { type StartupNotification } from "./components/StartupNotificationModal";
 import { V1ImportNotice } from "./components/V1ImportNotice";
 import SplashScreen from "./components/SplashScreen";
+import { useIntroStore } from "./features/intro/introStore";
 import PostExportPassesModal from "./components/PostExportPassesModal";
 import PassTargetsModal from "./components/PassTargetsModal";
 import AiInstallModal from "./components/AiInstallModal";
 import ProcessConflictModal from "./components/ProcessConflictModal";
 import { registerProcessAbort } from "./features/processes/singleProcess";
 import { clearReencodeQueue, resumeBackgroundCuts } from "./features/import/reencodeQueue";
+import { importAbortRef } from "./features/import/importPipeline";
 
 import useDiscordRPC from "./hooks/useDiscordRPC";
 import useHEVCSupport from "./hooks/useHEVCSupport";
@@ -101,7 +103,6 @@ function App() {
 
   const windowWrapperRef = useRef<HTMLDivElement | null>(null);
   const userHasHEVC = useAppStateStore((s) => s.userHasHEVC);
-  const abortedRef = useRef(false);
 
   const scenepacksEnabled = useGeneralSettingsStore((s) => s.scenepacksEnabled);
   const sceneScoutEnabled = useGeneralSettingsStore((s) => s.sceneScoutEnabled);
@@ -115,6 +116,7 @@ function App() {
 
   const handleSplashFinished = useCallback(() => {
     setSplashVisible(false);
+    useIntroStore.setState({ splashDone: true });
     // the transition on body carries it the rest of the way
     document.body.style.setProperty("--app-bg-reveal", "1");
   }, []);
@@ -219,7 +221,6 @@ function App() {
   const { updateRPC } = useDiscordRPC();
 
   const { handleImport, handleBatchImport } = useImportExport({
-    abortedRef,
     onRPCUpdate: updateRPC
   });
 
@@ -231,7 +232,7 @@ function App() {
   });
 
   async function handleAbort() {
-    abortedRef.current = true;
+    importAbortRef.current = true;
     // emptied first, so the resume stopped below does not start the next episode
     clearReencodeQueue();
 

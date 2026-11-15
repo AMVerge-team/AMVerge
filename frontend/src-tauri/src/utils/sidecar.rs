@@ -252,6 +252,10 @@ pub fn amverge_ai_command(app: &AppHandle) -> Result<Command, String> {
 fn base_command(exe: PathBuf) -> Command {
     let mut cmd = Command::new(exe);
     apply_no_window(&mut cmd);
+    // utf-8 pipes and files: windows python otherwise decodes stdin as cp1252, so the daemon read "C³" as "CÂ³"
+    cmd.env("PYTHONUTF8", "1");
+    // a user's own PYTHONIOENCODING would override utf-8 mode for the pipes
+    cmd.env("PYTHONIOENCODING", "utf-8");
     #[cfg(not(windows))]
     {
         use std::os::unix::process::CommandExt;

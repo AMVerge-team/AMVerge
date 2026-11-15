@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { ConfirmModal } from "../settings/general/ConfirmModal";
 import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
 
-/** asks which databases a flow ("Find clips that flow") or a search with nothing selected should look in, then runs it */
+/** asks which databases a flow ("Find matching clips") or a search with nothing selected should look in, then runs it */
 export function FlowDatabasePrompt() {
   const prompt = useSceneScoutStore((s) => s.dbPrompt);
   const databases = useSceneScoutStore((s) => s.databases);
@@ -60,7 +60,7 @@ export function FlowDatabasePrompt() {
           </span>
         </>
       }
-      confirmLabel={isFlow ? "Find clips that flow" : "Search"}
+      confirmLabel={isFlow ? "Find matching clips" : "Search"}
       confirmDisabled={chosen.length === 0}
       onConfirm={() => void answer(chosen)}
       onClose={() => void answer([])}

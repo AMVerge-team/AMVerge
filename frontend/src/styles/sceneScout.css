@@ -536,8 +536,120 @@
     padding-right: 2px;
 }
 
+/* the eye on a searched database: accent while some of its episodes are hidden */
+.scout-visibility-btn.has-hidden {
+    color: var(--accent);
+    opacity: 1;
+}
+
+/* an episode left out of searches reads as dimmed in the panel */
+.scout-video-row.is-search-hidden .episode-panel-episode-name {
+    opacity: 0.45;
+    text-decoration: line-through;
+}
+
+.scout-visibility-pop {
+    gap: 8px;
+    max-height: 360px;
+}
+
+.scout-visibility-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.scout-visibility-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+/* only the name gives way; the count always shows */
+.scout-visibility-count {
+    flex: none;
+    margin-right: 4px;
+    font-size: 12px;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+}
+
+.scout-visibility-all {
+    flex: none;
+    padding: 3px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    background: transparent;
+    color: #fff;
+    font-family: var(--ui-font);
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.scout-visibility-all:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.scout-visibility-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.scout-visibility-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 8px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--accent);
+    font-family: var(--ui-font);
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.scout-visibility-row:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.scout-visibility-row.is-hidden {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.scout-visibility-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.scout-visibility-row.is-hidden .scout-visibility-name {
+    color: rgba(255, 255, 255, 0.4);
+    text-decoration: line-through;
+}
+
+.scout-visibility-empty {
+    padding: 6px 8px;
+    font-size: 12px;
+    opacity: 0.6;
+}
+
 /* same thin accent scrollbar as the episode panel and the clip grid */
 .scout-add-list::-webkit-scrollbar,
+.scout-visibility-list::-webkit-scrollbar,
 .scene-scout-hero-db-list::-webkit-scrollbar,
 .scene-scout-delete-list::-webkit-scrollbar {
     width: 8px;
@@ -545,6 +657,7 @@
 }
 
 .scout-add-list::-webkit-scrollbar-thumb,
+.scout-visibility-list::-webkit-scrollbar-thumb,
 .scene-scout-hero-db-list::-webkit-scrollbar-thumb,
 .scene-scout-delete-list::-webkit-scrollbar-thumb {
     background: rgb(var(--accent-rgb) / 0.35);

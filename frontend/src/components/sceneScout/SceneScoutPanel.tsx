@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
-import { FaChevronRight, FaDatabase, FaPlus, FaSearch, FaSpinner, FaTimes, FaTrashAlt, FaVideo } from '../icons/animated';
+import { FaChevronRight, FaDatabase, FaEye, FaEyeSlash, FaPlus, FaSearch, FaSpinner, FaTimes, FaTrashAlt, FaVideo } from '../icons/animated';
 import { FiDatabase } from '../icons/animated';
 import { DatabaseImportIcon } from "../icons/ToolbarIcons";
 
@@ -13,6 +13,7 @@ import { useContextMenuStore } from "../../stores/contextMenuStore";
 import type { ScoutDatabase, ScoutVideo } from "../../features/sceneScout/types";
 import { useScoutDbDrag, type ScoutList } from "./useScoutDbDrag";
 import { useCreateScoutDatabase } from "./useCreateScoutDatabase";
+import { EpisodeVisibilityPopover } from "./EpisodeVisibilityPopover";
 
 const SONICFREAK_URL = "https://www.youtube.com/@sonicfreak1111";
 
@@ -26,12 +27,11 @@ export function SceneScoutPanel() {
   const videosByDatabase = useSceneScoutStore((s) => s.videosByDatabase);
   const expandedDatabases = useSceneScoutStore((s) => s.expandedDatabases);
   const selectedDatabases = useSceneScoutStore((s) => s.selectedDatabases);
-  const selectedVideos = useSceneScoutStore((s) => s.selectedVideos);
+  const hiddenVideos = useSceneScoutStore((s) => s.hiddenVideos);
   const loading = useSceneScoutStore((s) => s.loading);
   const indexing = useSceneScoutStore((s) => s.indexing);
   const loadDatabases = useSceneScoutStore((s) => s.loadDatabases);
   const toggleDatabaseExpanded = useSceneScoutStore((s) => s.toggleDatabaseExpanded);
-  const selectVideo = useSceneScoutStore((s) => s.selectVideo);
   const addToSearch = useSceneScoutStore((s) => s.addToSearch);
   const removeFromSearch = useSceneScoutStore((s) => s.removeFromSearch);
   const setActiveDatabase = useSceneScoutStore((s) => s.setActiveDatabase);
@@ -59,6 +59,37 @@ export function SceneScoutPanel() {
   const [menu, setMenu] = useState<DbMenu | null>(null);
   // the searching list expands on its own so opening a row there does not also open it below
   const [searchExpanded, setSearchExpanded] = useState<Record<string, boolean>>({});
+  // highlighted episodes, for removing several at once; never changes what is searched
+  const [picked, setPicked] = useState<{ database: string; paths: string[] }>({ database: "", paths: [] });
+  // the searched database whose episode visibility popover is open, and its eye button
+  const [visibilityFor, setVisibilityFor] = useState<{ database: ScoutDatabase; anchor: HTMLElement } | null>(null);
+
+  // clicking anywhere but an episode row drops the highlight
+  useEffect(() => {
+    if (picked.paths.length === 0) return;
+    const onDown = (e: MouseEvent) => {
+      if ((e.target as Element).closest?.(".scout-video-row")) return;
+      setPicked({ database: "", paths: [] });
+    };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [picked.paths.length]);
+
+  const pickVideo = (database: string, path: string, e: React.MouseEvent, order: string[]) => {
+    setPicked((prev) => {
+      const base = prev.database === database ? prev.paths : [];
+      if (e.ctrlKey || e.metaKey) {
+        const has = base.some((p) => samePath(p, path));
+        return { database, paths: has ? base.filter((p) => !samePath(p, path)) : [...base, path] };
+      }
+      if (e.shiftKey && base.length) {
+        const a = order.findIndex((p) => samePath(p, base[base.length - 1]));
+        const b = order.findIndex((p) => samePath(p, path));
+        if (a >= 0 && b >= 0) return { database, paths: order.slice(Math.min(a, b), Math.max(a, b) + 1) };
+      }
+      return { database, paths: [path] };
+    });
+  };
 
   const claimMenu = useContextMenuStore((s) => s.openContextMenu);
   const activeContextMenu = useContextMenuStore((s) => s.activeMenu);
@@ -80,6 +111,14 @@ export function SceneScoutPanel() {
   useEffect(() => {
     void loadDatabases();
   }, [loadDatabases]);
+
+  // the eye on a searched database shows whether any of its episodes are hidden, which needs its episode list
+  useEffect(() => {
+    if (hiddenVideos.length === 0) return;
+    for (const path of selectedDatabases) {
+      if (!useSceneScoutStore.getState().videosByDatabase[path]) void loadVideos(path);
+    }
+  }, [hiddenVideos.length, selectedDatabases, loadVideos]);
 
   // another menu took the slot, so this one is stale
   useEffect(() => {
@@ -211,37 +250,34 @@ export function SceneScoutPanel() {
     }
   };
 
-  // episodes are only pickable in the searching list, where picking one narrows the search
-  const renderVideos = (database: ScoutDatabase, pickable: boolean) => {
+  // picking episodes only highlights them (e.g. to remove several); the eye decides what is searched
+  const renderVideos = (database: ScoutDatabase) => {
     const dbVideos = videosByDatabase[database.path] ?? (samePath(opened, database.path) ? videos : []);
     const allDbVideoPaths = dbVideos.map((v) => v.filepath);
     const isIndexingVideo = (video: ScoutVideo) =>
       video.status === "indexing" || (indexing !== null && samePath(indexing.video, video.filepath));
-    const isPicked = (video: ScoutVideo) => pickable && selectedVideos.some((vp) => samePath(vp, video.filepath));
+    const isPicked = (video: ScoutVideo) =>
+      samePath(picked.database, database.path) && picked.paths.some((p) => samePath(p, video.filepath));
     const pickedHere = dbVideos.filter((video) => isPicked(video) && !isIndexingVideo(video));
     return dbVideos.map((video) => {
       const isVideoSelected = isPicked(video);
       const isVideoIndexing = isIndexingVideo(video);
+      const isHidden = hiddenVideos.some((h) => samePath(h, video.filepath));
       // a selected row's trash takes the whole selection in this database with it
       const deleteTargets = isVideoSelected && pickedHere.length > 1 ? pickedHere : [video];
-      let videoRowClass = "episode-panel-row episode-row";
+      let videoRowClass = "episode-panel-row episode-row scout-video-row";
       if (isVideoSelected) videoRowClass += " is-focused is-selected";
+      if (isHidden) videoRowClass += " is-search-hidden";
 
       return (
         <div
           key={video.id}
           className={videoRowClass}
           style={{ paddingLeft: "32px" }}
+          title={isHidden ? "Hidden from searches" : undefined}
           onClick={(e) => {
             e.stopPropagation();
-            if (!pickable) return;
-            if (e.ctrlKey || e.metaKey) {
-              selectVideo(video.filepath, database.path, "toggle");
-            } else if (e.shiftKey) {
-              selectVideo(video.filepath, database.path, "range", allDbVideoPaths);
-            } else {
-              selectVideo(video.filepath, database.path, "single");
-            }
+            pickVideo(database.path, video.filepath, e, allDbVideoPaths);
           }}
         >
           <FaVideo className="episode-panel-import-icon scene-scout-row-icon" aria-hidden="true" />
@@ -326,6 +362,31 @@ export function SceneScoutPanel() {
           )}
           <span className="episode-panel-episode-name">{labelFor(path, database.name)}</span>
           <span className="episode-panel-count">{database.sceneCount}</span>
+          {list === "search" && (() => {
+            const hiddenHere = (videosByDatabase[path] ?? []).filter((v) =>
+              hiddenVideos.some((h) => samePath(h, v.filepath))
+            ).length;
+            return (
+              <Tooltip content={hiddenHere > 0 ? `${hiddenHere} episodes hidden from searches` : "Choose which episodes are searched"}>
+                <button
+                  type="button"
+                  className={`episode-panel-import-icon episode-folder-btn scout-visibility-btn${hiddenHere > 0 ? " has-hidden" : ""}`}
+                  onPointerDown={stop}
+                  onDoubleClick={stop}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const anchor = e.currentTarget;
+                    setVisibilityFor((current) =>
+                      current && samePath(current.database.path, path) ? null : { database, anchor }
+                    );
+                  }}
+                  aria-label={`Episodes searched in ${database.name}`}
+                >
+                  {hiddenHere > 0 ? <FaEyeSlash aria-hidden="true" /> : <FaEye aria-hidden="true" />}
+                </button>
+              </Tooltip>
+            );
+          })()}
           <Tooltip content="Delete database from disk">
             <button
               type="button"
@@ -344,7 +405,7 @@ export function SceneScoutPanel() {
         </div>
 
         {isExpanded && (
-          <div className="episode-panel-folder-children">{renderVideos(database, list === "search")}</div>
+          <div className="episode-panel-folder-children">{renderVideos(database)}</div>
         )}
       </div>
     );
@@ -489,6 +550,14 @@ export function SceneScoutPanel() {
         </div>
         )}
       </div>
+
+      {visibilityFor && inSearch(visibilityFor.database.path) && (
+        <EpisodeVisibilityPopover
+          database={visibilityFor.database}
+          anchor={visibilityFor.anchor}
+          onClose={() => setVisibilityFor(null)}
+        />
+      )}
 
       {menu && (() => {
         const n = menu.paths.length;

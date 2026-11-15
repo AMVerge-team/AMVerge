@@ -82,10 +82,10 @@ const STEPS: Step[] = [
   },
   {
     targets: ["mode-tabs"],
-    title: "Search and Flow",
+    title: "Search and Match",
     body: (
       <>
-        <b>Search</b> finds scenes from a description. <b>Flow</b> takes a clip you already have and finds
+        <b>Search</b> finds scenes from a description. <b>Match</b> takes a clip you already have and finds
         scenes that look like they could come right after it.
       </>
     ),

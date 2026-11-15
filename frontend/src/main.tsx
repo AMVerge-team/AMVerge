@@ -7,6 +7,7 @@ import { applyThemeSettings, useThemeSettingsStore } from "./stores/settingsStor
 import { importFromV1 } from "./features/migration/importV1";
 import { waitForEpisodes } from "./stores/episodeStore";
 import { rebaseStoragePaths } from "./features/storage/rebaseStoragePaths";
+import { restoreLastOpenedEpisode } from "./hooks/useEpisodePanelState";
 import { askNotice, showNotice } from "./features/notice/notice";
 
 initConsoleCapture();
@@ -78,6 +79,13 @@ async function bootstrap() {
     } catch (err) {
       console.error("[storage] could not check episode paths", err);
     }
+  }
+
+  // the last session's episode is open from the first frame, on any page, so the launch reveal plays it
+  try {
+    restoreLastOpenedEpisode();
+  } catch (err) {
+    console.warn("Could not reopen the last episode", err);
   }
 
   try {

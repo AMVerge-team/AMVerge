@@ -1,10 +1,9 @@
-import { useRef } from "react";
 import { useAppStateStore } from "../stores/appStore";
+import { importAbortRef } from "../features/import/importPipeline";
 import { useImportPipeline } from "./useImportPipeline";
 import { useExport } from "./useExport";
 
 type ImportExportProps = {
-  abortedRef?: React.RefObject<boolean>;
   onRPCUpdate?: (data: any) => void;
 };
 
@@ -17,8 +16,8 @@ export default function useImportExport(props?: ImportExportProps) {
   const batchCurrentFile = useAppStateStore((s) => s.batchCurrentFile);
   const setImportToken = useAppStateStore((s) => s.setImportToken);
 
-  const localAbortedRef = useRef(false);
-  const importing = useImportPipeline({ abortedRef: props?.abortedRef ?? localAbortedRef });
+  // shared, so the ✕ stops an import started from any button, not only App's own
+  const importing = useImportPipeline({ abortedRef: importAbortRef });
   const exporting = useExport({ onRPCUpdate: props?.onRPCUpdate });
 
   return {

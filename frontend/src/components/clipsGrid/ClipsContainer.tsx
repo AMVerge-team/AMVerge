@@ -26,9 +26,12 @@ import { canFindFlowFrom, flowSourceForClip } from "../../features/sceneScout/mo
 import { openTools } from "../../stores/toolsStore.ts";
 import { noteGridScroll } from "./gridScroll.ts";
 import type { ExportContainer } from "../../features/export/profileTypes.ts";
+import { useIntroStore } from "../../features/intro/introStore.ts";
 
 const SCROLL_SAVE_DELAY_MS = 250;
 const SCROLL_RESTORE_MAX_FRAMES = 120;
+// how long after the splash has gone the launch reveal starts
+const INTRO_REVEAL_DELAY_MS = 500;
 
 // an export leaves the clips as they are, so the grid stays usable while it runs
 const loadingReplacesGrid = (s: { loading: boolean; activeOperation: string | null }) =>
@@ -486,23 +489,43 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     }
   }, [clips, episodeVideoPreview, openedEpisodeId, reportWebpDemand, importToken]);
 
-  // tiles fade in when an episode opens; the class is removed after, or display:none page switches would replay it
-  const [tilesAppearing, setTilesAppearing] = useState(true);
-  useEffect(() => {
-    setTilesAppearing(true);
-    const timeout = window.setTimeout(() => setTilesAppearing(false), 1400);
-    return () => window.clearTimeout(timeout);
-  }, [importToken]);
+  // on launch the tiles wait hidden under the splash, then fade in a little slower once it has gone
+  const splashDone = useIntroStore((s) => s.splashDone);
+  const [introHold, setIntroHold] = useState(() => !useIntroStore.getState().splashDone);
+  const [slowAppear, setSlowAppear] = useState(false);
 
-  // diagonal stagger from the top-left tile, capped so huge grids finish promptly
+  // tiles fade in when an episode opens; the class is removed after, or display:none page switches would replay it
+  const [tilesAppearing, setTilesAppearing] = useState(() => !introHold);
+
+  useEffect(() => {
+    if (introHold) {
+      if (!splashDone) return;
+      // the class goes on as the hold lifts, so the animation starts then and not under the splash
+      const reveal = window.setTimeout(() => {
+        setIntroHold(false);
+        setSlowAppear(true);
+        setTilesAppearing(true);
+      }, INTRO_REVEAL_DELAY_MS);
+      return () => window.clearTimeout(reveal);
+    }
+    setTilesAppearing(true);
+    const timeout = window.setTimeout(() => {
+      setTilesAppearing(false);
+      setSlowAppear(false);
+    }, slowAppear ? 2200 : 1400);
+    return () => window.clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [importToken, splashDone, introHold]);
+
+  // diagonal stagger from the top-left tile, capped so huge grids finish promptly; the launch reveal is slower
   const appearDelayFor = useCallback(
     (index: number) => {
       if (!tilesAppearing) return null;
       const row = Math.floor(index / gridColumns);
       const col = index % gridColumns;
-      return Math.min((row + col) * 40, 600);
+      return slowAppear ? Math.min((row + col) * 60, 900) : Math.min((row + col) * 40, 600);
     },
-    [tilesAppearing, gridColumns]
+    [tilesAppearing, slowAppear, gridColumns]
   );
 
   useEffect(() => {
@@ -623,7 +646,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
                 scoutHasFlowClip ? (
                   <>No scenes found for this clip.<br/>Add a database to the Searching list on the left.</>
                 ) : (
-                  <>No clip to continue yet.<br/>Input an episode above, or right-click a clip in your Library and pick Find clips that flow.</>
+                  <>No clip to continue yet.<br/>Input an episode above, or right-click a clip in your Library and pick Find matching clips.</>
                 )
               )
               : activePage === "sceneScout"
@@ -642,11 +665,12 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
           <SelectionActionBar />
           <div
             key={importToken}
-            className="clips-grid"
+            className={`clips-grid${introHold ? " clips-grid-intro-hold" : ""}`}
             ref={setGridEl}
             style={{
               gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
               ["--grid-max-width" as any]: gridMaxWidth,
+              ...(slowAppear ? { ["--appear-duration" as any]: "0.6s" } : {}),
               paddingTop: gridWindow.padTop ? `calc(15px + ${gridWindow.padTop}px)` : undefined,
               paddingBottom: gridWindow.padBottom ? `calc(15px + ${gridWindow.padBottom}px)` : undefined,
             }}
@@ -688,7 +712,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
                       if (source) void useSceneScoutStore.getState().startFlowSearch(source, { pick: true });
                     }}
                   >
-                    Find clips that flow
+                    Find matching clips
                   </button>
                 )}
                 {openInToolsItem(clipMenu.targets)}
