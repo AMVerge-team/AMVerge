@@ -768,8 +768,9 @@
     padding: 22px 24px 20px;
 }
 
-/* the index dialog's icon follows the user's accent, not the notice's warning yellow */
-.scene-scout-index-modal .denial-notice-icon {
+/* the index and name dialogs' icons follow the user's accent, not the notice's warning yellow */
+.scene-scout-index-modal .denial-notice-icon,
+.scene-scout-name-modal .denial-notice-icon {
     color: var(--accent);
 }
 

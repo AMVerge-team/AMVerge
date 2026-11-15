@@ -59,6 +59,8 @@ export type LazyClipProps = {
   onClipContextMenu?: (e: React.MouseEvent, clip: ClipItem) => void;
   // episode-open fade-in delay (ms), null once the entrance window passed
   appearDelayMs: number | null;
+  // false when the grid belongs to a mounted-but-hidden page (e.g. Home behind display:none)
+  active?: boolean;
   // fixed per episode at import: video clips, or WebP previews
   videoPreviewMode: boolean;
   reportWebpDemand: (

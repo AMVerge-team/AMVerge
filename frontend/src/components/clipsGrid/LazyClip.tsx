@@ -51,13 +51,15 @@ export const LazyClip = memo(function LazyClip({
   onDownloadClip,
   onClipContextMenu,
   appearDelayMs,
+  active = true,
 }: LazyClipProps) {
   const importToken = useAppStateStore((s) => s.importToken);
   const previewWebpPath = useScenePreviewStore((s) => s.animatedByClipId[clip.id]);
   const isSelected = useAppStateStore((s) => s.selectedClips.has(clip.id));
   const isFocused = useAppStateStore((s) => s.focusedClipId === clip.id);
   const settingsOpen = useDeferredValue(useUIStateStore(selectOverlayOpen));
-  const gridPreview = useUIStateStore((s) => s.gridPreview) && !settingsOpen;
+  const gridPreview = useUIStateStore((s) => s.gridPreview) && !settingsOpen && active;
+  const previewCollapsed = useUIStateStore((s) => s.previewCollapsed);
   const activePage = useUIStateStore((s) => s.activePage);
   const videoIsHEVC = useAppStateStore((s) => s.videoIsHEVC);
   const userHasHEVC = useAppStateStore((s) => s.userHasHEVC);
@@ -77,7 +79,13 @@ export const LazyClip = memo(function LazyClip({
 
   const [isVisible, setIsVisible] = useState(false);
   const [hovered, setIsHovered] = useState(false);
-  const isHovered = hovered && !settingsOpen;
+  useEffect(() => {
+    if (!active) setIsHovered(false);
+  }, [active]);
+  const isHovered = hovered && !settingsOpen && active;
+  // when this tile is actively playing inside VideoPlayer, mute hover audio so two players never echo
+  const hoverAudioActive =
+    isHovered && audioPlaybackHover && !(isFocused && !previewCollapsed && active);
   const [showScenepackModal, setShowScenepackModal] = useState(false);
   const [scenepackMenu, setScenepackMenu] = useState<{ x: number; y: number } | null>(null);
   // fixed when the menu opens, so the modal it leads to adds the same clips
@@ -159,6 +167,7 @@ export const LazyClip = memo(function LazyClip({
 
   // mount on hover or preview-all only, so live decoders stay bounded; wait for a needed proxy or the clip renders black
   const shouldMountVideo =
+    active &&
     isVideoPlayable &&
     (isHovered || (gridPreview && staggerReady)) &&
     (usesRangePreview
@@ -183,7 +192,7 @@ export const LazyClip = memo(function LazyClip({
     effectiveSrc: source.effectiveSrc,
     originalPath: source.originalPath,
     videoIsHEVC,
-    audioPlaybackHover,
+    audioPlaybackHover: hoverAudioActive,
     playbackVolume,
     gridPreviewSpeed,
     resetKey,
@@ -457,7 +466,7 @@ export const LazyClip = memo(function LazyClip({
             <video
               className="clip"
               src={videoSrcUrl}
-              muted={!(isHovered && audioPlaybackHover)}
+              muted={!hoverAudioActive}
               loop={!seekIntoSource}
               autoPlay
               playsInline

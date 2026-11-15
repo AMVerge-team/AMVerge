@@ -60,6 +60,21 @@ export default function VideoPlayer({
   const draggingRef = useRef(false);
   const displayVolume = dragVolume ?? volume;
 
+  // applied on ref attach too, so autoPlay never emits a frame at Chromium's 1.0 default
+  const setVideoEl = useCallback(
+    (el: HTMLVideoElement | null) => {
+      videoRef.current = el;
+      if (!el) return;
+      if (silent) {
+        el.muted = true;
+        return;
+      }
+      el.volume = dragVolume ?? volume;
+      el.muted = muted || (dragVolume ?? volume) === 0;
+    },
+    [silent, volume, muted, dragVolume]
+  );
+
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
@@ -133,6 +148,8 @@ export default function VideoPlayer({
     if (src && v.getAttribute("src") !== src) {
       v.setAttribute("src", src);
       try {
+        v.volume = silent ? 0 : (dragVolume ?? volume);
+        v.muted = silent || muted || (dragVolume ?? volume) === 0;
         v.load();
         v.play().catch(() => {});
       } catch {
@@ -260,16 +277,16 @@ export default function VideoPlayer({
     <div className="video-wrapper">
       <div className="video-frame" ref={frameRef}>
         <video
-          ref={videoRef}
+          ref={setVideoEl}
           src={src}
           autoPlay
           playsInline
-          muted={silent}
+          muted={silent || muted || volume === 0}
           onClick={togglePlay}
           onLoadedMetadata={(e) => {
             const v = e.currentTarget;
-            v.volume = volume;
-            v.muted = silent || muted || volume === 0;
+            v.volume = silent ? 0 : (dragVolume ?? volume);
+            v.muted = silent || muted || (dragVolume ?? volume) === 0;
             setDuration(v.duration);
             if (startTime !== undefined && isFinite(startTime) && startTime > 0) {
               try {
@@ -292,7 +309,12 @@ export default function VideoPlayer({
             }
           }}
           onDurationChange={(e) => setDuration(e.currentTarget.duration)}
-          onPlay={() => setPlaying(true)}
+          onPlay={(e) => {
+            const v = e.currentTarget;
+            v.volume = silent ? 0 : (dragVolume ?? volume);
+            v.muted = silent || muted || (dragVolume ?? volume) === 0;
+            setPlaying(true);
+          }}
           onPause={() => setPlaying(false)}
           onVolumeChange={(e) => {
             // a silent player's own mute is not the user's setting

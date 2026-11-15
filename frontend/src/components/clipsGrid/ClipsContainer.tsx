@@ -38,7 +38,7 @@ const INTRO_REVEAL_DELAY_MS = 500;
 const loadingReplacesGrid = (s: { loading: boolean; activeOperation: string | null }) =>
   s.loading && s.activeOperation !== "export";
 
-export default function ClipsContainer({ cols }: { cols?: number }) {
+export default function ClipsContainer({ cols, active = true }: { cols?: number; active?: boolean }) {
   const clips = useAppStateStore((state) => state.clips);
   const gridBusy = useAppStateStore(loadingReplacesGrid);
   const scoutFlowMode = useSceneScoutStore((state) => state.mode === "flow");
@@ -529,7 +529,9 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
     [tilesAppearing, slowAppear, gridColumns]
   );
 
+  // wait until this page is visible before priming disk WebP previews
   useEffect(() => {
+    if (!active) return;
     // pack clips come from many episodes, so each job carries its own cache id; the disk lookup keeps reopening fast
     if (activePage === "scenepacks") {
       if (clips.length === 0) return;
@@ -586,7 +588,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
       .filter((job): job is NonNullable<typeof job> => Boolean(job));
 
     void primeFromDiskCache(jobs);
-  }, [clips, episodeVideoPreview, openedEpisodeId, primeFromDiskCache, activePage]);
+  }, [active, clips, episodeVideoPreview, openedEpisodeId, primeFromDiskCache, activePage]);
 
   // ctrl + wheel to adjust the grid column count
   const setStoreCols = useUIStateStore((state) => state.setCols);
@@ -688,6 +690,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
                 onDownloadClip={handleDownloadSingleClip}
                 onClipContextMenu={handleClipContextMenu}
                 appearDelayMs={appearDelayFor(index)}
+                active={active}
               />
             ))}
           </div>

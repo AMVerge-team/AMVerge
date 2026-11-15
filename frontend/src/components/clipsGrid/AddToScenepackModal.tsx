@@ -60,6 +60,7 @@ export function AddToScenepackModal({ clips: sourceClips, episodeId, onClose }: 
         return;
       }
       for (const data of clips) addClipToScenepack(targetId, data);
+      useScenepacksStore.getState().setOpenedScenepackId(targetId);
       setActivePage("scenepacks");
       onClose();
     } catch (err) {

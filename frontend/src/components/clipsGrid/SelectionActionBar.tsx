@@ -111,6 +111,7 @@ function BatchAddToScenepackModal({
       if (failedCount > 0) {
         console.error(`${failedCount} clip(s) failed to add to Scenepack.`);
       }
+      useScenepacksStore.getState().setOpenedScenepackId(targetId);
       const { setActivePage } = useUIStateStore.getState();
       setActivePage("scenepacks");
       onClose();

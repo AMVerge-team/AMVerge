@@ -60,9 +60,15 @@ export function useClipVideoElement({
   const frameCallbackIdRef = useRef<number | null>(null);
   const [isVideoReady, setIsVideoReady] = useState(false);
 
-  const setVideoRef = useCallback((el: HTMLVideoElement | null) => {
-    videoRef.current = el;
-  }, []);
+  const setVideoRef = useCallback(
+    (el: HTMLVideoElement | null) => {
+      videoRef.current = el;
+      if (!el) return;
+      el.volume = playbackVolume;
+      el.muted = !(isHovered && audioPlaybackHover);
+    },
+    [playbackVolume, isHovered, audioPlaybackHover]
+  );
 
   const cancelFrameCallback = useCallback((el: HTMLVideoElement | null) => {
     if (!el || frameCallbackIdRef.current === null) return;
@@ -163,6 +169,7 @@ export function useClipVideoElement({
     staggerReady,
     showVideo,
     shouldMountVideo,
+    videoSrcUrl,
     effectiveSrc,
     isHovered,
     audioPlaybackHover,

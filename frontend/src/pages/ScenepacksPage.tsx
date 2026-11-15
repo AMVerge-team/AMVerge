@@ -67,6 +67,7 @@ export default function ScenepacksPage() {
     // a new pack starts with a clean selection
     store.setSelectedClips(new Set());
     store.setFocusedClip(null);
+    store.setFocusedClipId(null);
   }, [openedScenepackId]);
 
   // clips still being cut into this pack, drawn from their episode copy until the cli produces their file

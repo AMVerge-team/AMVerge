@@ -97,7 +97,7 @@ export default function MainLayout({
                     className={`left-pane ${intro ? "app-intro" : ""}`}
                     style={{ width: fullWidth || previewCollapsed ? "100%" : `${leftWidth}%`, ...(intro ? { ["--intro-delay" as any]: "80ms" } : {}) }}
                 >
-                    {left ?? <ClipsContainer />}
+                    {left ?? <ClipsContainer active={active} />}
                 </div>
 
                 {/* stays when the pane is folded, parked at the right edge to drag it back out */}
