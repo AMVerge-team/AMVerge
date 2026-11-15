@@ -1,9 +1,6 @@
-use std::io::{BufRead, BufReader, Read};
 use std::path::PathBuf;
-use std::process::Stdio;
 use std::sync::atomic::Ordering;
-use std::sync::Arc;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -12,7 +9,9 @@ use crate::payloads::{PassLogPayload, PassPreviewPayload, PassProgressPayload, P
 use crate::state::{ActiveFfmpegPids, ExportAbortState};
 use crate::utils::logging::{console_log, emit_console_log, sanitize_for_console};
 use crate::utils::paths::file_name_only;
-use crate::utils::sidecar::{amverge_ai_command, amverge_command, amverge_exe_name};
+use crate::utils::sidecar::{
+    amverge_ai_command, amverge_command, amverge_exe_name, parse_progress_line, run_cli_process,
+};
 
 mod hardware;
 mod ops;
@@ -246,86 +245,39 @@ pub async fn export_clips(
             cmd.arg("--keyframe-cache-dir").arg(dir);
         }
     }
-    cmd.arg("--ipc")
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
+    cmd.arg("--ipc");
 
     console_log(
         "EXPORT|spawn",
         &format!("exe={} merge={merge_enabled} workers={workers}", amverge_exe_name()),
     );
 
-    let mut child = cmd
-        .spawn()
-        .map_err(|e| format!("Failed to spawn amverge CLI: {e}"))?;
-    let child_pid = child.id();
-    crate::utils::process::bind_to_app_lifetime(child_pid);
-    if let Ok(mut lock) = active_pids.lock() {
-        lock.push(child_pid);
-    }
-
-    let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
-    let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
-
-    // stderr thread: forward PROGRESS to the UI; surface CLI logs to the console
     let app_for_err = app.clone();
-    let stderr_accum = Arc::new(Mutex::new(String::new()));
-    let stderr_accum_thread = Arc::clone(&stderr_accum);
-    let stderr_handle = tokio::task::spawn_blocking(move || {
-        for line in BufReader::new(stderr).lines().flatten() {
-            if let Ok(mut acc) = stderr_accum_thread.lock() {
-                acc.push_str(&line);
-                acc.push('\n');
-            }
-            if let Some(rest) = line.strip_prefix("PROGRESS|") {
-                let mut parts = rest.splitn(2, '|');
-                let pct = parts.next().unwrap_or("");
-                let msg = parts.next().unwrap_or("").to_string();
-                if let Ok(p) = pct.parse::<u8>() {
-                    let _ = app_for_err.emit("scene_progress", ProgressPayload { percent: p, message: msg });
-                }
-            } else if let Some(rest) = line.strip_prefix("CLIP_READY|") {
-                // a log line, not a clip_ready event: that one updates the imported episode's clips
-                let mut parts = rest.splitn(3, '|').skip(1);
-                let path = parts.next().unwrap_or("");
-                let mode = match parts.next().unwrap_or("") {
-                    "reencode" => "re-encoded",
-                    "copy" => "stream copy",
-                    other => other,
-                };
-                emit_console_log(&app_for_err, "python", "log", &format!("✓ {} · {mode}", file_name_only(path)));
-            } else if !line.trim().is_empty() {
-                // "python" is what the terminal window shows, so the cli's own lines reach it too
-                emit_console_log(&app_for_err, "python", "log", &sanitize_for_console(&line));
-            }
+    let output = run_cli_process(cmd, "amverge CLI", Some(&active_pids), move |line| {
+        if let Some((percent, message)) = parse_progress_line(line) {
+            let _ = app_for_err.emit("scene_progress", ProgressPayload { percent, message });
+        } else if let Some(rest) = line.strip_prefix("CLIP_READY|") {
+            let mut parts = rest.splitn(3, '|').skip(1);
+            let path = parts.next().unwrap_or("");
+            let mode = match parts.next().unwrap_or("") {
+                "reencode" => "re-encoded",
+                "copy" => "stream copy",
+                other => other,
+            };
+            emit_console_log(&app_for_err, "python", "log", &format!("✓ {} · {mode}", file_name_only(path)));
+        } else if !line.trim().is_empty() {
+            emit_console_log(&app_for_err, "python", "log", &sanitize_for_console(line));
         }
-    });
-
-    let stdout_string = tokio::task::spawn_blocking(move || {
-        let mut buf = String::new();
-        BufReader::new(stdout).read_to_string(&mut buf).map(|_| buf)
     })
-    .await
-    .map_err(|e| format!("stdout thread panicked: {e}"))?
-    .map_err(|e| format!("Failed reading stdout: {e}"))?;
+    .await?;
 
-    let _ = stderr_handle.await;
-    let status = tokio::task::spawn_blocking(move || child.wait())
-        .await
-        .map_err(|e| format!("wait thread panicked: {e}"))?
-        .map_err(|e| format!("Failed waiting for amverge: {e}"))?;
-
-    if let Ok(mut lock) = active_pids.lock() {
-        lock.retain(|p| *p != child_pid);
-    }
     let _ = std::fs::remove_file(&inputs_path);
 
     if abort_requested.load(Ordering::SeqCst) {
         return Err("Export canceled.".to_string());
     }
 
-    // the CLI prints a final JSON summary to stdout in --ipc mode
-    if let Ok(payload) = serde_json::from_str::<Value>(stdout_string.trim()) {
+    if let Ok(payload) = serde_json::from_str::<Value>(output.stdout.trim()) {
         if let Some(err) = payload.get("error").and_then(|e| e.as_object()) {
             let msg = cli_error_message(err);
             console_log("ERROR|export_clips", &sanitize_for_console(&msg));
@@ -336,19 +288,16 @@ pub async fn export_clips(
             .and_then(|o| o.as_array())
             .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
             .unwrap_or_default();
-        if status.success() {
+        if output.status.success() {
             console_log("EXPORT|end", &format!("ok files={}", outputs.len()));
             return Ok(outputs);
         }
     }
 
-    let err = stderr_accum
-        .lock()
-        .map(|s| s.trim().to_string())
-        .unwrap_or_default();
-    console_log("ERROR|export_clips", &format!("exit={status}"));
+    let err = output.stderr.trim().to_string();
+    console_log("ERROR|export_clips", &format!("exit={}", output.status));
     Err(if err.is_empty() {
-        format!("Export failed ({status})")
+        format!("Export failed ({})", output.status)
     } else {
         err
     })
@@ -402,95 +351,52 @@ pub async fn run_export_pass(
     for a in &args {
         cmd.arg(a);
     }
-    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
 
     console_log(
         "PASS|spawn",
         &format!("pass={pass} in={} out={}", file_name_only(&input_path), file_name_only(&output_path)),
     );
 
-    let mut child = cmd
-        .spawn()
-        .map_err(|e| format!("Failed to spawn amverge {cli_cmd}: {e}"))?;
-    let child_pid = child.id();
-    crate::utils::process::bind_to_app_lifetime(child_pid);
-    if let Ok(mut lock) = active_pids.lock() {
-        lock.push(child_pid);
-    }
-
-    let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
-    let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
-
     let app_for_err = app.clone();
     let pass_for_err = pass.clone();
-    let stderr_accum = Arc::new(Mutex::new(String::new()));
-    let stderr_accum_thread = Arc::clone(&stderr_accum);
-    let stderr_handle = tokio::task::spawn_blocking(move || {
-        for line in BufReader::new(stderr).lines().flatten() {
-            if let Some(rest) = line.strip_prefix("PROGRESS|") {
-                let mut parts = rest.splitn(2, '|');
-                let pct = parts.next().unwrap_or("");
-                let msg = parts.next().unwrap_or("").to_string();
-                if let Ok(p) = pct.parse::<u8>() {
+    let label = format!("amverge {cli_cmd}");
+    let output = run_cli_process(cmd, &label, Some(&active_pids), move |line| {
+        if let Some((percent, message)) = parse_progress_line(line) {
+            let _ = app_for_err.emit(
+                "pass_progress",
+                PassProgressPayload { pass: pass_for_err.clone(), percent, message },
+            );
+        } else if let Some(rest) = line.strip_prefix("PREVIEW_FRAME|") {
+            let parts: Vec<&str> = rest.splitn(3, '|').collect();
+            if parts.len() == 3 {
+                if let Ok(seq) = parts[2].trim().parse::<u64>() {
                     let _ = app_for_err.emit(
-                        "pass_progress",
-                        PassProgressPayload { pass: pass_for_err.clone(), percent: p, message: msg },
+                        "pass_preview",
+                        PassPreviewPayload {
+                            pass: pass_for_err.clone(),
+                            path: parts[1].to_string(),
+                            seq,
+                        },
                     );
                 }
-            } else if let Some(rest) = line.strip_prefix("PREVIEW_FRAME|") {
-                let parts: Vec<&str> = rest.splitn(3, '|').collect();
-                if parts.len() == 3 {
-                    if let Ok(seq) = parts[2].trim().parse::<u64>() {
-                        let _ = app_for_err.emit(
-                            "pass_preview",
-                            PassPreviewPayload {
-                                pass: pass_for_err.clone(),
-                                path: parts[1].to_string(),
-                                seq,
-                            },
-                        );
-                    }
-                }
-            } else if !line.trim().is_empty() {
-                if let Ok(mut acc) = stderr_accum_thread.lock() {
-                    acc.push_str(&line);
-                    acc.push('\n');
-                }
-                let sanitized = sanitize_for_console(&line);
-                let _ = app_for_err.emit(
-                    "pass_log",
-                    PassLogPayload { pass: pass_for_err.clone(), line: sanitized.clone() },
-                );
-                console_log("PASS|cli", &sanitized);
             }
+        } else if !line.trim().is_empty() {
+            let sanitized = sanitize_for_console(line);
+            let _ = app_for_err.emit(
+                "pass_log",
+                PassLogPayload { pass: pass_for_err.clone(), line: sanitized.clone() },
+            );
+            console_log("PASS|cli", &sanitized);
         }
-    });
-
-    let stdout_string = tokio::task::spawn_blocking(move || {
-        let mut buf = String::new();
-        BufReader::new(stdout).read_to_string(&mut buf).map(|_| buf)
     })
-    .await
-    .map_err(|e| format!("stdout thread panicked: {e}"))?
-    .map_err(|e| format!("Failed reading stdout: {e}"))?;
-    let _ = stdout_string;
-
-    let _ = stderr_handle.await;
-    let status = tokio::task::spawn_blocking(move || child.wait())
-        .await
-        .map_err(|e| format!("wait thread panicked: {e}"))?
-        .map_err(|e| format!("Failed waiting for amverge {cli_cmd}: {e}"))?;
-
-    if let Ok(mut lock) = active_pids.lock() {
-        lock.retain(|p| *p != child_pid);
-    }
+    .await?;
 
     if abort_requested.load(Ordering::SeqCst) {
         let _ = std::fs::remove_file(&output_path);
         return Err("Pass canceled.".to_string());
     }
 
-    if status.success() && std::path::Path::new(&output_path).exists() {
+    if output.status.success() && std::path::Path::new(&output_path).exists() {
         if delete_input.unwrap_or(false) {
             let _ = std::fs::remove_file(&input_path);
         }
@@ -498,9 +404,14 @@ pub async fn run_export_pass(
         return Ok(output_path);
     }
 
-    let err = stderr_accum.lock().map(|s| s.trim().to_string()).unwrap_or_default();
-    console_log("ERROR|run_export_pass", &format!("pass={pass} exit={status}"));
-    Err(if err.is_empty() { format!("{pass} pass failed ({status})") } else { err })
+    let lines: Vec<&str> = output
+        .stderr
+        .lines()
+        .filter(|l| !l.trim().is_empty() && !l.starts_with("PROGRESS|") && !l.starts_with("PREVIEW_FRAME|"))
+        .collect();
+    let err = lines.join("\n");
+    console_log("ERROR|run_export_pass", &format!("pass={pass} exit={}", output.status));
+    Err(if err.is_empty() { format!("{pass} pass failed ({})", output.status) } else { err })
 }
 
 #[tauri::command]

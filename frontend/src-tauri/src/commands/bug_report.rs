@@ -1,10 +1,11 @@
-use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use tauri::AppHandle;
+
+use super::backend::{http_client, read_config_var};
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -84,29 +85,6 @@ fn normalize_optional_string(value: Option<String>) -> Option<String> {
     })
 }
 
-fn read_config_var(runtime_key: &str, build_fallback: Option<&str>) -> Option<String> {
-    std::env::var(runtime_key)
-        .ok()
-        .and_then(|value| {
-            let trimmed = value.trim();
-            if trimmed.is_empty() {
-                None
-            } else {
-                Some(trimmed.to_string())
-            }
-        })
-        .or_else(|| {
-            build_fallback.and_then(|value| {
-                let trimmed = value.trim();
-                if trimmed.is_empty() {
-                    None
-                } else {
-                    Some(trimmed.to_string())
-                }
-            })
-        })
-}
-
 #[tauri::command]
 pub async fn submit_bug_report(
     app: AppHandle,
@@ -156,10 +134,7 @@ pub async fn submit_bug_report(
         arch: std::env::consts::ARCH.to_string(),
     };
 
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(20))
-        .build()
-        .map_err(|e| format!("Failed to initialize HTTP client: {e}"))?;
+    let client = http_client()?;
 
     let raw_body = serde_json::to_string(&payload)
         .map_err(|e| format!("Failed to serialize bug report payload: {e}"))?;

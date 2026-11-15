@@ -22,7 +22,9 @@ use crate::utils::paths::{
     sanitize_episode_cache_id,
 };
 use crate::utils::process::kill_process_tree_async;
-use crate::utils::sidecar::{amverge_ai_command, amverge_command, amverge_exe_name};
+use crate::utils::sidecar::{
+    amverge_ai_command, amverge_command, amverge_exe_name, parse_progress_line,
+};
 
 fn now_unix_seconds() -> u64 {
     SystemTime::now()
@@ -306,21 +308,11 @@ pub async fn detect_scenes(
                 acc.push('\n');
             }
 
-            if let Some(rest) = line.strip_prefix("PROGRESS|") {
-                let mut parts = rest.splitn(2, '|');
-                let p_str = parts.next().unwrap_or("");
-                let msg = parts.next().unwrap_or("").to_string();
-
-                if let Ok(p) = p_str.parse::<u8>() {
-                    // progress bar only; echoing hundreds of PROGRESS lines swamped the console
-                    let _ = app_for_stderr.emit(
-                        "scene_progress",
-                        ProgressPayload {
-                            percent: p,
-                            message: msg,
-                        },
-                    );
-                }
+            if let Some((percent, message)) = parse_progress_line(&line) {
+                let _ = app_for_stderr.emit(
+                    "scene_progress",
+                    ProgressPayload { percent, message },
+                );
             } else if let Some(clips_json) = line.strip_prefix("INITIAL_CLIPS_READY|") {
                 let _ = app_for_stderr.emit(
                     "initial_clips_ready",

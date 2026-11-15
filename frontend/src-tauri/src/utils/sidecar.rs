@@ -1,9 +1,11 @@
+use std::io::{BufRead, BufReader, Read};
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, ExitStatus, Stdio};
+use std::sync::{Arc, Mutex};
 
 use tauri::{AppHandle, Manager};
 
-use crate::utils::process::apply_no_window;
+use crate::utils::process::{apply_no_window, bind_to_app_lifetime};
 
 pub fn app_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
     app.path().app_data_dir().map_err(|e| e.to_string())
@@ -271,4 +273,87 @@ pub fn amverge_exe_name() -> &'static str {
     } else {
         "amverge"
     }
+}
+
+pub struct CliOutput {
+    pub stdout: String,
+    pub stderr: String,
+    pub status: ExitStatus,
+}
+
+pub fn parse_progress_line(line: &str) -> Option<(u8, String)> {
+    let rest = line.strip_prefix("PROGRESS|")?;
+    let mut parts = rest.splitn(2, '|');
+    let pct = parts.next()?.trim().parse::<u8>().ok()?;
+    let msg = parts.next().unwrap_or("").to_string();
+    Some((pct, msg))
+}
+
+pub async fn run_cli_process<F>(
+    mut cmd: Command,
+    label: &str,
+    pid_tracker: Option<&Arc<Mutex<Vec<u32>>>>,
+    mut on_stderr_line: F,
+) -> Result<CliOutput, String>
+where
+    F: FnMut(&str) + Send + 'static,
+{
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| format!("Failed to spawn {label}: {e}"))?;
+    let child_pid = child.id();
+    bind_to_app_lifetime(child_pid);
+    if let Some(pids) = pid_tracker {
+        if let Ok(mut lock) = pids.lock() {
+            lock.push(child_pid);
+        }
+    }
+
+    let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
+    let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
+
+    let stderr_accum = Arc::new(Mutex::new(String::new()));
+    let stderr_accum_thread = Arc::clone(&stderr_accum);
+    let stderr_handle = tokio::task::spawn_blocking(move || {
+        for line in BufReader::new(stderr).lines().flatten() {
+            if let Ok(mut acc) = stderr_accum_thread.lock() {
+                acc.push_str(&line);
+                acc.push('\n');
+            }
+            on_stderr_line(&line);
+        }
+    });
+
+    let stdout_string = tokio::task::spawn_blocking(move || {
+        let mut buf = String::new();
+        BufReader::new(stdout).read_to_string(&mut buf).map(|_| buf)
+    })
+    .await
+    .map_err(|e| format!("stdout thread panicked: {e}"))?
+    .map_err(|e| format!("Failed reading stdout: {e}"))?;
+
+    let _ = stderr_handle.await;
+    let status = tokio::task::spawn_blocking(move || child.wait())
+        .await
+        .map_err(|e| format!("wait thread panicked: {e}"))?
+        .map_err(|e| format!("Failed waiting for {label}: {e}"))?;
+
+    if let Some(pids) = pid_tracker {
+        if let Ok(mut lock) = pids.lock() {
+            lock.retain(|p| *p != child_pid);
+        }
+    }
+
+    let stderr_string = stderr_accum
+        .lock()
+        .map(|s| s.clone())
+        .unwrap_or_default();
+
+    Ok(CliOutput {
+        stdout: stdout_string,
+        stderr: stderr_string,
+        status,
+    })
 }

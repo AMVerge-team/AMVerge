@@ -1,5 +1,3 @@
-use std::io::{BufRead, BufReader, Read};
-use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
@@ -9,7 +7,7 @@ use tauri::{AppHandle, Emitter};
 use crate::payloads::ProgressPayload;
 use crate::utils::logging::{console_log, sanitize_for_console};
 use crate::utils::paths::{resolve_scenepacks_storage_dir, sanitize_episode_cache_id};
-use crate::utils::sidecar::amverge_command;
+use crate::utils::sidecar::{amverge_command, parse_progress_line, run_cli_process};
 
 /// one clip to materialize: a cut file to copy, or a source range to cut; mirrors export's `ClipSpec`
 #[derive(Deserialize, Serialize)]
@@ -113,77 +111,26 @@ pub(crate) async fn run_materialize_clips(
     if low_priority {
         crate::utils::process::apply_low_priority(&mut cmd);
     }
-    cmd.stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-
-    let mut child = cmd
-        .spawn()
-        .map_err(|e| format!("Failed to spawn amverge materialize-clips: {e}"))?;
-    let child_pid = child.id();
-    crate::utils::process::bind_to_app_lifetime(child_pid);
-    if let Some(pids) = &pids {
-        if let Ok(mut l) = pids.lock() {
-            l.push(child_pid);
-        }
-    }
-
-    let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
-    let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
 
     let app_for_err = app.clone();
-    let stderr_accum = Arc::new(Mutex::new(String::new()));
-    let stderr_accum_thread = Arc::clone(&stderr_accum);
-    let stderr_handle = tokio::task::spawn_blocking(move || {
-        for line in BufReader::new(stderr).lines().flatten() {
-            if let Ok(mut acc) = stderr_accum_thread.lock() {
-                acc.push_str(&line);
-                acc.push('\n');
+    let output = run_cli_process(cmd, "amverge materialize-clips", pids.as_ref(), move |line| {
+        if let Some(json) = line.strip_prefix("MATERIALIZED|") {
+            if let (Some(cb), Ok(item)) = (&on_item, serde_json::from_str::<Value>(json)) {
+                cb(MaterializedClip::from_json(&item));
             }
-            if let Some(json) = line.strip_prefix("MATERIALIZED|") {
-                if let (Some(cb), Ok(item)) = (&on_item, serde_json::from_str::<Value>(json)) {
-                    cb(MaterializedClip::from_json(&item));
-                }
-            } else if let Some(rest) = line.strip_prefix("PROGRESS|") {
-                if !emit_progress {
-                    continue;
-                }
-                let mut parts = rest.splitn(2, '|');
-                let pct = parts.next().unwrap_or("");
-                let msg = parts.next().unwrap_or("").to_string();
-                if let Ok(p) = pct.parse::<u8>() {
-                    let _ = app_for_err.emit(
-                        "scene_progress",
-                        ProgressPayload { percent: p, message: msg },
-                    );
-                }
-            } else if !line.trim().is_empty() {
-                console_log("SCENEPACK|cli", &sanitize_for_console(&line));
+        } else if let Some((percent, message)) = parse_progress_line(line) {
+            if emit_progress {
+                let _ = app_for_err.emit("scene_progress", ProgressPayload { percent, message });
             }
+        } else if !line.trim().is_empty() {
+            console_log("SCENEPACK|cli", &sanitize_for_console(line));
         }
-    });
-
-    let stdout_string = tokio::task::spawn_blocking(move || {
-        let mut buf = String::new();
-        BufReader::new(stdout).read_to_string(&mut buf).map(|_| buf)
     })
-    .await
-    .map_err(|e| format!("stdout thread panicked: {e}"))?
-    .map_err(|e| format!("Failed reading stdout: {e}"))?;
+    .await?;
 
-    let _ = stderr_handle.await;
-    let status = tokio::task::spawn_blocking(move || child.wait())
-        .await
-        .map_err(|e| format!("wait thread panicked: {e}"))?
-        .map_err(|e| format!("Failed waiting for amverge materialize-clips: {e}"))?;
-
-    if let Some(pids) = &pids {
-        if let Ok(mut l) = pids.lock() {
-            l.retain(|p| *p != child_pid);
-        }
-    }
     let _ = std::fs::remove_file(&inputs_path);
 
-    if let Ok(payload) = serde_json::from_str::<Value>(stdout_string.trim()) {
+    if let Ok(payload) = serde_json::from_str::<Value>(output.stdout.trim()) {
         if let Some(err) = payload.get("error").and_then(|e| e.as_object()) {
             let msg = err
                 .get("message")
@@ -194,7 +141,7 @@ pub(crate) async fn run_materialize_clips(
         }
         if let Some(items) = payload.get("items").and_then(|i| i.as_array()) {
             let results: Vec<MaterializedClip> = items.iter().map(MaterializedClip::from_json).collect();
-            if status.success() {
+            if output.status.success() {
                 console_log(
                     "SCENEPACK|materialize_end",
                     &format!("ok items={}", results.len()),
@@ -204,13 +151,10 @@ pub(crate) async fn run_materialize_clips(
         }
     }
 
-    let err = stderr_accum
-        .lock()
-        .map(|s| s.trim().to_string())
-        .unwrap_or_default();
-    console_log("ERROR|materialize_scenepack_clips", &format!("exit={status}"));
+    let err = output.stderr.trim().to_string();
+    console_log("ERROR|materialize_scenepack_clips", &format!("exit={}", output.status));
     Err(if err.is_empty() {
-        format!("Materialize failed ({status})")
+        format!("Materialize failed ({})", output.status)
     } else {
         err
     })

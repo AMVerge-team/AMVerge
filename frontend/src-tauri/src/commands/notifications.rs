@@ -1,6 +1,7 @@
 use serde::Serialize;
 use tauri::AppHandle;
 
+use super::backend::{http_client, read_config_var};
 use crate::utils::logging::console_log;
 
 const BUILD_NOTIFICATIONS_API_URL: Option<&str> = option_env!("AMVERGE_NOTIFICATIONS_API_URL");
@@ -17,29 +18,6 @@ pub struct StartupNotification {
     pub body_markdown: String,
     pub banner_image_url: Option<String>,
     pub created_at: Option<String>,
-}
-
-fn read_config_var(runtime_key: &str, build_fallback: Option<&str>) -> Option<String> {
-    std::env::var(runtime_key)
-        .ok()
-        .and_then(|value| {
-            let trimmed = value.trim();
-            if trimmed.is_empty() {
-                None
-            } else {
-                Some(trimmed.to_string())
-            }
-        })
-        .or_else(|| {
-            build_fallback.and_then(|value| {
-                let trimmed = value.trim();
-                if trimmed.is_empty() {
-                    None
-                } else {
-                    Some(trimmed.to_string())
-                }
-            })
-        })
 }
 
 fn resolve_notifications_endpoint(base: &str, app_version: Option<&str>) -> Result<String, String> {
@@ -143,10 +121,7 @@ pub async fn fetch_startup_notification(app: AppHandle) -> Result<Option<Startup
     }
     endpoint_candidates.push(resolve_notifications_endpoint(&base_url, None)?);
 
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(15))
-        .build()
-        .map_err(|e| format!("Failed to initialize notifications HTTP client: {e}"))?;
+    let client = http_client()?;
 
     let api_key = read_config_var("AMVERGE_NOTIFICATIONS_API_KEY", BUILD_NOTIFICATIONS_API_KEY)
         .or_else(|| read_config_var("AMVERGE_BUG_REPORT_API_KEY", BUILD_BUG_REPORT_API_KEY));
