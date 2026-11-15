@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { FaCheck, FaVideo } from '../icons/animated';
 
@@ -32,6 +32,8 @@ export function useAddEpisodes() {
 
   const [choosing, setChoosing] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
+  // the episode a shift-click ranges from
+  const anchorRef = useRef<string | null>(null);
   const [pending, setPending] = useState<string[] | null>(null);
   const [method, setMethod] = useState<IndexDetection>("transnetv2_gpu");
   const [error, setError] = useState("");
@@ -43,6 +45,7 @@ export function useAddEpisodes() {
     setError("");
     if (offered.length > 0) {
       setPicked(new Set());
+      anchorRef.current = null;
       setChoosing(true);
       return;
     }
@@ -86,13 +89,21 @@ export function useAddEpisodes() {
     if (!result.ok && result.message) setError(result.message);
   };
 
-  const togglePicked = (id: string) =>
+  // a click toggles one episode; shift-click picks every episode from the last clicked one to this one
+  const pickEpisode = (id: string, shift: boolean) => {
+    const anchor = anchorRef.current;
+    anchorRef.current = id;
     setPicked((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
+      const from = anchor ? offered.findIndex((e) => e.id === anchor) : -1;
+      const to = offered.findIndex((e) => e.id === id);
+      if (shift && from >= 0 && to >= 0) {
+        for (const episode of offered.slice(Math.min(from, to), Math.max(from, to) + 1)) next.add(episode.id);
+      } else if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
+  };
 
   const chooser = choosing ? (
     <ModalShell open onClose={() => setChoosing(false)} label="Add episodes" className="scout-add-modal">
@@ -113,7 +124,11 @@ export function useAddEpisodes() {
                     role="option"
                     aria-selected={isPicked}
                     className={`scout-add-row${isPicked ? " is-picked" : ""}`}
-                    onClick={() => togglePicked(episode.id)}
+                    onClick={(e) => pickEpisode(episode.id, e.shiftKey)}
+                    onMouseDown={(e) => {
+                      // shift-click would otherwise select the list's text
+                      if (e.shiftKey) e.preventDefault();
+                    }}
                     title={episode.videoPath}
                   >
                     <span className="scout-add-check" aria-hidden="true">{isPicked && <FaCheck />}</span>

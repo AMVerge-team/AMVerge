@@ -22,23 +22,15 @@ export function ScoutSearchField({ fieldRef, onSubmit, blockedHint = null }: Pro
   const indexing = useSceneScoutStore((s) => s.indexing);
   const databases = useSceneScoutStore((s) => s.databases);
   const selectedDatabases = useSceneScoutStore((s) => s.selectedDatabases);
-  const selectedVideos = useSceneScoutStore((s) => s.selectedVideos);
   const displayNames = useSceneScoutStore((s) => s.displayNames);
 
-  const hasSelection = selectedDatabases.length > 0 || selectedVideos.length > 0;
+  const hasSelection = selectedDatabases.length > 0;
   // nothing selected still searches: submitting asks which databases first
   const blocked = Boolean(blockedHint) || (!hasSelection && databases.length === 0);
   const submit = onSubmit ?? (() => void runSearch());
 
   const placeholder = useMemo(() => {
     if (blockedHint) return blockedHint;
-    if (selectedVideos.length > 0) {
-      if (selectedVideos.length === 1) {
-        const vName = selectedVideos[0].split(/[/\\]/).pop() || "selected video";
-        return `Describe a scene to search in "${vName}"...`;
-      }
-      return `Describe a scene to search across ${selectedVideos.length} selected videos...`;
-    }
     if (selectedDatabases.length > 0) {
       if (selectedDatabases.length === 1) {
         const db = databases.find((d) => samePath(d.path, selectedDatabases[0]));
@@ -49,7 +41,7 @@ export function ScoutSearchField({ fieldRef, onSubmit, blockedHint = null }: Pro
     }
     if (databases.length > 0) return "Describe a scene to search for...";
     return "Create a database to start searching...";
-  }, [blockedHint, selectedDatabases, selectedVideos, databases, displayNames]);
+  }, [blockedHint, selectedDatabases, databases, displayNames]);
 
   // a search while one is loading replaces it (the newest wins in the store)
   const canSubmit = !blocked && !indexing && Boolean(query.trim());

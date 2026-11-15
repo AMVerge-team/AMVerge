@@ -171,7 +171,7 @@ export function ScenepackPickerMenu({
               onFindFlow();
             }}
           >
-            Find clips that flow
+            Find matching clips
           </button>
           <div className="episode-context-menu-separator" />
         </>

@@ -151,7 +151,7 @@ function sceneScoutCommands(d: CommandDeps): CommandItem[] {
       id: "scout-flow",
       category: "sceneScout",
       feature: "sceneScout",
-      title: "Scene Scout: Find clips that flow",
+      title: "Scene Scout: Find matching clips",
       subtitle: "Pick a video file and find scenes that could follow it",
       icon: FaWater,
       action: () => {
@@ -159,7 +159,7 @@ function sceneScoutCommands(d: CommandDeps): CommandItem[] {
         d.inputFlowFile();
       },
       preview: {
-        metaLine1: "Flow Search",
+        metaLine1: "Match Search",
         description: "Finds scenes that look like they follow the last frame of the file you pick.",
         shortcut: OPEN_SHORTCUT,
       },
@@ -439,7 +439,7 @@ function menuCommands(d: CommandDeps): CommandItem[] {
       action: goTo("sceneScout"),
       preview: {
         metaLine1: "Scene Scout",
-        description: "Search indexed episodes by text, or find clips that flow into each other.",
+        description: "Search indexed episodes by text, or find clips that match each other.",
         shortcut: OPEN_SHORTCUT,
       },
     },

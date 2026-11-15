@@ -26,17 +26,25 @@ export default function SplashScreen({ onFinished }: SplashScreenProps) {
     timers.push(window.setTimeout(leave, FADE_IN_MS + HOLD_MS));
 
     const skip = () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pointerdown", skip);
       timers.forEach(window.clearTimeout);
       timers.length = 0;
       leave();
     };
 
-    window.addEventListener("keydown", skip, { once: true });
-    window.addEventListener("pointerdown", skip, { once: true });
+    // a held key's repeats never skip it
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      skip();
+    };
+
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("pointerdown", skip);
 
     return () => {
       timers.forEach(window.clearTimeout);
-      window.removeEventListener("keydown", skip);
+      window.removeEventListener("keydown", onKey);
       window.removeEventListener("pointerdown", skip);
     };
   }, [onFinished]);

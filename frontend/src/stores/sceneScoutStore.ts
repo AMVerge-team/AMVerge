@@ -30,7 +30,7 @@ import {
 import { claimProcess } from "../features/processes/singleProcess";
 import type { SceneRange } from "../features/sceneScout/precutEpisodes";
 import { cutIntoLibrary, prioritizeHits } from "../features/sceneScout/library";
-import { DETECT_CANCELED } from "../features/import/importPipeline";
+import { DETECT_CANCELED, importAbortRef } from "../features/import/importPipeline";
 import { useAiDepsStore } from "./aiDepsStore";
 import { useAppStateStore } from "./appStore";
 import { useGeneralSettingsStore } from "./settingsStore";
@@ -95,7 +95,8 @@ type SceneScoutState = {
   videosByDatabase: Record<string, ScoutVideo[]>;
   expandedDatabases: Record<string, boolean>;
   selectedDatabases: string[];
-  selectedVideos: string[];
+  /** episodes (video paths) left out of searches, toggled with the eye on a searched database */
+  hiddenVideos: string[];
 
   query: string;
   results: ScoutHit[];
@@ -143,7 +144,7 @@ type SceneScoutActions = {
   openDatabase: (name: string | null) => Promise<void>;
   toggleDatabaseExpanded: (path: string) => Promise<void>;
   selectDatabase: (path: string, mode?: SelectMode, allPaths?: string[]) => void;
-  selectVideo: (videoPath: string, parentDbPath: string, mode?: SelectMode, allVideoPaths?: string[]) => void;
+  setVideosHidden: (videoPaths: string[], hidden: boolean) => void;
   selectAllDatabases: () => void;
   clearSelection: () => void;
   addToSearch: (paths: string[]) => void;
@@ -186,7 +187,7 @@ const INITIAL: SceneScoutState = {
   videosByDatabase: {},
   expandedDatabases: {},
   selectedDatabases: [],
-  selectedVideos: [],
+  hiddenVideos: [],
   query: "",
   results: [],
   lastQuery: "",
@@ -262,6 +263,29 @@ async function searchBlocker(): Promise<string | null> {
   }
   if (!(await useAiDepsStore.getState().ensurePack("scout"))) return "Scene Scout needs its AI pack installed.";
   return null;
+}
+
+/**
+ * the settings a search or flow sends: the Searching list, and the episodes still shown in it.
+ * the cli's video filter keeps only the listed videos, so with any hidden every shown one is listed
+ */
+async function currentSearchSettings(): Promise<ScoutSearchSettings> {
+  const store = useSceneScoutStore.getState();
+  const { selectedDatabases, hiddenVideos } = store;
+  const base = { ...store.settings, selectedDatabases, selectedVideos: [] };
+  if (hiddenVideos.length === 0) return base;
+
+  await Promise.all(
+    selectedDatabases
+      .filter((db) => !useSceneScoutStore.getState().videosByDatabase[db])
+      .map((db) => store.loadVideos(db))
+  );
+  const { videosByDatabase } = useSceneScoutStore.getState();
+  const all = selectedDatabases.flatMap((db) => (videosByDatabase[db] ?? []).map((v) => v.filepath));
+  const shown = all.filter((path) => !hiddenVideos.some((h) => samePath(h, path)));
+  if (shown.length === all.length) return base;
+  if (shown.length === 0) throw new Error("Every episode in the searched databases is hidden. Show one with its eye icon.");
+  return { ...base, selectedVideos: shown };
 }
 
 /** whether there is any database to offer in the picker, loading the list once if it is still empty */
@@ -461,31 +485,21 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         const nextSelected = nextSelection(get().selectedDatabases, path, mode, allPaths);
         set({
           selectedDatabases: nextSelected,
-          selectedVideos: [],
           openedDatabase: nextSelected.length === 1 ? nextSelected[0] : get().openedDatabase,
         });
       },
 
-      selectVideo: (videoPath, parentDbPath, mode = "single", allVideoPaths = []) => {
-        // episode picks narrow the search; which databases are searched stays as is
-        set({
-          selectedVideos: nextSelection(get().selectedVideos, videoPath, mode, allVideoPaths),
-          openedDatabase: parentDbPath,
-        });
+      setVideosHidden: (paths, hidden) => {
+        const rest = get().hiddenVideos.filter((h) => !paths.some((p) => samePath(p, h)));
+        set({ hiddenVideos: hidden ? [...rest, ...paths] : rest });
       },
 
       selectAllDatabases: () => {
-        set({
-          selectedDatabases: get().databases.map((d) => d.path),
-          selectedVideos: [],
-        });
+        set({ selectedDatabases: get().databases.map((d) => d.path) });
       },
 
       clearSelection: () => {
-        set({
-          selectedDatabases: [],
-          selectedVideos: [],
-        });
+        set({ selectedDatabases: [] });
       },
 
       addToSearch: (paths) => {
@@ -495,18 +509,8 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       },
 
       removeFromSearch: (paths) => {
-        const { selectedDatabases, selectedVideos, videosByDatabase } = get();
         const removed = (p: string) => paths.some((r) => samePath(r, p));
-        // episode picks inside a database that is no longer searched would filter out everything else
-        const droppedVideos = new Set(
-          Object.entries(videosByDatabase)
-            .filter(([db]) => removed(db))
-            .flatMap(([, vids]) => vids.map((v) => v.filepath.toLowerCase()))
-        );
-        set({
-          selectedDatabases: selectedDatabases.filter((p) => !removed(p)),
-          selectedVideos: selectedVideos.filter((v) => !droppedVideos.has(v.toLowerCase())),
-        });
+        set({ selectedDatabases: get().selectedDatabases.filter((p) => !removed(p)) });
       },
 
       setActiveDatabase: (path) => set({ openedDatabase: path }),
@@ -551,10 +555,6 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
               [databasePath]: nextDbVideos,
             };
 
-            const nextSelectedVideos = deletedFilePath
-              ? state.selectedVideos.filter((vp) => !samePath(vp, deletedFilePath))
-              : state.selectedVideos;
-
             const nextDatabases = state.databases.map((db) => {
               if (samePath(db.path, databasePath)) {
                 return {
@@ -571,7 +571,6 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             return {
               videos: nextVideos,
               videosByDatabase: nextVByDb,
-              selectedVideos: nextSelectedVideos,
               databases: nextDatabases,
               results: state.results.filter(keepHit),
               flowResults: state.flowResults.filter(keepHit),
@@ -628,6 +627,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
 
         const totalVideos = videoPaths.length;
         console.log(`SCOUT|queue starting queue of ${totalVideos} videos`);
+        importAbortRef.current = false;
 
         const appState = useAppStateStore.getState();
         appState.setActiveOperation("scout_add");
@@ -736,6 +736,8 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
               // detection runs once, in the library import; the index reuses its scenes
               appState.setProgressMsg(`Cutting ${name} into the library…`);
               scenes = await cutIntoLibrary(videoPath, folderName, detector);
+              // a ✕ in the moment between the cut and indexing still stops the whole add
+              if (importAbortRef.current) throw new Error(DETECT_CANCELED);
               appState.setProgress(0);
             }
             runsDetection = detector === "transnetv2_gpu" && !scenes;
@@ -749,7 +751,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           // finished episodes stay; the half-indexed one it stopped on is removed
           await discardUnfinishedVideos(database);
           await Promise.all([get().loadVideos(database), get().loadDatabases()]);
-          if (isScoutCanceled(err) || String(err) === DETECT_CANCELED) {
+          if (isScoutCanceled(err) || message(err) === DETECT_CANCELED) {
             console.log("SCOUT|queue stopped by the user");
             return { ok: false, message: null };
           }
@@ -786,7 +788,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         const query = get().query.trim();
         if (!query) return;
         // nothing to search in: ask which databases, the answer runs this search
-        if (get().selectedDatabases.length === 0 && get().selectedVideos.length === 0 && (await hasDatabases())) {
+        if (get().selectedDatabases.length === 0 && (await hasDatabases())) {
           set({ dbPrompt: { kind: "search" } });
           return;
         }
@@ -799,11 +801,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         const gen = ++searchGen;
         set({ searching: true, error: null, heroDismissed: true });
         try {
-          const searchSettings = {
-            ...get().settings,
-            selectedDatabases: get().selectedDatabases,
-            selectedVideos: get().selectedVideos,
-          };
+          const searchSettings = await currentSearchSettings();
           const results = await withModelLoadingCard(() => scoutSearch(query, searchSettings, customPath()));
           if (gen !== searchGen) return;
           set({ results, lastQuery: query });
@@ -869,7 +867,6 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         if (!prompt || paths.length === 0) return;
         set({
           selectedDatabases: paths,
-          selectedVideos: [],
           openedDatabase: paths.length === 1 ? paths[0] : get().openedDatabase,
         });
         if (prompt.kind === "flow") await get().startFlowSearch(prompt.source);
@@ -887,11 +884,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
 
         set({ flowSearching: true, flowError: null });
         try {
-          const flowSettings = {
-            ...get().settings,
-            selectedDatabases: get().selectedDatabases,
-            selectedVideos: get().selectedVideos,
-          };
+          const flowSettings = await currentSearchSettings();
           const flowResults = await withModelLoadingCard(() => scoutSearch("", flowSettings, customPath(), source));
           if (get().flowFrom === source) {
             set({ flowResults });
@@ -913,6 +906,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         // drawn on mount instead of waiting on a cli spawn, then re-read from disk
         databases: state.databases,
         selectedDatabases: state.selectedDatabases,
+        hiddenVideos: state.hiddenVideos,
         externalPaths: state.externalPaths,
         unloadedPaths: state.unloadedPaths,
         displayNames: state.displayNames,

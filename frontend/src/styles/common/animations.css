@@ -43,8 +43,13 @@
 }
 
 .clip-appear {
-    animation: clipFadeIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation: clipFadeIn var(--appear-duration, 0.4s) cubic-bezier(0.22, 1, 0.36, 1) backwards;
     animation-delay: var(--appear-delay, 0ms);
+}
+
+/* the grid waits invisible under the startup splash until its launch reveal plays */
+.clips-grid-intro-hold {
+    opacity: 0;
 }
 
 @keyframes introFadeUp {

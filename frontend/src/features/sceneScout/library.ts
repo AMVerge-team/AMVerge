@@ -2,7 +2,7 @@ import type { ClipItem, EpisodeEntry, EpisodeFolder } from "../../types/domain";
 import { useEpisodePanelMetadataStore, useEpisodePanelRuntimeStore } from "../../stores/episodeStore";
 import type { SceneDetectionMethod } from "../../stores/settingsStore";
 import { buildEpisodeCacheId } from "../import/manifest";
-import { discardEpisodeCache, hasLanded, runImportPipeline } from "../import/importPipeline";
+import { discardEpisodeCache, hasLanded, importAbortRef, runImportPipeline } from "../import/importPipeline";
 import { prioritizeScenes, queueBackgroundReencode } from "../import/reencodeQueue";
 import { isResumable } from "../import/resumeEpisode";
 import { episodeSceneRanges, type SceneRange } from "./precutEpisodes";
@@ -119,7 +119,10 @@ export async function cutIntoLibrary(
       folderId: libraryFolder(folderName),
       importMethod: "video_files",
       detection,
-      onUncut: () => queueBackgroundReencode(episodeId),
+      // the ✕ during the handoff stops everything, so nothing is queued after it
+      onUncut: () => {
+        if (!importAbortRef.current) queueBackgroundReencode(episodeId);
+      },
     });
     const entry: EpisodeEntry = { ...episodeEntry, cutsInBackground: true };
     // replaces the entry the streaming listener inserted

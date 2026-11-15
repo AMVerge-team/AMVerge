@@ -33,7 +33,7 @@ export const FEATURES: FeatureDef[] = [
   {
     id: "sceneScout",
     label: "Scene Scout",
-    description: "Search your episodes by describing a scene, and find clips that flow into each other.",
+    description: "Search your episodes by describing a scene, and find clips that match each other.",
     setting: "sceneScoutEnabled",
     pack: "scout",
   },

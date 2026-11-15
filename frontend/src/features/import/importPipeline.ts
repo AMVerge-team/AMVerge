@@ -19,6 +19,9 @@ export type ImportOptions = {
 
 export type ImportResult = { episodeEntry: EpisodeEntry; sceneCount: number };
 
+/** set by the progress window's ✕ (App's abort); every import reads this one flag, whichever button started it */
+export const importAbortRef: { current: boolean } = { current: false };
+
 /** what `detect_scenes` rejects with when its import was stopped (rust scenes.rs) */
 export const DETECT_CANCELED = "Scene detection was canceled.";
 
