@@ -82,7 +82,10 @@ fn v1_custom_episodes_path(migration: Option<&Value>) -> Option<String> {
 
 /// what there is to import from V1, or None when there is nothing (fresh install, or done already)
 #[tauri::command]
-pub fn v1_migration_source(app: AppHandle) -> Result<Option<V1Source>, String> {
+pub fn v1_migration_source(
+    app: AppHandle,
+    existing_v2_episodes_path: Option<String>,
+) -> Result<Option<V1Source>, String> {
     let v2 = v2_data_dir(&app)?;
     if v2.join(IMPORTED_MARKER).exists() {
         return Ok(None);
@@ -96,13 +99,20 @@ pub fn v1_migration_source(app: AppHandle) -> Result<Option<V1Source>, String> {
         .ok()
         .and_then(|raw| serde_json::from_str::<Value>(&raw).ok());
 
-    // V1's custom path held episode folders directly; in V2 the same path is the storage root
-    let custom = v1_custom_episodes_path(migration.as_ref());
-    let old_episodes_dir = match &custom {
+    // V1's custom path held episode folders directly; when V2 already has its own settings, land in V2's root instead
+    let v1_custom = v1_custom_episodes_path(migration.as_ref());
+    let old_episodes_dir = match &v1_custom {
         Some(path) => PathBuf::from(path),
         None => v1.join("episodes"),
     };
-    let new_episodes_dir = resolve_episodes_storage_dir(&app, custom.as_deref())?;
+    let target_custom = match existing_v2_episodes_path.as_deref() {
+        Some(v2_path) => {
+            let trimmed = v2_path.trim();
+            (!trimmed.is_empty()).then_some(trimmed)
+        }
+        None => v1_custom.as_deref(),
+    };
+    let new_episodes_dir = resolve_episodes_storage_dir(&app, target_custom)?;
 
     // last resort, only when there's no export at all
     let recovered = if migration.is_some() { Vec::new() } else { recover_episodes(&old_episodes_dir) };
@@ -226,7 +236,9 @@ fn move_episode(
         return Err("folder not found".to_string());
     }
     let dest = new_dir.join(&id);
-    move_entry(&src, &dest, leftovers)?;
+    if src != dest {
+        move_entry(&src, &dest, leftovers)?;
+    }
     // the manifest is what V2 recognizes an episode folder by (storage moves, cache clears)
     let manifest = serde_json::to_string_pretty(&episode.manifest).map_err(|e| e.to_string())?;
     fs::write(dest.join("manifest.json"), manifest).map_err(|e| e.to_string())
@@ -390,5 +402,17 @@ mod tests {
         fs::create_dir_all(&other).unwrap();
         assert!(remove_v1_dir(&other).is_err());
         assert!(other.exists());
+    }
+
+    #[test]
+    fn same_source_and_dest_keeps_files_in_place() {
+        let tmp = tempfile::tempdir().unwrap();
+        let shared = tmp.path().join("episodes_storage");
+        touch(&shared.join("Show_ab12cd34/Show_0000.mp4"));
+
+        move_episode(&shared, &shared, &episode("Show_ab12cd34"), &mut Vec::new()).unwrap();
+
+        assert!(shared.join("Show_ab12cd34/Show_0000.mp4").is_file());
+        assert!(shared.join("Show_ab12cd34/manifest.json").is_file());
     }
 }

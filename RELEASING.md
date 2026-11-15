@@ -14,5 +14,6 @@ That's why `release-multi-platform.yml` on this branch always publishes as a **p
 Tags with a suffix (`v2.0.0-rc1`) are never promoted. Later V2 patches (2.0.1, ...) need the same promote step.
 
 ## After going live
+- V1 `1.3.3`'s `V2UpgradeModal` renders `latest.json`'s `notes` field (not the GitHub release page body) as Markdown, and on macOS `tauri-plugin-updater` extracts `AMVerge.app` without auto-relaunching. Keep the macOS quit-and-reopen line in `latest.json` (`release-multi-platform.yml`) so Mac V1 upgraders know to reopen AMVerge once installation completes.
 - On the launch after the import, V2 deletes V1's `%APPDATA%` and `%LOCALAPPDATA%` `com.amiri.amverge` folders, but only if V1's `episodes\` folder has nothing left in it. If an episode failed to move, both folders stay, so it's still in `%APPDATA%\com.amiri.amverge\episodes\`. Moved episodes are in V2's `episodes_storage\`, and a V1 custom episodes folder is never touched.
 - `%APPDATA%\app.amverge\v1-imported` marks the import done; deleting it re-runs the import on the next launch.

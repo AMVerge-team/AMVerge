@@ -755,10 +755,14 @@ jobs:
           ARM_SIG_VAL="$(tr -d '\r\n' < "$ARM_SIG")"
           X64_SIG_VAL="$(tr -d '\r\n' < "$X64_SIG")"
 
+          # V1 1.3.3's V2UpgradeModal renders latest.json's `notes` as Markdown; include the
+          # macOS reopen note because V1's V2UpgradeModal does not auto-relaunch after extracting.
+          UPDATER_NOTES="- **AI Scene Detection** finds cuts more accurately than keyframes\n- **Scene Scout**: search your episodes by describing a scene\n- **Scenepacks**, post-export passes, and a faster, redesigned app\n- **macOS**: once installation finishes, quit and reopen AMVerge to launch AMVerge 2"
+
           cat > release-assets/latest.json <<EOF
           {
             "version": "$VERSION",
-            "notes": "Release $VERSION",
+            "notes": "$UPDATER_NOTES",
             "pub_date": "$NOW_UTC",
             "platforms": {
               "windows-x86_64": {
@@ -777,6 +781,7 @@ jobs:
           }
           EOF
 
+          python3 -m json.tool release-assets/latest.json > /dev/null
           ls -la release-assets
 
       # always created as a pre-release: /releases/latest skips those, and that url is the
@@ -785,10 +790,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          RELEASE_BODY="$(printf '%s\n' \
+            "## AMVerge $GITHUB_REF_NAME" \
+            "" \
+            "- **AI Scene Detection** finds cuts more accurately than keyframes" \
+            "- **Scene Scout**: search your episodes by describing a scene" \
+            "- **Scenepacks**, post-export passes, and a faster, redesigned app" \
+            "- **macOS users upgrading from V1**: once in-app installation finishes, quit and reopen AMVerge once to launch AMVerge 2.")"
           gh release create "$GITHUB_REF_NAME" \
             --repo "$GITHUB_REPOSITORY" \
             --title "$GITHUB_REF_NAME" \
-            --notes "Automated multi-platform release for $GITHUB_REF_NAME" \
+            --notes "$RELEASE_BODY" \
             --prerelease \
             || true
 

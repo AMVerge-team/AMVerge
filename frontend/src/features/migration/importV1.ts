@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { ClipItem, EpisodeEntry } from "../../types/domain";
+import type { ClipItem, EpisodeEntry, EpisodeFolder } from "../../types/domain";
 import { remapClipPaths, remapPathRoot } from "../../utils/episodeUtils";
 import { useGeneralSettingsStore, useThemeSettingsStore } from "../../stores/settingsStore";
 import { useUIStateStore } from "../../stores/UIStore";
@@ -54,19 +54,30 @@ const SETTINGS_KEYS = [
 /** runs once, before the first render, on the first launch after AMVerge 1 */
 export async function importFromV1(): Promise<void> {
   if (!("__TAURI_INTERNALS__" in window)) return;
-  const source = await invoke<V1Source | null>("v1_migration_source");
+  // only overwrite settings on a fresh V2; beta/dev installs keep their own settings while still merging missing V1 episodes
+  const freshV2 = localStorage.getItem("amverge.generalSettings.v2") === null;
+  const existingV2EpisodesPath = freshV2
+    ? null
+    : (useGeneralSettingsStore.getState().episodesPath ?? "");
+
+  const source = await invoke<V1Source | null>("v1_migration_source", {
+    existingV2EpisodesPath,
+  });
   if (!source) return;
 
-  // only into a fresh V2; an install that already has settings keeps its own
-  const freshV2 = localStorage.getItem("amverge.generalSettings.v2") === null;
-  const migration = freshV2 ? source.migration : null;
+  const settingsImported = freshV2 && source.migration !== null;
+  if (settingsImported && source.migration) {
+    await importSettings(source.migration, source);
+  }
 
-  if (migration) await importSettings(migration, source);
-  const episodes = migration
-    ? v1Episodes(migration, source)
-    : freshV2 && !source.migration
-      ? recoveredEpisodes(source)
-      : [];
+  const existingEpisodes = useEpisodePanelRuntimeStore.getState().episodes;
+  const existingIds = new Set(existingEpisodes.map((ep) => ep.id));
+  const candidates = source.migration
+    ? v1Episodes(source.migration, source)
+    : recoveredEpisodes(source);
+  const episodes = freshV2
+    ? candidates
+    : candidates.filter((ep) => !existingIds.has(ep.id));
 
   const { moved } = await invoke<{ moved: string[] }>("import_v1_files", {
     oldEpisodesDir: source.oldEpisodesDir,
@@ -76,10 +87,58 @@ export async function importFromV1(): Promise<void> {
 
   const movedIds = new Set(moved);
   const imported = episodes.filter((episode) => movedIds.has(episode.id));
-  if (imported.length) useEpisodePanelRuntimeStore.getState().setEpisodes(imported);
+  if (imported.length) {
+    if (!freshV2 && source.migration) {
+      mergeV1EpisodeMetadata(source.migration, movedIds);
+    }
+    useEpisodePanelRuntimeStore
+      .getState()
+      .setEpisodes(freshV2 ? imported : [...existingEpisodes, ...imported]);
+  }
 
-  if (migration || imported.length) v1ImportSummary = { episodes: imported.length, settings: !!migration };
+  if (settingsImported || imported.length) {
+    v1ImportSummary = { episodes: imported.length, settings: settingsImported };
+  }
   console.log(`[migration] imported ${imported.length} episode(s) from AMVerge 1`);
+}
+
+function mergeV1EpisodeMetadata(migration: V1Migration, importedIds: Set<string>) {
+  const raw = migration.localStorage["amverge_episode_panel_metadata_v1"];
+  if (typeof raw !== "string") return;
+  try {
+    const parsed = JSON.parse(raw)?.state as {
+      episodeFolders?: EpisodeFolder[];
+      episodeNamesById?: Record<string, string>;
+      episodeFolderById?: Record<string, string | null>;
+    } | undefined;
+    if (!parsed) return;
+
+    const current = useEpisodePanelMetadataStore.getState();
+    const knownFolders = new Set(current.episodeFolders.map((f) => f.id));
+    const addedFolders = (parsed.episodeFolders ?? []).filter((f) => f?.id && !knownFolders.has(f.id));
+
+    const nextNames = { ...current.episodeNamesById };
+    for (const [id, name] of Object.entries(parsed.episodeNamesById ?? {})) {
+      if (importedIds.has(id) && !(id in nextNames) && typeof name === "string") {
+        nextNames[id] = name;
+      }
+    }
+
+    const nextFolderMap = { ...current.episodeFolderById };
+    for (const [id, folderId] of Object.entries(parsed.episodeFolderById ?? {})) {
+      if (importedIds.has(id) && !(id in nextFolderMap)) {
+        nextFolderMap[id] = folderId;
+      }
+    }
+
+    useEpisodePanelMetadataStore.setState({
+      episodeFolders: addedFolders.length ? [...current.episodeFolders, ...addedFolders] : current.episodeFolders,
+      episodeNamesById: nextNames,
+      episodeFolderById: nextFolderMap,
+    });
+  } catch {
+    // ignore malformed V1 metadata
+  }
 }
 
 async function importSettings(migration: V1Migration, source: V1Source) {
