@@ -8,6 +8,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { DeferredProxy, ProxyDemand } from "./types.ts"
 
 
+const MAX_PROXY_CACHE_ENTRIES = 2000;
+
 export default function useViewportAwareProxyQueue() {
   const proxyCacheRef = useRef<Map<string, string>>(new Map());
   const proxyDeferredRef = useRef<Map<string, DeferredProxy>>(new Map());
@@ -93,6 +95,10 @@ export default function useViewportAwareProxyQueue() {
           });
           if (!proxyPath) throw new Error("ensure_preview_proxy returned empty path");
 
+          if (proxyCacheRef.current.size >= MAX_PROXY_CACHE_ENTRIES) {
+            const oldest = proxyCacheRef.current.keys().next().value;
+            if (oldest !== undefined) proxyCacheRef.current.delete(oldest);
+          }
           proxyCacheRef.current.set(clipPath, proxyPath);
           deferred.resolve(proxyPath);
         } catch (err) {

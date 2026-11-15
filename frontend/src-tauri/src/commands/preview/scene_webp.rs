@@ -16,6 +16,7 @@ use crate::utils::logging::console_log;
 use crate::utils::paths::{file_name_only, resolve_episodes_storage_dir, sanitize_episode_cache_id};
 use crate::utils::process::{apply_no_window, bind_to_app_lifetime};
 
+use super::cache::{prune_webp_dir_in_background, touch};
 use super::fingerprint::{
     cached_fingerprint, content_fingerprint, preview_cache_key_with_fingerprint,
     sanitize_scene_time_window, FingerprintCache,
@@ -111,6 +112,9 @@ pub(crate) async fn generate_scene_webp_inner(
 
     if let Ok(meta) = std::fs::metadata(&webp_path) {
         if meta.is_file() && meta.len() > 1024 {
+            if episode_cache_id.is_none() {
+                touch(&webp_path);
+            }
             return Ok(SceneWebpResult {
                 scene_id,
                 path: webp_path.to_string_lossy().to_string(),
@@ -233,6 +237,10 @@ pub(crate) async fn generate_scene_webp_inner(
         std::fs::copy(&webp_tmp_path, &webp_path)
             .map_err(|copy_err| format!("Failed to publish WebP (rename={e}, copy={copy_err})"))?;
         let _ = std::fs::remove_file(&webp_tmp_path);
+    }
+
+    if episode_cache_id.is_none() {
+        prune_webp_dir_in_background(base);
     }
 
     console_log(

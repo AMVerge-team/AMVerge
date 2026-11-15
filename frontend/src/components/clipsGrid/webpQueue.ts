@@ -47,6 +47,8 @@ type BatchPlan = {
   offscreenOnly: boolean;
 };
 
+const MAX_WEBP_CACHE_ENTRIES = 3000;
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -107,6 +109,16 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
     loadTotalRef.current = 0;
     loadDoneRef.current = 0;
     useWebpLoadingStore.getState().reset();
+  }, []);
+
+  const rememberWebp = useCallback((key: string, path: string) => {
+    const cache = cacheRef.current;
+    if (cache.has(key)) cache.delete(key);
+    else if (cache.size >= MAX_WEBP_CACHE_ENTRIES) {
+      const oldest = cache.keys().next().value;
+      if (oldest !== undefined) cache.delete(oldest);
+    }
+    cache.set(key, path);
   }, []);
 
   const publishResult = useCallback((demandKey: string, path: string) => {
@@ -196,7 +208,7 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
           for (const item of result.items ?? []) {
             // item.sceneId echoes back the demand key we sent
             if (item.path) {
-              cacheRef.current.set(item.sceneId, item.path);
+              rememberWebp(item.sceneId, item.path);
               finishLoading(item.sceneId, true);
               if (fresh) publishResult(item.sceneId, item.path);
             }
@@ -229,7 +241,7 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
     } finally {
       processingRef.current = false;
     }
-  }, [finishLoading, hasVisiblePending, pickNextBatch, publishResult]);
+  }, [finishLoading, hasVisiblePending, pickNextBatch, publishResult, rememberWebp]);
 
   const reportWebpDemand = useCallback(
     (clipId: string, demand: WebpDemandInput | null) => {
@@ -345,7 +357,7 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
       for (const item of result.items ?? []) {
         const typed = item as SceneWebpBatchItem;
         if (!typed.path) continue;
-        cacheRef.current.set(typed.sceneId, typed.path);
+        rememberWebp(typed.sceneId, typed.path);
         // already on disk: never needed an encode, so it leaves the queue and the loading count
         demandRef.current.delete(typed.sceneId);
         finishLoading(typed.sceneId, false);
@@ -373,7 +385,7 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
         error: error instanceof Error ? error.message : String(error),
       });
     }
-  }, [finishLoading]);
+  }, [finishLoading, rememberWebp]);
 
   const resetWebpQueue = useCallback(() => {
     // drops pending work but keeps cacheRef (keys are unique clip ids); the epoch bump fences in-flight batches
@@ -401,7 +413,7 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
       const { sceneId, path } = event.payload;
       if (!sceneId || !path) return;
       if (!inFlightRef.current.has(sceneId)) return;
-      cacheRef.current.set(sceneId, path);
+      rememberWebp(sceneId, path);
       finishLoading(sceneId, true);
       publishResult(sceneId, path);
     }).then((fn) => {
@@ -412,7 +424,7 @@ export default function useViewportAwareWebpQueue(context: WebpQueueContext = {}
       cancelled = true;
       if (unlisten) unlisten();
     };
-  }, [finishLoading, publishResult]);
+  }, [finishLoading, publishResult, rememberWebp]);
 
   return {
     reportWebpDemand,

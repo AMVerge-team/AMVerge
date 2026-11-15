@@ -71,15 +71,20 @@ function start(job: Job) {
     const stoppedHere = abortRequested;
     running = null;
     abortRequested = false;
-    // done, failed or deleted: off the queue. paused by a switch: it still has clips and stays
-    if (job.lane === "queue" && !hasClipsToFinish(job.id)) setQueue((queue) => queue.filter((q) => q !== job.id));
-    // runs that keep cutting nothing (source gone, cli missing) are given up on instead of retried forever
+    if (job.lane === "queue" && !hasClipsToFinish(job.id)) {
+      setQueue((queue) => queue.filter((q) => q !== job.id));
+      strikes.delete(job.id);
+    }
     const cutNothing = !stoppedHere && resumableScenes(job.id).length >= before;
     const count = cutNothing ? (strikes.get(job.id) ?? 0) + 1 : 0;
-    strikes.set(job.id, count);
     if (count >= MAX_STRIKES) {
       background = background.filter((id) => id !== job.id);
       hitScenes.delete(job.id);
+      strikes.delete(job.id);
+    } else if (count > 0) {
+      strikes.set(job.id, count);
+    } else {
+      strikes.delete(job.id);
     }
     if (job.lane === "background") rest(Math.max(MIN_BACKGROUND_REST_MS, Date.now() - startedAt));
     void pump();

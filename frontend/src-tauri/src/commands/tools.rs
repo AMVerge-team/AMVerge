@@ -305,6 +305,9 @@ fn color_args(app: &AppHandle, input: &Path) -> Vec<String> {
         }
     }
     if let Ok(mut map) = cache.lock() {
+        if map.len() >= 128 {
+            map.clear();
+        }
         map.insert(input.to_path_buf(), args.clone());
     }
     args

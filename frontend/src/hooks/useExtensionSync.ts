@@ -137,6 +137,11 @@ export default function useExtensionSync() {
           };
           runtime.setEpisodes((prev) => [entry, ...prev.filter((ep) => ep.id !== id)]);
           hydratedRef.current.add(id);
+          if (hydratedRef.current.size > 200) {
+            const liveIds = new Set(runtime.episodes.map((ep) => ep.id));
+            liveIds.add(id);
+            hydratedRef.current = new Set([...hydratedRef.current].filter((eid) => liveIds.has(eid)));
+          }
           window.localStorage.setItem(
             EPISODES_HYDRATED_KEY,
             JSON.stringify([...hydratedRef.current])

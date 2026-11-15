@@ -10,6 +10,7 @@ use crate::utils::logging::console_log;
 
 /// past this the least recently used previews are deleted
 const MAX_CACHE_BYTES: u64 = 1024 * 1024 * 1024;
+const MAX_WEBP_CACHE_BYTES: u64 = 512 * 1024 * 1024;
 
 /// a temp file this old belongs to an encode that died, not one still running
 const STALE_TMP_AGE: Duration = Duration::from_secs(60 * 60);
@@ -44,7 +45,8 @@ fn entries(dir: &Path) -> Vec<Entry> {
         .filter_map(|item| {
             let meta = item.metadata().ok().filter(|m| m.is_file())?;
             let path = item.path();
-            let in_progress = path.to_string_lossy().ends_with(".tmp.mp4");
+            let lossy = path.to_string_lossy();
+            let in_progress = lossy.ends_with(".tmp.mp4") || lossy.ends_with(".tmp.webp");
             Some(Entry { size: meta.len(), modified: meta.modified().unwrap_or(SystemTime::UNIX_EPOCH), path, in_progress })
         })
         .collect()
@@ -100,6 +102,18 @@ pub(crate) fn prune_in_background(app: &AppHandle) {
     tauri::async_runtime::spawn_blocking(move || {
         prune(&dir, MAX_CACHE_BYTES);
         PRUNING.store(false, Ordering::Release);
+    });
+}
+
+static WEBP_PRUNING: AtomicBool = AtomicBool::new(false);
+
+pub(crate) fn prune_webp_dir_in_background(dir: PathBuf) {
+    if WEBP_PRUNING.swap(true, Ordering::AcqRel) {
+        return;
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        prune(&dir, MAX_WEBP_CACHE_BYTES);
+        WEBP_PRUNING.store(false, Ordering::Release);
     });
 }
 
