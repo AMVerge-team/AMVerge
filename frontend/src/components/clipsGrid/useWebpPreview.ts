@@ -5,6 +5,7 @@ import { ClipItem } from "../../types/domain";
 import { SceneWebpJob } from "./types";
 import { cancelIdle, scheduleIdle, type IdleHandle } from "../../utils/idle";
 import { imageThumbnail } from "../../utils/mediaSrc";
+import { clampWebpEnd, webpFpsForRange } from "./webpQueueUtils";
 
 const WEBP_THUMBNAIL_CACHE = new Map<string, string>();
 // keys include the importToken, so every reopen adds entries; capped, oldest evicted first
@@ -100,11 +101,9 @@ export function buildWebpJob(
   const sourcePath = clip.originalPath || clip.src;
   if (!sourcePath) return null;
 
-  const start = clip.startSec ?? 0;
-  const rawEnd = clip.endSec ?? start + 2;
-  const end = Math.min(rawEnd > start ? rawEnd : start + 2, start + 2.5);
+  const { start, end } = clampWebpEnd(clip.startSec, clip.endSec);
 
-  return { sourcePath, start, end, fps: 8, kind: "animated", episodeCacheId };
+  return { sourcePath, start, end, fps: webpFpsForRange(start, end), kind: "animated", episodeCacheId };
 }
 
 export function useWebpPreview({
@@ -120,9 +119,7 @@ export function useWebpPreview({
   reportWebpDemand,
 }: UseWebpPreviewArgs) {
   const webpSourcePath = clip.originalPath || clip.src;
-  const webpStart = clip.startSec ?? 0;
-  const rawWebpEnd = clip.endSec ?? (webpStart + 2);
-  const webpEnd = Math.min(rawWebpEnd > webpStart ? rawWebpEnd : webpStart + 2, webpStart + 2.5);
+  const { start: webpStart, end: webpEnd } = clampWebpEnd(clip.startSec, clip.endSec);
 
   const hasAnimatedWebp = Boolean(previewWebpPath);
   // never clip.src: a webp episode's src is the whole source video, which an <img> reads entirely into memory
@@ -155,6 +152,7 @@ export function useWebpPreview({
       return;
     }
 
+    const webpFps = webpFpsForRange(webpStart, webpEnd);
     reportWebpDemand(clip.id, {
       isVisible,
       order: index,
@@ -163,7 +161,7 @@ export function useWebpPreview({
         sourcePath: webpSourcePath,
         start: webpStart,
         end: webpEnd,
-        fps: 8,
+        fps: webpFps,
         kind: "animated",
         episodeCacheId: episodeId ?? null,
       },
@@ -179,7 +177,7 @@ export function useWebpPreview({
           sourcePath: webpSourcePath,
           start: webpStart,
           end: webpEnd,
-          fps: 8,
+          fps: webpFps,
           kind: "animated",
           episodeCacheId: episodeId ?? null,
         },

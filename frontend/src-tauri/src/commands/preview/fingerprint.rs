@@ -12,7 +12,7 @@ pub(crate) fn sanitize_scene_time_window(start: f64, end: f64) -> (f64, f64, f64
     if safe_end - safe_start < 0.10 {
         safe_end = safe_start + 0.10;
     }
-    let max_preview_secs = 2.5;
+    let max_preview_secs = 15.0;
     if safe_end - safe_start > max_preview_secs {
         safe_end = safe_start + max_preview_secs;
     }
@@ -67,7 +67,15 @@ pub(crate) fn content_fingerprint(path: &Path) -> Result<String, String> {
 pub(crate) type FingerprintCache = Arc<Mutex<HashMap<String, String>>>;
 
 pub(crate) fn cached_fingerprint(cache: &FingerprintCache, source: &Path) -> Result<String, String> {
-    let key = source.to_string_lossy().to_string();
+    let meta = std::fs::metadata(source)
+        .map_err(|e| format!("Failed to read source metadata '{}': {e}", source.display()))?;
+    let modified_ns = meta
+        .modified()
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let key = format!("{}:{}:{}", source.to_string_lossy(), meta.len(), modified_ns);
     if let Ok(map) = cache.lock() {
         if let Some(fp) = map.get(&key) {
             return Ok(fp.clone());
@@ -75,6 +83,9 @@ pub(crate) fn cached_fingerprint(cache: &FingerprintCache, source: &Path) -> Res
     }
     let fingerprint = content_fingerprint(source)?;
     if let Ok(mut map) = cache.lock() {
+        if map.len() >= 256 {
+            map.clear();
+        }
         map.insert(key, fingerprint.clone());
     }
     Ok(fingerprint)

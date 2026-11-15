@@ -16,6 +16,7 @@ import { usePreviewTranscode } from "../../features/preview/usePreviewTranscode.
 import LoadingSpinner from "../common/LoadingSpinner";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
+import { clampWebpEnd, webpFpsForRange } from "../clipsGrid/webpQueueUtils.ts";
 import useImportExport from "../../hooks/useImportExport";
 import { renderProfileIcon } from "../../features/export/profileIconUtils.tsx";
 import {
@@ -207,9 +208,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
 
   // source-anchored time window for the focused scene (mirrors the grid's WebP window)
   const sourcePath = sourceClipObj ? (sourceClipObj.originalPath || sourceClipObj.src) : null;
-  const sceneStart = sourceClipObj?.startSec ?? 0;
-  const sceneRawEnd = sourceClipObj?.endSec ?? (sceneStart + 2);
-  const sceneEnd = Math.min(sceneRawEnd > sceneStart ? sceneRawEnd : sceneStart + 2, sceneStart + 2.5);
+  const { start: sceneStart, end: sceneEnd } = clampWebpEnd(sourceClipObj?.startSec, sourceClipObj?.endSec);
 
   // generate the animated WebP for the focused clip on demand (never play the original video)
   React.useEffect(() => {
@@ -221,7 +220,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
       sourcePath,
       start: sceneStart,
       end: sceneEnd,
-      fps: 8,
+      fps: webpFpsForRange(sceneStart, sceneEnd),
       episodeCacheId: openedEpisodeId ?? null,
       customPath: generalSettings.episodesPath ?? null,
       kind: "animated",

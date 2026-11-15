@@ -10,7 +10,7 @@ use tokio::task::JoinSet;
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
 
-use crate::state::{ActiveFfmpegPids, PreviewProxyLocks, ProxyLockMap};
+use crate::state::{ActiveFfmpegPids, PreviewProxyLocks, ProxyLockMap, WebpFingerprintCache};
 use crate::utils::ffmpeg::resolve_bundled_tool;
 use crate::utils::logging::console_log;
 use crate::utils::paths::{file_name_only, resolve_episodes_storage_dir, sanitize_episode_cache_id};
@@ -18,8 +18,8 @@ use crate::utils::process::{apply_no_window, bind_to_app_lifetime};
 
 use super::cache::{prune_webp_dir_in_background, touch};
 use super::fingerprint::{
-    cached_fingerprint, content_fingerprint, preview_cache_key_with_fingerprint,
-    sanitize_scene_time_window, FingerprintCache,
+    cached_fingerprint, preview_cache_key_with_fingerprint, sanitize_scene_time_window,
+    FingerprintCache,
 };
 use super::types::{
     SceneWebpBatchItem, SceneWebpBatchResult, SceneWebpJob, SceneWebpReadyPayload, SceneWebpResult,
@@ -303,7 +303,7 @@ pub(crate) fn list_dir_file_sizes(dir: &Path) -> HashMap<String, u64> {
 
 pub(crate) fn lookup_scene_webp_cache_item(
     app: &AppHandle,
-    fingerprint_cache: &mut HashMap<String, String>,
+    fingerprint_cache: &FingerprintCache,
     dir_cache: &mut HashMap<String, HashMap<String, u64>>,
     job: SceneWebpJob,
 ) -> SceneWebpBatchItem {
@@ -340,23 +340,15 @@ pub(crate) fn lookup_scene_webp_cache_item(
         }
     };
 
-    let source_key = source.to_string_lossy().to_string();
-    let fingerprint = if let Some(cached) = fingerprint_cache.get(&source_key) {
-        cached.clone()
-    } else {
-        match content_fingerprint(&source) {
-            Ok(fp) => {
-                fingerprint_cache.insert(source_key.clone(), fp.clone());
-                fp
-            }
-            Err(error) => {
-                return SceneWebpBatchItem {
-                    scene_id,
-                    path: None,
-                    duration: Some(duration),
-                    cached: false,
-                    error: Some(error),
-                }
+    let fingerprint = match cached_fingerprint(fingerprint_cache, &source) {
+        Ok(fp) => fp,
+        Err(error) => {
+            return SceneWebpBatchItem {
+                scene_id,
+                path: None,
+                duration: Some(duration),
+                cached: false,
+                error: Some(error),
             }
         }
     };
@@ -420,6 +412,7 @@ pub async fn generate_scene_webp(
     app: AppHandle,
     proxy_locks: State<'_, PreviewProxyLocks>,
     ffmpeg_pids: State<'_, ActiveFfmpegPids>,
+    fingerprint_cache: State<'_, WebpFingerprintCache>,
     scene_id: String,
     source_path: String,
     start: f64,
@@ -433,7 +426,7 @@ pub async fn generate_scene_webp(
         app.clone(),
         proxy_locks.inner.clone(),
         ffmpeg_pids.pids.clone(),
-        Arc::new(Mutex::new(HashMap::new())),
+        fingerprint_cache.inner.clone(),
         SceneWebpJob {
             scene_id,
             source_path,
@@ -453,11 +446,12 @@ pub async fn generate_scene_webp_batch(
     app: AppHandle,
     proxy_locks: State<'_, PreviewProxyLocks>,
     ffmpeg_pids: State<'_, ActiveFfmpegPids>,
+    fingerprint_cache_state: State<'_, WebpFingerprintCache>,
     jobs: Vec<SceneWebpJob>,
 ) -> Result<SceneWebpBatchResult, String> {
     let proxy_locks = proxy_locks.inner.clone();
     let ffmpeg_pids = ffmpeg_pids.pids.clone();
-    let fingerprint_cache: FingerprintCache = Arc::new(Mutex::new(HashMap::new()));
+    let fingerprint_cache: FingerprintCache = fingerprint_cache_state.inner.clone();
 
     // each unique source is fingerprinted once, off the async runtime
     {
@@ -527,6 +521,7 @@ pub async fn generate_scene_webp_batch(
 #[tauri::command]
 pub async fn lookup_scene_webp_cache_batch(
     app: AppHandle,
+    fingerprint_cache_state: State<'_, WebpFingerprintCache>,
     jobs: Vec<SceneWebpJob>,
 ) -> Result<SceneWebpBatchResult, String> {
     let started = Instant::now();
@@ -537,23 +532,27 @@ pub async fn lookup_scene_webp_cache_batch(
         .unwrap_or_else(|| "none".to_string());
 
     let app_for_lookup = app.clone();
+    let shared_fingerprints = fingerprint_cache_state.inner.clone();
     let (items, unique_sources): (Vec<SceneWebpBatchItem>, usize) =
         tokio::task::spawn_blocking(move || {
-            let mut fingerprint_cache: HashMap<String, String> = HashMap::new();
+            let unique_sources = jobs
+                .iter()
+                .map(|j| j.source_path.as_str())
+                .collect::<BTreeSet<_>>()
+                .len();
             let mut dir_cache: HashMap<String, HashMap<String, u64>> = HashMap::new();
             let items: Vec<SceneWebpBatchItem> = jobs
                 .into_iter()
                 .map(|job| {
                     lookup_scene_webp_cache_item(
                         &app_for_lookup,
-                        &mut fingerprint_cache,
+                        &shared_fingerprints,
                         &mut dir_cache,
                         job,
                     )
                 })
                 .collect();
-            let unique = fingerprint_cache.len();
-            (items, unique)
+            (items, unique_sources)
         })
         .await
         .map_err(|e| format!("cache lookup task panicked: {e}"))?;

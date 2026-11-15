@@ -13,10 +13,10 @@ import {
   WebpQueueContext,
 } from "./webpQueueTypes";
 
-// visible tiles get quick batches, offscreen ones a slow background trickle
+// visible tiles get quick batches, offscreen ones run concurrently with minimal yield
 const VISIBLE_BATCH_SIZE = 16;
-const OFFSCREEN_BATCH_SIZE = 1;
-const OFFSCREEN_BATCH_DELAY_MS = 250;
+const OFFSCREEN_BATCH_SIZE = 6;
+const OFFSCREEN_BATCH_DELAY_MS = 10;
 
 // when an episode opens, the disk-cache prime can resolve a few hundred WebPs at once
 const PRIME_PUBLISH_CHUNK = 24;

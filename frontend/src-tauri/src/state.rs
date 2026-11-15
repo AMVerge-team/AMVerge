@@ -117,3 +117,8 @@ pub struct ActiveResume {
 pub struct ActiveFfmpegPids {
     pub pids: Arc<Mutex<Vec<u32>>>,
 }
+
+#[derive(Default)]
+pub struct WebpFingerprintCache {
+    pub inner: Arc<Mutex<HashMap<String, String>>>,
+}

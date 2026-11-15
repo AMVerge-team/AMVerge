@@ -7,7 +7,7 @@ mod utils;
 
 use state::{
     ActiveFfmpegPids, ActiveInstall, ActiveResume, ActiveSidecar, DiscordRPCState, EditorImportAbortState,
-    ExportAbortState, PreviewProxyLocks, PreviewTranscodeSlots,
+    ExportAbortState, PreviewProxyLocks, PreviewTranscodeSlots, WebpFingerprintCache,
 };
 use utils::process::kill_process_tree;
 use std::sync::atomic::Ordering;
@@ -22,6 +22,7 @@ fn main() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(PreviewProxyLocks::default())
         .manage(PreviewTranscodeSlots::default())
+        .manage(WebpFingerprintCache::default())
         .manage(ActiveSidecar::default())
         .manage(DiscordRPCState::default())
         .manage(EditorImportAbortState::default())

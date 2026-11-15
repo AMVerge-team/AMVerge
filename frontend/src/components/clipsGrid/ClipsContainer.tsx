@@ -9,6 +9,7 @@ import useViewportAwareProxyQueue from "./proxyQueue.ts";
 import useViewportAwareWebpQueue from "./webpQueue.ts";
 import { useGridWindow } from "./useGridWindow.ts";
 import { buildWebpJob } from "./useWebpPreview.ts";
+import { clampWebpEnd, webpFpsForRange } from "./webpQueueUtils.ts";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
@@ -538,9 +539,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
           if (clip.clipPath) return null; // video-mode clips don't use WebP queue
 
           const sourcePath = clip.originalPath || clip.src;
-          const start = clip.startSec ?? 0;
-          const rawEnd = clip.endSec ?? (start + 2);
-          const end = Math.min(rawEnd > start ? rawEnd : start + 2, start + 2.5);
+          const { start, end } = clampWebpEnd(clip.startSec, clip.endSec);
 
           if (!sourcePath) return null;
           return {
@@ -548,7 +547,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
             sourcePath,
             start,
             end,
-            fps: 8,
+            fps: webpFpsForRange(start, end),
             episodeCacheId: clip.episodeId ?? null,
           };
         })
@@ -573,9 +572,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
         if (clip.clipPath) return null; // video-mode clips don't use WebP queue
 
         const sourcePath = clip.originalPath || clip.src;
-        const start = clip.startSec ?? 0;
-        const rawEnd = clip.endSec ?? (start + 2);
-        const end = Math.min(rawEnd > start ? rawEnd : start + 2, start + 2.5);
+        const { start, end } = clampWebpEnd(clip.startSec, clip.endSec);
 
         if (!sourcePath) return null;
         return {
@@ -583,7 +580,7 @@ export default function ClipsContainer({ cols }: { cols?: number }) {
           sourcePath,
           start,
           end,
-          fps: 8,
+          fps: webpFpsForRange(start, end),
         };
       })
       .filter((job): job is NonNullable<typeof job> => Boolean(job));
