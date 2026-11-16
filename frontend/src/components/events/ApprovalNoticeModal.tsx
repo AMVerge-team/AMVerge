@@ -28,8 +28,8 @@ export default function ApprovalNoticeModal() {
 
         <h2>
           {approved.length === 1
-            ? "Your event is live"
-            : `${approved.length} of your events are live`}
+            ? "Your event has been approved!"
+            : `${approved.length} of your events have been approved!`}
         </h2>
 
         <ul className="denial-notice-list approval-notice-list">

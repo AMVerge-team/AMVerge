@@ -86,7 +86,7 @@ async function main() {
   // Local CLI checkout: used ONLY to build the default (dev) install spec, so
   // local CLI edits flow into the app. CI installs the published wheel via
   // AMVERGE_CLI_INSTALL_SPEC and never touches this path.
-  const cliDir = process.env.AMVERGE_CLI_DIR || path.join(repoRoot, "AMVerge-CLI");
+  const cliDir = process.env.AMVERGE_CLI_DIR?.trim() || path.join(repoRoot, "..", "AMVerge-CLI");
 
   // Neutral working dir for the packaging step (build venv + PyInstaller output),
   // independent of the CLI source so PyPI installs need no CLI checkout in CI.

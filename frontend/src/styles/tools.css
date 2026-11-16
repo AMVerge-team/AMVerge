@@ -46,6 +46,42 @@
     gap: 12px;
 }
 
+.tools-source-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 2px;
+}
+
+.tools-source-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-family: var(--ui-font);
+    font-size: 12.5px;
+    color: rgb(255 255 255 / 0.7);
+}
+
+.tools-source-name > svg {
+    flex: none;
+    color: var(--accent);
+}
+
+.tools-source-name > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tools-source-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: none;
+}
+
 /* --tools-viewer-max-h is set by the modal: the height the rest of it (header, clip strip, settings bar) leaves */
 .tools-viewer {
     position: relative;

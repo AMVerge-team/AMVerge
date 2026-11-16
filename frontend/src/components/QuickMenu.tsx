@@ -139,6 +139,7 @@ export default function QuickMenu() {
                 key={card.id}
                 type="button"
                 className={`quick-menu-card${index === selectedIndex ? " is-selected" : ""}`}
+                data-getting-started={card.title === "Settings" ? "quick-settings" : undefined}
                 onMouseEnter={() => setSelectedIndex(index)}
                 onClick={() => choose(index)}
               >

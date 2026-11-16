@@ -13,6 +13,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
+import ts from "typescript";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const LOCALES = path.join(ROOT, "src", "i18n", "locales");
@@ -85,7 +86,11 @@ for (const file of walk(path.join(ROOT, "src"))) {
 }
 
 // language resolver behaviour
-const lang = await import(path.join(ROOT, "src", "i18n", "language.ts"));
+const languageSource = readFileSync(path.join(ROOT, "src", "i18n", "language.ts"), "utf8");
+const { outputText } = ts.transpileModule(languageSource, {
+  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+});
+const lang = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
 assert.equal(lang.resolveSystemLanguage(["zh-CN"]), "zh-CN");
 assert.equal(lang.resolveSystemLanguage(["zh-Hans-CN", "en-US"]), "zh-CN");
 assert.equal(lang.resolveSystemLanguage(["zh-TW"]), "zh-CN");
@@ -108,7 +113,15 @@ assert.equal(lang.readLanguagePreference(), "system", "unknown value defaults to
 store.set(lang.LANGUAGE_STORAGE_KEY, JSON.stringify({ preference: "zh-CN" }));
 assert.equal(lang.readLanguagePreference(), "zh-CN");
 globalThis.localStorage = { getItem: () => { throw new Error("denied"); }, setItem: () => { throw new Error("denied"); } };
-lang.writeLanguagePreference("en");
+const originalWarn = console.warn;
+const warnings = [];
+try {
+  console.warn = (...args) => warnings.push(args);
+  lang.writeLanguagePreference("en");
+} finally {
+  console.warn = originalWarn;
+}
+assert.equal(warnings.length, 1, "failed storage writes report a warning");
 assert.equal(lang.readLanguagePreference(), "en", "session keeps the choice when storage fails");
 
 if (errors.length) {

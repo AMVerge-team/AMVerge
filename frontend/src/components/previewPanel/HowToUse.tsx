@@ -56,6 +56,7 @@ export default function HowToUse() {
   const activePage = useUIStateStore((s) => s.activePage);
   const scoutMode = useSceneScoutStore((s) => s.mode);
   const setTourSeen = useUIStateStore((s) => s.setSceneScoutTourSeen);
+  const setGettingStartedSeen = useUIStateStore((s) => s.setGettingStartedSeen);
 
   // the guide follows the page the preview pane sits beside
   const guide: Guide =
@@ -66,7 +67,7 @@ export default function HowToUse() {
         : "library";
 
   return (
-    <div className={`info-panel ${isExpanded ? "expanded" : "collapsed"}`}>
+    <div className={`info-panel ${isExpanded ? "expanded" : "collapsed"}`} data-getting-started="how-to-use">
       <div className="info-header" onClick={() => setIsExpanded(!isExpanded)}>
         <div className="info-header-left">
           <FaQuestionCircle className="info-icon" />
@@ -116,6 +117,11 @@ export default function HowToUse() {
                 </li>
               ))}
             </ul>
+            {guide === "library" && (
+              <button type="button" className="info-tour-link" onClick={() => setGettingStartedSeen(false)}>
+                {t("gettingStarted:ariaLabel")}
+              </button>
+            )}
             {guide === "sceneScoutSearch" && (
               <button type="button" className="info-tour-link" onClick={() => setTourSeen(false)}>
                 {t("howToUse.showTour")}

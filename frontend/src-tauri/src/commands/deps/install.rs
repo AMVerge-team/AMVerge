@@ -225,20 +225,23 @@ pub(crate) fn install_ai_pack_inner(
     let mut extras: Vec<&str> = PACKS
         .iter()
         .filter(|p| {
-            p.id != pack.id
-                && p.requires
-                    .iter()
-                    .all(|dist| installed.contains_key(&dist.to_lowercase()))
+            p.requires
+                .iter()
+                .all(|dist| installed.contains_key(&dist.to_lowercase()))
         })
         .map(|p| p.extra)
         .collect();
     // whatever the rebuild wiped goes back in the same resolution
     for extra in &packs_to_keep {
-        if *extra != pack.extra && !extras.contains(extra) {
+        if !extras.contains(extra) {
             extras.push(extra);
         }
     }
-    extras.push(pack.extra);
+    for extra in pack.extra.split(',') {
+        if !extras.contains(&extra) {
+            extras.push(extra);
+        }
+    }
     if want_nelux {
         extras.push("nelux");
     }

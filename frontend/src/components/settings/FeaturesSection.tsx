@@ -16,6 +16,7 @@ import { useScenepacksStore } from "../../stores/scenepackStore";
 import { clearScenepacksStorage } from "../../utils/scenepackStorage";
 import { FEATURES, type FeatureId } from "../../features/featureToggles";
 import {
+  VISIBLE_PACK_IDS,
   estimateDownloadMb,
   formatBytes,
   formatSizeMb,
@@ -114,6 +115,16 @@ export default function FeaturesSection() {
 
   // a cpu torch on a machine with an nvidia gpu runs every ai feature far slower than it could
   const gpuRepairAvailable = Boolean(status?.envReady && status?.torchVariant === "cpu");
+  const allAiInstalled = Boolean(status) && VISIBLE_PACK_IDS.every((id) => isPackInstalled(status, id));
+
+  const installAllAiFeatures = async () => {
+    setError(null);
+    const ok = await useAiDepsStore.getState().ensureAllPacks();
+    if (!ok) return;
+    for (const feature of FEATURES) {
+      if (feature.pack) setEnabled(feature.id, true);
+    }
+  };
 
   const packagesBytes = (status?.envSizeBytes ?? 0) + (status?.pythonSizeBytes ?? 0);
   const modelsBytes = status?.modelsSizeBytes ?? 0;
@@ -139,7 +150,26 @@ export default function FeaturesSection() {
           }
         />
 
-        <SettingsSection id="features.list" title={t("features.list")}>
+        <SettingRow
+          label={t("release202:installAll")}
+          description={
+            allAiInstalled
+              ? t("release202:allInstalledDescription")
+              : t("release202:installAllDescription")
+          }
+          control={
+            <button
+              type="button"
+              className={`aid-btn${allAiInstalled ? "" : " aid-btn-primary"}`}
+              onClick={() => void installAllAiFeatures()}
+              disabled={allAiInstalled || !status || busy !== null || (managed && status.uvAvailable === false)}
+            >
+              {allAiInstalled ? t("release202:allInstalled") : t("release202:installAll")}
+            </button>
+          }
+        />
+
+        <SettingsSection id="features.list" title={t("shell:settingsPage.tabs.features")} tourTarget="features-list">
           {FEATURES.map((feature) => {
             const enabled = settings[feature.setting];
             const installed = feature.pack ? isPackInstalled(status, feature.pack) : true;

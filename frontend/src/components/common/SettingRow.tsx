@@ -6,11 +6,12 @@ type SettingRowProps = {
   control: ReactNode;
   /** optional explainer rendered beside the label (see InfoButton) */
   info?: ReactNode;
+  tourTarget?: string;
 };
 
-export default function SettingRow({ label, description, control, info }: SettingRowProps) {
+export default function SettingRow({ label, description, control, info, tourTarget }: SettingRowProps) {
   return (
-    <div className="export-setting-block">
+    <div className="export-setting-block" data-getting-started={tourTarget}>
       <div className="settings-row export-setting-row">
         <div className="setting-text">
           {/* No hover tooltip on either line: it only ever repeated the text

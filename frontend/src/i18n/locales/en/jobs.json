@@ -231,7 +231,11 @@
   "import": {
     "starting": "Starting...",
     "transnetMissing": "TransNetV2 is not installed. Install it, or switch scene detection to Keyframe Detection in Settings.",
-    "finishingClips": "Finishing clips for {{name}}"
+    "finishingClips": "Finishing clips for {{name}}",
+    "failedTitle_one": "Video import failed",
+    "failedTitle_other": "{{count}} video imports failed",
+    "permissionHint": "AMVerge could not access the video or its storage folder. Check the folder permissions and the video storage path in General Settings. If this is a development build, restart it from your normal terminal.",
+    "failureHint": "Check that the video is readable and the video storage path in General Settings is writable. See Console for details."
   },
   "scenepack": {
     "cutFailed": "Could not cut this clip.",

@@ -4,7 +4,9 @@ import { save } from "@tauri-apps/plugin-dialog";
 
 import { useAiDepsStore } from "../../stores/aiDepsStore";
 import { useAppPersistedStore } from "../../stores/appStore";
+import { useGeneralSettingsStore } from "../../stores/settingsStore";
 import { useToolsStore, type ToolKind } from "../../stores/toolsStore";
+import { isPackInstalled } from "../aiDeps/packs";
 import { depthArgs, PASS_SUFFIX, upscaleArgs } from "../export/postPasses";
 import { claimProcess, registerToolsAbort, useToolsRunState } from "../processes/singleProcess";
 import { isOutdatedCliError, passErrorMessage } from "../export/passErrors";
@@ -42,9 +44,20 @@ export function lastExportDir(source: FlowSource | null): string | null {
   return source ? dirOf(source.path) : null;
 }
 
+export function isToolPackReady(kind: ToolKind, status = useAiDepsStore.getState().status): boolean {
+  if (!status) return false;
+  return !status.managed || isPackInstalled(status, kind);
+}
+
 /** asks to install the kind's AI pack when it is missing; false when the user declines */
-export function ensureToolPack(kind: ToolKind): Promise<boolean> {
-  return useAiDepsStore.getState().ensurePack(kind);
+export async function ensureToolPack(kind: ToolKind): Promise<boolean> {
+  const installed = await useAiDepsStore.getState().ensurePack(kind);
+  if (installed) {
+    useGeneralSettingsStore.setState(
+      kind === "upscale" ? { upscalePassEnabled: true } : { depthPassEnabled: true },
+    );
+  }
+  return installed;
 }
 
 function passArgs(kind: ToolKind): string[] {

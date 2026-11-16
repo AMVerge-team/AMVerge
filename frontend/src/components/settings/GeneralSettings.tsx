@@ -109,9 +109,14 @@ export default function GeneralSettings({
   }, []);
 
   const handleSceneDetectionChange = async (method: SceneDetectionMethod) => {
-    if (method === "transnetv2_gpu" && !mlInstalled) {
-      const installed = await useAiDepsStore.getState().ensurePack("ml");
-      if (!installed) return; // declined, keep the current method
+    if (method === "transnetv2_gpu") {
+      if (!mlInstalled) {
+        const installed = await useAiDepsStore.getState().ensurePack("ml");
+        if (!installed) return; // declined, keep the current method
+      }
+      if (!generalSettings.aiSceneDetectionEnabled) {
+        useGeneralSettingsStore.setState({ aiSceneDetectionEnabled: true });
+      }
     }
     setSceneDetectionMethod(method);
   };
@@ -171,7 +176,7 @@ export default function GeneralSettings({
           control={
           <div className="settings-control">
             <span className="settings-value" style={{ width: "auto" }}>
-              v2.0.1
+              v2.0.2
             </span>
           </div>
           }
@@ -185,6 +190,7 @@ export default function GeneralSettings({
 
         <SettingsSection id="general.import" title={t("general.import.title")}>
           <SettingRow
+            tourTarget="scene-detection"
             label={t("general.import.sceneDetection.label")}
             description={t("general.import.sceneDetection.description")}
             info={
@@ -203,7 +209,7 @@ export default function GeneralSettings({
             control={
               <Dropdown
                 className="settings-wide-dropdown"
-                options={sceneDetectionOptions(generalSettings.aiSceneDetectionEnabled)}
+                options={sceneDetectionOptions(generalSettings.aiSceneDetectionEnabled && mlInstalled)}
                 value={generalSettings.sceneDetectionMethod}
                 onChange={(method) => void handleSceneDetectionChange(method)}
               />
@@ -243,6 +249,7 @@ export default function GeneralSettings({
 
         <SettingsSection id="general.preview" title={t("general.preview.title")}>
         <SettingRow
+          tourTarget="preview-method"
           label={t("general.preview.method.label")}
           description={t("general.preview.method.description")}
           info={

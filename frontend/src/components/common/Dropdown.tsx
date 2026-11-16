@@ -6,6 +6,7 @@ export interface DropdownOption<T> {
   label: string;
   description?: string;
   icon?: ReactNode;
+  muted?: boolean;
 }
 
 interface DropdownProps<T> {
@@ -129,9 +130,7 @@ export default function Dropdown<T extends string | number>({
           {options.map((option) => (
             <div
               key={option.value}
-              className={`dropdown-item ${
-                option.value === value ? "active" : ""
-              }`}
+              className={`dropdown-item${option.value === value ? " active" : ""}${option.muted ? " is-muted" : ""}`}
               onClick={() => handleSelect(option.value)}
             >
               {renderOptionContent(option)}

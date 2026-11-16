@@ -395,12 +395,35 @@ export default function AppearanceSection({
                 <input
                   type="checkbox"
                   className="checkbox"
-                  checked={themeSettings.showClipEndTime ?? false}
+                  checked={themeSettings.showClipEndTime ?? true}
                   disabled={!themeSettings.showClipTimestamps}
                   onChange={(e) =>
                     setThemeSettings((prev) => ({
                       ...prev,
                       showClipEndTime: e.target.checked,
+                    }))
+                  }
+                />
+                <span className="checkmark"></span>
+              </label>
+            </div>
+          }
+        />
+
+        <SettingRow
+          label={t("release202:showDuration")}
+          description={t("release202:showDurationDescription")}
+          control={
+            <div className="settings-control">
+              <label className="custom-checkbox">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={themeSettings.showClipDuration ?? false}
+                  onChange={(e) =>
+                    setThemeSettings((prev) => ({
+                      ...prev,
+                      showClipDuration: e.target.checked,
                     }))
                   }
                 />

@@ -207,6 +207,14 @@
   color: var(--selector-active-desc);
 }
 
+.dropdown-item.is-muted {
+  opacity: 0.48;
+}
+
+.dropdown-item.is-muted:hover {
+  opacity: 0.85;
+}
+
 .custom-dropdown.disabled {
   opacity: 0.5;
   pointer-events: none;

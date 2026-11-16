@@ -228,7 +228,7 @@
       },
       "endTime": {
         "label": "Show end time",
-        "description": "Scene Scout results show \"start - end\" instead of only the start."
+        "description": "Show \"start - end\" instead of only the start time on clips."
       },
       "widescreen": {
         "label": "Widescreen clip tiles",

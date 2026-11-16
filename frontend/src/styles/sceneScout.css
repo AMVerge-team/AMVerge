@@ -838,6 +838,14 @@
     background: rgb(var(--accent-rgb) / 0.12);
 }
 
+.scene-scout-detection-choice.is-muted {
+    opacity: 0.48;
+}
+
+.scene-scout-detection-choice.is-muted:hover {
+    opacity: 0.85;
+}
+
 .scene-scout-detection-choice-label {
     font-size: 13px;
     font-weight: 600;
@@ -1423,6 +1431,19 @@ body.scene-scout-resizing {
     z-index: 11000;
     font-family: var(--ui-font);
     font-size-adjust: none;
+}
+
+.scout-tour.is-interactive {
+    pointer-events: none;
+}
+
+.scout-tour.is-interactive .scout-tour-card,
+.scout-tour-shield {
+    pointer-events: auto;
+}
+
+.scout-tour-shield {
+    position: fixed;
 }
 
 .scout-tour-dim {

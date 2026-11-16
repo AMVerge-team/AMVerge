@@ -47,6 +47,14 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Check translations and language preferences
+        working-directory: frontend
+        run: npm run check:i18n
+
+      - name: Check import failure and cancellation handling
+        working-directory: frontend
+        run: npm run check:import
+
       - name: Stage FFmpeg binaries for the sidecar
         shell: pwsh
         run: |

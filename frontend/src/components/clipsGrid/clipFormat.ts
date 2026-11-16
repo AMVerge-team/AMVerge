@@ -11,6 +11,16 @@ export function formatClipTime(seconds?: number | null): string | null {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+export function formatClipDuration(
+  startSec?: number | null,
+  endSec?: number | null,
+): string | null {
+  if (typeof startSec !== "number" || isNaN(startSec)) return null;
+  if (typeof endSec !== "number" || isNaN(endSec) || endSec <= startSec) return null;
+  const diff = endSec - startSec;
+  return diff < 60 ? `${diff.toFixed(1).replace(/\.0$/, "")}s` : formatClipTime(diff);
+}
+
 export function formatClipTimeframe(
   startSec?: number | null,
   endSec?: number | null,
@@ -23,8 +33,7 @@ export function formatClipTimeframe(
   }
   const endStr = formatClipTime(endSec);
   if (includeDuration) {
-    const diff = endSec - startSec;
-    const durStr = diff < 60 ? `${diff.toFixed(1).replace(/\.0$/, "")}s` : formatClipTime(diff);
+    const durStr = formatClipDuration(startSec, endSec);
     return `${startStr} - ${endStr} (${durStr})`;
   }
   return `${startStr} - ${endStr}`;

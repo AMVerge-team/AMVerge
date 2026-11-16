@@ -267,7 +267,9 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   React.useEffect(() => {
     const sources = importedVideoPath
       ? [importedVideoPath]
-      : scenepackProbeKey.split("|").filter(Boolean);
+      : activePageForPreview === "home" && openedEpisode?.videoPath
+        ? [openedEpisode.videoPath]
+        : scenepackProbeKey.split("|").filter(Boolean);
     if (sources.length === 0) {
       setAudioStreams([]);
       return;
@@ -301,7 +303,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     return () => {
       cancelled = true;
     };
-  }, [importedVideoPath, scenepackProbeKey]);
+  }, [importedVideoPath, activePageForPreview, openedEpisode?.videoPath, scenepackProbeKey]);
 
   React.useEffect(() => {
     if (audioStreams.length === 0) {
@@ -499,7 +501,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                   preferredDirection="up"
                   // the closed picker shows the language; the title stays in the open list
                   showTriggerDescription={false}
-                  disabled={audioStreamOptions.length === 0 || webpPreviewMode}
+                  disabled={audioStreamOptions.length === 0}
                 />
               </div>
             </div>

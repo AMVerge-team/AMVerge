@@ -231,7 +231,11 @@
   "import": {
     "starting": "正在开始…",
     "transnetMissing": "未安装 TransNetV2。请安装它，或在设置中将场景检测切换为关键帧检测。",
-    "finishingClips": "正在完成 {{name}} 的片段"
+    "finishingClips": "正在完成 {{name}} 的片段",
+    "failedTitle_one": "视频导入失败",
+    "failedTitle_other": "{{count}} 个视频导入失败",
+    "permissionHint": "AMVerge 无法访问视频或存储目录。请检查目录权限和常规设置中的视频存储路径。开发版请从正常的终端重新启动。",
+    "failureHint": "请确认视频可以读取，且常规设置中的视频存储路径可写入。详细信息请查看控制台。"
   },
   "scenepack": {
     "cutFailed": "无法切割此片段。",

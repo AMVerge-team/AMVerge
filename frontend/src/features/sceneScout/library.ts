@@ -51,8 +51,21 @@ export function libraryClipFor(
   if (!episode) return null;
   const clips = clipByStart(episode);
   const key = startKey(startSec);
-  const clip = clips.get(key) ?? clips.get(key - 1) ?? clips.get(key + 1);
-  return clip ? { episode, clip } : null;
+  const exact = clips.get(key) ?? clips.get(key - 1) ?? clips.get(key + 1);
+  if (exact) return { episode, clip: exact };
+
+  let nearest: ClipItem | null = null;
+  let nearestDiff = Infinity;
+  for (const candidate of episode.clips) {
+    if (candidate.startSec === undefined) continue;
+    const diff = Math.abs(candidate.startSec - startSec);
+    if (diff < nearestDiff) {
+      nearestDiff = diff;
+      nearest = candidate;
+    }
+  }
+  const fallback = nearestDiff <= 2 ? nearest : (episode.clips[0] ?? null);
+  return fallback ? { episode, clip: fallback } : null;
 }
 
 /** a scout tile plays its library clip once that is cut; anything else stays as it was */

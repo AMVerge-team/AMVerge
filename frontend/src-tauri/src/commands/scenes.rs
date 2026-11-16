@@ -215,7 +215,9 @@ pub async fn detect_scenes(
         base_dir
     };
 
-    std::fs::create_dir_all(&output_dir).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&output_dir).map_err(|e| {
+        format!("Failed to create episode cache directory '{}': {e}", output_dir.display())
+    })?;
     clear_files_in_dir(&output_dir);
     let output_dir_str = output_dir.to_string_lossy().to_string();
 

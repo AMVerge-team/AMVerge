@@ -391,8 +391,10 @@ export type ThemeSettings = {
     appFontAdjust: number;
     showDownloadButton: boolean;
     showClipTimestamps: boolean;
-    /** scene scout tiles show "start - end" instead of only the start */
+    /** clip tiles show "start - end" instead of only the start */
     showClipEndTime: boolean;
+    /** clip tiles show duration in the bottom left on Library and Scene Scout */
+    showClipDuration: boolean;
     widescreenClipTiles: boolean;
 };
 
@@ -407,6 +409,7 @@ export type ThemeSettingsStore = ThemeSettings & {
     setAppFontAdjust: (adjust: number) => void;
     setShowDownloadButton: (showDownloadButton: boolean) => void;
     setShowClipTimestamps: (showClipTimestamps: boolean) => void;
+    setShowClipDuration: (showClipDuration: boolean) => void;
     setWidescreenClipTiles: (widescreenClipTiles: boolean) => void;
     resetThemeSettings: () => void;
 };
@@ -422,7 +425,8 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
     appFontAdjust: 0.47,
     showDownloadButton: true,
     showClipTimestamps: true,
-    showClipEndTime: false,
+    showClipEndTime: true,
+    showClipDuration: false,
     widescreenClipTiles: false,
 };
 
@@ -466,6 +470,9 @@ export const useThemeSettingsStore = create<ThemeSettingsStore>()(
                 console.log("Setting clip timestamps..")
                 set({ showClipTimestamps: showClipTimestamps })
             },
+            setShowClipDuration: (showClipDuration) => {
+                set({ showClipDuration })
+            },
             setWidescreenClipTiles: (widescreenClipTiles) => {
                 set({ widescreenClipTiles })
             },
@@ -476,6 +483,20 @@ export const useThemeSettingsStore = create<ThemeSettingsStore>()(
         }),
         {
             name: "amverge.theme.v2",
+            version: 2,
+            migrate: (persisted, version) => {
+                const state = (persisted ?? {}) as Partial<ThemeSettings>;
+                if (version < 2) {
+                    return {
+                        ...DEFAULT_THEME_SETTINGS,
+                        ...state,
+                        // v2.0.2 enables "Show end time" by default for existing profiles once
+                        showClipEndTime: true,
+                        showClipDuration: state.showClipDuration ?? false,
+                    };
+                }
+                return { ...DEFAULT_THEME_SETTINGS, ...state };
+            },
         }
     )
 );

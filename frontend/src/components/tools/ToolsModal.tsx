@@ -8,10 +8,10 @@ import Tooltip from "../common/Tooltip";
 import ToolsViewer from "./ToolsViewer";
 import {
   FaCheckCircle,
-  FaExclamationTriangle,
   FaExpand,
   FaFileExport,
   FaFileVideo,
+  FaFolderOpen,
   FaLayerGroup,
   FaPlay,
   FaTimes,
@@ -21,9 +21,8 @@ import { useAiDepsStore } from "../../stores/aiDepsStore";
 import { useAppPersistedStore } from "../../stores/appStore";
 import { useToolsStore, type ToolKind } from "../../stores/toolsStore";
 import { useToolsRunState } from "../../features/processes/singleProcess";
-import { isPackInstalled } from "../../features/aiDeps/packs";
 import { pickFlowClip } from "../../features/sceneScout/pickFlowClip";
-import { ensureToolPack, exportTool, lastExportDir, runTool, stopTool } from "../../features/tools/runTool";
+import { ensureToolPack, exportTool, isToolPackReady, lastExportDir, runTool, stopTool } from "../../features/tools/runTool";
 import {
   DEPTH_COLORMAP_OPTIONS,
   DEPTH_ENCODER_OPTIONS,
@@ -50,7 +49,6 @@ const TABS: { kind: ToolKind; labelKey: string; icon: typeof FaExpand; blurbKey:
   },
 ];
 
-// once there is a result, running it again replaces it (tools.rerun.<kind> instead of tools.run.<kind>)
 
 
 /** whether the kind's AI pack is there; dev builds run from the CLI checkout, so always yes */
@@ -59,8 +57,7 @@ function usePackReady(kind: ToolKind): boolean {
   useEffect(() => {
     if (!useAiDepsStore.getState().status) void useAiDepsStore.getState().refresh();
   }, []);
-  if (!status) return true;
-  return !status.managed || isPackInstalled(status, kind);
+  return isToolPackReady(kind, status);
 }
 
 function ToolsPage() {
@@ -124,12 +121,14 @@ function ToolsPage() {
   const chooseKind = (next: ToolKind) => {
     if (running || next === kind) return;
     store.setKind(next);
-    // picking a tool whose models are missing asks to install them right away
-    void ensureToolPack(next);
   };
 
   const pickFile = async () => {
     if (running) return;
+    if (!packReady) {
+      void ensureToolPack(kind);
+      return;
+    }
     const picked = await pickFlowClip();
     if (picked) store.setSource(picked);
   };
@@ -203,8 +202,41 @@ function ToolsPage() {
 
       <div className="tools-workspace">
         <section className="tools-viewer-col">
-          <div ref={viewerRef} className={`tools-viewer${!source ? " is-empty" : ""}${dragging ? " is-drop-target" : ""}`}>
-            {source ? (
+          {source && packReady && (
+            <div className="tools-source-bar">
+              <Tooltip content={source.path} maxWidth={480}>
+                <span className="tools-source-name">
+                  <FaFileVideo aria-hidden="true" />
+                  <span>{source.label}</span>
+                </span>
+              </Tooltip>
+              <div className="tools-source-actions">
+                <button
+                  type="button"
+                  className="event-secondary-btn tools-small-btn"
+                  onClick={() => void pickFile()}
+                  disabled={running}
+                >
+                  <FaFolderOpen aria-hidden="true" /> {t("release202:importVideo")}
+                </button>
+                <button
+                  type="button"
+                  className="event-secondary-btn tools-small-btn"
+                  onClick={() => store.setSource(null)}
+                  disabled={running}
+                >
+                  <FaTimes aria-hidden="true" /> {t("settingsExport:features.storage.uninstall.remove")}</button>
+              </div>
+            </div>
+          )}
+          <div ref={viewerRef} className={`tools-viewer${!source || !packReady ? " is-empty" : ""}${dragging && packReady ? " is-drop-target" : ""}`}>
+            {!packReady ? (
+              <button type="button" className="tools-drop" onClick={() => void ensureToolPack(kind)}>
+                <FaFileVideo className="tools-drop-icon" aria-hidden="true" />
+                <span className="tools-drop-title">{t(`release202:${kind}Missing`)}</span>
+                <span className="tools-drop-hint">{t(`release202:${kind}MissingHint`)}</span>
+              </button>
+            ) : source ? (
               <ToolsViewer />
             ) : (
               <button type="button" className="tools-drop" onClick={() => void pickFile()}>
@@ -222,16 +254,6 @@ function ToolsPage() {
               <h3 className="tools-panel-title">{t(tab.labelKey)}</h3>
               <p className="tools-panel-blurb">{t(tab.blurbKey)}</p>
             </div>
-
-            {!packReady && (
-              <div className="tools-notice">
-                <FaExclamationTriangle aria-hidden="true" />
-                <span>{t("tools.packMissing", { pack: t(`tools.pack.${kind}`) })}</span>
-                <button type="button" className="event-secondary-btn tools-small-btn" onClick={() => void ensureToolPack(kind)}>
-                  {t("tools.install")}
-                </button>
-              </div>
-            )}
           </div>
 
           <div className="tools-fields">
@@ -315,7 +337,7 @@ function ToolsPage() {
                   type="button"
                   className={`${canExport ? "event-secondary-btn" : "event-host-btn"} tools-run-btn`}
                   onClick={() => void runTool()}
-                  disabled={!source || exporting}
+                  disabled={!packReady || !source || exporting}
                 >
                   <FaPlay aria-hidden="true" /> {canExport ? t(`tools.rerun.${kind}`) : t(`tools.run.${kind}`)}
                 </button>

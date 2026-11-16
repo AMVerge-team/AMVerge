@@ -15,6 +15,7 @@ import { useAppStateStore } from "../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
 import { useGeneralSettingsStore } from "../stores/settingsStore";
 import { VIDEO_EXTENSIONS } from "../utils/videoExtensions";
+import { notifyImportFailure } from "../features/import/importFailure";
 
 
 type Params = {
@@ -81,6 +82,10 @@ export function useImportPipeline({ abortedRef }: Params) {
         setImportToken(Date.now().toString());
 
         const { episodeEntry, sceneCount } = await runImportPipeline(file, episodeId);
+        if (importGenRef.current !== gen || abortedRef.current) {
+          if (!hasLanded(episodeId)) discardEpisodeCache(episodeId);
+          return;
+        }
 
         // replace, not duplicate, the entry the streaming listener may have added
         episodeState.setEpisodes((prev) => [
@@ -99,6 +104,10 @@ export function useImportPipeline({ abortedRef }: Params) {
         });
       } catch (err) {
         if (importGenRef.current !== gen) return;
+        if (abortedRef.current) {
+          if (!hasLanded(episodeId)) discardEpisodeCache(episodeId);
+          return;
+        }
         logImportError("single.detect_scenes", err, {
           file,
           episodeId,
@@ -106,6 +115,8 @@ export function useImportPipeline({ abortedRef }: Params) {
           importGeneration: gen,
         });
         useAppStateStore.setState({ bgProgress: null });
+        if (!hasLanded(episodeId)) discardEpisodeCache(episodeId);
+        notifyImportFailure(err, file);
       } finally {
         if (importGenRef.current === gen) {
           setLoading(false);
@@ -125,6 +136,7 @@ export function useImportPipeline({ abortedRef }: Params) {
       const gen = ++importGenRef.current;
       abortedRef.current = false;
       const completedEpisodes: EpisodeEntry[] = [];
+      const failures: { file: string; error: unknown }[] = [];
       console.info("[import] start", {
         mode: "batch",
         files: files.length,
@@ -213,8 +225,9 @@ export function useImportPipeline({ abortedRef }: Params) {
               clips: episodeEntry.clips.length,
             });
           } catch (err) {
-            if (!(abortedRef.current && hasLanded(episodeId))) discardEpisodeCache(episodeId);
+            if (!hasLanded(episodeId)) discardEpisodeCache(episodeId);
             if (abortedRef.current) break;
+            failures.push({ file, error: err });
             logImportError("batch.detect_scenes", err, {
               index: i + 1,
               total: files.length,
@@ -242,6 +255,9 @@ export function useImportPipeline({ abortedRef }: Params) {
           completed: completedEpisodes.length,
           importGeneration: gen,
         });
+        if (importGenRef.current === gen && !abortedRef.current && failures.length > 0) {
+          notifyImportFailure(failures[0].error, failures[0].file, failures.length);
+        }
       }
     },
     [episodeState, generalSettings.episodesPath, abortedRef, setBgImportProgress, runImportPipeline]
@@ -269,6 +285,7 @@ export function useImportPipeline({ abortedRef }: Params) {
       else await handleBatchImport(fileList);
     } catch (err) {
       logImportError("picker.open", err);
+      notifyImportFailure(err);
     }
   }, [handleImport, handleBatchImport]);
 

@@ -22,12 +22,13 @@ function allSceneDetectionOptions(): DropdownOption<SceneDetectionMethod>[] {
   ];
 }
 
-/** the detection choices; AI Scene Detection leaves the list while it is switched off in Settings > Features */
-export function sceneDetectionOptions(aiSceneDetectionEnabled: boolean): DropdownOption<SceneDetectionMethod>[] {
-  const options = allSceneDetectionOptions();
-  return aiSceneDetectionEnabled
-    ? options
-    : options.filter((option) => option.value !== "transnetv2_gpu");
+/** the detection choices; AI Scene Detection stays visible (greyed out when off/uninstalled) so clicking it offers the download */
+export function sceneDetectionOptions(aiAvailable: boolean): DropdownOption<SceneDetectionMethod>[] {
+  return allSceneDetectionOptions().map((option) =>
+    option.value === "transnetv2_gpu" && !aiAvailable
+      ? { ...option, muted: true }
+      : option
+  );
 }
 
 export function previewMethodOptions(): DropdownOption<importMethod>[] {

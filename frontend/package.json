@@ -1,7 +1,7 @@
 {
   "name": "amverge",
   "private": true,
-  "version": "2.0.1",
+  "version": "2.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,6 +13,8 @@
     "tauri": "tauri",
     "stub:sidecar": "node ./scripts/stub-sidecar.mjs",
     "tauri:dev": "npm run fetch:uv && npm run stub:sidecar && dotenv -e ../.env -- tauri dev",
+    "check:sidecar": "node ./scripts/check-sidecar-import.mjs",
+    "check:import": "node ./scripts/check-import.mjs",
     "check:i18n": "node ./scripts/check-i18n.mjs",
     "tauri:build": "node ./scripts/stub-sidecar.mjs --check && dotenv -e ../.env.production -- tauri build"
   },

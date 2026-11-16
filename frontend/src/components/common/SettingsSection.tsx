@@ -6,19 +6,21 @@ type SettingsSectionProps = {
   id: string;
   title: string;
   children: ReactNode;
+  tourTarget?: string;
 };
 
 export default function SettingsSection({
   id,
   title,
   children,
+  tourTarget,
 }: SettingsSectionProps) {
   // open unless the user collapsed it; the store only records sections they toggled
   const open = useSettingsSectionsStore((state) => state.openSections[id] ?? true);
   const setSectionOpen = useSettingsSectionsStore((state) => state.setSectionOpen);
 
   return (
-    <div className={`settings-collapsible${open ? " is-open" : ""}`}>
+    <div className={`settings-collapsible${open ? " is-open" : ""}`} data-getting-started={tourTarget}>
       <button
         type="button"
         className="settings-collapsible-header"

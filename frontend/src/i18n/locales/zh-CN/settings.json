@@ -228,7 +228,7 @@
       },
       "endTime": {
         "label": "显示结束时间",
-        "description": "场景搜索（Scene Scout）结果显示“开始 - 结束”，而不只显示开始时间。"
+        "description": "在片段上显示“开始 - 结束”时间，而不仅显示开始时间。"
       },
       "widescreen": {
         "label": "宽屏片段卡片",
