@@ -8,7 +8,8 @@
     border-radius: var(--radius-lg);
     padding: 16px;
     display: grid;
-    grid-template-columns: 1fr;
+    /* minmax(0, ...) so a long profile name can never push a column past the panel */
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
         "header"
         "profile"
@@ -436,7 +437,7 @@
 
 @container exportPanel (min-width: 520px) {
     .export-panel {
-        grid-template-columns: 1fr 130px;
+        grid-template-columns: minmax(0, 1fr) 130px;
         grid-template-areas:
             "header header"
             "profile button"
@@ -482,4 +483,41 @@
 .export-panel .custom-checkbox>.checkmark {
     border-radius: var(--radius-sm);
     background: rgba(255, 255, 255, 0.05);
+}
+
+/* the picker shares its row with a 36px button, so it takes what is left instead of a full 100% */
+.export-dir-row > .export-profile-select:not(.audio-stream-select),
+.export-dir-row > .export-dir-input {
+    flex: 1 1 0 !important;
+    width: auto !important;
+    min-width: 0 !important;
+}
+
+.export-dir-row > .tooltip-anchor,
+.export-dir-row > .export-dir-browse {
+    flex: none;
+}
+
+.export-settings-row,
+.export-path-section,
+.export-options-row,
+.export-profile-select .dropdown-trigger,
+.export-profile-select .dropdown-value,
+.export-profile-select .dropdown-item-content {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.export-profile-select .dropdown-item-label,
+.export-profile-select .dropdown-item-description {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* the options wrap rather than spilling past the panel's right edge */
+.export-options-row .export-dir-item {
+    flex-wrap: wrap;
+    max-width: 100%;
 }
