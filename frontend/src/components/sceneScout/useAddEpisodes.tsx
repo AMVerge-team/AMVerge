@@ -6,8 +6,9 @@ import ModalShell from "../common/ModalShell";
 import { ImportIcon } from "../icons/ToolbarIcons";
 import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore";
-import { useGeneralSettingsStore, type SceneDetectionMethod } from "../../stores/settingsStore";
+import { isPackInstalled } from "../../features/aiDeps/packs";
 import { useAiDepsStore } from "../../stores/aiDepsStore";
+import { useGeneralSettingsStore, type SceneDetectionMethod } from "../../stores/settingsStore";
 import { sceneDetectionOptions } from "../settings/general/options";
 import { episodeSceneRanges, precutEpisodes, type SceneRange } from "../../features/sceneScout/precutEpisodes";
 import { VIDEO_EXTENSIONS } from "../../utils/videoExtensions";
@@ -21,6 +22,9 @@ export function useAddEpisodes() {
   const lastIndexDetection = useSceneScoutStore((s) => s.settings.lastIndexDetection);
   const fallbackDetection = useGeneralSettingsStore((s) => s.sceneDetectionMethod);
   const aiSceneDetectionEnabled = useGeneralSettingsStore((s) => s.aiSceneDetectionEnabled);
+  const aiStatus = useAiDepsStore((s) => s.status);
+  const mlInstalled = isPackInstalled(aiStatus, "ml");
+  const aiAvailable = aiSceneDetectionEnabled && mlInstalled;
   const homeEpisodes = useEpisodePanelRuntimeStore((s) => s.episodes);
   const targetDatabase = useSceneScoutStore((s) => s.openedDatabase || s.selectedDatabases[0] || null);
   const targetName = useSceneScoutStore((s) =>
@@ -174,7 +178,7 @@ export function useAddEpisodes() {
         <p className="events-subtitle ban-notice-note">How should scenes be found before indexing?</p>
 
         <div className="scene-scout-detection-choices" role="radiogroup" aria-label="Scene detection">
-          {sceneDetectionOptions(aiSceneDetectionEnabled).map((option) => {
+          {sceneDetectionOptions(aiAvailable).map((option) => {
             const active = option.value === method;
             return (
               <button
@@ -182,8 +186,17 @@ export function useAddEpisodes() {
                 type="button"
                 role="radio"
                 aria-checked={active}
-                className={`scene-scout-detection-choice${active ? " is-active" : ""}`}
-                onClick={() => setMethod(option.value as SceneDetectionMethod as IndexDetection)}
+                className={`scene-scout-detection-choice${active ? " is-active" : ""}${option.muted ? " is-muted" : ""}`}
+                onClick={async () => {
+                  if (option.value === "transnetv2_gpu" && !aiAvailable) {
+                    if (!mlInstalled) {
+                      const installed = await useAiDepsStore.getState().ensurePack("ml");
+                      if (!installed) return;
+                    }
+                    useGeneralSettingsStore.setState({ aiSceneDetectionEnabled: true });
+                  }
+                  setMethod(option.value as SceneDetectionMethod as IndexDetection);
+                }}
                 onDoubleClick={() => void confirm()}
               >
                 <span className="scene-scout-detection-choice-label">{option.label}</span>

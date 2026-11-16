@@ -103,9 +103,14 @@ export default function GeneralSettings({
   }, []);
 
   const handleSceneDetectionChange = async (method: SceneDetectionMethod) => {
-    if (method === "transnetv2_gpu" && !mlInstalled) {
-      const installed = await useAiDepsStore.getState().ensurePack("ml");
-      if (!installed) return; // declined, keep the current method
+    if (method === "transnetv2_gpu") {
+      if (!mlInstalled) {
+        const installed = await useAiDepsStore.getState().ensurePack("ml");
+        if (!installed) return; // declined, keep the current method
+      }
+      if (!generalSettings.aiSceneDetectionEnabled) {
+        useGeneralSettingsStore.setState({ aiSceneDetectionEnabled: true });
+      }
     }
     setSceneDetectionMethod(method);
   };
@@ -162,7 +167,7 @@ export default function GeneralSettings({
           control={
           <div className="settings-control">
             <span className="settings-value" style={{ width: "auto" }}>
-              v2.0.1
+              v2.0.2
             </span>
           </div>
           }
@@ -172,6 +177,7 @@ export default function GeneralSettings({
           <SettingRow
             label="Scene Detection Method"
             description="How AMVerge finds scene cuts when you import."
+            tourTarget="scene-detection"
             info={
               <InfoButton title="Scene Detection Method">
                 <h4>AI Scene Detection</h4>
@@ -211,7 +217,7 @@ export default function GeneralSettings({
             control={
               <Dropdown
                 className="settings-wide-dropdown"
-                options={sceneDetectionOptions(generalSettings.aiSceneDetectionEnabled)}
+                options={sceneDetectionOptions(generalSettings.aiSceneDetectionEnabled && mlInstalled)}
                 value={generalSettings.sceneDetectionMethod}
                 onChange={(method) => void handleSceneDetectionChange(method)}
               />
@@ -253,6 +259,7 @@ export default function GeneralSettings({
         <SettingRow
           label="Preview Method"
           description="What the grid plays when you hover over a clip."
+          tourTarget="preview-method"
           info={
             <InfoButton title="Preview Method">
               <h4>Video Files</h4>

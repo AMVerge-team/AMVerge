@@ -16,6 +16,7 @@ type Stage = "confirm" | "installing" | "done" | "error";
 
 /// resolver for the promise `ensurePack` handed out; control flow, not state
 let pendingResolve: ((installed: boolean) => void) | null = null;
+let canceledMinimized = false;
 
 function settle(installed: boolean) {
   const resolve = pendingResolve;
@@ -133,6 +134,7 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
   startInstall: async () => {
     const { pack, status, gpuPreference } = get();
     if (!pack) return;
+    canceledMinimized = false;
 
     // driven by hardware, not the installed variant, which made a CPU torch sticky
     const gpu = wantsCudaWheel(status, gpuPreference);
@@ -149,6 +151,12 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
       // gpuDecode left out: GPU decoding is its own setting, and the env keeps whatever it has
       const next = await invoke<AiEnvStatus>("install_ai_pack", { pack, gpu, gpuDecode: undefined });
       const installed = Boolean(next.packs?.[pack]);
+      if (canceledMinimized) {
+        canceledMinimized = false;
+        settle(false);
+        set({ open: false, pack: null, status: next });
+        return;
+      }
       set({
         status: next,
         stage: installed ? "done" : "error",
@@ -159,6 +167,13 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
       });
       if (installed) settle(true);
     } catch (err) {
+      if (canceledMinimized) {
+        canceledMinimized = false;
+        settle(false);
+        set({ open: false, pack: null });
+        await get().refresh();
+        return;
+      }
       const message = String(err);
       set({
         stage: "error",
@@ -261,10 +276,16 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
   },
 
   cancel: () => {
+    const wasMinimized = !get().open;
+    if (wasMinimized) canceledMinimized = true;
     set({ message: "Canceling...", indeterminate: true });
     invoke("abort_ai_install")
       .catch(() => {})
       .finally(() => {
+        if (wasMinimized) {
+          settle(false);
+          set({ open: false, pack: null });
+        }
         void get().refresh();
       });
   },

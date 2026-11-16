@@ -33,6 +33,10 @@ export type UIState = {
     flowPlayerHeightPx: number;
     /** the scene scout walkthrough was finished or skipped, so it no longer opens on its own */
     sceneScoutTourSeen: boolean;
+    /** the app-wide Getting Started tour was finished or skipped */
+    gettingStartedSeen: boolean;
+    /** transient target when jumping from Scene Scout ("Show in episode") to a Home clip */
+    pendingEpisodeJump: { episodeId: string; clipId: string } | null;
 };
 
 export type UIStateStore = UIState & {
@@ -67,6 +71,8 @@ export type UIStateStore = UIState & {
     setEpisodeScrollTops: (scrollTops: Record<string, number>) => void;
     setFlowPlayerHeightPx: (px: number) => void;
     setSceneScoutTourSeen: (seen: boolean) => void;
+    setGettingStartedSeen: (seen: boolean) => void;
+    setPendingEpisodeJump: (jump: { episodeId: string; clipId: string } | null) => void;
 };
 
 /** true while a full-screen modal covers the app, so previews can stand down */
@@ -95,6 +101,8 @@ export const DEFAULT_UI_STATE: UIState = {
     episodeScrollTops: {},
     flowPlayerHeightPx: 300,
     sceneScoutTourSeen: false,
+    gettingStartedSeen: false,
+    pendingEpisodeJump: null,
 };
 
 export const useUIStateStore = create<UIStateStore>()(
@@ -165,6 +173,8 @@ export const useUIStateStore = create<UIStateStore>()(
             setEpisodeScrollTops: (episodeScrollTops) => set({ episodeScrollTops }),
             setFlowPlayerHeightPx: (flowPlayerHeightPx) => set({ flowPlayerHeightPx }),
             setSceneScoutTourSeen: (sceneScoutTourSeen) => set({ sceneScoutTourSeen }),
+            setGettingStartedSeen: (gettingStartedSeen) => set({ gettingStartedSeen }),
+            setPendingEpisodeJump: (pendingEpisodeJump) => set({ pendingEpisodeJump }),
         }),
         {
             name: "amverge.ui.v1",
@@ -181,6 +191,7 @@ export const useUIStateStore = create<UIStateStore>()(
                 episodeScrollTops: state.episodeScrollTops,
                 flowPlayerHeightPx: state.flowPlayerHeightPx,
                 sceneScoutTourSeen: state.sceneScoutTourSeen,
+                gettingStartedSeen: state.gettingStartedSeen,
             }),
         }
     )

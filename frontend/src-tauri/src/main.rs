@@ -35,6 +35,7 @@ fn main() {
         .manage(crate::commands::scene_scout::ActiveScoutIndex::default())
         .invoke_handler(tauri::generate_handler![
             commands::bug_report::submit_bug_report,
+            commands::github::fetch_github_contributors,
             commands::auth::begin_discord_login,
             commands::auth::cancel_discord_login,
             commands::auth::discord_session,

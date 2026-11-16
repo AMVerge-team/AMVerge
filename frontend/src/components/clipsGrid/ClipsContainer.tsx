@@ -24,6 +24,8 @@ import { useSceneScoutStore } from "../../stores/sceneScoutStore.ts";
 import { removeClipsFromScenepack } from "../../utils/scenepackStorage.ts";
 import type { ClipItem } from "../../types/domain.ts";
 import { canFindFlowFrom, flowSourceForClip } from "../../features/sceneScout/motion.ts";
+import { libraryClipFor } from "../../features/sceneScout/library.ts";
+import { openEpisodeById } from "../../hooks/useEpisodePanelState.ts";
 import { openTools } from "../../stores/toolsStore.ts";
 import { noteGridScroll } from "./gridScroll.ts";
 import type { ExportContainer } from "../../features/export/profileTypes.ts";
@@ -85,8 +87,10 @@ export default function ClipsContainer({ cols, active = true }: { cols?: number;
   const handleClipContextMenu = useCallback(
     (event: React.MouseEvent, clip: ClipItem) => {
       if (activePage !== "scenepacks") {
-        // the menu has Find clips that flow (where it can run) and Open in Tools (any clip with a file)
-        if (!canFindFlowFrom(clip, activePage, sceneScoutEnabled) && !flowSourceForClip(clip)) return;
+        const hasShowInEpisode =
+          activePage === "sceneScout" && libraryClipFor(clip.src, clip.startSec ?? 0) !== null;
+        // the menu has Find clips that flow, Show in episode (Scene Scout), and Open in Tools
+        if (!canFindFlowFrom(clip, activePage, sceneScoutEnabled) && !flowSourceForClip(clip) && !hasShowInEpisode) return;
         event.preventDefault();
         event.stopPropagation();
         useContextMenuStore.getState().openContextMenu("clip-flow");
@@ -438,9 +442,12 @@ export default function ClipsContainer({ cols, active = true }: { cols?: number;
     useUIStateStore.getState().setGridPreview(false);
   }, [importToken, resetWebpQueue]);
 
+  const pendingEpisodeJump = useUIStateStore((s) => s.pendingEpisodeJump);
+
   // an episode reopens where it was left; the grid needs a few frames to reach its full height first
   useEffect(() => {
     const ui = useUIStateStore.getState();
+    if (ui.pendingEpisodeJump && ui.pendingEpisodeJump.episodeId === openedEpisodeId) return;
     const target = ui.activePage === "home" && openedEpisodeId ? ui.episodeScrollTops[openedEpisodeId] ?? 0 : 0;
     if (target <= 0) return;
 
@@ -470,6 +477,51 @@ export default function ClipsContainer({ cols, active = true }: { cols?: number;
       restoringScrollRef.current = false;
     };
   }, [importToken, openedEpisodeId]);
+
+  // "Show in episode" jump: wait until the target episode's grid renders, then scroll to that clip's row
+  useEffect(() => {
+    if (!active || activePage !== "home" || !pendingEpisodeJump || pendingEpisodeJump.episodeId !== openedEpisodeId) {
+      return;
+    }
+    const targetIndex = clips.findIndex((c) => c.id === pendingEpisodeJump.clipId);
+    if (targetIndex === -1) return;
+
+    restoringScrollRef.current = true;
+    let frames = 0;
+    let frame = 0;
+    const attempt = () => {
+      const scroller = containerRef.current;
+      const firstTile = gridEl?.firstElementChild as HTMLElement | null;
+      if (scroller && gridEl && firstTile) {
+        const styles = getComputedStyle(gridEl);
+        const gap = parseFloat(styles.rowGap) || 0;
+        const tileHeight = firstTile.getBoundingClientRect().height;
+        if (tileHeight > 0) {
+          const rowPitch = tileHeight + gap;
+          const gridTop = gridEl.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
+          const targetRow = Math.floor(targetIndex / Math.max(1, gridColumns));
+          const top = Math.max(0, Math.round(gridTop + targetRow * rowPitch - scroller.clientHeight * 0.28));
+          scroller.scrollTop = top;
+          lastScrollTopRef.current = scroller.scrollTop;
+          restoringScrollRef.current = false;
+          useUIStateStore.getState().setPendingEpisodeJump(null);
+          return;
+        }
+      }
+      if (frames >= SCROLL_RESTORE_MAX_FRAMES) {
+        restoringScrollRef.current = false;
+        useUIStateStore.getState().setPendingEpisodeJump(null);
+        return;
+      }
+      frames += 1;
+      frame = requestAnimationFrame(attempt);
+    };
+    frame = requestAnimationFrame(attempt);
+    return () => {
+      cancelAnimationFrame(frame);
+      restoringScrollRef.current = false;
+    };
+  }, [active, activePage, pendingEpisodeJump, openedEpisodeId, clips, gridEl, gridColumns]);
 
   // the open episode was deleted or closed: its webp previews stop with it
   useEffect(() => {
@@ -703,6 +755,22 @@ export default function ClipsContainer({ cols, active = true }: { cols?: number;
             >
               {clipMenu.kind === "flow" ? (
                 <>
+                {activePage === "sceneScout" && (() => {
+                  const target = clipMenu.targets[0];
+                  const match = target ? libraryClipFor(target.src, target.startSec ?? 0) : null;
+                  if (!match) return null;
+                  return (
+                    <button
+                      className="episode-context-menu-item"
+                      onClick={() => {
+                        setClipMenu(null);
+                        openEpisodeById(match.episode.id, { showHome: true, focusClipId: match.clip.id });
+                      }}
+                    >
+                      Show in episode
+                    </button>
+                  );
+                })()}
                 {canFindFlowFrom(clipMenu.targets[0], activePage, sceneScoutEnabled) && (
                   <button
                     className="episode-context-menu-item"

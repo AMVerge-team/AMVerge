@@ -43,6 +43,8 @@ export default function SceneScoutPage() {
     }
 
     return () => {
+      // jumping to a library episode via "Show in episode" owns the home grid; restoring the old one would clobber it
+      if (useUIStateStore.getState().pendingEpisodeJump) return;
       const state = useAppStateStore.getState();
       state.setClips(prevClipsRef.current ?? []);
       state.setImportedVideoPath(prevVideoPathRef.current);

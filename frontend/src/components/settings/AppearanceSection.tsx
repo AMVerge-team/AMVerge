@@ -380,19 +380,42 @@ export default function AppearanceSection({
 
         <SettingRow
           label="Show end time"
-          description='Scene Scout results show "start - end" instead of only the start.'
+          description='Show "start - end" instead of only the start time on clips.'
           control={
             <div className="settings-control">
               <label className="custom-checkbox">
                 <input
                   type="checkbox"
                   className="checkbox"
-                  checked={themeSettings.showClipEndTime ?? false}
+                  checked={themeSettings.showClipEndTime ?? true}
                   disabled={!themeSettings.showClipTimestamps}
                   onChange={(e) =>
                     setThemeSettings((prev) => ({
                       ...prev,
                       showClipEndTime: e.target.checked,
+                    }))
+                  }
+                />
+                <span className="checkmark"></span>
+              </label>
+            </div>
+          }
+        />
+
+        <SettingRow
+          label="Show clip duration"
+          description="Show each clip's duration in the bottom left on Library and Scene Scout."
+          control={
+            <div className="settings-control">
+              <label className="custom-checkbox">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={themeSettings.showClipDuration ?? false}
+                  onChange={(e) =>
+                    setThemeSettings((prev) => ({
+                      ...prev,
+                      showClipDuration: e.target.checked,
                     }))
                   }
                 />

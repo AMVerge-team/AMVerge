@@ -10,7 +10,7 @@ import { useClipStagger } from "./useClipStagger.ts";
 import { useClipVideoSource } from "./useClipVideoSource.ts";
 import { useClipVideoElement } from "./useClipVideoElement.ts";
 import { useDownloadTone } from "./useDownloadTone.ts";
-import { formatClipTime, formatClipTimeframe, formatScoreWithConfidence } from "./clipFormat.ts";
+import { formatClipDuration, formatClipTime, formatClipTimeframe, formatScoreWithConfidence } from "./clipFormat.ts";
 import { imageThumbnail, mediaSrcVersioned } from "../../utils/mediaSrc.ts";
 import { useAppStateStore } from "../../stores/appStore.ts";
 import { selectOverlayOpen, useUIStateStore } from "../../stores/UIStore.ts";
@@ -72,7 +72,8 @@ export const LazyClip = memo(function LazyClip({
   const gridPreviewSpeed = useThemeSettingsStore((s) => s.gridPreviewSpeed ?? 1);
   const showDownloadButton = useThemeSettingsStore((s) => s.showDownloadButton);
   const showClipTimestamps = useThemeSettingsStore((s) => s.showClipTimestamps);
-  const showClipEndTime = useThemeSettingsStore((s) => s.showClipEndTime);
+  const showClipEndTime = useThemeSettingsStore((s) => s.showClipEndTime ?? true);
+  const showClipDuration = useThemeSettingsStore((s) => s.showClipDuration ?? false);
 
   const openedEpisodeId = useEpisodePanelRuntimeStore((s) => s.openedEpisodeId);
   const episodeId = clip.episodeId ?? openedEpisodeId ?? clip.id.split("_").slice(0, -1).join("_");
@@ -500,9 +501,14 @@ export const LazyClip = memo(function LazyClip({
             </div>
           )}
 
+          {showClipDuration && (activePage === "home" || activePage === "sceneScout") && (() => {
+            const dur = formatClipDuration(clip.startSec, clip.endSec);
+            return dur ? <div className="clip-duration-badge">{dur}</div> : null;
+          })()}
+
           {showClipTimestamps && clip.startSec !== undefined && (
-            <div className={`clip-original-timestamp${isScout && showClipEndTime ? " is-timeframe" : ""}`}>
-              {isScout && showClipEndTime
+            <div className={`clip-original-timestamp${showClipEndTime && clip.endSec !== undefined ? " is-timeframe" : ""}`}>
+              {showClipEndTime && clip.endSec !== undefined
                 ? formatClipTimeframe(clip.startSec, clip.endSec)
                 : formatClipTime(clip.startSec)}
             </div>

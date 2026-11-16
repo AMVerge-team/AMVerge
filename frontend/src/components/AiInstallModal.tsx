@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 
 import Tooltip from "./common/Tooltip";
+import BackgroundJobCard from "./BackgroundJobCard";
 import { useEscapeToClose } from "./common/useEscapeToClose";
 import { useAiDepsStore } from "../stores/aiDepsStore";
 import {
@@ -81,7 +82,8 @@ export default function AiInstallModal() {
     };
   }, []);
 
-  if (!open || !pack) return null;
+  const minimized = !open && Boolean(pack) && stage !== "confirm";
+  if ((!open && !minimized) || !pack) return null;
 
   const info = AI_PACKS[pack];
   const sizeMb = estimateDownloadMb(status, pack, gpuPreference);
@@ -105,27 +107,70 @@ export default function AiInstallModal() {
     transferredText = matchTransferred[1];
   }
 
+  const modalTitle =
+    stage === "done"
+      ? job?.done ?? `${info.dependencyName} installed`
+      : stage === "error"
+        ? job
+          ? `${job.title} failed`
+          : `${info.dependencyName} install failed`
+        : job?.title ?? info.label;
+
+  if (minimized) {
+    const jobLines = logs.map((text, idx) => ({ id: idx, kind: "log" as const, text }));
+    const clampedPct = Math.max(0, Math.min(100, Math.round(percent)));
+    return (
+      <BackgroundJobCard
+        id="ai-install"
+        ariaLabel="Feature installation (minimized)"
+        done={stage === "done"}
+        lines={jobLines}
+        title={stage === "installing" ? (message || modalTitle) : modalTitle}
+        onExpand={() => useAiDepsStore.getState().openModal()}
+        onClose={stage === "installing" ? cancel : close}
+        closeLabel={stage === "installing" ? "Cancel" : "Close"}
+        footer={
+          stage === "error" && error ? (
+            <p className="pxm-errors">{error}</p>
+          ) : stage === "installing" && (speedText || transferredText) ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, padding: "0 12px 8px", fontSize: "0.72rem", color: "rgba(255, 255, 255, 0.65)" }}>
+              {speedText && (
+                <span>Speed: <strong style={{ color: "#38bdf8", fontFamily: "monospace" }}>{speedText}</strong></span>
+              )}
+              {transferredText && (
+                <span>Size: <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{transferredText}</strong></span>
+              )}
+              <span>Elapsed: <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{formatDuration(elapsed)}</strong></span>
+            </div>
+          ) : null
+        }
+      >
+        <div className="lm-progress">
+          <div className="progress-bar lm-progress-bar">
+            <div
+              className={`progress-fill${indeterminate ? " aid-fill-indeterminate" : ""}`}
+              style={{ width: indeterminate ? "100%" : `${clampedPct}%` }}
+            />
+          </div>
+          <span className="lm-pct">{indeterminate ? "…" : `${clampedPct}%`}</span>
+        </div>
+      </BackgroundJobCard>
+    );
+  }
+
   return (
     <div className="pxm-overlay">
       <div className="pxm-modal aid-modal">
         <header className="pxm-header">
-          <span className="pxm-title">
-            {stage === "done"
-              ? job?.done ?? `${info.dependencyName} installed`
-              : stage === "error"
-                ? job
-                  ? `${job.title} failed`
-                  : `${info.dependencyName} install failed`
-                : job?.title ?? info.label}
-          </span>
+          <span className="pxm-title">{modalTitle}</span>
           <div className="pxm-actions">
             {stage === "installing" ? (
-              <Tooltip content="Minimize and run in background">
+              <Tooltip content="Minimize">
                 <button
                   type="button"
                   className="pxm-btn"
                   onClick={() => useAiDepsStore.getState().minimize()}
-                  aria-label="Minimize and run in background"
+                  aria-label="Minimize"
                 >
                   🗕
                 </button>
@@ -241,20 +286,9 @@ export default function AiInstallModal() {
 
             <div className="aid-buttons">
               {stage === "installing" ? (
-                <>
-                  <Tooltip content="Keep downloading in the background">
-                    <button
-                      type="button"
-                      className="aid-btn"
-                      onClick={() => useAiDepsStore.getState().minimize()}
-                    >
-                      Run in background
-                    </button>
-                  </Tooltip>
-                  <button type="button" className="aid-btn" onClick={cancel}>
-                    Cancel
-                  </button>
-                </>
+                <button type="button" className="aid-btn" onClick={cancel}>
+                  Cancel
+                </button>
               ) : (
                 <>
                   {stage === "error" ? (

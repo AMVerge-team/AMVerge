@@ -75,6 +75,7 @@ export default function Navbar({}: NavbarProps) {
                     <button
                         type="button"
                         className="navbar-menu-btn"
+                        data-getting-started="menu-btn"
                         onClick={() => setQuickMenuOpen(true)}
                         aria-label="Menu"
                     >

@@ -402,6 +402,23 @@
     letter-spacing: 0.2px;
 }
 
+.clip-duration-badge {
+    position: absolute;
+    bottom: var(--clip-overlay-inset);
+    left: var(--clip-overlay-inset);
+    z-index: 12;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-weight: 500;
+    pointer-events: none;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+}
+
 
 .selection-action-bar {
   display: flex;

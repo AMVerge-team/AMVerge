@@ -193,6 +193,7 @@ export const useEventsStore = create<EventsStore>()(
         fetchEvents("active"),
         fetchEvents("past"),
         get().loadHyetta(),
+        get().profile ? get().loadMine() : undefined,
       ]);
 
       if (!active.ok || !past.ok) {

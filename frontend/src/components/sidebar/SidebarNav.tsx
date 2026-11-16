@@ -78,6 +78,7 @@ export default function SidebarNav() {
           >
             <div
               className="sidebar-button"
+              data-getting-started={`nav-${button.page}`}
               onContextMenu={button.page === "events" ? openEventsMenu : undefined}
             >
               <button

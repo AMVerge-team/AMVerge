@@ -8,17 +8,26 @@ import { useUIStateStore } from "../stores/UIStore";
 import { stopRunningProcess } from "../features/processes/singleProcess";
 import { dropFromReencodeQueue } from "../features/import/reencodeQueue";
 /** opens an episode by id through getState, so small components can open one without subscribing; `showHome` false keeps the page */
-export function openEpisodeById(episodeId: string, { showHome = true }: { showHome?: boolean } = {}) {
+export function openEpisodeById(
+	episodeId: string,
+	{ showHome = true, focusClipId }: { showHome?: boolean; focusClipId?: string } = {}
+) {
 	const appState = useAppStateStore.getState();
 	const episodeRuntimeState = useEpisodePanelRuntimeStore.getState();
 	const episodeMetadataState = useEpisodePanelMetadataStore.getState();
+	const uiState = useUIStateStore.getState();
 
 	const selectedEpisode = episodeRuntimeState.episodes.find((e) => e.id === episodeId);
 	if (!selectedEpisode) return;
 
-	appState.setSelectedClips(new Set());
-	appState.setFocusedClip(null);
-	appState.setFocusedClipId(null);
+	const targetClip = focusClipId
+		? selectedEpisode.clips.find((c) => c.id === focusClipId) ?? null
+		: null;
+
+	uiState.setPendingEpisodeJump(targetClip ? { episodeId, clipId: targetClip.id } : null);
+	appState.setSelectedClips(targetClip ? new Set([targetClip.id]) : new Set());
+	appState.setFocusedClip(targetClip ? (targetClip.clipPath || targetClip.src) : null);
+	appState.setFocusedClipId(targetClip ? targetClip.id : null);
 	episodeRuntimeState.setSelectedEpisodeId(episodeId);
 	episodeRuntimeState.setOpenedEpisodeId(episodeId);
 	episodeRuntimeState.setSelectedFolderId(null);
@@ -28,7 +37,7 @@ export function openEpisodeById(episodeId: string, { showHome = true }: { showHo
 	appState.setImportToken(`${episodeId}:${selectedEpisode.importedAt ?? 0}`);
 
 	// opening from Events would load it behind a page with no clips, so switch to home (like handleOpenScenepack)
-	if (showHome) useUIStateStore.getState().setActivePage("home");
+	if (showHome) uiState.setActivePage("home");
 
 	startTransition(() => {
 		appState.setClips(selectedEpisode.clips);

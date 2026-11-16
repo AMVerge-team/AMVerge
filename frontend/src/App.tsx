@@ -39,6 +39,7 @@ const V1ImportNotice = lazy(() =>
 const PostExportPassesModal = lazy(() => import("./components/PostExportPassesModal"));
 const PassTargetsModal = lazy(() => import("./components/PassTargetsModal"));
 const AiInstallModal = lazy(() => import("./components/AiInstallModal"));
+const GettingStartedTour = lazy(() => import("./components/GettingStartedTour"));
 
 import useDiscordRPC from "./hooks/useDiscordRPC";
 import useHEVCSupport from "./hooks/useHEVCSupport";
@@ -85,13 +86,6 @@ function App() {
   // closing the card hides the preview counter for this episode; the queue keeps filling the cache
   const webpLoadTotal = webpDismissed ? 0 : webpLoadTotalRaw;
 
-  const aiStage = useAiDepsStore((s) => s.stage);
-  const aiPercent = useAiDepsStore((s) => s.percent);
-  const aiModalOpen = useAiDepsStore((s) => s.open);
-  const aiPack = useAiDepsStore((s) => s.pack);
-  const aiInstalling = aiStage === "installing";
-  const aiPackName = aiPack ? (aiPack === "ml" ? "AI Scene Detection" : aiPack === "depth" ? "Depth Maps" : aiPack === "upscale" ? "Upscaling" : "AI Models") : "AI Models";
-
   const sceneDetectionMethod = useGeneralSettingsStore((s) => s.sceneDetectionMethod);
   const importMethodSetting = useGeneralSettingsStore((s) => s.importMethod);
   const activeOperation = useAppStateStore((s) => s.activeOperation);
@@ -133,6 +127,9 @@ function App() {
   const setSidebarEnabled = useUIStateStore(s => s.setSidebarEnabled);
   const activePage = useUIStateStore(s => s.activePage);
   const isDragging = useUIStateStore(s => s.isDragging);
+  const gettingStartedSeen = useUIStateStore(s => s.gettingStartedSeen);
+  const menuOpen = useUIStateStore(s => s.menuOpen);
+  const toolsOpen = useUIStateStore(s => s.toolsOpen);
 
   const handleResetGeneralSettings = async () => {
     try {
@@ -508,7 +505,7 @@ function App() {
               />
             }
           />
-        ) : (bgProgress || bgImportProgress || reencodeProgress || webpLoadTotal > 0 || (aiInstalling && !aiModalOpen)) ? (
+        ) : (bgProgress || bgImportProgress || reencodeProgress || webpLoadTotal > 0) ? (
           <BgProgressBar
             clipDone={clipProgress?.done ?? 0}
             clipTotal={clipProgress?.total ?? 0}
@@ -517,16 +514,7 @@ function App() {
             importTotal={bgImportProgress?.total ?? 0}
             webpDone={webpLoadDone}
             webpTotal={webpLoadTotal}
-            aiDone={aiPercent}
-            aiTotal={aiInstalling && !aiModalOpen ? 100 : 0}
-            aiLabel={`Downloading ${aiPackName}`}
-            onAiClick={() => useAiDepsStore.getState().openModal()}
-            onClose={() => {
-              if (aiInstalling && !aiModalOpen) {
-                useAiDepsStore.getState().cancel();
-              }
-              handleAbortAndCloseBgProgress();
-            }}
+            onClose={handleAbortAndCloseBgProgress}
           />
         ) : null
       }
@@ -576,6 +564,9 @@ function App() {
         <PassTargetsModal />
         <AiInstallModal />
         {splashVisible ? null : <V1ImportNotice />}
+        {!splashVisible && !showStartupNotification && !gettingStartedSeen && !menuOpen && !toolsOpen && (
+          <GettingStartedTour />
+        )}
       </Suspense>
       {splashVisible ? <SplashScreen onFinished={handleSplashFinished} /> : null}
       </AppLayout>

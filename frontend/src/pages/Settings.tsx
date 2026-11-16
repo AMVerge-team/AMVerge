@@ -36,6 +36,7 @@ export default function Settings({
             <button
               key={page.key}
               className={`menu-nav-btn${activeTab === page.key ? " active" : ""}`}
+              data-getting-started={`settings-tab-${page.key}`}
               onClick={() => setActiveTab(page.key)}
             >
               {page.label}

@@ -11,6 +11,7 @@ import {
   FaExpand,
   FaFileExport,
   FaFileVideo,
+  FaFolderOpen,
   FaLayerGroup,
   FaPlay,
   FaTimes,
@@ -204,6 +205,34 @@ function ToolsPage() {
 
       <div className="tools-workspace">
         <section className="tools-viewer-col">
+          {source && (
+            <div className="tools-source-bar">
+              <Tooltip content={source.path} maxWidth={480}>
+                <span className="tools-source-name">
+                  <FaFileVideo aria-hidden="true" />
+                  <span>{source.label}</span>
+                </span>
+              </Tooltip>
+              <div className="tools-source-actions">
+                <button
+                  type="button"
+                  className="event-secondary-btn tools-small-btn"
+                  onClick={() => void pickFile()}
+                  disabled={running}
+                >
+                  <FaFolderOpen aria-hidden="true" /> Import video
+                </button>
+                <button
+                  type="button"
+                  className="event-secondary-btn tools-small-btn"
+                  onClick={() => store.setSource(null)}
+                  disabled={running}
+                >
+                  <FaTimes aria-hidden="true" /> Remove
+                </button>
+              </div>
+            </div>
+          )}
           <div ref={viewerRef} className={`tools-viewer${!source ? " is-empty" : ""}${dragging ? " is-drop-target" : ""}`}>
             {source ? (
               <ToolsViewer />

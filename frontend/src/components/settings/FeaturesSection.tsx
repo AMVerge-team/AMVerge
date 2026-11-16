@@ -137,7 +137,7 @@ export default function FeaturesSection() {
           }
         />
 
-        <SettingsSection id="features.list" title="Features">
+        <SettingsSection id="features.list" title="Features" tourTarget="features-list">
           {FEATURES.map((feature) => {
             const enabled = settings[feature.setting];
             const installed = feature.pack ? isPackInstalled(status, feature.pack) : true;

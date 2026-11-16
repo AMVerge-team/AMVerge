@@ -34,6 +34,7 @@ export default function EventDetail({ event, onBack, onEdit, onDelete, preview =
   const editCooldown = useCooldown(editCooldownUntil);
   const ended = hasEnded(event);
   const status = statusLabel(event);
+  const coverSrc = event.thumbnailDataUrl || event.thumbnailUrl;
 
   const handleJoin = () => {
     if (preview) return;
@@ -49,8 +50,8 @@ export default function EventDetail({ event, onBack, onEdit, onDelete, preview =
       )}
 
       <div className="event-detail-banner">
-        {event.thumbnailUrl ? (
-          <img src={event.thumbnailUrl} alt="" draggable={false} />
+        {coverSrc ? (
+          <img src={coverSrc} alt="" draggable={false} />
         ) : (
           <div className="event-card-thumb-empty" aria-hidden="true">
             <FaCalendarAlt />

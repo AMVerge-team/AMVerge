@@ -23,12 +23,14 @@ export default function EventCard({ event, onOpen, preview = false, onDelete, is
   const ended = hasEnded(event);
   const countdown = countdownLabel(event);
   const status = statusLabel(event);
+  // pending/denied events cannot be served from the public thumbnail route, so use the host's inline data URL first
+  const coverSrc = event.thumbnailDataUrl || event.thumbnailUrl;
 
   const body = (
     <>
       <div className="event-card-thumb">
-        {event.thumbnailUrl ? (
-          <img src={event.thumbnailUrl} alt="" loading="lazy" draggable={false} />
+        {coverSrc ? (
+          <img src={coverSrc} alt="" loading="lazy" draggable={false} />
         ) : (
           <div className="event-card-thumb-empty" aria-hidden="true">
             <FaCalendarAlt />
