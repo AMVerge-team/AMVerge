@@ -277,3 +277,14 @@
 .zoom-label {
     pointer-events: none;
 }
+
+/* macos draws the native traffic lights in the navbar's left corner, so the custom ones step aside */
+:root[data-platform="mac"] .navbar {
+    padding-left: 84px;
+}
+
+:root[data-platform="mac"] .window-control.minimize,
+:root[data-platform="mac"] .window-control.maximize,
+:root[data-platform="mac"] .window-control.close {
+    display: none;
+}

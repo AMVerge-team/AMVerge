@@ -12,6 +12,8 @@ import { askNotice, showNotice } from "./features/notice/notice";
 import { initI18n, t } from "./i18n";
 
 initConsoleCapture();
+// macos uses the native rounded window with its own traffic lights (tauri.macos.conf.json)
+if (navigator.userAgent.includes("Mac OS X")) document.documentElement.dataset.platform = "mac";
 // resolves the language before anything renders, so the first frame never flashes the wrong one
 initI18n();
 

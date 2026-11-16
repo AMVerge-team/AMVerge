@@ -1,6 +1,26 @@
 {
+  "app": {
+    "windows": [
+      {
+        "title": "AMVerge",
+        "minWidth": 920,
+        "minHeight": 540,
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "backgroundColor": "#000000",
+        "trafficLightPosition": {
+          "x": 16,
+          "y": 23
+        }
+      }
+    ]
+  },
   "bundle": {
-    "targets": ["app", "dmg"],
+    "targets": [
+      "app",
+      "dmg"
+    ],
     "createUpdaterArtifacts": true,
     "macOS": {
       "minimumSystemVersion": "10.15"
