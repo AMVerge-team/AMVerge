@@ -11,7 +11,7 @@ AMVerge helps editors turn long videos into usable clips quickly. Import an epis
 
 ## Features
 
-- **Flexible scene splitting**: keyframe-based cutting, GPU-accelerated AI scene detection (`TransNetV2`), and CPU detection (`PySceneDetect`)
+- **Flexible scene splitting**: keyframe-based cutting and optional GPU-accelerated AI scene detection (`TransNetV2`)
 - **Instant clip previewing**: lazy-mounted streaming video clips and animated WebP grid previews
 - **Scene Scout**: SigLIP 2 semantic text search and visual Flow / Match similarity search across indexed `.scoutdb` databases
 - **Scenepacks & folder organization**: organize imported episodes into nested folders and build reusable scenepacks
@@ -65,7 +65,7 @@ Handles:
 
 Video processing lives in a companion repository, [AMVerge-CLI](https://github.com/AMVerge-team/AMVerge-CLI) (run from a local virtualenv in dev and bundled as a PyInstaller sidecar in releases). It handles:
 
-- keyframe, `TransNetV2`, and `PySceneDetect` scene detection
+- keyframe and `TransNetV2` scene detection
 - clip cutting, exact-copy remuxing, and hardware-accelerated export pipelines
 - Scene Scout SigLIP 2 embedding, indexing, and daemon search
 - AI depth-map and upscaling passes
@@ -74,11 +74,10 @@ Video processing lives in a companion repository, [AMVerge-CLI](https://github.c
 
 ## Scene Splitting Options
 
-AMVerge supports both stream-copied keyframe splitting and AI/CPU cut detection:
+AMVerge supports both stream-copied keyframe splitting and AI cut detection:
 
 - **Keyframe Detection**: splits cleanly at source keyframes with zero re-encoding on import
-- **AI Scene Detection (`TransNetV2`)**: detects visual cuts on GPU, stream-copying scenes aligned to closed keyframes and queueing background cuts for the rest
-- **CPU Detection (`PySceneDetect`)**: adaptive scene detection without requiring GPU weights
+- **AI Scene Detection (`TransNetV2`)**: detects visual cuts on GPU (with CPU fallback), stream-copying scenes aligned to closed keyframes and queueing background cuts for the rest
 
 ---
 
