@@ -1,37 +1,33 @@
-# AMVerge V2
+# AMVerge Linux
 
-> This branch is for version V2. Please do not contribute to this branch as I
-> want to personally refactor and redo the pipeline.
+> This branch is for Linux desktop development and packaging (AppImage and deb).
 
 A desktop app for editors who need to split videos into usable clips, preview
 scenes, and export selections without going through a full editor.
 
-- **Frontend** React + TypeScript
-- **Desktop shell** Tauri (Rust)
-- **Video processing** [AMVerge-CLI](https://github.com/AMVerge-team/AMVerge-CLI) (Python)
-- **Media tools** FFmpeg / FFprobe / PyAV
+- **Frontend**: React + TypeScript
+- **Desktop shell**: Tauri (Rust)
+- **Video processing**: [AMVerge-CLI](https://github.com/AMVerge-team/AMVerge-CLI) (Python)
+- **Media tools**: FFmpeg / FFprobe / PyAV
 
-## Setup
+## Setup on Linux
 
-The app and the CLI are separate repositories, and a dev build runs the CLI out
-of a virtualenv in its checkout. One script sets both up:
-
-```powershell
-.\setup.ps1        # Windows
-```
-
+1. Install system prerequisites (Ubuntu / Debian):
 ```bash
-./setup.sh         # macOS / Linux
+sudo apt update
+sudo apt install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
+  libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
 ```
 
-Then:
+2. Run the developer setup script:
+```bash
+./setup.sh
+```
 
+3. Start the development server:
 ```bash
 cd frontend
 npm run tauri:dev
 ```
 
-Prerequisites, the AI extras, what goes in `.env`, and the manual equivalent of
-each step are in [CONTRIBUTING.md](CONTRIBUTING.md#local-setup).
-
-Architecture notes are in [documentation.md](documentation.md).
+Architecture and packaging plans are documented in [LINUX_DEVELOPMENT.md](LINUX_DEVELOPMENT.md).
