@@ -24,7 +24,7 @@
     width: min(1180px, 100%);
     height: min(880px, 100%);
     border: 1px solid rgb(255 255 255 / 0.15);
-    border-radius: 14px;
+    border-radius: var(--radius-xl);
     background: rgb(0 0 0 / 0.72);
     box-shadow: 0 24px 60px rgb(0 0 0 / 0.55);
     overflow: hidden;

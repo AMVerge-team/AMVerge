@@ -61,7 +61,7 @@
 .settings-control input[type="range"]::-webkit-slider-runnable-track {
     background: rgba(255, 255, 255, 0.1);
     height: 6px;
-    border-radius: 3px;
+    border-radius: var(--radius-xs);
 }
 
 .settings-control input[type="range"]::-webkit-slider-thumb {
@@ -110,7 +110,7 @@
     color: rgba(255, 255, 255, 0.75);
     background: rgba(255,255,255,0.08);
     border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     box-sizing: border-box;
 
     overflow: hidden;
@@ -130,7 +130,7 @@
 .settings-select {
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     color: rgba(255, 255, 255, 0.85);
     padding: 6px 12px;
     font-size: 16px;
@@ -200,12 +200,12 @@
 
 .settings-tab-content > .panel.settings-panel::-webkit-scrollbar-track {
     background: rgb(255 255 255 / 0.02);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
 }
 
 .settings-tab-content > .panel.settings-panel::-webkit-scrollbar-thumb {
     background: rgb(var(--accent-rgb) / 0.34);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     border: 2px solid transparent;
     background-clip: content-box;
 }

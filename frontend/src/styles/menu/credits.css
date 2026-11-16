@@ -8,7 +8,7 @@
 
 .credits-content::-webkit-scrollbar-thumb {
     background: var(--accent);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .credits-content::-webkit-scrollbar-track {

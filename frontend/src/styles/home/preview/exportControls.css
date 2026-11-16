@@ -5,7 +5,7 @@
     background: rgba(0, 0, 0, 0.45);
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     padding: 16px;
     display: grid;
     grid-template-columns: 1fr;
@@ -100,7 +100,7 @@
     padding: 4px 10px !important;
     background: rgba(255, 255, 255, 0.05) !important;
     border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    border-radius: 8px !important;
+    border-radius: var(--radius-md) !important;
     transition: all 0.2s ease !important;
 }
 
@@ -144,7 +144,7 @@
     justify-content: center !important;
     align-self: center !important;
     justify-self: center !important;
-    border-radius: 6px !important;
+    border-radius: var(--radius-sm) !important;
     background: rgba(var(--accent-rgb), 0.1) !important;
     border: 1px solid rgba(var(--accent-rgb), 0.28) !important;
     color: var(--accent) !important;
@@ -275,7 +275,7 @@
     padding: 0 12px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     color: white;
     font-family: inherit;
     font-size: 0.9rem;
@@ -369,7 +369,7 @@
     justify-content: center;
     background: rgba(255, 255, 255, 0.05) !important;
     border: 1px solid rgba(var(--accent-rgb), 0.3) !important;
-    border-radius: 8px !important;
+    border-radius: var(--radius-md) !important;
     color: rgba(255, 255, 255, 0.8);
     cursor: pointer;
     transition: all 0.2s ease !important;
@@ -408,7 +408,7 @@
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .btn-icon {
@@ -480,6 +480,6 @@
 }
 
 .export-panel .custom-checkbox>.checkmark {
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: rgba(255, 255, 255, 0.05);
 }

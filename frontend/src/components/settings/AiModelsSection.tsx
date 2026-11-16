@@ -138,7 +138,7 @@ export default function AiModelsSection() {
           padding: "8px 12px",
           background: "rgba(255, 255, 255, 0.03)",
           border: "1px solid rgba(255, 255, 255, 0.08)",
-          borderRadius: 8,
+          borderRadius: "var(--radius-md)",
           transition: "border-color 0.15s ease",
         }}
       >
@@ -190,7 +190,7 @@ export default function AiModelsSection() {
             className={`aid-state${model.downloaded ? " installed" : ""}`}
             style={{
               padding: "2px 8px",
-              borderRadius: 4,
+              borderRadius: "var(--radius-xs)",
               fontSize: "0.72rem",
               background: model.downloaded ? "rgb(var(--accent-rgb) / 0.12)" : "rgba(255, 255, 255, 0.04)",
               border: `1px solid ${model.downloaded ? "rgb(var(--accent-rgb) / 0.3)" : "rgba(255, 255, 255, 0.08)"}`,

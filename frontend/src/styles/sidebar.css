@@ -41,7 +41,7 @@ body.is-resizing-sidebar {
     backdrop-filter: blur(4px);
     border: 1px solid rgb(var(--accent-rgb) / 0.9);
     color: white;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     transition: background 0.2s ease, border 0.1s ease, color 0.1s ease;
 }
 
@@ -154,7 +154,7 @@ body.is-resizing-sidebar {
     font-family: var(--app-font);
     font-size: 12px;
     padding: 4px 8px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgba(0, 0, 0, 0.25);
     border: 1px solid rgba(255, 255, 255, 0.18);
     color: white;
@@ -192,7 +192,7 @@ body.is-resizing-sidebar {
     min-height: 0;
     overflow: auto;
     padding: 6px;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(0, 0, 0, 0.22);
     -webkit-backdrop-filter: blur(4px);
@@ -214,7 +214,7 @@ body.is-resizing-sidebar {
     align-items: center;
     gap: 8px;
     padding: 6px 8px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     color: white;
     min-width: 0;
@@ -285,7 +285,7 @@ body.is-resizing-sidebar {
     background: rgba(255, 255, 255, 0.04);
 
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 11px;
     cursor: pointer;
     transition: all 0.15s ease;
@@ -336,7 +336,7 @@ body.is-resizing-sidebar {
 .episode-panel-caret {
     width: 20px;
     height: 20px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: transparent;
     border: 1px solid rgba(255,255,255,0.12);
     color: white;
@@ -360,7 +360,7 @@ body.is-resizing-sidebar {
     z-index: 9999;
     background: rgba(0,0,0,0.92);
     border: 1px solid rgba(255,255,255,0.18);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     padding: 6px;
     min-width: 140px;
 }
@@ -372,7 +372,7 @@ body.is-resizing-sidebar {
     border: none;
     color: white;
     text-align: left;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-family: var(--app-font);
 }
@@ -407,7 +407,7 @@ body.is-resizing-sidebar {
     width: min(420px, 92vw);
     background: rgba(0,0,0,0.92);
     border: 1px solid rgba(255,255,255,0.18);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     padding: 12px;
     box-shadow: 0 18px 60px rgba(0,0,0,0.65);
 }
@@ -434,7 +434,7 @@ body.is-resizing-sidebar {
     margin: -4px 0 12px;
     padding: 7px 10px;
     border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgba(255, 255, 255, 0.04);
     font-family: var(--ui-font);
     font-size-adjust: none;
@@ -468,7 +468,7 @@ body.is-resizing-sidebar {
     max-height: 140px;
     overflow-y: auto;
     border: 1px solid rgb(var(--accent-rgb) / 0.3);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgb(var(--accent-rgb) / 0.06);
     font-family: var(--ui-font);
     font-size-adjust: none;
@@ -514,7 +514,7 @@ body.is-resizing-sidebar {
 .episode-modal-input {
     width: 100%;
     padding: 10px 12px;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     border: 1px solid rgba(255,255,255,0.18);
     background: rgba(0,0,0,0.35);
     color: white;
@@ -537,7 +537,7 @@ body.is-resizing-sidebar {
 
 .episode-modal-btn {
     padding: 8px 12px;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     background: rgba(0,0,0,0.25);
     border: 1px solid rgba(255,255,255,0.18);
     color: white;

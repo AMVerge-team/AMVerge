@@ -191,7 +191,7 @@
     align-items: stretch;
     justify-content: center;
     overflow: hidden;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     border: 1px dashed rgba(255, 255, 255, 0.1);
     background: rgba(0, 0, 0, 0.25);
     scrollbar-width: thin;
@@ -257,7 +257,7 @@
     flex-direction: column;
     gap: 2px;
     padding: 8px 10px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(0, 0, 0, 0.35);
     color: rgba(255, 255, 255, 0.75);

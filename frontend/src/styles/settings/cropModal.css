@@ -13,7 +13,7 @@
     width: min(800px, 90vw);
     background: #0a0a0a;
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 16px;
+    border-radius: var(--radius-xl);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -56,7 +56,7 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: rgba(255, 255, 255, 0.7);
     padding: 6px 12px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-family: var(--app-font);
     font-size: 1rem;
     cursor: pointer;
@@ -147,7 +147,7 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: white;
     padding: 8px 12px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-family: var(--app-font);
     font-size: 0.9rem;
@@ -181,7 +181,7 @@
     align-items: center;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     padding: 2px 8px;
     flex: 1;
     height: 32px;
@@ -247,7 +247,7 @@
     height: 40px;
     min-width: 120px;
     padding: 0 20px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     font-family: var(--app-font);
     font-size: 1.1rem;
     letter-spacing: 1px;

@@ -37,7 +37,7 @@
     --clip-overlay-inset: 7px;
     width: 100%;
     aspect-ratio: var(--clip-tile-aspect, 1 / 1);
-    border-radius: 15px;
+    border-radius: var(--radius-xl);
     position: relative;
     overflow: hidden;
     background: black;
@@ -97,7 +97,7 @@
     z-index: 12;
     width: 25px;
     height: 25px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgba(0, 0, 0, 0.2);
     backdrop-filter: blur(2px);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -166,7 +166,7 @@
     background-color: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(4px);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     transition: all 0.2s ease;
 }
 
@@ -203,7 +203,7 @@
 /* fully opaque, so a thumbnail underneath never shows through the shimmer */
 .clip-skeleton {
     aspect-ratio: var(--clip-tile-aspect, 1 / 1);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     background-color: #1a1a1a;
     background-image: linear-gradient(90deg,
             #1a1a1a 25%,
@@ -217,7 +217,7 @@
     position: absolute;
     inset: 0;
     z-index: 2;
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     pointer-events: none;
     transition: opacity 0.15s ease;
 }
@@ -250,7 +250,7 @@
 .clip-download-btn {
     width: 25px;
     height: 25px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     border: 1px solid rgb(255 255 255 / 0.14);
     background: rgb(8 12 22 / 0.2);
     color: rgb(255 255 255 / 0.98);
@@ -359,7 +359,7 @@
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
     background: rgba(0, 0, 0, 0.6);
     padding: 6px 12px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     border: 1px solid rgba(255, 255, 255, 0.1);
     animation: pulse 1.5s infinite;
 }
@@ -391,7 +391,7 @@
     font-size: 11px;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     padding: 2px 5px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     font-weight: 500;
     pointer-events: none;
     letter-spacing: 0.5px;
@@ -409,7 +409,7 @@
   gap: 8px;
   padding: 6px 12px;
   margin: 0 15px calc(-1 * (var(--selection-bar-height)));
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   border: 1px solid rgb(var(--accent-rgb) / 0.35);
   background: rgba(0, 0, 0, 0.72);
   -webkit-backdrop-filter: blur(6px);
@@ -434,7 +434,7 @@
   align-items: center;
   gap: 4px;
   padding: 5px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(0, 0, 0, 0.25);
   color: white;

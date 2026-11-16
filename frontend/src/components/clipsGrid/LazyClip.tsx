@@ -413,7 +413,7 @@ export const LazyClip = memo(function LazyClip({
       )}
 
       {videoClipPending ? (
-        <div className="clip clip-skeleton" style={{ borderRadius: 15 }} />
+        <div className="clip clip-skeleton" style={{ borderRadius: "var(--radius-xl)" }} />
       ) : (
         <>
           {/* webp mode static thumbnail; video mode uses the poster below instead */}

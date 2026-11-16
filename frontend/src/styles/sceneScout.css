@@ -47,7 +47,7 @@
     height: 38px;
     padding: 0 12px;
     border: 1px solid rgb(255 255 255 / 0.14);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgb(0 0 0 / 0.4);
     transition: border-color 0.15s ease, background 0.15s ease;
 }
@@ -99,7 +99,7 @@
 .scene-scout-search-go {
     padding: 0 12px;
     height: 26px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: rgb(var(--accent-rgb) / 0.18);
     color: var(--accent);
     font-size: 0.8rem;
@@ -127,7 +127,7 @@
     gap: 16px;
     padding: 10px 12px;
     border: 1px solid rgb(255 255 255 / 0.1);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgb(0 0 0 / 0.28);
     font-family: var(--ui-font);
 }
@@ -177,7 +177,7 @@
     height: 30px;
     padding: 0 8px;
     border: 1px solid rgb(255 255 255 / 0.15);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: rgb(0 0 0 / 0.4);
     color: #fff;
     font-family: var(--ui-font);
@@ -192,7 +192,7 @@
 .scene-scout-create button {
     padding: 0 10px;
     border: 1px solid var(--accent);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: rgb(var(--accent-rgb) / 0.15);
     color: var(--accent);
     font-family: var(--ui-font);
@@ -228,7 +228,7 @@
     height: 34px;
     padding: 6px 10px;
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.9);
     font-family: var(--ui-font);
@@ -340,7 +340,7 @@
     flex-direction: column;
     gap: 6px;
     padding: 10px;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(0, 0, 0, 0.22);
     -webkit-backdrop-filter: blur(4px);
@@ -367,7 +367,7 @@
     align-items: center;
     gap: 6px;
     padding: 4px 10px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     border: 1px solid rgb(var(--accent-rgb) / 0.5);
     background: transparent;
     color: var(--accent);
@@ -400,7 +400,7 @@
     min-width: 0;
     gap: 10px;
     padding: 8px 10px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     border: 1px solid transparent;
     background: rgba(255, 255, 255, 0.03);
     color: rgba(255, 255, 255, 0.85);
@@ -582,7 +582,7 @@
     flex: none;
     padding: 3px 8px;
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: transparent;
     color: #fff;
     font-family: var(--ui-font);
@@ -610,7 +610,7 @@
     width: 100%;
     padding: 6px 8px;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: transparent;
     color: var(--accent);
     font-family: var(--ui-font);
@@ -683,7 +683,7 @@
     gap: 8px;
     padding: 7px 10px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgba(255, 255, 255, 0.03);
     color: #fff;
     font: inherit;
@@ -709,7 +709,7 @@
     align-items: center;
     justify-content: center;
     border: 1.5px solid rgba(255, 255, 255, 0.5);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     color: var(--accent);
     font-size: 9px;
 }
@@ -784,7 +784,7 @@
     width: 100%;
     margin: 6px 0;
     padding: 10px 14px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgba(0, 0, 0, 0.35);
     font-size: 12px;
     text-align: left;
@@ -819,7 +819,7 @@
     align-items: flex-start;
     gap: 3px;
     padding: 10px 12px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     border: 1px solid rgba(255, 255, 255, 0.14);
     background: rgba(255, 255, 255, 0.03);
     color: #fff;
@@ -862,7 +862,7 @@
     padding: 12px;
     box-sizing: border-box;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     background: rgba(0, 0, 0, 0.92);
     -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
@@ -941,7 +941,7 @@
     height: 2rem;
     padding: 2px;
     border: 1px solid rgb(var(--accent-rgb) / 0.9);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     background: rgba(15, 0, 0, 0.1);
     -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
@@ -951,7 +951,7 @@
     height: 100%;
     padding: 0 14px;
     border: none;
-    border-radius: 7px;
+    border-radius: var(--radius-md);
     background: transparent;
     color: rgb(255 255 255 / 0.6);
     font-family: var(--app-font);
@@ -1050,7 +1050,7 @@
     width: 100%;
     aspect-ratio: 16 / 9;
     min-height: 0;
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
     background: black;
     border: 1px solid rgb(255 255 255 / 0.08);
@@ -1087,7 +1087,7 @@
     justify-content: space-between;
     gap: 12px;
     padding: 8px 12px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     border: 1px solid rgb(255 255 255 / 0.12);
     background: rgb(0 0 0 / 0.3);
     color: rgb(255 255 255 / 0.85);
@@ -1152,7 +1152,7 @@
     height: 46px;
     padding: 0 12px;
     border: 1px dashed rgb(var(--accent-rgb) / 0.55);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgb(0 0 0 / 0.4);
     color: rgb(255 255 255 / 0.75);
     font-family: var(--ui-font);
@@ -1277,7 +1277,7 @@ body.scene-scout-resizing {
     z-index: 10000;
     pointer-events: none;
     padding: 4px 10px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: rgb(0 0 0 / 0.85);
     border: 1px solid rgb(var(--accent-rgb) / 0.6);
     font-size: 12px;
@@ -1299,7 +1299,7 @@ body.scene-scout-resizing {
     height: 36px;
     padding: 0 10px;
     border: 1px solid rgb(255 255 255 / 0.15);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgb(0 0 0 / 0.4);
     color: #fff;
     font-family: var(--ui-font);
@@ -1377,7 +1377,7 @@ body.scene-scout-resizing {
     justify-content: center;
     font-family: var(--app-font);
     border: 1px solid rgb(var(--accent-rgb) / 0.85);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgba(15, 0, 0, 0.15);
     -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
@@ -1433,7 +1433,7 @@ body.scene-scout-resizing {
 
 .scout-tour-highlight {
     position: fixed;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     border: 2px solid var(--accent);
     box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 18px rgba(var(--accent-rgb), 0.45);
     pointer-events: none;
@@ -1446,7 +1446,7 @@ body.scene-scout-resizing {
     max-width: calc(100vw - 24px);
     box-sizing: border-box;
     padding: 16px 18px 14px;
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     background: rgba(16, 16, 20, 0.97);
     border: 1px solid rgba(var(--accent-rgb), 0.4);
     box-shadow: 0 18px 50px rgba(0, 0, 0, 0.7);
@@ -1490,7 +1490,7 @@ body.scene-scout-resizing {
 
 .scout-tour-btn {
     padding: 6px 12px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.14);
     color: rgba(255, 255, 255, 0.85);

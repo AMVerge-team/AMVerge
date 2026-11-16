@@ -32,7 +32,7 @@
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 14px;
+    border-radius: var(--radius-xl);
     overflow: hidden;
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
@@ -119,7 +119,7 @@
     margin: 12px 0 16px 0;
     padding: 4px;
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .platform-btn {
@@ -131,7 +131,7 @@
     font-size: 0.75rem;
     font-family: inherit;
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -175,12 +175,12 @@
 
 .info-steps::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.03);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
 }
 
 .info-steps::-webkit-scrollbar-thumb {
     background: var(--accent);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.3);
 }
 

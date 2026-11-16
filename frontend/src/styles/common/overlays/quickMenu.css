@@ -20,7 +20,7 @@
     padding: 24px;
     width: min(540px, 100%);
     border: 1px solid rgb(255 255 255 / 0.15);
-    border-radius: 14px;
+    border-radius: var(--radius-xl);
     background: rgb(12 12 14 / 0.85);
     backdrop-filter: blur(16px);
     box-shadow: 0 24px 60px rgb(0 0 0 / 0.6);
@@ -35,7 +35,7 @@
     padding: 14px 18px;
     background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.1) 0%, rgba(255, 255, 255, 0.02) 100%);
     border: 1px solid rgba(var(--accent-rgb), 0.25);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
 }
 
 .quick-menu-hero .about-hero-title {
@@ -65,7 +65,7 @@
     gap: 14px;
     padding: 12px 16px;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     background: rgba(0, 0, 0, 0.35);
     color: #ffffff;
     font-family: inherit;
@@ -80,7 +80,7 @@
     justify-content: center;
     width: 38px;
     height: 38px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgba(var(--accent-rgb), 0.12);
     border: 1px solid rgba(var(--accent-rgb), 0.3);
     color: var(--accent);
@@ -141,7 +141,7 @@
     align-items: center;
     justify-content: center;
     padding: 8px 12px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.04);
     color: rgba(255, 255, 255, 0.85);

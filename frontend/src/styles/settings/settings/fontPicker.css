@@ -12,7 +12,7 @@
     width: 100%;
     padding: 8px 12px;
     border: 1px solid rgb(255 255 255 / 0.15);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgb(0 0 0 / 0.3);
     color: inherit;
     font-size: 18px;
@@ -47,7 +47,7 @@
     max-width: calc(100vw - 48px);
     padding: 8px;
     border: 1px solid rgb(255 255 255 / 0.15);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgb(20 20 20 / 0.97);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
@@ -66,7 +66,7 @@
     min-width: 0;
     padding: 6px 10px;
     border: 1px solid rgb(255 255 255 / 0.15);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgb(0 0 0 / 0.3);
     color: inherit;
     font-family: var(--app-font);
@@ -99,7 +99,7 @@
 .font-picker-option {
     padding: 6px 10px;
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: transparent;
     color: inherit;
     font-size: 18px;

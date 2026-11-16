@@ -50,6 +50,16 @@
     --app-font: var(--system-font);
     --app-font-adjust: none;
 
+    /* corner radii follow codex: its base steps times a 1.25 corner scale */
+    --corner-radius-scale: 1.25;
+    --radius-xs: calc(4px * var(--corner-radius-scale));
+    --radius-sm: calc(6px * var(--corner-radius-scale));
+    --radius-md: calc(8px * var(--corner-radius-scale));
+    --radius-lg: calc(10px * var(--corner-radius-scale));
+    --radius-xl: calc(12px * var(--corner-radius-scale));
+    --radius-2xl: calc(16px * var(--corner-radius-scale));
+    --radius-full: 9999px;
+
     /* text that is read rather than glanced at; never follows the user's font choice */
     --ui-font: var(--system-font);
     /* the AMVerge wordmark (navbar, splash); never follows the user's font choice */

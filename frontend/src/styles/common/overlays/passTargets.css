@@ -80,7 +80,7 @@
     gap: 6px;
     padding: 6px;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     background: rgba(255, 255, 255, 0.03);
     opacity: 0.55;
     transition: opacity 0.12s ease, border-color 0.12s ease;
@@ -97,7 +97,7 @@
     aspect-ratio: 16 / 9;
     padding: 0;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     overflow: hidden;
     background: rgba(255, 255, 255, 0.06);
     cursor: default;
@@ -123,7 +123,7 @@
     top: 4px;
     z-index: 1;
     padding: 1px 6px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: rgba(0, 0, 0, 0.7);
     color: white;
     font-family: var(--ui-font);
@@ -151,7 +151,7 @@
     flex: 1 1 0;
     min-width: 0;
     padding: 4px 6px;
-    border-radius: 7px;
+    border-radius: var(--radius-md);
     border: 1px solid rgba(255, 255, 255, 0.16);
     background: rgba(0, 0, 0, 0.3);
     color: rgba(255, 255, 255, 0.6);

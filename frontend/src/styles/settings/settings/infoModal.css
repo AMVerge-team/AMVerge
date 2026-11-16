@@ -27,7 +27,7 @@
     height: 2rem;
     flex-shrink: 0;
     border: 1px solid rgb(var(--accent-rgb) / 0.9);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     background: rgba(15, 0, 0, 0.1);
     -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
@@ -61,7 +61,7 @@
     width: min(560px, 100%);
     max-height: min(680px, 100%);
     border: 1px solid rgb(var(--accent-rgb) / 0.35);
-    border-radius: 14px;
+    border-radius: var(--radius-xl);
     background: rgb(8 8 10 / 0.98);
     box-shadow: 0 20px 50px rgb(0 0 0 / 0.55);
 

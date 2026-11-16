@@ -18,7 +18,7 @@
     flex-direction: column;
     background: rgba(0, 0, 0, 0.9);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
     overflow: hidden;
 }
@@ -36,7 +36,7 @@
     min-width: 30px;
     min-height: 30px;
     border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgba(0, 0, 0, 0.55);
     color: #fff;
     font-size: 20px;
@@ -72,7 +72,7 @@
     min-height: 120px;
     max-height: 45vh;
     overflow-y: auto;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.03);
     color: rgba(255, 255, 255, 0.95);
@@ -103,7 +103,7 @@
 
 .startup-notification-body::-webkit-scrollbar-thumb {
     background: var(--accent);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .startup-notification-body p {
@@ -151,7 +151,7 @@
     min-width: 120px;
     min-height: 36px;
     padding: 0 16px;
-    border-radius: 9px;
+    border-radius: var(--radius-md);
     border: 1px solid rgb(var(--accent-rgb) / 0.88);
     background: #000;
     color: #fff;

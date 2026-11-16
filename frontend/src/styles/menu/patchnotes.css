@@ -15,7 +15,7 @@
     min-height: 0;
     overflow-y: auto;
 
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     padding: 0 20px 0px 20px;
     font-family: Consolas, "Courier New", monospace;
     font-size: 13px;

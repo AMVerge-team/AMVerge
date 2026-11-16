@@ -30,7 +30,7 @@
     width: 150px;
     height: 8px;
     background: #333;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     overflow: hidden;
 }
 
@@ -66,7 +66,7 @@
 .abort-button {
     margin-top: 6px;
     padding: 6px 24px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     border: 1px solid white;
     background: black;
     color: red;
@@ -84,7 +84,7 @@
     height: min(56vh, 460px);
     background: #000;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
     font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas,
         "SF Mono", Menlo, monospace;
@@ -112,7 +112,7 @@
     width: 24px;
     height: 24px;
     border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: rgba(255, 255, 255, 0.05);
     color: rgba(255, 255, 255, 0.8);
     font-family: inherit;
@@ -142,7 +142,7 @@
 .it-body::-webkit-scrollbar { width: 8px; }
 .it-body::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.14);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
 }
 
 @keyframes it-line-in {

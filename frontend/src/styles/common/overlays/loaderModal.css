@@ -34,7 +34,7 @@
     width: 24px;
     height: 24px;
     border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: rgba(255, 255, 255, 0.05);
     color: rgba(255, 255, 255, 0.8);
     font-family: inherit;

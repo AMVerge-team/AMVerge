@@ -17,12 +17,12 @@
 
 .preview-container::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.02);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
 }
 
 .preview-container::-webkit-scrollbar-thumb {
     background: rgba(var(--accent-rgb), 0.3);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     border: 2px solid transparent;
     background-clip: content-box;
 }
@@ -49,7 +49,7 @@
     justify-content: center;
     align-items: center;
     background: black;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     border: 1px solid rgba(var(--accent-rgb), 0.3);
     overflow: hidden;
     position: relative;

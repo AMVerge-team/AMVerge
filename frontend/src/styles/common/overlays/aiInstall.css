@@ -45,7 +45,7 @@
     padding: 10px 12px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .aid-facts dt {
@@ -70,7 +70,7 @@
 .aid-btn {
     padding: 7px 14px;
     border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgba(255, 255, 255, 0.05);
     color: rgba(255, 255, 255, 0.85);
     /* Calibri: labels on controls are read, not glanced at like the display type */

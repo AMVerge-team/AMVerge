@@ -61,7 +61,7 @@
     max-height: 320px;
     overflow: auto;
     z-index: 40;
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     border: 1px solid rgb(255 255 255 / 0.14);
     background: linear-gradient(180deg, rgb(14 14 16 / 0.97), rgb(10 10 12 / 0.97));
     box-shadow: 0 16px 42px rgb(0 0 0 / 0.52);
@@ -160,7 +160,7 @@
     align-items: center;
     justify-content: center;
     border: 1px solid rgb(255 255 255 / 0.25);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgb(255 255 255 / 0.04);
     color: rgb(255 255 255 / 0.72);
     cursor: pointer;
@@ -177,7 +177,7 @@
     width: 22px;
     height: 22px;
     object-fit: cover;
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     display: block;
 }
 
@@ -256,7 +256,7 @@
     gap: 10px;
     padding: 10px 12px;
     border: 1px solid rgb(var(--accent-rgb) / 0.22);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgb(var(--accent-rgb) / 0.08);
     color: rgb(255 255 255 / 0.72);
     font-size: 0.8rem;

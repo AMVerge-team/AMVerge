@@ -33,7 +33,7 @@
     align-items: center;
     gap: 8px;
     padding: 7px 16px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.03);
     -webkit-backdrop-filter: blur(8px);
@@ -103,7 +103,7 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(12, 12, 14, 0.65);
     backdrop-filter: blur(16px);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     padding: 16px;
 }
 

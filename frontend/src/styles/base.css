@@ -92,7 +92,7 @@ body::before {
     -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
     color: white;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     cursor: pointer;
 }
 
@@ -117,7 +117,7 @@ body::before {
     -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
     color: white;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     cursor: pointer;
 }
 
@@ -157,7 +157,7 @@ body::before {
     background: rgba(var(--accent-rgb), 0.1);
     color: rgb(var(--accent-rgb));
     padding: 2px 8px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     font-size: 0.7rem;
     text-transform: uppercase;
     font-weight: 600;

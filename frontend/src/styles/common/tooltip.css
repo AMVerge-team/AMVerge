@@ -17,7 +17,7 @@
     width: max-content;
     padding: 5px 10px 4px;
     border: 1px solid var(--tooltip-border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: var(--tooltip-bg);
     -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);

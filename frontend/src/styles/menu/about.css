@@ -16,7 +16,7 @@
 
 .about-content::-webkit-scrollbar-thumb {
     background: var(--accent);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
 }
 
 .about-content::-webkit-scrollbar-track {

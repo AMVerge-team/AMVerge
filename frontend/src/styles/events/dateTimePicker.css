@@ -2,7 +2,7 @@
     width: 100%;
     min-height: 38px;
     padding: 8px 10px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(0, 0, 0, 0.35);
     color: #fff;
@@ -40,7 +40,7 @@
     width: 100%;
     min-height: 38px;
     padding: 8px 10px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(0, 0, 0, 0.35);
     color: #fff;
@@ -77,7 +77,7 @@
     left: 0;
     width: 268px;
     padding: 10px;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: #0d0d0d;
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
@@ -100,7 +100,7 @@
     justify-content: center;
     width: 26px;
     height: 26px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.04);
     color: rgba(255, 255, 255, 0.75);
@@ -134,7 +134,7 @@
     align-items: center;
     justify-content: center;
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: none;
     color: rgba(255, 255, 255, 0.85);
     font-family: inherit;
@@ -185,7 +185,7 @@
     min-width: 0;
     height: 30px;
     padding: 0 6px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(0, 0, 0, 0.5);
     color: #fff;
@@ -207,7 +207,7 @@
     display: flex;
     gap: 2px;
     padding: 2px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(0, 0, 0, 0.5);
 }
@@ -215,7 +215,7 @@
 .event-datetime-meridiem-option {
     padding: 3px 8px;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     background: none;
     color: rgba(255, 255, 255, 0.55);
     font-family: inherit;
@@ -253,7 +253,7 @@
 .event-datetime-done {
     margin-left: auto;
     padding: 5px 12px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     border: 1px solid var(--accent);
     background: rgb(var(--accent-rgb) / 0.16);
     color: #fff;

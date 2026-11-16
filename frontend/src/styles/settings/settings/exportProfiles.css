@@ -192,7 +192,7 @@
     width: 100%;
     padding: 0 10px;
     border: 1px solid rgb(255 255 255 / 0.16);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: rgb(255 255 255 / 0.08);
     color: white;
     font-family: inherit;
@@ -231,7 +231,7 @@
     min-height: 58px;
     height: auto;
     padding: 8px 12px;
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     background: linear-gradient(94deg, rgb(255 255 255 / 0.07) 0%, rgb(255 255 255 / 0.03) 100%);
     border: 1px solid rgb(255 255 255 / 0.2);
 }
@@ -321,7 +321,7 @@
     align-self: center;
     justify-self: center;
     padding: 0;
-    border-radius: 9px;
+    border-radius: var(--radius-md);
     font-size: 0.5rem;
     color: rgb(212 187 255 / 0.95);
     border: 1px solid rgb(206 176 255 / 0.35);
