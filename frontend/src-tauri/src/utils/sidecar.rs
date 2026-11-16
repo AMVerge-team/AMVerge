@@ -163,6 +163,10 @@ fn sidecar_rel_dir() -> Result<&'static str, String> {
         Ok("bin/amverge-aarch64-apple-darwin")
     } else if cfg!(target_os = "macos") {
         Ok("bin/amverge-x86_64-apple-darwin")
+    } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+        Ok("bin/amverge-x86_64-unknown-linux-gnu")
+    } else if cfg!(all(target_os = "linux", target_arch = "aarch64")) {
+        Ok("bin/amverge-aarch64-unknown-linux-gnu")
     } else {
         Err("amverge sidecar: unsupported platform".to_string())
     }
@@ -187,6 +191,10 @@ pub fn uv_binary(app: &AppHandle) -> Result<PathBuf, String> {
         "aarch64-apple-darwin"
     } else if cfg!(target_os = "macos") {
         "x86_64-apple-darwin"
+    } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+        "x86_64-unknown-linux-gnu"
+    } else if cfg!(all(target_os = "linux", target_arch = "aarch64")) {
+        "aarch64-unknown-linux-gnu"
     } else {
         return Err("uv: unsupported platform".to_string());
     };

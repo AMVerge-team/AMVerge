@@ -15,6 +15,10 @@ pub fn resolve_bundled_tool(app: &AppHandle, tool_name: &str) -> Result<PathBuf,
         "bin/amverge-aarch64-apple-darwin/_internal"
     } else if cfg!(target_os = "macos") {
         "bin/amverge-x86_64-apple-darwin/_internal"
+    } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+        "bin/amverge-x86_64-unknown-linux-gnu/_internal"
+    } else if cfg!(all(target_os = "linux", target_arch = "aarch64")) {
+        "bin/amverge-aarch64-unknown-linux-gnu/_internal"
     } else {
         return Err("resolve_bundled_tool: unsupported platform".to_string());
     };
