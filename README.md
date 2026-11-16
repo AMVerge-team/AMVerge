@@ -11,13 +11,10 @@ AMVerge helps editors turn long videos into usable clips quickly. Import an epis
 
 ## Downloads
 
-| Platform | Package / Format | Architecture | Download |
-| :--- | :--- | :--- | :--- |
-| **Windows** | Setup Installer (`.exe`) | x86_64 (64-bit) | [Download](https://github.com/AMVerge-team/AMVerge/releases/latest) |
-| **macOS** | Universal DMG (`.dmg`) | Apple Silicon + Intel | [Download](https://github.com/AMVerge-team/AMVerge/releases/latest) |
-| **Linux (Universal)** | Standalone Portable (`.AppImage`) | x86_64 (64-bit) | [Download](https://github.com/AMVerge-team/AMVerge/releases/latest) |
-| **Ubuntu / Debian / Zorin** | Package (`.deb`) | x86_64 (64-bit) | [Download](https://github.com/AMVerge-team/AMVerge/releases/latest) |
-| **Fedora / RHEL / openSUSE** | Package (`.rpm`) | x86_64 (64-bit) | [Download](https://github.com/AMVerge-team/AMVerge/releases/latest) |
+| Platform | Package Format | Architecture | Download Link |
+| :--- | :--- | :--- | :---: |
+| **Windows** | Setup Installer (`.exe`) | x86-64 | [Download EXE](https://github.com/AMVerge-team/AMVerge/releases/latest) |
+| **macOS** | Universal DMG (`.dmg`) | Apple Silicon + Intel | [Download DMG](https://github.com/AMVerge-team/AMVerge/releases/latest) |
 
 For all assets, checksums, and previous versions, see [Releases](https://github.com/AMVerge-team/AMVerge/releases).
 
