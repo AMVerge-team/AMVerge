@@ -86,3 +86,78 @@ jobs:
       - name: Check Rust/Tauri compile
         working-directory: frontend/src-tauri
         run: cargo check
+
+  check-linux:
+    name: Build checks (Linux)
+    runs-on: ubuntu-22.04
+    env:
+      AMVERGE_CLI_INSTALL_SPEC: "amverge[edge,discord,dev]"
+      AMVERGE_API_BASE_URL: ${{ secrets.AMVERGE_API_BASE_URL }}
+      AMVERGE_DISCORD_APP_CLIENT_ID: ${{ secrets.AMVERGE_DISCORD_APP_CLIENT_ID }}
+      AMVERGE_TORCH_INDEX_URL: ""
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libssl-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libxdo-dev \
+            libwebkit2gtk-4.1-dev \
+            rpm \
+            patchelf \
+            ffmpeg
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Stage FFmpeg binaries for the sidecar
+        run: |
+          FFMPEG_DIR="$GITHUB_WORKSPACE/frontend/.ffmpeg-bin"
+          mkdir -p "$FFMPEG_DIR"
+          cp "$(which ffmpeg)" "$FFMPEG_DIR/ffmpeg"
+          cp "$(which ffprobe)" "$FFMPEG_DIR/ffprobe"
+          chmod +x "$FFMPEG_DIR/ffmpeg" "$FFMPEG_DIR/ffprobe"
+          echo "FFMPEG_BIN_DIR=$FFMPEG_DIR" >> "$GITHUB_ENV"
+
+      - name: Build Python sidecar
+        working-directory: frontend
+        run: node scripts/build-sidecar.mjs --target x86_64-unknown-linux-gnu
+
+      - name: Verify sidecar exists
+        run: |
+          ls -la frontend/src-tauri/bin/amverge-x86_64-unknown-linux-gnu
+
+      - name: Check frontend build
+        working-directory: frontend
+        run: npm run build
+
+      - name: Check Rust/Tauri compile
+        working-directory: frontend/src-tauri
+        run: cargo check
