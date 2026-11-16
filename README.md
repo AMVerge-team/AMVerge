@@ -9,6 +9,20 @@ AMVerge helps editors turn long videos into usable clips quickly. Import an epis
 
 ---
 
+## Downloads
+
+| Platform | Package / Format | Architecture | Download |
+| :--- | :--- | :--- | :--- |
+| **Windows** | Setup Installer (`.exe`) | x86_64 (64-bit) | [Download](https://github.com/AMVerge-team/AMVerge/releases/latest) |
+| **macOS** | Universal DMG (`.dmg`) | Apple Silicon + Intel | [Download](https://github.com/AMVerge-team/AMVerge/releases/latest) |
+| **Linux (Universal)** | Standalone Portable (`.AppImage`) | x86_64 (64-bit) | [Download](https://github.com/AMVerge-team/AMVerge/releases/latest) |
+| **Ubuntu / Debian / Zorin** | Package (`.deb`) | x86_64 (64-bit) | [Download](https://github.com/AMVerge-team/AMVerge/releases/latest) |
+| **Fedora / RHEL / openSUSE** | Package (`.rpm`) | x86_64 (64-bit) | [Download](https://github.com/AMVerge-team/AMVerge/releases/latest) |
+
+For all assets, checksums, and previous versions, see [Releases](https://github.com/AMVerge-team/AMVerge/releases).
+
+---
+
 ## Features
 
 - **Flexible scene splitting**: keyframe-based cutting and optional GPU-accelerated AI scene detection (`TransNetV2`)
