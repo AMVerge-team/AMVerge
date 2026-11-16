@@ -1,0 +1,277 @@
+{
+  "font": {
+    "default": "Default (System)",
+    "pixel": "Pixel (Jersey 10 + Chinese pixel font)",
+    "search": "Search fonts...",
+    "loadAll": "Load all installed",
+    "loadAllTooltip": "List every font installed on this system",
+    "noneFound": "No fonts found"
+  },
+  "resetToDefaults": "Reset to Defaults",
+  "options": {
+    "sceneDetection": {
+      "ai": {
+        "label": "AI Scene Detection",
+        "description": "Runs AI to accurately find scene cuts"
+      },
+      "keyframe": {
+        "label": "Keyframe Detection",
+        "description": "Cuts at keyframes which is fast, and works on any PC"
+      }
+    },
+    "previewMethod": {
+      "video": {
+        "label": "Video Files",
+        "description": "Cuts a real video clip per scene. Hover to play it."
+      },
+      "webp": {
+        "label": "WebP Files",
+        "description": "Makes small animated previews instead of video clips."
+      }
+    },
+    "transcodeMode": {
+      "off": {
+        "description": "Play clips as they are. Needs HEVC support on this PC."
+      },
+      "hevc": {
+        "label": "HEVC Only",
+        "description": "Only re-encode when the source is HEVC."
+      },
+      "always": {
+        "label": "Always",
+        "description": "Re-encode every preview, whatever the source is."
+      }
+    },
+    "transcodeQuality": {
+      "360p": "Lower quality, fast",
+      "480p": "Balanced",
+      "720p": "Higher quality, slow",
+      "1080p": "Full quality, slowest"
+    }
+  },
+  "general": {
+    "title": "General",
+    "version": "Application Version",
+    "import": {
+      "title": "Import",
+      "sceneDetection": {
+        "label": "Scene Detection Method",
+        "description": "How AMVerge finds scene cuts when you import.",
+        "info": {
+          "ai": {
+            "title": "AI Scene Detection",
+            "p1": "Runs every frame of the episode through TransNetV2, a neural network trained to spot the moment one shot ends and the next begins. It is the most accurate option and catches cuts that other methods miss.",
+            "p2": "It is also the slowest, because the whole episode has to be decoded and looked at frame by frame. A GPU makes this much faster.",
+            "p3": "After detection, AMVerge re-encodes the AI scene previews. This makes every clip start exactly where the AI found the shot change instead of a moment early or late."
+          },
+          "keyframe": {
+            "title": "Keyframe Detection",
+            "p1": "A video file does not store a full picture for every frame. Every so often it saves a complete one, called a keyframe, and the frames after it only store what changed since. Those complete pictures are the only places a video can be cut without rebuilding it.",
+            "p2": "This method cuts at those points only, so it is instant and works on any PC with no GPU needed. It is by far the fastest way to import.",
+            "p3": "The tradeoff is accuracy. Cuts land on the nearest keyframe rather than the exact shot change, so a clip can start slightly early or late, and shot changes that happen between keyframes are missed entirely. This was the traditional method on launch of AMVerge."
+          }
+        }
+      },
+      "gpuDecoding": {
+        "label": "GPU Decoding",
+        "devBuild": "Dev build: install nelux into the CLI checkout's venv instead.",
+        "description": "Decode video on the NVIDIA GPU during AI Scene Detection. Much faster on long episodes.",
+        "unsupported": "Needs an NVIDIA GTX 16-series, RTX 20-series or newer GPU.",
+        "disabledWhileImporting": "Setting disabled while imports are running"
+      }
+    },
+    "preview": {
+      "title": "Preview & Playback",
+      "method": {
+        "label": "Preview Method",
+        "description": "What the grid plays when you hover over a clip.",
+        "info": {
+          "video": {
+            "title": "Video Files",
+            "p1": "Cuts a real video clip for every scene. Hovering a tile plays the actual video, so what you see is exactly what you get when you export (unless you lower the preview quality).",
+            "p2": "Each tile that plays is an actual video being decoded, so a long episode with hundreds of scenes can be demanding."
+          },
+          "webp": {
+            "title": "WebP Files",
+            "p1": "Builds a small animated preview for each scene instead, sorta similar to a GIF. They are far lighter than video, so scrolling and hovering stay smooth even with hundreds of scenes. If the app feels slow, this is the option to pick.",
+            "p2": "The cost is import time. Every preview has to be made up front, so importing takes noticeably longer than it does with video files.",
+            "p3": "This only changes what you preview in the grid. Exports are always cut from the original episode video, so your exported clips are full quality either way."
+          }
+        }
+      },
+      "reencode": {
+        "label": "Re-encode Previews",
+        "hevcForced": "This PC can't play HEVC, so those previews have to be re-encoded.",
+        "description": "Re-encode previews for smoother playback and HEVC support."
+      },
+      "quality": {
+        "label": "Preview Quality",
+        "description": "Resolution for re-encoded previews. Audio and timing are kept."
+      },
+      "audioHover": {
+        "label": "Audio Playback Hover",
+        "description": "Play a clip's audio when you hover over it."
+      },
+      "volume": {
+        "label": "Playback Volume",
+        "description": "Master volume for clip previews and playback."
+      }
+    },
+    "integrations": {
+      "title": "Integrations",
+      "davinci": {
+        "label": "DaVinci Resolve Compatibility",
+        "description": "Send exported clips straight to the DaVinci Resolve timeline (Studio only)."
+      }
+    },
+    "storage": {
+      "title": "Storage",
+      "path": {
+        "label": "Episodes Storage Path",
+        "description": "Where your imported episodes and clips are saved."
+      },
+      "defaultPathMac": "Default (Application Support)",
+      "defaultPath": "Default (App Data)",
+      "pickDirTitle": "Select Episodes Storage Directory",
+      "moveFailedTitle": "Move failed",
+      "moveFailed": "Failed to move existing episodes: {{error}}",
+      "movingTo": "Moving to {{path}}...",
+      "moving": "Moving...",
+      "change": "Change",
+      "selectPath": "Select Path"
+    },
+    "maintenance": {
+      "title": "Maintenance",
+      "clearing": "Clearing...",
+      "clearFailedTitle": "Clear failed",
+      "clearPanelFailed": "Failed to clear episode panel: {{error}}",
+      "clearScenepacksFailed": "Failed to clear Scenepack storage: {{error}}",
+      "clearPanel": {
+        "label": "Clear Episode Panel",
+        "description": "Removes every episode from the panel and deletes its files.",
+        "button": "Clear Episode Storage"
+      },
+      "clearScenepacks": {
+        "label": "Clear Scenepack Storage",
+        "description": "Remove all Scenepacks and delete its files.",
+        "button": "Clear Scenepack Storage"
+      },
+      "factoryReset": {
+        "label": "Factory Reset",
+        "description": "Puts every General setting back to its default."
+      },
+      "factoryResetConfirm": "This will restore AMVerge to its default settings and move your episode storage folder back to AppData. Any custom settings or storage location changes you made will be reset.",
+      "clearPanelConfirm": "This will remove ALL episodes from the Episode Panel and delete their cached files on disk. This cannot be undone.",
+      "clearScenepacksConfirm": "This will remove ALL Scenepacks and delete their materialized clip files on disk. This cannot be undone."
+    }
+  },
+  "appearance": {
+    "title": "Appearance",
+    "colors": {
+      "title": "Colors",
+      "accent": {
+        "label": "Accent color",
+        "description": "The main color for buttons, highlights, and icons."
+      },
+      "gradient": {
+        "label": "Background Gradient",
+        "description": "The second color in the background gradient."
+      }
+    },
+    "background": {
+      "title": "Background",
+      "mediaFilter": "Media",
+      "notAppliedTitle": "Background not applied",
+      "videoFailed": "Failed to apply background video: {{error}}",
+      "imageFailed": "Failed to apply background image: {{error}}",
+      "imageTimeout": "Image apply timed out. Please try a smaller image.",
+      "media": {
+        "label": "Background media",
+        "description": "Use your own image, GIF, or video as the background.",
+        "change": "Change",
+        "upload": "Upload",
+        "clear": "Clear"
+      },
+      "opacity": {
+        "label": "Background opacity",
+        "description": "How see-through the background is."
+      },
+      "blur": {
+        "label": "Background blur",
+        "description": "How blurry the background is."
+      }
+    },
+    "text": {
+      "title": "Text",
+      "font": {
+        "label": "App font",
+        "description": "Pick any font installed on this PC. Each option previews in its own font. The logo is unaffected."
+      },
+      "size": {
+        "label": "Text size",
+        "description": "Scales the chosen font to match the app's default sizing. Only applies with a custom font."
+      }
+    },
+    "clipTiles": {
+      "title": "Clip Tiles",
+      "previewSpeed": {
+        "label": "Grid preview speed",
+        "description": "How fast previews play in the grid."
+      },
+      "downloadButton": {
+        "label": "Show download button",
+        "description": "Show a download button on each clip."
+      },
+      "timestamps": {
+        "label": "Show clip timestamps",
+        "description": "Show timestamps on each clip."
+      },
+      "endTime": {
+        "label": "Show end time",
+        "description": "Scene Scout results show \"start - end\" instead of only the start."
+      },
+      "widescreen": {
+        "label": "Widescreen clip tiles",
+        "description": "Show clip tiles as square or widescreen."
+      }
+    },
+    "reset": {
+      "label": "Appearance Reset",
+      "description": "Puts every Appearance setting back to its default."
+    }
+  },
+  "discord": {
+    "title": "Discord Rich Presence",
+    "status": {
+      "off": "Rich Presence is off.",
+      "connectedAs": "Connected to Discord as {{user}}.",
+      "connected": "Connected to Discord.",
+      "waiting": "Waiting for Discord - open the app and this connects on its own."
+    },
+    "enable": {
+      "label": "Enable Rich Presence",
+      "description": "Show what you're working on in AMVerge on your Discord profile."
+    },
+    "filename": {
+      "label": "Show filename",
+      "description": "Show the name of the video you're editing."
+    },
+    "statusIcons": {
+      "label": "Show status icons",
+      "description": "Show small icons for editing, loading, and saving."
+    },
+    "elapsed": {
+      "label": "Show elapsed time",
+      "description": "Count how long AMVerge has been open, like a game session."
+    },
+    "links": {
+      "label": "Clickable links",
+      "description": "Make the presence card clickable: the images open the Discord server, the first line opens the website."
+    },
+    "preview": {
+      "heading": "Playing a game",
+      "elapsed": "{{time}} elapsed",
+      "empty": "Nothing to show yet."
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { HexColorPicker } from "react-colorful";
+import { useTranslation } from "react-i18next";
 import Tooltip from "./Tooltip";
 import { ACCENT_PRESET_COLORS } from "../../features/theme/colorPresets";
 
@@ -15,6 +16,7 @@ export default function ColorPicker({
   onChange,
   presets = ACCENT_PRESET_COLORS,
 }: ColorPickerProps) {
+  const { t } = useTranslation("shell");
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -34,13 +36,13 @@ export default function ColorPicker({
 
   return (
     <div className="color-picker-container" ref={containerRef}>
-      <Tooltip content="Choose color">
+      <Tooltip content={t("colorPicker.choose")}>
         <div
           className="color-preview-box"
           style={{ backgroundColor: color }}
           onClick={() => setIsOpen(!isOpen)}
           role="button"
-          aria-label="Choose color"
+          aria-label={t("colorPicker.choose")}
         />
       </Tooltip>
       
@@ -51,7 +53,7 @@ export default function ColorPicker({
           </div>
 
           <div className="presets-section">
-            <label className="picker-label">Presets</label>
+            <label className="picker-label">{t("colorPicker.presets")}</label>
             <div className="color-presets-grid">
               {presets.map((preset) => (
                 <Tooltip key={preset} content={preset} delay={250}>

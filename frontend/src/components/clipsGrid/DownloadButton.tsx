@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { FiDownload } from '../icons/animated';
 
 import Tooltip from "../common/Tooltip";
@@ -11,9 +12,10 @@ type DownloadButtonProps = {
 
 /** a small animated download button for a clip tile */
 export const DownloadButton: React.FC<DownloadButtonProps> = ({ onClick, loading, tone = "light" }) => {
+  const { t } = useTranslation("library");
   return (
     // a disabled button fires no pointer events, so the tooltip measures this wrapper (which carries the corner placement)
-    <Tooltip content={loading ? "Downloading…" : "Download this clip"}>
+    <Tooltip content={loading ? t("clip.downloading") : t("clip.download")}>
       <span className="tooltip-anchor clip-download-anchor">
         <button
           className={`clip-download-btn ${loading ? "loading" : ""}`}
@@ -21,7 +23,7 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ onClick, loading
             e.stopPropagation();
             onClick(e);
           }}
-          aria-label="Download this clip"
+          aria-label={t("clip.download")}
           disabled={loading}
         >
           <FiDownload className={`clip-download-icon download-tone-${tone}`} />

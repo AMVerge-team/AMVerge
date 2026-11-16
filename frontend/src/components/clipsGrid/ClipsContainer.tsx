@@ -1,5 +1,6 @@
 /** the clips grid: layout, selection, and the props each LazyClip tile gets */
 import { startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { save } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { LazyClip } from "./LazyClip.tsx"
@@ -39,6 +40,7 @@ const loadingReplacesGrid = (s: { loading: boolean; activeOperation: string | nu
   s.loading && s.activeOperation !== "export";
 
 export default function ClipsContainer({ cols, active = true }: { cols?: number; active?: boolean }) {
+  const { t } = useTranslation("library");
   const clips = useAppStateStore((state) => state.clips);
   const gridBusy = useAppStateStore(loadingReplacesGrid);
   const scoutFlowMode = useSceneScoutStore((state) => state.mode === "flow");
@@ -129,7 +131,7 @@ export default function ClipsContainer({ cols, active = true }: { cols?: number;
           openTools(source);
         }}
       >
-        Open in Tools
+        {t("clip.openInTools")}
       </button>
     );
   };
@@ -221,7 +223,7 @@ export default function ClipsContainer({ cols, active = true }: { cols?: number;
 
       const savePath = await save({
         defaultPath,
-        filters: [{ name: "Video", extensions: [format] }],
+        filters: [{ name: t("clip.videoFilter"), extensions: [format] }],
       });
 
       if (!savePath) return;
@@ -639,24 +641,24 @@ export default function ClipsContainer({ cols, active = true }: { cols?: number;
         <div className="empty-grid-wrapper">
           <p id="empty-grid">
             {activePage === "scenepacks"
-              ? <>No Scenepack opened.<br/>Select one from the sidebar to view its clips.</>
+              ? <>{t("emptyGrid.noScenepack.title")}<br/>{t("emptyGrid.noScenepack.hint")}</>
               : activePage === "sceneScout" && scoutFlowMode
               ? (
                 scoutHasFlowClip ? (
-                  <>No scenes found for this clip.<br/>Add a database to the Searching list on the left.</>
+                  <>{t("emptyGrid.flowNoScenes.title")}<br/>{t("emptyGrid.flowNoScenes.hint")}</>
                 ) : (
-                  <>No clip to continue yet.<br/>Input an episode above, or right-click a clip in your Library and pick Find matching clips.</>
+                  <>{t("emptyGrid.flowNoClip.title")}<br/>{t("emptyGrid.flowNoClip.hint")}</>
                 )
               )
               : activePage === "sceneScout"
               ? (
                 scoutLastQuery ? (
-                  <>No scenes matched your search.<br/>Try changing your search terms.</>
+                  <>{t("emptyGrid.searchNoMatch.title")}<br/>{t("emptyGrid.searchNoMatch.hint")}</>
                 ) : (
-                  <>No scenes found.<br/>Select one or more databases on the left, describe a scene, and press Enter to search.</>
+                  <>{t("emptyGrid.searchIdle.title")}<br/>{t("emptyGrid.searchIdle.hint")}</>
                 )
               )
-              : <>No video loaded.<br/>If no clips are displaying, try changing the episode storage path in general settings.</>}
+              : <>{t("emptyGrid.noVideo.title")}<br/>{t("emptyGrid.noVideo.hint")}</>}
           </p>
         </div>
       ) : (
@@ -712,7 +714,7 @@ export default function ClipsContainer({ cols, active = true }: { cols?: number;
                       if (source) void useSceneScoutStore.getState().startFlowSearch(source, { pick: true });
                     }}
                   >
-                    Find matching clips
+                    {t("picker.findMatching")}
                   </button>
                 )}
                 {openInToolsItem(clipMenu.targets)}
@@ -732,7 +734,7 @@ export default function ClipsContainer({ cols, active = true }: { cols?: number;
                     setClipMenu(null);
                   }}
                 >
-                  Set as Scenepack thumbnail
+                  {t("picker.setThumbnail")}
                 </button>
               )}
 
@@ -740,9 +742,7 @@ export default function ClipsContainer({ cols, active = true }: { cols?: number;
                 className="episode-context-menu-item"
                 onClick={() => void handleDeleteFromScenepack()}
               >
-                {clipMenu.targets.length > 1
-                  ? `Delete ${clipMenu.targets.length} clips`
-                  : "Delete clip"}
+                {t("clip.deleteClips", { count: clipMenu.targets.length })}
               </button>
               </>
               )}

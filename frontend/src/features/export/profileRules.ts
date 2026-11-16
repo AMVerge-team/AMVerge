@@ -10,12 +10,12 @@ import {
   ExportWorkflow,
   NvidiaEncoderProfile,
 } from "./profileTypes";
+import { t } from "../../i18n";
 import {
-  AUDIO_MODE_LABELS,
   CODEC_FAMILY_TO_CODECS,
   CODEC_LABELS,
   DEFAULT_EXPORT_PROFILE,
-  EXPORT_AUDIO_OPTIONS,
+  EXPORT_AUDIO_VALUES,
   EXPORT_CODEC_OPTIONS,
   EXPORT_CONTAINER_OPTIONS,
   EXPORT_PROFILE_ICON_VALUES,
@@ -24,6 +24,7 @@ import {
   LEGACY_PROFILE_ICON_MAP,
   LEGACY_WORKFLOW_MAP,
   NVIDIA_ENCODER_PROFILE_OPTIONS,
+  getAudioModeLabel,
 } from "./profileOptions";
 
 export function coerceExportCodec(codec: string | undefined | null): ExportCodec {
@@ -44,14 +45,14 @@ export function coerceExportProfileIcon(icon: string | undefined | null): Export
 
 export function coerceExportAudioMode(audioMode: string | undefined | null): ExportAudioMode {
   if (!audioMode) return "copy";
-  if ((EXPORT_AUDIO_OPTIONS as { value: string }[]).some((option) => option.value === audioMode)) {
+  if ((EXPORT_AUDIO_VALUES as string[]).includes(audioMode)) {
     return audioMode as ExportAudioMode;
   }
   return LEGACY_AUDIO_MODE_MAP[audioMode] ?? "copy";
 }
 
 export function getExportCodecLabel(codec: ExportCodec): string {
-  return CODEC_LABELS[codec] ?? "Unknown codec";
+  return CODEC_LABELS[codec] ?? t("settingsExport:codec.unknown");
 }
 
 export function getCodecFamily(codec: ExportCodec): ExportCodecFamily {
@@ -267,9 +268,10 @@ export function getExportProfileSummary(profile: ExportProfile): string {
   const codec = coerceExportCodec(profile.codec);
   const codecLabel = usesEncoding(profile.workflow)
     ? getExportCodecLabel(codec)
-    : "Stream copy";
-  const audioLabel = AUDIO_MODE_LABELS[profile.audioMode] || "Audio copy";
-  const containerLabel = profile.workflow === "video_remux" ? "Auto container" : profile.container.toUpperCase();
+    : t("settingsExport:codec.streamCopy");
+  const audioLabel = getAudioModeLabel(profile.audioMode);
+  const containerLabel =
+    profile.workflow === "video_remux" ? t("settingsExport:container.auto") : profile.container.toUpperCase();
 
   return `${codecLabel} • ${audioLabel} • ${containerLabel}`;
 }
@@ -335,6 +337,6 @@ export function createExportProfile(index: number): ExportProfile {
   return normalizeExportProfile({
     ...DEFAULT_EXPORT_PROFILE,
     id: `export-profile-${Date.now()}-${index}`,
-    name: `Export Profile ${index}`,
+    name: t("settingsExport:profile.newName", { index }),
   });
 }

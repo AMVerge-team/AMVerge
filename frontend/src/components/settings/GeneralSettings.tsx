@@ -9,6 +9,7 @@ import {
 import { useAppStateStore } from "../../stores/appStore";
 import { useUIStateStore } from "../../stores/UIStore";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import SettingRow from "../common/SettingRow";
 import Dropdown from "../common/Dropdown";
 import SettingsSection from "../common/SettingsSection";
@@ -20,14 +21,15 @@ import { useAiDepsStore } from "../../stores/aiDepsStore";
 import { isPackInstalled } from "../../features/aiDeps/packs";
 import { runningProcess } from "../../features/processes/singleProcess";
 import {
-  PREVIEW_METHOD_OPTIONS,
-  PREVIEW_TRANSCODE_MODE_OPTIONS,
-  PREVIEW_TRANSCODE_QUALITY_OPTIONS,
+  previewMethodOptions,
+  previewTranscodeModeOptions,
+  previewTranscodeQualityOptions,
   sceneDetectionOptions,
 } from "./general/options";
 import { ConfirmModal } from "./general/ConfirmModal";
 import { rebaseStoragePaths, restoreOpenedEpisodeGrid } from "../../features/storage/rebaseStoragePaths";
 import { useDavinciInstalled } from "../../features/davinci/useDavinciAvailable";
+import LanguagePicker from "./general/LanguagePicker";
 
 type GeneralSettingsProps = {
   onGeneralSettingsReset: () => void;
@@ -36,6 +38,7 @@ type GeneralSettingsProps = {
 export default function GeneralSettings({
   onGeneralSettingsReset,
 }: GeneralSettingsProps) {
+  const { t } = useTranslation("settings");
   const generalSettings = useGeneralSettingsStore();
   const setGeneralSettings = useGeneralSettingsStore.setState;
   const setSceneDetectionMethod = useGeneralSettingsStore((s) => s.setSceneDetectionMethod);
@@ -59,20 +62,20 @@ export default function GeneralSettings({
   const [showClearScenepacksConfirm, setShowClearScenepacksConfirm] = useState(false);
   const [clearingScenepacks, setClearingScenepacks] = useState(false);
   const defaultEpisodesPathLabel = navigator.userAgent.includes("Mac OS X")
-    ? "Default (Application Support)"
-    : "Default (App Data)";
-  const factoryResetConfirmation =
-    "This will restore AMVerge to its default settings and move your episode storage folder back to AppData. Any custom settings or storage location changes you made will be reset.";
-  const clearPanelConfirmation =
-    "This will remove ALL episodes from the Episode Panel and delete their cached files on disk. This cannot be undone.";
-  const clearScenepacksConfirmation =
-    "This will remove ALL Scenepacks and delete their materialized clip files on disk. This cannot be undone.";
+    ? t("general.storage.defaultPathMac")
+    : t("general.storage.defaultPath");
+  const factoryResetConfirmation = t("general.maintenance.factoryResetConfirm");
+  const clearPanelConfirmation = t("general.maintenance.clearPanelConfirm");
+  const clearScenepacksConfirmation = t("general.maintenance.clearScenepacksConfirm");
   const handleClearScenepacks = async () => {
     setClearingScenepacks(true);
     try {
       await clearScenepacksStorage();
     } catch (err) {
-      void showNotice("Clear failed", "Failed to clear Scenepack storage: " + errorText(err));
+      void showNotice(
+        t("general.maintenance.clearFailedTitle"),
+        t("general.maintenance.clearScenepacksFailed", { error: errorText(err) })
+      );
     } finally {
       setClearingScenepacks(false);
       setShowClearScenepacksConfirm(false);
@@ -84,7 +87,10 @@ export default function GeneralSettings({
     try {
       await clearEpisodePanelCache();
     } catch (err) {
-      void showNotice("Clear failed", "Failed to clear episode panel: " + errorText(err));
+      void showNotice(
+        t("general.maintenance.clearFailedTitle"),
+        t("general.maintenance.clearPanelFailed", { error: errorText(err) })
+      );
     } finally {
       setClearingPanel(false);
       setShowClearPanelConfirm(false);
@@ -114,7 +120,7 @@ export default function GeneralSettings({
     const selected = await open({
       multiple: false,
       directory: true,
-      title: "Select Episodes Storage Directory",
+      title: t("general.storage.pickDirTitle"),
     });
 
     if (selected && typeof selected === "string") {
@@ -137,7 +143,10 @@ export default function GeneralSettings({
           // `selected` is the storage root; episodes sit in its episodes_storage folder
           await rebaseStoragePaths(selected);
         } catch (err) {
-          void showNotice("Move failed", "Failed to move existing episodes: " + errorText(err));
+          void showNotice(
+            t("general.storage.moveFailedTitle"),
+            t("general.storage.moveFailed", { error: errorText(err) })
+          );
         } finally {
           // the grid was emptied for the move; failed or not, the open episode comes back
           restoreOpenedEpisodeGrid();
@@ -149,15 +158,15 @@ export default function GeneralSettings({
   };
 
   const storagePathLabel = movingTo
-    ? `Moving to ${movingTo}...`
+    ? t("general.storage.movingTo", { path: movingTo })
     : generalSettings.episodesPath || defaultEpisodesPathLabel;
 
   return (
     <section className="panel menu-panel settings-panel">
-      <h3>General</h3>
+      <h3>{t("general.title")}</h3>
       <div className="about-content">
         <SettingRow
-          label="Application Version"
+          label={t("general.version")}
           description=""
           control={
           <div className="settings-control">
@@ -168,44 +177,27 @@ export default function GeneralSettings({
           }
         />
 
-        <SettingsSection id="general.import" title="Import">
-          <SettingRow
-            label="Scene Detection Method"
-            description="How AMVerge finds scene cuts when you import."
-            info={
-              <InfoButton title="Scene Detection Method">
-                <h4>AI Scene Detection</h4>
-                <p>
-                  Runs every frame of the episode through TransNetV2, a neural network
-                  trained to spot the moment one shot ends and the next begins. It is the
-                  most accurate option and catches cuts that other methods miss.
-                </p>
-                <p>
-                  It is also the slowest, because the whole episode has to be decoded and
-                  looked at frame by frame. A GPU makes this much faster.
-                </p>
-                <p>
-                  After detection, AMVerge re-encodes the AI scene previews. This makes every
-                  clip start exactly where the AI found the shot change instead of a moment
-                  early or late.
-                </p>
+        <SettingRow
+          label={t("common:language.label")}
+          description={t("common:language.description")}
+          control={<LanguagePicker />}
+        />
 
-                <h4>Keyframe Detection</h4>
-                <p>
-                  A video file does not store a full picture for every frame. Every so often
-                  it saves a complete one, called a keyframe, and the frames after it only
-                  store what changed since. Those complete pictures are the only places a
-                  video can be cut without rebuilding it.
-                </p>
-                <p>
-                  This method cuts at those points only, so it is instant and
-                  works on any PC with no GPU needed. It is by far the fastest way to import.
-                </p>
-                <p>
-                  The tradeoff is accuracy. Cuts land on the nearest keyframe rather than the
-                  exact shot change, so a clip can start slightly early or late, and shot
-                  changes that happen between keyframes are missed entirely. This was the traditional method on launch of AMVerge.
-                </p>
+        <SettingsSection id="general.import" title={t("general.import.title")}>
+          <SettingRow
+            label={t("general.import.sceneDetection.label")}
+            description={t("general.import.sceneDetection.description")}
+            info={
+              <InfoButton title={t("general.import.sceneDetection.label")}>
+                <h4>{t("general.import.sceneDetection.info.ai.title")}</h4>
+                <p>{t("general.import.sceneDetection.info.ai.p1")}</p>
+                <p>{t("general.import.sceneDetection.info.ai.p2")}</p>
+                <p>{t("general.import.sceneDetection.info.ai.p3")}</p>
+
+                <h4>{t("general.import.sceneDetection.info.keyframe.title")}</h4>
+                <p>{t("general.import.sceneDetection.info.keyframe.p1")}</p>
+                <p>{t("general.import.sceneDetection.info.keyframe.p2")}</p>
+                <p>{t("general.import.sceneDetection.info.keyframe.p3")}</p>
               </InfoButton>
             }
             control={
@@ -221,23 +213,23 @@ export default function GeneralSettings({
           {/* only once AI Scene Detection is installed and on, since only it decodes this way */}
           {generalSettings.aiSceneDetectionEnabled && mlInstalled && (
             <SettingRow
-              label="GPU Decoding"
+              label={t("general.import.gpuDecoding.label")}
               description={
                 !aiStatus?.managed
-                  ? "Dev build: install nelux into the CLI checkout's venv instead."
+                  ? t("general.import.gpuDecoding.devBuild")
                   : aiStatus.gpuDecodeSupported
-                    ? "Decode video on the NVIDIA GPU during AI Scene Detection. Much faster on long episodes."
-                    : "Needs an NVIDIA GTX 16-series, RTX 20-series or newer GPU."
+                    ? t("general.import.gpuDecoding.description")
+                    : t("general.import.gpuDecoding.unsupported")
               }
               control={
-                <Tooltip content="Setting disabled while imports are running" disabled={!importRunning}>
+                <Tooltip content={t("general.import.gpuDecoding.disabledWhileImporting")} disabled={!importRunning}>
                   {/* a disabled button gets no hover events, so the span carries the tooltip */}
                   <span style={{ display: "inline-flex" }}>
                     <button
                       type="button"
                       role="switch"
                       aria-checked={Boolean(aiStatus?.gpuDecodeInstalled)}
-                      aria-label="GPU Decoding"
+                      aria-label={t("general.import.gpuDecoding.label")}
                       className="aid-switch"
                       disabled={!aiStatus?.managed || !aiStatus.gpuDecodeSupported || aiDepsBusy || importRunning}
                       onClick={() => void useAiDepsStore.getState().setGpuDecode(!aiStatus?.gpuDecodeInstalled)}
@@ -249,43 +241,26 @@ export default function GeneralSettings({
           )}
         </SettingsSection>
 
-        <SettingsSection id="general.preview" title="Preview & Playback">
+        <SettingsSection id="general.preview" title={t("general.preview.title")}>
         <SettingRow
-          label="Preview Method"
-          description="What the grid plays when you hover over a clip."
+          label={t("general.preview.method.label")}
+          description={t("general.preview.method.description")}
           info={
-            <InfoButton title="Preview Method">
-              <h4>Video Files</h4>
-              <p>
-                Cuts a real video clip for every scene. Hovering a tile plays the actual
-                video, so what you see is exactly what you get when you export (unless you lower the preview quality).
-              </p>
-              <p>
-                Each tile that plays is an actual video being decoded, so a long episode with
-                hundreds of scenes can be demanding.
-              </p>
+            <InfoButton title={t("general.preview.method.label")}>
+              <h4>{t("general.preview.method.info.video.title")}</h4>
+              <p>{t("general.preview.method.info.video.p1")}</p>
+              <p>{t("general.preview.method.info.video.p2")}</p>
 
-              <h4>WebP Files</h4>
-              <p>
-                Builds a small animated preview for each scene instead, sorta similar to a GIF.
-                They are far lighter than video, so scrolling and hovering stay smooth even
-                with hundreds of scenes. If the app feels slow, this is the option to pick.
-              </p>
-              <p>
-                The cost is import time. Every preview has to be made up front, so importing
-                takes noticeably longer than it does with video files.
-              </p>
-              <p>
-                This only changes what you preview in the grid. Exports are always cut from
-                the original episode video, so your exported clips are full quality either
-                way.
-              </p>
+              <h4>{t("general.preview.method.info.webp.title")}</h4>
+              <p>{t("general.preview.method.info.webp.p1")}</p>
+              <p>{t("general.preview.method.info.webp.p2")}</p>
+              <p>{t("general.preview.method.info.webp.p3")}</p>
             </InfoButton>
           }
           control={
             <Dropdown
               className="settings-wide-dropdown"
-              options={PREVIEW_METHOD_OPTIONS}
+              options={previewMethodOptions()}
               value={generalSettings.importMethod}
               onChange={(nextMethod) => {
                 setImportMethod(nextMethod);
@@ -298,19 +273,19 @@ export default function GeneralSettings({
         />
 
         <SettingRow
-          label="Re-encode Previews"
+          label={t("general.preview.reencode.label")}
           description={
             hevcForced
-              ? "This PC can't play HEVC, so those previews have to be re-encoded."
-              : "Re-encode previews for smoother playback and HEVC support."
+              ? t("general.preview.reencode.hevcForced")
+              : t("general.preview.reencode.description")
           }
           control={
             <Dropdown
               className="settings-wide-dropdown"
               options={
                 hevcForced
-                  ? PREVIEW_TRANSCODE_MODE_OPTIONS.filter((option) => option.value !== "off")
-                  : PREVIEW_TRANSCODE_MODE_OPTIONS
+                  ? previewTranscodeModeOptions().filter((option) => option.value !== "off")
+                  : previewTranscodeModeOptions()
               }
               value={effectivePreviewTranscodeMode}
               onChange={(mode) => setPreviewTranscodeMode(mode)}
@@ -320,12 +295,12 @@ export default function GeneralSettings({
 
         {effectivePreviewTranscodeMode !== "off" && (
           <SettingRow
-            label="Preview Quality"
-            description="Resolution for re-encoded previews. Audio and timing are kept."
+            label={t("general.preview.quality.label")}
+            description={t("general.preview.quality.description")}
             control={
               <Dropdown
                 className="settings-wide-dropdown"
-                options={PREVIEW_TRANSCODE_QUALITY_OPTIONS}
+                options={previewTranscodeQualityOptions()}
                 value={generalSettings.previewTranscodeQuality}
                 onChange={(quality) => setPreviewTranscodeQuality(quality)}
               />
@@ -334,8 +309,8 @@ export default function GeneralSettings({
         )}
       
         <SettingRow
-          label="Audio Playback Hover"
-          description="Play a clip's audio when you hover over it."
+          label={t("general.preview.audioHover.label")}
+          description={t("general.preview.audioHover.description")}
           control={
             <div className="settings-control">
               <label className="custom-checkbox">
@@ -357,8 +332,8 @@ export default function GeneralSettings({
         />
 
         <SettingRow
-          label="Playback Volume"
-          description="Master volume for clip previews and playback."
+          label={t("general.preview.volume.label")}
+          description={t("general.preview.volume.description")}
           control={
             <div className="settings-control">
               <input
@@ -385,10 +360,10 @@ export default function GeneralSettings({
         {/* scenepacks and the other major features moved to Settings > Features */}
         {/* only Resolve lives here, so the section shows only where Resolve is installed */}
         {davinciInstalled && (
-        <SettingsSection id="general.integrations" title="Integrations">
+        <SettingsSection id="general.integrations" title={t("general.integrations.title")}>
         <SettingRow
-          label="DaVinci Resolve Compatibility"
-          description="Send exported clips straight to the DaVinci Resolve timeline (Studio only)."
+          label={t("general.integrations.davinci.label")}
+          description={t("general.integrations.davinci.description")}
           control={
             <div className="settings-control">
               <label className="custom-checkbox">
@@ -411,10 +386,10 @@ export default function GeneralSettings({
         </SettingsSection>
         )}
 
-        <SettingsSection id="general.storage" title="Storage">
+        <SettingsSection id="general.storage" title={t("general.storage.title")}>
         <SettingRow
-          label="Episodes Storage Path"
-          description="Where your imported episodes and clips are saved."
+          label={t("general.storage.path.label")}
+          description={t("general.storage.path.description")}
           control={
             <div className="settings-control">
               <button
@@ -423,7 +398,11 @@ export default function GeneralSettings({
                 onClick={handlePickDir}
                 disabled={loading}
               >
-                {movingTo ? "Moving..." : generalSettings.episodesPath ? "Change" : "Select Path"}
+                {movingTo
+                  ? t("general.storage.moving")
+                  : generalSettings.episodesPath
+                    ? t("general.storage.change")
+                    : t("general.storage.selectPath")}
               </button>
               <Tooltip content={storagePathLabel} maxWidth={360}>
                 <span className={`settings-path-value${movingTo ? " is-moving" : ""}`}>
@@ -435,10 +414,10 @@ export default function GeneralSettings({
         />
         </SettingsSection>
 
-        <SettingsSection id="general.maintenance" title="Maintenance">
+        <SettingsSection id="general.maintenance" title={t("general.maintenance.title")}>
         <SettingRow
-          label="Clear Episode Panel"
-          description="Removes every episode from the panel and deletes its files."
+          label={t("general.maintenance.clearPanel.label")}
+          description={t("general.maintenance.clearPanel.description")}
           control={
             <div className="settings-control">
               <button
@@ -448,15 +427,15 @@ export default function GeneralSettings({
                 style={{ width: "auto", padding: "0 16px", marginBottom: 0, color: "red" }}
                 disabled={loading || clearingPanel}
               >
-                {clearingPanel ? "Clearing..." : "Clear Episode Storage"}
+                {clearingPanel ? t("general.maintenance.clearing") : t("general.maintenance.clearPanel.button")}
               </button>
             </div>
           }
         />
 
         <SettingRow
-          label="Clear Scenepack Storage"
-          description="Remove all Scenepacks and delete its files."
+          label={t("general.maintenance.clearScenepacks.label")}
+          description={t("general.maintenance.clearScenepacks.description")}
           control={
             <div className="settings-control">
               <button
@@ -466,15 +445,15 @@ export default function GeneralSettings({
                 style={{ width: "auto", padding: "0 16px", marginBottom: 0, color: "red" }}
                 disabled={loading || clearingScenepacks}
               >
-                {clearingScenepacks ? "Clearing..." : "Clear Scenepack Storage"}
+                {clearingScenepacks ? t("general.maintenance.clearing") : t("general.maintenance.clearScenepacks.button")}
               </button>
             </div>
           }
         />
 
         <SettingRow
-          label="Factory Reset"
-          description="Puts every General setting back to its default."
+          label={t("general.maintenance.factoryReset.label")}
+          description={t("general.maintenance.factoryReset.description")}
           control={
             <div className="settings-control">
               <button
@@ -485,7 +464,7 @@ export default function GeneralSettings({
                 style={{ width: "auto", padding: "0 16px", marginBottom: 0, color: "red" }}
                 disabled={loading}
               >
-                Reset to Defaults
+                {t("resetToDefaults")}
               </button>
             </div>
           }
@@ -494,9 +473,9 @@ export default function GeneralSettings({
 
         {showFactoryResetConfirm && (
           <ConfirmModal
-            title="Factory Reset"
+            title={t("general.maintenance.factoryReset.label")}
             message={factoryResetConfirmation}
-            confirmLabel="Reset"
+            confirmLabel={t("common:reset")}
             onClose={() => setShowFactoryResetConfirm(false)}
             onConfirm={() => {
               setShowFactoryResetConfirm(false);
@@ -507,9 +486,9 @@ export default function GeneralSettings({
 
         {showClearPanelConfirm && (
           <ConfirmModal
-            title="Clear Episode Storage"
+            title={t("general.maintenance.clearPanel.button")}
             message={clearPanelConfirmation}
-            confirmLabel={clearingPanel ? "Clearing..." : "Clear Episode Storage"}
+            confirmLabel={clearingPanel ? t("general.maintenance.clearing") : t("general.maintenance.clearPanel.button")}
             busy={clearingPanel}
             onClose={() => setShowClearPanelConfirm(false)}
             onConfirm={() => void handleClearEpisodePanel()}
@@ -518,9 +497,9 @@ export default function GeneralSettings({
 
         {showClearScenepacksConfirm && (
           <ConfirmModal
-            title="Clear Scenepack Storage"
+            title={t("general.maintenance.clearScenepacks.button")}
             message={clearScenepacksConfirmation}
-            confirmLabel={clearingScenepacks ? "Clearing..." : "Clear Scenepack Storage"}
+            confirmLabel={clearingScenepacks ? t("general.maintenance.clearing") : t("general.maintenance.clearScenepacks.button")}
             busy={clearingScenepacks}
             onClose={() => setShowClearScenepacksConfirm(false)}
             onConfirm={() => void handleClearScenepacks()}

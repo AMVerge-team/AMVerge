@@ -1,5 +1,6 @@
 import React from "react";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 import { FaBolt, FaFolderOpen } from '../icons/animated';
 import { CommandItem } from "./types";
 
@@ -8,11 +9,12 @@ type Props = {
 };
 
 export function CommandInspector({ command }: Props) {
+  const { t } = useTranslation("shell");
   if (!command) {
     return (
       <div className="spotlight-inspector-empty">
         <FaBolt className="empty-bolt" />
-        <span>Select an item to view preview</span>
+        <span>{t("palette.inspector.empty")}</span>
       </div>
     );
   }
@@ -44,7 +46,7 @@ export function CommandInspector({ command }: Props) {
 
         {preview?.metaLine2 && (
           <div className="inspector-path-box">
-            <span className="path-label">Target</span>
+            <span className="path-label">{t("palette.inspector.target")}</span>
             <span className="path-text">{preview.metaLine2}</span>
           </div>
         )}
@@ -54,7 +56,7 @@ export function CommandInspector({ command }: Props) {
 
       <div className="inspector-actions">
         <button type="button" className="inspector-btn-primary" onClick={() => command.action()}>
-          <span>Execute Command</span>
+          <span>{t("palette.inspector.execute")}</span>
           <kbd className="action-key-pill">↵</kbd>
         </button>
 
@@ -65,7 +67,7 @@ export function CommandInspector({ command }: Props) {
             onClick={() => void invoke("reveal_in_file_manager", { path: preview.filePath })}
           >
             <FaFolderOpen />
-            <span>Reveal in Explorer</span>
+            <span>{t("palette.inspector.reveal")}</span>
           </button>
         )}
       </div>

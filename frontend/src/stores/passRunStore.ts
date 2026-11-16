@@ -1,5 +1,6 @@
 import { create } from "zustand";
 
+import { t } from "../i18n";
 import type { JobLine, JobLineKind } from "../components/BackgroundJobCard";
 
 const MAX_LOGS = 200;
@@ -56,13 +57,13 @@ export const usePassRunStore = create<PassRunStore>((set) => ({
       jobDone: 0,
       jobTotal,
       percent: 0,
-      message: "Starting...",
+      message: t("jobs:passes.starting"),
       previewSrc: null,
       logs: [],
       errors: [],
       label: "",
     }),
-  startJob: (label) => set({ label, percent: 0, message: "Starting...", previewSrc: null }),
+  startJob: (label) => set({ label, percent: 0, message: t("jobs:passes.starting"), previewSrc: null }),
   setProgress: (percent, message) => set({ percent, message }),
   setPreview: (src) => set({ previewSrc: src }),
   pushLog: (line, kind = "log") =>
@@ -73,7 +74,7 @@ export const usePassRunStore = create<PassRunStore>((set) => ({
   addError: (label) => set((s) => ({ errors: [...s.errors, label] })),
   completeJob: () => set((s) => ({ jobDone: Math.min(s.jobTotal, s.jobDone + 1) })),
   finish: () => set({ finished: true, percent: 100 }),
-  requestStop: () => set({ stopRequested: true, message: "Stopping..." }),
+  requestStop: () => set({ stopRequested: true, message: t("jobs:passes.stopping") }),
   setMinimized: (value) => set({ minimized: value }),
   close: () => set({ active: false, minimized: false }),
 }));

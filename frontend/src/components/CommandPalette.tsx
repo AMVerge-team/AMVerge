@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
+import { useTranslation } from "react-i18next";
 import { FaSearch, FaTimes, FaAngleRight, FaDiscord, FaGithub, FaArrowUp, FaArrowDown } from './icons/animated';
 import { MdKeyboardReturn } from './icons/animated';
 import { useUIStateStore } from "../stores/UIStore";
@@ -25,6 +26,7 @@ const BLOCKING_OVERLAYS =
   ".episode-modal-overlay, .crop-modal-overlay, .pxm-overlay, .startup-notification-overlay";
 
 export default function CommandPalette() {
+  const { t, i18n } = useTranslation("shell");
   const open = useUIStateStore((s: any) => s.commandPaletteOpen);
   const setCommandPaletteOpen = useUIStateStore((s: any) => s.setCommandPaletteOpen);
   const openMenu = useUIStateStore((s: any) => s.openMenu);
@@ -176,6 +178,8 @@ export default function CommandPalette() {
       setPreviewCollapsed,
       setCols,
       togglePinned,
+      // commands carry translated text, so a language switch rebuilds them
+      i18n.language,
     ]
   );
 
@@ -235,7 +239,7 @@ export default function CommandPalette() {
         className="spotlight-pro-container"
         role="dialog"
         aria-modal="true"
-        aria-label="Spotlight Command Center"
+        aria-label={t("palette.ariaLabel")}
         onKeyDown={handleKeyDown}
       >
         <div className="spotlight-pro-header">
@@ -245,7 +249,7 @@ export default function CommandPalette() {
               ref={inputRef}
               type="text"
               className="spotlight-pro-input"
-              placeholder="Search episodes, scenepacks, actions, settings, menu..."
+              placeholder={t("palette.placeholder")}
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -256,6 +260,7 @@ export default function CommandPalette() {
               <button
                 type="button"
                 className="spotlight-pro-clear-btn"
+                aria-label={t("palette.clear")}
                 onClick={() => {
                   setSearchQuery("");
                   setSelectedIndex(0);
@@ -290,7 +295,7 @@ export default function CommandPalette() {
                 }}
               >
                 <ChipIcon className="chip-icon" />
-                <span>{chip.label}</span>
+                <span>{t(`palette.chips.${chip.id}`)}</span>
               </button>
             );
           })}
@@ -305,8 +310,8 @@ export default function CommandPalette() {
             {filteredCommands.length === 0 ? (
               <div className="spotlight-pro-empty">
                 <FaSearch className="empty-icon" />
-                <h4>No matching results found</h4>
-                <p>Try searching another title or use category filter chips above</p>
+                <h4>{t("palette.emptyTitle")}</h4>
+                <p>{t("palette.emptyHint")}</p>
               </div>
             ) : (
               filteredCommands.map((cmd, idx) => {
@@ -341,16 +346,16 @@ export default function CommandPalette() {
           <div className="footer-keys">
             <span>
               <kbd><FaArrowUp /></kbd>
-              <kbd><FaArrowDown /></kbd> Navigate
+              <kbd><FaArrowDown /></kbd> {t("palette.navigate")}
             </span>
             <span>
-              <kbd><MdKeyboardReturn /></kbd> Open
+              <kbd><MdKeyboardReturn /></kbd> {t("palette.open")}
             </span>
             <span>
-              <kbd>TAB</kbd> Next Filter
+              <kbd>TAB</kbd> {t("palette.nextFilter")}
             </span>
             <span>
-              <kbd>ESC</kbd> Close
+              <kbd>ESC</kbd> {t("palette.close")}
             </span>
           </div>
 

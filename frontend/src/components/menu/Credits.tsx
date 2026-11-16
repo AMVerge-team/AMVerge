@@ -1,31 +1,31 @@
 import { open } from '@tauri-apps/plugin-shell';
+import { useTranslation } from 'react-i18next';
 import { FaHeart, FaGithub, FaCodeBranch } from '../icons/animated';
 
 export default function Credits() {
+    const { t } = useTranslation('menu');
     const team = [
-        { name: 'Crptk', username: 'crptk', role: 'App Creator & Core Architecture' },
-        { name: 'Netsuma', username: 'NetsumaInfo', role: 'UI System, Export Engine & Tooltips' },
-        { name: 'Moongetsu', username: 'Moongetsu', role: 'Settings, AI Installer, Discord RPC & Multi-Platform' },
-        { name: 'Lewis', username: 'lew-is', role: 'macOS Engine, Background Import & Optimization' },
-        { name: '0xkhaosoccured', username: '0xkhaosoccured', role: 'Grid Virtualization & Rendering Fixes' },
-        { name: 'TOSINIRL', username: 'TOSINIRL', role: 'macOS Demux & Video Compatibility' },
-        { name: 'Mark Shun', username: 'Mark-Shun', role: 'Scene Scout' }
+        { name: 'Crptk', username: 'crptk', role: t('credits.roles.crptk') },
+        { name: 'Netsuma', username: 'NetsumaInfo', role: t('credits.roles.netsuma') },
+        { name: 'Moongetsu', username: 'Moongetsu', role: t('credits.roles.moongetsu') },
+        { name: 'Lewis', username: 'lew-is', role: t('credits.roles.lewis') },
+        { name: '0xkhaosoccured', username: '0xkhaosoccured', role: t('credits.roles.khaos') },
+        { name: 'TOSINIRL', username: 'TOSINIRL', role: t('credits.roles.tosin') },
+        { name: 'Mark Shun', username: 'Mark-Shun', role: t('credits.roles.markShun') }
     ];
 
     return (
         <div className="panel menu-panel credits-panel">
             <div className="credits-hero">
-                <h2 className="about-hero-title">The People Behind AMVerge</h2>
-                <p className="about-hero-subtitle">
-                    AMVerge is an open-source collaboration built with by anime editors. It's intended that this is a community tool, not tied to a single creator but rather built up by the community through suggestions, etc
-                </p>
+                <h2 className="about-hero-title">{t('credits.title')}</h2>
+                <p className="about-hero-subtitle">{t('credits.subtitle')}</p>
             </div>
 
             <div className="credits-grid">
                 <div className="about-card credits-card">
                     <div className="about-card-header">
                         <span className="about-card-icon"><FaCodeBranch /></span>
-                        <h4>Contributors</h4>
+                        <h4>{t('credits.contributors')}</h4>
                     </div>
                     <div className="credits-team-grid">
                         {team.map((member) => (
@@ -57,11 +57,9 @@ export default function Credits() {
                 <div className="about-card credits-card">
                     <div className="about-card-header">
                         <span className="about-card-icon"><FaHeart /></span>
-                        <h4>Contribute & Community</h4>
+                        <h4>{t('credits.contribute')}</h4>
                     </div>
-                    <p className="about-card-text">
-                        Want to help improve AMVerge? Whether it's adding new features, fixing bugs, or testing on different hardware, all contributions are welcome.
-                    </p>
+                    <p className="about-card-text">{t('credits.contributeText')}</p>
                     <div className="about-links-group" style={{ marginTop: "auto" }}>
                         <button
                             className="about-link-btn github"
@@ -71,7 +69,7 @@ export default function Credits() {
                             }}
                         >
                             <FaGithub style={{ marginRight: 8, fontSize: "1.1rem" }} />
-                            Contribute on GitHub
+                            {t('credits.contributeGithub')}
                         </button>
                     </div>
                 </div>

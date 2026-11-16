@@ -1,30 +1,33 @@
+import { useTranslation } from "react-i18next";
+
 import { ConfirmModal } from "./settings/general/ConfirmModal";
 import {
   answerConflict,
-  PROCESS_LABELS,
+  processLabel,
   useProcessConflictStore,
 } from "../features/processes/singleProcess";
 
 /** asks before a second long job starts: stop the running one, or keep it (see singleProcess.ts) */
 export default function ProcessConflictModal() {
+  const { t } = useTranslation("jobs");
   const conflict = useProcessConflictStore((s) => s.conflict);
   const stopping = useProcessConflictStore((s) => s.stopping);
   if (!conflict) return null;
 
   return (
     <ConfirmModal
-      title="Another process is running"
+      title={t("process.conflictTitle")}
       message={
         <>
-          AMVerge is {PROCESS_LABELS[conflict.running]}. Only one process runs at a time.
+          {t("process.conflictRunning", { process: processLabel(conflict.running) })}
           <br />
           {stopping
-            ? "Stopping it…"
-            : `Stop it and start ${PROCESS_LABELS[conflict.next]} instead?`}
+            ? t("process.stoppingIt")
+            : t("process.conflictQuestion", { process: processLabel(conflict.next) })}
         </>
       }
-      confirmLabel={stopping ? "Stopping…" : "Stop it and continue"}
-      cancelLabel="Keep it running"
+      confirmLabel={stopping ? t("process.stopping") : t("process.stopAndContinue")}
+      cancelLabel={t("process.keepRunning")}
       busy={stopping}
       onConfirm={() => void answerConflict(true)}
       onClose={() => void answerConflict(false)}

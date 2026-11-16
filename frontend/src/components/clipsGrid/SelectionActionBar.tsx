@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FaLayerGroup, FaSpinner } from '../icons/animated';
 import Tooltip from "../common/Tooltip";
 import { useEscapeToClose } from "../common/useEscapeToClose";
@@ -10,6 +11,7 @@ import { useScenepacksStore } from "../../stores/scenepackStore";
 import { materializeClipsForScenepack } from "../../utils/scenepackMaterialize";
 
 export function SelectionActionBar() {
+  const { t } = useTranslation("library");
   const selectedClips = useAppStateStore((s) => s.selectedClips);
   const setSelectedClips = useAppStateStore((s) => s.setSelectedClips);
   const activePage = useUIStateStore((s) => s.activePage);
@@ -25,25 +27,25 @@ export function SelectionActionBar() {
     <>
       <div className="selection-action-bar">
         <span className="selection-action-bar-count">
-          {selectedClips.size} selected
+          {t("selection.count", { count: selectedClips.size })}
         </span>
         {showAddToScenepack && (
-          <Tooltip content="Add selected clips to Scenepack">
+          <Tooltip content={t("selection.addSelectedTooltip")}>
             <button
               className="selection-action-bar-btn"
               onClick={() => setShowModal(true)}
             >
               <FaLayerGroup />
-              <span>Add to Scenepack</span>
+              <span>{t("addToScenepack.title")}</span>
             </button>
           </Tooltip>
         )}
-        <Tooltip content="Deselect all">
+        <Tooltip content={t("selection.deselectAll")}>
           <button
             className="selection-action-bar-btn"
             onClick={() => setSelectedClips(new Set())}
           >
-            Clear
+            {t("selection.clear")}
           </button>
         </Tooltip>
       </div>
@@ -65,6 +67,7 @@ function BatchAddToScenepackModal({
   clipIds: string[];
   onClose: () => void;
 }) {
+  const { t } = useTranslation("library");
   const openedEpisodeId = useEpisodePanelRuntimeStore((s) => s.openedEpisodeId);
   const scenepacks = useScenepacksStore((s) => s.scenepacks);
   const addClipToScenepack = useScenepacksStore((s) => s.addClipToScenepack);
@@ -95,7 +98,7 @@ function BatchAddToScenepackModal({
 
     setBusy(true);
     setError(null);
-    setProgress({ percent: 0, message: `Adding ${selectedClipItems.length} clip(s)...` });
+    setProgress({ percent: 0, message: t("selection.addingProgress", { count: selectedClipItems.length }) });
     try {
       const { clips, failedCount } = await materializeClipsForScenepack(
         selectedClipItems,
@@ -105,7 +108,7 @@ function BatchAddToScenepackModal({
       );
       for (const data of clips) addClipToScenepack(targetId, data);
       if (clips.length === 0) {
-        setError("Failed to add clips to Scenepack.");
+        setError(t("selection.addFailed"));
         return;
       }
       if (failedCount > 0) {
@@ -127,18 +130,18 @@ function BatchAddToScenepackModal({
     <div className="episode-modal-overlay" onClick={onClose}>
       <div className="episode-modal" onClick={(e) => e.stopPropagation()}>
         <div className="episode-modal-title">
-          Add {selectedClipItems.length} clip{selectedClipItems.length !== 1 ? "s" : ""} to Scenepack
+          {t("addToScenepack.titleCount", { count: selectedClipItems.length })}
         </div>
 
         <div className="episode-modal-message" style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
-          <button className={`episode-modal-btn${mode === "select" ? " primary" : ""}`} onClick={() => setMode("select")}>Existing</button>
-          <button className={`episode-modal-btn${mode === "create" ? " primary" : ""}`} onClick={() => setMode("create")}>Create New</button>
+          <button className={`episode-modal-btn${mode === "select" ? " primary" : ""}`} onClick={() => setMode("select")}>{t("addToScenepack.existing")}</button>
+          <button className={`episode-modal-btn${mode === "create" ? " primary" : ""}`} onClick={() => setMode("create")}>{t("addToScenepack.createNew")}</button>
         </div>
 
         {mode === "select" ? (
           <div className="scenepack-scroll-list">
             {scenepacks.length === 0 ? (
-              <div className="episode-modal-message" style={{ opacity: 0.55 }}>No Scenepacks yet. Switch to "Create New".</div>
+              <div className="episode-modal-message" style={{ opacity: 0.55 }}>{t("addToScenepack.noScenepacks")}</div>
             ) : (
               scenepacks.map((sp) => (
                 <div
@@ -158,7 +161,7 @@ function BatchAddToScenepackModal({
             <input
               type="text"
               className="episode-modal-input"
-              placeholder="Scenepack name..."
+              placeholder={t("scenepacks.newItem.placeholderScenepack")}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
@@ -180,12 +183,12 @@ function BatchAddToScenepackModal({
         )}
 
         <div className="episode-modal-actions">
-          <button className="episode-modal-btn" onClick={onClose} disabled={busy}>Cancel</button>
+          <button className="episode-modal-btn" onClick={onClose} disabled={busy}>{t("common:cancel")}</button>
           <button className="episode-modal-btn primary" onClick={handleAdd}
             disabled={busy || (mode === "select" ? !selectedId : !newName.trim())}>
             {busy
-              ? "Adding..."
-              : mode === "create" ? "Create & Add All" : `Add ${selectedClipItems.length} Clip${selectedClipItems.length !== 1 ? "s" : ""}`}
+              ? t("addToScenepack.adding")
+              : mode === "create" ? t("selection.createAndAddAll") : t("addToScenepack.addClips", { count: selectedClipItems.length })}
           </button>
         </div>
       </div>

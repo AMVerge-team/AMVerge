@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 // startup splash: the wordmark lifts away to reveal the app; unmounted after, skippable by click or key
 
@@ -12,6 +13,7 @@ interface SplashScreenProps {
 }
 
 export default function SplashScreen({ onFinished }: SplashScreenProps) {
+  const { t } = useTranslation("shell");
   const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
@@ -56,7 +58,7 @@ export default function SplashScreen({ onFinished }: SplashScreenProps) {
         <h1 className="splash-logo">
           <span>AMV</span>erge
         </h1>
-        <p className="splash-tagline">Scene selection made easy.</p>
+        <p className="splash-tagline">{t("splash.tagline")}</p>
       </div>
     </div>
   );

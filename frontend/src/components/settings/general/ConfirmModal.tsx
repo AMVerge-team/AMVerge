@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import { useEscapeToClose } from "../../common/useEscapeToClose";
 
 type Props = {
@@ -24,9 +25,12 @@ export function ConfirmModal({
   onClose,
   busy = false,
   secondary,
-  cancelLabel = "Cancel",
+  cancelLabel,
   confirmDisabled = false,
 }: Props) {
+  const { t } = useTranslation("settings");
+  // undefined falls back to the shared cancel label; null hides the button
+  const resolvedCancelLabel = cancelLabel === undefined ? t("common:cancel") : cancelLabel;
   const dialogRef = useRef<HTMLDivElement>(null);
   useEscapeToClose(onClose, !busy);
 
@@ -53,9 +57,9 @@ export function ConfirmModal({
         <div className="episode-modal-title">{title}</div>
         <div className="episode-modal-message">{message}</div>
         <div className="episode-modal-actions">
-          {cancelLabel !== null && (
+          {resolvedCancelLabel !== null && (
             <button type="button" className="episode-modal-btn" onClick={onClose} disabled={busy}>
-              {cancelLabel}
+              {resolvedCancelLabel}
             </button>
           )}
           {secondary && (

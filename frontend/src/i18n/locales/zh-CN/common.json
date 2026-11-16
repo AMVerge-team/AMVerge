@@ -1,0 +1,25 @@
+{
+  "ok": "确定",
+  "cancel": "取消",
+  "save": "保存",
+  "close": "关闭",
+  "confirm": "确认",
+  "delete": "删除",
+  "rename": "重命名",
+  "reset": "重置",
+  "search": "搜索",
+  "loading": "加载中…",
+  "noResults": "无结果",
+  "yes": "是",
+  "no": "否",
+  "on": "开",
+  "off": "关",
+  "language": {
+    "label": "Language / 语言",
+    "description": "选择界面语言。立即生效，下次打开时保留。",
+    "system": "跟随系统",
+    "systemResolved": "跟随系统（{{language}}）",
+    "en": "English",
+    "zh-CN": "简体中文"
+  }
+}

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import GeneralSettings from "../components/settings/GeneralSettings";
 import AppearanceSection from "../components/settings/AppearanceSection";
 import FeaturesSection from "../components/settings/FeaturesSection";
@@ -7,11 +8,11 @@ import { useUIStateStore } from "../stores/UIStore";
 import { useTabKeys } from "../components/common/useTabKeys";
 
 const PAGES = [
-  { key: "general", label: "General" },
-  { key: "export", label: "Export" },
-  { key: "appearance", label: "Appearance" },
-  { key: "features", label: "Features" },
-  { key: "discord", label: "Discord RPC" },
+  { key: "general" },
+  { key: "export" },
+  { key: "appearance" },
+  { key: "features" },
+  { key: "discord" },
 ];
 
 type SettingsProps = {
@@ -23,6 +24,7 @@ export default function Settings({
   onGeneralSettingsReset,
   onThemeReset,
 }: SettingsProps) {
+  const { t } = useTranslation("shell");
   const activeTab = useUIStateStore(s => s.settingsTab);
   const setActiveTab = useUIStateStore(s => s.setSettingsTab);
   useTabKeys(PAGES.map((page) => page.key), activeTab, setActiveTab);
@@ -30,7 +32,7 @@ export default function Settings({
   return (
     <div className="menu-page">
       <div className="menu-header">
-        <h2 className="menu-title">Settings</h2>
+        <h2 className="menu-title">{t("settingsPage.title")}</h2>
         <div className="menu-nav">
           {PAGES.map((page) => (
             <button
@@ -38,7 +40,7 @@ export default function Settings({
               className={`menu-nav-btn${activeTab === page.key ? " active" : ""}`}
               onClick={() => setActiveTab(page.key)}
             >
-              {page.label}
+              {t(`settingsPage.tabs.${page.key}`)}
             </button>
           ))}
         </div>

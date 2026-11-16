@@ -1,5 +1,6 @@
 import { FaFolderOpen, FaFolderPlus, FaSortAlphaDown, FaSortAlphaUp, FaTrashAlt } from '../../icons/animated';
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 
 import Tooltip from "../../common/Tooltip";
 import { useGeneralSettingsStore } from "../../../stores/settingsStore";
@@ -28,18 +29,19 @@ export default function EpisodePanelHeader({
   multiSelectedCount,
   onDeleteSelectedEpisode,
 }: EpisodePanelHeaderProps) {
+  const { t } = useTranslation("library");
   const episodesPath = useGeneralSettingsStore((s) => s.episodesPath);
-  const sortLabel = nextSortDirection === "asc" ? "Sort A-Z" : "Sort Z-A";
+  const sortLabel = nextSortDirection === "asc" ? t("episodePanel.header.sortAsc") : t("episodePanel.header.sortDesc");
   const SortIcon = nextSortDirection === "asc" ? FaSortAlphaDown : FaSortAlphaUp;
   const deleteDisabled =
     multiSelectedCount === 0 && !selectedEpisodeId && !selectedFolderId;
   const deleteLabel = deleteDisabled
-    ? "Delete selected item (select an episode or folder first)"
+    ? t("episodePanel.header.deleteDisabled")
     : multiSelectedCount > 1
-      ? `Delete ${multiSelectedCount} selected episodes`
+      ? t("episodePanel.header.deleteSelectedEpisodes", { count: multiSelectedCount })
       : selectedEpisodeId
-        ? "Delete selected episode"
-        : "Delete selected folder";
+        ? t("episodePanel.header.deleteSelectedEpisode")
+        : t("episodePanel.header.deleteSelectedFolder");
 
   const handleOpenStorage = async () => {
     if (episodesPath) {
@@ -53,7 +55,7 @@ export default function EpisodePanelHeader({
 
   return (
     <div className="episode-panel-header">
-      <div className="episode-panel-title">Episode Panel</div>
+      <div className="episode-panel-title">{t("episodePanel.header.title")}</div>
 
       <div className="episode-panel-actions">
         <Tooltip content={sortLabel}>
@@ -73,24 +75,24 @@ export default function EpisodePanelHeader({
           </button>
         </Tooltip>
 
-        <Tooltip content="New folder">
+        <Tooltip content={t("episodePanel.header.newFolder")}>
           <button
             type="button"
             className="episode-panel-action icon-only"
             onClick={() => openNewFolderModal(null)}
-            aria-label="New folder"
+            aria-label={t("episodePanel.header.newFolder")}
           >
             <FaFolderPlus aria-hidden="true" />
           </button>
         </Tooltip>
 
         {episodesPath && (
-          <Tooltip content="Show in folder">
+          <Tooltip content={t("episodePanel.header.showInFolder")}>
             <button
               type="button"
               className="episode-panel-action icon-only"
               onClick={handleOpenStorage}
-              aria-label="Show in folder"
+              aria-label={t("episodePanel.header.showInFolder")}
             >
               <FaFolderOpen aria-hidden="true" />
             </button>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 
 import SettingRow from "../common/SettingRow";
 import { useAiDepsStore } from "../../stores/aiDepsStore";
@@ -42,15 +43,11 @@ const CATEGORY_PACK: Record<Category, AiPackId> = {
   upscale: "upscale",
 };
 
-const CATEGORY_TITLE: Record<Category, string> = {
-  depth: "Depth Models",
-  upscale: "Upscale Models",
-};
-
 const OFFERED_UPSCALE_MODELS = new Set<string>(UPSCALE_MODEL_OPTIONS.map((option) => option.value));
 
 /** downloads or deletes the depth and upscale model weights the export settings use */
 export default function AiModelsSection() {
+  const { t } = useTranslation("settingsExport");
   const aiStatus = useAiDepsStore((s) => s.status);
   const [models, setModels] = useState<ModelsList | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
@@ -99,21 +96,21 @@ export default function AiModelsSection() {
     return (
       <div key={category} style={{ marginBottom: 16 }}>
         <SettingRow
-          label={CATEGORY_TITLE[category]}
+          label={t(`models.categories.${category}`)}
           description={
             installed
-              ? "Model weights used by this feature. Download them ahead of time for fast offline exporting."
-              : `Turn on the ${CATEGORY_PACK[category]} pass above to manage its models.`
+              ? t("models.description")
+              : t(`models.turnOn.${CATEGORY_PACK[category]}`)
           }
           control={
             installed ? (
               <span className="settings-value" style={{ width: "auto", fontSize: "0.85rem", opacity: 0.8 }}>
                 {models === null
-                  ? "Loading models…"
-                  : `${list.length} model${list.length === 1 ? "" : "s"}`}
+                  ? t("models.loading")
+                  : t("models.count", { count: list.length })}
               </span>
             ) : (
-              <span className="aid-state">Not available</span>
+              <span className="aid-state">{t("models.notAvailable")}</span>
             )
           }
         />
@@ -199,7 +196,7 @@ export default function AiModelsSection() {
               border: `1px solid ${model.downloaded ? "rgb(var(--accent-rgb) / 0.3)" : "rgba(255, 255, 255, 0.08)"}`,
             }}
           >
-            {model.downloaded ? "Downloaded" : "Not downloaded"}
+            {model.downloaded ? t("models.downloaded") : t("models.notDownloaded")}
           </span>
 
           {enabled ? (
@@ -211,7 +208,7 @@ export default function AiModelsSection() {
                 disabled={busy}
                 style={{ height: 26, padding: "0 10px", fontSize: "0.75rem", display: "inline-flex", alignItems: "center" }}
               >
-                {isBusy ? "…" : "Delete"}
+                {isBusy ? "…" : t("common:delete")}
               </button>
             ) : (
               <button
@@ -221,7 +218,7 @@ export default function AiModelsSection() {
                 disabled={busy}
                 style={{ height: 26, padding: "0 10px", fontSize: "0.75rem", display: "inline-flex", alignItems: "center" }}
               >
-                {isBusy ? "Downloading…" : "Download"}
+                {isBusy ? t("models.downloading") : t("models.download")}
               </button>
             )
           ) : null}

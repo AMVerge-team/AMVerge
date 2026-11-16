@@ -1,5 +1,6 @@
 import type { AiPackId } from "./aiDeps/packs";
 import { useGeneralSettingsStore, type GeneralSettings } from "../stores/settingsStore";
+import { t } from "../i18n";
 
 /** the features switched in Settings > Features; off greys them out (or hides them), AI files are kept */
 export type FeatureId = "aiSceneDetection" | "sceneScout" | "scenepacks" | "depthPass" | "upscalePass";
@@ -21,42 +22,22 @@ type FeatureDef = {
   pack?: AiPackId;
 };
 
+type FeatureSpec = Omit<FeatureDef, "label" | "description">;
+
+// label and description are getters so they translate at read time
+function defineFeature(spec: FeatureSpec): FeatureDef {
+  return Object.defineProperties({ ...spec }, {
+    label: { enumerable: true, get: () => t(`settingsExport:features.items.${spec.id}.label`) },
+    description: { enumerable: true, get: () => t(`settingsExport:features.items.${spec.id}.description`) },
+  }) as FeatureDef;
+}
+
 export const FEATURES: FeatureDef[] = [
-  {
-    id: "aiSceneDetection",
-    label: "AI Scene Detection",
-    description:
-      "Finds scene cuts with AI (TransNetV2), the most accurate way to import.",
-    setting: "aiSceneDetectionEnabled",
-    pack: "ml",
-  },
-  {
-    id: "sceneScout",
-    label: "Scene Scout",
-    description: "Search your episodes by describing a scene, and find clips that match each other.",
-    setting: "sceneScoutEnabled",
-    pack: "scout",
-  },
-  {
-    id: "scenepacks",
-    label: "Scenepacks",
-    description: "Group clips into collections.",
-    setting: "scenepacksEnabled",
-  },
-  {
-    id: "depthPass",
-    label: "Depth Map Pass",
-    description: "Creates a depth map of each exported file.",
-    setting: "depthPassEnabled",
-    pack: "depth",
-  },
-  {
-    id: "upscalePass",
-    label: "Upscale Pass",
-    description: "Creates a higher resolution copy of each exported file with AI.",
-    setting: "upscalePassEnabled",
-    pack: "upscale",
-  },
+  defineFeature({ id: "aiSceneDetection", setting: "aiSceneDetectionEnabled", pack: "ml" }),
+  defineFeature({ id: "sceneScout", setting: "sceneScoutEnabled", pack: "scout" }),
+  defineFeature({ id: "scenepacks", setting: "scenepacksEnabled" }),
+  defineFeature({ id: "depthPass", setting: "depthPassEnabled", pack: "depth" }),
+  defineFeature({ id: "upscalePass", setting: "upscalePassEnabled", pack: "upscale" }),
 ];
 
 export function featureDef(id: FeatureId): FeatureDef {

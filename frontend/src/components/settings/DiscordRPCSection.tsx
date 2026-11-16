@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useGeneralSettingsStore } from "../../stores/settingsStore";
 import { useDiscordRPCStatus } from "../../hooks/useDiscordRPC";
 import DiscordPresencePreview from "./DiscordPresencePreview";
@@ -5,19 +6,20 @@ import SettingRow from "../common/SettingRow";
 
 /** Discord being closed is normal, so "waiting" reads as a state, not an error */
 function PresencePanel({ enabled }: { enabled: boolean }) {
+  const { t } = useTranslation("settings");
   const status = useDiscordRPCStatus();
 
   let tone = "idle";
-  let text = "Rich Presence is off.";
+  let text = t("discord.status.off");
   if (enabled) {
     if (status?.connected) {
       tone = "live";
       text = status.user
-        ? `Connected to Discord as ${status.user}.`
-        : "Connected to Discord.";
+        ? t("discord.status.connectedAs", { user: status.user })
+        : t("discord.status.connected");
     } else {
       tone = "waiting";
-      text = "Waiting for Discord - open the app and this connects on its own.";
+      text = t("discord.status.waiting");
     }
   }
 
@@ -33,18 +35,19 @@ function PresencePanel({ enabled }: { enabled: boolean }) {
 }
 
 export default function DiscordRPCSection() {
+  const { t } = useTranslation("settings");
   const generalSettings = useGeneralSettingsStore();
   const setGeneralSettings = useGeneralSettingsStore.setState;
   return (
     <section className="panel menu-panel settings-panel">
-      <h3>Discord Rich Presence</h3>
+      <h3>{t("discord.title")}</h3>
       <div className="about-content">
 
         <PresencePanel enabled={generalSettings.discordRPCEnabled} />
 
         <SettingRow
-          label="Enable Rich Presence"
-          description="Show what you're working on in AMVerge on your Discord profile."
+          label={t("discord.enable.label")}
+          description={t("discord.enable.description")}
           control={
             <div className="settings-control">
               <label className="custom-checkbox">
@@ -68,8 +71,8 @@ export default function DiscordRPCSection() {
         {generalSettings.discordRPCEnabled && (
           <>
             <SettingRow
-              label="Show filename"
-              description="Show the name of the video you're editing."
+              label={t("discord.filename.label")}
+              description={t("discord.filename.description")}
               control={
                 <div className="settings-control">
                   <label className="custom-checkbox">
@@ -91,8 +94,8 @@ export default function DiscordRPCSection() {
             />
 
             <SettingRow
-              label="Show status icons"
-              description="Show small icons for editing, loading, and saving."
+              label={t("discord.statusIcons.label")}
+              description={t("discord.statusIcons.description")}
               control={
                 <div className="settings-control">
                   <label className="custom-checkbox">
@@ -114,8 +117,8 @@ export default function DiscordRPCSection() {
             />
 
             <SettingRow
-              label="Show elapsed time"
-              description="Count how long AMVerge has been open, like a game session."
+              label={t("discord.elapsed.label")}
+              description={t("discord.elapsed.description")}
               control={
                 <div className="settings-control">
                   <label className="custom-checkbox">
@@ -137,8 +140,8 @@ export default function DiscordRPCSection() {
             />
 
             <SettingRow
-              label="Clickable links"
-              description="Make the presence card clickable: the images open the Discord server, the first line opens the website."
+              label={t("discord.links.label")}
+              description={t("discord.links.description")}
               control={
                 <div className="settings-control">
                   <label className="custom-checkbox">

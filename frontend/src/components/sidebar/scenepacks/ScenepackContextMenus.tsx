@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { ScenepackEntry, ScenepackFolder } from "../../../types/domain";
 import { revealScenepackStorage } from "../../../utils/scenepackStorage";
 import type { ConfirmDelete, NewItemModal, RenameModal } from "./ScenepackModals";
@@ -28,6 +29,7 @@ export function PanelContextMenu({
   menu: PanelMenu;
   actions: Pick<Actions, "setNewItemModal" | "setNewItemName" | "setModalFolderId" | "close">;
 }) {
+  const { t } = useTranslation("library");
   const add = (kind: "scenepack" | "folder") => () => {
     actions.setNewItemModal({ kind, parentId: null });
     actions.setNewItemName("");
@@ -42,10 +44,10 @@ export function PanelContextMenu({
       onClick={(e) => e.stopPropagation()}
     >
       <button type="button" className="episode-context-menu-item" onClick={add("scenepack")}>
-        Add Scenepack
+        {t("scenepacks.menu.addScenepack")}
       </button>
       <button type="button" className="episode-context-menu-item" onClick={add("folder")}>
-        Add Folder
+        {t("episodePanel.menu.addFolder")}
       </button>
     </div>
   );
@@ -62,6 +64,7 @@ export function ScenepackContextMenu({
   folders: ScenepackFolder[];
   actions: Actions;
 }) {
+  const { t } = useTranslation("library");
   const pack = scenepacks.find((sp) => sp.id === menu.id);
 
   return (
@@ -78,7 +81,7 @@ export function ScenepackContextMenu({
           actions.close();
         }}
       >
-        Open
+        {t("scenepacks.menu.open")}
       </button>
 
       <button
@@ -89,7 +92,7 @@ export function ScenepackContextMenu({
           actions.close();
         }}
       >
-        Show in File Explorer
+        {t("episodePanel.menu.showInExplorer")}
       </button>
 
       <button
@@ -102,7 +105,7 @@ export function ScenepackContextMenu({
           actions.close();
         }}
       >
-        Rename
+        {t("common:rename")}
       </button>
 
       <button
@@ -113,7 +116,7 @@ export function ScenepackContextMenu({
           actions.close();
         }}
       >
-        Change Thumbnail
+        {t("scenepacks.menu.changeThumbnail")}
       </button>
 
       <button
@@ -124,13 +127,13 @@ export function ScenepackContextMenu({
           actions.close();
         }}
       >
-        Delete
+        {t("common:delete")}
       </button>
 
       {folders.length > 0 && (
         <>
           <div className="episode-context-menu-separator" />
-          <div className="episode-context-menu-label">Move to</div>
+          <div className="episode-context-menu-label">{t("scenepacks.menu.moveTo")}</div>
 
           {pack?.folderId && (
             <button
@@ -141,7 +144,7 @@ export function ScenepackContextMenu({
                 actions.close();
               }}
             >
-              No folder
+              {t("scenepacks.menu.noFolder")}
             </button>
           )}
 
@@ -173,6 +176,7 @@ export function FolderContextMenu({
   folders: ScenepackFolder[];
   actions: Actions;
 }) {
+  const { t } = useTranslation("library");
   const addInside = (kind: "scenepack" | "folder") => () => {
     actions.setNewItemModal({ kind, parentId: menu.id });
     actions.setNewItemName("");
@@ -187,10 +191,10 @@ export function FolderContextMenu({
       onClick={(e) => e.stopPropagation()}
     >
       <button type="button" className="episode-context-menu-item" onClick={addInside("folder")}>
-        Add Subfolder
+        {t("episodePanel.menu.addSubfolder")}
       </button>
       <button type="button" className="episode-context-menu-item" onClick={addInside("scenepack")}>
-        Add Scenepack
+        {t("scenepacks.menu.addScenepack")}
       </button>
 
       <button
@@ -203,7 +207,7 @@ export function FolderContextMenu({
           actions.close();
         }}
       >
-        Rename
+        {t("common:rename")}
       </button>
 
       <button
@@ -215,7 +219,7 @@ export function FolderContextMenu({
           actions.close();
         }}
       >
-        Delete
+        {t("common:delete")}
       </button>
     </div>
   );

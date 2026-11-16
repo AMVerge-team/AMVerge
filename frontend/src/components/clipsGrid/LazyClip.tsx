@@ -1,4 +1,5 @@
 import { memo, useCallback, useDeferredValue, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { FaCheck, FaPlus, FaTrashAlt } from '../icons/animated';
 import { LazyClipProps } from "./types.ts";
@@ -53,6 +54,7 @@ export const LazyClip = memo(function LazyClip({
   appearDelayMs,
   active = true,
 }: LazyClipProps) {
+  const { t } = useTranslation("library");
   const importToken = useAppStateStore((s) => s.importToken);
   const previewWebpPath = useScenePreviewStore((s) => s.animatedByClipId[clip.id]);
   const isSelected = useAppStateStore((s) => s.selectedClips.has(clip.id));
@@ -123,6 +125,15 @@ export const LazyClip = memo(function LazyClip({
     clip.originalName === "Merging..." ||
     clip.originalName === "Splitting..." ||
     clip.originalName === "Adding...";
+  // the placeholder name is a marker value; only its display is translated
+  const processingLabel =
+    clip.originalName === "Merging..."
+      ? t("clip.status.merging")
+      : clip.originalName === "Splitting..."
+        ? t("clip.status.splitting")
+        : clip.originalName === "Adding..."
+          ? t("clip.status.adding")
+          : clip.originalName;
   const needsDecodeProxy = (videoIsHEVC === true && userHasHEVC === false) || videoNeedsProxy;
   const resetKey = `${clip.src}::${importToken}::${previewAudioStreamIndex ?? "default"}`;
 
@@ -328,10 +339,10 @@ export const LazyClip = memo(function LazyClip({
   const scoutTooltip = isScout
     ? [
         clip.originalName,
-        `Timeframe: ${formatClipTimeframe(clip.startSec, clip.endSec, true)}`,
+        t("clip.tooltip.timeframe", { timeframe: formatClipTimeframe(clip.startSec, clip.endSec, true) }),
         clip.score !== undefined ? formatScoreWithConfidence(clip.score) : null,
-        clip.motion ? `Starts: ${describeMotion(clip.motion.start)}` : null,
-        clip.motion ? `Ends: ${describeMotion(clip.motion.end)}` : null,
+        clip.motion ? t("clip.tooltip.starts", { motion: describeMotion(clip.motion.start) }) : null,
+        clip.motion ? t("clip.tooltip.ends", { motion: describeMotion(clip.motion.end) }) : null,
       ]
         .filter(Boolean)
         .join("\n")
@@ -390,11 +401,11 @@ export const LazyClip = memo(function LazyClip({
       }}
     >
       {(controlsMounted || isSelected) && (
-        <Tooltip content={isSelected ? "Deselect clip" : "Select clip"}>
+        <Tooltip content={isSelected ? t("clip.deselect") : t("clip.select")}>
           <button
             className={`clip-selected ${isSelected ? "active" : ""}`}
             onClick={(e) => onToggleSelection(clip.id, e)}
-            aria-label={isSelected ? "Deselect clip" : "Select clip"}
+            aria-label={isSelected ? t("clip.deselect") : t("clip.select")}
           >
             {isSelected ? <FaCheck /> : <FaPlus />}
           </button>
@@ -496,7 +507,7 @@ export const LazyClip = memo(function LazyClip({
 
           {isProcessing && (
             <div className="clip-status-overlay">
-              <span className="status-text">{clip.originalName}</span>
+              <span className="status-text">{processingLabel}</span>
             </div>
           )}
 
@@ -532,7 +543,7 @@ export const LazyClip = memo(function LazyClip({
           )}
 
           {activePage === "scenepacks" && (
-            <Tooltip content="Remove from Scenepack">
+            <Tooltip content={t("clip.removeFromScenepack")}>
               <button
                 className="clip-remove-from-scenepack"
                 onClick={(e) => {
@@ -544,7 +555,7 @@ export const LazyClip = memo(function LazyClip({
                     { index: clip.sceneIndex ?? 0, clipPath: clip.clipPath },
                   ]);
                 }}
-                aria-label="Remove from Scenepack"
+                aria-label={t("clip.removeFromScenepack")}
               >
                 <FaTrashAlt />
               </button>

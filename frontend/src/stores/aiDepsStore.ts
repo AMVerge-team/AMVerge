@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { create } from "zustand";
 
+import { t } from "../i18n";
 import {
   loadGpuPreference,
   saveGpuPreference,
@@ -140,7 +141,7 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
       stage: "installing",
       percent: 0,
       indeterminate: true,
-      message: "Starting...",
+      message: t("jobs:aiDeps.starting"),
       logs: [],
       error: null,
     });
@@ -154,8 +155,8 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
         stage: installed ? "done" : "error",
         percent: 100,
         indeterminate: false,
-        message: installed ? "Installed." : "Install finished but the packages are still missing.",
-        error: installed ? null : "The install completed without adding the expected packages.",
+        message: installed ? t("jobs:aiDeps.installed") : t("jobs:aiDeps.packagesMissing"),
+        error: installed ? null : t("jobs:aiDeps.packagesMissingError"),
       });
       if (installed) settle(true);
     } catch (err) {
@@ -164,7 +165,7 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
         stage: "error",
         indeterminate: false,
         error: message,
-        message: "Install failed.",
+        message: t("jobs:aiDeps.installFailed"),
       });
       await get().refresh();
     }
@@ -186,10 +187,10 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
       stage: "installing",
       percent: 0,
       indeterminate: true,
-      message: "Reinstalling PyTorch with GPU support...",
+      message: t("jobs:aiDeps.reinstallingGpu"),
       logs: [],
       error: null,
-      job: { title: "GPU support", done: "GPU support installed" },
+      job: { title: t("jobs:aiDeps.gpuSupport"), done: t("jobs:aiDeps.gpuSupportInstalled") },
     });
 
     try {
@@ -204,18 +205,18 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
         stage: next.torchVariant === "cuda" ? "done" : "error",
         percent: 100,
         indeterminate: false,
-        message: next.torchVariant === "cuda" ? "GPU support installed." : "Still on the CPU build.",
+        message: next.torchVariant === "cuda" ? t("jobs:aiDeps.gpuSupportInstalledMsg") : t("jobs:aiDeps.stillCpu"),
         error:
           next.torchVariant === "cuda"
             ? null
-            : "PyTorch is still the CPU build after reinstalling.",
+            : t("jobs:aiDeps.stillCpuError"),
       });
     } catch (err) {
       set({
         stage: "error",
         indeterminate: false,
         error: String(err),
-        message: "Reinstall failed.",
+        message: t("jobs:aiDeps.reinstallFailed"),
       });
       await get().refresh();
     }
@@ -229,12 +230,12 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
       stage: "installing",
       percent: 0,
       indeterminate: true,
-      message: enabled ? "Installing GPU decoding..." : "Removing GPU decoding...",
+      message: enabled ? t("jobs:aiDeps.installingGpuDecode") : t("jobs:aiDeps.removingGpuDecode"),
       logs: [],
       error: null,
       job: enabled
-        ? { title: "GPU decoding", done: "GPU decoding installed" }
-        : { title: "Removing GPU decoding", done: "GPU decoding removed" },
+        ? { title: t("jobs:aiDeps.gpuDecode"), done: t("jobs:aiDeps.gpuDecodeInstalled") }
+        : { title: t("jobs:aiDeps.removingGpuDecodeTitle"), done: t("jobs:aiDeps.gpuDecodeRemoved") },
     });
 
     try {
@@ -246,22 +247,22 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
         stage: ok ? "done" : "error",
         percent: 100,
         indeterminate: false,
-        message: ok ? (enabled ? "GPU decoding installed." : "GPU decoding removed.") : "Nothing changed.",
-        error: ok ? null : enabled ? "Nelux is still missing after the install." : "Nelux is still installed.",
+        message: ok ? (enabled ? t("jobs:aiDeps.gpuDecodeInstalledMsg") : t("jobs:aiDeps.gpuDecodeRemovedMsg")) : t("jobs:aiDeps.nothingChanged"),
+        error: ok ? null : enabled ? t("jobs:aiDeps.neluxMissing") : t("jobs:aiDeps.neluxStillInstalled"),
       });
     } catch (err) {
       set({
         stage: "error",
         indeterminate: false,
         error: String(err),
-        message: enabled ? "Install failed." : "Removal failed.",
+        message: enabled ? t("jobs:aiDeps.installFailed") : t("jobs:aiDeps.removalFailed"),
       });
       await get().refresh();
     }
   },
 
   cancel: () => {
-    set({ message: "Canceling...", indeterminate: true });
+    set({ message: t("jobs:aiDeps.canceling"), indeterminate: true });
     invoke("abort_ai_install")
       .catch(() => {})
       .finally(() => {

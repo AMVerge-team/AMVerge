@@ -1,6 +1,7 @@
 import HowToUse from "./HowToUse.tsx"
 import VideoPlayer from "./VideoPlayer.tsx"
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { FaFolderOpen, FaFileExport, FaPencilAlt } from '../icons/animated';
 import { SiDavinciresolve } from '../icons/animated';
@@ -44,6 +45,7 @@ type PreviewContainerProps = {
 };
 
 export default function PreviewContainer(props: PreviewContainerProps) {
+  const { t } = useTranslation("preview");
   const [showMergeNameModal, setShowMergeNameModal] = React.useState(false);
   useEscapeToClose(() => setShowMergeNameModal(false), showMergeNameModal);
   const mergeNameInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -93,11 +95,11 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     () =>
       generalSettings.exportProfiles.map((profile) => ({
         value: profile.id,
-        label: profile.name.trim() || "Untitled Profile",
+        label: profile.name.trim() || t("export.untitledProfile"),
         description: getExportProfileSummary(profile),
         icon: renderProfileIcon(profile),
       })),
-    [generalSettings.exportProfiles]
+    [generalSettings.exportProfiles, t]
   );
 
   const audioStreamOptions = React.useMemo(
@@ -369,9 +371,9 @@ export default function PreviewContainer(props: PreviewContainerProps) {
               ) : (
                 <div className="preview-window empty">
                   {scoutRangeFailed ? (
-                    <p>Couldn't load this scene. Its episode may have moved.</p>
+                    <p>{t("preview.sceneLoadFailed")}</p>
                   ) : (
-                    <LoadingSpinner label="Loading preview" />
+                    <LoadingSpinner label={t("preview.loading")} />
                   )}
                 </div>
               )}
@@ -381,14 +383,14 @@ export default function PreviewContainer(props: PreviewContainerProps) {
 
         {!hasSource && (
           <div className="preview-window empty" key="empty-preview">
-            <p>No clip selected</p>
+            <p>{t("preview.noClip")}</p>
           </div>
         )}
       </div>
       <div className="export-panel">
         <div className="export-header">
           <FaFileExport className="header-icon" />
-          <span className="export-title">EXPORT SETTINGS</span>
+          <span className="export-title">{t("export.title")}</span>
         </div>
 
         <div className="export-settings-row">
@@ -403,11 +405,11 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                 onChange={setActiveExportProfileId}
                 preferredDirection="down"
               />
-              <Tooltip content="Edit export settings">
+              <Tooltip content={t("export.editSettings")}>
                 <button
                   className="buttons export-dir-browse"
                   onClick={() => openSettings("export")}
-                  aria-label="Edit export settings"
+                  aria-label={t("export.editSettings")}
                 >
                   <FaPencilAlt />
                 </button>
@@ -423,15 +425,15 @@ export default function PreviewContainer(props: PreviewContainerProps) {
             <input
               type="text"
               className="export-dir-input"
-              placeholder="Select destination..."
+              placeholder={t("export.destinationPlaceholder")}
               value={exportDir || ""}
               onChange={(e) => setExportDir(e.target.value)}
             />
-            <Tooltip content="Browse for output folder">
+            <Tooltip content={t("export.browseFolder")}>
               <button
                 className="buttons export-dir-browse"
                 onClick={handlePickExportDir}
-                aria-label="Browse for output folder"
+                aria-label={t("export.browseFolder")}
               >
                 <FaFolderOpen />
               </button>
@@ -443,10 +445,10 @@ export default function PreviewContainer(props: PreviewContainerProps) {
           <div className="export-dir-row">
             <div className="export-dir-item">
               <span className="merge-clips-label" aria-hidden="true">
-                <span>MERGE</span>
-                <span>CLIPS</span>
+                <span>{t("export.mergeLabelLine1")}</span>
+                <span>{t("export.mergeLabelLine2")}</span>
               </span>
-              <label className="custom-checkbox" aria-label="Merge clips">
+              <label className="custom-checkbox" aria-label={t("export.mergeClips")}>
                 <input
                   type="checkbox"
                   className="checkbox"
@@ -461,15 +463,15 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                 <Tooltip
                   content={
                     davinciExportSelected
-                      ? "Exported clips go to the DaVinci Resolve timeline"
-                      : "Send exported clips to the DaVinci Resolve timeline (Studio only)"
+                      ? t("export.davinciOn")
+                      : t("export.davinciOff")
                   }
                 >
                   <button
                     type="button"
                     className={`davinci-export-toggle${davinciExportSelected ? " is-active" : ""}`}
                     aria-pressed={davinciExportSelected}
-                    aria-label="Send exported clips to DaVinci Resolve"
+                    aria-label={t("export.davinciAria")}
                     onClick={() => setDavinciExportSelected(!davinciExportSelected)}
                   >
                     <SiDavinciresolve />
@@ -478,10 +480,10 @@ export default function PreviewContainer(props: PreviewContainerProps) {
               </div>
             )}
             <div className="export-dir-item">
-              <div className="audio-stream-field" aria-label="Preview language selector">
+              <div className="audio-stream-field" aria-label={t("export.previewLanguageAria")}>
                 <span className="audio-stream-label" aria-hidden="true">
-                  <span>PREVIEW</span>
-                  <span>LANGUAGE</span>
+                  <span>{t("export.previewLanguageLine1")}</span>
+                  <span>{t("export.previewLanguageLine2")}</span>
                 </span>
 
                 <Dropdown
@@ -507,7 +509,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
         {/* wrapper span: with no selection the button is disabled and fires no
             pointer events, which is exactly when its hint matters most */}
         <Tooltip
-          content={!hasSelectedClips ? "Select at least one clip to export" : "Export selected clips"}
+          content={!hasSelectedClips ? t("export.selectAtLeastOne") : t("export.exportSelected")}
         >
           <span className="tooltip-anchor export-main-anchor">
             <button
@@ -515,7 +517,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
               disabled={!hasSelectedClips}
               onClick={onExportClick}
             >
-              Export Now
+              {t("export.exportNow")}
             </button>
           </span>
         </Tooltip>
@@ -532,11 +534,11 @@ export default function PreviewContainer(props: PreviewContainerProps) {
             className="episode-modal"
             onMouseDown={(e) => e.stopPropagation()}
           >
-            <div className="episode-modal-title">Merged file name</div>
+            <div className="episode-modal-title">{t("mergeModal.title")}</div>
             <input
               ref={mergeNameInputRef}
               className="episode-modal-input"
-              placeholder="Enter file name..."
+              placeholder={t("mergeModal.placeholder")}
               defaultValue={defaultMergedName}
               onKeyDown={(e) => {
                 if (e.key === "Enter") confirmMergeExport();
@@ -548,14 +550,14 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                 className="episode-modal-btn"
                 onClick={() => setShowMergeNameModal(false)}
               >
-                Cancel
+                {t("common:cancel")}
               </button>
               <button
                 type="button"
                 className="episode-modal-btn primary"
                 onClick={confirmMergeExport}
               >
-                Export
+                {t("mergeModal.export")}
               </button>
             </div>
           </div>

@@ -1,5 +1,6 @@
 // sidebar navigation buttons. handles switching between top-level pages like Home and Scenepacks
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { IconType } from "react-icons";
 import { FaCalendarAlt, FaLayerGroup, FaSearch } from '../icons/animated';
 import { IoLibrary } from '../icons/animated';
@@ -11,15 +12,16 @@ import { selectNewEventIds, useEventsStore } from "../../stores/eventsStore";
 import { useContextMenuStore } from "../../stores/contextMenuStore";
 import { useFeature, type FeatureId } from "../../features/featureToggles";
 
-const allButtons: { name: string; page: Page; icon: IconType; feature?: FeatureId }[] = [
+const allButtons: { nameKey: string; page: Page; icon: IconType; feature?: FeatureId }[] = [
   // shown as "Library"; the page id stays "home" so saved ui state keeps working
-  { name: "Library", page: "home", icon: IoLibrary },
-  { name: "Scenepacks", page: "scenepacks", icon: FaLayerGroup, feature: "scenepacks" },
-  { name: "Scene Scout", page: "sceneScout", icon: FaSearch, feature: "sceneScout" },
-  { name: "Community Events", page: "events", icon: FaCalendarAlt },
+  { nameKey: "sidebar.library", page: "home", icon: IoLibrary },
+  { nameKey: "sidebar.scenepacks", page: "scenepacks", icon: FaLayerGroup, feature: "scenepacks" },
+  { nameKey: "sidebar.sceneScout", page: "sceneScout", icon: FaSearch, feature: "sceneScout" },
+  { nameKey: "sidebar.events", page: "events", icon: FaCalendarAlt },
 ];
 
 export default function SidebarNav() {
+  const { t } = useTranslation("shell");
   const activePage = useUIStateStore(s => s.activePage);
   const setActivePage = useUIStateStore(s => s.setActivePage);
   const newEventCount = useEventsStore(s => selectNewEventIds(s).length);
@@ -64,6 +66,7 @@ export default function SidebarNav() {
     <div className="menu-buttons">
       {allButtons.map((button) => {
         const Icon = button.icon;
+        const name = t(button.nameKey);
         const isActive = activePage === button.page;
         const feature = button.feature ? features[button.feature] : undefined;
         if (feature?.hidden) return null;
@@ -73,7 +76,7 @@ export default function SidebarNav() {
           // on the row, since disabled buttons fire no pointer events
           <Tooltip
             key={button.page}
-            content={isFeatureOff ? `Turn on ${button.name} in Settings › Features` : button.name}
+            content={isFeatureOff ? t("features.turnOn", { feature: name }) : name}
             side="right"
           >
             <div
@@ -86,11 +89,11 @@ export default function SidebarNav() {
                 onClick={() => setActivePage(button.page)}
                 disabled={isActive || isFeatureOff}
                 aria-current={isActive ? "page" : undefined}
-                aria-label={button.name}
+                aria-label={name}
               >
                 <Icon aria-hidden="true" />
                 {button.page === "events" && newEventCount > 0 && !notificationsMuted && (
-                  <span className="sidebar-badge" aria-label={`${newEventCount} new events`}>
+                  <span className="sidebar-badge" aria-label={t("sidebar.newEvents", { count: newEventCount })}>
                     {newEventCount > 9 ? "9+" : newEventCount}
                   </span>
                 )}
@@ -114,7 +117,7 @@ export default function SidebarNav() {
               setEventsMenu(null);
             }}
           >
-            {notificationsMuted ? "Unmute event notifications" : "Mute event notifications"}
+            {notificationsMuted ? t("sidebar.unmuteEvents") : t("sidebar.muteEvents")}
           </button>
         </div>
       )}

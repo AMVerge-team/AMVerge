@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEventHandler, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 import Tooltip from "./common/Tooltip";
 
@@ -40,10 +41,12 @@ export default function BackgroundJobCard({
   ariaLabel,
   onExpand,
   onClose,
-  closeLabel = "Dismiss",
+  closeLabel,
   children,
   footer,
 }: BackgroundJobCardProps) {
+  const { t } = useTranslation("jobs");
+  const closeText = closeLabel ?? t("jobCard.dismiss");
   const [spinnerFrame, setSpinnerFrame] = useState(0);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
@@ -123,15 +126,15 @@ export default function BackgroundJobCard({
         <span className="lm-title">{title}</span>
         <div className="lm-actions">
           {onExpand ? (
-            <Tooltip content="Expand">
-              <button type="button" className="lm-btn" onClick={onExpand} aria-label="Expand">
+            <Tooltip content={t("jobCard.expand")}>
+              <button type="button" className="lm-btn" onClick={onExpand} aria-label={t("jobCard.expand")}>
                 ▢
               </button>
             </Tooltip>
           ) : null}
           {onClose ? (
-            <Tooltip content={closeLabel}>
-              <button type="button" className="lm-btn lm-close" onClick={onClose} aria-label={closeLabel}>
+            <Tooltip content={closeText}>
+              <button type="button" className="lm-btn lm-close" onClick={onClose} aria-label={closeText}>
                 ✕
               </button>
             </Tooltip>

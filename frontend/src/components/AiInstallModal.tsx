@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { Trans, useTranslation } from "react-i18next";
 
 import Tooltip from "./common/Tooltip";
 import { useEscapeToClose } from "./common/useEscapeToClose";
@@ -19,6 +20,7 @@ function formatDuration(sec: number): string {
 
 /** confirm-then-install dialog for an AI pack, opened by `ensurePack`; resolves once installed or declined */
 export default function AiInstallModal() {
+  const { t } = useTranslation("jobs");
   const open = useAiDepsStore((s) => s.open);
   const pack = useAiDepsStore((s) => s.pack);
   const stage = useAiDepsStore((s) => s.stage);
@@ -111,28 +113,28 @@ export default function AiInstallModal() {
         <header className="pxm-header">
           <span className="pxm-title">
             {stage === "done"
-              ? job?.done ?? `${info.dependencyName} installed`
+              ? job?.done ?? t("aiInstall.installedTitle", { name: info.dependencyName })
               : stage === "error"
                 ? job
-                  ? `${job.title} failed`
-                  : `${info.dependencyName} install failed`
+                  ? t("aiInstall.jobFailedTitle", { title: job.title })
+                  : t("aiInstall.installFailedTitle", { name: info.dependencyName })
                 : job?.title ?? info.label}
           </span>
           <div className="pxm-actions">
             {stage === "installing" ? (
-              <Tooltip content="Minimize and run in background">
+              <Tooltip content={t("aiInstall.minimize")}>
                 <button
                   type="button"
                   className="pxm-btn"
                   onClick={() => useAiDepsStore.getState().minimize()}
-                  aria-label="Minimize and run in background"
+                  aria-label={t("aiInstall.minimize")}
                 >
                   🗕
                 </button>
               </Tooltip>
             ) : (
-              <Tooltip content="Close">
-                <button type="button" className="pxm-btn" onClick={close} aria-label="Close">
+              <Tooltip content={t("common:close")}>
+                <button type="button" className="pxm-btn" onClick={close} aria-label={t("common:close")}>
                   ✕
                 </button>
               </Tooltip>
@@ -143,53 +145,56 @@ export default function AiInstallModal() {
         {stage === "confirm" ? (
           <>
             <p className="aid-lede">
-              You don't have <strong>{info.dependencyName}</strong> installed. Would you like to
-              install it now?
+              <Trans
+                t={t}
+                i18nKey="aiInstall.lede"
+                values={{ name: info.dependencyName }}
+                components={{ strong: <strong /> }}
+              />
             </p>
             <p className="aid-note">{info.description}</p>
             <dl className="aid-facts">
               <div>
-                <dt>Download</dt>
+                <dt>{t("aiInstall.download")}</dt>
                 <dd>~{formatSizeMb(sizeMb)}</dd>
               </div>
               <div>
-                <dt>PyTorch build</dt>
+                <dt>{t("aiInstall.torchBuild")}</dt>
                 <dd>
                   {status?.torchVersion
-                    ? `already installed (${status.torchVariant?.toUpperCase()})`
+                    ? t("aiInstall.torchAlreadyInstalled", { variant: status.torchVariant?.toUpperCase() })
                     : variant === "cuda"
                       ? gpuPreference === "cuda"
                         ? "GPU / CUDA"
-                        : "GPU / CUDA (NVIDIA GPU detected)"
+                        : t("aiInstall.torchCudaDetected")
                       : gpuUndetermined
-                        ? "CPU (failed to check for NVIDIA GPU)"
-                        : "CPU (no NVIDIA GPU detected)"}
+                        ? t("aiInstall.torchCpuUnknown")
+                        : t("aiInstall.torchCpuNoGpu")}
                 </dd>
               </div>
             </dl>
             {!status?.torchVersion && variant === "cpu" ? (
               <p className="aid-note">
                 {gpuUndetermined
-                  ? "AMVerge couldn't run nvidia-smi to check for a GPU, so it's planning the CPU build."
-                  : "No NVIDIA GPU was found, planning the CPU build."}{" "}
+                  ? t("aiInstall.cpuPlanUnknown")
+                  : t("aiInstall.cpuPlanNoGpu")}{" "}
                 <button
                   type="button"
                   className="aid-link-btn"
                   onClick={() => useAiDepsStore.getState().setGpuPreference("cuda")}
                 >
-                  Install the GPU build anyway
+                  {t("aiInstall.installGpuAnyway")}
                 </button>
               </p>
             ) : null}
             {status && !status.uvAvailable ? (
               <p className="pxm-errors">
-                The installer component is missing from this build, so AMVerge can't add the
-                dependency automatically. Reinstalling AMVerge restores it.
+                {t("aiInstall.uvMissing")}
               </p>
             ) : null}
             <div className="aid-buttons">
               <button type="button" className="aid-btn" onClick={close}>
-                Not now
+                {t("aiInstall.notNow")}
               </button>
               <button
                 type="button"
@@ -197,7 +202,7 @@ export default function AiInstallModal() {
                 onClick={install}
                 disabled={Boolean(status && !status.uvAvailable)}
               >
-                Install
+                {t("aiInstall.install")}
               </button>
             </div>
           </>
@@ -207,16 +212,16 @@ export default function AiInstallModal() {
           <>
             <div className="pxm-progress">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginBottom: 4 }}>
-                <span className="pxm-bar-label">Progress</span>
+                <span className="pxm-bar-label">{t("aiInstall.progress")}</span>
                 {stage === "installing" && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 10, fontSize: "0.75rem", color: "rgba(255, 255, 255, 0.65)" }}>
                     {speedText && (
-                      <span>Speed: <strong style={{ color: "#38bdf8", fontFamily: "monospace" }}>{speedText}</strong></span>
+                      <span>{t("aiInstall.speed")}<strong style={{ color: "#38bdf8", fontFamily: "monospace" }}>{speedText}</strong></span>
                     )}
                     {transferredText && (
-                      <span>Size: <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{transferredText}</strong></span>
+                      <span>{t("aiInstall.size")}<strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{transferredText}</strong></span>
                     )}
-                    <span>Elapsed: <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{formatDuration(elapsed)}</strong></span>                  </div>
+                    <span>{t("aiInstall.elapsed")}<strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{formatDuration(elapsed)}</strong></span>                  </div>
                 )}
               </div>
               <div className="progress-bar pxm-bar">
@@ -242,28 +247,28 @@ export default function AiInstallModal() {
             <div className="aid-buttons">
               {stage === "installing" ? (
                 <>
-                  <Tooltip content="Keep downloading in the background">
+                  <Tooltip content={t("aiInstall.keepDownloading")}>
                     <button
                       type="button"
                       className="aid-btn"
                       onClick={() => useAiDepsStore.getState().minimize()}
                     >
-                      Run in background
+                      {t("aiInstall.runInBackground")}
                     </button>
                   </Tooltip>
                   <button type="button" className="aid-btn" onClick={cancel}>
-                    Cancel
+                    {t("common:cancel")}
                   </button>
                 </>
               ) : (
                 <>
                   {stage === "error" ? (
                     <button type="button" className="aid-btn" onClick={install}>
-                      Try again
+                      {t("aiInstall.tryAgain")}
                     </button>
                   ) : null}
                   <button type="button" className="aid-btn aid-btn-primary" onClick={close}>
-                    {stage === "done" ? "Done" : "Close"}
+                    {stage === "done" ? t("aiInstall.done") : t("common:close")}
                   </button>
                 </>
               )}

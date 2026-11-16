@@ -1,0 +1,25 @@
+{
+  "ok": "OK",
+  "cancel": "Cancel",
+  "save": "Save",
+  "close": "Close",
+  "confirm": "Confirm",
+  "delete": "Delete",
+  "rename": "Rename",
+  "reset": "Reset",
+  "search": "Search",
+  "loading": "Loading...",
+  "noResults": "No results",
+  "yes": "Yes",
+  "no": "No",
+  "on": "On",
+  "off": "Off",
+  "language": {
+    "label": "Language / 语言",
+    "description": "Choose the interface language. Applies immediately and is kept next time.",
+    "system": "System",
+    "systemResolved": "System ({{language}})",
+    "en": "English",
+    "zh-CN": "简体中文"
+  }
+}

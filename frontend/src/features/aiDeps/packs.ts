@@ -2,6 +2,8 @@
 //
 // torch features install on demand into an app-managed env; this is the source of truth for each pack's name, unlocks and size
 
+import { t } from "../../i18n";
+
 export type AiPackId = "ml" | "depth" | "upscale" | "scout";
 
 export type TorchVariant = "cuda" | "cpu";
@@ -61,33 +63,47 @@ export type AiPack = {
 export const AI_PACKS: Record<AiPackId, AiPack> = {
   ml: {
     id: "ml",
-    label: "AI scene detection",
+    get label() {
+      return t("jobs:packs.ml.label");
+    },
     dependencyName: "TransNetV2",
-    description:
-      "Finds scene cuts with AI. The most accurate option, and fast on an NVIDIA GPU.",
+    get description() {
+      return t("jobs:packs.ml.description");
+    },
     extraSizeMb: 60,
   },
   depth: {
     id: "depth",
-    label: "Depth map pass",
+    get label() {
+      return t("jobs:packs.depth.label");
+    },
     dependencyName: "Depth-Anything-V2",
-    description: "Creates a depth map of each exported file.",
+    get description() {
+      return t("jobs:packs.depth.description");
+    },
     extraSizeMb: 60,
   },
   scout: {
     id: "scout",
-    label: "Scene Scout",
+    get label() {
+      return t("jobs:packs.scout.label");
+    },
     dependencyName: "SigLIP 2",
-    description:
-      "Search your indexed episodes by describing a scene instead of naming a file.",
+    get description() {
+      return t("jobs:packs.scout.description");
+    },
     // transformers plus the SigLIP 2 weights, which are downloaded on first use
     extraSizeMb: 900,
   },
   upscale: {
     id: "upscale",
-    label: "Upscale pass",
+    get label() {
+      return t("jobs:packs.upscale.label");
+    },
     dependencyName: "Spandrel / ONNX Runtime",
-    description: "Creates a higher resolution copy of each exported file.",
+    get description() {
+      return t("jobs:packs.upscale.description");
+    },
     extraSizeMb: 120,
   },
 };

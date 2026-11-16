@@ -1,5 +1,6 @@
 import type React from "react";
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { FaFolderOpen, FaImage, FaPlay, FaVideo } from '../../icons/animated';
 import Tooltip from "../../common/Tooltip";
 import { useAppStateStore } from "../../../stores/appStore";
@@ -45,6 +46,7 @@ export default memo(function EpisodeRow({
   onOpenEpisode,
   onRevealEpisode,
 }: EpisodeRowProps) {
+  const { t } = useTranslation("library");
 
   let rowClass = "episode-panel-row episode-row";
   if (isOpen) rowClass += " is-open";
@@ -91,12 +93,12 @@ export default memo(function EpisodeRow({
       onContextMenu={(e) => openContextMenu(episode.id, e)}
     >
       <Tooltip
-        content={isWebpEpisode ? "Imported as WebP previews" : "Imported as video files"}
+        content={isWebpEpisode ? t("episodePanel.row.importedWebp") : t("episodePanel.row.importedVideo")}
         side="right"
       >
         <span
           className="episode-panel-media-icon"
-          aria-label={isWebpEpisode ? "WebP preview episode" : "Video preview episode"}
+          aria-label={isWebpEpisode ? t("episodePanel.row.webpEpisode") : t("episodePanel.row.videoEpisode")}
         >
           {isWebpEpisode ? <FaImage /> : <FaVideo />}
         </span>
@@ -109,7 +111,7 @@ export default memo(function EpisodeRow({
       </Tooltip>
       {isPaused && (
         // stays enabled while something else runs: resuming then asks whether to stop it
-        <Tooltip content="Processing paused · resume" side="right">
+        <Tooltip content={t("episodePanel.row.pausedResume")} side="right">
           <span>
             <button
               type="button"
@@ -118,21 +120,21 @@ export default memo(function EpisodeRow({
               onMouseDown={(e) => e.stopPropagation()}
               onDoubleClick={(e) => e.stopPropagation()}
               onClick={handleResume}
-              aria-label="Resume processing"
+              aria-label={t("episodePanel.row.resume")}
             >
               <FaPlay />
             </button>
           </span>
         </Tooltip>
       )}
-      <Tooltip content="Show in File Explorer" side="right">
+      <Tooltip content={t("episodePanel.menu.showInExplorer")} side="right">
         <button
           type="button"
           className="episode-panel-import-icon episode-folder-btn"
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           onClick={handleReveal}
-          aria-label="Show in File Explorer"
+          aria-label={t("episodePanel.menu.showInExplorer")}
         >
           <FaFolderOpen />
         </button>

@@ -1,5 +1,6 @@
 // episode Panel context menu renderer. displays right-click menus for episodes, folders, and empty panel space
 import type React from "react";
+import { useTranslation } from "react-i18next";
 import type {
   EpisodeContextMenuState,
   FolderContextMenuState,
@@ -47,6 +48,7 @@ export default function EpisodePanelContextMenus({
   onDeleteFolder,
   onMoveEpisodeToFolder,
 }: EpisodePanelContextMenusProps) {
+  const { t } = useTranslation("library");
   return (
     <>
       {panelContextMenu && (
@@ -63,7 +65,7 @@ export default function EpisodePanelContextMenus({
               setPanelContextMenu(null);
             }}
           >
-            Add Folder
+            {t("episodePanel.menu.addFolder")}
           </button>
         </div>
       )}
@@ -88,7 +90,7 @@ export default function EpisodePanelContextMenus({
                   setContextMenu(null);
                 }}
               >
-                Delete {multiSelectedIds.size} episodes
+                {t("episodePanel.menu.deleteEpisodes", { count: multiSelectedIds.size })}
               </button>
 
               {/* Only worth a divider when there is a folder list under it;
@@ -126,7 +128,7 @@ export default function EpisodePanelContextMenus({
                   setContextMenu(null);
                 }}
               >
-                Show in File Explorer
+                {t("episodePanel.menu.showInExplorer")}
               </button>
 
               <button
@@ -137,7 +139,7 @@ export default function EpisodePanelContextMenus({
                   setContextMenu(null);
                 }}
               >
-                Rename
+                {t("common:rename")}
               </button>
 
               <button
@@ -148,7 +150,7 @@ export default function EpisodePanelContextMenus({
                   setContextMenu(null);
                 }}
               >
-                Delete
+                {t("common:delete")}
               </button>
             </>
           )}
@@ -169,7 +171,7 @@ export default function EpisodePanelContextMenus({
               setFolderContextMenu(null);
             }}
           >
-            Add Subfolder
+            {t("episodePanel.menu.addSubfolder")}
           </button>
 
           <button
@@ -180,7 +182,7 @@ export default function EpisodePanelContextMenus({
               setFolderContextMenu(null);
             }}
           >
-            Rename
+            {t("common:rename")}
           </button>
 
           <button
@@ -191,7 +193,7 @@ export default function EpisodePanelContextMenus({
               setFolderContextMenu(null);
             }}
           >
-            Delete
+            {t("common:delete")}
           </button>
         </div>
       )}

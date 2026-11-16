@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { FaImage } from '../../icons/animated';
@@ -20,6 +21,7 @@ export default function ScenepackThumbnailModal({
   onClose: () => void;
   onSaved: (thumbnail: string | null) => void;
 }) {
+  const { t } = useTranslation("library");
   // same storage root the other scenepack commands resolve against
   const episodesPath = useGeneralSettingsStore((s) => s.episodesPath);
   const [busy, setBusy] = useState(false);
@@ -66,7 +68,7 @@ export default function ScenepackThumbnailModal({
   const save = async (sourcePath: string) => {
     const extension = sourcePath.split(".").pop()?.toLowerCase() ?? "";
     if (!ACCEPTED.includes(extension)) {
-      setError("Thumbnail must be a PNG, JPEG, WebP, or GIF image.");
+      setError(t("scenepacks.thumbnail.invalidType"));
       return;
     }
 
@@ -91,7 +93,7 @@ export default function ScenepackThumbnailModal({
   const browse = async () => {
     const picked = await openDialog({
       multiple: false,
-      filters: [{ name: "Images", extensions: ACCEPTED }],
+      filters: [{ name: t("scenepacks.thumbnail.filterName"), extensions: ACCEPTED }],
     });
     if (typeof picked === "string") void save(picked);
   };
@@ -99,7 +101,7 @@ export default function ScenepackThumbnailModal({
   return (
     <div className="episode-modal-overlay" onClick={onClose}>
       <div className="episode-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="episode-modal-title">Change Thumbnail</div>
+        <div className="episode-modal-title">{t("scenepacks.menu.changeThumbnail")}</div>
 
         <button
           type="button"
@@ -118,16 +120,16 @@ export default function ScenepackThumbnailModal({
             <FaImage aria-hidden="true" className="scenepack-thumb-icon" />
           )}
           <span>
-            {busy ? "Saving..." : "Drop an image here, or click to browse"}
+            {busy ? t("scenepacks.thumbnail.saving") : t("scenepacks.thumbnail.dropHint")}
           </span>
-          <span className="scenepack-thumb-hint">PNG, JPEG, WebP, or GIF</span>
+          <span className="scenepack-thumb-hint">{t("scenepacks.thumbnail.formats")}</span>
         </button>
 
         {error && <p className="events-error">{error}</p>}
 
         <div className="episode-modal-actions">
           <button type="button" className="episode-modal-btn" onClick={onClose}>
-            Cancel
+            {t("common:cancel")}
           </button>
         </div>
       </div>

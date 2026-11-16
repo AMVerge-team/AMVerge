@@ -1,10 +1,11 @@
 import { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import Dropdown from "../../common/Dropdown";
 import SettingRow from "../../common/SettingRow";
 import { useGeneralSettingsStore } from "../../../stores/settingsStore";
 import {
   EXPORT_CONTAINER_OPTIONS,
-  EXPORT_WORKFLOW_OPTIONS,
+  getExportWorkflowOptions,
   getActiveExportProfile,
   getCodecFamily,
   getExportProfileSummary,
@@ -44,6 +45,7 @@ function resolveGpuEncoderForCodec(
 }
 
 export default function ExportSection() {
+  const { t } = useTranslation("settingsExport");
   const exportProfiles = useGeneralSettingsStore((state) => state.exportProfiles);
   const activeExportProfileId = useGeneralSettingsStore((state) => state.activeExportProfileId);
   const setActiveExportProfileId = useGeneralSettingsStore((state) => state.setActiveExportProfileId);
@@ -80,11 +82,12 @@ export default function ExportSection() {
     () =>
       exportProfiles.map((profile) => ({
         value: profile.id,
-        label: profile.name.trim() || "Untitled Profile",
+        label: profile.name.trim() || t("profile.untitled"),
         description: getExportProfileSummary(profile).replace(/ • /g, " / "),
         icon: renderProfileIcon(profile),
       })),
-    [exportProfiles]
+    // t changes with the language, so summaries re-translate on switch
+    [exportProfiles, t]
   );
 
   const encodingWorkflow = usesEncoding(activeProfile.workflow);
@@ -118,11 +121,11 @@ export default function ExportSection() {
           value,
           label:
             value === parallelLimit && parallelLimit > 1
-              ? `Maximum (${value} Exports)`
-              : `${value} Export${value > 1 ? "s" : ""}`,
+              ? t("hardware.parallelMax", { count: value })
+              : t("hardware.parallelCount", { count: value }),
         };
       }),
-    [parallelLimit]
+    [parallelLimit, t]
   );
 
   // syncs the encoder profile to the GPU probe and clamps parallel exports down when the limit shrinks, never up
@@ -218,13 +221,13 @@ export default function ExportSection() {
 
   return (
     <section className="panel menu-panel settings-panel export-settings-panel">
-      <h3>Export</h3>
+      <h3>{t("title")}</h3>
 
       <div className="about-content">
-        <SettingsSection id="export.profile" title="Profile">
+        <SettingsSection id="export.profile" title={t("profile.section")}>
         <SettingRow
-          label="Active Profile"
-          description="Export Now uses this profile."
+          label={t("profile.active.label")}
+          description={t("profile.active.description")}
           control={
             <Dropdown
               className="settings-wide-dropdown export-profile-dropdown"
@@ -242,8 +245,8 @@ export default function ExportSection() {
         />
 
         <SettingRow
-          label="Profile Name"
-          description="The name shown in the profile selector."
+          label={t("profile.name.label")}
+          description={t("profile.name.description")}
           control={
             <input
               id="export-profile-name"
@@ -255,8 +258,8 @@ export default function ExportSection() {
         />
 
         <SettingRow
-          label="Profile Icon"
-          description="The icon shown in the profile selector."
+          label={t("profile.icon.label")}
+          description={t("profile.icon.description")}
           control={
             <ProfileIconPicker
               activeProfile={activeProfile}
@@ -269,14 +272,14 @@ export default function ExportSection() {
         />
         </SettingsSection>
 
-        <SettingsSection id="export.workflow" title="Workflow & Encoding">
+        <SettingsSection id="export.workflow" title={t("workflow.section")}>
         <SettingRow
-          label="Workflow"
-          description="Re-encode at exact scene boundaries, or stream-copy with boundaries snapped to keyframes."
+          label={t("workflow.label")}
+          description={t("workflow.description")}
           control={
             <Dropdown
               className="settings-wide-dropdown"
-              options={EXPORT_WORKFLOW_OPTIONS}
+              options={getExportWorkflowOptions()}
               value={activeProfile.workflow}
               onChange={handleWorkflowChange}
             />
@@ -284,10 +287,10 @@ export default function ExportSection() {
         />
 
         <SettingRow
-          label="Open file location after export"
-          description="Open the folder and highlight the file when an export finishes."
+          label={t("openLocation.label")}
+          description={t("openLocation.description")}
           control={
-            <label className="custom-checkbox" aria-label="Toggle opening exported file location">
+            <label className="custom-checkbox" aria-label={t("openLocation.toggle")}>
               <input
                 type="checkbox"
                 className="checkbox"
@@ -327,8 +330,8 @@ export default function ExportSection() {
 
         {showContainerSetting && (
           <SettingRow
-            label="Container"
-            description="The file format: MP4 or MOV."
+            label={t("container.label")}
+            description={t("container.description")}
             control={
               <Dropdown
                 className="settings-wide-dropdown"
@@ -344,7 +347,7 @@ export default function ExportSection() {
         {!passesHidden && (
           <>
             <div className="settings-section-divider" />
-            <SettingsSection id="export.postPasses" title="Post-export passes">
+            <SettingsSection id="export.postPasses" title={t("passes.section")}>
               <PostExportPassesSection />
             </SettingsSection>
           </>

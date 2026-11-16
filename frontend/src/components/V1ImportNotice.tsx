@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { v1ImportSummary } from "../features/migration/importV1";
 import { useEscapeToClose } from "./common/useEscapeToClose";
 
@@ -7,6 +8,7 @@ const BANNER_URL = "https://i.imgur.com/7g65E7d.jpeg";
 
 /** shown once, on the launch that brought settings and episodes over from AMVerge 1 */
 export function V1ImportNotice() {
+  const { t } = useTranslation("jobs");
   const [open, setOpen] = useState(v1ImportSummary !== null);
   const [bannerFailed, setBannerFailed] = useState(false);
   const close = () => setOpen(false);
@@ -26,25 +28,24 @@ export function V1ImportNotice() {
         )}
 
         <div className="v1-import-content">
-          <h2 id="v1-import-title" className="v1-import-title">Welcome to AMVerge V2!</h2>
-          <p className="v1-import-lead">The following features are now available:</p>
+          <h2 id="v1-import-title" className="v1-import-title">{t("v1Import.title")}</h2>
+          <p className="v1-import-lead">{t("v1Import.lead")}</p>
 
           <ul className="v1-import-list">
-            <li>AI scene detection</li>
-            <li>Scene searching</li>
-            <li>Scene matching</li>
-            <li>Scene pack creation</li>
+            <li>{t("v1Import.features.sceneDetection")}</li>
+            <li>{t("v1Import.features.sceneSearch")}</li>
+            <li>{t("v1Import.features.sceneMatching")}</li>
+            <li>{t("v1Import.features.scenepack")}</li>
 
-            {episodes > 0 ? <li>{episodes} episode{episodes === 1 ? "" : "s"} in your library</li> : null}
+            {episodes > 0 ? <li>{t("v1Import.episodesInLibrary", { count: episodes })}</li> : null}
           </ul>
 
           <p className="v1-import-note">
-            As well as many other changes. All of the AI features are run locally, <br />you can turn them on in{" "}
-            <strong>Settings › Features</strong>.
+            <Trans t={t} i18nKey="v1Import.note" components={{ br: <br />, strong: <strong /> }} />
           </p>
 
           <button type="button" className="v1-import-confirm" onClick={close} autoFocus>
-            Enjoy!
+            {t("v1Import.confirm")}
           </button>
         </div>
       </div>
