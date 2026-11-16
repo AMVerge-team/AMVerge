@@ -7,9 +7,13 @@ import type { Page } from "./types";
 import Tooltip from "../common/Tooltip";
 import { useEscapeToClose } from "../common/useEscapeToClose";
 import { useUIStateStore } from "../../stores/UIStore";
+import { useGeneralSettingsStore } from "../../stores/settingsStore";
+import { useAiDepsStore } from "../../stores/aiDepsStore";
+import { isPackInstalled } from "../../features/aiDeps/packs";
+import { ConfirmModal } from "../settings/general/ConfirmModal";
 import { selectNewEventIds, useEventsStore } from "../../stores/eventsStore";
 import { useContextMenuStore } from "../../stores/contextMenuStore";
-import { useFeature, type FeatureId } from "../../features/featureToggles";
+import { featureDef, useFeature, type FeatureId } from "../../features/featureToggles";
 
 const allButtons: { name: string; page: Page; icon: IconType; feature?: FeatureId }[] = [
   // shown as "Library"; the page id stays "home" so saved ui state keeps working
@@ -27,7 +31,9 @@ export default function SidebarNav() {
   const setNotificationsMuted = useEventsStore(s => s.setNotificationsMuted);
   const claimMenu = useContextMenuStore(s => s.openContextMenu);
   const activeContextMenu = useContextMenuStore(s => s.activeMenu);
+  const aiStatus = useAiDepsStore(s => s.status);
   const [eventsMenu, setEventsMenu] = useState<{ x: number; y: number } | null>(null);
+  const [enablePrompt, setEnablePrompt] = useState<{ id: FeatureId; name: string; page: Page } | null>(null);
   // a switched-off feature's tab is greyed out, or left out with "Hide disabled features"
   const features: Partial<Record<FeatureId, { enabled: boolean; hidden: boolean }>> = {
     scenepacks: useFeature("scenepacks"),
@@ -60,6 +66,27 @@ export default function SidebarNav() {
     setEventsMenu({ x: e.clientX, y: e.clientY });
   };
 
+  const handleNavClick = async (button: (typeof allButtons)[number], isFeatureOff: boolean) => {
+    if (!isFeatureOff || !button.feature) {
+      setActivePage(button.page);
+      return;
+    }
+
+    if (button.feature === "sceneScout") {
+      const status = useAiDepsStore.getState().status ?? (await useAiDepsStore.getState().refresh());
+      if (status?.managed && !isPackInstalled(status, "scout")) {
+        const installed = await useAiDepsStore.getState().ensurePack("scout");
+        if (installed) {
+          useGeneralSettingsStore.setState({ sceneScoutEnabled: true });
+          setActivePage("sceneScout");
+        }
+        return;
+      }
+    }
+
+    setEnablePrompt({ id: button.feature, name: button.name, page: button.page });
+  };
+
   return (
     <div className="menu-buttons">
       {allButtons.map((button) => {
@@ -68,12 +95,22 @@ export default function SidebarNav() {
         const feature = button.feature ? features[button.feature] : undefined;
         if (feature?.hidden) return null;
         const isFeatureOff = feature ? !feature.enabled : false;
+        const needsScoutInstall =
+          button.feature === "sceneScout" &&
+          isFeatureOff &&
+          Boolean(aiStatus?.managed) &&
+          !isPackInstalled(aiStatus, "scout");
 
         return (
-          // on the row, since disabled buttons fire no pointer events
           <Tooltip
             key={button.page}
-            content={isFeatureOff ? `Turn on ${button.name} in Settings › Features` : button.name}
+            content={
+              isFeatureOff
+                ? needsScoutInstall
+                  ? "Click to install Scene Scout"
+                  : `Click to enable ${button.name}`
+                : button.name
+            }
             side="right"
           >
             <div
@@ -84,8 +121,8 @@ export default function SidebarNav() {
               <button
                 type="button"
                 className={`sidebar-nav-button${isActive ? " is-active" : ""}${isFeatureOff ? " is-feature-off" : ""}`}
-                onClick={() => setActivePage(button.page)}
-                disabled={isActive || isFeatureOff}
+                onClick={() => void handleNavClick(button, isFeatureOff)}
+                disabled={isActive}
                 aria-current={isActive ? "page" : undefined}
                 aria-label={button.name}
               >
@@ -118,6 +155,20 @@ export default function SidebarNav() {
             {notificationsMuted ? "Unmute event notifications" : "Mute event notifications"}
           </button>
         </div>
+      )}
+      {enablePrompt && (
+        <ConfirmModal
+          title={`Enable ${enablePrompt.name}?`}
+          message={`${enablePrompt.name} is currently disabled. Would you like to enable it?`}
+          confirmLabel="Enable"
+          onClose={() => setEnablePrompt(null)}
+          onConfirm={() => {
+            const setting = featureDef(enablePrompt.id).setting;
+            useGeneralSettingsStore.setState({ [setting]: true });
+            setActivePage(enablePrompt.page);
+            setEnablePrompt(null);
+          }}
+        />
       )}
     </div>
   );

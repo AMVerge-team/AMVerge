@@ -15,6 +15,7 @@ import { useScenepacksStore } from "../../stores/scenepackStore";
 import { clearScenepacksStorage } from "../../utils/scenepackStorage";
 import { FEATURES, type FeatureId } from "../../features/featureToggles";
 import {
+  VISIBLE_PACK_IDS,
   estimateDownloadMb,
   formatBytes,
   formatSizeMb,
@@ -112,6 +113,16 @@ export default function FeaturesSection() {
 
   // a cpu torch on a machine with an nvidia gpu runs every ai feature far slower than it could
   const gpuRepairAvailable = Boolean(status?.envReady && status?.torchVariant === "cpu");
+  const allAiInstalled = Boolean(status) && VISIBLE_PACK_IDS.every((id) => isPackInstalled(status, id));
+
+  const installAllAiFeatures = async () => {
+    setError(null);
+    const ok = await useAiDepsStore.getState().ensureAllPacks();
+    if (!ok) return;
+    for (const feature of FEATURES) {
+      if (feature.pack) setEnabled(feature.id, true);
+    }
+  };
 
   const packagesBytes = (status?.envSizeBytes ?? 0) + (status?.pythonSizeBytes ?? 0);
   const modelsBytes = status?.modelsSizeBytes ?? 0;
@@ -134,6 +145,25 @@ export default function FeaturesSection() {
               className="aid-switch"
               onClick={() => useGeneralSettingsStore.setState({ hideDisabledFeatures: !settings.hideDisabledFeatures })}
             />
+          }
+        />
+
+        <SettingRow
+          label="Install all AI features"
+          description={
+            allAiInstalled
+              ? "All AI feature packs are already installed."
+              : "Download and enable AI Scene Detection, Scene Scout, Depth Map Pass, and Upscale Pass together."
+          }
+          control={
+            <button
+              type="button"
+              className={`aid-btn${allAiInstalled ? "" : " aid-btn-primary"}`}
+              onClick={() => void installAllAiFeatures()}
+              disabled={allAiInstalled || !status || busy !== null || (managed && status.uvAvailable === false)}
+            >
+              {allAiInstalled ? "All installed" : "Install all AI features"}
+            </button>
           }
         />
 

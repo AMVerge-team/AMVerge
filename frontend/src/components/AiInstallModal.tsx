@@ -3,12 +3,15 @@ import { listen } from "@tauri-apps/api/event";
 
 import Tooltip from "./common/Tooltip";
 import BackgroundJobCard from "./BackgroundJobCard";
+import { ConfirmModal } from "./settings/general/ConfirmModal";
 import { useEscapeToClose } from "./common/useEscapeToClose";
 import { useAiDepsStore } from "../stores/aiDepsStore";
 import {
   AI_PACKS,
+  VISIBLE_PACK_IDS,
   estimateDownloadMb,
   formatSizeMb,
+  isPackInstalled,
   plannedTorchVariant,
 } from "../features/aiDeps/packs";
 
@@ -31,6 +34,8 @@ export default function AiInstallModal() {
   const status = useAiDepsStore((s) => s.status);
   const gpuPreference = useAiDepsStore((s) => s.gpuPreference);
   const job = useAiDepsStore((s) => s.job);
+  const conflict = useAiDepsStore((s) => s.conflict);
+  const conflictCanceling = useAiDepsStore((s) => s.conflictCanceling);
 
   // Escape declines the offer, or minimizes a running install rather than abandoning it
   useEscapeToClose(() => {
@@ -82,10 +87,40 @@ export default function AiInstallModal() {
     };
   }, []);
 
-  const minimized = !open && Boolean(pack) && stage !== "confirm";
-  if ((!open && !minimized) || !pack) return null;
+  const conflictModal = conflict ? (
+    <ConfirmModal
+      title="Another dependency is installing"
+      message={
+        <>
+          <strong>{conflict.activeLabel}</strong> is still installing. Keep it running, or cancel it
+          to install <strong>{conflict.requestedLabel}</strong> instead?
+        </>
+      }
+      cancelLabel="Keep installing"
+      confirmLabel={conflictCanceling ? "Canceling…" : "Cancel current install"}
+      busy={conflictCanceling}
+      onClose={() => void useAiDepsStore.getState().resolveConflict("keep")}
+      onConfirm={() => void useAiDepsStore.getState().resolveConflict("cancel-current")}
+    />
+  ) : null;
 
-  const info = AI_PACKS[pack];
+  const minimized = !open && Boolean(pack) && stage !== "confirm";
+  if ((!open && !minimized) || !pack) return conflictModal;
+
+  const missingNames = VISIBLE_PACK_IDS.filter((id) => !isPackInstalled(status, id)).map(
+    (id) => AI_PACKS[id].dependencyName,
+  );
+  const info =
+    pack === "all"
+      ? {
+          label: "All AI features",
+          dependencyName: "all AI features",
+          description:
+            missingNames.length > 0
+              ? `Installs ${missingNames.join(", ")} together so every AI feature is ready to use.`
+              : "Installs all AI feature dependencies together.",
+        }
+      : AI_PACKS[pack];
   const sizeMb = estimateDownloadMb(status, pack, gpuPreference);
   const variant = plannedTorchVariant(status, gpuPreference);
   // "no GPU" is only sayable when the probe actually ran and found none
@@ -120,45 +155,49 @@ export default function AiInstallModal() {
     const jobLines = logs.map((text, idx) => ({ id: idx, kind: "log" as const, text }));
     const clampedPct = Math.max(0, Math.min(100, Math.round(percent)));
     return (
-      <BackgroundJobCard
-        id="ai-install"
-        ariaLabel="Feature installation (minimized)"
-        done={stage === "done"}
-        lines={jobLines}
-        title={stage === "installing" ? (message || modalTitle) : modalTitle}
-        onExpand={() => useAiDepsStore.getState().openModal()}
-        onClose={stage === "installing" ? cancel : close}
-        closeLabel={stage === "installing" ? "Cancel" : "Close"}
-        footer={
-          stage === "error" && error ? (
-            <p className="pxm-errors">{error}</p>
-          ) : stage === "installing" && (speedText || transferredText) ? (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, padding: "0 12px 8px", fontSize: "0.72rem", color: "rgba(255, 255, 255, 0.65)" }}>
-              {speedText && (
-                <span>Speed: <strong style={{ color: "#38bdf8", fontFamily: "monospace" }}>{speedText}</strong></span>
-              )}
-              {transferredText && (
-                <span>Size: <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{transferredText}</strong></span>
-              )}
-              <span>Elapsed: <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{formatDuration(elapsed)}</strong></span>
+      <>
+        <BackgroundJobCard
+          id="ai-install"
+          ariaLabel="Feature installation (minimized)"
+          done={stage === "done"}
+          lines={jobLines}
+          title={stage === "installing" ? (message || modalTitle) : modalTitle}
+          onExpand={() => useAiDepsStore.getState().openModal()}
+          onClose={stage === "installing" ? cancel : close}
+          closeLabel={stage === "installing" ? "Cancel" : "Close"}
+          footer={
+            stage === "error" && error ? (
+              <p className="pxm-errors">{error}</p>
+            ) : stage === "installing" && (speedText || transferredText) ? (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, padding: "0 12px 8px", fontSize: "0.72rem", color: "rgba(255, 255, 255, 0.65)" }}>
+                {speedText && (
+                  <span>Speed: <strong style={{ color: "#38bdf8", fontFamily: "monospace" }}>{speedText}</strong></span>
+                )}
+                {transferredText && (
+                  <span>Size: <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{transferredText}</strong></span>
+                )}
+                <span>Elapsed: <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{formatDuration(elapsed)}</strong></span>
+              </div>
+            ) : null
+          }
+        >
+          <div className="lm-progress">
+            <div className="progress-bar lm-progress-bar">
+              <div
+                className={`progress-fill${indeterminate ? " aid-fill-indeterminate" : ""}`}
+                style={{ width: indeterminate ? "100%" : `${clampedPct}%` }}
+              />
             </div>
-          ) : null
-        }
-      >
-        <div className="lm-progress">
-          <div className="progress-bar lm-progress-bar">
-            <div
-              className={`progress-fill${indeterminate ? " aid-fill-indeterminate" : ""}`}
-              style={{ width: indeterminate ? "100%" : `${clampedPct}%` }}
-            />
+            <span className="lm-pct">{indeterminate ? "…" : `${clampedPct}%`}</span>
           </div>
-          <span className="lm-pct">{indeterminate ? "…" : `${clampedPct}%`}</span>
-        </div>
-      </BackgroundJobCard>
+        </BackgroundJobCard>
+        {conflictModal}
+      </>
     );
   }
 
   return (
+    <>
     <div className="pxm-overlay">
       <div className="pxm-modal aid-modal">
         <header className="pxm-header">
@@ -188,8 +227,16 @@ export default function AiInstallModal() {
         {stage === "confirm" ? (
           <>
             <p className="aid-lede">
-              You don't have <strong>{info.dependencyName}</strong> installed. Would you like to
-              install it now?
+              {pack === "all" ? (
+                <>
+                  Install <strong>all remaining AI features</strong> now?
+                </>
+              ) : (
+                <>
+                  You don't have <strong>{info.dependencyName}</strong> installed. Would you like to
+                  install it now?
+                </>
+              )}
             </p>
             <p className="aid-note">{info.description}</p>
             <dl className="aid-facts">
@@ -306,5 +353,7 @@ export default function AiInstallModal() {
         ) : null}
       </div>
     </div>
+    {conflictModal}
+    </>
   );
 }

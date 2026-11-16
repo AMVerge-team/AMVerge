@@ -3,6 +3,7 @@
 // torch features install on demand into an app-managed env; this is the source of truth for each pack's name, unlocks and size
 
 export type AiPackId = "ml" | "depth" | "upscale" | "scout";
+export type AiInstallTarget = AiPackId | "all";
 
 export type TorchVariant = "cuda" | "cpu";
 
@@ -147,15 +148,22 @@ export function plannedTorchVariant(
   return wantsCudaWheel(status, preference) ? "cuda" : "cpu";
 }
 
-/// estimated download for installing `id` right now, in MB
+/// estimated download for installing `id` (or all missing packs) right now, in MB
 export function estimateDownloadMb(
   status: AiEnvStatus | null,
-  id: AiPackId,
+  id: AiInstallTarget,
   preference: GpuPreference = "auto",
 ): number {
   const variant = plannedTorchVariant(status, preference);
   const torchPresent = Boolean(status?.torchVersion) && status?.torchVariant === variant;
-  return AI_PACKS[id].extraSizeMb + (torchPresent ? 0 : TORCH_SIZE_MB[variant]);
+  const extraMb =
+    id === "all"
+      ? VISIBLE_PACK_IDS.filter((packId) => !isPackInstalled(status, packId)).reduce(
+          (sum, packId) => sum + AI_PACKS[packId].extraSizeMb,
+          0,
+        )
+      : AI_PACKS[id].extraSizeMb;
+  return extraMb + (torchPresent ? 0 : TORCH_SIZE_MB[variant]);
 }
 
 export function formatSizeMb(mb: number): string {
