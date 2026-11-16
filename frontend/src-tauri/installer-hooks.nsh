@@ -11,6 +11,10 @@
 ; uninstaller copies itself to %TEMP%, relaunches and exits at once, so ExecWait returned early
 ; and V1's uninstall kept deleting files from the shared folder while V2 was copying into it,
 ; taking V2's bundled amverge.exe with it ("The system cannot find the file specified").
+;
+; `/UPDATE` keeps V1's uninstaller from deleting Start Menu / Desktop shortcuts and taskbar pins.
+; Without `/UPDATE`, V1 deletes them and V2 (when launched by the updater with `/UPDATE`) skips
+; creating shortcuts, leaving the app invisible in Start Menu / Windows Search.
 !include "FileFunc.nsh"
 
 !macro NSIS_HOOK_PREINSTALL
@@ -39,9 +43,22 @@
     IfFileExists "$AmvOldUninst" 0 amv_done
       ; the uninstaller's own folder, never $INSTDIR: if V1 lived elsewhere, $INSTDIR would point it at V2's files
       ${GetParent} "$AmvOldUninst" $AmvOldDir
-      ExecWait '"$AmvOldUninst" /S _?=$AmvOldDir'
+      ExecWait '"$AmvOldUninst" /S /UPDATE _?=$AmvOldDir'
       ; in-place mode leaves the uninstaller behind; it is V1's, so it goes too
       Delete "$AmvOldUninst"
 
   amv_done:
+!macroend
+
+; Heal Start Menu searchability if an earlier broken V1->V2 update (or `/UPDATE` run) left both
+; Start Menu shortcut locations missing on disk.
+!macro NSIS_HOOK_POSTINSTALL
+  ${If} $NoShortcutMode <> 1
+    ${IfNot} ${FileExists} "$SMPROGRAMS\${STARTMENUFOLDER}\${PRODUCTNAME}.lnk"
+    ${AndIfNot} ${FileExists} "$SMPROGRAMS\${PRODUCTNAME}.lnk"
+      CreateDirectory "$SMPROGRAMS\${STARTMENUFOLDER}"
+      CreateShortcut "$SMPROGRAMS\${STARTMENUFOLDER}\${PRODUCTNAME}.lnk" "$INSTDIR\${MAINBINARYNAME}.exe"
+      !insertmacro SetLnkAppUserModelId "$SMPROGRAMS\${STARTMENUFOLDER}\${PRODUCTNAME}.lnk"
+    ${EndIf}
+  ${EndIf}
 !macroend

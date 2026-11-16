@@ -1,4 +1,9 @@
-# v2.0.0
+# v2.0.1
+
+- Fixed Windows V1 -> V2 upgrades deleting Start Menu and Desktop shortcuts so AMVerge stays visible in Start Menu Search
+- Automatically restores missing Start Menu shortcuts when updating from v2.0.0
+
+## v2.0.0
 
 - Complete ground-up rebuild on the standalone `amverge` CLI engine for faster performance and lower memory usage
 - Added AI Scene Detection (TransNetV2 with GPU acceleration) and a non-blocking background AI installer with live speed/ETA stats
