@@ -11,15 +11,15 @@ AMVerge helps editors turn long videos into usable clips quickly. Import an epis
 
 ## Features
 
-- **Flexible scene splitting** — keyframe-based cutting, GPU-accelerated AI scene detection (`TransNetV2`), and CPU detection (`PySceneDetect`)
-- **Instant clip previewing** — lazy-mounted streaming video clips and animated WebP grid previews
-- **Scene Scout** — SigLIP 2 semantic text search and visual Flow / Match similarity search across indexed `.scoutdb` databases
-- **Scenepacks & folder organization** — organize imported episodes into nested folders and build reusable scenepacks
-- **Tools & post-export passes** — standalone and post-export AI depth-map and upscaling passes
-- **Fast & flexible exports** — batch clip export, merged exports, exact-copy remuxing, and GPU-accelerated encoding (NVENC, AMF, QSV, VideoToolbox, VAAPI)
-- **Direct editor integration** — send selected clips directly into After Effects, Premiere Pro, DaVinci Resolve, or CapCut
-- **HEVC & proxy workflows** — automatic codec detection and on-demand H.264 proxy previews for webview playback
-- **Customizable UI & community features** — resizable panels, custom themes/backgrounds, Events browser, and Discord Rich Presence / sign-in
+- **Flexible scene splitting**: keyframe-based cutting, GPU-accelerated AI scene detection (`TransNetV2`), and CPU detection (`PySceneDetect`)
+- **Instant clip previewing**: lazy-mounted streaming video clips and animated WebP grid previews
+- **Scene Scout**: SigLIP 2 semantic text search and visual Flow / Match similarity search across indexed `.scoutdb` databases
+- **Scenepacks & folder organization**: organize imported episodes into nested folders and build reusable scenepacks
+- **Tools & post-export passes**: standalone and post-export AI depth-map and upscaling passes
+- **Fast & flexible exports**: batch clip export, merged exports, exact-copy remuxing, and GPU-accelerated encoding (NVENC, AMF, QSV, VideoToolbox, VAAPI)
+- **Direct editor integration**: send selected clips directly into After Effects, Premiere Pro, DaVinci Resolve, or CapCut
+- **HEVC & proxy workflows**: automatic codec detection and on-demand H.264 proxy previews for webview playback
+- **Customizable UI & community features**: resizable panels, custom themes/backgrounds, Events browser, and Discord Rich Presence / sign-in
 
 <p align="center">
   <img src="frontend/src/assets/scrolling_amverge_gif.gif" alt="Scrolling through clips" width="340"/>
@@ -76,9 +76,9 @@ Video processing lives in a companion repository, [AMVerge-CLI](https://github.c
 
 AMVerge supports both stream-copied keyframe splitting and AI/CPU cut detection:
 
-- **Keyframe Detection** — splits cleanly at source keyframes with zero re-encoding on import
-- **AI Scene Detection (`TransNetV2`)** — detects visual cuts on GPU, stream-copying scenes aligned to closed keyframes and queueing background cuts for the rest
-- **CPU Detection (`PySceneDetect`)** — adaptive scene detection without requiring GPU weights
+- **Keyframe Detection**: splits cleanly at source keyframes with zero re-encoding on import
+- **AI Scene Detection (`TransNetV2`)**: detects visual cuts on GPU, stream-copying scenes aligned to closed keyframes and queueing background cuts for the rest
+- **CPU Detection (`PySceneDetect`)**: adaptive scene detection without requiring GPU weights
 
 ---
 
@@ -172,6 +172,6 @@ For full architecture notes and release instructions, see [documentation.md](doc
 
 ## License
 
-AMVerge is licensed under the GNU GPL v3.0 — see [LICENSE](LICENSE).
+AMVerge is licensed under the GNU GPL v3.0 - see [LICENSE](LICENSE).
 
 Any derivative work must also be open-source under the same license.

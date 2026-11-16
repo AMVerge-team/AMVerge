@@ -281,10 +281,10 @@ Frontend displays clips in the grid.
 
 # Scene Splitting Approaches
 
-V2 supports fast keyframe splitting alongside optional AI-powered scene detection (`TransNetV2` on GPU) and CPU detection (`PySceneDetect`), plus semantic & Flow scene search via Scene Scout:
+V2 supports fast keyframe splitting alongside optional AI-powered scene detection (`TransNetV2`), plus semantic & Flow scene search via Scene Scout:
 
 ```txt
-Detect scene boundaries (Keyframe / TransNetV2 / PySceneDetect)
+Detect scene boundaries (Keyframe / TransNetV2)
 → Cut or stream-copy clips & previews
 → Organize into Episodes / Scenepacks or index into Scene Scout
 → Export or run post-export Depth / Upscale passes
