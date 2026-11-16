@@ -1,44 +1,25 @@
 # clipsGrid
 
-Welcome to the clipsGrid module! This is the heart of the video grid in the AMVerge frontend. If you're reading this, you're probably about to work on the grid, add features, or debug something. Here's what you need to know to get oriented and productive.
+`clipsGrid` renders the shared clip grid used across Home episodes, Scenepacks, and Scene Scout results.
 
-## What This Grid Does
+---
 
-The grid is built to handle lots of video clips efficiently, even on lower-end machines. It keeps the UI smooth and responsive by only loading and playing videos when they're actually needed. This means:
+## How Playback Stays Smooth
 
-- Videos only start loading when they're visible in the viewport or when you hover over a tile.
-- If the browser can't play a video format (like HEVC/H.265), the grid will request a proxy (H.264) version and swap it in automatically.
-- When previewing all clips at once, videos are mounted one at a time (not all at once), so the browser and GPU don't get overwhelmed.
+Mounting hundreds of video decoders at once—especially 10-bit HEVC files—will freeze or crash the webview. The grid avoids that by keeping decoders lazy and lightweight:
 
-## Why Lazy Loading and Proxying?
+- **Viewport windowing (`useGridWindow.ts`):** Only renders tiles near the visible scroll window.
+- **On-demand video mounting (`LazyClip.tsx`, `useClipVideoSource.ts`, `useClipStagger.ts`):** Tiles stay as lightweight poster images or animated WebPs until hovered or mounted sequentially by Preview All (`staggeredMountQueue.ts`).
+- **Automatic proxies & range cuts (`proxyQueue.ts`):** If a source codec isn't playable directly in the browser, or if a Scene Scout result points to a slice inside a full episode, Rust generates a 480p H.264 preview clip on demand and prioritizes hovered tiles first.
+- **Animated WebP queue (`webpQueue.ts`, `useWebpPreview.ts`):** Generates and caches lightweight 240p animated previews when running in WebP preview mode.
 
-Browsers and hardware have limits. If you try to mount and play dozens of videos at once, you'll quickly run into performance issues, lag, dropped frames, or even browser crashes. Lazy loading means we only use resources for what's actually on screen. Proxying is essential for compatibility: not all users have HEVC support, so we generate and use H.264 proxies on demand.
+---
 
-## How It Works (Under the Hood)
+## Files
 
-- **Intersection Observer**: Each tile uses this to know when it's near the viewport. If it's not visible, we don't load the video at all.
-- **Proxy Queue**: If a video can't be played natively, we request a proxy. The queue prioritizes which proxies to generate based on user interaction (hovered tiles get priority).
-- **Staggered Mounting**: When grid preview is enabled, we mount one video at a time with a short delay. This keeps the UI responsive and avoids GPU stalls.
-- **Selection Logic**: You can select clips with Ctrl/Cmd (multi-select), Shift (range select), just like in a file manager.
-
-## React Patterns Used
-
-- **Callback Functions**: We use `useCallback` to memoize event handlers and functions passed to child components. This prevents unnecessary re-renders and keeps the grid snappy.
-- **React.memo**: Components like `LazyClip` are wrapped in `React.memo` so they only re-render when their props actually change. This is crucial for performance when you have lots of tiles.
-- **Refs**: We use refs to keep track of video elements and state that doesn't need to trigger a re-render (like the proxy cache or in-flight requests).
-
-## Folder Structure
-
-- `ClipsContainer.tsx`: The main grid container. Handles layout, selection, and passing props to tiles.
-- `types.ts`: Shared TypeScript types for props and internal data.
-- `LazyClip.tsx`: The video tile. Handles lazy loading, hover preview, and proxy logic.
-- `SelectionActionBar.tsx`, `AddToScenepackModal.tsx`, `ScenepackPickerMenu.tsx`, `DownloadButton.tsx`: Selection, scenepack assignment, and export controls.
-- `useClipVideoSource.ts`, `useClipVideoElement.ts`, `useClipStagger.ts`, `useGridWindow.ts`, `useWebpPreview.ts`: Hooks for range/clip playback, staggered mount queueing, virtualization, and WebP previews.
-- `proxyQueue.ts`, `staggeredMountQueue.ts`, `webpQueue.ts`: Queues coordinating proxy transcoding, preview-all mounting, and WebP generation.
-
-## Tips for Working Here
-
-- If you add new features, keep them modular, prefer hooks or small components.
-- When in doubt, check if a function or component can be memoized.
-- If you see performance issues, profile with React DevTools and look for unnecessary renders.
-- Always check for browser compatibility when dealing with video formats.
+- `ClipsContainer.tsx` — Grid layout, keyboard/mouse multi-select (`Ctrl/Cmd`, `Shift`), drag/drop, and export/action integration
+- `LazyClip.tsx` — Individual memoized clip tile (poster/WebP rendering, hover playback, proxy & cut state)
+- `SelectionActionBar.tsx`, `AddToScenepackModal.tsx`, `ScenepackPickerMenu.tsx`, `DownloadButton.tsx` — Selection toolbar and scenepack/export actions
+- `useClipVideoSource.ts`, `useClipVideoElement.ts`, `useClipStagger.ts`, `useGridWindow.ts`, `useWebpPreview.ts` — Playback source resolution, staggered mounting, virtualization, and WebP preview hooks
+- `proxyQueue.ts`, `staggeredMountQueue.ts`, `webpQueue.ts` — Background queues for proxy transcoding, preview-all mounting, and WebP encoding
+- `types.ts`, `clipFormat.ts`, `gridScroll.ts`, `useDownloadTone.ts` — Shared types, timestamp/label formatting, and scroll persistence

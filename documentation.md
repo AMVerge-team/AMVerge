@@ -1,384 +1,97 @@
-# AMVerge Architecture
+# AMVerge Architecture Guide
 
-## Overview
+AMVerge is a desktop utility built for video editors who want to split long footage into usable clips, search scenes visually or by description, organize scenepacks, and export or import straight into editing software.
 
-AMVerge is a desktop app built for editors who need to quickly split videos into usable clips, preview scenes, and export selections without wasting time in a traditional editor.
-
-The stack is:
-
-- **Frontend:** React + TypeScript
-- **Desktop App Runtime:** Tauri (Rust)
-- **Backend Processing:** Python
-- **Media Tools:** FFmpeg / FFprobe / PyAV
-
-Each layer has a clear job. The frontend handles the UI, Rust bridges desktop features, and Python handles video processing.
+This guide gives a clear walkthrough of how the project is structured so anyone opening the repo for the first time can find their way around.
 
 ---
 
-# High Level Flow
-
-```txt
-React UI
-   ↓
-Tauri Commands (Rust)
-   ↓
-Python Backend
-   ↓
-FFmpeg / Filesystem
-````
-
-Example:
-
-1. User imports a video
-2. Frontend calls a Tauri command
-3. Rust launches Python
-4. Python processes the video and returns clip metadata
-5. Frontend renders the clips
-
----
-
-# Why It Uses Multiple Languages
-
-## React + TypeScript
-
-Used for the interface.
-
-Good for:
-
-* fast UI iteration
-* reusable components
-* state management
-* responsive interactions
-
-## Rust + Tauri
-
-Used as the desktop bridge.
-
-Good for:
-
-* secure system access
-* packaging desktop apps
-* exposing native commands
-* file access
-
-## Python
-
-Used for media workflows.
-
-Good for:
-
-* fast scripting
-* FFmpeg orchestration
-* video tooling
-* easy iteration
-
----
-
-# Frontend Structure
-
-
-src/
-├── App.tsx
-├── pages/
-├── hooks/
-├── components/
-├── styles/
-├── types/
-└── utils/
-
-
----
-
-# Main Frontend Areas
-
-## App.tsx
-
-Main app entry.
-
-Responsible for:
-
-* top-level state
-* page switching
-* wiring components together
-* global hooks
-
-Most logic has been moved into hooks to keep this file readable.
-
----
-
-## pages/
-
-Contains screen-level pages:
-
-* `HomePage.tsx`
-* `SceneScoutPage.tsx`
-* `ScenepacksPage.tsx`
-* `EventsPage.tsx`
-* `Menu.tsx`
-* `Settings.tsx`
-
----
-
-## hooks/
-
-Shared app logic.
-
-Examples:
-
-* `useAppState.ts`
-* `useImportExport.ts`
-* `usePersistence.ts`
-* `useDragDropImport.ts`
-* `useHEVCSupport.ts`
-
-Used to keep UI files cleaner.
-
----
-
-## components/
-
-UI modules split by responsibility.
-
-### clipsGrid/
-
-Main clip browser.
-
-Handles:
-
-* rendering scene clips
-* hover previews
-* lazy loading
-* multi-select
-* preview-all mode
-* proxy generation for unsupported codecs
-
-### previewPanel/
-
-Focused preview + export controls.
-
-Handles:
-
-* selected clip preview
-* export path
-* merge selected clips
-* export actions
-
-### sidebar/
-
-Navigation + project organization.
-
-Handles:
-
-* Home / Menu nav
-* Episode Panel
-* folders
-* saved imports
-* drag/drop organization
-* rename / delete actions
-
----
-
-# Sidebar Structure
-
-```
-sidebar/
-├── Sidebar.tsx
-├── SidebarNav.tsx
-├── episodePanel/
-│   ├── EpisodePanel.tsx
-│   ├── EpisodePanelTree.tsx
-│   ├── EpisodeRow.tsx
-│   ├── FolderRow.tsx
-│   ├── EpisodePanelHeader.tsx
-│   ├── EpisodePanelModals.tsx
-│   └── EpisodePanelContextMenus.tsx
-├── scenepacks/
-│   ├── ScenepacksPanel.tsx
-│   ├── ScenepackModals.tsx
-│   ├── ScenepackContextMenus.tsx
-│   ├── ScenepackThumbnailModal.tsx
-│   ├── useScenepackStructure.ts
-│   └── usePackDrag.ts
-└── hooks/
-    ├── useEpisodePanelStructure.ts
-    ├── useEpisodePanelMenus.ts
-    └── useEpisodePanelDragDrop.ts
-```
-
-The sidebar was split up intentionally so the codebase stays maintainable as features grow.
-
----
-
-# Backend Structure
-
-The Python side is not a folder in this repo. It is a separate package,
-[AMVerge-CLI](https://github.com/AMVerge-team/AMVerge-CLI), which the Rust layer
-shells out to as a subprocess.
-
-```
-AMVerge-CLI/
-└── amverge/
-    ├── cli.py            Typer entry point (the `amverge` command)
-    ├── pipeline.py       import pipeline: detect, cut, thumbnail
-    ├── commands/         one module per CLI subcommand
-    └── core/
-        ├── detection/    keyframe + TransNetV2 scene detection
-        ├── cutting/      smart cut, ffmpeg segment
-        ├── export/       encode, remux, editor project files
-        ├── codec/        probing, HEVC handling
-        ├── depth/        depth maps
-        ├── interpolation/ RIFE
-        ├── deadframes/   duplicate frame trimming
-        └── infra/        ffmpeg discovery, paths, process helpers
-```
-
-How the app finds it differs by build:
-
-| Build | Resolves to |
-| --- | --- |
-| Dev (`tauri:dev`) | `<AMVERGE_CLI_DIR>/.venv/{Scripts,bin}/amverge` |
-| Release | a PyInstaller sidecar bundled under the app's resources |
-
-The dev path is why the setup script creates a virtualenv in the CLI checkout
-rather than installing the package globally. See
-`frontend/src-tauri/src/utils/sidecar.rs`.
-
----
-
-# How Video Import Works
-
-## Step 1
-
-User imports a file.
-
-## Step 2
-
-Frontend calls Rust:
-
-```ts
-invoke("detect_scenes", ...)
-```
-
-## Step 3
-
-Rust launches Python.
-
-## Step 4
-
-Python:
-
-* reads video info
-* finds keyframes
-* splits clips
-* generates thumbnails
-* returns metadata
-
-## Step 5
-
-Frontend displays clips in the grid.
-
----
-
-# Scene Splitting Approaches
-
-V2 supports fast keyframe splitting alongside optional AI-powered scene detection (`TransNetV2`), plus semantic & Flow scene search via Scene Scout:
-
-```txt
-Detect scene boundaries (Keyframe / TransNetV2)
-→ Cut or stream-copy clips & previews
-→ Organize into Episodes / Scenepacks or index into Scene Scout
-→ Export or run post-export Depth / Upscale passes
+## Tech Stack
+
+| Layer | Technology | Role |
+| --- | --- | --- |
+| UI | React 19 + TypeScript + Zustand | Pages, virtualized clip grid, previews, state & settings |
+| Desktop shell | Tauri v2 (Rust) | Native dialogs, filesystem access, child-process management, FFmpeg & CLI orchestration |
+| Media backend | [AMVerge-CLI](https://github.com/AMVerge-team/AMVerge-CLI) (Python) | Scene detection, clip cutting, exporting, Scene Scout indexing/search, AI passes |
+| Media tools | FFmpeg / FFprobe / PyAV | Codec probing, frame extraction, proxy transcodes, WebP previews |
+
+```text
+React Frontend (frontend/src/)
+       │  Tauri invoke() / listen()
+       ▼
+Rust Core (frontend/src-tauri/src/)
+       ├──► AMVerge-CLI (Python subprocess / sidecar)
+       └──► FFmpeg / FFprobe (bundled binaries)
 ```
 
 ---
 
-# Performance Notes
+## How the Codebase Is Organized
 
-Most responsiveness comes from product decisions, not magic optimization.
+### Frontend (`frontend/src/`)
 
-Examples:
+- **`pages/`** — Top-level screens:
+  - `HomePage.tsx` — Preview pane and clip grid for imported episodes
+  - `SceneScoutPage.tsx` — Semantic text search and Flow / Match visual search
+  - `ScenepacksPage.tsx` — Custom curated clip collections
+  - `EventsPage.tsx` — Community editing events feed and submissions
+  - `Menu.tsx` — Tools (standalone depth/upscale), Patch Notes, Console, Bug Report, About
+  - `Settings.tsx` — General, Appearance, Features/AI packs, Model weights, Export profiles
+- **`components/`** — Modular UI organized by area:
+  - `clipsGrid/` — Virtualized clip tiles, hover/grid playback, multi-selection, WebP & proxy queues
+  - `previewPanel/` — Focused video preview player and export bar
+  - `sidebar/` — App navigation, `episodePanel/` tree (folders, sorting, drag-and-drop), and `scenepacks/` panel
+  - `sceneScout/` — Database sidebar, search/flow toolbars, guided tour, and add-episode modals
+  - `tools/` — Side-by-side preview and controls for standalone Upscale and Depth passes
+  - `settings/` — Settings panels and export profile editors
+- **`features/`** — Domain workflows kept outside React components (`import/`, `export/`, `sceneScout/`, `tools/`, `storage/`, `migration/`, `aiDeps/`, `processes/`).
+- **`stores/`** — Zustand stores separating persisted user data (IndexedDB for episodes, localStorage for settings/themes) from runtime state (grid loading, progress, preview caches).
+- **`hooks/`** — Shared lifecycle and action hooks (`useImportPipeline`, `useExport`, `useDragDropImport`, `useHEVCSupport`, `useDiscordAuth`, `useDiscordRPC`, etc.).
 
-## Lazy Video Mounting
+### Rust / Tauri Core (`frontend/src-tauri/src/`)
 
-Videos only load when needed.
+- **`main.rs`** — App bootstrap, plugin setup (`shell`, `dialog`, `updater`), managed state, command registration, and child-process cleanup on exit.
+- **`commands/`** — Frontend-callable handlers split by domain (`scenes.rs`, `scene_resume.rs`, `export/`, `tools.rs`, `scene_scout/`, `scenepacks.rs`, `preview/`, `deps/`, `models.rs`, `editor_import/`, `settings.rs`, `cache.rs`, `migration.rs`, `auth.rs`, `discord/`, `events.rs`, `notifications.rs`, `bug_report.rs`).
+- **`utils/`** — Sidecar resolution (`sidecar.rs`), FFmpeg discovery (`ffmpeg.rs`), Windows Job-Object & process-tree termination (`process.rs`), storage paths (`paths.rs`), and logging.
 
-## Grid Preview Queueing
+### Python Backend (`AMVerge-CLI`)
 
-Preview-all mode avoids mounting everything at once.
+`AMVerge-CLI` lives in a sibling repository rather than inside this folder:
 
-## Metadata IPC
-
-Only metadata is passed between frontend/backend, not raw video data.
-
-## Keyframe Cutting
-
-Avoids expensive re-encoding during import.
-
----
-
-# Persistence
-
-The app stores useful local state such as:
-
-* imported episodes
-* folders
-* export directory
-* panel organization
-
-This makes reopening the app faster and smoother.
-
----
-
-# If You’re Editing This Project
-
-## Working on UI
-
-Check:
-
-* `components/`
-* `pages/`
-
-## Working on app state
-
-Check:
-
-* `hooks/`
-
-## Working on scene splitting / exports
-
-Check:
-
-* the [AMVerge-CLI](https://github.com/AMVerge-team/AMVerge-CLI) checkout
-* `src-tauri/src/commands/` (the Rust side that drives it)
-
-## Working on sidebar behavior
-
-Check:
-
-* `components/sidebar/`
+- In **development (`npm run tauri:dev`)**, Rust executes `<AMVERGE_CLI_DIR>/.venv/{Scripts,bin}/amverge`.
+- In **release builds (`npm run tauri:build`)**, `frontend/scripts/build-sidecar.mjs` packages the published CLI into a PyInstaller sidecar alongside `ffmpeg` and `ffprobe`.
 
 ---
 
-# General Code Style
+## Core Workflows
 
-The project is moving toward:
+### 1. Importing & Scene Splitting
 
-* smaller components
-* hooks for logic
-* typed props
-* clear folder boundaries
-* reusable modules
+1. A user drops a video or clicks Import on `HomePage`.
+2. `useImportPipeline` claims the active process lock and calls `detect_scenes` in Rust.
+3. Rust spawns `amverge backend <video> <outdir> <method> <importMethod>`:
+   - **Keyframe Detection** splits directly on source keyframes via stream copy (zero re-encoding).
+   - **AI Scene Detection (`TransNetV2`)** detects shot boundaries on GPU (with CPU fallback), stream-copies scenes aligned to closed keyframes, and queues remaining re-encodes through the background resume queue (`scene_resume.rs`).
+4. As the CLI prints line-delimited progress and scene events to `stderr`, Rust forwards them as Tauri events (`initial_clips_ready`, `clip_ready`, `thumbnail_ready`, `scene_progress`), populating the grid before the full job finishes.
 
-If adding something new, prefer extending an existing module before dumping logic into one large file.
+### 2. Previewing Clips Smoothly
+
+Mounting dozens of full-resolution `<video>` elements at once—especially 10-bit HEVC MKV files—stalls browsers and GPUs. AMVerge avoids this in three ways:
+
+- **Viewport virtualization & staggered mounting:** Only visible tiles mount active players, and Preview All mounts them incrementally.
+- **Animated WebP & companion thumbnails:** Hovering or scrolling shows lightweight thumbnails or cached 240p animated WebPs (`preview/scene_webp.rs`).
+- **On-demand H.264 proxies:** When a codec isn't natively playable in the webview (checked via `check_video_codec`), `ensure_preview_proxy` or `ensure_scene_range_preview` transcodes a lightweight 480p H.264 preview using per-path locks to prevent duplicate work.
+
+### 3. Exporting & Editor Handoff
+
+- **Clip export (`export_clips`):** Supports remuxing (exact-copy stream copy with automatic re-encode only for non-keyframe cuts), full re-encoding across H.264/H.265/AV1/ProRes/CineForm/DNxHR with hardware encoder probing (`NVENC`, `AMF`, `QSV`, `VideoToolbox`, `VAAPI`), and optional post-export Depth or Upscale passes.
+- **Editor import (`editor_import/`):** Sends selected clips directly into After Effects, Premiere Pro, DaVinci Resolve, or CapCut.
 
 ---
 
-# Summary
+## Where to Start Making Changes
 
-AMVerge is a desktop utility for fast clip extraction and previewing.
-
-React handles the interface.
-Rust handles desktop integration.
-Python handles media processing.
-
-Everything is structured around speed, usability, and keeping the workflow lightweight.
+- **UI layout, grid tiles, or sidebar behavior:** `frontend/src/components/` and `frontend/src/pages/`
+- **Import, export, or Scene Scout state logic:** `frontend/src/features/` and `frontend/src/stores/`
+- **Desktop commands, FFmpeg calls, or sidecar orchestration:** `frontend/src-tauri/src/commands/`
+- **Video detection, cutting, embeddings, or encoding algorithms:** the sibling `AMVerge-CLI` repository
