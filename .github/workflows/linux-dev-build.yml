@@ -5,6 +5,9 @@ name: Linux Dev Build
 # updater artifacts are collected and nothing is published.
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - moon/linux-app
 
 permissions:
   contents: read
