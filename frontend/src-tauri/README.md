@@ -1,486 +1,69 @@
 # AMVerge Tauri Layer
 
-This folder contains the native desktop layer for AMVerge.
-
-AMVerge uses React/TypeScript for the frontend, Python for the video processing backend, and Tauri/Rust as the bridge between them.
-
-The Rust side has now been refactored into multiple focused modules instead of one large `main.rs`.
-
-## What this layer does
-
-The Tauri layer handles:
-
-- starting scene detection
-- aborting scene detection while running
-- exporting selected clips
-- merging selected clips
-- checking codecs (HEVC / H.265)
-- generating preview proxy videos
-- deleting cache folders
-- moving episode storage folders
-- listing default storage directories
-- saving background images
-- sending progress events to the frontend
-- resolving bundled binaries like FFmpeg / FFprobe / Python backend
-
-Frontend React code communicates with these Rust functions using Tauri commands.
+`frontend/src-tauri/` is the native Rust shell for AMVerge V2. It connects the React UI to the local filesystem, bundled `ffmpeg` / `ffprobe` binaries, the `AMVerge-CLI` Python backend, and OS integrations.
 
 ---
 
-# Folder structure
+## Directory Layout
 
-```txt
+```text
 src-tauri/
-├── bin/
-├── capabilities/
-├── icons/
+├── bin/                      # Bundled PyInstaller sidecar in production builds
+├── capabilities/             # Tauri v2 capability permissions
+├── icons/                    # App & installer icons
 ├── src/
-│   ├── main.rs
-│   ├── payloads.rs
-│   ├── state.rs
+│   ├── main.rs               # App setup, managed state, command registration, exit cleanup
+│   ├── payloads.rs           # Event payload structs emitted to React
+│   ├── state.rs              # Shared locks, active PIDs, abort flags
 │   ├── commands/
 │   │   ├── mod.rs
-│   │   ├── scenes.rs
-│   │   ├── export.rs
-│   │   ├── preview.rs
-│   │   ├── cache.rs
-│   │   └── settings.rs
+│   │   ├── auth.rs           # Discord OAuth login flow
+│   │   ├── backend.rs        # Backend API URL helpers
+│   │   ├── bug_report.rs     # Signed bug report submission
+│   │   ├── cache.rs          # Episode cache deletion
+│   │   ├── deps/             # Managed uv Python AI environment & CLI patch updates
+│   │   ├── discord/          # Discord Rich Presence over local IPC
+│   │   ├── editor_import/    # After Effects, Premiere Pro, DaVinci Resolve, CapCut bridges
+│   │   ├── events.rs         # Community events API & submissions
+│   │   ├── export/           # Clip export, GPU probing, fast merge/split, post passes
+│   │   ├── extension_sync.rs # Theme & episode sync with extension
+│   │   ├── github.rs         # Contributor fetch
+│   │   ├── migration.rs      # AMVerge V1 -> V2 data migration
+│   │   ├── models.rs         # Depth & upscale model weight management
+│   │   ├── notifications.rs  # Startup announcements
+│   │   ├── preview/          # Codec probing, 480p proxies, range cuts, animated WebPs
+│   │   ├── scene_resume.rs   # Background/queue re-cutting of paused video episodes
+│   │   ├── scene_scout/      # Scene Scout CLI & persistent search daemon
+│   │   ├── scenepacks.rs     # Scenepack clip materialization & storage
+│   │   ├── scenes.rs         # Scene detection sidecar launch & manifest loading
+│   │   ├── settings.rs       # Storage relocation, custom backgrounds/icons, reveal in explorer
+│   │   ├── system_specs.rs   # Hardware/GPU inspection
+│   │   └── tools.rs          # Standalone Upscale & Depth preview/export helpers
 │   └── utils/
-│       ├── mod.rs
-│       ├── binaries.rs
-│       ├── logging.rs
-│       └── paths.rs
+│       ├── discord_ipc.rs    # Raw Discord IPC socket helper
+│       ├── ffmpeg.rs         # Resolves bundled or PATH ffmpeg/ffprobe
+│       ├── logging.rs        # Forwards Rust logs to the in-app Console
+│       ├── paths.rs          # Owned storage dir constants & path helpers
+│       ├── process.rs        # CREATE_NO_WINDOW, Windows Job Objects, process-tree cleanup
+│       └── sidecar.rs        # Resolves dev CLI venv vs bundled release sidecar
 ├── Cargo.toml
-├── Cargo.lock
 ├── build.rs
 └── tauri.conf.json
-````
-
----
-
-# Core files
-
-## `src/main.rs`
-
-Main Tauri entrypoint.
-
-Responsibilities:
-
-* starts the app
-* registers plugins
-* initializes shared state
-* exposes all frontend commands
-* wires modules together
-
-This file should stay small and mostly act as the app bootstrapper.
-
----
-
-## `src/payloads.rs`
-
-Contains reusable event payload structs.
-
-Example:
-
-```rust
-ProgressPayload {
-  percent: u8,
-  message: String
-}
-```
-
-Used when Rust emits progress updates to React.
-
----
-
-## `src/state.rs`
-
-Contains shared app state stored inside Tauri.
-
-Examples:
-
-### `ActiveSidecar`
-
-Tracks the running Python backend process so scene detection can be aborted.
-
-### `PreviewProxyLocks`
-
-Prevents multiple proxy encodes for the same clip path.
-
----
-
-# Commands
-
-All frontend callable Rust functions live inside `commands/`.
-
----
-
-## `commands/scenes.rs`
-
-Handles scene detection.
-
-### `detect_scenes(...)`
-
-Starts Python backend:
-
-Development:
-
-```txt
-backend/venv/Scripts/python.exe backend/app.py
-```
-
-Production:
-
-```txt
-bin/backend_script/backend_script.exe
-```
-
-The backend returns:
-
-* final JSON on stdout
-* progress updates on stderr
-
-Progress format:
-
-```txt
-PROGRESS|percent|message
-```
-
-Rust converts this into frontend event:
-
-```txt
-scene_progress
 ```
 
 ---
 
-### `abort_detect_scenes(...)`
+## Sidecar Resolution (`utils/sidecar.rs`)
 
-Kills active backend process.
+- **Development (`npm run tauri:dev`):** Runs `AMVerge-CLI` from the virtualenv configured by `AMVERGE_CLI_DIR` (falling back to `../AMVerge-CLI/.venv/{Scripts,bin}/amverge`).
+- **Release (`npm run tauri:build`):** Runs the PyInstaller-packaged binary under `bin/amverge-<target-triple>/`.
 
-On Windows uses:
-
-```txt
-taskkill /F /T /PID <pid>
-```
-
-This also kills child FFmpeg processes.
+All spawned `AMVerge-CLI`, `ffmpeg`, `ffprobe`, and `uv` processes are tracked in shared state and attached to a kill-on-close Job Object on Windows (or process group on Unix) so child trees never linger if the app closes or crashes.
 
 ---
 
-## `commands/export.rs`
-
-Handles clip exporting.
-
-### `export_clips(...)`
-
-Supports:
-
-### Separate clips
-
-Exports each clip individually.
-
-Uses stream copy when possible.
-
-Falls back to re-encode when needed.
-
-### Merged export
-
-Combines selected clips into one final file.
-
-Uses FFmpeg concat + re-encode.
-
-Also emits progress events.
-
----
-
-## `commands/preview.rs`
-
-Handles preview compatibility.
-
-### `check_hevc(...)`
-
-Uses `ffprobe` to determine if video codec is HEVC/H.265.
-
-Returns boolean.
-
-Used by frontend to know if browser preview may fail.
-
----
-
-### `ensure_preview_proxy(...)`
-
-Creates:
-
-```txt
-clip.preview.mp4
-```
-
-Proxy uses H.264/AAC for better Tauri webview compatibility.
-
-Uses internal locks so duplicate proxy generation cannot happen simultaneously.
-
----
-
-### `hover_preview_error(...)`
-
-Logs preview failures sent from frontend.
-
-Useful for debugging user systems/codecs.
-
----
-
-## `commands/cache.rs`
-
-Handles cache deletion.
-
-### `delete_episode_cache(...)`
-
-Deletes one episode folder.
-
-### `clear_episode_panel_cache(...)`
-
-Deletes the full episodes storage folder.
-
-Supports custom storage directory if user selected one.
-
----
-
-## `commands/settings.rs`
-
-Handles storage paths + general settings filesystem tasks.
-
-### `get_default_episodes_dir(...)`
-
-Returns default AMVerge storage path:
-
-```txt
-AppData/.../episodes
-```
-
----
-
-### `move_episodes_to_new_dir(...)`
-
-Moves all existing episode folders from old path to new path.
-
-Used when user changes storage directory inside settings.
-
-Supports:
-
-* same-drive rename/move
-* cross-drive copy + delete fallback
-
----
-
-### `save_background_image(...)`
-
-Copies selected custom background image into:
-
-```txt
-AppData/.../backgrounds
-```
-
-So frontend can reliably load it later.
-
----
-
-# Utilities
-
-## `utils/binaries.rs`
-
-Resolves bundled tools.
-
-Finds:
-
-* ffmpeg.exe
-* ffprobe.exe
-* packaged Python backend
-
-Checks multiple locations so both dev + production builds work.
-
----
-
-## `utils/logging.rs`
-
-Central logging helpers.
-
-Keeps logs clean, readable, and safe to share.
-
-Example format:
-
-```txt
-AMVERGE|tag|message
-```
-
----
-
-## `utils/paths.rs`
-
-Contains path helpers.
-
-Examples:
-
-* sanitize episode IDs
-* normalize paths
-* safe folder joins
-* filesystem helpers
-
----
-
-# Frontend storage behavior
-
-## Selected storage directory
-
-Saved in frontend localStorage via theme settings:
-
-```txt
-episodesPath
-```
-
-This stores where future imports + cache folders should go.
-
----
-
-## Episode panel state
-
-Saved separately in localStorage:
-
-```txt
-amverge_episode_panel_v1
-```
-
-Stores:
-
-* episode list
-* folders
-* selected episode
-* selected folder
-
-This lets UI restore previous session quickly.
-
----
-
-# Progress events
-
-Rust sends frontend progress using:
-
-```txt
-scene_progress
-```
-
-Payload:
-
-```ts
-{
-  percent: number,
-  message: string
-}
-```
-
-Used during:
-
-* scene detection
-* exporting
-
----
-
-# Asset protocol / local files
-
-Tauri serves local files to frontend through:
-
-```ts
-convertFileSrc(...)
-```
-
-Used for:
-
-* thumbnails
-* clip previews
-* proxy previews
-* custom backgrounds
-
-If users choose custom storage folders, asset protocol scope must allow those folders.
-
----
-
-# Development vs Production
-
-## Development
-
-Uses local Python backend.
-
-Fast iteration.
-
-## Production
-
-Uses packaged backend executable.
-
-No Python install required for users.
-
----
-
-# Why the refactor helps
-
-Old version:
-
-```txt
-main.rs = everything
-```
-
-New version:
-
-```txt
-main.rs = bootstrap only
-commands = frontend callable logic
-utils = reusable helpers
-state = shared runtime state
-payloads = event structs
-```
-
-Benefits:
-
-* easier debugging
-* easier to scale
-* easier onboarding contributors
-* cleaner code ownership
-* simpler future features
-
----
-
-# Future possible growth
-
-```txt
-commands/
-├── episodes.rs
-├── diagnostics.rs
-├── updater.rs
-├── metadata.rs
-```
-
-```txt
-utils/
-├── ffmpeg.rs
-├── thumbnails.rs
-├── filesystem.rs
-```
-
----
-
-# Summary
-
-AMVerge's Rust layer is now a clean modular bridge between:
-
-```txt
-React UI
-↓
-Tauri Commands
-↓
-Rust Logic
-↓
-Python + FFmpeg
-↓
-Filesystem / Native OS
-```
-
-This keeps frontend simple while Rust handles native power efficiently.
+## Storage & Caching
+
+- **Managed storage folders (`utils/paths.rs`):** `episodes_storage`, `scene_packs`, and `amverge-scene-scout` move together when a user changes their storage root via `move_storage_to_new_dir`.
+- **Preview range cache:** `scene_range_previews` in the app cache directory holds temporary 480p Scene Scout range cuts and prunes least-recently-used files down to a 1 GB cap.
+- **Episode persistence:** The episode list is stored asynchronously in IndexedDB from the frontend (`utils/episodePersistStorage.ts`) to avoid `localStorage` size limits.

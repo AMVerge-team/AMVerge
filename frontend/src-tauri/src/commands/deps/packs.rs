@@ -57,7 +57,25 @@ pub(crate) const PACKS: &[Pack] = &[
     },
 ];
 
+pub(crate) static ALL_PACK: Pack = Pack {
+    id: "all",
+    extra: "ml,depth,scout,upscale",
+    requires: &[
+        "torch",
+        "torchvision",
+        "transnetv2-pytorch",
+        "transformers",
+        "pillow",
+        "spandrel",
+        "onnxruntime",
+        "opencv-python-headless",
+    ],
+};
+
 pub(crate) fn pack_by_id(id: &str) -> Result<&'static Pack, String> {
+    if id == "all" {
+        return Ok(&ALL_PACK);
+    }
     PACKS
         .iter()
         .find(|p| p.id == id)
