@@ -801,10 +801,10 @@ jobs:
           DOWNLOADS_TABLE="$(printf '%s\n' \
             "### Downloads" \
             "" \
-            "| Platform | Package Format | Architecture | Download Link |" \
-            "| :--- | :--- | :--- | :---: |" \
-            "| **Windows** | Setup Installer (\`.exe\`) | x86-64 | [Download EXE](https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${WIN_EXE_NAME}) |" \
-            "| **macOS** | Universal DMG (\`.dmg\`) | Apple Silicon + Intel | [Download DMG](https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${MAC_DMG_NAME}) |" \
+            "| Platform | Type | Architecture | Direct Package |" \
+            "| :--- | :--- | :---: | :---: |" \
+            "| ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011-0078D6?style=flat-square&logo=windows&logoColor=white) | \`.exe installer\` | \`x86-64\` | [![Download for Windows](https://img.shields.io/badge/Download_for_Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${WIN_EXE_NAME}) |" \
+            "| ![macOS](https://img.shields.io/badge/macOS-Universal-000000?style=flat-square&logo=apple&logoColor=white) | \`.dmg disk image\` | \`M-Series & Intel\` | [![Download for macOS](https://img.shields.io/badge/Download_for_macOS-333333?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${MAC_DMG_NAME}) |" \
             "" \
             "---" \
             "")"
