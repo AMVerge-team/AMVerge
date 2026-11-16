@@ -1,55 +1,41 @@
-# AMVerge Mobile: Architecture & Implementation Blueprint
+# AMVerge Mobile: Architecture and Implementation Plan
 
-This document details the modern, production-grade approach to building **AMVerge Mobile** (Android & iOS), incorporating native platform media capabilities (Google Jetpack Media3, Scoped Storage, Tauri v2 Mobile) and touch-first responsive UI/UX patterns.
+This document describes the technical plan for building the mobile version of AMVerge for Android and iOS. It covers media processing with Google Jetpack Media3, local storage with SQLite and Scoped Storage, and mobile touch UI patterns.
 
----
+## 1. Overview
 
-## 1. Executive Summary & Critical Insights
+### Why the desktop codebase cannot run directly on mobile
+* Process spawning restrictions: Desktop AMVerge starts Python (AMVerge-CLI) and FFmpeg using child processes (std::process::Command). Android and iOS security sandboxes do not allow running external command line executables inside an app package.
+* FFmpegKit status: Earlier mobile video tools used the ffmpeg-kit library, but that project has been archived and is no longer maintained. It adds 40MB to 80MB to the app size and has issues with Android 15 16KB memory page requirements.
+* Media3 solution: Android provides Jetpack Media3 (androidx.media3.transformer), which supports hardware transmuxing (copying video streams without re-encoding) using the device hardware codecs with minimal app size overhead.
 
-### Why the Desktop Architecture Cannot Be Ported As-Is
-* **Process Spawning Restriction**: Desktop AMVerge invokes Python (`AMVerge-CLI`) and FFmpeg via `std::process::Command`. Android and iOS sandboxes strictly prohibit spawning arbitrary CLI executables inside APKs.
-* **The FFmpegKit Trap**: While older mobile apps used `arthenica/ffmpeg-kit`, **FFmpegKit was officially archived and deprecated**. It adds 40–80MB of bloat, lacks updates, and fails modern Android 15+ 16KB memory page requirements.
-* **The Modern Solution**: Google's official **Jetpack Media3 (`androidx.media3.transformer`)** provides native, hardware-accelerated **transmuxing (lossless zero-re-encoding stream-copying)** with zero binary bloat.
-
----
-
-## 2. Core Technology Stack
+## 2. Technology Stack
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                 FRONTEND (React 19 + TypeScript)            │
-│  • Reuses 80%+ of AMVerge Desktop UI components & styles    │
-│  • Zustand stores for clip selection, episodes & scenepacks │
-│  • Touch-scrub gesture hooks (replacing desktop hover)      │
-│  • Responsive mobile grid & expandable bottom sheets        │
-└──────────────────────────────┬──────────────────────────────┘
-                               │  Tauri IPC (invoke)
-┌──────────────────────────────▼──────────────────────────────┐
-│                  TAURI v2 MOBILE (Rust Bridge)              │
-│  • Cross-platform lifecycle & windowing                     │
-│  • SQLite database management via @tauri-apps/plugin-sql    │
-│  • Android SAF (Storage Access Framework) URI translation   │
-└──────────────────────────────┬──────────────────────────────┘
-                               │  JNI Plugin Channel
-┌──────────────────────────────▼──────────────────────────────┐
-│           NATIVE MEDIA ENGINE (Kotlin / Jetpack Media3)      │
-│  • androidx.media3.transformer: Hardware stream-copying     │
-│  • androidx.media3.inspector: Fast FrameExtractor thumbnails│
-│  • TFLite Runtime: TransNetV2 mobile scene cut detection    │
-│  • Android MediaStore: Direct export to system gallery      │
-│  • Android Share Sheet: Direct send to CapCut/TikTok/Reels  │
-└─────────────────────────────────────────────────────────────┘
+Frontend: React and TypeScript
+- Clip grid, episode lists, and scenepack management
+- Touch-based scrubbing hooks
+- Mobile layouts and bottom sheets
+
+Desktop and Mobile Shell: Tauri v2 (Rust)
+- App lifecycle and window management
+- SQLite database access using @tauri-apps/plugin-sql
+- Android Storage Access Framework (SAF) URI handling
+
+Native Media Engine: Kotlin and Jetpack Media3
+- androidx.media3.transformer: Stream-copy video trimming
+- androidx.media3.inspector: Fast keyframe thumbnail extraction
+- TensorFlow Lite runtime: TransNetV2 shot transition detection
+- Android MediaStore: Saving exported clips to the device gallery
+- Android Share Sheet: Direct sharing to apps like CapCut, TikTok, and Instagram
 ```
 
----
+## 3. Video Processing and Scene Detection
 
-## 3. High-Speed Video Processing & Scene Detection
-
-### A. Instant Zero-Re-Encode Clip Splitting (Transmuxing)
-Media3 Transformer automatically attempts **transmuxing** (container-level stream copy) when no visual filters are applied. It slices clips in **milliseconds with zero quality loss and negligible battery usage**:
+### A. Trimming clips without re-encoding
+Media3 Transformer uses transmuxing (container-level stream copy) when no visual filters or effects are added. It cuts clips at keyframes in milliseconds without changing video quality or draining battery:
 
 ```kotlin
-// In android/src/main/kotlin/com/amverge/media/MediaProcessorPlugin.kt
 package com.amverge.media
 
 import android.content.Context
@@ -96,126 +82,104 @@ class MediaProcessorPlugin(private val context: Context) : Plugin() {
 }
 ```
 
-### B. Two-Tier Mobile Scene Detection Engine
+### B. Scene Detection Methods
 
-#### Method 1: Instant Hardware Keyframe Scanner (Default)
-Scans the video track container for Sync Keyframes (`SAMPLE_FLAG_SYNC`) using `MediaExtractor`:
-* **Zero Frame Decoding**: Only reads packet header timestamps.
-* **Speed**: Scans a 24-minute 1080p episode in **2 to 3 seconds**.
-* **Result**: Instant populating of scene cuts and duration intervals.
+#### Method 1: Keyframe Scanner (Fast default)
+Reads the video container for sync keyframes (SAMPLE_FLAG_SYNC) using MediaExtractor:
+* Reads packet timestamps from headers without decoding full video frames.
+* Scans a typical 24-minute episode in about 2 to 3 seconds.
+* Creates the initial list of scene cut points and clip durations.
 
-#### Method 2: Mobile AI Scene Detection (TransNetV2 on TFLite)
-For detecting fast action transitions and cut points not aligned with keyframes:
-1. **Model Optimization**: The TransNetV2 weights are converted from PyTorch to **TensorFlow Lite (`transnetv2.tflite`)** with FP16 quantization (~14 MB file size).
-2. **Tiny Input Resolution**: TransNetV2 strictly processes **48 × 27 pixel RGB frames**, meaning mobile decoding and tensor construction is exceptionally lightweight.
-3. **Hardware Acceleration**: Executed on the mobile GPU or NPU via **TFLite GPU Delegate** or Android **NNAPI** at **100+ FPS**.
+#### Method 2: AI Scene Detection (TransNetV2 with TFLite)
+Detects cuts that do not line up with keyframes:
+1. Model format: The PyTorch TransNetV2 model is converted to a TensorFlow Lite model (transnetv2.tflite) using 16-bit float quantization (about 14MB).
+2. Input resolution: TransNetV2 requires small 48 x 27 pixel RGB frames, so frame extraction and scaling require little memory.
+3. Hardware acceleration: Runs on the mobile GPU or NPU using the TFLite GPU delegate or Android NNAPI.
 
----
+## 4. Mobile UI and Layout
 
-## 4. Mobile UI/UX Design & Responsive Architecture
-
-Translating AMVerge's desktop layout into a mobile-first experience requires adapting for smaller screens, touch ergonomics, and thumb-friendly navigation.
+The desktop interface uses multiple columns, mouse hover states, and keyboard shortcuts. The mobile interface adapts these for touchscreens.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ PORTRAIT PHONE LAYOUT (Single Hand Ergonomics)             │
-├─────────────────────────────────────────────────────────────┤
-│ [Top Bar]  Episode Title (Dropdown)            [Select All] │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌───────────────────────┐   ┌───────────────────────┐      │
-│  │ [✓]       00:04.2     │   │ [ ]       00:02.8     │      │
-│  │                       │   │                       │      │
-│  │    Clip Thumbnail     │   │    Clip Thumbnail     │      │
-│  │   ◄── Touch-Scrub ──► │   │   ◄── Touch-Scrub ──► │      │
-│  │ 01:14 - 01:18         │   │ 01:18 - 01:21         │      │
-│  └───────────────────────┘   └───────────────────────┘      │
-│                                                             │
-│  (Smooth virtualized 2-column grid: TanStack Virtual)       │
-│                                                             │
-├─────────────────────────────────────────────────────────────┤
-│ FLOATING DOCK: [ 3 Selected (0:12) ]  [ Add Pack ] [ Export]│
-└─────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------+
+| PORTRAIT PHONE LAYOUT                                       |
++-------------------------------------------------------------+
+| [Top Bar]  Episode Name (Dropdown)             [Select All] |
++-------------------------------------------------------------+
+|                                                             |
+|  +-----------------------+   +-----------------------+      |
+|  | [x]           00:04.2 |   | [ ]           00:02.8 |      |
+|  |                       |   |                       |      |
+|  |    Clip Thumbnail     |   |    Clip Thumbnail     |      |
+|  |   <-- Touch-Scrub --> |   |   <-- Touch-Scrub --> |      |
+|  | 01:14 - 01:18         |   | 01:18 - 01:21         |      |
+|  +-----------------------+   +-----------------------+      |
+|                                                             |
+|  (2-column virtualized grid using TanStack Virtual)         |
+|                                                             |
++-------------------------------------------------------------+
+| BOTTOM DOCK: [ 3 Selected (0:12) ]  [ Add Pack ] [ Export ] |
++-------------------------------------------------------------+
 ```
 
-### A. Responsive Grid System
-* **Portrait Phone (360px – 480px width)**:
-  * **2-Column Uniform Grid**: Clear thumbnails with maximum visual scanning area.
-  * **Corner Overlays**:
-    * **Top-Right**: Duration badge with semi-transparent pill (`00:04.2`).
-    * **Bottom-Left**: Timestamp range (`01:24 - 01:28`).
-    * **Top-Left**: Selection circle (translucent border when unselected; vibrant accent fill with checkmark when selected).
-* **Landscape Phone & Tablets (768px+ width)**:
-  * **3 to 5 Columns**: Automatically scales with screen width.
-  * **Collapsible Left Drawer**: Houses episode lists, folder organization, and scenepack trees without covering the clip grid.
+### A. Grid System
+* Portrait phones (360px to 480px width):
+  * 2-column grid for clear viewing of thumbnails.
+  * Duration badge on the top right (example: 00:04.2).
+  * Timestamp range on the bottom left (example: 01:24 - 01:28).
+  * Selection circle on the top left.
+* Landscape phones and tablets (768px width and above):
+  * 3 to 5 columns depending on screen size.
+  * Side drawer for episode folders and scenepack lists.
 
-### B. Touch-Scrubbing (Replacing Desktop Mouse Hover)
-Desktop AMVerge shows an animated WebP file on mouse hover. Touchscreens lack hover states.
-* **The Solution (Touch-Scrub Gesture)**:
-  * Each clip tile extracts a compact 10-frame JPG sprite sheet.
-  * When the user's thumb touches and moves horizontally (`TouchMove`) across a tile, the frame offset scrubs in real-time.
-  * Gives editors tactile, sub-second previewing of the scene's motion without loading full video players into memory.
+### B. Touch Scrubbing
+Phones have no mouse hover state. To preview scenes quickly:
+* Each clip has a 10-frame JPG sprite sheet.
+* Moving a finger horizontally across a thumbnail scrubs through the frames.
+* This allows quick checking of scene content without loading full video players.
 
-### C. Multi-Select & Drag-to-Select Gestures
-* **Entry Points**:
-  1. **Long-Press**: Holding any clip for 200ms selects it, emits haptic feedback, and triggers multi-select mode.
-  2. **Top Bar Button**: A dedicated "Select" / "Select All" button in the navigation bar.
-* **Drag-to-Select (Apple/Google Photos Pattern)**:
-  * Once selection mode is active, dragging a finger continuously across adjacent tiles automatically checks/unchecks them in one fluid sweep.
-* **Visual Selection State**:
-  * Selected tiles receive an inner accent border and a subtle dark wash (`rgba(0,0,0,0.25)`), making picked clips unmistakable.
+### C. Multi-Selection
+* Long press: Holding a clip selects it and turns on selection mode with slight haptic feedback.
+* Drag to select: Once selection mode is active, dragging a finger across clips toggles selection in one motion.
+* Visual state: Selected clips show an accent border and a subtle dark overlay.
 
-### D. Thumb-Zone Floating Action Dock
-When one or more clips are selected, a pill-style action bar slides up from the bottom of the screen (anchored in the natural thumb reach zone):
-* **Live Stats**: Shows selection count and combined total duration (e.g., `5 clips • 0:24`).
-* **Instant Actions**:
-  * **Add to Scenepack** (Folder icon).
-  * **Export to Gallery** (Download icon).
-  * **Share** (Native Android Share Intent icon).
+### D. Bottom Action Dock
+When one or more clips are selected, a bar appears at the bottom of the screen:
+* Displays the selected clip count and total duration (example: 5 clips, 0:24).
+* Quick action buttons: Add to Scenepack, Export to Gallery, and Share.
 
-### E. Expandable Bottom Sheets (Replacing Desktop Modals)
-Desktop AMVerge uses centered modal dialogues for export options, episode settings, and scenepacks. On mobile, modals at the center of the screen are hard to reach.
-* **Bottom Sheet Pattern**:
-  * Swiping up reveals settings, audio track pickers, and export profiles.
-  * Snapping heights:
-    * **Half-Expanded (50%)**: Quick audio and container settings.
-    * **Full-Expanded (90%)**: Advanced filters, AI model options, and metadata editor.
-  * Draggable handle at the top allows flick-to-dismiss.
+### E. Bottom Sheets
+Replaces desktop modal popups for mobile screens:
+* Half-height view: Quick selection of format and audio tracks.
+* Full-height view: Detailed settings, tags, and AI detection options.
+* Swipe down to close.
 
-### F. Native Mobile Share Sheet Integration
-Instead of exporting clips to desktop folders or triggering Windows PowerShell automation:
-* AMVerge Mobile triggers Android's native `Intent.ACTION_SEND_MULTIPLE`.
-* This allows editors on their phone to immediately transfer cut clips into mobile editing apps with one tap:
-  * **CapCut Mobile** (Direct timeline import)
-  * **Alight Motion**
-  * **TikTok / Instagram Reels**
-  * **Discord / WhatsApp**
+### F. Android Share Sheet
+Instead of desktop export scripts:
+* AMVerge Mobile uses the standard Android share sheet (Intent.ACTION_SEND_MULTIPLE).
+* This allows sending cut clips directly into video editing apps like CapCut, Alight Motion, or social apps like TikTok and Instagram.
 
----
+## 5. Storage and Permissions
 
-## 5. Mobile Storage & Scoped Storage Architecture
+Android uses Scoped Storage to manage file access:
 
-Android's **Scoped Storage** prohibits direct arbitrary filesystem paths (`/sdcard/...`). AMVerge Mobile complies using a two-tier storage model:
-
-| Storage Type | Location | Access Method | User Permission Needed? | Usage in AMVerge Mobile |
+| Storage Type | Location | Access Method | User Permission Needed | Usage in AMVerge Mobile |
 |---|---|---|---|---|
-| **App Sandbox Cache** | `context.cacheDir` & `context.getExternalFilesDir()` | Standard File I/O (`java.io.File`) | **No permissions required** | • Intermediate stream-copy clips<br>• Thumbnail cache<br>• SQLite database file |
-| **User Media Library** | Android `MediaStore.Video` (`Movies/AMVerge/`) | `ContentResolver.insert()` | **No permissions required** (Android 10+) | • Final exported clips<br>• Merged scene packs |
-| **Source Video Picking** | External SD Card or Downloads | Storage Access Framework (SAF) (`ACTION_OPEN_DOCUMENT`) | User picks via system file dialog | • Importing raw full-length episodes |
+| App Sandbox Cache | context.cacheDir and getExternalFilesDir() | Standard File I/O | None | Temporary clip cuts, thumbnail cache, SQLite database |
+| User Media Library | MediaStore.Video (Movies/AMVerge/) | ContentResolver.insert() | None (Android 10+) | Final exported clips and scenepacks |
+| Source Video Picking | Device storage or SD card | Storage Access Framework (SAF) | User picks file in system dialog | Reading full source episodes |
 
----
+## 6. Implementation Steps
 
-## 6. Implementation & Staging Plan
-
-### Step 1: Initialize Tauri v2 Mobile
+### Step 1: Initialize Tauri Mobile
 ```bash
 cd frontend
 npm run tauri android init
 ```
-* Generates the Android Studio harness (`src-tauri/gen/android`).
+This creates the Android Studio project under src-tauri/gen/android.
 
-### Step 2: Register Jetpack Media3 & TFLite in Gradle
-Add to `src-tauri/gen/android/app/build.gradle.kts`:
+### Step 2: Add Jetpack Media3 and TFLite dependencies
+Add to app/build.gradle.kts:
 ```kotlin
 dependencies {
     implementation("androidx.media3:media3-transformer:1.3.1")
@@ -227,9 +191,9 @@ dependencies {
 ```
 
 ### Step 3: Implement Native Plugin
-Create the Kotlin bridge (`MediaProcessorPlugin.kt`) exposing `cutClip`, `scanKeyframes`, `extractThumbnail`, and `exportToGallery`.
+Create the Kotlin plugin (MediaProcessorPlugin.kt) with methods for cutClip, scanKeyframes, extractThumbnail, and exportToGallery.
 
-### Step 4: Adapt React Frontend
-* Build the responsive 2-column mobile layout with bottom navigation.
-* Implement touch-scrubbing (`useTouchScrub.ts`) and drag-to-select gestures.
-* Implement floating bottom action dock for batch actions.
+### Step 4: Build Mobile Frontend Components
+* Create the 2-column mobile grid component.
+* Add the touch-scrubbing gesture hook.
+* Add the bottom dock and expandable bottom sheets.
