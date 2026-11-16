@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CJK Font Proof</title>
+<style>
+    @font-face {
+        font-family: 'Bundled SC';
+        src: url('../src/assets/fonts/fusion-pixel-12px-proportional-zh_hans.ttf.woff2') format('woff2');
+    }
+    :root {
+        color-scheme: dark;
+        --bg: #0b0b0e;
+        --panel: #141419;
+        --line: #26262e;
+        --text: #e8e8ee;
+        --dim: #8b8b99;
+        --accent: #7c6cff;
+    }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        padding: 28px clamp(16px, 4vw, 48px) 64px;
+        background: var(--bg);
+        color: var(--text);
+        font: 14px/1.5 ui-sans-serif, system-ui, sans-serif;
+    }
+    h1 { font-size: 20px; margin: 0 0 4px; font-weight: 650; }
+    .sub { color: var(--dim); margin: 0 0 24px; max-width: 70ch; }
+    .bar {
+        display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+        padding: 14px 16px; margin-bottom: 24px;
+        background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    }
+    label.file {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 7px 13px; border-radius: 7px; cursor: pointer;
+        background: var(--accent); color: #fff; font-weight: 600;
+    }
+    label.file input { display: none; }
+    .bar .state { color: var(--dim); }
+    .bar .state.ok { color: #5ad48a; }
+    .bar .state.bad { color: #ff7a7a; }
+    .bar .size { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--dim); }
+    .bar input[type=range] { accent-color: var(--accent); }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+    .col { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+    .col > header {
+        padding: 10px 16px; border-bottom: 1px solid var(--line);
+        font-weight: 650; display: flex; justify-content: space-between; align-items: baseline;
+    }
+    .col > header small { color: var(--dim); font-weight: 400; }
+    .rows { padding: 6px 16px 16px; }
+    .row { padding: 9px 0; border-bottom: 1px solid #1d1d24; }
+    .row:last-child { border-bottom: 0; }
+    .row .key { font-size: 11px; color: var(--dim); margin-bottom: 3px; }
+    .row .val { font-size: var(--proof-size, 15px); line-height: 1.45; word-break: break-word; }
+    .a .val { font-family: 'Bundled SC', sans-serif; }
+    .b .val { font-family: 'Candidate SC', 'Bundled SC', sans-serif; }
+    .b.waiting { opacity: 0.45; }
+    .zoom { margin-top: 24px; }
+    .zoom .glyphs { display: flex; flex-wrap: wrap; gap: 14px; padding: 16px; }
+    .zoom .g {
+        font-size: 72px; line-height: 1; padding: 8px 10px;
+        border: 1px dashed var(--line); border-radius: 6px;
+        -webkit-font-smoothing: none; font-smooth: never;
+    }
+    .zoom .g.a { font-family: 'Bundled SC', sans-serif; }
+    .zoom .g.b { font-family: 'Candidate SC', 'Bundled SC', sans-serif; }
+    code { background: #1c1c23; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>CJK font proof</h1>
+<p class="sub">
+    The bundled face on the left, a candidate on the right, set in the app's own strings
+    at the app's own size. Drop in an <code>.otf</code>, <code>.ttf</code> or <code>.woff2</code>
+    to compare. Metrics and coverage are checked separately by
+    <code>scripts/check-cjk-font.py</code> — this page is only for the eye.
+</p>
+
+<div class="bar">
+    <label class="file">
+        Load a candidate
+        <input type="file" id="pick" accept=".otf,.ttf,.woff,.woff2,font/*">
+    </label>
+    <span class="state" id="state">no candidate loaded</span>
+    <span class="size">
+        <span id="sizeLabel">15px</span>
+        <input type="range" id="size" min="11" max="28" step="1" value="15">
+    </span>
+</div>
+
+<div class="cols">
+    <section class="col a">
+        <header>Bundled <small>Fusion Pixel 12px Prop zh-Hans</small></header>
+        <div class="rows" id="rowsA"></div>
+    </section>
+    <section class="col b waiting" id="colB">
+        <header>Candidate <small id="candName">none</small></header>
+        <div class="rows" id="rowsB"></div>
+    </section>
+</div>
+
+<section class="col zoom">
+    <header>Pixel grid <small>smoothing off, so a non-pixel outline shows at once</small></header>
+    <div class="glyphs" id="glyphs"></div>
+</section>
+
+<script>
+    // real strings from the zh-CN locales, the ones the app actually sets
+    const SAMPLES = [
+        ["library:episodePanel.searchPlaceholder", "搜索视频…"],
+        ["library:episodePanel.episodeCount", "12 个视频"],
+        ["settings:font.pixel", "像素（Jersey 10 + 中文像素字体）"],
+        ["shell:app.aiPack.ml", "AI 场景检测"],
+        ["shell:app.resetFailed", "无法重置视频存储目录：权限被拒绝"],
+        ["scout:hero.blockedNoDatabase", "请先在下方创建数据库，再开始搜索…"],
+        ["scout:hero.addTo", "向“我的动画”添加视频"],
+        ["user text", "第01话 最终决战.mkv"],
+        ["mixed latin", "导出 1080p · H.265 · 24 fps"],
+        ["rare han", "饕餮鬻爨"],
+    ];
+    const ZOOM = [..."的场景导出视频"];
+
+    const rowsA = document.getElementById("rowsA");
+    const rowsB = document.getElementById("rowsB");
+    const glyphs = document.getElementById("glyphs");
+
+    for (const [key, value] of SAMPLES) {
+        for (const host of [rowsA, rowsB]) {
+            const row = document.createElement("div");
+            row.className = "row";
+            row.innerHTML = `<div class="key"></div><div class="val"></div>`;
+            row.querySelector(".key").textContent = key;
+            row.querySelector(".val").textContent = value;
+            host.append(row);
+        }
+    }
+    for (const char of ZOOM) {
+        for (const side of ["a", "b"]) {
+            const cell = document.createElement("span");
+            cell.className = `g ${side}`;
+            cell.textContent = char;
+            glyphs.append(cell);
+        }
+    }
+
+    const size = document.getElementById("size");
+    const sizeLabel = document.getElementById("sizeLabel");
+    size.addEventListener("input", () => {
+        document.documentElement.style.setProperty("--proof-size", `${size.value}px`);
+        sizeLabel.textContent = `${size.value}px`;
+    });
+
+    const state = document.getElementById("state");
+    document.getElementById("pick").addEventListener("change", async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        state.className = "state";
+        state.textContent = "loading…";
+        try {
+            const face = new FontFace("Candidate SC", await file.arrayBuffer());
+            await face.load();
+            document.fonts.add(face);
+            document.getElementById("colB").classList.remove("waiting");
+            document.getElementById("candName").textContent = file.name;
+            state.className = "state ok";
+            state.textContent = `${file.name} loaded`;
+        } catch (error) {
+            state.className = "state bad";
+            state.textContent = `could not load: ${error.message}`;
+        }
+    });
+</script>
+</body>
+</html>

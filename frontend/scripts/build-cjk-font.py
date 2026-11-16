@@ -7,10 +7,12 @@ episode names, folder names, file paths and Scene Scout queries are user text, s
 a UI-only subset turns a chinese file name into tofu boxes.
 
 the default target is therefore GB/T 2312 (6,763 han) plus every han the shipped
-locales use, which covers everyday chinese text at a quarter of the size.
+locales use, which covers everyday chinese text at a quarter of the size. a
+traditional locale (zh-TW, zh-HK) widens it to Big5 on its own, since GB/T 2312
+is simplified only.
 
 usage:
-  python scripts/build-cjk-font.py <source.woff2|ttf> [--coverage gb2312|gbk|ui-only]
+  python scripts/build-cjk-font.py <source.woff2|ttf> [--coverage auto|gb2312|big5|gbk|ui-only]
 """
 
 import argparse
@@ -71,21 +73,37 @@ def encodable(codec: str) -> set[str]:
 COVERAGE = {
     "ui-only": lambda: set(),
     "gb2312": lambda: encodable("gb2312"),
-    "gbk": lambda: encodable("gbk"),
+    "big5": lambda: encodable("gb2312") | encodable("big5"),
+    "gbk": lambda: encodable("gbk") | encodable("big5"),
 }
+
+
+def traditional_locales() -> list[str]:
+    """zh-TW and zh-HK are traditional, and GB/T 2312 holds none of their own glyphs"""
+    if not LOCALES.is_dir():
+        return []
+    return sorted(d.name for d in LOCALES.iterdir()
+                  if d.is_dir() and d.name.lower() in ("zh-tw", "zh-hk", "zh-hant"))
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", type=Path, help="the upstream Fusion Pixel file")
-    parser.add_argument("--coverage", choices=sorted(COVERAGE), default="gb2312")
+    parser.add_argument("--coverage", choices=sorted(COVERAGE) + ["auto"], default="auto")
     parser.add_argument("--out", type=Path, default=OUT)
     args = parser.parse_args()
 
     if not args.source.is_file():
         return f"source font not found: {args.source}"
 
-    chars = set(COVERAGE[args.coverage]()) | locale_chars()
+    coverage = args.coverage
+    traditional = traditional_locales()
+    if coverage == "auto":
+        coverage = "big5" if traditional else "gb2312"
+        if traditional:
+            print(f"traditional locales present ({', '.join(traditional)}), widening to Big5")
+
+    chars = set(COVERAGE[coverage]()) | locale_chars()
     unicodes = {ord(c) for c in chars}
     for block in BASE:
         unicodes.update(block)
@@ -108,7 +126,11 @@ def main() -> int:
 
     before = args.source.stat().st_size / 1024
     after = args.out.stat().st_size / 1024
-    print(f"{args.coverage}: {len(unicodes)} code points, {after:.1f} KB (was {before:.1f} KB)")
+    gaps = {ord(c) for c in chars} - covered
+    if gaps:
+        print(f"warning: {len(gaps)} wanted code points are absent from the source font, "
+              f"e.g. {''.join(chr(c) for c in sorted(gaps)[:16])}")
+    print(f"{coverage}: {len(unicodes)} code points, {after:.1f} KB (was {before:.1f} KB)")
     print(f"wrote {args.out.relative_to(ROOT.parent) if args.out.is_relative_to(ROOT.parent) else args.out}")
     return 0
 
