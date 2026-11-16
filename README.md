@@ -1,10 +1,6 @@
 # AMVerge V2
 
-> This branch is for version V2. Please do not contribute to this branch as I
-> want to personally refactor and redo the pipeline.
-
-A desktop app for editors who need to split videos into usable clips, preview
-scenes, and export selections without going through a full editor.
+A desktop app for editors who need to split videos into usable clips, search scenes semantically with Scene Scout, organize scenepacks, run depth/upscale tools, and export selections without going through a full editor.
 
 - **Frontend** React + TypeScript
 - **Desktop shell** Tauri (Rust)

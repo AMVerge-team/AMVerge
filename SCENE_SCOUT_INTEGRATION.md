@@ -1,6 +1,6 @@
 # Scene Scout integration
 
-I created the commands of the feature like the database creation, deletion, etc (basically the design aspects), but I left the frame sampling, scene detection, model loading open since those things I'm kinda unsure of on how to do. This document outlines in detail what's already finished, and what needs to be done.
+Scene Scout connects AMVerge V2's React UI and Rust Tauri commands to `AMVerge-CLI`'s SQLite + SigLIP 2 vector search and indexing backend. This document covers the cross-layer architecture, storage layout, and JSON/IPC contract.
 
 ---
 
@@ -23,9 +23,11 @@ complete tool on its own with no AMVerge install involved.
 
 ---
 
-## What already works
+## CLI status
 
-Feel free to run these:
+The Scene Scout storage layout, path resolution, SQLite schema (including migrations), SigLIP 2 embedding/indexing pipeline, persistent daemon worker (`amverge scout daemon`), and similarity/flow search are implemented in `AMVerge-CLI` and wired end-to-end in AMVerge V2.
+
+Standalone inspection commands:
 
 ```bash
 amverge scout status
@@ -35,29 +37,9 @@ amverge scout videos "My Series"
 amverge scout delete "My Series"
 ```
 
-Everything above is finished: storage layout, path resolution, the SQLite
-schema, database lifecycle, listing, and the JSON contract. Search scoring is
-finished too. `--json` on any of them emits exactly what the Rust layer parses. If there's anything you need to change with the existing stuff I have to make things work, feel free.
+Inside the app, `SceneScoutPage` supports text search, **Flow / Match** visual similarity search (`flowFrom`), external `.scoutdb` opening/migration, `cutToLibrary` episode import integration, and 480p range preview caching (`ensure_scene_range_preview`).
 
-Inside the app itself, the sidebar button, the page, the panel, the search bar, the
-settings dropdown, the store, and the Rust commands are all wired and compile.
-The grid renders results through the ordinary clip grid once the logic in the CLI are in and connected
-
-## What needs to be done
-
-Two files, both raising `NotImplementedError` with a pointer to the upstream
-source:
-
-| File | Port from | What it needs |
-| --- | --- | --- |
-| `amverge/core/scenescout/embedding.py` | `src/model_loader.py`, `src/processing.py` | load SigLIP 2, embed text / images / frames |
-| `amverge/core/scenescout/indexing.py` | `src/processing.py` | scene detection, frame sampling |
-
-Nothing else is a stub. Fill those in and the feature works end to end.
-
-### The data, start to finish
-
-Only four functions matter, and they hand results straight to each other:
+### Indexing data pipeline
 
 ```
 detect_scenes(video, method)  ->  [(start_ms, end_ms), ...]        N scenes
@@ -66,18 +48,9 @@ embed_frames(frames)          ->  float32 (N, D), rows normalised  N vectors
 encode_thumbnail(frame)       ->  JPEG bytes                       N thumbnails
 ```
 
-All four stay the same length and the same order. `index_video` zips them
-together and writes one database row per scene, so a single dropped frame shifts
-every scene after it onto the wrong timestamp and nothing catches it.
+All four stay the same length and order so `index_video` keeps scene rows aligned:
 
-`index_video` is already written. It does all the database work, so read it
-first to see exactly what it expects back from you.
-
-Three details that produce a working-looking system that returns nonsense, which
-is worse than a crash:
-
-- **Frames must be RGB.** PyAV and PIL give RGB. OpenCV gives BGR. Embedding BGR
-  still produces vectors and still ranks them, just against the wrong colours.
+- **Frames must be RGB** (PyAV / PIL give RGB; OpenCV BGR embeds against swapped channels).
 - **Embeddings must be L2-normalised.** `search.py` scores with a dot product and
   reads it as cosine similarity, which is only true for unit vectors.
 - **`embed_text` and `embed_frames` must return the same `D`.** If they differ,
@@ -122,12 +95,12 @@ amverge/
 │   └── scout.py            Typer sub-app: the `amverge scout ...` verbs
 └── core/scenescout/
     ├── __init__.py
-    ├── paths.py            where databases live                    DONE
-    ├── types.py            SceneHit, DatabaseInfo, SearchOptions   DONE
-    ├── db.py               SQLite schema and CRUD                  DONE
-    ├── search.py           similarity search                       DONE
-    ├── embedding.py        SigLIP 2                                STUB
-    └── indexing.py         video → scenes → embeddings             STUB
+    ├── paths.py            where databases live
+    ├── types.py            SceneHit, DatabaseInfo, SearchOptions
+    ├── db.py               SQLite schema and CRUD
+    ├── search.py           similarity search
+    ├── embedding.py        SigLIP 2 text/image/frame embeddings
+    └── indexing.py         video → scenes → embeddings
 ```
 
 Registered in `amverge/cli.py` as `app.add_typer(scout)`.
@@ -283,74 +256,23 @@ The second is that the move is a whitelist on purpose, and it should stay one. T
 
 ---
 
-## Task list
-
-**CLI**
-
-1. Port `embedding.py` from `src/model_loader.py` and `src/processing.py`.
-   Keep the lazy imports. Return L2-normalised float32.
-2. Port `indexing.py`'s `detect_scenes` and `sample_frames`.
-   - `detect_scenes` dispatches on the user's Settings choice, see below.
-   - `sample_frames` should use PyAV, which both projects already depend on.
-**App**
-
-3. Reveal-in-explorer and rename on the panel's context menu, mirroring
-   `components/sidebar/episodePanel/`.
-4. Decide whether Scene Scout gets a Settings toggle like Scenepacks
-   (`scenepacksEnabled`). Given it needs a multi-GB model, defaulting it off is
-   probably right.
-5. Check the pack size estimate. `AI_PACKS.scout.extraSizeMb` is a guess at
-   900 MB for transformers plus the SigLIP 2 weights; measure a real install
-   and correct it, since it is what the download confirmation shows.
+## Detector dispatch & preview cache notes
 
 ### The AI pack
 
-Scene Scout is an installable pack, registered in all three places the install
-chain reads: the `scout` extra in `pyproject.toml`, `Pack { id: "scout" }` in
-`deps/packs.rs`, and `AI_PACKS.scout` in `features/aiDeps/packs.ts`. It is in
-`VISIBLE_PACK_IDS`, so it appears in Settings > Dependencies.
+Scene Scout is an installable pack, registered in the `scout` extra in `pyproject.toml`, `Pack { id: "scout" }` in `deps/packs.rs`, and `AI_PACKS.scout` in `features/aiDeps/packs.ts`.
 
-Both entry points call `ensurePack("scout")` first, so a user without the model
-gets the install prompt rather than a failure several seconds into a search.
+### Preview cache notes
 
-### A note on the preview cache
+Animated previews for results are generated into `episodes_storage/scoutcache_<database>/scenes/`, reusing the episode preview machinery, while hovered/played video ranges use `ensure_scene_range_preview` in the LRU-pruned `scene_range_previews` cache (capped at 1 GB).
 
-Animated previews for results are generated into
-`episodes_storage/scoutcache_<database>/scenes/`, reusing the episode preview
-machinery. Those folders carry no `manifest.json`, so `is_episode_cache_dir`
-does not claim them and a storage relocation leaves them behind. That is
-harmless (they regenerate on demand) but it does leave stale folders in the old
-location. Worth tidying if it ever becomes noticeable.
+### Which scene detector to use
 
-**Which scene detector to use**
-
-Use AMVerge's own detectors. Do not port PySceneDetect from upstream.
-
-The reason is that Scene Scout should find the same cuts that importing the episode would find. If it uses its own detector, a search result points at a scene boundary the user has never seen and cannot line up with anything in their grid.
-
-Which detector runs follows whatever the user picked in Settings under scene detection. There is no separate Scene Scout setting for this:
+Scene Scout uses AMVerge's own detectors so indexed boundaries line up with imported library cuts. Indexing follows whatever detector the user picked in Settings (or per-run in the Add Episode prompt):
 
 | Setting | Use | Module |
 | --- | --- | --- |
 | AI Scene Detection | `transnetv2_gpu` | `amverge.core.detection.ai_scene_detection`, via `decode_and_detect_scenes` |
 | Keyframe Detection | `keyframe_detection` | `amverge.core.detection.keyframe`, via `detect_scenes_by_keyframe` |
 
-The plumbing for this is already done. The setting is read in `sceneScoutStore.addVideo`, passed to Rust, and reaches the CLI as `amverge scout add --detector <value>`. It arrives in `detect_scenes` as the `method` argument, using the same spelling the app uses, so nothing has to be translated on the way. All you have to write is the branch inside `detect_scenes` that calls the right module.
-
-Two things to handle in that branch:
-
-**Fall back to keyframe** for an unrecognised value, and also when `transnetv2_gpu` is selected but the `ml` pack turns out not to be installed. Indexing should still work in that case rather than fail, since keyframe detection needs nothing extra.
-
-**Convert to milliseconds.** Both AMVerge detectors work in seconds, but `detect_scenes` returns `(start_ms, end_ms)` because that is what the database columns hold and what the upstream schema expects.
-
----
-
-## Verified so far
-
-- `amverge scout status | create | databases | videos | delete` run, in both table and `--json` form
-- `create` → `databases` → `delete` round-trips against a temp `--root`
-- `search` with no model returns `{"results":[],"error":...}` and exit 1, rather than a traceback
-- The CLI core imports with no torch installed
-- `cargo check` clean, `tsc --noEmit` clean, `vite build` clean
-
-Not verified, because it needs the stubs: indexing a real video, any search that returns actual results, and therefore the grid rendering path end to end. The three constraints listed under *Why results are ClipItems* were traced through the code rather than observed running, so they are the first thing to check once indexing works.
+If `transnetv2_gpu` is selected when the `ml` pack is not installed (or an unrecognised detector is passed), `detect_scenes` falls back to `keyframe_detection`. Timestamps are converted from seconds to integer milliseconds `(start_ms, end_ms)` to match the SQLite schema.

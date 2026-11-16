@@ -108,12 +108,14 @@ Most logic has been moved into hooks to keep this file readable.
 
 ## pages/
 
-Contains screen-level pages.
-
-Current examples:
+Contains screen-level pages:
 
 * `HomePage.tsx`
+* `SceneScoutPage.tsx`
+* `ScenepacksPage.tsx`
+* `EventsPage.tsx`
 * `Menu.tsx`
+* `Settings.tsx`
 
 ---
 
@@ -190,6 +192,13 @@ sidebar/
 │   ├── EpisodePanelHeader.tsx
 │   ├── EpisodePanelModals.tsx
 │   └── EpisodePanelContextMenus.tsx
+├── scenepacks/
+│   ├── ScenepacksPanel.tsx
+│   ├── ScenepackModals.tsx
+│   ├── ScenepackContextMenus.tsx
+│   ├── ScenepackThumbnailModal.tsx
+│   ├── useScenepackStructure.ts
+│   └── usePackDrag.ts
 └── hooks/
     ├── useEpisodePanelStructure.ts
     ├── useEpisodePanelMenus.ts
@@ -270,22 +279,16 @@ Frontend displays clips in the grid.
 
 ---
 
-# Current Scene Splitting Approach
+# Scene Splitting Approaches
 
-Older versions experimented with frame analysis and similarity detection.
-
-The current version uses keyframes because it is much faster and more reliable in practice.
-
-Workflow:
+V2 supports fast keyframe splitting alongside optional AI-powered scene detection (`TransNetV2` on GPU) and CPU detection (`PySceneDetect`), plus semantic & Flow scene search via Scene Scout:
 
 ```txt
-Read keyframes
-→ Cut at keyframes
-→ Generate previews
-→ Let user merge if needed
+Detect scene boundaries (Keyframe / TransNetV2 / PySceneDetect)
+→ Cut or stream-copy clips & previews
+→ Organize into Episodes / Scenepacks or index into Scene Scout
+→ Export or run post-export Depth / Upscale passes
 ```
-
-This matches the actual goal of the product: helping editors move fast.
 
 ---
 

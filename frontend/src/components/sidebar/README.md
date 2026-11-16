@@ -10,8 +10,8 @@ If you're here to debug, add features, or understand the structure, this guide s
 
 The sidebar is responsible for:
 
-- Switching between pages like Home / Menu
-- Displaying the Episode Panel
+- Switching between pages (`Home`, `Scene Scout`, `Scenepacks`, `Events`, `Menu`, `Settings`)
+- Displaying the Episode Panel and Scenepacks Panel
 - Organizing imported episodes into folders
 - Renaming, deleting, sorting, and moving episodes
 - Drag and drop reordering
@@ -55,6 +55,14 @@ sidebar/
 │   ├── EpisodePanelContextMenus.tsx
 │   ├── EpisodeRow.tsx
 │   └── FolderRow.tsx
+│
+├── scenepacks/
+│   ├── ScenepacksPanel.tsx
+│   ├── ScenepackModals.tsx
+│   ├── ScenepackContextMenus.tsx
+│   ├── ScenepackThumbnailModal.tsx
+│   ├── useScenepackStructure.ts
+│   └── usePackDrag.ts
 │
 └── hooks/
     ├── useEpisodePanelStructure.ts

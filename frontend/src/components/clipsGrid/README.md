@@ -31,10 +31,10 @@ Browsers and hardware have limits. If you try to mount and play dozens of videos
 
 - `ClipsContainer.tsx`: The main grid container. Handles layout, selection, and passing props to tiles.
 - `types.ts`: Shared TypeScript types for props and internal data.
-- `gridComponents/`
-  - `LazyClip.tsx`: The video tile. Handles lazy loading, hover preview, and proxy logic.
-  - `proxyQueue.ts`: The hook that manages proxy generation and prioritization.
-  - `staggeredMountQueue.ts`: The hook that staggers video mounting for grid preview.
+- `LazyClip.tsx`: The video tile. Handles lazy loading, hover preview, and proxy logic.
+- `SelectionActionBar.tsx`, `AddToScenepackModal.tsx`, `ScenepackPickerMenu.tsx`, `DownloadButton.tsx`: Selection, scenepack assignment, and export controls.
+- `useClipVideoSource.ts`, `useClipVideoElement.ts`, `useClipStagger.ts`, `useGridWindow.ts`, `useWebpPreview.ts`: Hooks for range/clip playback, staggered mount queueing, virtualization, and WebP previews.
+- `proxyQueue.ts`, `staggeredMountQueue.ts`, `webpQueue.ts`: Queues coordinating proxy transcoding, preview-all mounting, and WebP generation.
 
 ## Tips for Working Here
 

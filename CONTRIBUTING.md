@@ -165,7 +165,7 @@ python -m venv .venv
 .venv/bin/pip install -e .          # Windows: .venv\Scripts\pip install -e .
 
 # 3. back here
-cd ../AMVerge_V2
+cd ../AMVerge
 cp .env.example .env                # PowerShell: Copy-Item .env.example .env
 # then set AMVERGE_CLI_DIR to the absolute path of the CLI checkout
 
