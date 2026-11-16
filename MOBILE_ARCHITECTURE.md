@@ -1,66 +1,74 @@
 # AMVerge Mobile: Architecture and Implementation Plan
 
-This document describes the technical plan for building the mobile version of AMVerge for Android and iOS. It covers media processing with Google Jetpack Media3, local storage with SQLite and Scoped Storage, and mobile touch UI patterns.
+This document describes the technical architecture for the native Android version of AMVerge. It is based on a pure native stack using Kotlin, Jetpack Compose, Jetpack Media3, FFmpeg through the Android NDK, and Room database storage.
 
 ## 1. Overview
 
-### Why the desktop codebase cannot run directly on mobile
-* Process spawning restrictions: Desktop AMVerge starts Python (AMVerge-CLI) and FFmpeg using child processes (std::process::Command). Android and iOS security sandboxes do not allow running external command line executables inside an app package.
-* FFmpegKit status: Earlier mobile video tools used the ffmpeg-kit library, but that project has been archived and is no longer maintained. It adds 40MB to 80MB to the app size and has issues with Android 15 16KB memory page requirements.
-* Media3 solution: Android provides Jetpack Media3 (androidx.media3.transformer), which supports hardware transmuxing (copying video streams without re-encoding) using the device hardware codecs with minimal app size overhead.
+Desktop AMVerge uses Python (AMVerge-CLI) and desktop FFmpeg child processes. Android does not allow running standalone command line executables inside an application sandbox. 
 
-## 2. Technology Stack
+To achieve smooth 60 to 120 FPS performance on phones and tablets, the Android app is designed as a native application without WebView or desktop wrappers.
+
+### Core Stack
+* UI Framework: Kotlin and Jetpack Compose (declarative native UI)
+* Media Playback and Trimming: Jetpack Media3 (ExoPlayer and Media3 Transformer)
+* Native Video Processing: FFmpeg compiled via the Android NDK (C/C++ shared libraries)
+* Local Data Storage: Room Database (SQLite object mapping) and Android Scoped Storage
+
+## 2. Architecture Diagram
 
 ```
-Frontend: React and TypeScript
-- Clip grid, episode lists, and scenepack management
-- Touch-based scrubbing hooks
-- Mobile layouts and bottom sheets
-
-Desktop and Mobile Shell: Tauri v2 (Rust)
-- App lifecycle and window management
-- SQLite database access using @tauri-apps/plugin-sql
-- Android Storage Access Framework (SAF) URI handling
-
-Native Media Engine: Kotlin and Jetpack Media3
-- androidx.media3.transformer: Stream-copy video trimming
-- androidx.media3.inspector: Fast keyframe thumbnail extraction
-- TensorFlow Lite runtime: TransNetV2 shot transition detection
-- Android MediaStore: Saving exported clips to the device gallery
-- Android Share Sheet: Direct sharing to apps like CapCut, TikTok, and Instagram
++-------------------------------------------------------------+
+|                 UI LAYER (Jetpack Compose)                  |
+|  - LazyVerticalGrid for 2-column video scene browsing       |
+|  - Isolated scrubbing state for touch preview gestures       |
+|  - Expandable bottom sheets for export and scenepack options|
++------------------------------+------------------------------+
+                               |
+                               v
++-------------------------------------------------------------+
+|               DATA LAYER (Room + Repository)                |
+|  - Episodes, scene cut points, and scenepack tables         |
+|  - Timestamp to thumbnail file path mappings                |
+|  - Android Scoped Storage file descriptor resolution        |
++------------------------------+------------------------------+
+                               |
+                               v
++-------------------------------------------------------------+
+|                 MEDIA ENGINE (Media3 + NDK)                 |
+|  - Media3 Transformer: Fast stream-copy cuts (no re-encode) |
+|  - Media3 FrameExtractor: Fast thumbnail generation         |
+|  - ExoPlayer: In-app video preview with scrubbing mode      |
+|  - NDK FFmpeg (C/C++): Fallback for complex containers      |
++-------------------------------------------------------------+
 ```
 
-## 3. Video Processing and Scene Detection
+## 3. Video Processing and Cutting Pipeline
 
-### A. Trimming clips without re-encoding
-Media3 Transformer uses transmuxing (container-level stream copy) when no visual filters or effects are added. It cuts clips at keyframes in milliseconds without changing video quality or draining battery:
+### A. Stream-Copy Trimming (Media3 Transformer)
+When cutting clips at keyframes, Media3 Transformer performs container-level transmuxing. It copies video and audio packets directly into the new MP4 container without decoding or re-encoding:
 
 ```kotlin
 package com.amverge.media
 
 import android.content.Context
 import androidx.media3.common.MediaItem
-import androidx.media3.transformer.EditedMediaItem
-import androidx.media3.transformer.Transformer
 import androidx.media3.transformer.Composition
-import androidx.media3.transformer.ExportResult
+import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.ExportException
-import app.tauri.annotation.Command
-import app.tauri.annotation.TauriPlugin
-import app.tauri.plugin.Plugin
-import app.tauri.plugin.Invoke
+import androidx.media3.transformer.ExportResult
+import androidx.media3.transformer.Transformer
 
-@TauriPlugin
-class MediaProcessorPlugin(private val context: Context) : Plugin() {
+class VideoCutManager(private val context: Context) {
 
-    @Command
-    fun cutClip(invoke: Invoke) {
-        val inputPath = invoke.getString("inputUri") ?: return invoke.reject("Missing inputUri")
-        val outputPath = invoke.getString("outputPath") ?: return invoke.reject("Missing outputPath")
-        val startMs = invoke.getLong("startMs") ?: 0L
-        val endMs = invoke.getLong("endMs") ?: return invoke.reject("Missing endMs")
-
-        val mediaItem = MediaItem.fromUri(inputPath)
+    fun cutClip(
+        inputUri: String,
+        outputPath: String,
+        startMs: Long,
+        endMs: Long,
+        onComplete: (String) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val mediaItem = MediaItem.fromUri(inputUri)
         val editedItem = EditedMediaItem.Builder(mediaItem)
             .setTrimStartMs(startMs)
             .setTrimEndMs(endMs)
@@ -69,10 +77,14 @@ class MediaProcessorPlugin(private val context: Context) : Plugin() {
         val transformer = Transformer.Builder(context)
             .addListener(object : Transformer.Listener {
                 override fun onCompleted(composition: Composition, exportResult: ExportResult) {
-                    invoke.resolve(mapOf("success" to true, "path" to outputPath))
+                    onComplete(outputPath)
                 }
-                override fun onError(composition: Composition, exportResult: ExportResult, exportException: ExportException) {
-                    invoke.reject("Transmux failed: ${exportException.message}")
+                override fun onError(
+                    composition: Composition,
+                    exportResult: ExportResult,
+                    exportException: ExportException
+                ) {
+                    onError(exportException.message ?: "Unknown export error")
                 }
             })
             .build()
@@ -82,118 +94,72 @@ class MediaProcessorPlugin(private val context: Context) : Plugin() {
 }
 ```
 
-### B. Scene Detection Methods
+### B. FFmpeg via Android NDK
+For formats that Android platform decoders or MediaMuxer cannot handle directly (such as unusual MKV tracks, non-standard audio streams, or specialized container options):
+* FFmpeg C/C++ libraries (libavcodec, libavformat, libavutil, libswscale) are compiled for Android ABIs (arm64-v8a, armeabi-v7a, x86_64).
+* Called through a small JNI bridge to run stream copy or extraction operations without relying on deprecated third-party wrappers like FFmpegKit.
 
-#### Method 1: Keyframe Scanner (Fast default)
-Reads the video container for sync keyframes (SAMPLE_FLAG_SYNC) using MediaExtractor:
-* Reads packet timestamps from headers without decoding full video frames.
-* Scans a typical 24-minute episode in about 2 to 3 seconds.
-* Creates the initial list of scene cut points and clip durations.
+### C. Scene Detection Methods
+1. Keyframe Scanner (Default):
+   * Uses Android MediaExtractor to read sync samples (SAMPLE_FLAG_SYNC).
+   * Reads container packet headers without decoding image pixels.
+   * Scans a full 24-minute episode in about 2 to 3 seconds.
+2. AI Cut Detection (TransNetV2 on TFLite):
+   * Converted from PyTorch to TensorFlow Lite (transnetv2.tflite) with 16-bit float quantization.
+   * Downscales video frames to 48 x 27 pixels RGB.
+   * Runs inference on the mobile GPU or NPU using the TFLite GPU delegate or Android NNAPI.
 
-#### Method 2: AI Scene Detection (TransNetV2 with TFLite)
-Detects cuts that do not line up with keyframes:
-1. Model format: The PyTorch TransNetV2 model is converted to a TensorFlow Lite model (transnetv2.tflite) using 16-bit float quantization (about 14MB).
-2. Input resolution: TransNetV2 requires small 48 x 27 pixel RGB frames, so frame extraction and scaling require little memory.
-3. Hardware acceleration: Runs on the mobile GPU or NPU using the TFLite GPU delegate or Android NNAPI.
+## 4. Jetpack Compose UI and Touch Interactions
 
-## 4. Mobile UI and Layout
+### A. Clip Grid (LazyVerticalGrid)
+* Portrait phones: 2-column layout displaying clip thumbnails, duration badges (example: 00:04.2), and timestamp ranges (example: 01:14 - 01:18).
+* Tablets and landscape orientation: 3 to 5 columns with a collapsible side drawer.
+* To prevent frame drops during scrolling, grid cells display cached image thumbnails rather than active player instances.
 
-The desktop interface uses multiple columns, mouse hover states, and keyboard shortcuts. The mobile interface adapts these for touchscreens.
+### B. Touch Scrubbing Pattern
+Phones do not have mouse hover states. To preview video action quickly:
+* Moving a finger horizontally across a clip card scrubs through a 10-frame pre-extracted thumbnail sequence or queries Media3 FrameExtractor.
+* For the active full preview player, ExoPlayer uses scrubbing mode:
+  ```kotlin
+  exoPlayer.setScrubbingModeEnabled(true)
+  ```
+* Scrub drag events are throttled to match the screen refresh rate to avoid overwhelming the video decoder.
 
-```
-+-------------------------------------------------------------+
-| PORTRAIT PHONE LAYOUT                                       |
-+-------------------------------------------------------------+
-| [Top Bar]  Episode Name (Dropdown)             [Select All] |
-+-------------------------------------------------------------+
-|                                                             |
-|  +-----------------------+   +-----------------------+      |
-|  | [x]           00:04.2 |   | [ ]           00:02.8 |      |
-|  |                       |   |                       |      |
-|  |    Clip Thumbnail     |   |    Clip Thumbnail     |      |
-|  |   <-- Touch-Scrub --> |   |   <-- Touch-Scrub --> |      |
-|  | 01:14 - 01:18         |   | 01:18 - 01:21         |      |
-|  +-----------------------+   +-----------------------+      |
-|                                                             |
-|  (2-column virtualized grid using TanStack Virtual)         |
-|                                                             |
-+-------------------------------------------------------------+
-| BOTTOM DOCK: [ 3 Selected (0:12) ]  [ Add Pack ] [ Export ] |
-+-------------------------------------------------------------+
-```
+### C. Multi-Select Gestures
+* Long press: Holding any clip for 200 milliseconds selects it and enters multi-select mode with haptic feedback.
+* Drag to select: Dragging across adjacent clips toggles their selection state in one continuous gesture.
+* Floating bottom dock: When clips are selected, a bottom bar displays the count and total duration (example: 4 clips, 0:18) with buttons to Add to Scenepack, Export to Gallery, or Share.
 
-### A. Grid System
-* Portrait phones (360px to 480px width):
-  * 2-column grid for clear viewing of thumbnails.
-  * Duration badge on the top right (example: 00:04.2).
-  * Timestamp range on the bottom left (example: 01:24 - 01:28).
-  * Selection circle on the top left.
-* Landscape phones and tablets (768px width and above):
-  * 3 to 5 columns depending on screen size.
-  * Side drawer for episode folders and scenepack lists.
+### D. Expandable Bottom Sheets
+Replaces desktop modal dialogs:
+* Half-expanded: Fast selection of export container and audio tracks.
+* Full-expanded: Detailed settings, episode metadata, and AI detection thresholds.
+* Dismissed by swiping down.
 
-### B. Touch Scrubbing
-Phones have no mouse hover state. To preview scenes quickly:
-* Each clip has a 10-frame JPG sprite sheet.
-* Moving a finger horizontally across a thumbnail scrubs through the frames.
-* This allows quick checking of scene content without loading full video players.
+### E. Android Share Sheet Integration
+Uses the native Android share intent (Intent.ACTION_SEND_MULTIPLE) to send exported clips directly into mobile editors like CapCut, Alight Motion, or social apps like TikTok and Instagram.
 
-### C. Multi-Selection
-* Long press: Holding a clip selects it and turns on selection mode with slight haptic feedback.
-* Drag to select: Once selection mode is active, dragging a finger across clips toggles selection in one motion.
-* Visual state: Selected clips show an accent border and a subtle dark overlay.
+## 5. Local Storage Architecture
 
-### D. Bottom Action Dock
-When one or more clips are selected, a bar appears at the bottom of the screen:
-* Displays the selected clip count and total duration (example: 5 clips, 0:24).
-* Quick action buttons: Add to Scenepack, Export to Gallery, and Share.
+Android enforces Scoped Storage:
 
-### E. Bottom Sheets
-Replaces desktop modal popups for mobile screens:
-* Half-height view: Quick selection of format and audio tracks.
-* Full-height view: Detailed settings, tags, and AI detection options.
-* Swipe down to close.
-
-### F. Android Share Sheet
-Instead of desktop export scripts:
-* AMVerge Mobile uses the standard Android share sheet (Intent.ACTION_SEND_MULTIPLE).
-* This allows sending cut clips directly into video editing apps like CapCut, Alight Motion, or social apps like TikTok and Instagram.
-
-## 5. Storage and Permissions
-
-Android uses Scoped Storage to manage file access:
-
-| Storage Type | Location | Access Method | User Permission Needed | Usage in AMVerge Mobile |
+| Storage Area | Android Path | Access Method | Permission | Purpose |
 |---|---|---|---|---|
-| App Sandbox Cache | context.cacheDir and getExternalFilesDir() | Standard File I/O | None | Temporary clip cuts, thumbnail cache, SQLite database |
-| User Media Library | MediaStore.Video (Movies/AMVerge/) | ContentResolver.insert() | None (Android 10+) | Final exported clips and scenepacks |
-| Source Video Picking | Device storage or SD card | Storage Access Framework (SAF) | User picks file in system dialog | Reading full source episodes |
+| App Internal Cache | context.cacheDir | java.io.File | None | Temporary video cuts, thumbnail cache |
+| Database Storage | context.getDatabasePath() | Room ORM | None | Episodes, scenes, scenepacks, and thumbnail timestamp index |
+| Media Gallery | MediaStore.Video (Movies/AMVerge/) | ContentResolver.insert() | None (Android 10+) | Final exported clips and scenepacks |
+| Source Video Picking | Device storage / SD card | Storage Access Framework (SAF) | User file picker | Reading source video files |
 
-## 6. Implementation Steps
+### Room Database Schema Overview
+* EpisodeEntity: id, title, uri, durationMs, createdAt
+* SceneEntity: id, episodeId, sceneIndex, startMs, endMs, thumbnailPath
+* ScenepackEntity: id, name, createdAt
+* ScenepackClipCrossRef: scenepackId, sceneId
 
-### Step 1: Initialize Tauri Mobile
-```bash
-cd frontend
-npm run tauri android init
-```
-This creates the Android Studio project under src-tauri/gen/android.
+## 6. Development Roadmap
 
-### Step 2: Add Jetpack Media3 and TFLite dependencies
-Add to app/build.gradle.kts:
-```kotlin
-dependencies {
-    implementation("androidx.media3:media3-transformer:1.3.1")
-    implementation("androidx.media3:media3-inspector-frame:1.3.1")
-    implementation("androidx.media3:media3-common:1.3.1")
-    implementation("org.tensorflow:tensorflow-lite:2.14.0")
-    implementation("org.tensorflow:tensorflow-lite-gpu:2.14.0")
-}
-```
-
-### Step 3: Implement Native Plugin
-Create the Kotlin plugin (MediaProcessorPlugin.kt) with methods for cutClip, scanKeyframes, extractThumbnail, and exportToGallery.
-
-### Step 4: Build Mobile Frontend Components
-* Create the 2-column mobile grid component.
-* Add the touch-scrubbing gesture hook.
-* Add the bottom dock and expandable bottom sheets.
+1. Phase 1: Project setup with Jetpack Compose, Material 3, and navigation scaffolding.
+2. Phase 2: MediaExtractor keyframe scanner and Media3 Transformer stream-copy cutting.
+3. Phase 3: Room database setup and thumbnail extraction with Media3 FrameExtractor.
+4. Phase 4: LazyVerticalGrid UI with touch scrubbing, selection gestures, and bottom action dock.
+5. Phase 5: NDK FFmpeg integration for custom formats and MediaStore export pipeline.

@@ -4,11 +4,11 @@
 
 A mobile app for editors who need to split videos into usable clips, preview scenes, and export selections directly on Android devices without opening a full video editor.
 
-- **Frontend**: React + TypeScript
-- **Mobile runtime**: Tauri v2 Mobile (Rust)
-- **Media engine**: Android Jetpack Media3 (hardware transmuxing and keyframe splitting)
-- **Scene detection**: Keyframe scanner and TransNetV2 (TensorFlow Lite)
-- **Local storage**: Android Scoped Storage and SQLite
+- **UI Framework**: Kotlin and Jetpack Compose
+- **Media Engine**: Android Jetpack Media3 (ExoPlayer and Media3 Transformer)
+- **Native Processing**: FFmpeg through the Android NDK (C/C++ shared libraries)
+- **Scene Detection**: Keyframe scanner and TransNetV2 (TensorFlow Lite)
+- **Local Storage**: Room Database (SQLite) and Android Scoped Storage
 
 ## Current Status
 
