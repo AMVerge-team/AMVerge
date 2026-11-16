@@ -1,50 +1,44 @@
-# AMVerge Linux Development Plan
+# AMVerge Linux: Multi-Distribution Compatibility and Development Plan
 
-This document details the development and packaging steps required for the official Linux version of AMVerge.
+This document outlines the testing, compatibility, and packaging approach for running AMVerge on multiple Linux distributions, specifically Fedora, Zorin OS, Ubuntu, Debian, Linux Mint, and Arch.
 
-## 1. Overview
+## 1. Overview of Distribution Families
 
-Unlike mobile platforms, the core architecture of AMVerge already runs on Linux:
-* Desktop Shell: Tauri v2 works on Linux using WebKitGTK and GTK 3.
-* Media Engine: AMVerge-CLI, PyAV, FFmpeg, and PyTorch (CUDA) run natively on Linux with high performance.
-* Setup script: The root setup.sh script already supports Ubuntu and Debian-based distributions.
+Linux distributions differ in package managers, system libraries, and desktop environments. AMVerge targets the two main ecosystems and provides universal portable formats:
 
-The focus for Linux development is adding native Linux sidecar compilation, AppImage packaging, and a dedicated Linux build job in GitHub Actions.
+| Distribution | Base Family | Package Manager | Primary Package Target | Notes |
+|---|---|---|---|---|
+| Zorin OS (16 / 17) | Ubuntu LTS | APT (.deb) | .deb and AppImage | Built on Ubuntu 22.04. Has out of the box AppImage support. |
+| Fedora (39 / 40) | Red Hat | DNF (.rpm) | .rpm and AppImage | Uses RPM. Prefers .rpm because modern Fedora uses fuse3 instead of fuse2. |
+| Ubuntu (22.04 / 24.04) | Debian | APT (.deb) | .deb and AppImage | Standard desktop target. WebKit2GTK 4.1 available in main repos. |
+| Linux Mint (21 / 22) | Ubuntu LTS | APT (.deb) | .deb and AppImage | Same base as Ubuntu and Zorin OS. |
+| Arch / Manjaro | Independent | Pacman | AppImage | Rolling release with latest libraries. AppImage runs cleanly. |
 
-## 2. System Prerequisites
+## 2. Multi-Distribution Strategy
 
-On Ubuntu and Debian systems, the following libraries are required for compilation:
+### A. The GLIBC Rule for Building Binaries
+The C standard library (glibc) is backward-compatible but not forward-compatible. A binary built on a newer glibc cannot run on an older glibc:
+* If built on Ubuntu 24.04 (glibc 2.39), it will crash on Zorin OS 17 (glibc 2.35) with a "GLIBC not found" error.
+* If built on an Ubuntu 22.04 LTS baseline (glibc 2.35), the resulting AppImage, .deb, and .rpm will run on Zorin OS 17, Ubuntu 22.04, Ubuntu 24.04, Fedora 39, Fedora 40, and Arch.
+* Rule: Always build release binaries inside an Ubuntu 22.04 runner.
 
-```bash
-sudo apt update
-sudo apt install -y \
-  libwebkit2gtk-4.1-dev \
-  build-essential \
-  curl \
-  wget \
-  file \
-  libxdo-dev \
-  libssl-dev \
-  libayatana-appindicator3-dev \
-  librsvg2-dev
-```
+### B. Package Formats: Why We Provide Three Formats
+1. AppImage:
+   * Single portable executable file.
+   * Runs without root permissions.
+   * Ideal for quick testing on any distro.
+   * On Fedora: Modern Fedora does not install the legacy fuse2 library by default. If a user runs an AppImage, they may need `sudo dnf install fuse-libs` unless a native .rpm is provided.
+2. .deb:
+   * Native package for Zorin OS, Ubuntu, Debian, and Linux Mint.
+   * Automatically installs system dependencies (like libwebkit2gtk-4.1-0) using apt.
+3. .rpm:
+   * Native package for Fedora, RHEL, and openSUSE.
+   * Avoids the FUSE dependency problem on Fedora and integrates with GNOME Software.
 
-For Fedora systems:
-```bash
-sudo dnf install -y \
-  webkit2gtk4.1-devel \
-  openssl-devel \
-  curl \
-  wget \
-  file \
-  libappindicator-gtk3-devel \
-  librsvg2-devel
-```
+## 3. Code Modifications Required
 
-## 3. Required Code Changes
-
-### A. Sidecar Build Script (build-sidecar.mjs)
-Currently, `getRustTargetTriple()` in `frontend/scripts/build-sidecar.mjs` supports Windows and macOS. It must be updated to support Linux:
+### A. Sidecar Build Script (frontend/scripts/build-sidecar.mjs)
+Add Linux platform detection to `getRustTargetTriple()`:
 
 ```javascript
 if (process.platform === "linux") {
@@ -54,48 +48,124 @@ if (process.platform === "linux") {
 }
 ```
 
-### B. Tauri Linux Configuration (tauri.linux.conf.json)
-Configure the bundle targets for Linux releases:
-* AppImage: Self-contained executable format that runs on most distributions without dependency installation issues.
-* deb: Debian and Ubuntu native package format.
+### B. Rust Sidecar Directory Resolution (frontend/src-tauri/src/utils/sidecar.rs)
+Update `sidecar_rel_dir()` and `uv_binary()` to recognize Linux targets:
 
-Configuration example:
+```rust
+// In sidecar_rel_dir()
+if cfg!(windows) {
+    Ok("bin/amverge-x86_64-pc-windows-msvc")
+} else if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
+    Ok("bin/amverge-aarch64-apple-darwin")
+} else if cfg!(target_os = "macos") {
+    Ok("bin/amverge-x86_64-apple-darwin")
+} else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+    Ok("bin/amverge-x86_64-unknown-linux-gnu")
+} else {
+    Err("amverge sidecar: unsupported platform".to_string())
+}
+```
+
+```rust
+// In uv_binary()
+let triple = if cfg!(windows) {
+    "x86_64-pc-windows-msvc"
+} else if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
+    "aarch64-apple-darwin"
+} else if cfg!(target_os = "macos") {
+    "x86_64-apple-darwin"
+} else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+    "x86_64-unknown-linux-gnu"
+} else {
+    return Err("uv: unsupported platform".to_string());
+};
+```
+
+### C. Bundled FFmpeg Tool Path (frontend/src-tauri/src/utils/ffmpeg.rs)
+Add Linux resolution to `resolve_bundled_tool()`:
+
+```rust
+let internal_sidecar = if cfg!(windows) {
+    "bin/amverge-x86_64-pc-windows-msvc/_internal"
+} else if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
+    "bin/amverge-aarch64-apple-darwin/_internal"
+} else if cfg!(target_os = "macos") {
+    "bin/amverge-x86_64-apple-darwin/_internal"
+} else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+    "bin/amverge-x86_64-unknown-linux-gnu/_internal"
+} else {
+    return Err("resolve_bundled_tool: unsupported platform".to_string());
+};
+```
+
+### D. Tauri Linux Configuration (frontend/src-tauri/tauri.linux.conf.json)
+Configure bundle targets for AppImage, deb, and rpm:
+
 ```json
 {
   "bundle": {
-    "targets": ["appimage", "deb"],
+    "targets": ["appimage", "deb", "rpm"],
     "appimage": {
       "bundleMediaFramework": true
+    },
+    "deb": {
+      "depends": [
+        "libwebkit2gtk-4.1-0",
+        "libgtk-3-0",
+        "libayatana-appindicator3-1"
+      ]
+    },
+    "rpm": {
+      "depends": [
+        "webkit2gtk4.1",
+        "gtk3",
+        "libappindicator-gtk3"
+      ]
     }
   }
 }
 ```
 
-## 4. Hardware Acceleration on Linux
+## 4. Hardware Acceleration Testing across Distros
 
-AMVerge supports hardware encoding and decoding on Linux:
-* Nvidia GPUs: NVENC through proprietary Nvidia Linux drivers. Tested and supported by FFmpeg out of the box.
-* AMD and Intel GPUs: VA-API (Video Acceleration API) and Intel QSV through standard Linux graphics packages (mesa-va-drivers, intel-media-va-driver).
+Linux video editors rely heavily on hardware encoding:
+* Nvidia (Fedora and Zorin):
+  * Command: `nvidia-smi` is called by `hardware.rs` to detect the GPU name and generation (Blackwell, Ada, Ampere, Turing, Pascal).
+  * FFmpeg uses `h264_nvenc` and `hevc_nvenc`.
+  * Works out of the box when the official Nvidia proprietary driver is installed on either Fedora (`akmod-nvidia`) or Zorin OS (Additional Drivers).
+* AMD and Intel:
+  * Uses VA-API (`h264_vaapi`, `hevc_vaapi`) via Mesa drivers (`mesa-va-drivers`).
+  * `GPU_BACKEND_PRIORITY` in `hardware.rs` already supports vaapi as a hardware backend.
 
-## 5. Video Editor Integrations on Linux
+## 5. Editor Automation on Linux
 
-* DaVinci Resolve: Fully supported on Linux. AMVerge uses a Python bridge script (resolve_import.py) to insert cut clips into DaVinci Resolve timelines and media pools.
-* After Effects and Premiere Pro: Not available natively on Linux. Those direct export actions will be hidden or disabled when running on Linux.
+* DaVinci Resolve:
+  * DaVinci Resolve Studio runs natively on Linux.
+  * AMVerge already includes a cross-platform Python automation script: `frontend/src-tauri/src/commands/editor_import/resolve_import.py`.
+  * In `davinci_resolve.rs`, the Linux path to Resolve scripting is already mapped under `unix`:
+    `/opt/resolve/libs/Fusion/fusionscript.so` and `/opt/resolve/bin/resolve`.
+* Windows and macOS only editors (Premiere, After Effects, CapCut):
+  * The frontend disables or hides these buttons when running on Linux.
 
-## 6. GitHub Actions Release Workflow
+## 6. GitHub Actions Multi-Distro Build Pipeline
 
-Add an Ubuntu runner job to `.github/workflows/release-multi-platform.yml`:
+To build packages for both Debian/Ubuntu and Red Hat/Fedora families, use an Ubuntu 22.04 runner with alien or rpm tools installed:
 
 ```yaml
 build-linux:
-  name: Build Linux AppImage
+  name: Build Linux Packages
   runs-on: ubuntu-22.04
   steps:
     - uses: actions/checkout@v4
-    - name: Install system dependencies
+    - name: Install build tools and libraries
       run: |
         sudo apt-get update
-        sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+        sudo apt-get install -y \
+          libwebkit2gtk-4.1-dev \
+          libappindicator3-dev \
+          librsvg2-dev \
+          patchelf \
+          rpm
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -106,13 +176,14 @@ build-linux:
       uses: dtolnay/rust-toolchain@stable
     - name: Build Sidecar
       run: node frontend/scripts/build-sidecar.mjs --target x86_64-unknown-linux-gnu
-    - name: Build Tauri AppImage
+    - name: Build Tauri Bundles
       run: cargo tauri build --target x86_64-unknown-linux-gnu --config tauri.linux.conf.json
 ```
 
-## 7. Implementation Steps
+## 7. Testing Checklist for Distros
 
-1. Step 1: Update `build-sidecar.mjs` to resolve `x86_64-unknown-linux-gnu`.
-2. Step 2: Create `frontend/src-tauri/tauri.linux.conf.json` with AppImage and deb targets.
-3. Step 3: Test local dev execution using `./setup.sh` and `npm run tauri:dev` on a Linux environment.
-4. Step 4: Add the Linux build job to the release workflow.
+When testing on virtual machines or hardware:
+1. Zorin OS 17 (Ubuntu 22.04 base): Test `.deb` installation via Software Center, test AppImage execution, verify WebP previews and FFmpeg cuts.
+2. Fedora 40 (GNOME / Wayland): Test `.rpm` installation via DNF, test AppImage with and without `fuse-libs`, verify NVENC or VA-API hardware detection.
+3. Linux Mint 22: Verify WebKit2GTK 4.1 resolution and desktop shortcut integration.
+4. Arch Linux: Test AppImage execution on a rolling glibc environment.
