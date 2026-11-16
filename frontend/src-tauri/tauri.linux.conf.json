@@ -1,0 +1,32 @@
+{
+  "bundle": {
+    "targets": ["appimage", "deb", "rpm"],
+    "createUpdaterArtifacts": true,
+    "resources": [
+      "bin/amverge-x86_64-unknown-linux-gnu/amverge",
+      "bin/amverge-x86_64-unknown-linux-gnu/_internal/**/*",
+      "bin/amverge-x86_64-unknown-linux-gnu/_internal/ffmpeg",
+      "bin/amverge-x86_64-unknown-linux-gnu/_internal/ffprobe",
+      "bin/uv/x86_64-unknown-linux-gnu/uv"
+    ],
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": true
+      },
+      "deb": {
+        "depends": [
+          "libwebkit2gtk-4.1-0",
+          "libgtk-3-0",
+          "libayatana-appindicator3-1"
+        ]
+      },
+      "rpm": {
+        "depends": [
+          "webkit2gtk4.1",
+          "gtk3",
+          "libappindicator-gtk3"
+        ]
+      }
+    }
+  }
+}
