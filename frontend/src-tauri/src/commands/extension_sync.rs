@@ -30,6 +30,38 @@ pub fn write_app_theme(app: AppHandle, theme_json: String) -> Result<(), String>
     Ok(())
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct ActiveEpisodeSyncPayload {
+    pub episode_id: String,
+    pub video_path: String,
+    pub manifest_path: String,
+    pub scene_count: usize,
+    pub method: Option<String>,
+    pub updated_at: u64,
+}
+
+#[tauri::command]
+pub fn write_active_episode_sync(app: AppHandle, payload: ActiveEpisodeSyncPayload) -> Result<(), String> {
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    let episodes_dir = data_dir.join("episodes");
+    std::fs::create_dir_all(&episodes_dir).map_err(|e| e.to_string())?;
+
+    let sync_path = episodes_dir.join("active_episode.json");
+    let temp_path = episodes_dir.join("active_episode.json.tmp");
+    let serialized = serde_json::to_vec_pretty(&payload)
+        .map_err(|e| format!("Failed to serialize active episode: {e}"))?;
+
+    std::fs::write(&temp_path, serialized)
+        .map_err(|e| format!("Failed to write active_episode.json: {e}"))?;
+    std::fs::rename(&temp_path, &sync_path)
+        .map_err(|e| format!("Failed to finalize active_episode.json: {e}"))?;
+
+    Ok(())
+}
+
 #[tauri::command]
 pub fn read_extension_sync_theme(app: AppHandle) -> Result<Option<String>, String> {
     let theme_path = extension_sync_dir(&app)?.join("theme.json");

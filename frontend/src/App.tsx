@@ -346,6 +346,27 @@ function App() {
     void invoke("write_app_theme", { themeJson: JSON.stringify(themeSettings) }).catch(() => {});
   }, [themeSettings]);
 
+  // Synchronize the currently opened episode with the AE extension sync pointer
+  const openedEpisodeId = useEpisodePanelRuntimeStore((s) => s.openedEpisodeId);
+  const openedEpisode = useEpisodePanelRuntimeStore((s) =>
+    s.episodes.find((e) => e.id === s.openedEpisodeId)
+  );
+
+  useEffect(() => {
+    if (!openedEpisodeId || !openedEpisode) return;
+
+    const payload = {
+      episode_id: openedEpisode.id,
+      video_path: openedEpisode.videoPath || "",
+      manifest_path: openedEpisode.manifestPath || "",
+      scene_count: openedEpisode.sceneCount || 0,
+      method: openedEpisode.importMethod || "keyframe_detection",
+      updated_at: Math.floor(Date.now() / 1000),
+    };
+
+    void invoke("write_active_episode_sync", { payload }).catch(() => {});
+  }, [openedEpisodeId, openedEpisode]);
+
   // keeps the AI env's cli on the newest compatible patch; delayed so it never competes with startup
   useEffect(() => {
     if (!import.meta.env.PROD) return;
