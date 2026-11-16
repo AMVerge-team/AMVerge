@@ -1,6 +1,6 @@
 {
   "font": {
-    "default": "默认（系统字体）",
+    "default": "默认（Calibri）",
     "pixel": "像素（Jersey 10 + 中文像素字体）",
     "search": "搜索字体…",
     "loadAll": "加载全部已安装字体",

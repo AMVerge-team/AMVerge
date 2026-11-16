@@ -44,11 +44,10 @@
     /* multiplies every background layer: 0 hides them, 1 shows them at the
        opacity the user chose. the splash fades this up on the way out */
     --app-bg-reveal: 1;
-    /* the platform ui font: SF Pro + PingFang SC on macOS, Segoe UI + Microsoft YaHei on windows */
+    /* preserve the original calibri default and add chinese glyph fallbacks */
     --cjk-fallback: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', 'WenQuanYi Micro Hei';
-    --system-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', var(--cjk-fallback), sans-serif;
-    --app-font: var(--system-font);
-    --app-font-adjust: none;
+    --app-font: Calibri, Carlito, 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, var(--cjk-fallback), sans-serif;
+    --app-font-adjust: 0.47;
 
     /* corner radii follow codex: its base steps times a 1.25 corner scale */
     --corner-radius-scale: 1.25;
@@ -61,7 +60,7 @@
     --radius-full: 9999px;
 
     /* text that is read rather than glanced at; never follows the user's font choice */
-    --ui-font: var(--system-font);
+    --ui-font: Calibri, Carlito, Arial, Helvetica, var(--cjk-fallback), sans-serif;
     /* the AMVerge wordmark (navbar, splash); never follows the user's font choice */
     --logo-font: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
