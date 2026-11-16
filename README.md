@@ -169,6 +169,20 @@ For full architecture notes and release instructions, see [documentation.md](doc
 
 ---
 
+## Contributing
+
+Contributions are welcome! Please branch off **`development`** (not `main`) and open pull requests against `development`:
+
+```bash
+git checkout development
+git pull origin development
+git checkout -b feature/my-change
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local setup details and PR guidelines.
+
+---
+
 ## License
 
 AMVerge is licensed under the GNU GPL v3.0 - see [LICENSE](LICENSE).
