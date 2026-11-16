@@ -299,7 +299,7 @@ export default function AppearanceSection({
                   max="0.6"
                   step="0.01"
                   value={themeSettings.appFontAdjust ?? 0.47}
-                  disabled={themeSettings.appFontFamily === JERSEY_FONT}
+                  disabled={!themeSettings.appFontFamily || themeSettings.appFontFamily === JERSEY_FONT}
                   onChange={(e) =>
                     setThemeSettings((prev) => ({
                       ...prev,

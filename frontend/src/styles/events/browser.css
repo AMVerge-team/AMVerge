@@ -503,7 +503,7 @@
     color: #fff;
     font-family: var(--ui-font);
     font-size: 0.64rem;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 0.06em;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
 }
@@ -522,7 +522,7 @@
     color: #06210f;
     font-family: var(--ui-font);
     font-size: 0.64rem;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 0.04em;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
 }
@@ -546,7 +546,7 @@
     background: rgba(0, 0, 0, 0.72);
     color: rgba(255, 255, 255, 0.85);
     font-size: 0.66rem;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 0.06em;
 }
 

@@ -64,7 +64,7 @@
 .discord-preview-heading {
     margin: 0 0 10px;
     font-size: 0.6875rem;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 0.8px;
     text-transform: uppercase;
     color: rgb(var(--accent-rgb) / 0.85);

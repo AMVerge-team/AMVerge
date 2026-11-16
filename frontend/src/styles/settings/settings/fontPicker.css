@@ -147,6 +147,6 @@
 .discord-preview-heading,
 .discord-preview-line,
 .discord-preview-empty {
-    font-family: "Segoe UI", Inter, Arial, Helvetica, var(--cjk-fallback), sans-serif;
+    font-family: var(--system-font);
     font-size-adjust: none;
 }

@@ -40,6 +40,9 @@ body {
     font-size-adjust: var(--app-font-adjust, none);
 
     font-synthesis-weight: none;
+    /* codex renders its ui text antialiased, which is what keeps sf pro and pingfang light */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 body::before {
@@ -157,7 +160,7 @@ body::before {
     border-radius: 4px;
     font-size: 0.7rem;
     text-transform: uppercase;
-    font-weight: bold;
+    font-weight: 600;
     border: 1px solid rgba(var(--accent-rgb), 0.3);
     margin-left: 8px;
     letter-spacing: 0.1em;
@@ -194,4 +197,9 @@ body::before {
     -webkit-line-clamp: 4;
     line-clamp: 4;
     overflow: hidden;
+}
+
+/* codex keeps normal tracking; the latin letter-spacing tuned for calibri only spreads chinese apart */
+html:lang(zh-CN) body * {
+    letter-spacing: normal !important;
 }

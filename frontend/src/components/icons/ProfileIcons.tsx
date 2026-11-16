@@ -93,7 +93,7 @@ const badgeStyle: CSSProperties = {
   width: "100%",
   height: "100%",
   fontFamily: "'Inter', 'SF Mono', 'Consolas', system-ui, monospace",
-  fontWeight: 800,
+  fontWeight: 600,
   letterSpacing: "-0.02em",
   lineHeight: 1,
   color: "inherit",

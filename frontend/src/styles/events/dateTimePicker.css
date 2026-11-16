@@ -159,7 +159,7 @@
     background: var(--selector-active-bg);
     border-color: var(--selector-active-border);
     color: var(--selector-active-fg);
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .event-datetime-day:disabled {

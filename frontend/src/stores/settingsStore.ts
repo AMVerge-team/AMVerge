@@ -512,9 +512,9 @@ function hexToRgbTriplet(hex: string): string | null {
 const CJK_FALLBACK_STACK =
     "'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', 'WenQuanYi Micro Hei'";
 
-// the platform ui font (SF Pro + PingFang SC on macOS), no font name hardcoded beyond the CJK fallbacks
+// codex's default ui stack: SF Pro on macOS with PingFang SC for chinese, Segoe UI + YaHei on windows
 export const DEFAULT_FONT_STACK =
-    `-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, ${CJK_FALLBACK_STACK}, sans-serif`;
+    `-apple-system, BlinkMacSystemFont, 'Segoe UI', ${CJK_FALLBACK_STACK}, sans-serif`;
 
 /** the bundled pixel font, offered right under the default; paired with a bundled chinese pixel font */
 export const JERSEY_FONT = "Jersey 10";
@@ -577,8 +577,9 @@ export function applyThemeSettings(settings: ThemeSettings) {
     root.style.setProperty("--app-font", appFont);
     body.style.setProperty("--app-font", appFont);
 
-    // the pixel font's sizes were tuned without an adjust; every other font is scaled to match them
-    const fontAdjust = family === JERSEY_FONT ? "none" : String(settings.appFontAdjust ?? 0.47);
+    // the pixel font and the system default render at their own size like codex; only a custom font is scaled
+    const fontAdjust = !family || family === JERSEY_FONT ? "none" : String(settings.appFontAdjust ?? 0.47);
+    root.dataset.appFont = !family ? "system" : family === JERSEY_FONT ? "pixel" : "custom";
     root.style.setProperty("--app-font-adjust", fontAdjust);
     body.style.setProperty("--app-font-adjust", fontAdjust);
 }

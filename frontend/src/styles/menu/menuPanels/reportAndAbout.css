@@ -55,7 +55,7 @@
 
 .about-hero-title {
     font-size: 1.5rem;
-    font-weight: 700;
+    font-weight: 600;
     margin: 0 0 6px 0;
     color: #ffffff;
     letter-spacing: -0.01em;
@@ -164,7 +164,7 @@
     background: rgba(var(--accent-rgb), 0.15);
     border: 1px solid rgba(var(--accent-rgb), 0.35);
     color: var(--accent);
-    font-weight: 700;
+    font-weight: 600;
     font-size: 0.72rem;
     display: flex;
     align-items: center;

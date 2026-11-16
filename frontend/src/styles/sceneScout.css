@@ -1457,7 +1457,7 @@ body.scene-scout-resizing {
 .scout-tour-title {
     margin: 0 0 8px;
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 600;
     color: #ffffff;
 }
 
@@ -1513,5 +1513,5 @@ body.scene-scout-resizing {
     background: rgba(var(--accent-rgb), 0.2);
     border-color: var(--accent);
     color: var(--accent);
-    font-weight: 700;
+    font-weight: 600;
 }

@@ -92,7 +92,7 @@
 .v1-import-list li::before {
     content: "✓";
     color: var(--accent);
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .v1-import-note {

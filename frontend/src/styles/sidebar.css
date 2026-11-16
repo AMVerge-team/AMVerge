@@ -76,7 +76,7 @@ body.is-resizing-sidebar {
     color: #fff;
     font-family: var(--ui-font);
     font-size: 9px;
-    font-weight: 700;
+    font-weight: 600;
     line-height: 15px;
     text-align: center;
     pointer-events: none;

@@ -167,7 +167,7 @@
     background: rgba(255, 255, 255, 0.1);
     color: #fff;
     font-family: var(--ui-font);
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .delete-event-input {
@@ -340,7 +340,7 @@
 }
 
 .event-rich-bold {
-    font-weight: 700;
+    font-weight: 600;
 }
 
 .event-rich-size-sm {
