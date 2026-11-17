@@ -176,7 +176,7 @@
       "title": "Sélectionner tous les clips",
       "subtitle_one": "Mettre en évidence {{count}} scène de la grille",
       "subtitle_other": "Mettre en évidence les {{count}} scènes de la grille",
-      "meta": "Sélection en masse",
+      "meta": "Sélection multiple",
       "description": "Sélectionne toutes les scènes pour les exporter en lot, les fusionner ou les regrouper en Scenepack."
     },
     "clearSelection": {

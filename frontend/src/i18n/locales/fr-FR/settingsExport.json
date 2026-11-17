@@ -90,8 +90,8 @@
     "parallel": {
       "label": "Encodages en parallèle",
       "locked": "Disponible seulement sur les cartes qui savent encoder plusieurs flux à la fois.",
-      "description_one": "Combien d'exports tournent en même temps. Ce codec en accepte jusqu'à {{count}}.",
-      "description_other": "Combien d'exports tournent en même temps. Ce codec en accepte jusqu'à {{count}}."
+      "description_one": "Nombre d'exports lancés en même temps. Ce codec en accepte jusqu'à {{count}}.",
+      "description_other": "Nombre d'exports lancés en même temps. Ce codec en accepte jusqu'à {{count}}."
     },
     "parallelMax_one": "Maximum ({{count}} export)",
     "parallelMax_other": "Maximum ({{count}} exports)",
@@ -214,7 +214,7 @@
     "lockedByImport": "Paramètre désactivé pendant les imports",
     "gpu": {
       "section": "Carte graphique",
-      "cpuWithNvidia": "La version processeur est installée, alors que ce PC a une carte NVIDIA. Les fonctionnalités IA tournent bien plus lentement qu'elles ne le pourraient.",
+      "cpuWithNvidia": "La version processeur est installée, alors que ce PC a une carte NVIDIA. Les fonctionnalités IA sont bien plus lentes qu'elles ne pourraient l'être.",
       "cpuInstalled": "La version processeur est installée. Si ce PC a une carte NVIDIA, réinstaller avec la prise en charge GPU rend les fonctionnalités IA bien plus rapides.",
       "reinstall": "Réinstaller avec la prise en charge GPU"
     },
@@ -223,7 +223,7 @@
       "section": "Stockage",
       "packages": {
         "label": "Paquets IA",
-        "description": "PyTorch, les paquets de chaque fonctionnalité, et le Python sur lequel ils tournent."
+        "description": "PyTorch, les paquets de chaque fonctionnalité, et le Python qui les exécute."
       },
       "passModels": {
         "label": "Poids des modèles de passe",
@@ -235,7 +235,7 @@
       },
       "previewCache": {
         "label": "Cache des aperçus",
-        "description": "Aperçus lisibles des résultats Scene Scout et des clips Match. Gardé sous 1 Go tout seul, les plus anciens d'abord, et refait au besoin.",
+        "description": "Aperçus lisibles des résultats Scene Scout et des clips Match. Limité à 1 Go automatiquement, les plus anciens d'abord, et refait au besoin.",
         "clear": "Vider",
         "clearing": "Vidage…"
       },
@@ -249,7 +249,7 @@
         "remove": "Supprimer"
       }
     },
-    "devBuild": "Version de développement : les fonctionnalités IA tournent depuis le venv du dépôt AMVerge-CLI, rien n'est donc téléchargé ni supprimé d'ici.",
+    "devBuild": "Version de développement : les fonctionnalités IA s'exécutent depuis le venv du dépôt AMVerge-CLI, rien n'est donc téléchargé ni supprimé d'ici.",
     "scenepacksOff": {
       "title": "Désactiver Scenepacks",
       "message_one": "Vous avez {{count}} Scenepack. Le supprimer aussi, ou seulement désactiver la fonctionnalité et le garder pour plus tard ?",

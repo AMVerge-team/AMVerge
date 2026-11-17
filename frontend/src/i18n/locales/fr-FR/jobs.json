@@ -9,7 +9,7 @@
       "tools": "upscale ou génère une depth map dans Tools"
     },
     "conflictTitle": "Un autre traitement est en cours",
-    "conflictRunning": "AMVerge {{process}}. Un seul traitement tourne à la fois.",
+    "conflictRunning": "AMVerge {{process}}. Un seul traitement à la fois.",
     "conflictQuestion": "L'arrêter et lancer l'autre ({{process}}) ?",
     "stoppingIt": "Arrêt en cours…",
     "stopping": "Arrêt…",
@@ -94,7 +94,7 @@
       "scoutThumbnails": "Scene Scout - Vignettes"
     },
     "minimize": "Réduire",
-    "working": "Travail en cours…",
+    "working": "Opération en cours…",
     "batchEmbedding": "Encodage des vidéos {{current}}/{{total}} · {{file}}",
     "batchCutting": "Découpage des vidéos {{current}}/{{total}} · {{file}}",
     "abort": "Interrompre"

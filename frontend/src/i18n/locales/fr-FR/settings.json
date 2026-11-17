@@ -93,8 +93,8 @@
           },
           "webp": {
             "title": "WebP Files",
-            "p1": "Crée à la place un petit aperçu animé par scène, un peu comme un GIF. C'est bien plus léger que de la vidéo, le défilement et le survol restent donc souples même avec des centaines de scènes. Si l'application vous semble lente, c'est l'option à prendre.",
-            "p2": "Le coût, c'est le temps d'import. Chaque aperçu doit être créé d'avance, l'import est donc nettement plus long qu'avec les fichiers vidéo.",
+            "p1": "Crée plutôt un petit aperçu animé par scène, un peu comme un GIF. C'est bien plus léger que de la vidéo, le défilement et le survol restent donc souples même avec des centaines de scènes. Si l'application vous semble lente, c'est l'option à prendre.",
+            "p2": "Le coût, c'est le temps d'import. Chaque aperçu doit être créé à l'avance, l'import est donc nettement plus long qu'avec les fichiers vidéo.",
             "p3": "Cela ne change que l'aperçu dans la grille. Les exports partent toujours de la vidéo d'origine, vos clips exportés sont donc en pleine qualité dans les deux cas."
           }
         }
@@ -128,7 +128,7 @@
       "title": "Stockage",
       "path": {
         "label": "Dossier de stockage des épisodes",
-        "description": "Là où vos épisodes importés et vos clips sont enregistrés."
+        "description": "Où vos épisodes importés et vos clips sont enregistrés."
       },
       "defaultPathMac": "Par défaut (Application Support)",
       "defaultPath": "Par défaut (App Data)",
