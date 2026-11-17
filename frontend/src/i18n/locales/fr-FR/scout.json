@@ -77,7 +77,7 @@
       "step1": "Créez ou ouvrez une base dans le panneau de gauche. Une base par série fonctionne bien.",
       "step2": "Mettez-la dans Searching : double clic, glissez-la vers le haut, ou clic droit. All databases montre tout ce que vous avez ; seules celles dans Searching sont incluses dans la recherche.",
       "step3": "Cliquez sur Add Episode et choisissez une ou plusieurs vidéos. L'indexation analyse chaque scène une fois et garde une empreinte de chacune : c'est long, mais cela n'arrive qu'une fois par épisode.",
-      "step4": "Décrivez la scène voulue en langage courant et appuyez sur Entrée.",
+      "step4": "Décrivez la scène que vous cherchez, avec vos mots, et appuyez sur Entrée.",
       "settingsTitle": "Paramètres de recherche",
       "settings": "Results décide du nombre de résultats renvoyés. La détection de scènes se choisit à chaque ajout d'épisodes."
     },
@@ -202,9 +202,9 @@
     },
     "info": {
       "title": "Événements de la communauté",
-      "intro": "La communauté est énorme, et beaucoup de concours de montage passent inaperçus. Cette page les réunit au même endroit : les clippeurs trouvent les occasions qui valent le coup, et les organisateurs touchent les gens les plus susceptibles de venir. Plus de participants font de meilleurs événements, et un événement réussi donne envie au suivant d'en lancer un.",
+      "intro": "La communauté est énorme, et beaucoup de concours de montage passent inaperçus. Cette page les réunit au même endroit : les éditeurs trouvent les occasions qui valent le coup, et les organisateurs touchent les gens les plus susceptibles de venir. Plus de participants font de meilleurs événements, et un événement réussi donne envie au suivant d'en lancer un.",
       "hcTitle": "Hour Challenge (HC)",
-      "hc": "Une fenêtre courte et fixe. Les clippeurs ont un nombre d'heures donné, souvent sur une seule journée, pour faire un montage du début à la fin. Ça engage moins, et j'adore y participer (crptk)",
+      "hc": "Une fenêtre courte et fixe. Les éditeurs ont un nombre d'heures donné, souvent sur une seule journée, pour faire un montage du début à la fin. Ça engage moins, et j'adore y participer (crptk)",
       "ecTitle": "Editing Contest (EC)",
       "ec": "Un format plus long, d'au moins une journée et souvent bien plus. Il y a de la place pour préparer et peaufiner, en général moins de contraintes, et les lots sont plus gros.",
       "hostTitle": "Organiser un événement",

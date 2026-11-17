@@ -21,7 +21,7 @@
     "systemResolved": "Système ({{language}})",
     "en": "English",
     "zh-CN": "简体中文",
-    "fr": "Français"
+    "fr-FR": "Français"
   },
   "showInFileManager": "Afficher dans {{manager}}",
   "fileManagers": {

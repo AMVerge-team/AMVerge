@@ -1,22 +1,22 @@
 // language preference, kept apart from the theme so "reset appearance" never touches it
 
-export type LanguagePreference = "system" | "en" | "zh-CN" | "fr";
-export type ResolvedLanguage = "en" | "zh-CN" | "fr";
+export type LanguagePreference = "system" | "en" | "zh-CN" | "fr-FR";
+export type ResolvedLanguage = "en" | "zh-CN" | "fr-FR";
 
-export const SUPPORTED_LANGUAGES: readonly ResolvedLanguage[] = ["en", "zh-CN", "fr"];
+export const SUPPORTED_LANGUAGES: readonly ResolvedLanguage[] = ["en", "zh-CN", "fr-FR"];
 export const LANGUAGE_STORAGE_KEY = "amverge.language.v1";
 
 export function isLanguagePreference(value: unknown): value is LanguagePreference {
     return value === "system" || SUPPORTED_LANGUAGES.includes(value as ResolvedLanguage);
 }
 
-/** every zh-* locale maps to Simplified Chinese and every fr-* to French; anything else is English */
+/** locale codes are crowdin's, so a folder here is the language crowdin writes to */
 export function resolveSystemLanguage(locales: readonly string[] | undefined): ResolvedLanguage {
     for (const locale of locales ?? []) {
         if (typeof locale !== "string" || !locale) continue;
         const tag = locale.toLowerCase();
         if (tag.startsWith("zh")) return "zh-CN";
-        if (tag.startsWith("fr")) return "fr";
+        if (tag.startsWith("fr")) return "fr-FR";
         return "en";
     }
     return "en";

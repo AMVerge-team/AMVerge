@@ -4,14 +4,14 @@
     "subtitle": "AMVerge simplifie le choix des scènes. Il découpe un épisode scène par scène, pour le parcourir bien plus vite et en rater moins que dans un logiciel de montage.",
     "what": {
       "title": "Qu'est-ce qu'AMVerge ?",
-      "p1": "Un outil de découpe pour les clippeurs d'anime. Donnez-lui un épisode : il repère chaque changement de plan, puis présente le tout en une grille que vous parcourez d'un coup d'œil.",
-      "p2": "Cliquez sur les scènes voulues : il les extrait du fichier source sans réencoder, les clips gardent donc la qualité de l'original. Ils arrivent dans un dossier, prêts à glisser dans After Effects, Premiere ou Resolve.",
-      "p3": "Il ne monte rien à votre place et ne juge pas les scènes. Il vous épargne seulement le moment où vous faites défiler un épisode à la recherche des quatre secondes dont vous vous souvenez."
+      "p1": "Un outil de découpe pour les éditeurs d'anime. Donnez-lui un épisode : il repère chaque changement de plan, puis affiche tout en grille, prêt à parcourir.",
+      "p2": "Cliquez sur les scènes que vous voulez : il les extrait du fichier source sans réencoder, les clips gardent donc la qualité de l'original. Ils arrivent dans un dossier, prêts à glisser dans After Effects, Premiere ou Resolve.",
+      "p3": "Il ne monte rien à votre place et ne décide pas quelles scènes sont bonnes. Il vous évite juste de faire défiler un épisode à la recherche des quatre secondes dont vous vous souvenez."
     },
     "workflow": {
       "title": "En trois étapes",
       "import": "<strong>Importer :</strong> glissez-déposez vos fichiers vidéo (MP4, MKV, WebM, etc.).",
-      "select": "<strong>Sélectionner :</strong> parcourez la grille et sélectionnez les scènes voulues. <code>Maj + clic</code> pour une plage, <code>Ctrl + clic</code> pour un clip à la fois.",
+      "select": "<strong>Sélectionner :</strong> parcourez la grille et sélectionnez les scènes dont vous avez besoin. <code>Maj + clic</code> pour une plage, <code>Ctrl + clic</code> pour un clip à la fois.",
       "export": "<strong>Fusionner et exporter :</strong> choisissez un profil d'export (ou activez Fusionner les clips pour les mettre bout à bout) et cliquez sur <strong>Exporter</strong>."
     },
     "shortcuts": {
@@ -105,7 +105,7 @@
   },
   "credits": {
     "title": "Les gens derrière AMVerge",
-    "subtitle": "AMVerge est un projet open source fait par des clippeurs d'anime. L'idée, c'est un outil de la communauté, qui n'appartient à aucun créateur en particulier et que les propositions de chacun font avancer.",
+    "subtitle": "AMVerge est un projet open source fait par des éditeurs d'anime. L'idée, c'est un outil de la communauté, qui n'appartient à aucun créateur en particulier et que les propositions de chacun font avancer.",
     "contributors": "Contributeurs",
     "roles": {
       "crptk": "Créateur de l'application et architecture",
@@ -130,7 +130,7 @@
     "items": {
       "resyncbot": {
         "tagline": "Resynchronisez vos montages en quelques secondes, avec vos amis",
-        "details": "Utilisé sur plus de 300 serveurs par près de 200 000 personnes, ce bot Discord du créateur d'AMVerge resynchronise les montages tout seul, en quelques secondes. Grâce au BPM et à l'analyse de la forme d'onde, il recale votre montage sur la musique voulue, ou en tire une au hasard qui irait bien.",
+        "details": "Utilisé sur plus de 300 serveurs par près de 200 000 personnes, ce bot Discord du créateur d'AMVerge resynchronise les montages tout seul, en quelques secondes. Grâce au BPM et à l'analyse de la forme d'onde, il recale votre montage sur la musique de votre choix, ou en tire une au hasard qui irait bien.",
         "devNote": "C'était mon premier projet, et sans doute le plus amusant. À ma grande surprise, il sert encore plusieurs fois par jour, donc je le maintiendrai aussi longtemps que je peux."
       },
       "sammieRoto": {
@@ -141,7 +141,7 @@
       "animeclips": {
         "tagline": "Télécharger des clips d'anime rapidement",
         "details": "Avec plus de 450 000 clips, c'est la plus grande bibliothèque de clips d'anime en bonne qualité.",
-        "devNote": "Une ressource que j'utilise depuis un moment quand je ne trouve pas de téléchargement pour un anime à monter, et un site en qui des milliers de clippeurs lui font confiance. Je recommande !"
+        "devNote": "Une ressource que j'utilise depuis un moment quand je ne trouve pas de téléchargement pour un anime à monter, et un site en qui des milliers d'éditeurs ont confiance. Je recommande !"
       },
       "hyetta": {
         "tagline": "La plateforme numéro 1 pour organiser des concours de montage.",
