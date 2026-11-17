@@ -120,6 +120,10 @@
   },
   "passes": {
     "section": "导出后处理",
+    "master": {
+      "label": "Enable post-export passes",
+      "description": "Run the enabled passes below after exporting. Turn off to skip them while keeping their settings."
+    },
     "labels": {
       "depth": "深度图",
       "upscale": "超分辨率"
