@@ -95,6 +95,24 @@ pub async fn abort_ai_install(install_state: State<'_, ActiveInstall>) -> Result
     Ok(())
 }
 
+pub(crate) fn removable_for_pack(
+    target: &Pack,
+    installed: &std::collections::HashMap<String, String>,
+) -> Vec<&'static str> {
+    let has = |dist: &str| installed.contains_key(&dist.to_lowercase());
+    let still_needed: Vec<&str> = PACKS
+        .iter()
+        .filter(|p| p.id != target.id && p.requires.iter().all(|d| has(d)))
+        .flat_map(|p| p.requires.iter().copied())
+        .collect();
+    target
+        .requires
+        .iter()
+        .copied()
+        .filter(|&d| d != "torch" && !still_needed.contains(&d) && has(d))
+        .collect()
+}
+
 /// remove one pack's own packages. torch stays; use `remove_ai_env` for that space
 #[tauri::command]
 pub async fn uninstall_ai_pack(
@@ -111,20 +129,9 @@ pub async fn uninstall_ai_pack(
     let app_for_task = app.clone();
     tokio::task::spawn_blocking(move || -> Result<(), String> {
         let python = ai_env_python(&app_for_task)?;
-        // never torch/torchvision, and nothing another installed pack still needs (opencv is shared)
+        // never torch, and nothing another installed pack still needs (opencv is shared)
         let installed = installed_distributions(&app_for_task, &python)?;
-        let has = |dist: &str| installed.contains_key(&dist.to_lowercase());
-        let still_needed: Vec<&str> = PACKS
-            .iter()
-            .filter(|p| p.id != target.id && p.requires.iter().all(|d| has(d)))
-            .flat_map(|p| p.requires.iter().copied())
-            .collect();
-        let removable: Vec<&str> = target
-            .requires
-            .iter()
-            .copied()
-            .filter(|&d| d != "torch" && !still_needed.contains(&d) && has(d))
-            .collect();
+        let removable = removable_for_pack(target, &installed);
         if removable.is_empty() {
             console_log("DEPS|uninstall", &format!("pack={} has nothing of its own to remove", target.id));
             return Ok(());
@@ -461,4 +468,174 @@ fn find_base_python_in(dir: &std::path::Path) -> Option<PathBuf> {
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+    use std::fs;
+
+    fn is_installed(pack_id: &str, dists: &HashMap<String, String>) -> bool {
+        let p = pack_by_id(pack_id).unwrap();
+        p.requires
+            .iter()
+            .all(|d| dists.contains_key(&d.to_lowercase()))
+    }
+
+    fn all_installed_env() -> HashMap<String, String> {
+        ALL_PACK
+            .requires
+            .iter()
+            .map(|d| (d.to_lowercase(), "1.0.0".to_string()))
+            .collect()
+    }
+
+    #[test]
+    fn free_up_space_uninstalls_every_pack_cleanly_in_any_order() {
+        for order in [
+            ["depth", "upscale", "scout", "ml"],
+            ["upscale", "depth", "ml", "scout"],
+            ["ml", "scout", "depth", "upscale"],
+        ] {
+            let mut env = all_installed_env();
+            for id in ["ml", "depth", "scout", "upscale"] {
+                assert!(is_installed(id, &env), "{id} should start installed");
+            }
+
+            let mut remaining: Vec<&str> = vec!["ml", "depth", "scout", "upscale"];
+            for target_id in order {
+                let target = pack_by_id(target_id).unwrap();
+                let removable = removable_for_pack(target, &env);
+                assert!(
+                    !removable.is_empty(),
+                    "Free up space for {target_id} must remove at least one distribution"
+                );
+                for dist in removable {
+                    env.remove(&dist.to_lowercase());
+                }
+                assert!(
+                    !is_installed(target_id, &env),
+                    "{target_id} must report not installed after Free up space"
+                );
+                remaining.retain(|&id| id != target_id);
+                for &still_on in &remaining {
+                    assert!(
+                        is_installed(still_on, &env),
+                        "uninstalling {target_id} broke still-installed pack {still_on}"
+                    );
+                }
+            }
+            assert!(env.contains_key("torch"), "torch must remain until remove_ai_env");
+        }
+    }
+
+    #[test]
+    fn relocates_ai_runtime_models_and_siglip_across_multiple_locations() {
+        let tmp = tempfile::tempdir().unwrap();
+        let loc_a = tmp.path().join("ai_a");
+        let loc_b = tmp.path().join("ai_b");
+        let loc_c = tmp.path().join("ai_c");
+
+        // Seed full AI layout in loc_a: runtime/{python,pyenv,uv-cache}, config/models, hf-cache/hub/siglip2
+        let py_bin = loc_a.join("runtime/python/cpython-3.12-windows/python.exe");
+        let venv_cfg = loc_a.join("runtime/pyenv/pyvenv.cfg");
+        let uv_marker = loc_a.join("runtime/uv-cache/CACHEDIR.TAG");
+        let depth_weight = loc_a.join("config/models/depth_anything_v2_vits.pth");
+        let siglip_blob = loc_a
+            .join("hf-cache/hub")
+            .join(SIGLIP_CACHE_DIR_NAME)
+            .join("blobs/11a61a2068800d5f4f35cb041c1fea25");
+        let siglip_snap_dir = loc_a
+            .join("hf-cache/hub")
+            .join(SIGLIP_CACHE_DIR_NAME)
+            .join("snapshots/cc24074f");
+
+        for p in [&py_bin, &venv_cfg, &uv_marker, &depth_weight, &siglip_blob] {
+            fs::create_dir_all(p.parent().unwrap()).unwrap();
+        }
+        fs::create_dir_all(&siglip_snap_dir).unwrap();
+        fs::write(&py_bin, b"py").unwrap();
+        fs::write(
+            &venv_cfg,
+            format!(
+                "home = {}\ninclude-system-site-packages = false\n",
+                loc_a.join("runtime/python/cpython-3.12-windows").display()
+            ),
+        )
+        .unwrap();
+        fs::write(&uv_marker, b"cache").unwrap();
+        fs::write(&depth_weight, b"depth-weights").unwrap();
+        fs::write(&siglip_blob, b"siglip-weights").unwrap();
+
+        let snap_link = siglip_snap_dir.join("model.safetensors");
+        let rel = PathBuf::from("..")
+            .join("..")
+            .join("blobs")
+            .join("11a61a2068800d5f4f35cb041c1fea25");
+        #[cfg(windows)]
+        let _ = std::os::windows::fs::symlink_file(&rel, &snap_link);
+        #[cfg(unix)]
+        let _ = std::os::unix::fs::symlink(&rel, &snap_link);
+        if fs::symlink_metadata(&snap_link).is_err() {
+            fs::write(&snap_link, b"siglip-weights").unwrap();
+        }
+
+        // Move A -> B (forcing copy+delete path by pre-creating destination folders), then B -> C
+        for (from, to) in [(&loc_a, &loc_b), (&loc_b, &loc_c)] {
+            fs::create_dir_all(to.join("runtime/pyenv")).unwrap();
+            fs::create_dir_all(to.join("hf-cache/hub").join(SIGLIP_CACHE_DIR_NAME).join("snapshots")).unwrap();
+            let mut leftovers = Vec::new();
+            for sub in ["python", "pyenv", "uv-cache"] {
+                move_entry_tracked(
+                    &from.join("runtime").join(sub),
+                    &to.join("runtime").join(sub),
+                    &mut leftovers,
+                    None,
+                    sub,
+                )
+                .unwrap();
+            }
+            patch_pyvenv_home(
+                &to.join("runtime/pyenv/pyvenv.cfg"),
+                &from.join("runtime/python"),
+                &to.join("runtime/python"),
+            )
+            .unwrap();
+            move_entry_tracked(
+                &from.join("config/models"),
+                &to.join("config/models"),
+                &mut leftovers,
+                None,
+                "config/models",
+            )
+            .unwrap();
+            move_entry_tracked(
+                &from.join("hf-cache/hub").join(SIGLIP_CACHE_DIR_NAME),
+                &to.join("hf-cache/hub").join(SIGLIP_CACHE_DIR_NAME),
+                &mut leftovers,
+                None,
+                "hf-cache/siglip2",
+            )
+            .unwrap();
+            assert!(leftovers.is_empty());
+        }
+
+        let final_cfg = fs::read_to_string(loc_c.join("runtime/pyenv/pyvenv.cfg")).unwrap();
+        assert!(final_cfg.contains(&loc_c.join("runtime/python").to_string_lossy().to_string()));
+        assert_eq!(
+            fs::read(loc_c.join("config/models/depth_anything_v2_vits.pth")).unwrap(),
+            b"depth-weights"
+        );
+        assert_eq!(
+            fs::read(
+                loc_c
+                    .join("hf-cache/hub")
+                    .join(SIGLIP_CACHE_DIR_NAME)
+                    .join("snapshots/cc24074f/model.safetensors")
+            )
+            .unwrap(),
+            b"siglip-weights"
+        );
+    }
 }

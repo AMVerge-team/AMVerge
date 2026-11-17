@@ -297,18 +297,6 @@ export default function StorageSection() {
                     <FaFolderOpen size={15} />
                   </button>
                 </Tooltip>
-                {episodesPath && (
-                  <Tooltip content={`Move back to ${defaultEpisodesPathLabel}`}>
-                    <button
-                      type="button"
-                      className="aid-btn"
-                      onClick={() => void handleMoveEpisodes(null)}
-                      disabled={busy}
-                    >
-                      Reset
-                    </button>
-                  </Tooltip>
-                )}
               </div>
             }
           />
@@ -334,18 +322,6 @@ export default function StorageSection() {
                     <FaFolderOpen size={15} />
                   </button>
                 </Tooltip>
-                {status?.aiCustomPath && (
-                  <Tooltip content={`Move back to ${status.aiDefaultPath || "default location"}`}>
-                    <button
-                      type="button"
-                      className="aid-btn"
-                      onClick={() => void handleMoveAi(null)}
-                      disabled={busy}
-                    >
-                      Reset
-                    </button>
-                  </Tooltip>
-                )}
               </div>
             }
           />
