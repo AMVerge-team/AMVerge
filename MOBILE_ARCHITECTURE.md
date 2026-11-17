@@ -97,6 +97,7 @@ class VideoCutManager(private val context: Context) {
 ### B. FFmpeg via Android NDK
 For formats that Android platform decoders or MediaMuxer cannot handle directly (such as unusual MKV tracks, non-standard audio streams, or specialized container options):
 * FFmpeg C/C++ libraries (libavcodec, libavformat, libavutil, libswscale) are compiled for Android ABIs (arm64-v8a, armeabi-v7a, x86_64).
+* Fast Merge Concat Demuxer: Combines multiple selected scenes into one continuous scenepack video in under 2 seconds.
 * Called through a small JNI bridge to run stream copy or extraction operations without relying on deprecated third-party wrappers like FFmpegKit.
 
 ### C. Scene Detection & Semantic Search Methods
