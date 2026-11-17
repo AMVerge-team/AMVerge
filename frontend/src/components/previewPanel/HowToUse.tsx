@@ -1,12 +1,26 @@
-import { useState } from "react";
-import { FaChevronDown, FaChevronUp, FaQuestionCircle, FaWindows, FaApple } from '../icons/animated';
+import { useMemo } from "react";
+import { FaChevronDown, FaChevronUp, FaQuestionCircle, FaWindows, FaApple, FaLinux } from '../icons/animated';
 
 import Tooltip from "../common/Tooltip";
 import { useUIStateStore } from "../../stores/UIStore";
 import { useSceneScoutStore } from "../../stores/sceneScoutStore";
 
-type Platform = "windows" | "mac";
+type Platform = "windows" | "mac" | "linux";
 type Guide = "library" | "scenepacks" | "sceneScoutSearch" | "sceneScoutFlow";
+
+function detectCurrentPlatform(): Platform {
+  if (typeof navigator === "undefined") return "windows";
+  const ua = navigator.userAgent;
+  if (/mac/i.test(ua)) return "mac";
+  if (/linux/i.test(ua)) return "linux";
+  return "windows";
+}
+
+const PLATFORM_INFO: Record<Platform, { label: string; icon: React.ReactNode; mod: string }> = {
+  windows: { label: "Windows", icon: <FaWindows />, mod: "Ctrl" },
+  linux: { label: "Linux", icon: <FaLinux />, mod: "Ctrl" },
+  mac: { label: "macOS", icon: <FaApple />, mod: "Cmd" },
+};
 
 const TITLES: Record<Guide, string> = {
   library: "HOW TO USE",
@@ -57,7 +71,9 @@ function steps(guide: Guide, mod: string): React.ReactNode[] {
 }
 
 export default function HowToUse() {
-  const [platform, setPlatform] = useState<Platform>("windows");
+  const platform = useMemo(() => detectCurrentPlatform(), []);
+  const currentInfo = PLATFORM_INFO[platform];
+
   // persisted, so a guide the user folded away stays folded across restarts
   const isExpanded = useUIStateStore((s) => s.howToUseExpanded);
   const setIsExpanded = useUIStateStore((s) => s.setHowToUseExpanded);
@@ -96,23 +112,14 @@ export default function HowToUse() {
       {isExpanded && (
         <div className="info-content">
           <div className="platform-switcher">
-            <button
-              className={`platform-btn ${platform === "windows" ? "active" : ""}`}
-              onClick={(e) => { e.stopPropagation(); setPlatform("windows"); }}
-            >
-              <FaWindows /> Windows
-            </button>
-            <button
-              className={`platform-btn ${platform === "mac" ? "active" : ""}`}
-              onClick={(e) => { e.stopPropagation(); setPlatform("mac"); }}
-            >
-              <FaApple /> macOS
-            </button>
+            <div className="platform-btn active" style={{ cursor: "default", justifyContent: "center" }}>
+              {currentInfo.icon} {currentInfo.label}
+            </div>
           </div>
 
           <div className="info-steps">
             <ul className="steps-list">
-              {steps(guide, platform === "mac" ? "Cmd" : "Ctrl").map((step, index) => (
+              {steps(guide, currentInfo.mod).map((step, index) => (
                 <li key={index}>
                   <span className="step-text">{step}</span>
                 </li>
@@ -124,6 +131,11 @@ export default function HowToUse() {
               </button>
             )}
             {guide === "sceneScoutSearch" && (
+              <button type="button" className="info-tour-link" onClick={() => setTourSeen(false)}>
+                Show the walkthrough again
+              </button>
+            )}
+            {guide === "sceneScoutFlow" && (
               <button type="button" className="info-tour-link" onClick={() => setTourSeen(false)}>
                 Show the walkthrough again
               </button>

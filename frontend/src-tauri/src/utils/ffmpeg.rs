@@ -15,6 +15,10 @@ pub fn resolve_bundled_tool(app: &AppHandle, tool_name: &str) -> Result<PathBuf,
         "bin/amverge-aarch64-apple-darwin/_internal"
     } else if cfg!(target_os = "macos") {
         "bin/amverge-x86_64-apple-darwin/_internal"
+    } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+        "bin/amverge-x86_64-unknown-linux-gnu/_internal"
+    } else if cfg!(all(target_os = "linux", target_arch = "aarch64")) {
+        "bin/amverge-aarch64-unknown-linux-gnu/_internal"
     } else {
         return Err("resolve_bundled_tool: unsupported platform".to_string());
     };
@@ -58,7 +62,17 @@ pub fn resolve_bundled_tool(app: &AppHandle, tool_name: &str) -> Result<PathBuf,
         }
     }
 
+    // 4) System PATH fallback (common on Linux/macOS or machines with system ffmpeg)
+    if let Ok(path_var) = std::env::var("PATH") {
+        for segment in std::env::split_paths(&path_var) {
+            let candidate = segment.join(&exe_name);
+            if candidate.is_file() {
+                return Ok(candidate);
+            }
+        }
+    }
+
     Err(format!(
-        "{exe_name} not found (looked in resources/bin, backend _internal, and dev src-tauri/bin)"
+        "{exe_name} not found (looked in resources/bin, backend _internal, dev src-tauri/bin, and system PATH)"
     ))
 }

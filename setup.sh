@@ -86,6 +86,10 @@ if [ "${#missing[@]}" -gt 0 ]; then
     echo "Install with Homebrew:"
     echo "  brew install git node python@3.12"
     echo "  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+  elif [ -f /etc/fedora-release ] || [ -f /etc/redhat-release ]; then
+    echo "On Fedora:"
+    echo "  sudo dnf install -y git nodejs npm python3 python3-devel"
+    echo "  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
   else
     echo "On Debian/Ubuntu:"
     echo "  sudo apt install -y git nodejs npm python3 python3-venv"
@@ -106,9 +110,14 @@ if [ "$OS" = "Linux" ]; then
   if has pkg-config; then
     if ! pkg-config --exists webkit2gtk-4.1 2>/dev/null && ! pkg-config --exists webkit2gtk-4.0 2>/dev/null; then
       warn "webkit2gtk development headers not found. Tauri will fail to link."
-      warn "Debian/Ubuntu:"
-      warn "  sudo apt install -y libwebkit2gtk-4.1-dev build-essential curl wget file \\"
-      warn "    libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev"
+      if [ -f /etc/fedora-release ] || [ -f /etc/redhat-release ]; then
+        warn "Fedora:"
+        warn "  sudo dnf install -y webkit2gtk4.1-devel openssl-devel libappindicator-gtk3-devel librsvg2-devel clang"
+      else
+        warn "Debian/Ubuntu:"
+        warn "  sudo apt install -y libwebkit2gtk-4.1-dev build-essential curl wget file \\"
+        warn "    libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev"
+      fi
     fi
   else
     warn "pkg-config not found; cannot verify the Tauri system dependencies."

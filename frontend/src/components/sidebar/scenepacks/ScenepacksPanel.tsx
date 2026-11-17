@@ -1,3 +1,4 @@
+import { getRevealInFileManagerLabel } from "../../../utils/platformUtils";
 import type React from "react";
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { FaLayerGroup, FaFolderPlus, FaSortAlphaDown, FaSortAlphaUp, FaTrashAlt, FaSearch, FaTimes, FaSpinner, FaFolderOpen } from '../../icons/animated';
@@ -279,7 +280,7 @@ export function ScenepacksPanel() {
         )}
         <span className="episode-panel-count">{sp.clips.length}</span>
         <Tooltip
-          content={sp.clips.length === 0 ? "Nothing stored yet" : "Show in File Explorer"}
+          content={sp.clips.length === 0 ? "Nothing stored yet" : getRevealInFileManagerLabel()}
           side="right"
         >
           <span className="tooltip-anchor">
@@ -292,7 +293,7 @@ export function ScenepacksPanel() {
                 void revealScenepackStorage(sp);
               }}
               disabled={sp.clips.length === 0}
-              aria-label="Show in File Explorer"
+              aria-label={getRevealInFileManagerLabel()}
             >
               <FaFolderOpen />
             </button>

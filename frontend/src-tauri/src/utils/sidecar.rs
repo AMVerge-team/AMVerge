@@ -92,21 +92,37 @@ mod runtime_dir_tests {
     }
 
     #[test]
-    fn dev_cli_defaults_to_the_sibling_checkout() {
-        let expected = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .ancestors()
-            .nth(3)
-            .unwrap()
-            .join("AMVerge-CLI");
-        assert_eq!(dev_cli_dir(None), expected);
-        assert_eq!(dev_cli_dir(Some("")), expected);
-        assert_eq!(dev_cli_dir(Some("  ")), expected);
+    fn dev_cli_prefers_the_sibling_checkout() {
+        let root = tempfile::tempdir().unwrap();
+        let sibling = root.path().join("sibling");
+        let home = root.path().join("home");
+        std::fs::create_dir(&sibling).unwrap();
+        std::fs::create_dir(&home).unwrap();
+        for override_dir in [None, Some(""), Some("  ")] {
+            assert_eq!(dev_cli_dir(override_dir, sibling.clone(), Some(home.clone())), sibling);
+        }
     }
 
     #[test]
     fn explicit_dev_cli_checkout_is_preserved() {
         let custom = PathBuf::from("/custom/AMVerge-CLI");
-        assert_eq!(dev_cli_dir(custom.to_str()), custom);
+        assert_eq!(dev_cli_dir(custom.to_str(), PathBuf::from("/sibling"), None), custom);
+    }
+
+    #[test]
+    fn dev_cli_uses_home_when_the_sibling_checkout_is_missing() {
+        let root = tempfile::tempdir().unwrap();
+        let home = root.path().join("home");
+        std::fs::create_dir(&home).unwrap();
+        assert_eq!(dev_cli_dir(None, root.path().join("missing"), Some(home.clone())), home);
+    }
+
+    #[test]
+    fn missing_dev_checkouts_keep_the_expected_sibling_path() {
+        let root = tempfile::tempdir().unwrap();
+        let sibling = root.path().join("sibling");
+        assert_eq!(dev_cli_dir(None, sibling.clone(), None), sibling);
+        assert_eq!(dev_cli_dir(None, sibling.clone(), Some(root.path().join("missing"))), sibling);
     }
 }
 
@@ -156,19 +172,24 @@ pub fn ai_env_ready(app: &AppHandle) -> bool {
 
 /// the dev CLI checkout's editable venv, which already has every extra
 fn dev_venv_dir() -> Result<PathBuf, String> {
-    let cli_dir = dev_cli_dir(std::env::var("AMVERGE_CLI_DIR").ok().as_deref());
-    Ok(cli_dir.join(".venv"))
-}
-
-fn dev_cli_dir(override_dir: Option<&str>) -> PathBuf {
-    if let Some(dir) = override_dir.filter(|dir| !dir.trim().is_empty()) {
-        return PathBuf::from(dir);
-    }
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+    let sibling = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
         .nth(3)
         .unwrap()
-        .join("AMVerge-CLI")
+        .join("AMVerge-CLI");
+    let home = std::env::var_os("HOME").map(|dir| PathBuf::from(dir).join("AMVerge-CLI"));
+    let cli_dir = dev_cli_dir(std::env::var("AMVERGE_CLI_DIR").ok().as_deref(), sibling, home);
+    Ok(cli_dir.join(".venv"))
+}
+
+fn dev_cli_dir(override_dir: Option<&str>, sibling: PathBuf, home: Option<PathBuf>) -> PathBuf {
+    if let Some(dir) = override_dir.filter(|dir| !dir.trim().is_empty()) {
+        return PathBuf::from(dir);
+    }
+    if sibling.is_dir() {
+        return sibling;
+    }
+    home.filter(|dir| dir.is_dir()).unwrap_or(sibling)
 }
 
 fn dev_amverge_exe() -> Result<PathBuf, String> {
@@ -186,6 +207,10 @@ fn sidecar_rel_dir() -> Result<&'static str, String> {
         Ok("bin/amverge-aarch64-apple-darwin")
     } else if cfg!(target_os = "macos") {
         Ok("bin/amverge-x86_64-apple-darwin")
+    } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+        Ok("bin/amverge-x86_64-unknown-linux-gnu")
+    } else if cfg!(all(target_os = "linux", target_arch = "aarch64")) {
+        Ok("bin/amverge-aarch64-unknown-linux-gnu")
     } else {
         Err("amverge sidecar: unsupported platform".to_string())
     }
@@ -210,6 +235,10 @@ pub fn uv_binary(app: &AppHandle) -> Result<PathBuf, String> {
         "aarch64-apple-darwin"
     } else if cfg!(target_os = "macos") {
         "x86_64-apple-darwin"
+    } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+        "x86_64-unknown-linux-gnu"
+    } else if cfg!(all(target_os = "linux", target_arch = "aarch64")) {
+        "aarch64-unknown-linux-gnu"
     } else {
         return Err("uv: unsupported platform".to_string());
     };

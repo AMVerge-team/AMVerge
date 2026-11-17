@@ -642,14 +642,18 @@ pub fn reveal_in_file_manager(file_path: String) -> Result<(), String> {
 #[cfg(not(target_os = "windows"))]
 #[tauri::command]
 pub fn reveal_in_file_manager(file_path: String) -> Result<(), String> {
-    let path = PathBuf::from(file_path.trim());
-    let dir = path
-        .parent()
-        .ok_or("Could not resolve exported file directory.".to_string())?;
+    let raw = PathBuf::from(file_path.trim());
+    let target = if raw.is_dir() {
+        raw
+    } else {
+        raw.parent()
+            .map(|p| p.to_path_buf())
+            .unwrap_or(raw)
+    };
 
     let opener = if cfg!(target_os = "macos") { "open" } else { "xdg-open" };
     Command::new(opener)
-        .arg(dir)
+        .arg(target)
         .spawn()
         .map_err(|e| format!("Failed to open file manager: {e}"))?;
 
