@@ -3,3 +3,7 @@ preserve_hierarchy: true
 files:
   - source: /frontend/src/i18n/locales/en/*.json
     translation: /frontend/src/i18n/locales/%locale%/%original_file_name%
+    languages_mapping:
+      locale:
+        zh-CN: zh-CN
+        zh-TW: zh-TW
