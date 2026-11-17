@@ -1,2 +1,0 @@
-- fix thumbnail duplication, black thumbnails, thumbnails doing the last frame instead of the first frame sometimes? It happened on toradora clips
-- compare definitively the experience between current AMVerge V1 vs AMVerge V2.

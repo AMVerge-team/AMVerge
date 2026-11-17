@@ -2,10 +2,14 @@ import { invoke } from "@tauri-apps/api/core";
 import { create } from "zustand";
 
 import {
+  AI_PACKS,
+  VISIBLE_PACK_IDS,
+  isPackInstalled,
   loadGpuPreference,
   saveGpuPreference,
   wantsCudaWheel,
   type AiEnvStatus,
+  type AiInstallTarget,
   type AiPackId,
   type GpuPreference,
 } from "../features/aiDeps/packs";
@@ -16,6 +20,8 @@ type Stage = "confirm" | "installing" | "done" | "error";
 
 /// resolver for the promise `ensurePack` handed out; control flow, not state
 let pendingResolve: ((installed: boolean) => void) | null = null;
+let conflictResolve: ((installed: boolean) => void) | null = null;
+let activeInstallPromise: Promise<void> | null = null;
 let canceledMinimized = false;
 
 function settle(installed: boolean) {
@@ -24,13 +30,36 @@ function settle(installed: boolean) {
   resolve?.(installed);
 }
 
+function settleConflict(installed: boolean) {
+  const resolve = conflictResolve;
+  conflictResolve = null;
+  resolve?.(installed);
+}
+
+function targetLabel(target: AiInstallTarget | null): string {
+  if (!target) return "AI dependency";
+  return target === "all" ? "All AI features" : AI_PACKS[target].label;
+}
+
+function isTargetSatisfied(status: AiEnvStatus | null, target: AiInstallTarget): boolean {
+  if (!status) return false;
+  if (target === "all") return VISIBLE_PACK_IDS.every((id) => isPackInstalled(status, id));
+  return Boolean(status.packs?.[target]);
+}
+
+export type InstallConflict = {
+  requestedPack: AiInstallTarget;
+  activeLabel: string;
+  requestedLabel: string;
+};
+
 export type AiDepsStore = {
   status: AiEnvStatus | null;
   /// a status refresh is in flight (first load shows nothing rather than a lie)
   loading: boolean;
 
   open: boolean;
-  pack: AiPackId | null;
+  pack: AiInstallTarget | null;
   stage: Stage;
   percent: number;
   indeterminate: boolean;
@@ -41,13 +70,20 @@ export type AiDepsStore = {
   /// names a non-install job (GPU decode) for the dialog; null uses the pack's wording
   job: { title: string; done: string } | null;
 
+  /// shown when the user asks to install another pack while one is already running
+  conflict: InstallConflict | null;
+  conflictCanceling: boolean;
+
   /// the user's CUDA/CPU override for when the GPU probe is wrong, persisted for later installs
   gpuPreference: GpuPreference;
   setGpuPreference: (preference: GpuPreference) => void;
 
   refresh: () => Promise<AiEnvStatus | null>;
   /// true when `id` is installed; otherwise opens the confirm dialog, false if declined
-  ensurePack: (id: AiPackId) => Promise<boolean>;
+  ensurePack: (id: AiInstallTarget) => Promise<boolean>;
+  /// true when all visible AI packs are installed; otherwise prompts to install all missing packs
+  ensureAllPacks: () => Promise<boolean>;
+  resolveConflict: (action: "keep" | "cancel-current") => Promise<void>;
   startInstall: () => Promise<void>;
   /// re-resolves installed packs against the CUDA index, for a CPU torch on an NVIDIA machine
   repairGpu: () => Promise<void>;
@@ -82,6 +118,8 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
   logs: [],
   error: null,
   job: null,
+  conflict: null,
+  conflictCanceling: false,
 
   refresh: async () => {
     set({ loading: true });
@@ -96,20 +134,39 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
     }
   },
 
+  ensureAllPacks: () => get().ensurePack("all"),
+
   ensurePack: async (id) => {
     const status = get().status ?? (await get().refresh());
-    if (status?.packs?.[id]) return true;
+    if (isTargetSatisfied(status, id)) return true;
     // dev builds run against the CLI checkout's venv; nothing to provision
     if (status && !status.managed) return true;
 
-    // a second request while the dialog is open joins the first one
-    if (get().open && get().pack === id) {
+    // if this same target is already open/installing, surface it and join its completion without resetting anything
+    if ((get().open || get().stage === "installing") && get().pack === id) {
+      if (!get().open) set({ open: true });
       return new Promise<boolean>((resolve) => {
         const previous = pendingResolve;
         pendingResolve = (installed) => {
           previous?.(installed);
           resolve(installed);
         };
+      });
+    }
+
+    // another dependency install is actively running: keep its modal/minimized card alive and ask instead of wiping it
+    if (get().stage === "installing") {
+      settleConflict(false);
+      set({
+        conflict: {
+          requestedPack: id,
+          activeLabel: get().job?.title ?? targetLabel(get().pack),
+          requestedLabel: targetLabel(id),
+        },
+        conflictCanceling: false,
+      });
+      return new Promise<boolean>((resolve) => {
+        conflictResolve = resolve;
       });
     }
 
@@ -131,9 +188,48 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
     });
   },
 
+  resolveConflict: async (action) => {
+    const conflict = get().conflict;
+    if (!conflict) return;
+
+    if (action === "keep") {
+      set({ conflict: null, conflictCanceling: false });
+      settleConflict(false);
+      return;
+    }
+
+    set({ conflictCanceling: true, message: "Canceling...", indeterminate: true });
+    const inFlight = activeInstallPromise;
+    await invoke("abort_ai_install").catch(() => {});
+    if (inFlight) {
+      await inFlight.catch(() => {});
+    }
+    await get().refresh();
+
+    canceledMinimized = false;
+    settle(false);
+    const nextResolve = conflictResolve;
+    conflictResolve = null;
+    pendingResolve = nextResolve;
+
+    set({
+      conflict: null,
+      conflictCanceling: false,
+      open: true,
+      pack: conflict.requestedPack,
+      stage: "confirm",
+      percent: 0,
+      indeterminate: false,
+      message: "",
+      logs: [],
+      error: null,
+      job: null,
+    });
+  },
+
   startInstall: async () => {
     const { pack, status, gpuPreference } = get();
-    if (!pack) return;
+    if (!pack || get().stage === "installing") return;
     canceledMinimized = false;
 
     // driven by hardware, not the installed variant, which made a CPU torch sticky
@@ -147,45 +243,57 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
       error: null,
     });
 
-    try {
-      // gpuDecode left out: GPU decoding is its own setting, and the env keeps whatever it has
-      const next = await invoke<AiEnvStatus>("install_ai_pack", { pack, gpu, gpuDecode: undefined });
-      const installed = Boolean(next.packs?.[pack]);
-      if (canceledMinimized) {
-        canceledMinimized = false;
-        settle(false);
-        set({ open: false, pack: null, status: next });
-        return;
-      }
-      set({
-        status: next,
-        stage: installed ? "done" : "error",
-        percent: 100,
-        indeterminate: false,
-        message: installed ? "Installed." : "Install finished but the packages are still missing.",
-        error: installed ? null : "The install completed without adding the expected packages.",
-      });
-      if (installed) settle(true);
-    } catch (err) {
-      if (canceledMinimized) {
-        canceledMinimized = false;
-        settle(false);
-        set({ open: false, pack: null });
+    let run!: Promise<void>;
+    run = (async () => {
+      try {
+        // gpuDecode left out: GPU decoding is its own setting, and the env keeps whatever it has
+        const next = await invoke<AiEnvStatus>("install_ai_pack", { pack, gpu, gpuDecode: undefined });
+        const installed = isTargetSatisfied(next, pack);
+        if (canceledMinimized) {
+          canceledMinimized = false;
+          settle(false);
+          set({ open: false, pack: null, status: next });
+          return;
+        }
+        set({
+          status: next,
+          stage: installed ? "done" : "error",
+          percent: 100,
+          indeterminate: false,
+          message: installed ? "Installed." : "Install finished but the packages are still missing.",
+          error: installed ? null : "The install completed without adding the expected packages.",
+        });
+        if (installed) settle(true);
+      } catch (err) {
+        if (canceledMinimized) {
+          canceledMinimized = false;
+          settle(false);
+          set({ open: false, pack: null });
+          await get().refresh();
+          return;
+        }
+        const message = String(err);
+        set({
+          stage: "error",
+          indeterminate: false,
+          error: message,
+          message: "Install failed.",
+        });
         await get().refresh();
-        return;
+      } finally {
+        if (activeInstallPromise === run) activeInstallPromise = null;
       }
-      const message = String(err);
-      set({
-        stage: "error",
-        indeterminate: false,
-        error: message,
-        message: "Install failed.",
-      });
-      await get().refresh();
-    }
+    })();
+
+    activeInstallPromise = run;
+    await run;
   },
 
   repairGpu: async () => {
+    if (get().stage === "installing") {
+      set({ open: true });
+      return;
+    }
     const status = get().status ?? (await get().refresh());
     const installed = (Object.keys(status?.packs ?? {}) as AiPackId[]).filter(
       (id) => status?.packs?.[id],
@@ -207,36 +315,48 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
       job: { title: "GPU support", done: "GPU support installed" },
     });
 
-    try {
-      const next = await invoke<AiEnvStatus>("install_ai_pack", {
-        pack: installed[0],
-        gpu: true,
-        // a torch repair leaves the GPU decode profile as it is
-        gpuDecode: undefined,
-      });
-      set({
-        status: next,
-        stage: next.torchVariant === "cuda" ? "done" : "error",
-        percent: 100,
-        indeterminate: false,
-        message: next.torchVariant === "cuda" ? "GPU support installed." : "Still on the CPU build.",
-        error:
-          next.torchVariant === "cuda"
-            ? null
-            : "PyTorch is still the CPU build after reinstalling.",
-      });
-    } catch (err) {
-      set({
-        stage: "error",
-        indeterminate: false,
-        error: String(err),
-        message: "Reinstall failed.",
-      });
-      await get().refresh();
-    }
+    let run!: Promise<void>;
+    run = (async () => {
+      try {
+        const next = await invoke<AiEnvStatus>("install_ai_pack", {
+          pack: installed[0],
+          gpu: true,
+          // a torch repair leaves the GPU decode profile as it is
+          gpuDecode: undefined,
+        });
+        set({
+          status: next,
+          stage: next.torchVariant === "cuda" ? "done" : "error",
+          percent: 100,
+          indeterminate: false,
+          message: next.torchVariant === "cuda" ? "GPU support installed." : "Still on the CPU build.",
+          error:
+            next.torchVariant === "cuda"
+              ? null
+              : "PyTorch is still the CPU build after reinstalling.",
+        });
+      } catch (err) {
+        set({
+          stage: "error",
+          indeterminate: false,
+          error: String(err),
+          message: "Reinstall failed.",
+        });
+        await get().refresh();
+      } finally {
+        if (activeInstallPromise === run) activeInstallPromise = null;
+      }
+    })();
+
+    activeInstallPromise = run;
+    await run;
   },
 
   setGpuDecode: async (enabled) => {
+    if (get().stage === "installing") {
+      set({ open: true });
+      return;
+    }
     settle(false);
     set({
       open: true,
@@ -252,27 +372,35 @@ export const useAiDepsStore = create<AiDepsStore>((set, get) => ({
         : { title: "Removing GPU decoding", done: "GPU decoding removed" },
     });
 
-    try {
-      // Nelux needs the CUDA build, so turning it on always asks for it
-      const next = await invoke<AiEnvStatus>("install_ai_pack", { pack: "ml", gpu: true, gpuDecode: enabled });
-      const ok = next.gpuDecodeInstalled === enabled;
-      set({
-        status: next,
-        stage: ok ? "done" : "error",
-        percent: 100,
-        indeterminate: false,
-        message: ok ? (enabled ? "GPU decoding installed." : "GPU decoding removed.") : "Nothing changed.",
-        error: ok ? null : enabled ? "Nelux is still missing after the install." : "Nelux is still installed.",
-      });
-    } catch (err) {
-      set({
-        stage: "error",
-        indeterminate: false,
-        error: String(err),
-        message: enabled ? "Install failed." : "Removal failed.",
-      });
-      await get().refresh();
-    }
+    let run!: Promise<void>;
+    run = (async () => {
+      try {
+        // Nelux needs the CUDA build, so turning it on always asks for it
+        const next = await invoke<AiEnvStatus>("install_ai_pack", { pack: "ml", gpu: true, gpuDecode: enabled });
+        const ok = next.gpuDecodeInstalled === enabled;
+        set({
+          status: next,
+          stage: ok ? "done" : "error",
+          percent: 100,
+          indeterminate: false,
+          message: ok ? (enabled ? "GPU decoding installed." : "GPU decoding removed.") : "Nothing changed.",
+          error: ok ? null : enabled ? "Nelux is still missing after the install." : "Nelux is still installed.",
+        });
+      } catch (err) {
+        set({
+          stage: "error",
+          indeterminate: false,
+          error: String(err),
+          message: enabled ? "Install failed." : "Removal failed.",
+        });
+        await get().refresh();
+      } finally {
+        if (activeInstallPromise === run) activeInstallPromise = null;
+      }
+    })();
+
+    activeInstallPromise = run;
+    await run;
   },
 
   cancel: () => {

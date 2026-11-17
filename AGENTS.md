@@ -1,7 +1,7 @@
 # AMVerge v2: AI Agent Guide
 
-> Target: `V2_BRANCH` (Tauri v2 + React + AMVerge-CLI)
-> Last updated: 2026-08-11
+> Target: `main` / `development` (v2.0.2 — Tauri v2 + React + AMVerge-CLI)
+> Last updated: 2026-11-16
 
 ## Cross-Repo Contracts
 
@@ -31,10 +31,10 @@ Sibling repos sit next to this one: `../AMVerge-CLI` (the Python backend this ap
 │  src/                                                            │
 │  ├── main.tsx → update check → ReactDOM.render(<App/>)          │
 │  ├── App.tsx → store wiring, event listeners, HEVC check        │
-│  ├── 3 pages: HomePage, Menu, Settings                          │
-│  ├── 7 Zustand stores (2 persisted, 5 runtime)                  │
-│  ├── 6 hooks (import/export, drag-drop, HEVC, Discord, etc.)    │
-│  └── Components: sidebar, clipsGrid, previewPanel, settings     │
+│  ├── 6 pages: HomePage, SceneScoutPage, ScenepacksPage, EventsPage, Menu, Settings │
+│  ├── Zustand stores (persisted + runtime)                       │
+│  ├── Hooks (import/export, drag-drop, HEVC, Discord, etc.)      │
+│  └── Components: sidebar, clipsGrid, previewPanel, sceneScout, tools, settings │
 │                                                                  │
 │  IPC: invoke() + listen() via @tauri-apps/api/core              │
 │         + open()/save() via @tauri-apps/plugin-dialog           │
@@ -61,7 +61,7 @@ Sibling repos sit next to this one: `../AMVerge-CLI` (the Python backend this ap
 │  ├── notifications.rs + bug_report.rs → HTTP API calls           │
 │  ├── deps.rs → AI env (uv venv), pack install/status             │
 │  ├── models.rs → AI model weights (list/download/delete)         │
-│  └── discord.rs → RPC (currently disabled)                       │
+│  └── discord/ → Discord Rich Presence over local IPC pipe        │
 └──────┬───────────────────────┬──────────────────────────────────┘
        │                       │
        │  process::Command     │  process::Command
@@ -237,7 +237,7 @@ frontend/
 | Rust | Edition 2021 | tokio, serde, reqwest |
 | Python CLI | AMVerge-CLI (external) | PyInstaller sidecar |
 | FFmpeg/FFprobe | Bundled binaries | Platform-specific |
-| CI/CD | GitHub Actions | Windows, Linux, macOS |
+| Builds / Releases | GitHub Actions | Windows/macOS dev & release workflows (`workflow_dispatch` / `v*` tags) |
 
 ---
 
@@ -301,9 +301,7 @@ frontend/
 | `path_exists` | settings.rs | Is a file still there. Clicking a Scene Scout hit whose source episode is gone (e.g. an imported database from another PC) opens `MissingEpisodePrompt`, which offers to remove that episode from the database (`removeMissingVideo`) |
 | `move_storage_to_new_dir` | settings.rs | Move the owned storage folders (`episodes_storage`, `scene_packs`, Scene Scout) to a new root, each folder whole (merged when the new root already has one, the emptied old folder removed). `move_entry` copies a folder's contents across drives (`content_only`), never `copy_inside` into an existing folder, which nested it as `<dest>/<name>`. Stored paths are then rewritten by `features/storage/rebaseStoragePaths.ts` from each path's place inside those folders, never the old root, so it also repairs paths an earlier move broke; it runs after a move, after a reset, and once at startup |
 | `get_default_episodes_dir` | settings.rs | Return app_data_dir/episodes |
-| `start_discord_rpc` | discord.rs | **NO-OP** |
-| `update_discord_rpc` | discord.rs | **NO-OP** |
-| `stop_discord_rpc` | discord.rs | Kill RPC child process |
+| `start_discord_rpc` / `update_discord_rpc` / `stop_discord_rpc` | discord.rs / discord/ | Discord Rich Presence over the local IPC pipe (worker thread, no sidecar) |
 | `fetch_hyetta_events` | events.rs | GET `hyetta.net/api/events` (raw). `components/events/hyetta.ts` drops events whose submission deadline passed over a month ago (mirrors the server's `PUBLIC_PAST_EVENT_RETENTION`, change both together) and maps the rest to grid events (always HC, id `hyetta-<id>`, group as host); they join Active & Upcoming or Past from their own store slice, so either source can fail alone. Polled every 5 minutes, since it is a third party's API. Hosts can also link their own event's page (`hyettaUrl`, optional, `hyetta.net/event/<id>` only, changes without review like the invite); the same event can then show twice, deliberately not deduped |
 | `submit_bug_report` | bug_report.rs | HTTP POST (HMAC signed) |
 | `fetch_startup_notification` | notifications.rs | HTTP GET startup notification |
@@ -496,8 +494,7 @@ All ffmpeg processes:
 
 | Method | Description |
 |--------|-------------|
-| `transnetv2_gpu` | PyTorch ML model (GPU accelerated); previews of scenes whose start and end sit exactly on closed keyframes are stream-copied (MP4-muxable sources with AAC/MP3 audio only), the rest re-encoded at detected boundaries |
-| `pyscenedetect_cpu` | PySceneDetect library (CPU, adaptive) |
+| `transnetv2_gpu` | PyTorch ML model (GPU accelerated, CPU fallback); previews of scenes whose start and end sit exactly on closed keyframes are stream-copied (MP4-muxable sources with AAC/MP3 audio only), the rest re-encoded at detected boundaries |
 | `keyframe_detection` | Fast stream-copy split at keyframes (no ML) |
 
 ---
@@ -576,7 +573,7 @@ App starts → main.tsx: maybeCheckForUpdatesOnStartup()
 
 1. **CLI sidecar is external**: `AMVerge-CLI` is a separate Git repo. Dev mode expects it at `../AMVerge-CLI/`. Prod bundles it via PyInstaller.
 
-2. **Discord RPC is disabled**: `start_discord_rpc` and `update_discord_rpc` are no-ops. Only `stop_discord_rpc` actually works (kills old process).
+2. **Discord RPC uses local IPC**: `commands/discord/` (`activity.rs`, `app_info.rs`, `worker.rs`) drives Rich Presence directly over the local Discord IPC pipe via a background worker thread with no external sidecar.
 
 3. **Episode cache is immutable after import**: clips are generated once and cached. To re-detect scenes, delete the episode cache first.
 

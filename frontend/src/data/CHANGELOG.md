@@ -3,8 +3,10 @@
 - Added an interactive first-time Getting Started tour covering pages, detection/preview methods, Features, and a final wrap-up back in Library (replayable anytime from "How to use" in Library)
 - Enabled the preview audio language selector in WebP mode so you can pick the export audio track
 - Added "Show in episode" to Scene Scout's clip right-click menu to jump straight to that clip in Library
-- Added Import video and Remove controls in the Tools viewer
-- Replaced "Run in background" on feature installs with Minimize to the draggable floating card with a cancel button
+- Added Import video and Remove controls in the Tools viewer, and replaced the drop zone with clickable "isn't installed yet" install prompts when Upscaling or Depth Map packs aren't installed
+- Made disabled Scenepacks and Scene Scout sidebar buttons clickable so clicking them prompts to enable or install the feature instead of being locked
+- Replaced "Run in background" on feature installs with Minimize to the draggable floating card with a cancel button, and kept active installs running visibly if you click another dependency (with an option to keep or cancel the active install)
+- Added an "Install all AI features" button in Settings › Features right below "Hide disabled features" (greyed out once all packs are installed)
 - Kept AI Scene Detection visible and greyed out in Scene Detection Method even when disabled/hidden, opening the download prompt on click
 - Fixed "Show end time" in Appearance so it works across Library and Scenepacks clips as well as Scene Scout, and enabled it by default
 - Added "Show clip duration" in Appearance to display clip duration in the bottom-left corner on Library and Scene Scout

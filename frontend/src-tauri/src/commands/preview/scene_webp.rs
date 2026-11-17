@@ -199,6 +199,8 @@ pub(crate) async fn generate_scene_webp_inner(
             ]);
             cmd.arg(&output);
             if write_companion_jpg {
+                // output options only bind to the next output, so the jpg needs its own seek
+                cmd.args(["-ss", &format!("{post_seek:.3}")]);
                 cmd.args([
                     "-frames:v",
                     "1",

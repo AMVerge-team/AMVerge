@@ -4,6 +4,7 @@ import { useUIStateStore } from "../stores/UIStore";
 import { useSceneScoutStore } from "../stores/sceneScoutStore";
 import { isVideoPath } from "../utils/videoExtensions";
 import { useToolsStore } from "../stores/toolsStore";
+import { ensureToolPack, isToolPackReady } from "../features/tools/runTool";
 import { useToolsRunState } from "../features/processes/singleProcess";
 
 type UseDragDropImportProps = {
@@ -56,8 +57,13 @@ export default function useDragDropImport({
 
         if (videoFiles.length === 0) return;
 
-        // an open Tools modal takes the first dropped video as its clip; one clip, never a batch
+        // an open Tools modal takes the first dropped video as its clip; if that tool isn't installed, prompt install instead
         if (useUIStateStore.getState().toolsOpen) {
+          const kind = useToolsStore.getState().kind;
+          if (!isToolPackReady(kind)) {
+            void ensureToolPack(kind);
+            return;
+          }
           if (!useToolsRunState.getState().running) {
             const path = videoFiles[0];
             useToolsStore.getState().setSource({ path, label: path.split(/[/\\]/).pop() ?? path });
