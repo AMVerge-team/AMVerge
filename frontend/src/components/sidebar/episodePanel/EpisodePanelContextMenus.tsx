@@ -1,3 +1,4 @@
+import { getRevealInFileManagerLabel } from "../../../utils/platformUtils";
 // episode Panel context menu renderer. displays right-click menus for episodes, folders, and empty panel space
 import type React from "react";
 import type {
@@ -126,7 +127,7 @@ export default function EpisodePanelContextMenus({
                   setContextMenu(null);
                 }}
               >
-                Show in File Explorer
+                {getRevealInFileManagerLabel()}
               </button>
 
               <button
