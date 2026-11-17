@@ -277,3 +277,14 @@
 .zoom-label {
     pointer-events: none;
 }
+
+/* leave room for the native macos traffic lights */
+:root[data-platform="mac"] .navbar {
+    padding-left: 84px;
+}
+
+:root[data-platform="mac"] .window-control.minimize,
+:root[data-platform="mac"] .window-control.maximize,
+:root[data-platform="mac"] .window-control.close {
+    display: none;
+}

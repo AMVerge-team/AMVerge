@@ -11,6 +11,8 @@ import { restoreLastOpenedEpisode } from "./hooks/useEpisodePanelState";
 import { askNotice, showNotice } from "./features/notice/notice";
 
 initConsoleCapture();
+// macos uses the native window frame and traffic lights
+if (navigator.userAgent.includes("Mac OS X")) document.documentElement.dataset.platform = "mac";
 
 async function maybeCheckForUpdatesOnStartup() {
   if (typeof window === "undefined" || !("__TAURI_INTERNALS__" in window)) {
