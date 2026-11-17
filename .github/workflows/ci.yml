@@ -91,6 +91,10 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      - name: Stage bundled uv resource
+        working-directory: frontend
+        run: npm run fetch:uv
+
       - name: Check Rust/Tauri compile
         working-directory: frontend/src-tauri
         run: cargo check
