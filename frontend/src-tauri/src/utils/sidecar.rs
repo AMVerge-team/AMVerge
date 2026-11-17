@@ -90,6 +90,24 @@ mod runtime_dir_tests {
         let picked = pick_runtime_dir(shared(), None, |_| false);
         assert_eq!(picked, shared());
     }
+
+    #[test]
+    fn dev_cli_defaults_to_the_sibling_checkout() {
+        let expected = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .ancestors()
+            .nth(3)
+            .unwrap()
+            .join("AMVerge-CLI");
+        assert_eq!(dev_cli_dir(None), expected);
+        assert_eq!(dev_cli_dir(Some("")), expected);
+        assert_eq!(dev_cli_dir(Some("  ")), expected);
+    }
+
+    #[test]
+    fn explicit_dev_cli_checkout_is_preserved() {
+        let custom = PathBuf::from("/custom/AMVerge-CLI");
+        assert_eq!(dev_cli_dir(custom.to_str()), custom);
+    }
 }
 
 pub fn ai_env_dir(app: &AppHandle) -> Result<PathBuf, String> {
@@ -138,14 +156,19 @@ pub fn ai_env_ready(app: &AppHandle) -> bool {
 
 /// the dev CLI checkout's editable venv, which already has every extra
 fn dev_venv_dir() -> Result<PathBuf, String> {
-    // current_dir is frontend/src-tauri during `tauri dev`; pop to the repo root
-    let mut root = std::env::current_dir().map_err(|e| e.to_string())?;
-    root.pop();
-    root.pop();
-    let cli_dir = std::env::var("AMVERGE_CLI_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| root.join("AMVerge-CLI"));
+    let cli_dir = dev_cli_dir(std::env::var("AMVERGE_CLI_DIR").ok().as_deref());
     Ok(cli_dir.join(".venv"))
+}
+
+fn dev_cli_dir(override_dir: Option<&str>) -> PathBuf {
+    if let Some(dir) = override_dir.filter(|dir| !dir.trim().is_empty()) {
+        return PathBuf::from(dir);
+    }
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(3)
+        .unwrap()
+        .join("AMVerge-CLI")
 }
 
 fn dev_amverge_exe() -> Result<PathBuf, String> {
@@ -222,6 +245,12 @@ pub fn amverge_command(app: &AppHandle) -> Result<Command, String> {
     } else {
         prod_amverge_exe(app)?
     };
+    if cfg!(debug_assertions) && !exe.is_file() {
+        return Err(format!(
+            "AMVerge CLI executable not found at '{}'. Run setup.sh / setup.ps1 or set AMVERGE_CLI_DIR to the CLI checkout.",
+            exe.display()
+        ));
+    }
     Ok(base_command(exe))
 }
 
