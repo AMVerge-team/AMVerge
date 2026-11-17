@@ -1,6 +1,14 @@
-# v2.0.2
+# v2.0.3
 
-- Added a dedicated **Storage** settings tab next to Export with Episodes & App/AI location pickers, a live breakdown across Episodes, Scenepacks, Scene Scout indexes, AI packages/models, and caches, plus safe AI relocation (and defaulted new non-Program-Files installs to keep AI packages & models beside the install folder instead of `AppData`)
+- Added native Linux desktop support (`AppImage`, `.deb`, `.rpm`) with Linux sidecar/`uv`/FFmpeg packaging, GStreamer codecs, blob-URL preview streaming, WebKit DMA-BUF fallback, Linux file-manager & system-specs support, and dynamic OS labels across Settings & How to Use
+- Added a dedicated **Storage** settings tab next to Export with Episodes & App/AI location pickers, a live breakdown across Episodes, Scenepacks, Scene Scout indexes, AI packages/models, and caches, plus safe cross-drive AI relocation (and defaulted new non-system installs to keep AI packages & models beside the install folder)
+- Fixed **Free up space** on **Depth Map** not uninstalling `torchvision` (and stopped unrelated pack installs from pulling it in), and renamed **Depth Map Pass** / **Upscale Pass** to **Depth Map** and **Upscaling**
+- Hardened storage relocation and **Clear Episode Storage** against same-path casing/trailing-slash self-overwrites, overlapping AI folders, Hugging Face symlink ordering, Windows file locks, and leftover partial episode folders
+- Fixed WebP companion `.jpg` posters capturing up to `0.5s` before the scene start (`-ss` now applies to both WebP and JPG outputs)
+- Disabled the auto-updater during development runs, enabled RAM formatting on all platforms, and added a multi-platform downloads table to `README.md` and release workflows
+
+## v2.0.2
+
 - Added an interactive first-time Getting Started tour covering pages, detection/preview methods, Features, and a final wrap-up back in Library (replayable anytime from "How to use" in Library)
 - Enabled the preview audio language selector in WebP mode so you can pick the export audio track
 - Added "Show in episode" to Scene Scout's clip right-click menu to jump straight to that clip in Library
