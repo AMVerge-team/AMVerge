@@ -1,0 +1,160 @@
+{
+  "about": {
+    "title": "À propos d'AMVerge",
+    "subtitle": "AMVerge rend le choix des scènes plus simple. Il découpe un épisode en toutes ses scènes, pour les parcourir bien plus vite et en rater moins que dans un logiciel de montage.",
+    "what": {
+      "title": "Qu'est-ce qu'AMVerge ?",
+      "p1": "Un découpeur de clips pour les monteurs d'anime. Donnez-lui un épisode : il trouve chaque changement de plan, puis affiche le tout en grille à parcourir.",
+      "p2": "Cliquez les scènes que vous voulez : il les sort du fichier source sans réencoder, les clips gardent donc la qualité d'origine. Ils arrivent dans un dossier, prêts à être glissés dans After Effects, Premiere ou Resolve.",
+      "p3": "Il ne monte rien à votre place et ne décide pas quelles scènes sont bonnes. Il enlève juste le moment où vous parcourez un épisode à la recherche des quatre secondes dont vous vous souvenez."
+    },
+    "workflow": {
+      "title": "Méthode rapide",
+      "import": "<strong>Importer :</strong> glissez-déposez vos fichiers vidéo (MP4, MKV, WebM, etc.).",
+      "select": "<strong>Choisir :</strong> parcourez la grille et choisissez les scènes voulues. <code>Maj + clic</code> pour une plage, <code>Ctrl + clic</code> pour un clip à la fois.",
+      "export": "<strong>Fusionner et exporter :</strong> prenez un profil d'export (ou activez Fusionner les clips pour les mettre bout à bout) et cliquez sur <strong>Exporter</strong>."
+    },
+    "shortcuts": {
+      "title": "Navigation et raccourcis",
+      "singleClick": "Clic",
+      "singleClickDesc": "Met le clip au premier plan et lance l'aperçu",
+      "ctrlClick": "Ctrl + clic",
+      "ctrlClickDesc": "Ajoute ou retire un clip de la sélection",
+      "shiftClick": "Maj + clic",
+      "shiftClickDesc": "Choisit une plage de clips qui se suivent",
+      "cmdScroll": "Cmd + molette",
+      "ctrlScroll": "Ctrl + molette",
+      "scrollDesc": "Change le nombre de colonnes de la grille",
+      "esc": "Échap",
+      "escDesc": "Ouvre la navigation rapide, ou ferme ce qui est ouvert"
+    },
+    "community": {
+      "title": "Communauté et aide",
+      "text": "Rejoignez la communauté pour signaler un bug, suivre les nouveautés, proposer une fonction et partager vos montages :",
+      "discord": "Communauté Discord",
+      "github": "GitHub",
+      "authorNote": "Créé à l'origine par <strong>Crptk</strong>. Maintenu par l'équipe AMVerge."
+    }
+  },
+  "bugReport": {
+    "title": "Signaler un problème",
+    "subtitle": "Une erreur, un comportement bizarre ? Envoyez les détails directement à l'équipe AMVerge.",
+    "altText": "Vous préférez le faire vous-même ? Vous pouvez aussi ouvrir une issue sur GitHub ou nous écrire sur le serveur Discord :",
+    "discordCommunity": "Communauté Discord",
+    "githubIssues": "Issues GitHub",
+    "types": {
+      "video": "Problème de vidéo",
+      "videoDesc": "Import, lecture, coupes GOP, audio décalé ou défaut d'export",
+      "app": "Problème d'application",
+      "appDesc": "Bug d'interface, plantage, réglages, installateur IA ou blocage",
+      "feature": "Demande de fonction",
+      "featureDesc": "Idées ou améliorations de la méthode de travail dans AMVerge"
+    },
+    "details": "Détails du problème",
+    "bugType": "Type de bug",
+    "description": "Description",
+    "descriptionPlaceholder": "Ce qui s'est passé, ce que vous attendiez, et comment le reproduire ?",
+    "recording": "Capture vidéo de l'écran (facultatif)",
+    "recordingPlaceholder": "ex. : lien Google Drive, torrent, épisode…",
+    "systemContact": "Machine et contact (facultatif)",
+    "pcSpecs": "Config du PC",
+    "readingSpecs": "Lecture de ce PC…",
+    "fillSpecs": "Remplir avec la config de mon PC",
+    "fillSpecsTooltip": "Remplit le système, le processeur, la RAM et la carte graphique de cet ordinateur",
+    "pcSpecsPlaceholder": "ex. : RTX 3080, Win 11",
+    "contact": "Contact",
+    "fillDiscord": "Remplir avec mon Discord",
+    "fillDiscordTooltip": "Remplit votre nom d'utilisateur Discord",
+    "fillDiscordUnavailable": "Demande Discord Rich Presence activé et Discord lancé",
+    "contactPlaceholder": "Nom d'utilisateur Discord / e-mail",
+    "screenshotsSubmit": "Captures et envoi",
+    "chooseScreenshots": "Choisir des captures",
+    "noScreenshot": "Aucune capture choisie",
+    "screenshotsSelected_one": "{{count}} capture choisie",
+    "screenshotsSelected_other": "{{count}} captures choisies",
+    "submitting": "Envoi…",
+    "submit": "Envoyer le rapport",
+    "errors": {
+      "specs": "Impossible de lire votre config. Saisissez-la à la main.",
+      "discord": "Discord n'est pas connecté. Connectez-vous depuis la page Events, activez Rich Presence, ou saisissez votre nom d'utilisateur.",
+      "issueRequired": "Décrivez le problème avant d'envoyer.",
+      "cooldown": "Attendez {{time}} avant d'envoyer un autre rapport.",
+      "imagesOnly": "Seules des images sont acceptées comme captures.",
+      "tooLarge": "Une capture au moins dépasse la limite de 8 Mo.",
+      "submitFailed": "Impossible d'envoyer le rapport.",
+      "submitRetry": "Impossible d'envoyer le rapport. Réessayez."
+    },
+    "success": "Rapport envoyé."
+  },
+  "console": {
+    "title": "Console développeur",
+    "subtitle": "Journal en direct de l'application et du CLI en arrière-plan.",
+    "searchPlaceholder": "Rechercher dans le journal…",
+    "levels": {
+      "all": "TOUT",
+      "info": "INFO",
+      "warn": "AVERT",
+      "error": "ERREUR"
+    },
+    "copyTooltip": "Copier le journal filtré",
+    "copyLabel": "Copier le journal",
+    "clearTooltip": "Vider le journal",
+    "clearLabel": "Vider le journal",
+    "noLogsCopy": "Aucune ligne de journal pour l'instant.",
+    "empty": "Aucune ligne ne correspond au filtre."
+  },
+  "credits": {
+    "title": "Les gens derrière AMVerge",
+    "subtitle": "AMVerge est un projet open source fait par des monteurs d'anime. L'idée est que ce soit un outil de la communauté, lié à aucun créateur en particulier, construit par les propositions de chacun.",
+    "contributors": "Contributeurs",
+    "roles": {
+      "crptk": "Créateur de l'app et architecture",
+      "netsuma": "Système d'interface, moteur d'export et infobulles",
+      "moongetsu": "Réglages, installateur IA, Discord RPC et multiplateforme",
+      "lewis": "Moteur macOS, import en arrière-plan et optimisation",
+      "khaos": "Virtualisation de la grille et correctifs de rendu",
+      "tosin": "Démultiplexage macOS et compatibilité vidéo",
+      "markShun": "Scene Scout"
+    },
+    "contribute": "Contribuer et communauté",
+    "contributeText": "Envie d'aider à améliorer AMVerge ? Nouvelles fonctions, correction de bugs, tests sur d'autres machines : tout apport est bienvenu.",
+    "contributeGithub": "Contribuer sur GitHub"
+  },
+  "resources": {
+    "title": "Ressources",
+    "subtitle": "Des outils gratuits et remarquables faits par la communauté AMV",
+    "devNote": "Note du dev",
+    "visit": "Aller sur {{name}}",
+    "play": "Lire {{title}}",
+    "watchOnYoutube": "Voir sur YouTube",
+    "items": {
+      "resyncbot": {
+        "tagline": "Resynchronisez vos montages en quelques secondes, avec vos amis",
+        "details": "Utilisé sur plus de 300 serveurs par près de 200 000 personnes, ce bot Discord du créateur d'AMVerge resynchronise les montages tout seul, en quelques secondes. Grâce au BPM et à l'analyse de la forme d'onde, il recale votre montage sur la musique voulue, ou en tire une au hasard qui irait bien.",
+        "devNote": "C'était mon premier projet, et sans doute le plus amusant. À ma grande surprise, il sert encore plusieurs fois par jour, donc je le maintiendrai aussi longtemps que je peux."
+      },
+      "sammieRoto": {
+        "tagline": "Masquage par IA entraîné sur de l'anime",
+        "details": "Co-créé par le développeur de Scene Scout, c'est un outil de masquage IA gratuit et open source, avec détection et suppression d'objets, et un modèle IA entraîné sur de l'anime. Si précis qu'il attrape les mèches de cheveux sans faute (Adobe, prends des notes…)",
+        "devNote": "Littéralement le meilleur outil de rotobrush que j'aie utilisé, leur modèle anime m'a bluffé. À essayer si ce n'est pas déjà fait."
+      },
+      "animeclips": {
+        "tagline": "Télécharger des clips d'anime rapidement",
+        "details": "Avec plus de 450 000 clips, c'est la plus grande bibliothèque de clips d'anime en bonne qualité.",
+        "devNote": "Une ressource que j'utilise depuis un moment quand je ne trouve pas de téléchargement pour un anime à monter, et un site en qui des milliers de monteurs ont confiance. Je recommande !"
+      },
+      "hyetta": {
+        "tagline": "La plateforme numéro 1 pour organiser des concours de montage.",
+        "details": "Un endroit pour organiser des concours de montage, pensé pour les hour contests (HC). Il a sa propre grille de notation avec un calcul automatique des totaux et des pénalités de retard, il est très clair, et il réunit toutes les participations d'un événement au même endroit.",
+        "devNote": "Cette plateforme gère pour vous toutes les corvées d'un HC, à part le choix des animes et les contraintes."
+      }
+    }
+  },
+  "patchNotes": {
+    "title": "Journal des mises à jour",
+    "subtitle": "Suivez les fonctions, les changements de moteur et les corrections au fil des versions d'AMVerge.",
+    "back": "Retour au journal",
+    "viewFull": "Voir le journal complet",
+    "notFound": "Les notes de version complètes sont introuvables dans updates/"
+  }
+}

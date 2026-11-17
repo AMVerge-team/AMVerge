@@ -1,20 +1,23 @@
 // language preference, kept apart from the theme so "reset appearance" never touches it
 
-export type LanguagePreference = "system" | "en" | "zh-CN";
-export type ResolvedLanguage = "en" | "zh-CN";
+export type LanguagePreference = "system" | "en" | "zh-CN" | "fr";
+export type ResolvedLanguage = "en" | "zh-CN" | "fr";
 
-export const SUPPORTED_LANGUAGES: readonly ResolvedLanguage[] = ["en", "zh-CN"];
+export const SUPPORTED_LANGUAGES: readonly ResolvedLanguage[] = ["en", "zh-CN", "fr"];
 export const LANGUAGE_STORAGE_KEY = "amverge.language.v1";
 
 export function isLanguagePreference(value: unknown): value is LanguagePreference {
-    return value === "system" || value === "en" || value === "zh-CN";
+    return value === "system" || SUPPORTED_LANGUAGES.includes(value as ResolvedLanguage);
 }
 
-/** every zh-* system locale maps to Simplified Chinese for now; anything else is English */
+/** every zh-* locale maps to Simplified Chinese and every fr-* to French; anything else is English */
 export function resolveSystemLanguage(locales: readonly string[] | undefined): ResolvedLanguage {
     for (const locale of locales ?? []) {
         if (typeof locale !== "string" || !locale) continue;
-        return locale.toLowerCase().startsWith("zh") ? "zh-CN" : "en";
+        const tag = locale.toLowerCase();
+        if (tag.startsWith("zh")) return "zh-CN";
+        if (tag.startsWith("fr")) return "fr";
+        return "en";
     }
     return "en";
 }

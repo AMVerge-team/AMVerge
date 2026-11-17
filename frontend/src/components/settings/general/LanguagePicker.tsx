@@ -17,6 +17,7 @@ export default function LanguagePicker() {
     },
     { value: "en", label: t("language.en") },
     { value: "zh-CN", label: t("language.zh-CN") },
+    { value: "fr", label: t("language.fr") },
   ];
 
   return (

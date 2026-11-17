@@ -1,0 +1,202 @@
+{
+  "episodePanel": {
+    "fallbackEpisode": "épisode",
+    "fallbackFolder": "dossier",
+    "episodeCount_one": "{{count}} épisode",
+    "episodeCount_other": "{{count}} épisodes",
+    "searchPlaceholder": "Rechercher un épisode…",
+    "clearSearch": "Effacer la recherche",
+    "empty": {
+      "title": "Aucun épisode pour l'instant",
+      "description": "Importez une vidéo pour la découper en clips",
+      "importFirst": "Importer votre premier épisode"
+    },
+    "header": {
+      "title": "Panneau des épisodes",
+      "sortAsc": "Trier de A à Z",
+      "sortDesc": "Trier de Z à A",
+      "newFolder": "Nouveau dossier",
+      "showInFolder": "Afficher dans le dossier",
+      "deleteDisabled": "Supprimer l'élément choisi (choisissez d'abord un épisode ou un dossier)",
+      "deleteSelectedEpisodes_one": "Supprimer {{count}} épisode choisi",
+      "deleteSelectedEpisodes_other": "Supprimer {{count}} épisodes choisis",
+      "deleteSelectedEpisode": "Supprimer l'épisode choisi",
+      "deleteSelectedFolder": "Supprimer le dossier choisi"
+    },
+    "menu": {
+      "addFolder": "Ajouter un dossier",
+      "addSubfolder": "Ajouter un sous-dossier",
+      "showInExplorer": "Afficher dans l'Explorateur de fichiers",
+      "deleteEpisodes_one": "Supprimer {{count}} épisode",
+      "deleteEpisodes_other": "Supprimer {{count}} épisodes"
+    },
+    "row": {
+      "importedWebp": "Importé en aperçus WebP",
+      "importedVideo": "Importé en fichiers vidéo",
+      "webpEpisode": "Épisode en aperçus WebP",
+      "videoEpisode": "Épisode en aperçus vidéo",
+      "pausedResume": "Traitement en pause · reprendre",
+      "resume": "Reprendre le traitement",
+      "collapseFolder": "Replier le dossier",
+      "expandFolder": "Déplier le dossier"
+    },
+    "rename": {
+      "episodeTitle": "Renommer l'épisode",
+      "episodePlaceholder": "Nom de l'épisode",
+      "folderTitle": "Renommer le dossier",
+      "folderPlaceholder": "Nom du dossier"
+    },
+    "newFolder": {
+      "title": "Nouveau dossier",
+      "placeholder": "Nom du dossier…",
+      "parent": "Catégorie",
+      "root": "Aucune (racine)",
+      "create": "Créer"
+    },
+    "deleteConfirm": {
+      "titleFolder": "Supprimer le dossier",
+      "titleEpisode": "Supprimer l'épisode",
+      "linkedIntro": "Ces épisodes sont rattachés à des bases :",
+      "messageFolder": "Supprimer ce dossier ?",
+      "messageEpisodes": "Supprimer ces épisodes ?",
+      "messageEpisode": "Supprimer cet épisode ?",
+      "checkingDatabases": "Vérification des bases Scene Scout…",
+      "noteLinked": "Les fichiers de clips en cache seront supprimés et les épisodes retirés de ces bases.",
+      "note": "Tous les fichiers de clips en cache seront aussi supprimés du disque."
+    }
+  },
+  "scenepacks": {
+    "searchPlaceholder": "Rechercher un Scenepack…",
+    "header": {
+      "title": "Scenepacks",
+      "newScenepack": "Nouveau Scenepack",
+      "deleteSelected": "Supprimer l'élément choisi"
+    },
+    "empty": {
+      "title": "Aucun Scenepack pour l'instant",
+      "description": "Regroupez des clips par personnage, par combat ou par moment",
+      "createFirst": "Créer votre premier Scenepack"
+    },
+    "row": {
+      "addingClips_one": "Ajout de {{count}} clip…",
+      "addingClips_other": "Ajout de {{count}} clips…",
+      "nothingStored": "Rien d'enregistré pour l'instant"
+    },
+    "menu": {
+      "addScenepack": "Ajouter un Scenepack",
+      "open": "Ouvrir",
+      "changeThumbnail": "Changer la vignette",
+      "moveTo": "Déplacer vers",
+      "noFolder": "Aucun dossier"
+    },
+    "newItem": {
+      "titleScenepack": "Nouveau Scenepack",
+      "placeholderScenepack": "Nom du Scenepack…"
+    },
+    "rename": {
+      "placeholder": "Nouveau nom…"
+    },
+    "deleteConfirm": {
+      "titleScenepack": "Supprimer le Scenepack",
+      "messageScenepack": "Supprimer ce Scenepack ?",
+      "noteFolder": "Tous les Scenepacks de ce dossier repartiront à la racine."
+    },
+    "thumbnail": {
+      "invalidType": "La vignette doit être une image PNG, JPEG, WebP ou GIF.",
+      "filterName": "Images",
+      "saving": "Enregistrement…",
+      "dropHint": "Déposez une image ici, ou cliquez pour parcourir",
+      "formats": "PNG, JPEG, WebP ou GIF"
+    }
+  },
+  "addToScenepack": {
+    "title": "Ajouter au Scenepack",
+    "titleCount_one": "Ajouter {{count}} clip à un Scenepack",
+    "titleCount_other": "Ajouter {{count}} clips à un Scenepack",
+    "existing": "Existant",
+    "createNew": "Créer",
+    "noScenepacks": "Aucun Scenepack pour l'instant. Passez sur « Créer » pour en faire un.",
+    "alreadyAdded": "déjà ajouté",
+    "adding": "Ajout…",
+    "createAndAdd": "Créer et ajouter",
+    "addClips_one": "Ajouter le clip",
+    "addClips_other": "Ajouter {{count}} clips",
+    "failed_one": "Impossible d'ajouter le clip au Scenepack.",
+    "failed_other": "Impossible d'ajouter les {{count}} clips au Scenepack.",
+    "nothingToAdd": "Rien à ajouter."
+  },
+  "picker": {
+    "findMatching": "Trouver les clips qui enchaînent",
+    "setThumbnail": "Définir comme vignette du Scenepack",
+    "added": "ajouté",
+    "newScenepack": "Nouveau Scenepack…"
+  },
+  "selection": {
+    "count_one": "{{count}} choisi",
+    "count_other": "{{count}} choisis",
+    "addSelectedTooltip": "Ajouter les clips choisis à un Scenepack",
+    "deselectAll": "Tout désélectionner",
+    "clear": "Effacer",
+    "clearSelection": "Effacer la sélection",
+    "addingProgress_one": "Ajout de {{count}} clip…",
+    "addingProgress_other": "Ajout de {{count}} clips…",
+    "addFailed": "Impossible d'ajouter les clips au Scenepack.",
+    "createAndAddAll": "Créer et tout ajouter"
+  },
+  "clip": {
+    "download": "Télécharger ce clip",
+    "downloading": "Téléchargement…",
+    "openInTools": "Ouvrir dans Tools",
+    "videoFilter": "Vidéo",
+    "deleteClips_one": "Supprimer le clip",
+    "deleteClips_other": "Supprimer {{count}} clips",
+    "select": "Choisir le clip",
+    "deselect": "Retirer le clip de la sélection",
+    "removeFromScenepack": "Retirer du Scenepack",
+    "status": {
+      "merging": "Fusion…",
+      "splitting": "Découpage…",
+      "adding": "Ajout…"
+    },
+    "tooltip": {
+      "timeframe": "Intervalle : {{timeframe}}",
+      "starts": "Début : {{motion}}",
+      "ends": "Fin : {{motion}}"
+    }
+  },
+  "confidence": {
+    "veryHigh": "Confiance très élevée",
+    "high": "Confiance élevée",
+    "good": "Bonne confiance",
+    "fair": "Confiance moyenne",
+    "low": "Confiance faible",
+    "match": "Correspondance : {{pct}} %",
+    "matchWithLabel": "Correspondance : {{pct}} % ({{label}})"
+  },
+  "emptyGrid": {
+    "noScenepack": {
+      "title": "Aucun Scenepack ouvert.",
+      "hint": "Choisissez-en un dans le panneau de gauche pour voir ses clips."
+    },
+    "flowNoScenes": {
+      "title": "Aucune scène trouvée pour ce clip.",
+      "hint": "Ajoutez une base à la liste Searching, à gauche."
+    },
+    "flowNoClip": {
+      "title": "Aucun clip à prolonger pour l'instant.",
+      "hint": "Chargez un épisode au-dessus, ou faites un clic droit sur un clip de Library et choisissez Trouver les clips qui enchaînent."
+    },
+    "searchNoMatch": {
+      "title": "Aucune scène ne correspond à votre recherche.",
+      "hint": "Essayez d'autres mots."
+    },
+    "searchIdle": {
+      "title": "Aucune scène trouvée.",
+      "hint": "Choisissez une ou plusieurs bases à gauche, décrivez une scène, puis appuyez sur Entrée."
+    },
+    "noVideo": {
+      "title": "Aucune vidéo chargée.",
+      "hint": "Si aucun clip ne s'affiche, changez le dossier de stockage des épisodes dans les réglages généraux."
+    }
+  }
+}

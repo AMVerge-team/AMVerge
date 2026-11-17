@@ -1,0 +1,53 @@
+{
+  "steps": {
+    "0": {
+      "title": "Bienvenue dans AMVerge",
+      "body": "Un tour rapide d'AMVerge pour savoir où se trouve chaque page, comment marchent les imports et les aperçus, et où activer les fonctions IA."
+    },
+    "1": {
+      "title": "1. Library",
+      "body": "<b>Library</b> est votre espace de travail. Importez-y des épisodes ou des fichiers vidéo pour les découper en scènes, survolez un clip pour le voir, et exportez ceux que vous choisissez directement vers votre logiciel de montage."
+    },
+    "2": {
+      "title": "2. Scenepacks",
+      "body": "<b>Scenepacks</b> réunit vos clips préférés, pris dans n'importe quel épisode, en collections par personnage, par ambiance, etc. Vous pouvez l'activer quand vous voulez dans <b>Réglages › Fonctions</b>."
+    },
+    "3": {
+      "title": "3. Scene Scout",
+      "body": "<b>Scene Scout</b> cherche dans vos épisodes indexés à partir d'une description en langage courant (ou trouve les clips qui enchaînent avec un clip que vous avez déjà). Activez-le et téléchargez-le quand vous voulez dans <b>Réglages › Fonctions</b>."
+    },
+    "4": {
+      "title": "4. Community Events",
+      "body": "<b>Events</b> liste les concours AMV et les Hour Challenges en cours dans la communauté. Parcourez les tournois, rejoignez leurs serveurs Discord, ou connectez-vous avec Discord pour organiser le vôtre."
+    },
+    "5": {
+      "title": "5. Ouvrir le menu",
+      "body": "Cliquez sur le <b>bouton ☰</b>, juste à côté du logo AMVerge, pour ouvrir la navigation rapide, ou appuyez sur <b>Suivant</b> pour entrer directement."
+    },
+    "6": {
+      "title": "6. Ouvrir les réglages",
+      "body": "Cliquez sur <b>Réglages</b> ici pour choisir comment AMVerge détecte les coupes, lit les aperçus et installe les fonctions optionnelles."
+    },
+    "7": {
+      "title": "7. Méthodes de détection de scènes",
+      "body": "Choisissez comment les imports trouvent les coupes : <br/>• <b>Keyframe Detection</b> coupe sur les images clés de la vidéo, sans attente, et marche sur n'importe quel PC sans carte graphique. <br/>• <b>AI Scene Detection</b> analyse chaque image avec TransNetV2 pour trouver les changements de plan exacts (plus lent sans carte graphique ; installable à tout moment)."
+    },
+    "8": {
+      "title": "8. Méthodes d'aperçu",
+      "body": "Choisissez ce que la grille lit au survol : <br/>• <b>Video Files</b> découpe de vraies vidéos pour chaque scène, l'aperçu est donc identique à l'export. <br/>• <b>WebP Files</b> fabrique des aperçus animés légers, pour un défilement plus souple et moins de mémoire utilisée (les exports partent toujours de la qualité d'origine)."
+    },
+    "9": {
+      "title": "9. Fonctions et téléchargements",
+      "body": "Dans <b>Fonctions</b>, activez et téléchargez les outils optionnels quand vous en avez besoin : <b>Scene Scout</b>, <b>AI Scene Detection</b>, <b>Scenepacks</b>, <b>Upscaling</b> et <b>Depth Maps</b>."
+    },
+    "10": {
+      "title": "10. C'est prêt",
+      "body": "Le tutoriel s'arrête là. Pour le revoir, il est dans la section <b>« How to Use »</b>, à droite de la page. Bon montage !"
+    }
+  },
+  "ariaLabel": "Guide de prise en main",
+  "skip": "Passer",
+  "back": "Précédent",
+  "finish": "Terminer",
+  "next": "Suivant"
+}

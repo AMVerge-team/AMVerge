@@ -20,7 +20,8 @@
     "system": "跟随系统",
     "systemResolved": "跟随系统（{{language}}）",
     "en": "English",
-    "zh-CN": "简体中文"
+    "zh-CN": "简体中文",
+    "fr": "Français"
   },
   "showInFileManager": "在{{manager}}中显示",
   "fileManagers": {
