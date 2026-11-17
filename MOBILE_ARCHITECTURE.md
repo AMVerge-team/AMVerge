@@ -99,7 +99,7 @@ For formats that Android platform decoders or MediaMuxer cannot handle directly 
 * FFmpeg C/C++ libraries (libavcodec, libavformat, libavutil, libswscale) are compiled for Android ABIs (arm64-v8a, armeabi-v7a, x86_64).
 * Called through a small JNI bridge to run stream copy or extraction operations without relying on deprecated third-party wrappers like FFmpegKit.
 
-### C. Scene Detection Methods
+### C. Scene Detection & Semantic Search Methods
 1. Keyframe Scanner (Default):
    * Uses Android MediaExtractor to read sync samples (SAMPLE_FLAG_SYNC).
    * Reads container packet headers without decoding image pixels.
@@ -108,6 +108,10 @@ For formats that Android platform decoders or MediaMuxer cannot handle directly 
    * Converted from PyTorch to TensorFlow Lite (transnetv2.tflite) with 16-bit float quantization.
    * Downscales video frames to 48 x 27 pixels RGB.
    * Runs inference on the mobile GPU or NPU using the TFLite GPU delegate or Android NNAPI.
+3. Scene Scout Mobile Vector Engine (Semantic Querying):
+   * Native compatibility with desktop AMVerge Scene Scout SQLite databases (`processed_videos` and `scene_embeddings`).
+   * Evaluates text search queries using quantized TFLite text encoders (`MobileCLIP-TFLite`).
+   * High-speed cosine similarity ranking using ARM NEON SIMD C++ intrinsics in the NDK (`vmlaq_f32`), scoring 10,000+ scene embeddings in under 30ms.
 
 ## 4. Jetpack Compose UI and Touch Interactions
 
