@@ -103,6 +103,11 @@ For formats that Android platform decoders or MediaMuxer cannot handle directly 
 * Foreground Service Lifecycle: Long batch export jobs run inside an Android Foreground Service with a persistent progress notification.
 * Called through a small JNI bridge to run stream copy or extraction operations without relying on deprecated third-party wrappers like FFmpegKit.
 
+### C. Picture-in-Picture, Cloud Storage & Editor Integration
+* Picture-in-Picture (PiP): Android native PiP allows floating anime scenes while working in CapCut or Alight Motion.
+* Storage Access Framework (SAF): Resolves and cuts video files directly from Google Drive, Dropbox, or SD card without local duplication.
+* Scenepacks & Events Drawer: Create and organize custom scenepacks, and browse/enter community AMV editing contests.
+
 ### C. Scene Detection & Semantic Search Methods
 1. Keyframe Scanner (Default):
    * Uses Android MediaExtractor to read sync samples (SAMPLE_FLAG_SYNC).
