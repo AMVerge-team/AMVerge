@@ -1,116 +1,116 @@
 {
   "episodePanel": {
-    "fallbackEpisode": "episode",
+    "fallbackEpisode": "episod",
     "fallbackFolder": "folder",
-    "episodeCount_one": "{{count}} episode",
-    "episodeCount_other": "{{count}} episodes",
-    "searchPlaceholder": "Search episodes...",
-    "clearSearch": "Clear search",
+    "episodeCount_one": "{{count}} episod",
+    "episodeCount_other": "{{count}} episoade",
+    "searchPlaceholder": "Cauta episoade...",
+    "clearSearch": "Sterge cautarea",
     "empty": {
-      "title": "No episodes yet",
-      "description": "Import a video to cut it into clips",
-      "importFirst": "Import your first episode"
+      "title": "Niciun episod inca",
+      "description": "Importa un videoclip pentru a-l taia in scene",
+      "importFirst": "Importa primul tau episod"
     },
     "header": {
-      "title": "Episode Panel",
-      "sortAsc": "Sort A-Z",
-      "sortDesc": "Sort Z-A",
-      "newFolder": "New folder",
-      "showInFolder": "Show in folder",
-      "deleteDisabled": "Delete selected item (select an episode or folder first)",
-      "deleteSelectedEpisodes_one": "Delete {{count}} selected episode",
-      "deleteSelectedEpisodes_other": "Delete {{count}} selected episodes",
-      "deleteSelectedEpisode": "Delete selected episode",
-      "deleteSelectedFolder": "Delete selected folder"
+      "title": "Panou Episod",
+      "sortAsc": "Sorteaza A-Z",
+      "sortDesc": "Sorteaza Z-A",
+      "newFolder": "Folder nou",
+      "showInFolder": "Arata in folder",
+      "deleteDisabled": "Sterge elementul selectat (selecteaza un episod sau un folder mai intai)",
+      "deleteSelectedEpisodes_one": "Sterge {{count}} episod selectat",
+      "deleteSelectedEpisodes_other": "Sterge {{count}} de episoade selectate",
+      "deleteSelectedEpisode": "Sterge episodul selectat",
+      "deleteSelectedFolder": "Sterge folderul selectat"
     },
     "menu": {
-      "addFolder": "Add Folder",
-      "addSubfolder": "Add Subfolder",
-      "showInExplorer": "Show in File Explorer",
-      "deleteEpisodes_one": "Delete {{count}} episode",
-      "deleteEpisodes_other": "Delete {{count}} episodes"
+      "addFolder": "Adauga folder",
+      "addSubfolder": "Adauga subfolder",
+      "showInExplorer": "Arata in File Explorer",
+      "deleteEpisodes_one": "Sterge {{count}} episod selectat",
+      "deleteEpisodes_other": "Sterge {{count}} de episoade selectate"
     },
     "row": {
-      "importedWebp": "Imported as WebP previews",
-      "importedVideo": "Imported as video files",
-      "webpEpisode": "WebP preview episode",
-      "videoEpisode": "Video preview episode",
-      "pausedResume": "Processing paused · resume",
-      "resume": "Resume processing",
-      "collapseFolder": "Collapse folder",
-      "expandFolder": "Expand folder"
+      "importedWebp": "Importat ca previzualizare WebP",
+      "importedVideo": "Importat ca fisier video",
+      "webpEpisode": "Episoade previzualizare prin WebP",
+      "videoEpisode": "Episoade previzualizare prin Video",
+      "pausedResume": "Procesare intrerupta · reluare",
+      "resume": "Reia procesarea",
+      "collapseFolder": "Restrange folderul",
+      "expandFolder": "Extinde folderul"
     },
     "rename": {
-      "episodeTitle": "Rename Episode",
-      "episodePlaceholder": "Episode name",
-      "folderTitle": "Rename Folder",
-      "folderPlaceholder": "Folder name"
+      "episodeTitle": "Redenumeste episod",
+      "episodePlaceholder": "Nume episod",
+      "folderTitle": "Redenumeste folder-ul",
+      "folderPlaceholder": "Numele folder-ului"
     },
     "newFolder": {
-      "title": "New Folder",
-      "placeholder": "Folder name...",
-      "parent": "Category",
-      "root": "None (root)",
-      "create": "Create"
+      "title": "Folder nou",
+      "placeholder": "Numele folder-ului...",
+      "parent": "Categoria",
+      "root": "Niciunul (root)",
+      "create": "Creeaza"
     },
     "deleteConfirm": {
-      "titleFolder": "Delete Folder",
-      "titleEpisode": "Delete Episode",
-      "linkedIntro": "The following episodes are attached to databases:",
-      "messageFolder": "Are you sure you want to delete this folder?",
-      "messageEpisodes": "Are you sure you'd like to delete these episodes?",
-      "messageEpisode": "Are you sure you'd like to delete this episode?",
-      "checkingDatabases": "Checking Scene Scout databases…",
-      "noteLinked": "This also deletes the cached clip files and removes the episodes from those databases.",
-      "note": "This will also delete all cached clip files on disk."
+      "titleFolder": "Sterge folder-ul",
+      "titleEpisode": "Sterge episodul",
+      "linkedIntro": "Urmatoarele episoade sunt atasate in bazele de date:",
+      "messageFolder": "Esti sigur ca vrei sa stergi acest dosar?",
+      "messageEpisodes": "Esti sigur ca vrei sa stergi aceste episoade?",
+      "messageEpisode": "Esti sigur ca vrei sa stergi acest episod?",
+      "checkingDatabases": "Se verifica bazele de date ale Scene Scout-ului...",
+      "noteLinked": "Aceasta sterge de asemenea fisierele clipului cache si elimina episoadele din acele baze de date.",
+      "note": "Aceasta va sterge si toate fisierele clipului din cache de pe disc."
     }
   },
   "scenepacks": {
-    "searchPlaceholder": "Search Scenepacks...",
+    "searchPlaceholder": "Cauta Scenepack-uri...",
     "header": {
-      "title": "Scenepacks",
-      "newScenepack": "New Scenepack",
-      "deleteSelected": "Delete selected item"
+      "title": "Scenepack-uri",
+      "newScenepack": "Scenepack nou",
+      "deleteSelected": "Sterge elementul selectat"
     },
     "empty": {
-      "title": "No Scenepacks yet",
-      "description": "Group clips by character, fight, or event",
-      "createFirst": "Create your first Scenepack"
+      "title": "Nici un Scenepack inca",
+      "description": "Grupeaza clipurile dupa caracter, lupta sau eveniment",
+      "createFirst": "Creeaza primul tau Scenepack"
     },
     "row": {
-      "addingClips_one": "Adding {{count}} clip…",
-      "addingClips_other": "Adding {{count}} clips…",
-      "nothingStored": "Nothing stored yet"
+      "addingClips_one": "Se adauga {{count}} clip...",
+      "addingClips_other": "Se adauga {{count}} de clip-uri...",
+      "nothingStored": "Nimic stocat inca"
     },
     "menu": {
-      "addScenepack": "Add Scenepack",
-      "open": "Open",
-      "changeThumbnail": "Change Thumbnail",
-      "moveTo": "Move to",
-      "noFolder": "No folder"
+      "addScenepack": "Adauga Scenepack",
+      "open": "Deschide",
+      "changeThumbnail": "Schimba thumbnail-ul",
+      "moveTo": "Muta in",
+      "noFolder": "Niciun folder"
     },
     "newItem": {
-      "titleScenepack": "New Scenepack",
-      "placeholderScenepack": "Scenepack name..."
+      "titleScenepack": "Scenepack nou",
+      "placeholderScenepack": "Nume scenepack..."
     },
     "rename": {
-      "placeholder": "New name..."
+      "placeholder": "Nume nou..."
     },
     "deleteConfirm": {
-      "titleScenepack": "Delete Scenepack",
-      "messageScenepack": "Are you sure you want to delete this Scenepack?",
-      "noteFolder": "All Scenepacks inside this folder will be moved to root."
+      "titleScenepack": "Sterge Scenepack",
+      "messageScenepack": "Esti sigur ca vrei sa stergi acest Scenepack?",
+      "noteFolder": "Toate Scenepack-urile din interiorul acestui folder vor fi mutate pe root."
     },
     "thumbnail": {
-      "invalidType": "Thumbnail must be a PNG, JPEG, WebP, or GIF image.",
-      "filterName": "Images",
-      "saving": "Saving...",
-      "dropHint": "Drop an image here, or click to browse",
-      "formats": "PNG, JPEG, WebP, or GIF"
+      "invalidType": "Thumbnail-ul trebuie sa fie o imagine PNG, JPEG, WebP sau GIF.",
+      "filterName": "Imagini",
+      "saving": "Se salveaza...",
+      "dropHint": "Trage o imagine aici, sau apasa pentru a naviga",
+      "formats": "PNG, JPEG, WebP, sau GIF"
     }
   },
   "addToScenepack": {
-    "title": "Add to Scenepack",
+    "title": "Adauga la Scenepack",
     "titleCount_one": "Add {{count}} clip to Scenepack",
     "titleCount_other": "Add {{count}} clips to Scenepack",
     "existing": "Existing",
@@ -138,65 +138,65 @@
     "deselectAll": "Deselect all",
     "clear": "Clear",
     "clearSelection": "Clear selection",
-    "addingProgress_one": "Adding {{count}} clip...",
-    "addingProgress_other": "Adding {{count}} clips...",
-    "addFailed": "Failed to add clips to Scenepack.",
-    "createAndAddAll": "Create & Add All"
+    "addingProgress_one": "Se adauga {{count}} clip...",
+    "addingProgress_other": "Se adauga {{count}} de clip-uri...",
+    "addFailed": "Adaugarea clipurilor la Scenepack a esuat.",
+    "createAndAddAll": "Creeaza si adauga tot"
   },
   "clip": {
-    "download": "Download this clip",
-    "downloading": "Downloading…",
-    "openInTools": "Open in Tools",
+    "download": "Descarca acest clip",
+    "downloading": "Se descarca…",
+    "openInTools": "Deschide in unelte",
     "videoFilter": "Video",
-    "deleteClips_one": "Delete clip",
-    "deleteClips_other": "Delete {{count}} clips",
-    "select": "Select clip",
-    "deselect": "Deselect clip",
-    "removeFromScenepack": "Remove from Scenepack",
+    "deleteClips_one": "Sterge clipul",
+    "deleteClips_other": "Se sterg {{count}} clipuri",
+    "select": "Selecteaza clipul",
+    "deselect": "Deselecteaza clipul",
+    "removeFromScenepack": "Sterge din Scenepack",
     "status": {
-      "merging": "Merging...",
-      "splitting": "Splitting...",
-      "adding": "Adding..."
+      "merging": "Se combina...",
+      "splitting": "Se separa...",
+      "adding": "Se adauga..."
     },
     "tooltip": {
-      "timeframe": "Timeframe: {{timeframe}}",
-      "starts": "Starts: {{motion}}",
-      "ends": "Ends: {{motion}}"
+      "timeframe": "Timegrame: {{timeframe}}",
+      "starts": "Pornire: {{motion}}",
+      "ends": "Sfarsit: {{motion}}"
     }
   },
   "confidence": {
-    "veryHigh": "Very High Confidence",
-    "high": "High Confidence",
-    "good": "Good Confidence",
-    "fair": "Fair Confidence",
-    "low": "Low Confidence",
-    "match": "Match: {{pct}}%",
-    "matchWithLabel": "Match: {{pct}}% ({{label}})"
+    "veryHigh": "Nivel foarte ridicat de incredere",
+    "high": "Nivel ridicat de incredere",
+    "good": "Nivel bun de incredere",
+    "fair": "Nivel echilibrat de incredere",
+    "low": "Nivel prost de incredere",
+    "match": "Potrivire: {{pct}}%",
+    "matchWithLabel": "Potrivire: {{pct}}% ({{label}})"
   },
   "emptyGrid": {
     "noScenepack": {
-      "title": "No Scenepack opened.",
-      "hint": "Select one from the sidebar to view its clips."
+      "title": "Niciun Scenepack deschis.",
+      "hint": "Selecteaza unul din bara laterala pentru a vedea clipurile lui."
     },
     "flowNoScenes": {
-      "title": "No scenes found for this clip.",
-      "hint": "Add a database to the Searching list on the left."
+      "title": "Nu au fost gasite scene pentru acest clip.",
+      "hint": "Adauga o baza de date la lista de cautare din stanga."
     },
     "flowNoClip": {
-      "title": "No clip to continue yet.",
-      "hint": "Input an episode above, or right-click a clip in your Library and pick Find matching clips."
+      "title": "Niciun clip pentru a continua.",
+      "hint": "Introdu un episod de mai sus, sau apasa clic dreapta pe un clip din libraria ta. si apasa pe \"Gasiti clipuri potrivite\"."
     },
     "searchNoMatch": {
-      "title": "No scenes matched your search.",
-      "hint": "Try changing your search terms."
+      "title": "Nicio scena nu se potriveste cu cautarea ta.",
+      "hint": "Incearca sa schimbi termenii de cautare."
     },
     "searchIdle": {
-      "title": "No scenes found.",
-      "hint": "Select one or more databases on the left, describe a scene, and press Enter to search."
+      "title": "Nici o scena gasita.",
+      "hint": "Selecteaza una sau mai multe baze de date din stanga, descrie o scena, si apasa Enter pentru a cauta."
     },
     "noVideo": {
-      "title": "No video loaded.",
-      "hint": "If no clips are displaying, try changing the episode storage path in general settings."
+      "title": "Niciun videoclip incarcat.",
+      "hint": "Daca nu sunt afisate clipuri, incearca sa schimbi calea de stocare a episodului in setarile generale."
     }
   }
 }
