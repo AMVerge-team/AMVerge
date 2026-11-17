@@ -30,29 +30,29 @@ Rust Core (frontend/src-tauri/src/)
 
 ### Frontend (`frontend/src/`)
 
-- **`pages/`** — Top-level screens:
-  - `HomePage.tsx` — Preview pane and clip grid for imported episodes
-  - `SceneScoutPage.tsx` — Semantic text search and Flow / Match visual search
-  - `ScenepacksPage.tsx` — Custom curated clip collections
-  - `EventsPage.tsx` — Community editing events feed and submissions
-  - `Menu.tsx` — Tools (standalone depth/upscale), Patch Notes, Console, Bug Report, About
-  - `Settings.tsx` — General, Appearance, Features/AI packs, Model weights, Export profiles
-- **`components/`** — Modular UI organized by area:
-  - `clipsGrid/` — Virtualized clip tiles, hover/grid playback, multi-selection, WebP & proxy queues
-  - `previewPanel/` — Focused video preview player and export bar
-  - `sidebar/` — App navigation, `episodePanel/` tree (folders, sorting, drag-and-drop), and `scenepacks/` panel
-  - `sceneScout/` — Database sidebar, search/flow toolbars, guided tour, and add-episode modals
-  - `tools/` — Side-by-side preview and controls for standalone Upscale and Depth passes
-  - `settings/` — Settings panels and export profile editors
-- **`features/`** — Domain workflows kept outside React components (`import/`, `export/`, `sceneScout/`, `tools/`, `storage/`, `migration/`, `aiDeps/`, `processes/`).
-- **`stores/`** — Zustand stores separating persisted user data (IndexedDB for episodes, localStorage for settings/themes) from runtime state (grid loading, progress, preview caches).
-- **`hooks/`** — Shared lifecycle and action hooks (`useImportPipeline`, `useExport`, `useDragDropImport`, `useHEVCSupport`, `useDiscordAuth`, `useDiscordRPC`, etc.).
+- **`pages/`** - Top-level screens:
+  - `HomePage.tsx` - Preview pane and clip grid for imported episodes
+  - `SceneScoutPage.tsx` - Semantic text search and Flow / Match visual search
+  - `ScenepacksPage.tsx` - Custom curated clip collections
+  - `EventsPage.tsx` - Community editing events feed and submissions
+  - `Menu.tsx` - Tools (standalone depth/upscale), Patch Notes, Console, Bug Report, About
+  - `Settings.tsx` - General, Appearance, Features/AI packs, Model weights, Export profiles
+- **`components/`** - Modular UI organized by area:
+  - `clipsGrid/` - Virtualized clip tiles, hover/grid playback, multi-selection, WebP & proxy queues
+  - `previewPanel/` - Focused video preview player and export bar
+  - `sidebar/` - App navigation, `episodePanel/` tree (folders, sorting, drag-and-drop), and `scenepacks/` panel
+  - `sceneScout/` - Database sidebar, search/flow toolbars, guided tour, and add-episode modals
+  - `tools/` - Side-by-side preview and controls for standalone Upscale and Depth passes
+  - `settings/` - Settings panels and export profile editors
+- **`features/`** - Domain workflows kept outside React components (`import/`, `export/`, `sceneScout/`, `tools/`, `storage/`, `migration/`, `aiDeps/`, `processes/`).
+- **`stores/`** - Zustand stores separating persisted user data (IndexedDB for episodes, localStorage for settings/themes) from runtime state (grid loading, progress, preview caches).
+- **`hooks/`** - Shared lifecycle and action hooks (`useImportPipeline`, `useExport`, `useDragDropImport`, `useHEVCSupport`, `useDiscordAuth`, `useDiscordRPC`, etc.).
 
 ### Rust / Tauri Core (`frontend/src-tauri/src/`)
 
-- **`main.rs`** — App bootstrap, plugin setup (`shell`, `dialog`, `updater`), managed state, command registration, and child-process cleanup on exit.
-- **`commands/`** — Frontend-callable handlers split by domain (`scenes.rs`, `scene_resume.rs`, `export/`, `tools.rs`, `scene_scout/`, `scenepacks.rs`, `preview/`, `deps/`, `models.rs`, `editor_import/`, `settings.rs`, `cache.rs`, `migration.rs`, `auth.rs`, `discord/`, `events.rs`, `notifications.rs`, `bug_report.rs`).
-- **`utils/`** — Sidecar resolution (`sidecar.rs`), FFmpeg discovery (`ffmpeg.rs`), Windows Job-Object & process-tree termination (`process.rs`), storage paths (`paths.rs`), and logging.
+- **`main.rs`** - App bootstrap, plugin setup (`shell`, `dialog`, `updater`), managed state, command registration, and child-process cleanup on exit.
+- **`commands/`** - Frontend-callable handlers split by domain (`scenes.rs`, `scene_resume.rs`, `export/`, `tools.rs`, `scene_scout/`, `scenepacks.rs`, `preview/`, `deps/`, `models.rs`, `editor_import/`, `settings.rs`, `cache.rs`, `migration.rs`, `auth.rs`, `discord/`, `events.rs`, `notifications.rs`, `bug_report.rs`).
+- **`utils/`** - Sidecar resolution (`sidecar.rs`), FFmpeg discovery (`ffmpeg.rs`), Windows Job-Object & process-tree termination (`process.rs`), storage paths (`paths.rs`), and logging.
 
 ### Python Backend (`AMVerge-CLI`)
 
