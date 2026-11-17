@@ -26,6 +26,105 @@ pub fn get_default_episodes_dir(app: AppHandle) -> Result<String, String> {
     Ok(path.to_string_lossy().to_string())
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StorageBreakdown {
+    pub episodes_root: String,
+    pub episodes_bytes: u64,
+    pub episodes_count: usize,
+    pub scenepacks_bytes: u64,
+    pub scenepacks_count: usize,
+    pub scene_scout_bytes: u64,
+    pub scene_scout_count: usize,
+    pub preview_cache_bytes: u64,
+    pub tools_cache_bytes: u64,
+    pub export_cache_bytes: u64,
+}
+
+#[tauri::command]
+pub async fn get_storage_breakdown(
+    app: AppHandle,
+    custom_episodes_path: Option<String>,
+) -> Result<StorageBreakdown, String> {
+    let app_for_task = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        use crate::commands::deps::status::dir_size_bytes;
+        use crate::utils::paths::{
+            is_episode_cache_dir, resolve_episodes_storage_dir, resolve_scene_scout_storage_dir,
+            resolve_scenepacks_storage_dir, resolve_storage_root,
+        };
+
+        let root = resolve_storage_root(&app_for_task, custom_episodes_path.as_deref())?;
+        let ep_dir = resolve_episodes_storage_dir(&app_for_task, custom_episodes_path.as_deref())?;
+        let sp_dir =
+            resolve_scenepacks_storage_dir(&app_for_task, custom_episodes_path.as_deref())?;
+        let scout_dir =
+            resolve_scene_scout_storage_dir(&app_for_task, custom_episodes_path.as_deref())?;
+
+        let episodes_bytes = dir_size_bytes(&ep_dir);
+        let episodes_count = std::fs::read_dir(&ep_dir)
+            .ok()
+            .map(|rd| {
+                rd.flatten()
+                    .filter(|e| is_episode_cache_dir(&e.path()))
+                    .count()
+            })
+            .unwrap_or(0);
+
+        let scenepacks_bytes = dir_size_bytes(&sp_dir);
+        let scenepacks_count = std::fs::read_dir(&sp_dir)
+            .ok()
+            .map(|rd| rd.flatten().filter(|e| e.path().is_dir()).count())
+            .unwrap_or(0);
+
+        let scene_scout_bytes = dir_size_bytes(&scout_dir);
+        let scene_scout_count = std::fs::read_dir(&scout_dir)
+            .ok()
+            .map(|rd| {
+                rd.flatten()
+                    .filter(|e| {
+                        let p = e.path();
+                        p.is_file()
+                            && matches!(
+                                p.extension().and_then(|s| s.to_str()).map(|s| s.to_lowercase()).as_deref(),
+                                Some("scoutdb") | Some("db") | Some("scdb") | Some("sqlite") | Some("sqlite3")
+                            )
+                    })
+                    .count()
+            })
+            .unwrap_or(0);
+
+        let app_cache = app_for_task.path().app_cache_dir().ok();
+        let preview_cache_bytes = app_cache
+            .as_ref()
+            .map(|c| dir_size_bytes(&c.join("scene_range_previews")))
+            .unwrap_or(0);
+        let tools_cache_bytes = app_cache
+            .as_ref()
+            .map(|c| dir_size_bytes(&c.join("tools_inputs")))
+            .unwrap_or(0);
+        let export_cache_bytes = app_cache
+            .as_ref()
+            .map(|c| dir_size_bytes(&c.join("export_keyframes")))
+            .unwrap_or(0);
+
+        Ok(StorageBreakdown {
+            episodes_root: root.to_string_lossy().to_string(),
+            episodes_bytes,
+            episodes_count,
+            scenepacks_bytes,
+            scenepacks_count,
+            scene_scout_bytes,
+            scene_scout_count,
+            preview_cache_bytes,
+            tools_cache_bytes,
+            export_cache_bytes,
+        })
+    })
+    .await
+    .map_err(|e| format!("Storage breakdown failed: {e}"))?
+}
+
 /// moves every folder in `OWNED_STORAGE_DIRS` to the new root; returns the old episodes folder for path rewrites
 #[tauri::command]
 pub async fn move_storage_to_new_dir(
@@ -39,30 +138,264 @@ pub async fn move_storage_to_new_dir(
     let old_episodes = resolve_episodes_storage_dir(&app, old_dir.as_deref())?;
     let old_episodes_string = old_episodes.to_string_lossy().to_string();
 
-    if old_root == new_root {
+    if same_fs_path(&old_root, &new_root) {
         return Ok(old_episodes_string);
     }
 
+    let app_for_task = app.clone();
     // a cross-drive move copies gigabytes; on the main thread windows marked the app hung and closed it
-    tauri::async_runtime::spawn_blocking(move || move_storage(&old_root, &new_root))
-        .await
-        .map_err(|e| format!("Storage move failed: {e}"))??;
+    tauri::async_runtime::spawn_blocking(move || {
+        move_storage_with_progress(&old_root, &new_root, Some(&app_for_task))
+    })
+    .await
+    .map_err(|e| format!("Storage move failed: {e}"))??;
 
     Ok(old_episodes_string)
 }
 
+#[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct StorageMoveProgressPayload {
+    percent: f64,
+    indeterminate: bool,
+    message: String,
+}
+
+#[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct StorageMoveLogPayload {
+    line: String,
+}
+
+pub(crate) fn emit_move_log(app: Option<&AppHandle>, line: impl Into<String>) {
+    let text = line.into();
+    if let Some(app) = app {
+        use tauri::Emitter;
+        let _ = app.emit("storage_move_log", StorageMoveLogPayload { line: text });
+    }
+}
+
+pub(crate) fn emit_move_progress(
+    app: Option<&AppHandle>,
+    percent: f64,
+    indeterminate: bool,
+    message: impl Into<String>,
+) {
+    if let Some(app) = app {
+        use tauri::Emitter;
+        let _ = app.emit(
+            "storage_move_progress",
+            StorageMoveProgressPayload {
+                percent,
+                indeterminate,
+                message: message.into(),
+            },
+        );
+    }
+}
+
+pub(crate) fn format_bytes_human(bytes: u64) -> String {
+    const MB: f64 = 1024.0 * 1024.0;
+    const GB: f64 = 1024.0 * MB;
+    if (bytes as f64) >= GB {
+        format!("{:.2} GB", bytes as f64 / GB)
+    } else if (bytes as f64) >= MB {
+        format!("{:.1} MB", bytes as f64 / MB)
+    } else if bytes >= 1024 {
+        format!("{:.0} KB", bytes as f64 / 1024.0)
+    } else {
+        format!("{bytes} B")
+    }
+}
+
+pub(crate) fn scan_path_stats(path: &Path) -> (u64, usize) {
+    if !path.exists() {
+        return (0, 0);
+    }
+    if path.is_file() {
+        let len = path.metadata().map(|m| m.len()).unwrap_or(0);
+        return (len, 1);
+    }
+    let Ok(entries) = fs::read_dir(path) else {
+        return (0, 0);
+    };
+    let mut bytes = 0u64;
+    let mut files = 0usize;
+    for entry in entries.flatten() {
+        let p = entry.path();
+        let Ok(meta) = entry.metadata() else { continue };
+        if meta.is_dir() {
+            let (sub_b, sub_f) = scan_path_stats(&p);
+            bytes += sub_b;
+            files += sub_f;
+        } else {
+            bytes += meta.len();
+            files += 1;
+        }
+    }
+    (bytes, files)
+}
+
+pub(crate) struct MoveProgressTracker<'a> {
+    pub app: Option<&'a AppHandle>,
+    pub total_bytes: u64,
+    pub total_files: usize,
+    pub moved_bytes: u64,
+    pub moved_files: usize,
+    pub started_at: std::time::Instant,
+    pub last_progress_emit: std::time::Instant,
+    pub last_log_emit: std::time::Instant,
+}
+
+impl<'a> MoveProgressTracker<'a> {
+    pub fn new(app: Option<&'a AppHandle>, total_bytes: u64, total_files: usize) -> Self {
+        let now = std::time::Instant::now();
+        Self {
+            app,
+            total_bytes,
+            total_files,
+            moved_bytes: 0,
+            moved_files: 0,
+            started_at: now,
+            last_progress_emit: now,
+            last_log_emit: now,
+        }
+    }
+
+    pub fn log(&self, line: impl Into<String>) {
+        emit_move_log(self.app, line);
+    }
+
+    pub fn advance(&mut self, bytes: u64, files: usize, label: &str, force_log: bool) {
+        self.moved_bytes = self.moved_bytes.saturating_add(bytes);
+        self.moved_files = self.moved_files.saturating_add(files);
+
+        let now = std::time::Instant::now();
+        let pct = if self.total_bytes > 0 {
+            ((self.moved_bytes as f64 / self.total_bytes as f64) * 98.0).clamp(1.0, 98.0)
+        } else if self.total_files > 0 {
+            ((self.moved_files as f64 / self.total_files as f64) * 98.0).clamp(1.0, 98.0)
+        } else {
+            98.0
+        };
+
+        let elapsed = self.started_at.elapsed().as_secs_f64().max(0.05);
+        let speed_mb = (self.moved_bytes as f64 / (1024.0 * 1024.0)) / elapsed;
+        let msg = if self.total_bytes > 0 {
+            format!(
+                "Moving files ({} / {} · {:.1} MB/s)",
+                format_bytes_human(self.moved_bytes),
+                format_bytes_human(self.total_bytes),
+                speed_mb
+            )
+        } else {
+            format!("Moving {}/{}: {label}", self.moved_files, self.total_files)
+        };
+
+        if force_log || now.duration_since(self.last_progress_emit).as_millis() >= 90 {
+            self.last_progress_emit = now;
+            emit_move_progress(self.app, pct, false, msg);
+        }
+
+        if force_log
+            || bytes >= 8 * 1024 * 1024
+            || now.duration_since(self.last_log_emit).as_millis() >= 180
+        {
+            self.last_log_emit = now;
+            self.log(format!("  moved {label} ({})", format_bytes_human(bytes)));
+        }
+    }
+}
+
+#[allow(dead_code)]
 fn move_storage(old_root: &Path, new_root: &Path) -> Result<(), String> {
+    move_storage_with_progress(old_root, new_root, None)
+}
+
+pub(crate) fn normalize_fs_path(path: &Path) -> PathBuf {
+    let resolved = fs::canonicalize(path).unwrap_or_else(|_| {
+        // resolve the longest existing ancestor so non-existent child paths still normalize drive/symlinks
+        let mut tail = Vec::new();
+        let mut cur = Some(path);
+        while let Some(p) = cur {
+            if let Ok(canon) = fs::canonicalize(p) {
+                let mut out = canon;
+                for part in tail.into_iter().rev() {
+                    out.push(part);
+                }
+                return out;
+            }
+            if let Some(name) = p.file_name() {
+                tail.push(name.to_os_string());
+                cur = p.parent();
+            } else {
+                break;
+            }
+        }
+        path.to_path_buf()
+    });
+
+    let raw = resolved.to_string_lossy();
+    let stripped = raw.trim_start_matches(r"\\?\");
+    let clean = stripped.trim_end_matches(['/', '\\']);
+    if cfg!(windows) || cfg!(target_os = "macos") {
+        PathBuf::from(clean.replace('/', "\\").to_lowercase())
+    } else {
+        PathBuf::from(clean)
+    }
+}
+
+pub(crate) fn same_fs_path(a: &Path, b: &Path) -> bool {
+    normalize_fs_path(a) == normalize_fs_path(b)
+}
+
+pub(crate) fn path_is_inside_fs(child: &Path, parent: &Path) -> bool {
+    let norm_child = normalize_fs_path(child);
+    let norm_parent = normalize_fs_path(parent);
+    norm_child.starts_with(&norm_parent)
+}
+
+fn move_storage_with_progress(
+    old_root: &Path,
+    new_root: &Path,
+    app: Option<&AppHandle>,
+) -> Result<(), String> {
+    if same_fs_path(old_root, new_root) {
+        return Ok(());
+    }
+
     // source folders that were copied but could not be deleted (locked files)
     let mut leftovers: Vec<String> = Vec::new();
 
     // a root inside one of the folders being moved would move that folder into itself
     for dir_name in OWNED_STORAGE_DIRS {
-        if new_root.starts_with(old_root.join(dir_name)) {
+        if path_is_inside_fs(new_root, &old_root.join(dir_name)) {
             return Err(format!("Pick a folder outside the current {dir_name} folder."));
         }
     }
 
     fs::create_dir_all(new_root).map_err(|e| format!("Failed to create new directory: {e}"))?;
+
+    emit_move_progress(app, 0.0, true, "Scanning files...");
+    let mut total_bytes = 0u64;
+    let mut total_files = 0usize;
+    for dir_name in OWNED_STORAGE_DIRS {
+        let src_dir = old_root.join(dir_name);
+        if src_dir.is_dir() {
+            let (b, f) = scan_path_stats(&src_dir);
+            total_bytes += b;
+            total_files += f;
+        }
+    }
+
+    let mut tracker = MoveProgressTracker::new(app, total_bytes, total_files);
+    tracker.log(format!(
+        "Moving library storage -> {} ({} across {} file{})",
+        new_root.display(),
+        format_bytes_human(total_bytes),
+        total_files,
+        if total_files == 1 { "" } else { "s" }
+    ));
 
     for dir_name in OWNED_STORAGE_DIRS {
         let src_dir = old_root.join(dir_name);
@@ -71,10 +404,11 @@ fn move_storage(old_root: &Path, new_root: &Path) -> Result<(), String> {
         }
 
         let dest_dir = new_root.join(dir_name);
+        tracker.log(format!("Relocating {dir_name}..."));
 
         // the whole folder goes over as one, so nothing of it stays behind at the old root
         if !dest_dir.exists() {
-            move_entry(&src_dir, &dest_dir, &mut leftovers)?;
+            move_entry_tracked(&src_dir, &dest_dir, &mut leftovers, Some(&mut tracker), dir_name)?;
             continue;
         }
 
@@ -83,7 +417,15 @@ fn move_storage(old_root: &Path, new_root: &Path) -> Result<(), String> {
             fs::read_dir(&src_dir).map_err(|e| format!("Failed to read old directory: {e}"))?
         {
             let entry = entry.map_err(|e| format!("Failed to read entry: {e}"))?;
-            move_entry(&entry.path(), &dest_dir.join(entry.file_name()), &mut leftovers)?;
+            let name = entry.file_name();
+            let rel = format!("{dir_name}/{}", name.to_string_lossy());
+            move_entry_tracked(
+                &entry.path(),
+                &dest_dir.join(name),
+                &mut leftovers,
+                Some(&mut tracker),
+                &rel,
+            )?;
         }
 
         if fs::read_dir(&src_dir).map(|mut it| it.next().is_none()).unwrap_or(false) {
@@ -92,6 +434,10 @@ fn move_storage(old_root: &Path, new_root: &Path) -> Result<(), String> {
     }
 
     if !leftovers.is_empty() {
+        tracker.log(format!(
+            "Finished copying; {} locked source item(s) left behind.",
+            leftovers.len()
+        ));
         console_log(
             "SETTINGS|move",
             &format!(
@@ -101,45 +447,179 @@ fn move_storage(old_root: &Path, new_root: &Path) -> Result<(), String> {
         );
     }
 
+    emit_move_progress(app, 100.0, false, "Storage move complete.");
+    tracker.log("Storage move complete.");
+
     Ok(())
 }
 
-/// moves a folder or file, else copy then best-effort delete; a locked survivor becomes a leftover, never an abort
 pub(crate) fn move_entry(src: &Path, dest: &Path, leftovers: &mut Vec<String>) -> Result<(), String> {
-    // fast path: same volume, nothing holding the files open
-    if fs::rename(src, dest).is_ok() {
+    move_entry_tracked(src, dest, leftovers, None, "")
+}
+
+/// moves a folder or file, else copy then best-effort delete; a locked survivor becomes a leftover, never an abort
+pub(crate) fn move_entry_tracked(
+    src: &Path,
+    dest: &Path,
+    leftovers: &mut Vec<String>,
+    mut tracker: Option<&mut MoveProgressTracker<'_>>,
+    rel_label: &str,
+) -> Result<(), String> {
+    if same_fs_path(src, dest) {
         return Ok(());
     }
 
-    if src.is_dir() {
-        // contents only: with `copy_inside` and an existing `dest`, fs_extra nested the folder as `dest/<name>`
-        let mut options = fs_extra::dir::CopyOptions::new();
-        options.content_only = true;
-        options.overwrite = true;
+    let sym_meta = fs::symlink_metadata(src)
+        .map_err(|e| format!("Failed to inspect {}: {e}", src.display()))?;
+    let is_symlink = sym_meta.file_type().is_symlink();
 
-        fs::create_dir_all(dest)
-            .map_err(|e| format!("Failed to create destination folder: {e}"))?;
-
-        fs_extra::dir::copy(src, dest, &options)
-            .map_err(|e| format!("Failed to copy directory: {e}"))?;
-    } else {
-        fs::copy(src, dest).map_err(|e| format!("Failed to copy file: {e}"))?;
+    // fast path: same volume, nothing holding the files open (only when destination doesn't already exist)
+    if fs::symlink_metadata(dest).is_err() && fs::rename(src, dest).is_ok() {
+        if let Some(t) = tracker.as_deref_mut() {
+            let (b, f) = scan_path_stats(dest);
+            t.advance(b, f, rel_label, true);
+        }
+        return Ok(());
     }
 
-    if !remove_with_retries(src) {
-        leftovers.push(src.to_string_lossy().to_string());
+    if is_symlink {
+        if let Some(parent) = dest.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|e| format!("Failed to create parent folder: {e}"))?;
+        }
+        if fs::symlink_metadata(dest).is_ok() {
+            let _ = remove_with_retries(dest);
+        }
+        let link_target = fs::read_link(src)
+            .map_err(|e| format!("Failed to read symlink {}: {e}", src.display()))?;
+        recreate_or_materialize_symlink(src, dest, &link_target, &sym_meta)?;
+        if let Some(t) = tracker.as_deref_mut() {
+            t.advance(0, 1, rel_label, false);
+        }
+        if !remove_with_retries(src) {
+            leftovers.push(src.to_string_lossy().to_string());
+        }
+        return Ok(());
+    }
+
+    if sym_meta.is_dir() {
+        fs::create_dir_all(dest)
+            .map_err(|e| format!("Failed to create destination folder: {e}"))?;
+        let mut entries: Vec<fs::DirEntry> = fs::read_dir(src)
+            .map_err(|e| format!("Failed to read directory: {e}"))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("Failed to read entry: {e}"))?;
+        // move real files/folders (e.g. HF `blobs/`) before symlinks or `snapshots/` so relative targets exist in dest first
+        entries.sort_by_key(|entry| {
+            let is_sym = fs::symlink_metadata(entry.path())
+                .map(|m| m.file_type().is_symlink())
+                .unwrap_or(false);
+            let name = entry.file_name().to_string_lossy().to_lowercase();
+            let is_snapshots = name == "snapshots";
+            (is_sym || is_snapshots, name)
+        });
+        for entry in entries {
+            let child_src = entry.path();
+            let child_name = entry.file_name();
+            let child_dest = dest.join(&child_name);
+            let child_rel = format!("{rel_label}/{}", child_name.to_string_lossy());
+            move_entry_tracked(
+                &child_src,
+                &child_dest,
+                leftovers,
+                tracker.as_deref_mut(),
+                &child_rel,
+            )?;
+        }
+        if !remove_with_retries(src) {
+            leftovers.push(src.to_string_lossy().to_string());
+        }
+    } else {
+        if let Some(parent) = dest.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|e| format!("Failed to create parent folder: {e}"))?;
+        }
+        let copied = fs::copy(src, dest).map_err(|e| format!("Failed to copy file: {e}"))?;
+        if let Some(t) = tracker.as_deref_mut() {
+            t.advance(copied, 1, rel_label, false);
+        }
+        if !remove_with_retries(src) {
+            leftovers.push(src.to_string_lossy().to_string());
+        }
     }
 
     Ok(())
+}
+
+/// recreates a symlink (like Hugging Face snapshot -> ../../blobs/<sha>) or hard-links/copies the moved target when symlink privilege is unavailable
+fn recreate_or_materialize_symlink(
+    src: &Path,
+    dest: &Path,
+    link_target: &Path,
+    sym_meta: &fs::Metadata,
+) -> Result<(), String> {
+    #[cfg(windows)]
+    let link_res = {
+        use std::os::windows::fs::FileTypeExt;
+        if sym_meta.file_type().is_symlink_dir() {
+            std::os::windows::fs::symlink_dir(link_target, dest)
+        } else {
+            std::os::windows::fs::symlink_file(link_target, dest)
+        }
+    };
+    #[cfg(unix)]
+    let link_res = {
+        let _ = sym_meta;
+        std::os::unix::fs::symlink(link_target, dest)
+    };
+
+    if link_res.is_ok() {
+        return Ok(());
+    }
+
+    // fallback when OS blocks symlink creation: resolve the target in dest first (since blobs/ moves before snapshots/), else in src
+    let resolved = if link_target.is_absolute() {
+        link_target.to_path_buf()
+    } else {
+        let in_dest = dest
+            .parent()
+            .map(|p| p.join(link_target))
+            .filter(|p| p.exists());
+        let in_src = src
+            .parent()
+            .map(|p| p.join(link_target))
+            .filter(|p| p.exists());
+        in_dest
+            .or(in_src)
+            .ok_or_else(|| format!("Failed to resolve symlink target {}", link_target.display()))?
+    };
+
+    if resolved.is_file() {
+        if fs::hard_link(&resolved, dest).is_ok() {
+            return Ok(());
+        }
+        fs::copy(&resolved, dest)
+            .map(|_| ())
+            .map_err(|e| format!("Failed to copy symlink target: {e}"))
+    } else {
+        Err(format!(
+            "Failed to recreate directory symlink {} -> {}",
+            dest.display(),
+            link_target.display()
+        ))
+    }
 }
 
 /// deletes with short retries, since windows frees handles just after the webview drops them; false leaves a leftover
 fn remove_with_retries(path: &Path) -> bool {
+    let is_real_dir = fs::symlink_metadata(path)
+        .map(|m| m.is_dir() && !m.file_type().is_symlink())
+        .unwrap_or(false);
     for attempt in 0..5 {
-        let result = if path.is_dir() {
+        let result = if is_real_dir {
             fs::remove_dir_all(path)
         } else {
-            fs::remove_file(path)
+            fs::remove_file(path).or_else(|_| fs::remove_dir(path))
         };
 
         match result {
@@ -717,5 +1197,66 @@ mod tests {
         let err = move_storage(&old, &old.join("episodes_storage/inner")).unwrap_err();
         assert!(err.contains("episodes_storage"));
         assert!(old.join("episodes_storage/ep1/manifest.json").is_file());
+    }
+
+    #[test]
+    fn moving_to_same_path_with_trailing_slash_or_case_keeps_files_intact() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path().join("StorageRoot");
+        let ep_file = root.join("episodes_storage/ep1/manifest.json");
+        fs::create_dir_all(ep_file.parent().unwrap()).unwrap();
+        fs::write(&ep_file, b"{\"important\":true}").unwrap();
+
+        let variant = PathBuf::from(format!("{}/", root.to_string_lossy()));
+        move_storage(&root, &variant).unwrap();
+        assert_eq!(fs::read(&ep_file).unwrap(), b"{\"important\":true}");
+
+        let mut leftovers = Vec::new();
+        move_entry_tracked(&ep_file, &ep_file, &mut leftovers, None, "manifest.json").unwrap();
+        assert_eq!(fs::read(&ep_file).unwrap(), b"{\"important\":true}");
+    }
+
+    #[test]
+    fn moves_hf_snapshot_symlinks_when_copy_fallback_moves_blobs_first() {
+        let tmp = tempfile::tempdir().unwrap();
+        let src = tmp.path().join("src_siglip");
+        let dst = tmp.path().join("dst_siglip");
+        let blob = src.join("blobs/11a61a2068800d5f4f35cb041c1fea25");
+        let snap_dir = src.join("snapshots/cc24074f717b6129");
+        fs::create_dir_all(blob.parent().unwrap()).unwrap();
+        fs::create_dir_all(&snap_dir).unwrap();
+        fs::write(&blob, b"safetensors-weights").unwrap();
+
+        let snap_link = snap_dir.join("model.safetensors");
+        let rel_target = PathBuf::from("..").join("..").join("blobs").join("11a61a2068800d5f4f35cb041c1fea25");
+        #[cfg(windows)]
+        let linked = std::os::windows::fs::symlink_file(&rel_target, &snap_link).is_ok();
+        #[cfg(unix)]
+        let linked = std::os::unix::fs::symlink(&rel_target, &snap_link).is_ok();
+
+        if !linked {
+            // if Windows blocks symlink creation in test runner without dev mode, test recreate_or_materialize_symlink directly
+            let dst_blob = dst.join("blobs/11a61a2068800d5f4f35cb041c1fea25");
+            let dst_snap = dst.join("snapshots/cc24074f717b6129/model.safetensors");
+            fs::create_dir_all(dst_blob.parent().unwrap()).unwrap();
+            fs::create_dir_all(dst_snap.parent().unwrap()).unwrap();
+            fs::rename(&blob, &dst_blob).unwrap();
+            let dummy_meta = fs::metadata(&dst_blob).unwrap();
+            recreate_or_materialize_symlink(&snap_link, &dst_snap, &rel_target, &dummy_meta).unwrap();
+            assert_eq!(fs::read(&dst_snap).unwrap(), b"safetensors-weights");
+            return;
+        }
+
+        // pre-create dst so top-level fs::rename(src, dst) fails and takes the recursive copy+delete path
+        fs::create_dir_all(dst.join("snapshots/cc24074f717b6129")).unwrap();
+        fs::write(dst.join("snapshots/cc24074f717b6129/keep.txt"), b"1").unwrap();
+
+        let mut leftovers = Vec::new();
+        move_entry_tracked(&src, &dst, &mut leftovers, None, "hf-cache/siglip2").unwrap();
+
+        let moved_snap = dst.join("snapshots/cc24074f717b6129/model.safetensors");
+        assert!(moved_snap.exists());
+        assert_eq!(fs::read(&moved_snap).unwrap(), b"safetensors-weights");
+        assert!(!src.exists());
     }
 }

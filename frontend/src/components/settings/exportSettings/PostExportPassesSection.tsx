@@ -64,11 +64,11 @@ export default function PostExportPassesSection() {
     <>
       {!depthFeature.hidden && (
         <SettingRow
-          label="Depth map pass"
+          label="Depth map"
           description={`Also save a depth map of each export as <name>_depth.${depthFeature.enabled ? "" : OFF_NOTE}`}
           control={
             <ToggleControl
-              label="Toggle depth map pass"
+              label="Toggle depth map"
               checked={depth.enabled && depthFeature.enabled}
               disabled={!depthFeature.enabled}
               onChange={(enabled) => void enableGatedPass("depth", enabled)}
@@ -117,11 +117,11 @@ export default function PostExportPassesSection() {
       )}
       {!upscaleFeature.hidden && (
         <SettingRow
-          label="Upscale pass"
+          label="Upscaling"
           description={`Also save a higher resolution copy of each export as <name>_upscaled.${upscaleFeature.enabled ? "" : OFF_NOTE}`}
           control={
             <ToggleControl
-              label="Toggle upscale pass"
+              label="Toggle upscaling"
               checked={upscale.enabled && upscaleFeature.enabled}
               disabled={!upscaleFeature.enabled}
               onChange={(enabled) => void enableGatedPass("upscale", enabled)}

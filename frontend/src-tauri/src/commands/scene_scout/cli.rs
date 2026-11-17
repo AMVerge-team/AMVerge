@@ -12,7 +12,9 @@ use super::types::{ScoutIndexProgress, ScoutVideo};
 use crate::utils::logging::{console_log, emit_console_log, sanitize_for_console};
 use crate::utils::paths::resolve_scene_scout_storage_dir;
 use crate::utils::process::{apply_no_window, bind_to_app_lifetime};
-use crate::utils::sidecar::{ai_env_python, amverge_ai_command, amverge_exe_name, dev_python_exe};
+use crate::utils::sidecar::{
+    ai_env_python, amverge_ai_command, amverge_exe_name, apply_ai_env_vars, dev_python_exe,
+};
 
 /// tail of a child's stderr kept for error reporting; older lines are already in the console
 const STDERR_TAIL_BYTES: usize = 64 * 1024;
@@ -253,6 +255,7 @@ print(json.dumps(out, separators=(',', ':')))"#;
 
     let mut std_cmd = std::process::Command::new(py_exe);
     apply_no_window(&mut std_cmd);
+    apply_ai_env_vars(app, &mut std_cmd);
     std_cmd
         .env("PYTHONUTF8", "1")
         .env("PYTHONIOENCODING", "utf-8")

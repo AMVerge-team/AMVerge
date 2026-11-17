@@ -46,6 +46,12 @@ export type AiEnvStatus = {
   scoutModelSizeBytes: number;
   /// false in dev builds, where the CLI checkout's venv is used as-is
   managed: boolean;
+  /// active folder where AI runtime/models/HF cache live (or will be placed on first install)
+  aiRootPath: string;
+  /// where AI storage defaults for this install location (e.g. `<install_dir>/ai`)
+  aiDefaultPath: string;
+  /// non-null when the user chose a custom AI location in Settings > Storage
+  aiCustomPath: string | null;
 };
 
 export type AiPack = {
@@ -70,7 +76,7 @@ export const AI_PACKS: Record<AiPackId, AiPack> = {
   },
   depth: {
     id: "depth",
-    label: "Depth map pass",
+    label: "Depth map",
     dependencyName: "Depth-Anything-V2",
     description: "Creates a depth map of each exported file.",
     extraSizeMb: 60,
@@ -86,7 +92,7 @@ export const AI_PACKS: Record<AiPackId, AiPack> = {
   },
   upscale: {
     id: "upscale",
-    label: "Upscale pass",
+    label: "Upscaling",
     dependencyName: "Spandrel / ONNX Runtime",
     description: "Creates a higher resolution copy of each exported file.",
     extraSizeMb: 120,

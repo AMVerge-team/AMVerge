@@ -272,9 +272,10 @@ pub(crate) fn install_ai_pack_inner(
         .arg(&python)
         .arg(&spec);
 
-    // both, always: torchvision is ABI-locked to torch, so a later pack would swap it
-    for dist in TORCH_FAMILY {
-        cmd.arg(dist);
+    // always pin torch to the selected index; include torchvision only when depth is in the active extras
+    cmd.arg("torch");
+    if extras.contains(&"depth") {
+        cmd.arg("torchvision");
     }
 
     if want_nelux {

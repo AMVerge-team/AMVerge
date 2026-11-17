@@ -25,6 +25,9 @@ export async function clearEpisodePanelCache(): Promise<void> {
   appState.setImportedVideoPath(null);
   appState.setVideoIsHEVC(null);
 
+  // let WebView2 unmount any playing <video> elements so Windows releases clip file locks before deletion
+  await new Promise((resolve) => setTimeout(resolve, 250));
+
   try {
     const customPath = useGeneralSettingsStore.getState().episodesPath;
     await invoke("clear_episode_panel_cache", { customPath });

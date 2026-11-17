@@ -13,7 +13,7 @@ React UI (AMVerge)             Rust / Tauri Bridge           AMVerge-CLI (Python
 ──────────────────             ───────────────────           ────────────────────
 SceneScoutPage                 commands/scene_scout/         amverge scout ...
 SceneScoutPanel       invoke   - passes --root path   spawn  - core/scenescout/
-SceneScoutToolbar   ────────►  - manages daemon     ───────► - SQLite + SigLIP 2
+SceneScoutToolbar   ────────>  - manages daemon     ───────> - SQLite + SigLIP 2
 sceneScoutStore                - streams progress            - JSON stdout / stderr
 ```
 
@@ -98,4 +98,4 @@ amverge scout videos "Test"
 amverge scout search "sunset over water" --db "Test" --json --top-k 5
 ```
 
-Inside the app, Scene Scout requires the `scout` AI pack (managed in **Settings → Features**). In development builds (`tauri:dev`), AI extras run directly out of your local `AMVerge-CLI` virtualenv.
+Inside the app, Scene Scout requires the `scout` AI pack (managed in **Settings -> Features**). In development builds (`tauri:dev`), AI extras run directly out of your local `AMVerge-CLI` virtualenv.
