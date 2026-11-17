@@ -43,7 +43,7 @@
     "subtitle": "Passez d'une page à l'autre, cherchez, ou réglez vos préférences.",
     "search": {
       "title": "Rechercher",
-      "desc": "Chercher dans les épisodes, les Scenepacks, les réglages et les commandes"
+      "desc": "Chercher dans les épisodes, les Scenepacks, les paramètres et les commandes"
     },
     "tools": {
       "title": "Tools",
@@ -54,12 +54,12 @@
       "desc": "À propos, journal des mises à jour, console, crédits et rapports de bug"
     },
     "settings": {
-      "title": "Réglages",
+      "title": "Paramètres",
       "desc": "Options générales, profils d'export, apparence et modèles IA"
     }
   },
   "splash": {
-    "tagline": "Le choix des scènes, en simple."
+    "tagline": "Le choix des scènes, simplifié."
   },
   "features": {
     "aiSceneDetection": "AI Scene Detection",
@@ -67,7 +67,7 @@
     "scenepacks": "Scenepacks",
     "depthPass": "Passe Depth Map",
     "upscalePass": "Passe Upscale",
-    "turnOn": "Activez {{feature}} dans Réglages › Fonctions"
+    "turnOn": "Activez {{feature}} dans Paramètres › Fonctionnalités"
   },
   "sidebar": {
     "library": "Library",
@@ -91,12 +91,12 @@
     }
   },
   "settingsPage": {
-    "title": "Réglages",
+    "title": "Paramètres",
     "tabs": {
       "general": "Général",
       "export": "Export",
       "appearance": "Apparence",
-      "features": "Fonctions",
+      "features": "Fonctionnalités",
       "discord": "Discord RPC",
       "storage": "Stockage"
     }
@@ -106,7 +106,7 @@
   },
   "palette": {
     "ariaLabel": "Centre de commandes",
-    "placeholder": "Chercher des épisodes, des Scenepacks, des actions, des réglages, le menu…",
+    "placeholder": "Chercher des épisodes, des Scenepacks, des actions, des paramètres, le menu…",
     "clear": "Effacer la recherche",
     "emptyTitle": "Aucun résultat",
     "emptyHint": "Essayez un autre titre, ou servez-vous des filtres de catégorie au-dessus",
@@ -120,11 +120,11 @@
       "scenepacks": "Scenepacks",
       "sceneScout": "Scene Scout",
       "actions": "Actions",
-      "settings": "Réglages",
+      "settings": "Paramètres",
       "menu": "Système et menu"
     },
     "inspector": {
-      "empty": "Choisissez un élément pour le voir",
+      "empty": "Sélectionnez un élément pour le voir",
       "target": "Cible",
       "execute": "Lancer la commande",
       "reveal": "Afficher dans {{manager}}"
@@ -152,7 +152,7 @@
       "episodes_other": "{{count}} épisodes",
       "scenes_one": "{{count}} scène",
       "scenes_other": "{{count}} scènes",
-      "description": "Ouvre cette base dans Scene Scout et la fouille."
+      "description": "Ouvre cette base dans Scene Scout et y lance la recherche."
     },
     "scoutSearch": {
       "title": "Scene Scout : Search",
@@ -164,7 +164,7 @@
       "title": "Scene Scout : trouver les clips qui enchaînent",
       "subtitle": "Choisir un fichier vidéo et trouver les scènes qui pourraient le suivre",
       "meta": "Recherche Match",
-      "description": "Trouve les scènes qui semblent suivre la dernière image du fichier choisi."
+      "description": "Trouve les scènes qui semblent suivre la dernière image du fichier sélectionné."
     },
     "import": {
       "title": "Importer un nouvel épisode",
@@ -173,16 +173,16 @@
       "description": "Ouvre le sélecteur de fichiers pour lancer l'IA TransNetV2 ou le démultiplexage rapide par images clés."
     },
     "selectAll": {
-      "title": "Choisir tous les clips",
-      "subtitle_one": "Mettre en évidence la scène de la grille ({{count}})",
+      "title": "Sélectionner tous les clips",
+      "subtitle_one": "Mettre en évidence {{count}} scène de la grille",
       "subtitle_other": "Mettre en évidence les {{count}} scènes de la grille",
       "meta": "Sélection en masse",
-      "description": "Choisit toutes les scènes pour les exporter en lot, les fusionner ou les regrouper en Scenepack."
+      "description": "Sélectionne toutes les scènes pour les exporter en lot, les fusionner ou les regrouper en Scenepack."
     },
     "clearSelection": {
       "title": "Effacer la sélection de clips",
-      "subtitle_one": "Retirer la {{count}} scène choisie de la sélection",
-      "subtitle_other": "Retirer les {{count}} scènes choisies de la sélection",
+      "subtitle_one": "Désélectionner {{count}} scène sélectionnée",
+      "subtitle_other": "Désélectionner les {{count}} scènes sélectionnées",
       "meta": "Tout désélectionner",
       "description": "Vide la sélection dans toute la grille."
     },
@@ -227,34 +227,34 @@
       "description": "Décide si survoler une vignette joue sa piste audio."
     },
     "settingsGeneral": {
-      "title": "Réglages : Général",
+      "title": "Paramètres : Général",
       "subtitle": "Méthodes de détection de scènes, dossier des épisodes et valeurs par défaut",
       "meta": "Préférences générales",
       "defaultPath": "Dossier de cache par défaut",
       "description": "Réglez les algorithmes de détection, les emplacements de cache et le décodage vidéo."
     },
     "settingsExport": {
-      "title": "Réglages : profils d'export",
+      "title": "Paramètres : profils d'export",
       "subtitle": "Encodeurs matériels (NVENC / AMF / QSV) et codecs vidéo",
       "meta": "Configuration de l'export",
       "defaultPath": "Dossier d'export par défaut",
       "description": "Gérez les encodeurs, les débits, les profils matériels et les conteneurs."
     },
     "settingsAppearance": {
-      "title": "Réglages : Apparence",
+      "title": "Paramètres : Apparence",
       "subtitle": "Couleurs, flou du fond d'écran et style des clips",
       "meta": "Style visuel",
       "accent": "Accent : {{color}}",
       "description": "Personnalisez les couleurs, les images de fond, l'opacité et la typographie."
     },
     "settingsFeatures": {
-      "title": "Réglages : Fonctions",
-      "subtitle": "Activez ou coupez AI Scene Detection, Scene Scout, Scenepacks et les passes d'export",
-      "meta": "Fonctions et stockage",
-      "description": "Activez ou coupez les grandes fonctions, téléchargez ce dont elles ont besoin, et voyez la place qu'elles prennent."
+      "title": "Paramètres : Fonctions",
+      "subtitle": "Activez ou désactivez AI Scene Detection, Scene Scout, Scenepacks et les passes d'export",
+      "meta": "Fonctionnalités et stockage",
+      "description": "Activez ou désactivez les grandes fonctionnalités, téléchargez ce dont elles ont besoin, et voyez la place qu'elles prennent."
     },
     "settingsDiscord": {
-      "title": "Réglages : Discord Rich Presence",
+      "title": "Paramètres : Discord Rich Presence",
       "subtitle": "Réglez les badges Discord, les noms de fichiers et le détail affiché",
       "meta": "Intégration Discord RPC",
       "description": "Affichez ce que vous montez et le nombre de clips en cours sur Discord."
@@ -289,7 +289,7 @@
       "title": "Journal des mises à jour",
       "subtitle": "L'historique des versions et les nouveautés d'AMVerge v2",
       "meta": "Journal des versions",
-      "description": "Parcourez les changements, les corrections et les ajouts de fonctions."
+      "description": "Parcourez les changements, les corrections et les ajouts de fonctionnalités."
     },
     "about": {
       "title": "À propos d'AMVerge",

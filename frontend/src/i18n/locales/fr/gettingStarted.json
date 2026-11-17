@@ -2,7 +2,7 @@
   "steps": {
     "0": {
       "title": "Bienvenue dans AMVerge",
-      "body": "Un tour rapide d'AMVerge pour savoir où se trouve chaque page, comment marchent les imports et les aperçus, et où activer les fonctions IA."
+      "body": "Un tour rapide d'AMVerge pour savoir où se trouve chaque page, comment fonctionnent les imports et les aperçus, et où activer les fonctionnalités IA."
     },
     "1": {
       "title": "1. Library",
@@ -10,11 +10,11 @@
     },
     "2": {
       "title": "2. Scenepacks",
-      "body": "<b>Scenepacks</b> réunit vos clips préférés, pris dans n'importe quel épisode, en collections par personnage, par ambiance, etc. Vous pouvez l'activer quand vous voulez dans <b>Réglages › Fonctions</b>."
+      "body": "<b>Scenepacks</b> réunit vos clips préférés, pris dans n'importe quel épisode, en collections par personnage, par ambiance, etc. Vous pouvez l'activer quand vous voulez dans <b>Paramètres › Fonctionnalités</b>."
     },
     "3": {
       "title": "3. Scene Scout",
-      "body": "<b>Scene Scout</b> cherche dans vos épisodes indexés à partir d'une description en langage courant (ou trouve les clips qui enchaînent avec un clip que vous avez déjà). Activez-le et téléchargez-le quand vous voulez dans <b>Réglages › Fonctions</b>."
+      "body": "<b>Scene Scout</b> cherche dans vos épisodes indexés à partir d'une description en langage courant (ou trouve les clips qui enchaînent avec un clip que vous avez déjà). Activez-le et téléchargez-le quand vous voulez dans <b>Paramètres › Fonctionnalités</b>."
     },
     "4": {
       "title": "4. Community Events",
@@ -25,20 +25,20 @@
       "body": "Cliquez sur le <b>bouton ☰</b>, juste à côté du logo AMVerge, pour ouvrir la navigation rapide, ou appuyez sur <b>Suivant</b> pour entrer directement."
     },
     "6": {
-      "title": "6. Ouvrir les réglages",
-      "body": "Cliquez sur <b>Réglages</b> ici pour choisir comment AMVerge détecte les coupes, lit les aperçus et installe les fonctions optionnelles."
+      "title": "6. Ouvrir les paramètres",
+      "body": "Cliquez sur <b>Paramètres</b> ici pour choisir comment AMVerge détecte les coupes, lit les aperçus et installe les fonctionnalités optionnelles."
     },
     "7": {
       "title": "7. Méthodes de détection de scènes",
-      "body": "Choisissez comment les imports trouvent les coupes : <br/>• <b>Keyframe Detection</b> coupe sur les images clés de la vidéo, sans attente, et marche sur n'importe quel PC sans carte graphique. <br/>• <b>AI Scene Detection</b> analyse chaque image avec TransNetV2 pour trouver les changements de plan exacts (plus lent sans carte graphique ; installable à tout moment)."
+      "body": "Choisissez comment les imports trouvent les coupes : <br/>• <b>Keyframe Detection</b> coupe sur les images clés de la vidéo, sans attente, et fonctionne sur n'importe quel PC sans carte graphique. <br/>• <b>AI Scene Detection</b> analyse chaque image avec TransNetV2 pour trouver les changements de plan exacts (plus lent sans carte graphique ; installable à tout moment)."
     },
     "8": {
       "title": "8. Méthodes d'aperçu",
-      "body": "Choisissez ce que la grille lit au survol : <br/>• <b>Video Files</b> découpe de vraies vidéos pour chaque scène, l'aperçu est donc identique à l'export. <br/>• <b>WebP Files</b> fabrique des aperçus animés légers, pour un défilement plus souple et moins de mémoire utilisée (les exports partent toujours de la qualité d'origine)."
+      "body": "Choisissez ce que la grille lit au survol : <br/>• <b>Video Files</b> découpe de vraies vidéos pour chaque scène, l'aperçu est donc identique à l'export. <br/>• <b>WebP Files</b> crée des aperçus animés légers, pour un défilement plus souple et moins de mémoire utilisée (les exports partent toujours de la qualité d'origine)."
     },
     "9": {
-      "title": "9. Fonctions et téléchargements",
-      "body": "Dans <b>Fonctions</b>, activez et téléchargez les outils optionnels quand vous en avez besoin : <b>Scene Scout</b>, <b>AI Scene Detection</b>, <b>Scenepacks</b>, <b>Upscaling</b> et <b>Depth Maps</b>."
+      "title": "9. Fonctionnalités et téléchargements",
+      "body": "Dans <b>Fonctionnalités</b>, activez et téléchargez les outils optionnels quand vous en avez besoin : <b>Scene Scout</b>, <b>AI Scene Detection</b>, <b>Scenepacks</b>, <b>Upscaling</b> et <b>Depth Maps</b>."
     },
     "10": {
       "title": "10. C'est prêt",

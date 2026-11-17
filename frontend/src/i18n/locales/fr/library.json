@@ -17,11 +17,11 @@
       "sortDesc": "Trier de Z à A",
       "newFolder": "Nouveau dossier",
       "showInFolder": "Afficher dans le dossier",
-      "deleteDisabled": "Supprimer l'élément choisi (choisissez d'abord un épisode ou un dossier)",
-      "deleteSelectedEpisodes_one": "Supprimer {{count}} épisode choisi",
-      "deleteSelectedEpisodes_other": "Supprimer {{count}} épisodes choisis",
-      "deleteSelectedEpisode": "Supprimer l'épisode choisi",
-      "deleteSelectedFolder": "Supprimer le dossier choisi"
+      "deleteDisabled": "Supprimer l'élément sélectionné (sélectionnez d'abord un épisode ou un dossier)",
+      "deleteSelectedEpisodes_one": "Supprimer {{count}} épisode sélectionné",
+      "deleteSelectedEpisodes_other": "Supprimer {{count}} épisodes sélectionnés",
+      "deleteSelectedEpisode": "Supprimer l'épisode sélectionné",
+      "deleteSelectedFolder": "Supprimer le dossier sélectionné"
     },
     "menu": {
       "addFolder": "Ajouter un dossier",
@@ -70,7 +70,7 @@
     "header": {
       "title": "Scenepacks",
       "newScenepack": "Nouveau Scenepack",
-      "deleteSelected": "Supprimer l'élément choisi"
+      "deleteSelected": "Supprimer l'élément sélectionné"
     },
     "empty": {
       "title": "Aucun Scenepack pour l'instant",
@@ -132,9 +132,9 @@
     "newScenepack": "Nouveau Scenepack…"
   },
   "selection": {
-    "count_one": "{{count}} choisi",
-    "count_other": "{{count}} choisis",
-    "addSelectedTooltip": "Ajouter les clips choisis à un Scenepack",
+    "count_one": "{{count}} sélectionné",
+    "count_other": "{{count}} sélectionnés",
+    "addSelectedTooltip": "Ajouter les clips sélectionnés à un Scenepack",
     "deselectAll": "Tout désélectionner",
     "clear": "Effacer",
     "clearSelection": "Effacer la sélection",
@@ -150,8 +150,8 @@
     "videoFilter": "Vidéo",
     "deleteClips_one": "Supprimer le clip",
     "deleteClips_other": "Supprimer {{count}} clips",
-    "select": "Choisir le clip",
-    "deselect": "Retirer le clip de la sélection",
+    "select": "Sélectionner le clip",
+    "deselect": "Désélectionner le clip",
     "removeFromScenepack": "Retirer du Scenepack",
     "status": {
       "merging": "Fusion…",
@@ -176,7 +176,7 @@
   "emptyGrid": {
     "noScenepack": {
       "title": "Aucun Scenepack ouvert.",
-      "hint": "Choisissez-en un dans le panneau de gauche pour voir ses clips."
+      "hint": "Sélectionnez-en un dans le panneau de gauche pour voir ses clips."
     },
     "flowNoScenes": {
       "title": "Aucune scène trouvée pour ce clip.",
@@ -192,11 +192,11 @@
     },
     "searchIdle": {
       "title": "Aucune scène trouvée.",
-      "hint": "Choisissez une ou plusieurs bases à gauche, décrivez une scène, puis appuyez sur Entrée."
+      "hint": "Sélectionnez une ou plusieurs bases à gauche, décrivez une scène, puis appuyez sur Entrée."
     },
     "noVideo": {
       "title": "Aucune vidéo chargée.",
-      "hint": "Si aucun clip ne s'affiche, changez le dossier de stockage des épisodes dans les réglages généraux."
+      "hint": "Si aucun clip ne s'affiche, changez le dossier de stockage des épisodes dans les paramètres généraux."
     }
   }
 }

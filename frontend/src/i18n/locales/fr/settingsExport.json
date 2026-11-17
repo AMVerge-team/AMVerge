@@ -4,7 +4,7 @@
     "section": "Profil",
     "active": {
       "label": "Profil actif",
-      "description": "Exporter utilise ce profil."
+      "description": "Le bouton Exporter utilise ce profil."
     },
     "name": {
       "label": "Nom du profil",
@@ -31,7 +31,7 @@
   "openLocation": {
     "label": "Ouvrir le dossier après l'export",
     "description": "Ouvre le dossier et met le fichier en évidence quand un export se termine.",
-    "toggle": "Activer ou couper l'ouverture du dossier d'export"
+    "toggle": "Activer ou désactiver l'ouverture du dossier d'export"
   },
   "container": {
     "label": "Conteneur",
@@ -83,7 +83,7 @@
       "detecting": "Recherche des encodeurs matériels…",
       "usingGpu": "Utilise votre carte {{backend}}. En automatique, le processeur prend le relais en cas d'échec.",
       "usingGpuWithEncoder": "Utilise votre carte {{backend}} ({{encoder}}). En automatique, le processeur prend le relais en cas d'échec.",
-      "gpuUnsupported": "Votre carte graphique ne sait pas encoder ce codec, l'automatique passe donc par le processeur.",
+      "gpuUnsupported": "Votre carte graphique ne peut pas encoder ce codec, l'automatique passe donc par le processeur.",
       "noGpu": "Aucun encodeur matériel trouvé, l'automatique passe donc par le processeur.",
       "nvidiaMatrix": "Tableau NVIDIA"
     },
@@ -127,8 +127,8 @@
     "depth": {
       "label": "Depth map",
       "description": "Enregistre aussi une depth map de chaque export, sous <nom>_depth.",
-      "descriptionOff": "Enregistre aussi une depth map de chaque export, sous <nom>_depth. Activez-la dans Réglages › Fonctions.",
-      "toggle": "Activer ou couper la depth map",
+      "descriptionOff": "Enregistre aussi une depth map de chaque export, sous <nom>_depth. Activez-la dans Paramètres › Fonctionnalités.",
+      "toggle": "Activer ou désactiver la depth map",
       "model": {
         "label": "Modèle de depth",
         "description": "Les gros modèles rendent mieux mais prennent plus de temps."
@@ -140,14 +140,14 @@
       "grayscale": {
         "label": "Niveaux de gris",
         "description": "Utilise du noir et blanc au lieu d'une palette de couleurs.",
-        "toggle": "Activer ou couper les niveaux de gris"
+        "toggle": "Activer ou désactiver les niveaux de gris"
       }
     },
     "upscale": {
       "label": "Upscaling",
       "description": "Enregistre aussi une copie en plus haute résolution de chaque export, sous <nom>_upscaled.",
-      "descriptionOff": "Enregistre aussi une copie en plus haute résolution de chaque export, sous <nom>_upscaled. Activez-le dans Réglages › Fonctions.",
-      "toggle": "Activer ou couper l'upscaling",
+      "descriptionOff": "Enregistre aussi une copie en plus haute résolution de chaque export, sous <nom>_upscaled. Activez-le dans Paramètres › Fonctionnalités.",
+      "toggle": "Activer ou désactiver l'upscaling",
       "model": {
         "label": "Modèle d'upscale",
         "description": "Tous sont entraînés sur de l'anime. Téléchargé à la première utilisation."
@@ -176,8 +176,8 @@
     }
   },
   "features": {
-    "title": "Fonctions",
-    "list": "Fonctions",
+    "title": "Fonctionnalités",
+    "list": "Fonctionnalités",
     "items": {
       "aiSceneDetection": {
         "label": "AI Scene Detection",
@@ -201,8 +201,8 @@
       }
     },
     "hideDisabled": {
-      "label": "Masquer les fonctions désactivées",
-      "description": "Retire les fonctions coupées de l'app au lieu de les griser."
+      "label": "Masquer les fonctionnalités désactivées",
+      "description": "Retire les fonctionnalités désactivées de l'application au lieu de les griser."
     },
     "state": {
       "offDownloaded": "Désactivé · téléchargé",
@@ -211,11 +211,11 @@
     },
     "removing": "Suppression…",
     "freeUpSpace": "Libérer de la place",
-    "lockedByImport": "Réglage désactivé pendant les imports",
+    "lockedByImport": "Paramètre désactivé pendant les imports",
     "gpu": {
       "section": "Carte graphique",
-      "cpuWithNvidia": "La version processeur est installée, alors que ce PC a une carte NVIDIA. Les fonctions IA tournent bien plus lentement qu'elles ne le pourraient.",
-      "cpuInstalled": "La version processeur est installée. Si ce PC a une carte NVIDIA, réinstaller avec la prise en charge GPU rend les fonctions IA bien plus rapides.",
+      "cpuWithNvidia": "La version processeur est installée, alors que ce PC a une carte NVIDIA. Les fonctionnalités IA tournent bien plus lentement qu'elles ne le pourraient.",
+      "cpuInstalled": "La version processeur est installée. Si ce PC a une carte NVIDIA, réinstaller avec la prise en charge GPU rend les fonctionnalités IA bien plus rapides.",
       "reinstall": "Réinstaller avec la prise en charge GPU"
     },
     "modelWeights": "Poids des modèles",
@@ -223,7 +223,7 @@
       "section": "Stockage",
       "packages": {
         "label": "Paquets IA",
-        "description": "PyTorch, les paquets de chaque fonction, et le Python sur lequel ils tournent."
+        "description": "PyTorch, les paquets de chaque fonctionnalité, et le Python sur lequel ils tournent."
       },
       "passModels": {
         "label": "Poids des modèles de passe",
@@ -241,19 +241,19 @@
       },
       "total": {
         "label": "Total",
-        "description": "Tout ce que les fonctions IA occupent sur ce PC."
+        "description": "Tout ce que les fonctionnalités IA occupent sur ce PC."
       },
       "uninstall": {
-        "label": "Désinstaller les fonctions IA",
-        "description": "Supprime les paquets IA et coupe les fonctions IA. Les poids des modèles sont gardés ; supprimez-les dans Poids des modèles.",
+        "label": "Désinstaller les fonctionnalités IA",
+        "description": "Supprime les paquets IA et coupe les fonctionnalités IA. Les poids des modèles sont gardés ; supprimez-les dans Poids des modèles.",
         "remove": "Supprimer"
       }
     },
-    "devBuild": "Build de dev : les fonctions IA tournent depuis le venv du dépôt AMVerge-CLI, rien n'est donc téléchargé ni supprimé d'ici.",
+    "devBuild": "Version de développement : les fonctionnalités IA tournent depuis le venv du dépôt AMVerge-CLI, rien n'est donc téléchargé ni supprimé d'ici.",
     "scenepacksOff": {
       "title": "Désactiver Scenepacks",
-      "message_one": "Vous avez {{count}} Scenepack. Le supprimer aussi, ou seulement couper la fonction et le garder pour plus tard ?",
-      "message_other": "Vous avez {{count}} Scenepacks. Les supprimer aussi, ou seulement couper la fonction et les garder pour plus tard ?",
+      "message_one": "Vous avez {{count}} Scenepack. Le supprimer aussi, ou seulement désactiver la fonctionnalité et le garder pour plus tard ?",
+      "message_other": "Vous avez {{count}} Scenepacks. Les supprimer aussi, ou seulement désactiver la fonctionnalité et les garder pour plus tard ?",
       "delete": "Supprimer les Scenepacks",
       "keep": "Garder les Scenepacks",
       "clearFailed": "Impossible de vider le stockage des Scenepacks : {{error}}"
@@ -264,7 +264,7 @@
       "depth": "Modèles de depth",
       "upscale": "Modèles d'upscale"
     },
-    "description": "Les poids des modèles utilisés par cette fonction. Téléchargez-les à l'avance pour exporter vite et hors ligne.",
+    "description": "Les poids des modèles utilisés par cette fonctionnalité. Téléchargez-les à l'avance pour exporter vite et hors ligne.",
     "turnOn": {
       "depth": "Activez la passe depth ci-dessus pour gérer ses modèles.",
       "upscale": "Activez la passe upscale ci-dessus pour gérer ses modèles."

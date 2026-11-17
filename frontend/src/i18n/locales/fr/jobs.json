@@ -27,16 +27,16 @@
   },
   "v1Import": {
     "title": "Bienvenue dans AMVerge V2 !",
-    "lead": "Ces fonctions sont désormais disponibles :",
+    "lead": "Ces fonctionnalités sont désormais disponibles :",
     "features": {
       "sceneDetection": "Détection de scènes par IA",
       "sceneSearch": "Recherche de scènes",
       "sceneMatching": "Scènes qui enchaînent",
-      "scenepack": "Création de scene packs"
+      "scenepack": "Création de Scenepacks"
     },
     "episodesInLibrary_one": "{{count}} épisode dans votre bibliothèque",
     "episodesInLibrary_other": "{{count}} épisodes dans votre bibliothèque",
-    "note": "Et bien d'autres changements. Toutes les fonctions IA tournent sur votre machine,<br/>activez-les dans <strong>Réglages › Fonctions</strong>.",
+    "note": "Et bien d'autres changements. Toutes les fonctionnalités IA tournent sur votre machine,<br/>activez-les dans <strong>Paramètres › Fonctionnalités</strong>.",
     "confirm": "Bon montage !"
   },
   "jobCard": {
@@ -185,9 +185,9 @@
     "upscale": "Upscale"
   },
   "passTargets": {
-    "title": "Choisissez les clips de chaque passe",
-    "mergedHint": "Les clips choisis pour une passe sont fusionnés dans son propre fichier",
-    "separateHint": "Chaque clip choisi a son propre fichier de sortie pour cette passe",
+    "title": "Sélectionnez les clips de chaque passe",
+    "mergedHint": "Les clips sélectionnés pour une passe sont fusionnés dans son propre fichier",
+    "separateHint": "Chaque clip sélectionné a son propre fichier de sortie pour cette passe",
     "all": "Tous",
     "none": "Aucun",
     "enabled": {
@@ -217,8 +217,8 @@
     "jobError": "{{label}} : {{error}}"
   },
   "passErrors": {
-    "outdated": "Les outils IA d'AMVerge installés sont trop anciens pour ça. AMVerge les met à jour tout seul au démarrage suivant la sortie de la mise à jour.",
-    "outdatedFlag": "Les outils IA d'AMVerge installés sont trop anciens pour ça (ils ne connaissent pas {{flag}}). AMVerge les met à jour tout seul au démarrage suivant la sortie de la mise à jour."
+    "outdated": "Les outils IA d'AMVerge installés sont trop anciens pour cette opération. AMVerge les met à jour tout seul au démarrage suivant la sortie de la mise à jour.",
+    "outdatedFlag": "Les outils IA d'AMVerge installés sont trop anciens pour cette opération (ils ne connaissent pas {{flag}}). AMVerge les met à jour tout seul au démarrage suivant la sortie de la mise à jour."
   },
   "export": {
     "failedTitle": "Échec de l'export",
@@ -230,12 +230,12 @@
   },
   "import": {
     "starting": "Démarrage…",
-    "transnetMissing": "TransNetV2 n'est pas installé. Installez-le, ou passez la détection de scènes sur Keyframe Detection dans les réglages.",
+    "transnetMissing": "TransNetV2 n'est pas installé. Installez-le, ou passez la détection de scènes sur Keyframe Detection dans les paramètres.",
     "finishingClips": "Finition des clips de {{name}}",
     "failedTitle_one": "Échec de l'import de la vidéo",
     "failedTitle_other": "Échec de l'import de {{count}} vidéos",
-    "permissionHint": "AMVerge n'a pas pu accéder à la vidéo ou à son dossier de stockage. Vérifiez les droits du dossier et le chemin de stockage des vidéos dans les réglages généraux. S'il s'agit d'un build de développement, relancez-le depuis votre terminal habituel.",
-    "failureHint": "Vérifiez que la vidéo est lisible et que le dossier de stockage indiqué dans les réglages généraux est accessible en écriture. Voir la console pour le détail."
+    "permissionHint": "AMVerge n'a pas pu accéder à la vidéo ou à son dossier de stockage. Vérifiez les droits du dossier et le chemin de stockage des vidéos dans les paramètres généraux. S'il s'agit d'un build de développement, relancez-le depuis votre terminal habituel.",
+    "failureHint": "Vérifiez que la vidéo est lisible et que le dossier de stockage indiqué dans les paramètres généraux est accessible en écriture. Voir la console pour le détail."
   },
   "scenepack": {
     "cutFailed": "Impossible de découper ce clip.",
