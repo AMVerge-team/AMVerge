@@ -99,6 +99,8 @@ For formats that Android platform decoders or MediaMuxer cannot handle directly 
 * FFmpeg C/C++ libraries (libavcodec, libavformat, libavutil, libswscale) are compiled for Android ABIs (arm64-v8a, armeabi-v7a, x86_64).
 * Fast Merge Concat Demuxer: Combines multiple selected scenes into one continuous scenepack video in under 2 seconds.
 * Multi-Track Audio Selection: Switch between Japanese audio and English dubs in ExoPlayer, or choose "No Audio" export mode to create silent anime clips.
+* Mid-Scene Splitting ("Split Scene"): Split scissor button in preview player divides a cut into two smaller scenes.
+* Foreground Service Lifecycle: Long batch export jobs run inside an Android Foreground Service with a persistent progress notification.
 * Called through a small JNI bridge to run stream copy or extraction operations without relying on deprecated third-party wrappers like FFmpegKit.
 
 ### C. Scene Detection & Semantic Search Methods
