@@ -14,6 +14,17 @@ use std::sync::atomic::Ordering;
 use tauri::Manager;
 
 fn main() {
+    #[cfg(target_os = "linux")]
+    {
+        // On Linux (especially inside VMs or setups with Mesa Zink / NVIDIA), WebKitGTK's
+        // DMA-BUF renderer conflicts with video playback and causes crashes/error_code=4.
+        if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+            unsafe {
+                std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+            }
+        }
+    }
+
     let _ = dotenvy::dotenv();
 
     tauri::Builder::default()

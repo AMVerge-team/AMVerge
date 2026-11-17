@@ -35,6 +35,17 @@ fi
 
 step "1/4: Installing Fedora System Dependencies via DNF"
 echo "Requires sudo privileges to install build tools and libraries..."
+
+# Enable RPM Fusion for full media codecs (H.264/AAC/MP4 playback in WebKitGTK)
+echo "Enabling RPM Fusion repositories for multimedia codecs..."
+FEDORA_VER="$(rpm -E %fedora 2>/dev/null || echo "41")"
+sudo dnf install -y \
+  "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VER}.noarch.rpm" \
+  "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VER}.noarch.rpm" || true
+
+# Swap stripped ffmpeg-free with full ffmpeg if needed
+sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing 2>/dev/null || true
+
 sudo dnf install -y \
   git \
   curl \
@@ -55,7 +66,13 @@ sudo dnf install -y \
   python3 \
   python3-devel \
   python3-pip \
-  ffmpeg
+  ffmpeg \
+  gstreamer1-plugins-good \
+  gstreamer1-plugins-bad-freeworld \
+  gstreamer1-plugins-ugly \
+  gstreamer1-libav \
+  gstreamer1-plugin-openh264 \
+  mozilla-openh264
 
 ok "System packages installed"
 

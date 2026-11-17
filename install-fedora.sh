@@ -29,6 +29,13 @@ if [ -n "$TARGET" ]; then
   case "$TARGET" in
     *.rpm)
       echo "Installing RPM package: ${GREEN}$TARGET${RESET}"
+      # Ensure RPM Fusion codecs are available for media playback
+      FEDORA_VER="$(rpm -E %fedora 2>/dev/null || echo "41")"
+      sudo dnf install -y \
+        "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VER}.noarch.rpm" \
+        "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VER}.noarch.rpm" 2>/dev/null || true
+      sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing 2>/dev/null || true
+      sudo dnf install -y gstreamer1-plugins-good gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly gstreamer1-libav 2>/dev/null || true
       sudo dnf install -y "$TARGET"
       echo "${GREEN}AMVerge installed successfully!${RESET}"
       exit 0
@@ -53,6 +60,12 @@ RPM_FILE="$(find . -maxdepth 1 -name "*.rpm" 2>/dev/null | head -n 1 || true)"
 if [ -n "$RPM_FILE" ] && [ -f "$RPM_FILE" ]; then
   echo "Found local RPM package: ${GREEN}$RPM_FILE${RESET}"
   echo "Installing via DNF..."
+  FEDORA_VER="$(rpm -E %fedora 2>/dev/null || echo "41")"
+  sudo dnf install -y \
+    "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VER}.noarch.rpm" \
+    "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VER}.noarch.rpm" 2>/dev/null || true
+  sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing 2>/dev/null || true
+  sudo dnf install -y gstreamer1-plugins-good gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly gstreamer1-libav 2>/dev/null || true
   sudo dnf install -y "$RPM_FILE"
   echo ""
   echo "${GREEN}AMVerge installed successfully!${RESET}"
