@@ -10,7 +10,8 @@ use tauri::AppHandle;
 use crate::utils::logging::console_log;
 use crate::utils::process::apply_no_window;
 use crate::utils::sidecar::{
-    ai_env_dir, ai_env_python, ai_env_ready, bundled_cli_version, dev_python_exe, uv_binary,
+    ai_env_dir, ai_env_python, ai_env_ready, bundled_cli_version, cli_models_dir_for_app,
+    default_ai_root, dev_python_exe, resolve_ai_location, scout_model_dir_for_app, uv_binary,
     uv_cache_dir, uv_python_dir,
 };
 
@@ -64,6 +65,12 @@ pub struct AiEnvStatus {
     pub scout_model_size_bytes: u64,
     /// dev builds run against the CLI checkout's venv and never provision this
     pub managed: bool,
+    /// active folder where AI runtime/models/HF cache live (or will be placed on first install)
+    pub ai_root_path: String,
+    /// where AI storage defaults for this install location (e.g. `<install_dir>/ai`)
+    pub ai_default_path: String,
+    /// non-null when the user chose a custom AI location in Settings > Storage
+    pub ai_custom_path: Option<String>,
 }
 
 /// interpreters and wheel cache live in app data, so uninstalling leaves nothing behind
@@ -375,38 +382,14 @@ pub(crate) fn mps_available() -> bool {
     cfg!(all(target_os = "macos", target_arch = "aarch64"))
 }
 
-/// the cli's weights folder, the same path as its `get_amverge_config_dir()`
-pub(crate) fn cli_models_dir() -> Option<PathBuf> {
-    let config = match std::env::var_os("APPDATA").filter(|v| !v.is_empty()) {
-        Some(appdata) => PathBuf::from(appdata).join("com.amverge.cli"),
-        None => {
-            let home = home_dir()?;
-            if cfg!(windows) {
-                home.join("AppData").join("Roaming").join("com.amverge.cli")
-            } else if cfg!(target_os = "macos") {
-                home.join("Library").join("Application Support").join("com.amverge.cli")
-            } else {
-                home.join(".config").join("com.amverge.cli")
-            }
-        }
-    };
-    Some(config.join("models"))
+/// the cli's weights folder for the active AI location
+pub(crate) fn cli_models_dir(app: &AppHandle) -> Option<PathBuf> {
+    cli_models_dir_for_app(app)
 }
 
-/// where transformers keeps SigLIP 2, in Hugging Face's own lookup order
-pub(crate) fn scout_model_dir() -> Option<PathBuf> {
-    let env_dir = |key: &str| std::env::var_os(key).filter(|v| !v.is_empty()).map(PathBuf::from);
-    let hub = env_dir("HF_HUB_CACHE")
-        .or_else(|| env_dir("HF_HOME").map(|home| home.join("hub")))
-        .or_else(|| env_dir("XDG_CACHE_HOME").map(|cache| cache.join("huggingface").join("hub")))
-        .or_else(|| home_dir().map(|home| home.join(".cache").join("huggingface").join("hub")))?;
-    Some(hub.join("models--google--siglip2-so400m-patch16-naflex"))
-}
-
-fn home_dir() -> Option<PathBuf> {
-    std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
-        .filter(|v| !v.is_empty())
-        .map(PathBuf::from)
+/// where transformers keeps SigLIP 2 for the active AI location
+pub(crate) fn scout_model_dir(app: &AppHandle) -> Option<PathBuf> {
+    scout_model_dir_for_app(app)
 }
 
 /// total size under `path`; symlinks aren't followed, so HF snapshots aren't counted twice
@@ -476,8 +459,19 @@ pub(crate) fn compute_status(app: &AppHandle) -> Result<AiEnvStatus, String> {
     };
     // everything else the AI features put on disk, which the old total left out
     let python_size_bytes = uv_python_dir(app).map(|dir| dir_size_bytes(&dir)).unwrap_or(0);
-    let models_size_bytes = cli_models_dir().map(|dir| dir_size_bytes(&dir)).unwrap_or(0);
-    let scout_model_size_bytes = scout_model_dir().map(|dir| dir_size_bytes(&dir)).unwrap_or(0);
+    let models_size_bytes = cli_models_dir(app).map(|dir| dir_size_bytes(&dir)).unwrap_or(0);
+    let scout_model_size_bytes = scout_model_dir(app).map(|dir| dir_size_bytes(&dir)).unwrap_or(0);
+    let ai_location = resolve_ai_location(app).ok();
+    let ai_root_path = ai_location
+        .as_ref()
+        .map(|l| l.root.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let ai_default_path = default_ai_root(app)
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|_| ai_root_path.clone());
+    let ai_custom_path = ai_location
+        .and_then(|l| l.custom_path)
+        .map(|p| p.to_string_lossy().to_string());
 
     let gpu_probe = nvidia_gpu_probe();
 
@@ -503,14 +497,18 @@ pub(crate) fn compute_status(app: &AppHandle) -> Result<AiEnvStatus, String> {
         models_size_bytes,
         scout_model_size_bytes,
         managed: !cfg!(debug_assertions),
+        ai_root_path,
+        ai_default_path,
+        ai_custom_path,
     })
 }
 
 #[cfg(test)]
 mod disk_usage_tests {
     use super::*;
+    use crate::utils::sidecar::{legacy_cli_models_dir, legacy_scout_model_dir};
 
-    /// prints what Settings > Features would report here; ignored since it reads real user folders
+    /// prints what Settings > Storage would report here; ignored since it reads real user folders
     #[test]
     #[ignore]
     fn print_disk_usage_on_this_machine() {
@@ -520,9 +518,9 @@ mod disk_usage_tests {
             println!("pyenv        {:.2} GB", gb(dir_size_bytes(&legacy.join("pyenv"))));
             println!("python       {:.2} GB", gb(dir_size_bytes(&legacy.join("python"))));
         }
-        let models = cli_models_dir().unwrap();
+        let models = legacy_cli_models_dir().unwrap();
         println!("models       {:.2} GB  {}", gb(dir_size_bytes(&models)), models.display());
-        let scout = scout_model_dir().unwrap();
+        let scout = legacy_scout_model_dir().unwrap();
         println!("scout model  {:.2} GB  {}", gb(dir_size_bytes(&scout)), scout.display());
     }
 }

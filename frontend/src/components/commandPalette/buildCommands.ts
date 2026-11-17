@@ -347,6 +347,20 @@ function settingsCommands(d: CommandDeps): CommandItem[] {
       },
     },
     {
+      id: "set-storage",
+      category: "settings",
+      title: "Settings: Storage",
+      subtitle: "Episode & AI storage paths, disk breakdown, and cache cleanup",
+      icon: FaFolderOpen,
+      action: openSection("storage"),
+      preview: {
+        metaLine1: "Storage & Locations",
+        metaLine2: d.episodesPath || "Default Storage Directory",
+        description: "Change where episodes and AI features live, inspect disk usage, and clear caches.",
+        shortcut: OPEN_SHORTCUT,
+      },
+    },
+    {
       id: "set-appearance",
       category: "settings",
       title: "Settings: Appearance",

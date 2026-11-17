@@ -17,42 +17,26 @@ import { FEATURES, type FeatureId } from "../../features/featureToggles";
 import {
   VISIBLE_PACK_IDS,
   estimateDownloadMb,
-  formatBytes,
   formatSizeMb,
   isPackInstalled,
   type AiEnvStatus,
   type AiPackId,
 } from "../../features/aiDeps/packs";
 
-/** Settings > Features: switch major features on and off; storage shows every byte the AI features use */
+/** Settings > Features: switch major features on and off; storage breakdown lives in Settings > Storage */
 export default function FeaturesSection() {
   const settings = useGeneralSettingsStore();
   const status = useAiDepsStore((s) => s.status);
   const gpuPreference = useAiDepsStore((s) => s.gpuPreference);
   const scenepacksCount = useScenepacksStore((s) => s.scenepacks.length);
-  const [busy, setBusy] = useState<FeatureId | "env" | null>(null);
+  const [busy, setBusy] = useState<FeatureId | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmScenepacksOff, setConfirmScenepacksOff] = useState(false);
-  const [previewCacheBytes, setPreviewCacheBytes] = useState(0);
-  const [clearingPreviews, setClearingPreviews] = useState(false);
   const importRunning = useAppStateStore(() => runningProcess() === "import");
 
   useEffect(() => {
     void useAiDepsStore.getState().refresh();
-    invoke<number>("preview_cache_size").then(setPreviewCacheBytes).catch(() => {});
   }, []);
-
-  // whatever is left is in use right now (a preview on screen, an encode running)
-  const clearPreviewCache = async () => {
-    setClearingPreviews(true);
-    try {
-      setPreviewCacheBytes(await invoke<number>("clear_preview_cache"));
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setClearingPreviews(false);
-    }
-  };
 
   // dev builds run the cli checkout's venv: nothing is downloaded or removed from here
   const managed = status?.managed ?? true;
@@ -97,20 +81,6 @@ export default function FeaturesSection() {
     }
   };
 
-  const removeEnv = async () => {
-    setBusy("env");
-    setError(null);
-    try {
-      const next = await invoke<AiEnvStatus>("remove_ai_env");
-      useAiDepsStore.setState({ status: next });
-      for (const feature of FEATURES) if (feature.pack) setEnabled(feature.id, false);
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setBusy(null);
-    }
-  };
-
   // a cpu torch on a machine with an nvidia gpu runs every ai feature far slower than it could
   const gpuRepairAvailable = Boolean(status?.envReady && status?.torchVariant === "cpu");
   const allAiInstalled = Boolean(status) && VISIBLE_PACK_IDS.every((id) => isPackInstalled(status, id));
@@ -123,11 +93,6 @@ export default function FeaturesSection() {
       if (feature.pack) setEnabled(feature.id, true);
     }
   };
-
-  const packagesBytes = (status?.envSizeBytes ?? 0) + (status?.pythonSizeBytes ?? 0);
-  const modelsBytes = status?.modelsSizeBytes ?? 0;
-  const scoutModelBytes = status?.scoutModelSizeBytes ?? 0;
-  const totalBytes = packagesBytes + modelsBytes + scoutModelBytes + previewCacheBytes;
 
   return (
     <section className="panel menu-panel settings-panel">
@@ -253,60 +218,6 @@ export default function FeaturesSection() {
 
         <SettingsSection id="features.models" title="Model weights">
           <AiModelsSection />
-        </SettingsSection>
-
-        <SettingsSection id="features.storage" title="Storage">
-          <SettingRow
-            label="AI packages"
-            description="PyTorch, every feature's packages, and the Python they run on."
-            control={<span className="settings-value aid-size">{formatBytes(packagesBytes)}</span>}
-          />
-          <SettingRow
-            label="Pass model weights"
-            description="Depth and upscale models you downloaded under Model weights."
-            control={<span className="settings-value aid-size">{formatBytes(modelsBytes)}</span>}
-          />
-          <SettingRow
-            label="Scene Scout model"
-            description="SigLIP 2, kept in the shared Hugging Face cache, so other apps that use it share this copy."
-            control={<span className="settings-value aid-size">{formatBytes(scoutModelBytes)}</span>}
-          />
-          <SettingRow
-            label="Preview cache"
-            description="Playable previews of Scene Scout results and Match clips. Kept under 1 GB automatically, oldest first, and remade when needed."
-            control={
-              <div className="aid-pack-row">
-                <span className="settings-value aid-size">{formatBytes(previewCacheBytes)}</span>
-                <button
-                  type="button"
-                  className="aid-btn"
-                  onClick={() => void clearPreviewCache()}
-                  disabled={clearingPreviews || previewCacheBytes === 0}
-                >
-                  {clearingPreviews ? "Clearing…" : "Clear"}
-                </button>
-              </div>
-            }
-          />
-          <SettingRow
-            label="Total"
-            description="Everything the AI features use on this PC."
-            control={<span className="settings-value aid-size aid-size-total">{formatBytes(totalBytes)}</span>}
-          />
-          <SettingRow
-            label="Uninstall AI features"
-            description="Deletes the AI packages and switches the AI features off. Model weights are kept; delete them under Model weights."
-            control={
-              <button
-                type="button"
-                className="aid-btn"
-                onClick={() => void removeEnv()}
-                disabled={busy !== null || !status?.envReady || !managed}
-              >
-                {busy === "env" ? "Removing…" : "Remove"}
-              </button>
-            }
-          />
         </SettingsSection>
 
         {!managed ? (

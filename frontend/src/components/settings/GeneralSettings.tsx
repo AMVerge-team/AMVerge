@@ -1,6 +1,3 @@
-import { open } from "@tauri-apps/plugin-dialog";
-import { errorText, showNotice } from "../../features/notice/notice";
-import { invoke } from "@tauri-apps/api/core";
 import {
   PreviewTranscodeMode,
   SceneDetectionMethod,
@@ -14,8 +11,6 @@ import Dropdown from "../common/Dropdown";
 import SettingsSection from "../common/SettingsSection";
 import InfoButton from "../common/InfoButton";
 import Tooltip from "../common/Tooltip";
-import { clearEpisodePanelCache } from "../../utils/episodeUtils";
-import { clearScenepacksStorage } from "../../utils/scenepackStorage";
 import { useAiDepsStore } from "../../stores/aiDepsStore";
 import { isPackInstalled } from "../../features/aiDeps/packs";
 import { runningProcess } from "../../features/processes/singleProcess";
@@ -26,7 +21,6 @@ import {
   sceneDetectionOptions,
 } from "./general/options";
 import { ConfirmModal } from "./general/ConfirmModal";
-import { rebaseStoragePaths, restoreOpenedEpisodeGrid } from "../../features/storage/rebaseStoragePaths";
 import { useDavinciInstalled } from "../../features/davinci/useDavinciAvailable";
 
 type GeneralSettingsProps = {
@@ -49,47 +43,10 @@ export default function GeneralSettings({
       ? "hevc"
       : generalSettings.previewTranscodeMode;
   const setGridPreview = useUIStateStore((s) => s.setGridPreview);
-  const [loading, setLoading] = useState(false);
   const davinciInstalled = useDavinciInstalled();
-  // a move to another drive copies every episode, which can take minutes; the row says so meanwhile
-  const [movingTo, setMovingTo] = useState<string | null>(null);
   const [showFactoryResetConfirm, setShowFactoryResetConfirm] = useState(false);
-  const [showClearPanelConfirm, setShowClearPanelConfirm] = useState(false);
-  const [clearingPanel, setClearingPanel] = useState(false);
-  const [showClearScenepacksConfirm, setShowClearScenepacksConfirm] = useState(false);
-  const [clearingScenepacks, setClearingScenepacks] = useState(false);
-  const defaultEpisodesPathLabel = navigator.userAgent.includes("Mac OS X")
-    ? "Default (Application Support)"
-    : "Default (App Data)";
   const factoryResetConfirmation =
     "This will restore AMVerge to its default settings and move your episode storage folder back to AppData. Any custom settings or storage location changes you made will be reset.";
-  const clearPanelConfirmation =
-    "This will remove ALL episodes from the Episode Panel and delete their cached files on disk. This cannot be undone.";
-  const clearScenepacksConfirmation =
-    "This will remove ALL Scenepacks and delete their materialized clip files on disk. This cannot be undone.";
-  const handleClearScenepacks = async () => {
-    setClearingScenepacks(true);
-    try {
-      await clearScenepacksStorage();
-    } catch (err) {
-      void showNotice("Clear failed", "Failed to clear Scenepack storage: " + errorText(err));
-    } finally {
-      setClearingScenepacks(false);
-      setShowClearScenepacksConfirm(false);
-    }
-  };
-
-  const handleClearEpisodePanel = async () => {
-    setClearingPanel(true);
-    try {
-      await clearEpisodePanelCache();
-    } catch (err) {
-      void showNotice("Clear failed", "Failed to clear episode panel: " + errorText(err));
-    } finally {
-      setClearingPanel(false);
-      setShowClearPanelConfirm(false);
-    }
-  };
 
   // TransNetV2 needs the `ml` pack, so the install is offered when it is chosen
   const aiStatus = useAiDepsStore((s) => s.status);
@@ -114,48 +71,6 @@ export default function GeneralSettings({
     }
     setSceneDetectionMethod(method);
   };
-
-  const handlePickDir = async () => {
-    const selected = await open({
-      multiple: false,
-      directory: true,
-      title: "Select Episodes Storage Directory",
-    });
-
-    if (selected && typeof selected === "string") {
-      if (generalSettings.episodesPath !== selected) {
-        setLoading(true);
-        setMovingTo(selected);
-
-        try {
-          // windows won't delete files the grid's tiles hold open, so drop the grid first
-          useAppStateStore.getState().setClips([]);
-          useAppStateStore.getState().setSelectedClips(new Set());
-          await new Promise((resolve) => setTimeout(resolve, 250));
-
-          await invoke<string>("move_storage_to_new_dir", {
-            oldDir: generalSettings.episodesPath,
-            newDir: selected,
-          });
-
-          setGeneralSettings((prev) => ({ ...prev, episodesPath: selected }));
-          // `selected` is the storage root; episodes sit in its episodes_storage folder
-          await rebaseStoragePaths(selected);
-        } catch (err) {
-          void showNotice("Move failed", "Failed to move existing episodes: " + errorText(err));
-        } finally {
-          // the grid was emptied for the move; failed or not, the open episode comes back
-          restoreOpenedEpisodeGrid();
-          setLoading(false);
-          setMovingTo(null);
-        }
-      }
-    }
-  };
-
-  const storagePathLabel = movingTo
-    ? `Moving to ${movingTo}...`
-    : generalSettings.episodesPath || defaultEpisodesPathLabel;
 
   return (
     <section className="panel menu-panel settings-panel">
@@ -418,67 +333,7 @@ export default function GeneralSettings({
         </SettingsSection>
         )}
 
-        <SettingsSection id="general.storage" title="Storage">
-        <SettingRow
-          label="Episodes Storage Path"
-          description="Where your imported episodes and clips are saved."
-          control={
-            <div className="settings-control">
-              <button
-                className="buttons settings-path-btn"
-                type="button"
-                onClick={handlePickDir}
-                disabled={loading}
-              >
-                {movingTo ? "Moving..." : generalSettings.episodesPath ? "Change" : "Select Path"}
-              </button>
-              <Tooltip content={storagePathLabel} maxWidth={360}>
-                <span className={`settings-path-value${movingTo ? " is-moving" : ""}`}>
-                  {storagePathLabel}
-                </span>
-              </Tooltip>
-            </div>
-          }
-        />
-        </SettingsSection>
-
         <SettingsSection id="general.maintenance" title="Maintenance">
-        <SettingRow
-          label="Clear Episode Panel"
-          description="Removes every episode from the panel and deletes its files."
-          control={
-            <div className="settings-control">
-              <button
-                className="buttons emergency"
-                type="button"
-                onClick={() => setShowClearPanelConfirm(true)}
-                style={{ width: "auto", padding: "0 16px", marginBottom: 0, color: "red" }}
-                disabled={loading || clearingPanel}
-              >
-                {clearingPanel ? "Clearing..." : "Clear Episode Storage"}
-              </button>
-            </div>
-          }
-        />
-
-        <SettingRow
-          label="Clear Scenepack Storage"
-          description="Remove all Scenepacks and delete its files."
-          control={
-            <div className="settings-control">
-              <button
-                className="buttons emergency"
-                type="button"
-                onClick={() => setShowClearScenepacksConfirm(true)}
-                style={{ width: "auto", padding: "0 16px", marginBottom: 0, color: "red" }}
-                disabled={loading || clearingScenepacks}
-              >
-                {clearingScenepacks ? "Clearing..." : "Clear Scenepack Storage"}
-              </button>
-            </div>
-          }
-        />
-
         <SettingRow
           label="Factory Reset"
           description="Puts every General setting back to its default."
@@ -490,7 +345,6 @@ export default function GeneralSettings({
                   setShowFactoryResetConfirm(true);
                 }}
                 style={{ width: "auto", padding: "0 16px", marginBottom: 0, color: "red" }}
-                disabled={loading}
               >
                 Reset to Defaults
               </button>
@@ -509,28 +363,6 @@ export default function GeneralSettings({
               setShowFactoryResetConfirm(false);
               void onGeneralSettingsReset();
             }}
-          />
-        )}
-
-        {showClearPanelConfirm && (
-          <ConfirmModal
-            title="Clear Episode Storage"
-            message={clearPanelConfirmation}
-            confirmLabel={clearingPanel ? "Clearing..." : "Clear Episode Storage"}
-            busy={clearingPanel}
-            onClose={() => setShowClearPanelConfirm(false)}
-            onConfirm={() => void handleClearEpisodePanel()}
-          />
-        )}
-
-        {showClearScenepacksConfirm && (
-          <ConfirmModal
-            title="Clear Scenepack Storage"
-            message={clearScenepacksConfirmation}
-            confirmLabel={clearingScenepacks ? "Clearing..." : "Clear Scenepack Storage"}
-            busy={clearingScenepacks}
-            onClose={() => setShowClearScenepacksConfirm(false)}
-            onConfirm={() => void handleClearScenepacks()}
           />
         )}
       </div>

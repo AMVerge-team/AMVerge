@@ -46,6 +46,12 @@ export type AiEnvStatus = {
   scoutModelSizeBytes: number;
   /// false in dev builds, where the CLI checkout's venv is used as-is
   managed: boolean;
+  /// active folder where AI runtime/models/HF cache live (or will be placed on first install)
+  aiRootPath: string;
+  /// where AI storage defaults for this install location (e.g. `<install_dir>/ai`)
+  aiDefaultPath: string;
+  /// non-null when the user chose a custom AI location in Settings > Storage
+  aiCustomPath: string | null;
 };
 
 export type AiPack = {
