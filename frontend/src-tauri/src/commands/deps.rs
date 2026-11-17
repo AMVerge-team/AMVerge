@@ -123,7 +123,7 @@ pub async fn uninstall_ai_pack(
             .requires
             .iter()
             .copied()
-            .filter(|d| !TORCH_FAMILY.contains(d) && !still_needed.contains(d) && has(d))
+            .filter(|&d| d != "torch" && !still_needed.contains(&d) && has(d))
             .collect();
         if removable.is_empty() {
             console_log("DEPS|uninstall", &format!("pack={} has nothing of its own to remove", target.id));

@@ -118,7 +118,7 @@ export default function FeaturesSection() {
           description={
             allAiInstalled
               ? "All AI feature packs are already installed."
-              : "Download and enable AI Scene Detection, Scene Scout, Depth Map Pass, and Upscale Pass together."
+              : "Download and enable AI Scene Detection, Scene Scout, Depth Map, and Upscaling together."
           }
           control={
             <button

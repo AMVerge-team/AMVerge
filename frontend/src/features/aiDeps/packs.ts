@@ -76,7 +76,7 @@ export const AI_PACKS: Record<AiPackId, AiPack> = {
   },
   depth: {
     id: "depth",
-    label: "Depth map pass",
+    label: "Depth map",
     dependencyName: "Depth-Anything-V2",
     description: "Creates a depth map of each exported file.",
     extraSizeMb: 60,
@@ -92,7 +92,7 @@ export const AI_PACKS: Record<AiPackId, AiPack> = {
   },
   upscale: {
     id: "upscale",
-    label: "Upscale pass",
+    label: "Upscaling",
     dependencyName: "Spandrel / ONNX Runtime",
     description: "Creates a higher resolution copy of each exported file.",
     extraSizeMb: 120,
