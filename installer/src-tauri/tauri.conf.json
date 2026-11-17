@@ -5,9 +5,6 @@
   "identifier": "app.amverge.setup",
   "mainBinaryName": "AMVerge-Setup",
   "build": {
-    "beforeDevCommand": "npm run dev",
-    "devUrl": "http://localhost:1421",
-    "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
   },
   "app": {
