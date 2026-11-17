@@ -120,6 +120,10 @@
   },
   "passes": {
     "section": "Post-export passes",
+    "master": {
+      "label": "Enable post-export passes",
+      "description": "Run the enabled passes below after exporting. Turn off to skip them while keeping their settings."
+    },
     "labels": {
       "depth": "Depth map",
       "upscale": "Upscale"
