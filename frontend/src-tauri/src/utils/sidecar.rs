@@ -144,7 +144,7 @@ fn dev_venv_dir() -> Result<PathBuf, String> {
     root.pop();
     let cli_dir = std::env::var("AMVERGE_CLI_DIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| root.join("AMVerge-CLI"));
+        .unwrap_or_else(|_| std::env::var("HOME").ok().map(|h| PathBuf::from(h).join("AMVerge-CLI")).unwrap_or_else(|| root.join("AMVerge-CLI")));
     Ok(cli_dir.join(".venv"))
 }
 
