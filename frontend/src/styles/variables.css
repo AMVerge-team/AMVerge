@@ -43,12 +43,15 @@
     /* multiplies every background layer: 0 hides them, 1 shows them at the
        opacity the user chose. the splash fades this up on the way out */
     --app-bg-reveal: 1;
-    --cjk-fallback: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', 'WenQuanYi Micro Hei';
-    --app-font: Calibri, Carlito, 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, var(--cjk-fallback), sans-serif;
-    --app-font-adjust: 0.47;
+    --cjk-fallback: 'Noto Sans SC Variable', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', 'WenQuanYi Micro Hei';
+    --app-font: 'Segoe UI Variable Text', 'Segoe UI', var(--cjk-fallback), system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    --app-font-adjust: none;
+    --font-weight-body: 450;
+    --font-weight-label: 550;
+    --font-weight-heading: 650;
 
     /* text that is read rather than glanced at; never follows the user's font choice */
-    --ui-font: Calibri, Carlito, Arial, Helvetica, var(--cjk-fallback), sans-serif;
+    --ui-font: 'Segoe UI Variable Text', 'Segoe UI', var(--cjk-fallback), system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     /* the AMVerge wordmark (navbar, splash); never follows the user's font choice */
     --logo-font: 'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }

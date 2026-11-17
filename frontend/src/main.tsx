@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import "@fontsource-variable/noto-sans-sc";
 import "./styles/index.css";
 import { initConsoleCapture } from "./utils/appConsole";
 import { applyThemeSettings, useThemeSettingsStore } from "./stores/settingsStore";

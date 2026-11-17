@@ -17,6 +17,7 @@
     "tauri:build": "node ./scripts/stub-sidecar.mjs --check && dotenv -e ../.env.production -- tauri build"
   },
   "dependencies": {
+    "@fontsource-variable/noto-sans-sc": "^5.3.1",
     "@tauri-apps/api": "~2.10.1",
     "@tauri-apps/plugin-dialog": "^2.7.0",
     "@tauri-apps/plugin-shell": "^2.3.5",

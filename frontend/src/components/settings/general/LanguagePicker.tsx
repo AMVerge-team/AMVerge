@@ -13,7 +13,7 @@ export default function LanguagePicker() {
     {
       value: "system",
       label: t("language.system"),
-      description: t("language.systemResolved", { language: t(`language.${systemLanguage}`) }),
+      trailingLabel: t(`language.${systemLanguage}`),
     },
     { value: "en", label: t("language.en") },
     { value: "zh-CN", label: t("language.zh-CN") },
@@ -21,7 +21,7 @@ export default function LanguagePicker() {
 
   return (
     <Dropdown
-      className="settings-wide-dropdown"
+      className="language-dropdown"
       options={options}
       value={preference}
       onChange={setPreference}
