@@ -25,7 +25,15 @@
       "dangerousDisableAssetCspModification": ["style-src"],
       "assetProtocol": {
         "enable": true,
-        "scope": ["**"]
+        "scope": {
+          "allow": [
+            "**",
+            "$HOME/**/*",
+            "$APPDATA/**/*",
+            "$LOCALDATA/**/*"
+          ],
+          "requireLiteralLeadingDot": false
+        }
       }
     }
   },

@@ -44,7 +44,6 @@ fn join_summary(parts: Vec<String>) -> Result<String, String> {
 }
 
 /// bytes as the whole gigabytes a user would say out loud, empty when unknown
-#[cfg(any(windows, target_os = "macos"))]
 fn format_ram_gb(gb: f64) -> String {
     let rounded = gb.round() as u64;
     if rounded == 0 {
@@ -224,11 +223,45 @@ fn collect_specs() -> Result<String, String> {
 
 #[cfg(not(any(windows, target_os = "macos")))]
 fn collect_specs() -> Result<String, String> {
-    join_summary(vec![format!(
-        "{} ({})",
-        std::env::consts::OS,
-        std::env::consts::ARCH
-    )])
+    // 1) OS name from /etc/os-release (e.g. Fedora Linux 41)
+    let os = if let Ok(content) = std::fs::read_to_string("/etc/os-release") {
+        content
+            .lines()
+            .find(|l| l.starts_with("PRETTY_NAME="))
+            .map(|l| l.trim_start_matches("PRETTY_NAME=").trim_matches('"').to_string())
+            .unwrap_or_else(|| format!("{} ({})", std::env::consts::OS, std::env::consts::ARCH))
+    } else {
+        format!("{} ({})", std::env::consts::OS, std::env::consts::ARCH)
+    };
+
+    // 2) CPU Model from /proc/cpuinfo
+    let cpu = if let Ok(content) = std::fs::read_to_string("/proc/cpuinfo") {
+        content
+            .lines()
+            .find(|l| l.starts_with("model name"))
+            .and_then(|l| l.split(':').nth(1))
+            .map(|s| s.trim().to_string())
+            .unwrap_or_default()
+    } else {
+        String::new()
+    };
+
+    // 3) RAM total from /proc/meminfo
+    let ram = if let Ok(content) = std::fs::read_to_string("/proc/meminfo") {
+        content
+            .lines()
+            .find(|l| l.starts_with("MemTotal:"))
+            .and_then(|l| {
+                let parts: Vec<&str> = l.split_whitespace().collect();
+                parts.get(1).and_then(|kb| kb.parse::<u64>().ok())
+            })
+            .map(|kb| format_ram_gb(kb as f64 / 1024.0 / 1024.0))
+            .unwrap_or_default()
+    } else {
+        String::new()
+    };
+
+    join_summary(vec![os, cpu, ram])
 }
 
 /// fills the bug report's PC Specs field, still editable

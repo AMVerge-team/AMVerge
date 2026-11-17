@@ -1,3 +1,4 @@
+import { getRevealInFileManagerLabel } from "../../../utils/platformUtils";
 import type { ScenepackEntry, ScenepackFolder } from "../../../types/domain";
 import { revealScenepackStorage } from "../../../utils/scenepackStorage";
 import type { ConfirmDelete, NewItemModal, RenameModal } from "./ScenepackModals";
@@ -89,7 +90,7 @@ export function ScenepackContextMenu({
           actions.close();
         }}
       >
-        Show in File Explorer
+        {getRevealInFileManagerLabel()}
       </button>
 
       <button

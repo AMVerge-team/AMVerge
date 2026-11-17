@@ -58,11 +58,16 @@ export default function GeneralSettings({
   const [clearingPanel, setClearingPanel] = useState(false);
   const [showClearScenepacksConfirm, setShowClearScenepacksConfirm] = useState(false);
   const [clearingScenepacks, setClearingScenepacks] = useState(false);
-  const defaultEpisodesPathLabel = navigator.userAgent.includes("Mac OS X")
+  const isMac = navigator.userAgent.includes("Mac OS X");
+  const isLinux = navigator.userAgent.includes("Linux");
+  const defaultEpisodesPathLabel = isMac
     ? "Default (Application Support)"
+    : isLinux
+    ? "Default (~/.local/share)"
     : "Default (App Data)";
+  const storageLocationName = isMac ? "Application Support" : isLinux ? "~/.local/share" : "AppData";
   const factoryResetConfirmation =
-    "This will restore AMVerge to its default settings and move your episode storage folder back to AppData. Any custom settings or storage location changes you made will be reset.";
+    `This will restore AMVerge to its default settings and move your episode storage folder back to ${storageLocationName}. Any custom settings or storage location changes you made will be reset.`;
   const clearPanelConfirmation =
     "This will remove ALL episodes from the Episode Panel and delete their cached files on disk. This cannot be undone.";
   const clearScenepacksConfirmation =

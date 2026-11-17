@@ -144,6 +144,31 @@ To also install the AI extras (TransNetV2, Scene Scout, depth, upscale) into the
 ./setup.sh --ai    # macOS / Linux
 ```
 
+### Linux Dependencies
+
+AMVerge on Linux runs using WebKit2GTK and GStreamer:
+
+- **Debian / Ubuntu / Zorin OS / Linux Mint**:
+  ```bash
+  sudo apt update && sudo apt install -y \
+    libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
+    gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav
+  ```
+- **Fedora / RHEL**:
+  ```bash
+  # Enable RPM Fusion for full media codecs (H.264/AAC playback)
+  sudo dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
+    https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+  sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
+  sudo dnf install -y webkit2gtk4.1-devel gtk3-devel libappindicator-gtk3-devel librsvg2-devel \
+    gstreamer1-plugins-good gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly gstreamer1-libav
+  ```
+- **Arch / Manjaro**:
+  ```bash
+  sudo pacman -S --needed webkit2gtk-4.1 gtk3 libappindicator-gtk3 \
+    gst-plugins-good gst-plugins-bad gst-plugins-ugly gst-libav
+  ```
+
 ### Run in Development
 
 ```bash

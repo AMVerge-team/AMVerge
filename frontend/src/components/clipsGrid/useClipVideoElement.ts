@@ -105,22 +105,51 @@ export function useClipVideoElement({
   // cleanup clears src + load() so chromium frees the decoder now (zombies break new videos); setup restores src for StrictMode, before playback runs
   useEffect(() => {
     if (!shouldMountVideo) return;
-    // captured now: the ref detaches before cleanup runs
     const v = videoRef.current;
-    if (!v) return;
-    if (videoSrcUrl && v.getAttribute("src") !== videoSrcUrl) {
-      v.setAttribute("src", videoSrcUrl);
-      try {
-        v.load();
-      } catch {}
+    if (!v || !videoSrcUrl) return;
+
+    let active = true;
+    let createdBlobUrl: string | null = null;
+
+    // WebKitGTK on Linux fails Range requests over custom asset protocols (code 4).
+    // Fetching as a blob and using URL.createObjectURL bypasses the WebKitGTK limitation.
+    if (navigator.userAgent.includes("Linux")) {
+      fetch(videoSrcUrl)
+        .then((res) => res.blob())
+        .then((blob) => {
+          if (!active || !videoRef.current) return;
+          createdBlobUrl = URL.createObjectURL(blob);
+          videoRef.current.src = createdBlobUrl;
+          try {
+            videoRef.current.load();
+          } catch {}
+        })
+        .catch(() => {
+          if (active && videoRef.current) {
+            videoRef.current.setAttribute("src", videoSrcUrl);
+            try { videoRef.current.load(); } catch {}
+          }
+        });
+    } else {
+      if (v.getAttribute("src") !== videoSrcUrl) {
+        v.setAttribute("src", videoSrcUrl);
+        try {
+          v.load();
+        } catch {}
+      }
     }
+
     return () => {
+      active = false;
       cancelFrameCallback(v);
       try {
         v.pause();
         v.removeAttribute("src");
         v.load();
       } catch {}
+      if (createdBlobUrl) {
+        URL.revokeObjectURL(createdBlobUrl);
+      }
     };
   }, [shouldMountVideo, videoSrcUrl, cancelFrameCallback]);
 
