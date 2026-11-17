@@ -13,6 +13,7 @@
     "tauri": "tauri",
     "stub:sidecar": "node ./scripts/stub-sidecar.mjs",
     "tauri:dev": "npm run fetch:uv && npm run stub:sidecar && dotenv -e ../.env -- tauri dev",
+    "check:i18n": "node ./scripts/check-i18n.mjs",
     "tauri:build": "node ./scripts/stub-sidecar.mjs --check && dotenv -e ../.env.production -- tauri build"
   },
   "dependencies": {
@@ -20,10 +21,12 @@
     "@tauri-apps/plugin-dialog": "^2.7.0",
     "@tauri-apps/plugin-shell": "^2.3.5",
     "@tauri-apps/plugin-updater": "^2.10.1",
+    "i18next": "^26.7.2",
     "motion": "^14.9.0",
     "react": "^19.1.0",
     "react-colorful": "^5.6.1",
     "react-dom": "^19.1.0",
+    "react-i18next": "^17.1.13",
     "react-icons": "^5.5.0",
     "react-image-crop": "^11.0.10",
     "react-markdown": "^10.1.0",

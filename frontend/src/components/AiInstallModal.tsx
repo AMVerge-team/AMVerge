@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { Trans, useTranslation } from "react-i18next";
 
 import Tooltip from "./common/Tooltip";
 import BackgroundJobCard from "./BackgroundJobCard";
@@ -23,6 +24,7 @@ function formatDuration(sec: number): string {
 
 /** confirm-then-install dialog for an AI pack, opened by `ensurePack`; resolves once installed or declined */
 export default function AiInstallModal() {
+  const { t } = useTranslation("jobs");
   const open = useAiDepsStore((s) => s.open);
   const pack = useAiDepsStore((s) => s.pack);
   const stage = useAiDepsStore((s) => s.stage);
@@ -89,15 +91,14 @@ export default function AiInstallModal() {
 
   const conflictModal = conflict ? (
     <ConfirmModal
-      title="Another dependency is installing"
+      title={t("release202:conflictTitle")}
       message={
         <>
-          <strong>{conflict.activeLabel}</strong> is still installing. Keep it running, or cancel it
-          to install <strong>{conflict.requestedLabel}</strong> instead?
+          <Trans t={t} i18nKey="release202:conflictMessage" values={{ active: conflict.activeLabel, requested: conflict.requestedLabel }} components={{ strong: <strong /> }} />
         </>
       }
-      cancelLabel="Keep installing"
-      confirmLabel={conflictCanceling ? "Canceling…" : "Cancel current install"}
+      cancelLabel={t("release202:keepInstalling")}
+      confirmLabel={conflictCanceling ? t("release202:canceling") : t("release202:cancelInstall")}
       busy={conflictCanceling}
       onClose={() => void useAiDepsStore.getState().resolveConflict("keep")}
       onConfirm={() => void useAiDepsStore.getState().resolveConflict("cancel-current")}
@@ -113,12 +114,12 @@ export default function AiInstallModal() {
   const info =
     pack === "all"
       ? {
-          label: "All AI features",
-          dependencyName: "all AI features",
+          label: t("release202:allAi"),
+          dependencyName: t("release202:allAiName"),
           description:
             missingNames.length > 0
-              ? `Installs ${missingNames.join(", ")} together so every AI feature is ready to use.`
-              : "Installs all AI feature dependencies together.",
+              ? t("release202:allAiDescription", { names: missingNames.join(", ") })
+              : t("release202:allAiDescriptionFallback"),
         }
       : AI_PACKS[pack];
   const sizeMb = estimateDownloadMb(status, pack, gpuPreference);
@@ -144,11 +145,11 @@ export default function AiInstallModal() {
 
   const modalTitle =
     stage === "done"
-      ? job?.done ?? `${info.dependencyName} installed`
+      ? job?.done ?? t("aiInstall.installedTitle", { name: info.dependencyName })
       : stage === "error"
         ? job
-          ? `${job.title} failed`
-          : `${info.dependencyName} install failed`
+          ? t("aiInstall.jobFailedTitle", { title: job.title })
+          : t("aiInstall.installFailedTitle", { name: info.dependencyName })
         : job?.title ?? info.label;
 
   if (minimized) {
@@ -158,25 +159,25 @@ export default function AiInstallModal() {
       <>
         <BackgroundJobCard
           id="ai-install"
-          ariaLabel="Feature installation (minimized)"
+          ariaLabel={t("release202:installMinimized")}
           done={stage === "done"}
           lines={jobLines}
           title={stage === "installing" ? (message || modalTitle) : modalTitle}
           onExpand={() => useAiDepsStore.getState().openModal()}
           onClose={stage === "installing" ? cancel : close}
-          closeLabel={stage === "installing" ? "Cancel" : "Close"}
+          closeLabel={stage === "installing" ? t("common:cancel") : t("common:close")}
           footer={
             stage === "error" && error ? (
               <p className="pxm-errors">{error}</p>
             ) : stage === "installing" && (speedText || transferredText) ? (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10, padding: "0 12px 8px", fontSize: "0.72rem", color: "rgba(255, 255, 255, 0.65)" }}>
                 {speedText && (
-                  <span>Speed: <strong style={{ color: "#38bdf8", fontFamily: "monospace" }}>{speedText}</strong></span>
+                  <span>{t("jobs:aiInstall.speed")}<strong style={{ color: "#38bdf8", fontFamily: "monospace" }}>{speedText}</strong></span>
                 )}
                 {transferredText && (
-                  <span>Size: <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{transferredText}</strong></span>
+                  <span>{t("jobs:aiInstall.size")}<strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{transferredText}</strong></span>
                 )}
-                <span>Elapsed: <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{formatDuration(elapsed)}</strong></span>
+                <span>{t("jobs:aiInstall.elapsed")}<strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{formatDuration(elapsed)}</strong></span>
               </div>
             ) : null
           }
@@ -204,19 +205,19 @@ export default function AiInstallModal() {
           <span className="pxm-title">{modalTitle}</span>
           <div className="pxm-actions">
             {stage === "installing" ? (
-              <Tooltip content="Minimize">
+              <Tooltip content={t("shell:navbar.minimize")}>
                 <button
                   type="button"
                   className="pxm-btn"
                   onClick={() => useAiDepsStore.getState().minimize()}
-                  aria-label="Minimize"
+                  aria-label={t("aiInstall.minimize")}
                 >
                   🗕
                 </button>
               </Tooltip>
             ) : (
-              <Tooltip content="Close">
-                <button type="button" className="pxm-btn" onClick={close} aria-label="Close">
+              <Tooltip content={t("common:close")}>
+                <button type="button" className="pxm-btn" onClick={close} aria-label={t("common:close")}>
                   ✕
                 </button>
               </Tooltip>
@@ -229,59 +230,57 @@ export default function AiInstallModal() {
             <p className="aid-lede">
               {pack === "all" ? (
                 <>
-                  Install <strong>all remaining AI features</strong> now?
+                  <Trans t={t} i18nKey="release202:installAllQuestion" components={{ strong: <strong /> }} />
                 </>
               ) : (
                 <>
-                  You don't have <strong>{info.dependencyName}</strong> installed. Would you like to
-                  install it now?
+                  <Trans t={t} i18nKey="aiInstall.lede" values={{ name: info.dependencyName }} components={{ strong: <strong /> }} />
                 </>
               )}
             </p>
             <p className="aid-note">{info.description}</p>
             <dl className="aid-facts">
               <div>
-                <dt>Download</dt>
+                <dt>{t("aiInstall.download")}</dt>
                 <dd>~{formatSizeMb(sizeMb)}</dd>
               </div>
               <div>
-                <dt>PyTorch build</dt>
+                <dt>{t("aiInstall.torchBuild")}</dt>
                 <dd>
                   {status?.torchVersion
-                    ? `already installed (${status.torchVariant?.toUpperCase()})`
+                    ? t("aiInstall.torchAlreadyInstalled", { variant: status.torchVariant?.toUpperCase() })
                     : variant === "cuda"
                       ? gpuPreference === "cuda"
                         ? "GPU / CUDA"
-                        : "GPU / CUDA (NVIDIA GPU detected)"
+                        : t("aiInstall.torchCudaDetected")
                       : gpuUndetermined
-                        ? "CPU (failed to check for NVIDIA GPU)"
-                        : "CPU (no NVIDIA GPU detected)"}
+                        ? t("aiInstall.torchCpuUnknown")
+                        : t("aiInstall.torchCpuNoGpu")}
                 </dd>
               </div>
             </dl>
             {!status?.torchVersion && variant === "cpu" ? (
               <p className="aid-note">
                 {gpuUndetermined
-                  ? "AMVerge couldn't run nvidia-smi to check for a GPU, so it's planning the CPU build."
-                  : "No NVIDIA GPU was found, planning the CPU build."}{" "}
+                  ? t("aiInstall.cpuPlanUnknown")
+                  : t("aiInstall.cpuPlanNoGpu")}{" "}
                 <button
                   type="button"
                   className="aid-link-btn"
                   onClick={() => useAiDepsStore.getState().setGpuPreference("cuda")}
                 >
-                  Install the GPU build anyway
+                  {t("aiInstall.installGpuAnyway")}
                 </button>
               </p>
             ) : null}
             {status && !status.uvAvailable ? (
               <p className="pxm-errors">
-                The installer component is missing from this build, so AMVerge can't add the
-                dependency automatically. Reinstalling AMVerge restores it.
+                {t("aiInstall.uvMissing")}
               </p>
             ) : null}
             <div className="aid-buttons">
               <button type="button" className="aid-btn" onClick={close}>
-                Not now
+                {t("aiInstall.notNow")}
               </button>
               <button
                 type="button"
@@ -289,7 +288,7 @@ export default function AiInstallModal() {
                 onClick={install}
                 disabled={Boolean(status && !status.uvAvailable)}
               >
-                Install
+                {t("aiInstall.install")}
               </button>
             </div>
           </>
@@ -299,16 +298,16 @@ export default function AiInstallModal() {
           <>
             <div className="pxm-progress">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginBottom: 4 }}>
-                <span className="pxm-bar-label">Progress</span>
+                <span className="pxm-bar-label">{t("aiInstall.progress")}</span>
                 {stage === "installing" && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 10, fontSize: "0.75rem", color: "rgba(255, 255, 255, 0.65)" }}>
                     {speedText && (
-                      <span>Speed: <strong style={{ color: "#38bdf8", fontFamily: "monospace" }}>{speedText}</strong></span>
+                      <span>{t("aiInstall.speed")}<strong style={{ color: "#38bdf8", fontFamily: "monospace" }}>{speedText}</strong></span>
                     )}
                     {transferredText && (
-                      <span>Size: <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{transferredText}</strong></span>
+                      <span>{t("aiInstall.size")}<strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{transferredText}</strong></span>
                     )}
-                    <span>Elapsed: <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{formatDuration(elapsed)}</strong></span>                  </div>
+                    <span>{t("aiInstall.elapsed")}<strong style={{ color: "#ffffff", fontFamily: "monospace" }}>{formatDuration(elapsed)}</strong></span>                  </div>
                 )}
               </div>
               <div className="progress-bar pxm-bar">
@@ -334,17 +333,16 @@ export default function AiInstallModal() {
             <div className="aid-buttons">
               {stage === "installing" ? (
                 <button type="button" className="aid-btn" onClick={cancel}>
-                  Cancel
-                </button>
+                  {t("common:cancel")}</button>
               ) : (
                 <>
                   {stage === "error" ? (
                     <button type="button" className="aid-btn" onClick={install}>
-                      Try again
+                      {t("aiInstall.tryAgain")}
                     </button>
                   ) : null}
                   <button type="button" className="aid-btn aid-btn-primary" onClick={close}>
-                    {stage === "done" ? "Done" : "Close"}
+                    {stage === "done" ? t("aiInstall.done") : t("common:close")}
                   </button>
                 </>
               )}

@@ -9,19 +9,19 @@ import {
   ExportWorkflow,
   NvidiaEncoderProfile,
 } from "./profileTypes";
+import { t } from "../../i18n";
 
 export const SAFE_DEFAULT_PARALLEL_EXPORTS = 8;
 
 export const NVIDIA_ENCODER_SUPPORT_MATRIX_URL =
   "https://developer.nvidia.com/video-encode-decode-support-matrix";
 
-export const EXPORT_WORKFLOW_OPTIONS: { value: ExportWorkflow; label: string }[] = [
-  { value: "video_encode", label: "Export video (re-encode exact cuts)" },
-  {
-    value: "video_remux",
-    label: "Fast remux (stream copy)",
-  },
-];
+export function getExportWorkflowOptions(): { value: ExportWorkflow; label: string }[] {
+  return [
+    { value: "video_encode", label: t("settingsExport:workflow.options.video_encode") },
+    { value: "video_remux", label: t("settingsExport:workflow.options.video_remux") },
+  ];
+}
 
 export const EXPORT_CODEC_OPTIONS: { value: ExportCodec; label: string }[] = [
   { value: "h264_main", label: "H.264 / AVC - Main" },
@@ -39,15 +39,14 @@ export const EXPORT_CODEC_OPTIONS: { value: ExportCodec; label: string }[] = [
   { value: "prores_4444_xq", label: "ProRes 4444 XQ" },
 ];
 
-export const EXPORT_AUDIO_OPTIONS: { value: ExportAudioMode; label: string }[] = [
-  { value: "copy", label: "Copy audio when compatible (auto-select fallback)" },
-  { value: "aac", label: "AAC 192 kbps" },
-  { value: "aac_320", label: "AAC 320 kbps" },
-  { value: "pcm16", label: "PCM 16-bit" },
-  { value: "pcm24", label: "PCM 24-bit" },
-  { value: "mp3", label: "MP3 320 kbps" },
-  { value: "none", label: "No audio" },
-];
+export const EXPORT_AUDIO_VALUES: ExportAudioMode[] = ["copy", "aac", "aac_320", "pcm16", "pcm24", "mp3", "none"];
+
+export function getExportAudioOptions(): { value: ExportAudioMode; label: string }[] {
+  return EXPORT_AUDIO_VALUES.map((value) => ({
+    value,
+    label: t(`settingsExport:audio.options.${value}`),
+  }));
+}
 
 export const EXPORT_CONTAINER_OPTIONS: { value: ExportContainer; label: string }[] = [
   { value: "avi", label: "AVI" },
@@ -55,20 +54,24 @@ export const EXPORT_CONTAINER_OPTIONS: { value: ExportContainer; label: string }
   { value: "mov", label: "MOV" },
 ];
 
-export const EXPORT_HARDWARE_OPTIONS: { value: ExportHardwareMode; label: string }[] = [
-  { value: "auto", label: "Auto GPU / CPU" },
-  { value: "gpu", label: "GPU" },
-  { value: "cpu", label: "CPU" },
-];
+export function getExportHardwareOptions(): { value: ExportHardwareMode; label: string }[] {
+  return [
+    { value: "auto", label: t("settingsExport:hardware.options.auto") },
+    { value: "gpu", label: "GPU" },
+    { value: "cpu", label: "CPU" },
+  ];
+}
 
-export const EXPORT_PROFILE_ICON_OPTIONS: { value: ExportProfileIcon; label: string }[] = [
-  { value: "video", label: "Video" },
-  { value: "remux", label: "Remux" },
-  { value: "h264", label: "H.264" },
-  { value: "h265", label: "H.265" },
-  { value: "prores", label: "ProRes" },
-  { value: "custom", label: "Custom" },
-];
+export function getExportProfileIconOptions(): { value: ExportProfileIcon; label: string }[] {
+  return [
+    { value: "video", label: t("settingsExport:icons.names.video") },
+    { value: "remux", label: t("settingsExport:icons.names.remux") },
+    { value: "h264", label: "H.264" },
+    { value: "h265", label: "H.265" },
+    { value: "prores", label: "ProRes" },
+    { value: "custom", label: t("settingsExport:icons.names.custom") },
+  ];
+}
 
 export const EXPORT_PROFILE_ICON_VALUES: ExportProfileIcon[] = [
   "video",
@@ -259,18 +262,14 @@ export const CODEC_LABELS: Record<ExportCodec, string> = {
   av1: "AV1 Main",
 };
 
-export const AUDIO_MODE_LABELS: Record<ExportAudioMode, string> = {
-  copy: "Audio copy",
-  aac: "AAC",
-  aac_320: "AAC 320k",
-  pcm16: "PCM 16-bit",
-  pcm24: "PCM 24-bit",
-  flac: "FLAC",
-  alac: "ALAC",
-  opus: "Opus",
-  mp3: "MP3",
-  none: "No audio",
-};
+const AUDIO_MODE_LABEL_MODES: ExportAudioMode[] = [
+  "copy", "aac", "aac_320", "pcm16", "pcm24", "flac", "alac", "opus", "mp3", "none",
+];
+
+export function getAudioModeLabel(mode: ExportAudioMode): string {
+  const known = AUDIO_MODE_LABEL_MODES.includes(mode) ? mode : "copy";
+  return t(`settingsExport:audio.labels.${known}`);
+}
 
 export const CODEC_FAMILY_LABELS: Record<ExportCodecFamily, string> = {
   h264: "H.264 / AVC",

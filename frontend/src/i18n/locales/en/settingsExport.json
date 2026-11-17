@@ -1,0 +1,281 @@
+{
+  "title": "Export",
+  "profile": {
+    "section": "Profile",
+    "active": {
+      "label": "Active Profile",
+      "description": "Export Now uses this profile."
+    },
+    "name": {
+      "label": "Profile Name",
+      "description": "The name shown in the profile selector."
+    },
+    "icon": {
+      "label": "Profile Icon",
+      "description": "The icon shown in the profile selector."
+    },
+    "untitled": "Untitled Profile",
+    "newName": "Export Profile {{index}}",
+    "new": "New Profile",
+    "delete": "Delete Profile"
+  },
+  "workflow": {
+    "section": "Workflow & Encoding",
+    "label": "Workflow",
+    "description": "Re-encode at exact scene boundaries, or stream-copy with boundaries snapped to keyframes.",
+    "options": {
+      "video_encode": "Export video (re-encode exact cuts)",
+      "video_remux": "Fast remux (stream copy)"
+    }
+  },
+  "openLocation": {
+    "label": "Open file location after export",
+    "description": "Open the folder and highlight the file when an export finishes.",
+    "toggle": "Toggle opening exported file location"
+  },
+  "container": {
+    "label": "Container",
+    "description": "The file format: MP4 or MOV.",
+    "auto": "Auto container"
+  },
+  "codec": {
+    "label": "Codec",
+    "description": "The video codec used when exporting.",
+    "profile": {
+      "label": "Codec Profile",
+      "description": "Quality and compression level for that codec."
+    },
+    "unknown": "Unknown codec",
+    "streamCopy": "Stream copy"
+  },
+  "audio": {
+    "label": "Audio Codec",
+    "description": "Re-encode the audio, copy it as it is, or drop it.",
+    "options": {
+      "copy": "Copy audio when compatible (auto-select fallback)",
+      "aac": "AAC 192 kbps",
+      "aac_320": "AAC 320 kbps",
+      "pcm16": "PCM 16-bit",
+      "pcm24": "PCM 24-bit",
+      "mp3": "MP3 320 kbps",
+      "none": "No audio"
+    },
+    "labels": {
+      "copy": "Audio copy",
+      "aac": "AAC",
+      "aac_320": "AAC 320k",
+      "pcm16": "PCM 16-bit",
+      "pcm24": "PCM 24-bit",
+      "flac": "FLAC",
+      "alac": "ALAC",
+      "opus": "Opus",
+      "mp3": "MP3",
+      "none": "No audio"
+    }
+  },
+  "hardware": {
+    "options": {
+      "auto": "Auto GPU / CPU"
+    },
+    "encoder": {
+      "label": "Video Encoder",
+      "cpuOnly": "This codec can only be encoded on the CPU.",
+      "detecting": "Detecting hardware encoders...",
+      "usingGpu": "Using your {{backend}} GPU. Auto falls back to the CPU if it fails.",
+      "usingGpuWithEncoder": "Using your {{backend}} GPU ({{encoder}}). Auto falls back to the CPU if it fails.",
+      "gpuUnsupported": "Your GPU can't encode this codec, so Auto uses the CPU.",
+      "noGpu": "No GPU encoder found, so Auto uses the CPU.",
+      "nvidiaMatrix": "NVIDIA matrix"
+    },
+    "parallel": {
+      "label": "Parallel Encodes",
+      "locked": "Only available on GPUs that can run more than one encode at a time.",
+      "description_one": "How many exports run at the same time. This codec supports up to {{count}}.",
+      "description_other": "How many exports run at the same time. This codec supports up to {{count}}."
+    },
+    "parallelMax_one": "Maximum ({{count}} Export)",
+    "parallelMax_other": "Maximum ({{count}} Exports)",
+    "parallelCount_one": "{{count}} Export",
+    "parallelCount_other": "{{count}} Exports"
+  },
+  "icons": {
+    "names": {
+      "video": "Video",
+      "remux": "Remux",
+      "custom": "Custom"
+    },
+    "profileIconAlt": "Profile icon",
+    "customAlt": "Custom profile icon",
+    "useCustom": "Use custom icon",
+    "deleteCustom": "Delete custom icon",
+    "addCustom": "Add custom icon",
+    "chooseIcon": "Choose icon",
+    "chooseProfileIcon": "Choose Profile Icon",
+    "customIcons": "Custom Icons",
+    "pin": "Pin to quick icons",
+    "unpin": "Unpin from quick icons",
+    "imageFilter": "Image",
+    "cropTitle": "Crop Profile Icon",
+    "cropHint": "Use a square crop for best icon quality"
+  },
+  "passes": {
+    "section": "Post-export passes",
+    "labels": {
+      "depth": "Depth map",
+      "upscale": "Upscale"
+    },
+    "depth": {
+      "label": "Depth map",
+      "description": "Also save a depth map of each export as <name>_depth.",
+      "descriptionOff": "Also save a depth map of each export as <name>_depth. Turn it on in Settings › Features.",
+      "toggle": "Toggle depth map",
+      "model": {
+        "label": "Depth model",
+        "description": "Bigger models look better but take longer."
+      },
+      "colormap": {
+        "label": "Colormap",
+        "description": "Color palette for the depth map."
+      },
+      "grayscale": {
+        "label": "Grayscale",
+        "description": "Use black and white instead of a color palette.",
+        "toggle": "Toggle grayscale depth"
+      }
+    },
+    "upscale": {
+      "label": "Upscaling",
+      "description": "Also save a higher resolution copy of each export as <name>_upscaled.",
+      "descriptionOff": "Also save a higher resolution copy of each export as <name>_upscaled. Turn it on in Settings › Features.",
+      "toggle": "Toggle upscaling",
+      "model": {
+        "label": "Upscale model",
+        "description": "All are trained on anime. Downloads the first time you use it."
+      },
+      "quality": {
+        "label": "File quality",
+        "description": "How the upscaled video is compressed. Outputs are always H.264."
+      }
+    },
+    "depthEncoders": {
+      "vits": "Depth Anything V2 - Small (fastest)",
+      "vitb": "Depth Anything V2 - Base",
+      "vitl": "Depth Anything V2 - Large (best)"
+    },
+    "upscaleModels": {
+      "fallin_soft": "Fallin Soft - 2x, cleanest",
+      "adore": "Adore - 2x, high quality",
+      "fallin_strong": "Fallin Strong - 2x, sharper",
+      "shufflecugan": "ShuffleCUGAN - 2x, general purpose"
+    },
+    "upscaleQualities": {
+      "archival": "Lossless",
+      "high": "High",
+      "balanced": "Balanced",
+      "fast": "Fast"
+    }
+  },
+  "features": {
+    "title": "Features",
+    "list": "Features",
+    "items": {
+      "aiSceneDetection": {
+        "label": "AI Scene Detection",
+        "description": "Finds scene cuts with AI (TransNetV2), the most accurate way to import."
+      },
+      "sceneScout": {
+        "label": "Scene Scout",
+        "description": "Search your episodes by describing a scene, and find clips that match each other."
+      },
+      "scenepacks": {
+        "label": "Scenepacks",
+        "description": "Group clips into collections."
+      },
+      "depthPass": {
+        "label": "Depth Map",
+        "description": "Creates a depth map of each exported file."
+      },
+      "upscalePass": {
+        "label": "Upscaling",
+        "description": "Creates a higher resolution copy of each exported file with AI."
+      }
+    },
+    "hideDisabled": {
+      "label": "Hide disabled features",
+      "description": "Remove switched-off features from the app instead of greying them out."
+    },
+    "state": {
+      "offDownloaded": "Off · downloaded",
+      "onDownload": "On · ~{{size}} download on first use",
+      "offDownload": "Off · ~{{size}} download"
+    },
+    "removing": "Removing…",
+    "freeUpSpace": "Free up space",
+    "lockedByImport": "Setting disabled while imports are running",
+    "gpu": {
+      "section": "GPU",
+      "cpuWithNvidia": "The CPU version is installed, but this PC has an NVIDIA GPU. AI features are running much slower than they could.",
+      "cpuInstalled": "The CPU version is installed. If this PC has an NVIDIA GPU, reinstalling with GPU support makes AI features much faster.",
+      "reinstall": "Reinstall with GPU support"
+    },
+    "modelWeights": "Model weights",
+    "storage": {
+      "section": "Storage",
+      "packages": {
+        "label": "AI packages",
+        "description": "PyTorch, every feature's packages, and the Python they run on."
+      },
+      "passModels": {
+        "label": "Pass model weights",
+        "description": "Depth and upscale models you downloaded under Model weights."
+      },
+      "scoutModel": {
+        "label": "Scene Scout model",
+        "description": "SigLIP 2, kept in the shared Hugging Face cache, so other apps that use it share this copy."
+      },
+      "previewCache": {
+        "label": "Preview cache",
+        "description": "Playable previews of Scene Scout results and Match clips. Kept under 1 GB automatically, oldest first, and remade when needed.",
+        "clear": "Clear",
+        "clearing": "Clearing…"
+      },
+      "total": {
+        "label": "Total",
+        "description": "Everything the AI features use on this PC."
+      },
+      "uninstall": {
+        "label": "Uninstall AI features",
+        "description": "Deletes the AI packages and switches the AI features off. Model weights are kept; delete them under Model weights.",
+        "remove": "Remove"
+      }
+    },
+    "devBuild": "Dev build: AI features run from the AMVerge-CLI checkout's venv, so nothing is downloaded or removed from here.",
+    "scenepacksOff": {
+      "title": "Disable Scenepacks",
+      "message_one": "You have {{count}} Scenepack. Would you like to delete it too, or just disable the feature and keep it for later?",
+      "message_other": "You have {{count}} Scenepacks. Would you like to delete them too, or just disable the feature and keep them for later?",
+      "delete": "Delete Scenepacks",
+      "keep": "Keep Scenepacks",
+      "clearFailed": "Failed to clear Scenepack storage: {{error}}"
+    }
+  },
+  "models": {
+    "categories": {
+      "depth": "Depth Models",
+      "upscale": "Upscale Models"
+    },
+    "description": "Model weights used by this feature. Download them ahead of time for fast offline exporting.",
+    "turnOn": {
+      "depth": "Turn on the depth pass above to manage its models.",
+      "upscale": "Turn on the upscale pass above to manage its models."
+    },
+    "loading": "Loading models…",
+    "count_one": "{{count}} model",
+    "count_other": "{{count}} models",
+    "notAvailable": "Not available",
+    "downloaded": "Downloaded",
+    "notDownloaded": "Not downloaded",
+    "downloading": "Downloading…",
+    "download": "Download"
+  }
+}

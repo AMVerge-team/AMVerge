@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import { FaEye, FaEyeSlash } from "../icons/animated";
 
 import { useEscapeToClose } from "../common/useEscapeToClose";
@@ -16,6 +17,7 @@ type Props = {
 
 /** which of a searched database's episodes scene scout looks through; hidden ones are left out of every search */
 export function EpisodeVisibilityPopover({ database, anchor, onClose }: Props) {
+  const { t } = useTranslation("scout");
   const videos = useSceneScoutStore((s) => s.videosByDatabase[database.path]);
   const hiddenVideos = useSceneScoutStore((s) => s.hiddenVideos);
   const setVideosHidden = useSceneScoutStore((s) => s.setVideosHidden);
@@ -67,7 +69,7 @@ export function EpisodeVisibilityPopover({ database, anchor, onClose }: Props) {
       className="scene-scout-options-pop scout-visibility-pop"
       style={{ top: pos.top, left: pos.left, width: POP_WIDTH }}
       role="dialog"
-      aria-label={`Episodes searched in ${label}`}
+      aria-label={t("visibility.ariaLabel", { name: label })}
     >
       <div className="scout-visibility-head">
         <span className="scout-visibility-title" title={label}>{label}</span>
@@ -75,16 +77,16 @@ export function EpisodeVisibilityPopover({ database, anchor, onClose }: Props) {
           {shownCount}/{list.length}
         </span>
         <button type="button" className="scout-visibility-all" onClick={() => setVideosHidden(allPaths, false)}>
-          Show all
+          {t("visibility.showAll")}
         </button>
         <button type="button" className="scout-visibility-all" onClick={() => setVideosHidden(allPaths, true)}>
-          Hide all
+          {t("visibility.hideAll")}
         </button>
       </div>
 
       <div className="scout-visibility-list">
-        {!videos && <div className="scout-visibility-empty">Loading episodes…</div>}
-        {videos && list.length === 0 && <div className="scout-visibility-empty">No episodes indexed yet.</div>}
+        {!videos && <div className="scout-visibility-empty">{t("visibility.loading")}</div>}
+        {videos && list.length === 0 && <div className="scout-visibility-empty">{t("visibility.empty")}</div>}
         {list.map((video) => {
           const hidden = isHidden(video.filepath);
           return (

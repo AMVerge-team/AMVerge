@@ -1,5 +1,6 @@
 import { PanelLeftIcon, PanelRightIcon } from "../icons/chrome/ChromeIcons";
 import type { CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 
 import Tooltip from "../common/Tooltip";
 import { useUIStateStore } from "../../stores/UIStore";
@@ -15,7 +16,8 @@ export function usePreviewPaneClearance(): CSSProperties | undefined {
 export function SidebarToggle() {
   const sidebarEnabled = useUIStateStore((s) => s.sidebarEnabled);
   const setSidebarEnabled = useUIStateStore((s) => s.setSidebarEnabled);
-  const label = sidebarEnabled ? "Hide database panel" : "Show database panel";
+  const { t } = useTranslation("scout");
+  const label = sidebarEnabled ? t("panels.hideDatabasePanel") : t("panels.showDatabasePanel");
   return (
     <Tooltip content={label}>
       <button
@@ -35,7 +37,8 @@ export function SidebarToggle() {
 export function PreviewToggle() {
   const previewCollapsed = useUIStateStore((s) => s.previewCollapsed);
   const setPreviewCollapsed = useUIStateStore((s) => s.setPreviewCollapsed);
-  const label = previewCollapsed ? "Show preview panel" : "Hide preview panel";
+  const { t } = useTranslation("scout");
+  const label = previewCollapsed ? t("panels.showPreviewPanel") : t("panels.hidePreviewPanel");
   return (
     <Tooltip content={label} placement="bottom-end">
       <button

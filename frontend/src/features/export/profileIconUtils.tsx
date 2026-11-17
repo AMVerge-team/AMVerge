@@ -10,6 +10,7 @@ import {
   type ProfileIconProps,
 } from "../../components/icons/ProfileIcons";
 import type { ExportProfile, ExportProfileIcon } from "./profiles";
+import { t } from "../../i18n";
 
 type BuiltInProfileIcon = Exclude<ExportProfileIcon, "custom">;
 
@@ -29,11 +30,11 @@ export function resolveStoredAssetPath(path: string): string {
 
 export function renderProfileIcon(
   profile: Pick<ExportProfile, "icon" | "customIconPath">,
-  alt: string = "Profile icon"
+  alt?: string
 ): ReactNode {
   if (profile.icon === "custom") {
     if (profile.customIconPath) {
-      return <img className="profile-custom-icon" src={resolveStoredAssetPath(profile.customIconPath)} alt={alt} />;
+      return <img className="profile-custom-icon" src={resolveStoredAssetPath(profile.customIconPath)} alt={alt ?? t("settingsExport:icons.profileIconAlt")} />;
     }
     return <IconCustom />;
   }

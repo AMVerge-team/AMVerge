@@ -1,12 +1,13 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FaEllipsisH, FaPlus, FaThumbtack } from '../../icons/animated';
 import CropModal from "../../common/CropModal"
 import Tooltip from "../../common/Tooltip"
 import { useEscapeToClose } from "../../common/useEscapeToClose";
 import {
-  EXPORT_PROFILE_ICON_OPTIONS,
+  getExportProfileIconOptions,
   type ExportProfile,
   type ExportProfileIcon,
 } from "../../../features/export/profiles";
@@ -61,6 +62,7 @@ export default function ProfileIconPicker({
   removeCustomProfileIcon,
   updateActiveProfile,
 }: ProfileIconPickerProps) {
+  const { t } = useTranslation("settingsExport");
   const [showIconPicker, setShowIconPicker] = useState(false);
   const [featuredIcons, setFeaturedIcons] = useState<ExportProfileIcon[]>([]);
   const [featuredCustomIcons, setFeaturedCustomIcons] = useState<string[]>([]);
@@ -73,9 +75,13 @@ export default function ProfileIconPicker({
   const iconPickerRef = useRef<HTMLDivElement | null>(null);
 
   const pickerIconOptions = useMemo(
-    () => EXPORT_PROFILE_ICON_OPTIONS.filter((option) => option.value !== "custom"),
-    []
+    () => getExportProfileIconOptions().filter((option) => option.value !== "custom"),
+    // t changes with the language, so labels re-translate on switch
+    [t]
   );
+
+  const iconLabel = (icon: ExportProfileIcon) =>
+    pickerIconOptions.find((option) => option.value === icon)?.label ?? icon;
 
   const availableIconValues = useMemo(
     () => pickerIconOptions.map((option) => option.value),
@@ -276,7 +282,7 @@ export default function ProfileIconPicker({
       multiple: false,
       filters: [
         {
-          name: "Image",
+          name: t("icons.imageFilter"),
           extensions: ICON_FILE_EXTENSIONS,
         },
       ],
@@ -362,13 +368,13 @@ export default function ProfileIconPicker({
           {inlineVisibleIconItems.map((item) => {
             if (item.type === "builtin") {
               return (
-                <Tooltip key={`builtin-${item.value}`} content={item.value}>
+                <Tooltip key={`builtin-${item.value}`} content={iconLabel(item.value)}>
                   <button
                     type="button"
                     className={`profile-icon-button${
                       activeProfile.icon === item.value ? " active" : ""
                     }`}
-                    aria-label={item.value}
+                    aria-label={iconLabel(item.value)}
                     onClick={() => updateActiveProfile({ icon: item.value })}
                   >
                     <ProfileIconGlyph
@@ -393,26 +399,26 @@ export default function ProfileIconPicker({
                 key={`custom-${item.path}`}
                 className="profile-custom-icon-slot"
               >
-                <Tooltip content="Use custom icon">
+                <Tooltip content={t("icons.useCustom")}>
                   <button
                     type="button"
                     className={`profile-icon-button${isActiveCustom ? " active" : ""}`}
-                    aria-label="Use custom icon"
+                    aria-label={t("icons.useCustom")}
                     onClick={() => applyCustomIconSelection(item.path, false)}
                   >
                     <img
                       className="profile-custom-icon"
                       src={convertFileSrc(item.path)}
-                      alt="Custom profile icon"
+                      alt={t("icons.customAlt")}
                     />
                   </button>
                 </Tooltip>
 
-                <Tooltip content="Delete custom icon">
+                <Tooltip content={t("icons.deleteCustom")}>
                   <button
                     type="button"
                     className="profile-icon-delete"
-                    aria-label="Delete custom icon"
+                    aria-label={t("icons.deleteCustom")}
                     onClick={(event) => {
                       event.stopPropagation();
                       void handleDeleteCustomIcon(item.path);
@@ -426,13 +432,13 @@ export default function ProfileIconPicker({
           })}
         </div>
 
-        <Tooltip content="Add custom icon">
+        <Tooltip content={t("icons.addCustom")}>
           <button
             type="button"
             className={`profile-icon-button profile-upload-tile${
               activeProfile.icon === "custom" ? " active" : ""
             }`}
-            aria-label="Add custom icon"
+            aria-label={t("icons.addCustom")}
             onClick={() => {
               void handlePickCustomIcon();
             }}
@@ -441,11 +447,11 @@ export default function ProfileIconPicker({
           </button>
         </Tooltip>
 
-        <Tooltip content="Choose icon">
+        <Tooltip content={t("icons.chooseIcon")}>
           <button
             type="button"
             className="profile-icon-button profile-icon-more-trigger"
-            aria-label="Choose icon"
+            aria-label={t("icons.chooseIcon")}
             aria-expanded={showIconPicker}
             onClick={() => setShowIconPicker((current) => !current)}
           >
@@ -457,10 +463,10 @@ export default function ProfileIconPicker({
           <div
             className="profile-icon-popover"
             role="dialog"
-            aria-label="Choose Profile Icon"
+            aria-label={t("icons.chooseProfileIcon")}
           >
             <div className="profile-icon-modal-header">
-              <h3>Choose Profile Icon</h3>
+              <h3>{t("icons.chooseProfileIcon")}</h3>
             </div>
 
             <div className="profile-icon-grid">
@@ -489,15 +495,15 @@ export default function ProfileIconPicker({
                     </Tooltip>
 
                     <Tooltip
-                      content={pinned ? "Unpin from quick icons" : "Pin to quick icons"}
+                      content={pinned ? t("icons.unpin") : t("icons.pin")}
                     >
                       <button
                         type="button"
                         className={`profile-icon-pin${pinned ? " pinned" : ""}`}
                         aria-label={
                           pinned
-                            ? "Unpin from quick icons"
-                            : "Pin to quick icons"
+                            ? t("icons.unpin")
+                            : t("icons.pin")
                         }
                         onClick={(event) => {
                           event.stopPropagation();
@@ -513,15 +519,15 @@ export default function ProfileIconPicker({
             </div>
 
             <div className="profile-icon-modal-header">
-              <h3>Custom Icons</h3>
+              <h3>{t("icons.customIcons")}</h3>
             </div>
 
             <div className="profile-icon-grid">
-              <Tooltip content="Add custom icon">
+              <Tooltip content={t("icons.addCustom")}>
                 <button
                   type="button"
                   className="profile-icon-button profile-upload-tile"
-                  aria-label="Add custom icon"
+                  aria-label={t("icons.addCustom")}
                   onClick={() => {
                     void handlePickCustomIcon();
                   }}
@@ -542,13 +548,13 @@ export default function ProfileIconPicker({
                     key={`popover-${iconPath}`}
                     className="profile-custom-icon-slot"
                   >
-                    <Tooltip content="Use custom icon">
+                    <Tooltip content={t("icons.useCustom")}>
                       <button
                         type="button"
                         className={`profile-icon-button${
                           isActiveCustom ? " active" : ""
                         }`}
-                        aria-label="Use custom icon"
+                        aria-label={t("icons.useCustom")}
                         onClick={() => {
                           applyCustomIconSelection(iconPath, true);
                         }}
@@ -556,13 +562,13 @@ export default function ProfileIconPicker({
                         <img
                           className="profile-custom-icon"
                           src={convertFileSrc(iconPath)}
-                          alt="Custom profile icon"
+                          alt={t("icons.customAlt")}
                         />
                       </button>
                     </Tooltip>
 
                     <Tooltip
-                      content={pinnedCustom ? "Unpin from quick icons" : "Pin to quick icons"}
+                      content={pinnedCustom ? t("icons.unpin") : t("icons.pin")}
                     >
                       <button
                         type="button"
@@ -571,8 +577,8 @@ export default function ProfileIconPicker({
                         }`}
                         aria-label={
                           pinnedCustom
-                            ? "Unpin from quick icons"
-                            : "Pin to quick icons"
+                            ? t("icons.unpin")
+                            : t("icons.pin")
                         }
                         onClick={(event) => {
                           event.stopPropagation();
@@ -583,11 +589,11 @@ export default function ProfileIconPicker({
                       </button>
                     </Tooltip>
 
-                    <Tooltip content="Delete custom icon">
+                    <Tooltip content={t("icons.deleteCustom")}>
                       <button
                         type="button"
                         className="profile-icon-delete"
-                        aria-label="Delete custom icon"
+                        aria-label={t("icons.deleteCustom")}
                         onClick={(event) => {
                           event.stopPropagation();
                           void handleDeleteCustomIcon(iconPath);
@@ -607,9 +613,9 @@ export default function ProfileIconPicker({
       {iconToCrop && (
         <CropModal
           image={iconToCrop}
-          title="Crop Profile Icon"
+          title={t("icons.cropTitle")}
           initialAspect={1}
-          hint="Use a square crop for best icon quality"
+          hint={t("icons.cropHint")}
           onClose={() => {
             setIconToCrop(null);
             setSourceIconPath(null);

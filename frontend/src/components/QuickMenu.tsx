@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
 import { FaBars, FaCog, FaTimes, FaDiscord, FaGithub, FaSearch, FaWrench } from './icons/animated';
 import Tooltip from "./common/Tooltip";
@@ -9,6 +10,7 @@ const BLOCKING_OVERLAYS =
   ".episode-modal-overlay, .crop-modal-overlay, .pxm-overlay, .startup-notification-overlay";
 
 export default function QuickMenu() {
+  const { t } = useTranslation("shell");
   const open = useUIStateStore((s) => s.quickMenuOpen);
   const setQuickMenuOpen = useUIStateStore((s) => s.setQuickMenuOpen);
   const openMenu = useUIStateStore((s) => s.openMenu);
@@ -19,26 +21,30 @@ export default function QuickMenu() {
 
   const cards = [
     {
-      title: "Search",
-      desc: "Search across episodes, scenepacks, settings, and commands",
+      id: "search",
+      title: t("quickMenu.search.title"),
+      desc: t("quickMenu.search.desc"),
       icon: FaSearch,
       run: () => setCommandPaletteOpen(true),
     },
     {
-      title: "Tools",
-      desc: "Upscale a clip or turn it into a depth map",
+      id: "tools",
+      title: t("quickMenu.tools.title"),
+      desc: t("quickMenu.tools.desc"),
       icon: FaWrench,
       run: () => openTools(),
     },
     {
-      title: "Menu",
-      desc: "About, Update Logs, Console, Credits, and Bug Reports",
+      id: "menu",
+      title: t("quickMenu.menu.title"),
+      desc: t("quickMenu.menu.desc"),
       icon: FaBars,
       run: () => openMenu(),
     },
     {
-      title: "Settings",
-      desc: "General options, export profiles, appearance, and AI models",
+      id: "settings",
+      title: t("quickMenu.settings.title"),
+      desc: t("quickMenu.settings.desc"),
       icon: FaCog,
       run: () => openSettings(),
     },
@@ -105,23 +111,23 @@ export default function QuickMenu() {
         className="quick-menu-dialog"
         role="dialog"
         aria-modal="true"
-        aria-label="Quick menu"
+        aria-label={t("quickMenu.ariaLabel")}
       >
-        <Tooltip content="Close">
+        <Tooltip content={t("common:close")}>
           <button
             type="button"
             className="app-modal-close"
             onClick={() => setQuickMenuOpen(false)}
-            aria-label="Close"
+            aria-label={t("common:close")}
           >
             <FaTimes aria-hidden="true" />
           </button>
         </Tooltip>
 
         <div className="quick-menu-hero">
-          <h2 className="about-hero-title">Quick Navigation</h2>
+          <h2 className="about-hero-title">{t("quickMenu.title")}</h2>
           <p className="about-hero-subtitle">
-            Quickly jump between pages, search, or configure preferences.
+            {t("quickMenu.subtitle")}
           </p>
         </div>
 
@@ -130,7 +136,7 @@ export default function QuickMenu() {
             const Icon = card.icon;
             return (
               <button
-                key={card.title}
+                key={card.id}
                 type="button"
                 className={`quick-menu-card${index === selectedIndex ? " is-selected" : ""}`}
                 data-getting-started={card.title === "Settings" ? "quick-settings" : undefined}

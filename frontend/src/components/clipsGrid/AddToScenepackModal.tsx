@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import { FaSpinner } from '../icons/animated';
 import { useScenepacksStore } from "../../stores/scenepackStore";
 import { useUIStateStore } from "../../stores/UIStore";
@@ -15,6 +16,7 @@ type AddToScenepackModalProps = {
 };
 
 export function AddToScenepackModal({ clips: sourceClips, episodeId, onClose }: AddToScenepackModalProps) {
+  const { t } = useTranslation("library");
   const scenepacks = useScenepacksStore((s) => s.scenepacks);
   const addClipToScenepack = useScenepacksStore((s) => s.addClipToScenepack);
   const addScenepack = useScenepacksStore((s) => s.addScenepack);
@@ -34,7 +36,6 @@ export function AddToScenepackModal({ clips: sourceClips, episodeId, onClose }: 
   }, [mode]);
 
   const count = sourceClips.length;
-  const noun = count === 1 ? "clip" : `${count} clips`;
   const isInPack = (clipsInPack: { episodeId: string; sceneIndex: number }[], c: ClipItem) =>
     clipsInPack.some((p) => p.episodeId === episodeId && p.sceneIndex === (c.sceneIndex ?? 0));
 
@@ -56,7 +57,7 @@ export function AddToScenepackModal({ clips: sourceClips, episodeId, onClose }: 
       const toAdd = sourceClips.filter((c) => !pack || !isInPack(pack.clips, c));
       const { clips, failedCount } = await materializeClipsForScenepack(toAdd, targetId, episodeId);
       if (clips.length === 0) {
-        setError(failedCount > 0 ? `Failed to add ${noun} to Scenepack.` : "Nothing to add.");
+        setError(failedCount > 0 ? t("addToScenepack.failed", { count }) : t("addToScenepack.nothingToAdd"));
         return;
       }
       for (const data of clips) addClipToScenepack(targetId, data);
@@ -77,20 +78,20 @@ export function AddToScenepackModal({ clips: sourceClips, episodeId, onClose }: 
   return createPortal(
     <div className="episode-modal-overlay" onClick={onClose}>
       <div className="episode-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="episode-modal-title">{count === 1 ? "Add to Scenepack" : `Add ${count} clips to Scenepack`}</div>
+        <div className="episode-modal-title">{count === 1 ? t("addToScenepack.title") : t("addToScenepack.titleCount", { count })}</div>
 
         <div className="episode-modal-message" style={{ display: "flex", gap: "6px", marginBottom: "12px" }}>
           <button
             className={`episode-modal-btn${mode === "select" ? " primary" : ""}`}
             onClick={() => setMode("select")}
           >
-            Existing
+            {t("addToScenepack.existing")}
           </button>
           <button
             className={`episode-modal-btn${mode === "create" ? " primary" : ""}`}
             onClick={() => setMode("create")}
           >
-            Create New
+            {t("addToScenepack.createNew")}
           </button>
         </div>
 
@@ -98,7 +99,7 @@ export function AddToScenepackModal({ clips: sourceClips, episodeId, onClose }: 
           <div className="scenepack-scroll-list">
             {scenepacks.length === 0 ? (
               <div className="episode-modal-message" style={{ opacity: 0.55 }}>
-                No Scenepacks yet. Switch to "Create New" to make one.
+                {t("addToScenepack.noScenepacks")}
               </div>
             ) : (
               scenepacks.map((sp) => {
@@ -114,7 +115,7 @@ export function AddToScenepackModal({ clips: sourceClips, episodeId, onClose }: 
                     <span className="episode-panel-count">{sp.clips.length}</span>
                     {hasClip && (
                       <span style={{ fontSize: "12px", color: "var(--accent)", fontStyle: "italic", marginLeft: "auto" }}>
-                        already added
+                        {t("addToScenepack.alreadyAdded")}
                       </span>
                     )}
                   </div>
@@ -128,7 +129,7 @@ export function AddToScenepackModal({ clips: sourceClips, episodeId, onClose }: 
               ref={inputRef}
               type="text"
               className="episode-modal-input"
-              placeholder="Scenepack name..."
+              placeholder={t("scenepacks.newItem.placeholderScenepack")}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
@@ -144,15 +145,15 @@ export function AddToScenepackModal({ clips: sourceClips, episodeId, onClose }: 
         )}
 
         <div className="episode-modal-actions">
-          <button className="episode-modal-btn" onClick={onClose} disabled={busy}>Cancel</button>
+          <button className="episode-modal-btn" onClick={onClose} disabled={busy}>{t("common:cancel")}</button>
           <button
             className="episode-modal-btn primary"
             onClick={handleAdd}
             disabled={busy || (mode === "select" ? !selectedId : !newName.trim())}
           >
             {busy ? (
-              <><FaSpinner className="scenepack-spinner" aria-hidden="true" /> Adding...</>
-            ) : mode === "create" ? "Create & Add" : count === 1 ? "Add Clip" : `Add ${count} Clips`}
+              <><FaSpinner className="scenepack-spinner" aria-hidden="true" /> {t("addToScenepack.adding")}</>
+            ) : mode === "create" ? t("addToScenepack.createAndAdd") : t("addToScenepack.addClips", { count })}
           </button>
         </div>
       </div>

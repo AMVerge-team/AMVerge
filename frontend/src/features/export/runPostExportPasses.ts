@@ -1,6 +1,7 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
+import { t } from "../../i18n";
 import { useAiDepsStore } from "../../stores/aiDepsStore";
 import { usePassRunStore } from "../../stores/passRunStore";
 import { AI_PACKS } from "../aiDeps/packs";
@@ -9,7 +10,6 @@ import { isFeatureEnabled } from "../featureToggles";
 import {
   anyPassEnabled,
   depthArgs,
-  PASS_LABEL,
   PASS_SUFFIX,
   POST_EXPORT_PASS_KINDS,
   upscaleArgs,
@@ -73,7 +73,7 @@ function buildJobs(
     if (passes.depth.enabled && target.depth) {
       const output = path(PASS_SUFFIX.depth);
       jobs.push({
-        label: `${PASS_LABEL.depth} · ${stem}`,
+        label: t("jobs:passes.jobLabel", { pass: t("jobs:passLabel.depth"), name: stem }),
         calls: [{ pass: "depth", input: out, output, args: depthArgs(passes.depth) }],
       });
     }
@@ -81,7 +81,7 @@ function buildJobs(
     if (passes.upscale.enabled && target.upscale) {
       const output = path(PASS_SUFFIX.upscale);
       jobs.push({
-        label: `${PASS_LABEL.upscale} · ${stem}`,
+        label: t("jobs:passes.jobLabel", { pass: t("jobs:passLabel.upscale"), name: stem }),
         calls: [{ pass: "upscale", input: out, output, args: upscaleArgs(passes.upscale) }],
       });
     }
@@ -106,10 +106,10 @@ export async function runPostExportPasses(
     // a pass switched off in Settings > Features never runs, whatever its own toggle says
     if (!isFeatureEnabled(PASS_FEATURE[kind])) effective[kind].enabled = false;
     // no file picked for a pass: don't install or ask for its pack
-    if (!targets.some((t) => t[kind])) effective[kind].enabled = false;
+    if (!targets.some((target) => target[kind])) effective[kind].enabled = false;
     if (effective[kind].enabled && !(await useAiDepsStore.getState().ensurePack(kind))) {
       effective[kind].enabled = false;
-      skipped.push(`[skipped] ${kind} pass: ${AI_PACKS[kind].dependencyName} is not installed`);
+      skipped.push(t("jobs:passes.skipped", { pass: t(`jobs:passLabel.${kind}`), name: AI_PACKS[kind].dependencyName }));
     }
   }
   if (!anyPassEnabled(effective)) return;
@@ -170,7 +170,7 @@ export async function runPostExportPasses(
           usePassRunStore.getState().pushLog(`✓ ${out.stem}.${out.ext}`, "event");
         } catch (err) {
           jobOk = false;
-          usePassRunStore.getState().pushLog(`${job.label}: ${passErrorMessage(err)}`, "error");
+          usePassRunStore.getState().pushLog(t("jobs:passes.jobError", { label: job.label, error: passErrorMessage(err) }), "error");
           break;
         }
       }

@@ -1,4 +1,5 @@
 import type React from "react";
+import { useTranslation } from "react-i18next";
 import Tooltip from "../../common/Tooltip";
 import type { EpisodePanelProps, PointerDragSource } from "../types";
 
@@ -36,6 +37,7 @@ export default function FolderRow({
   onSelectFolder,
   onToggleFolderExpanded,
 }: FolderRowProps) {
+  const { t } = useTranslation("library");
   const folderRowClass =
     (isSelected
       ? "episode-panel-row folder-row is-selected"
@@ -58,7 +60,7 @@ export default function FolderRow({
       style={{ paddingLeft: `${8 + depth * 12}px` }}
     >
       <Tooltip
-        content={folder.isExpanded ? "Collapse folder" : "Expand folder"}
+        content={folder.isExpanded ? t("episodePanel.row.collapseFolder") : t("episodePanel.row.expandFolder")}
         side="right"
       >
         <button
@@ -80,7 +82,7 @@ export default function FolderRow({
             e.stopPropagation();
             onToggleFolderExpanded(folder.id);
           }}
-          aria-label={folder.isExpanded ? "Collapse folder" : "Expand folder"}
+          aria-label={folder.isExpanded ? t("episodePanel.row.collapseFolder") : t("episodePanel.row.expandFolder")}
         >
           ▸
         </button>

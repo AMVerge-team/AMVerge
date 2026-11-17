@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import ReactCrop, { centerCrop, makeAspectCrop, Crop, PixelCrop } from "react-image-crop";
 import { FaUndo, FaRedo, FaArrowsAltH, FaArrowsAltV, FaExpand, FaSyncAlt } from '../icons/animated';
 import "react-image-crop/dist/ReactCrop.css";
@@ -24,20 +25,21 @@ type CropModalProps = {
 };
 
 const ASPECT_RATIOS = [
-  { label: "16:9", value: 16 / 9 },
-  { label: "4:3", value: 4 / 3 },
-  { label: "1:1", value: 1 },
-  { label: "Free", value: undefined },
+  { id: "16:9", value: 16 / 9 },
+  { id: "4:3", value: 4 / 3 },
+  { id: "1:1", value: 1 },
+  { id: "free", value: undefined },
 ];
 
 export default function CropModal({
   image,
-  title = "Crop & Transform",
+  title,
   initialAspect = 16 / 9,
-  hint = "Drag corners to resize freely",
+  hint,
   onClose,
   onCropComplete,
 }: CropModalProps) {
+  const { t } = useTranslation("shell");
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [zoom, setZoom] = useState(1);
@@ -146,11 +148,11 @@ export default function CropModal({
         <div className="crop-modal-header">
           <div className="header-left">
             <FaExpand className="header-icon" />
-            <h3>{title}</h3>
+            <h3>{title ?? t("crop.title")}</h3>
           </div>
-          <Tooltip content="Reset all changes">
+          <Tooltip content={t("crop.resetTooltip")}>
             <button className="reset-btn" onClick={handleReset}>
-              <FaSyncAlt /> Reset
+              <FaSyncAlt /> {t("common:reset")}
             </button>
           </Tooltip>
         </div>
@@ -172,7 +174,7 @@ export default function CropModal({
             >
               <img
                 ref={imgRef}
-                alt="Crop me"
+                alt={t("crop.imageAlt")}
                 src={image}
                 onLoad={onImageLoad}
                 crossOrigin="anonymous"
@@ -189,68 +191,68 @@ export default function CropModal({
 
         <div className="crop-toolbar">
           <div className="toolbar-section">
-            <label>Aspect Ratio</label>
+            <label>{t("crop.aspectRatio")}</label>
             <div className="aspect-buttons">
               {ASPECT_RATIOS.map((ratio) => (
                 <button
-                  key={ratio.label}
+                  key={ratio.id}
                   className={`toolbar-btn ${aspect === ratio.value ? "active" : ""}`}
                   onClick={() => setAspect(ratio.value)}
                 >
-                  {ratio.label}
+                  {ratio.id === "free" ? t("crop.free") : ratio.id}
                 </button>
               ))}
             </div>
             <div className="custom-res-row">
               <div className="res-input-group">
-                <span>W</span>
+                <span>{t("crop.widthShort")}</span>
                 <input
                   type="number"
                   value={customRes.width}
                   onChange={(e) => handleCustomResChange("width", e.target.value)}
-                  placeholder="Width"
+                  placeholder={t("crop.width")}
                 />
               </div>
               <div className="res-input-group">
-                <span>H</span>
+                <span>{t("crop.heightShort")}</span>
                 <input
                   type="number"
                   value={customRes.height}
                   onChange={(e) => handleCustomResChange("height", e.target.value)}
-                  placeholder="Height"
+                  placeholder={t("crop.height")}
                 />
               </div>
             </div>
           </div>
 
           <div className="toolbar-section">
-            <label>Rotate & Flip</label>
+            <label>{t("crop.rotateFlip")}</label>
             <div className="transform-buttons">
-              <Tooltip content="Rotate left">
-                <button className="toolbar-btn" onClick={() => setRotation((r) => r - 90)} aria-label="Rotate left">
+              <Tooltip content={t("crop.rotateLeft")}>
+                <button className="toolbar-btn" onClick={() => setRotation((r) => r - 90)} aria-label={t("crop.rotateLeft")}>
                   <FaUndo />
                 </button>
               </Tooltip>
-              <Tooltip content="Rotate right">
-                <button className="toolbar-btn" onClick={() => setRotation((r) => r + 90)} aria-label="Rotate right">
+              <Tooltip content={t("crop.rotateRight")}>
+                <button className="toolbar-btn" onClick={() => setRotation((r) => r + 90)} aria-label={t("crop.rotateRight")}>
                   <FaRedo />
                 </button>
               </Tooltip>
-              <Tooltip content="Flip horizontal">
+              <Tooltip content={t("crop.flipHorizontal")}>
                 <button
                   className={`toolbar-btn ${flip.horizontal ? "active" : ""}`}
                   onClick={() => setFlip((f) => ({ ...f, horizontal: !f.horizontal }))}
-                  aria-label="Flip horizontal"
+                  aria-label={t("crop.flipHorizontal")}
                   aria-pressed={flip.horizontal}
                 >
                   <FaArrowsAltH />
                 </button>
               </Tooltip>
-              <Tooltip content="Flip vertical">
+              <Tooltip content={t("crop.flipVertical")}>
                 <button
                   className={`toolbar-btn ${flip.vertical ? "active" : ""}`}
                   onClick={() => setFlip((f) => ({ ...f, vertical: !f.vertical }))}
-                  aria-label="Flip vertical"
+                  aria-label={t("crop.flipVertical")}
                   aria-pressed={flip.vertical}
                 >
                   <FaArrowsAltV />
@@ -260,7 +262,7 @@ export default function CropModal({
           </div>
 
           <div className="toolbar-section zoom-section">
-            <label>Zoom ({Math.round(zoom * 100)}%)</label>
+            <label>{t("crop.zoom", { percent: Math.round(zoom * 100) })}</label>
             <input
               type="range"
               value={zoom}
@@ -273,11 +275,11 @@ export default function CropModal({
         </div>
 
         <div className="crop-modal-footer">
-          <p className="crop-hint">{hint}</p>
+          <p className="crop-hint">{hint ?? t("crop.hint")}</p>
           <div className="footer-actions">
-            <button className="footer-btn cancel" onClick={onClose}>Cancel</button>
+            <button className="footer-btn cancel" onClick={onClose}>{t("common:cancel")}</button>
             <button className="footer-btn primary" onClick={handleSave} disabled={loading}>
-              {loading ? <div className="spinner"></div> : "Save & Apply"}
+              {loading ? <div className="spinner"></div> : t("crop.saveApply")}
             </button>
           </div>
         </div>

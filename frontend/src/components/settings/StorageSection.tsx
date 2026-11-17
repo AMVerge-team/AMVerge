@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
@@ -42,6 +43,7 @@ const BAR_COLORS = {
 };
 
 export default function StorageSection() {
+  const { t } = useTranslation("storage");
   const episodesPath = useGeneralSettingsStore((s) => s.episodesPath);
   const setGeneralSettings = useGeneralSettingsStore.setState;
   const status = useAiDepsStore((s) => s.status);
@@ -87,13 +89,13 @@ export default function StorageSection() {
   const isMac = navigator.userAgent.includes("Mac OS X");
   const isLinux = navigator.userAgent.includes("Linux");
   const defaultEpisodesPathLabel = isMac
-    ? "Default (Application Support)"
+    ? t("storage:defaultMac")
     : isLinux
-      ? "Default (~/.local/share)"
-      : "Default (App Data)";
+      ? t("storage:defaultLinux")
+      : t("storage:defaultWindows");
 
   const episodesLabel = movingEpisodesTo
-    ? `Moving to ${movingEpisodesTo}...`
+    ? t("storage:movingTo", { path: movingEpisodesTo })
     : episodesPath || defaultEpisodesPathLabel;
 
   const aiUsingLegacyAppData = Boolean(
@@ -105,20 +107,20 @@ export default function StorageSection() {
   );
 
   const aiPathLabel = movingAiTo
-    ? `Moving to ${movingAiTo}...`
+    ? t("storage:movingTo", { path: movingAiTo })
     : status?.aiCustomPath
       ? status.aiCustomPath
       : status?.aiRootPath
         ? aiUsingLegacyAppData
-          ? `${status.aiRootPath} (Existing AppData)`
-          : `${status.aiRootPath} (Default)`
-        : "Loading...";
+          ? t("storage:existingPath", { path: status.aiRootPath })
+          : t("storage:defaultPath", { path: status.aiRootPath })
+        : t("storage:loading");
 
   const handleMoveEpisodes = async (selected: string | null) => {
     if ((episodesPath || null) === selected) return;
     setError(null);
     setMovingEpisodesTo(selected ?? defaultEpisodesPathLabel);
-    useStorageMoveStore.getState().begin("Moving Episodes Storage");
+    useStorageMoveStore.getState().begin(t("storage:movingEpisodes"));
 
     try {
       // Windows won't delete files the grid's tiles hold open, so release them first.
@@ -133,7 +135,7 @@ export default function StorageSection() {
 
       setGeneralSettings((prev) => ({ ...prev, episodesPath: selected }));
       await rebaseStoragePaths(selected ?? undefined);
-      useStorageMoveStore.getState().finish("Episodes storage moved.");
+      useStorageMoveStore.getState().finish(t("storage:episodesMoved"));
     } catch (err) {
       useStorageMoveStore.getState().fail(errorText(err));
     } finally {
@@ -147,7 +149,7 @@ export default function StorageSection() {
     const selected = await open({
       multiple: false,
       directory: true,
-      title: "Select Episodes Storage Directory",
+      title: t("storage:pickEpisodes"),
     });
     if (selected && typeof selected === "string") {
       await handleMoveEpisodes(selected);
@@ -157,14 +159,14 @@ export default function StorageSection() {
   const handleMoveAi = async (selected: string | null) => {
     if ((status?.aiCustomPath ?? null) === selected) return;
     setError(null);
-    setMovingAiTo(selected ?? "Default location");
-    useStorageMoveStore.getState().begin("Moving AI Features Location");
+    setMovingAiTo(selected ?? t("storage:defaultLocation"));
+    useStorageMoveStore.getState().begin(t("storage:movingAi"));
     try {
       const next = await invoke<AiEnvStatus>("move_ai_storage_to_new_dir", {
         newDir: selected,
       });
       useAiDepsStore.setState({ status: next });
-      useStorageMoveStore.getState().finish("AI features location updated.");
+      useStorageMoveStore.getState().finish(t("storage:aiMoved"));
     } catch (err) {
       useStorageMoveStore.getState().fail(errorText(err));
     } finally {
@@ -177,7 +179,7 @@ export default function StorageSection() {
     const selected = await open({
       multiple: false,
       directory: true,
-      title: "Select App & AI Features Storage Directory",
+      title: t("storage:pickAi"),
     });
     if (selected && typeof selected === "string") {
       await handleMoveAi(selected);
@@ -228,7 +230,7 @@ export default function StorageSection() {
       await clearEpisodePanelCache();
       await refreshAll();
     } catch (err) {
-      void showNotice("Clear failed", "Failed to clear episode panel: " + errorText(err));
+      void showNotice(t("storage:clearFailed"), t("storage:clearPanelFailed", { error: errorText(err) }));
     } finally {
       setClearingPanel(false);
       setShowClearPanelConfirm(false);
@@ -241,7 +243,7 @@ export default function StorageSection() {
       await clearScenepacksStorage();
       await refreshAll();
     } catch (err) {
-      void showNotice("Clear failed", "Failed to clear Scenepack storage: " + errorText(err));
+      void showNotice(t("storage:clearFailed"), t("storage:clearScenepacksFailed", { error: errorText(err) }));
     } finally {
       setClearingScenepacks(false);
       setShowClearScenepacksConfirm(false);
@@ -264,21 +266,21 @@ export default function StorageSection() {
   const grandTotalBytes = episodesBytes + scenepacksBytes + sceneScoutBytes + allCachesBytes + aiTotalBytes;
 
   const segments = [
-    { key: "episodes", label: "Episodes", bytes: episodesBytes, color: BAR_COLORS.episodes },
-    { key: "scenepacks", label: "Scenepacks", bytes: scenepacksBytes, color: BAR_COLORS.scenepacks },
-    { key: "sceneScout", label: "Scene Scout", bytes: sceneScoutBytes, color: BAR_COLORS.sceneScout },
-    { key: "ai", label: "AI Features", bytes: aiTotalBytes, color: BAR_COLORS.ai },
-    { key: "caches", label: "Caches", bytes: allCachesBytes, color: BAR_COLORS.caches },
+    { key: "episodes", label: t("storage:episodes"), bytes: episodesBytes, color: BAR_COLORS.episodes },
+    { key: "scenepacks", label: t("storage:scenepacks"), bytes: scenepacksBytes, color: BAR_COLORS.scenepacks },
+    { key: "sceneScout", label: t("storage:sceneScout"), bytes: sceneScoutBytes, color: BAR_COLORS.sceneScout },
+    { key: "ai", label: t("storage:ai"), bytes: aiTotalBytes, color: BAR_COLORS.ai },
+    { key: "caches", label: t("storage:caches"), bytes: allCachesBytes, color: BAR_COLORS.caches },
   ];
 
   return (
     <section className="panel menu-panel settings-panel">
-      <h3>Storage</h3>
+      <h3>{t("storage:title")}</h3>
       <div className="about-content">
-        <SettingsSection id="storage.locations" title="Locations">
+        <SettingsSection id="storage.locations" title={t("storage:locations")}>
           <SettingRow
-            label="Episodes Storage Path"
-            description="Where episodes and scenepacks live."
+            label={t("storage:episodesPath")}
+            description={t("storage:episodesDescription")}
             control={
               <div className="settings-control">
                 <Tooltip content={breakdown?.episodesRoot || episodesLabel} maxWidth={380}>
@@ -286,13 +288,13 @@ export default function StorageSection() {
                     {episodesLabel}
                   </span>
                 </Tooltip>
-                <Tooltip content="Change folder">
+                <Tooltip content={t("storage:changeFolder")}>
                   <button
                     className="buttons settings-path-btn"
                     type="button"
                     onClick={() => void pickEpisodesDir()}
                     disabled={busy}
-                    aria-label="Change episodes storage folder"
+                    aria-label={t("storage:changeEpisodes")}
                   >
                     <FaFolderOpen size={15} />
                   </button>
@@ -302,8 +304,8 @@ export default function StorageSection() {
           />
 
           <SettingRow
-            label="App & AI Features Location"
-            description="Where AI packages and models live."
+            label={t("storage:aiPath")}
+            description={t("storage:aiDescription")}
             control={
               <div className="settings-control">
                 <Tooltip content={status?.aiRootPath || aiPathLabel} maxWidth={380}>
@@ -311,13 +313,13 @@ export default function StorageSection() {
                     {aiPathLabel}
                   </span>
                 </Tooltip>
-                <Tooltip content="Change folder">
+                <Tooltip content={t("storage:changeFolder")}>
                   <button
                     className="buttons settings-path-btn"
                     type="button"
                     onClick={() => void pickAiDir()}
                     disabled={busy}
-                    aria-label="Change AI features folder"
+                    aria-label={t("storage:changeAi")}
                   >
                     <FaFolderOpen size={15} />
                   </button>
@@ -327,13 +329,13 @@ export default function StorageSection() {
           />
         </SettingsSection>
 
-        <SettingsSection id="storage.breakdown" title="Breakdown">
+        <SettingsSection id="storage.breakdown" title={t("storage:breakdown")}>
           <div className="storage-overview">
             <div className="storage-overview-head">
-              <span className="storage-overview-label">Total AMVerge Storage</span>
+              <span className="storage-overview-label">{t("storage:totalStorage")}</span>
               <span className="settings-value storage-size-total">{formatBytes(grandTotalBytes)}</span>
             </div>
-            <div className="storage-bar" role="img" aria-label={`Total storage ${formatBytes(grandTotalBytes)}`}>
+            <div className="storage-bar" role="img" aria-label={t("storage:totalSize", { size: formatBytes(grandTotalBytes) })}>
               {grandTotalBytes > 0 ? (
                 segments.map((seg) =>
                   seg.bytes > 0 ? (
@@ -364,23 +366,23 @@ export default function StorageSection() {
           </div>
 
           <SettingRow
-            label="Episodes"
-            description={`${breakdown?.episodesCount ?? 0} imported episode${(breakdown?.episodesCount ?? 0) === 1 ? "" : "s"}`}
+            label={t("storage:episodes")}
+            description={t("storage:episodesCount", { count: breakdown?.episodesCount ?? 0 })}
             control={<span className="settings-value storage-size">{formatBytes(episodesBytes)}</span>}
           />
           <SettingRow
-            label="Scenepacks"
-            description={`${breakdown?.scenepacksCount ?? 0} saved scenepack${(breakdown?.scenepacksCount ?? 0) === 1 ? "" : "s"}`}
+            label={t("storage:scenepacks")}
+            description={t("storage:scenepacksCount", { count: breakdown?.scenepacksCount ?? 0 })}
             control={<span className="settings-value storage-size">{formatBytes(scenepacksBytes)}</span>}
           />
           <SettingRow
-            label="Scene Scout indexes"
-            description={`${breakdown?.sceneScoutCount ?? 0} search database${(breakdown?.sceneScoutCount ?? 0) === 1 ? "" : "s"}`}
+            label={t("storage:scoutIndexes")}
+            description={t("storage:databasesCount", { count: breakdown?.sceneScoutCount ?? 0 })}
             control={<span className="settings-value storage-size">{formatBytes(sceneScoutBytes)}</span>}
           />
           <SettingRow
-            label="Preview cache"
-            description="Cached hover & match clips"
+            label={t("storage:previewCache")}
+            description={t("storage:previewDescription")}
             control={
               <div className="aid-pack-row">
                 <span className="settings-value storage-size">{formatBytes(previewCacheBytes)}</span>
@@ -390,42 +392,42 @@ export default function StorageSection() {
                   onClick={() => void clearPreviewCache()}
                   disabled={clearingPreviews || previewCacheBytes === 0}
                 >
-                  {clearingPreviews ? "Clearing…" : "Clear"}
+                  {clearingPreviews ? t("storage:clearing") : t("storage:clear")}
                 </button>
               </div>
             }
           />
           <SettingRow
-            label="Tools & export temp cache"
-            description="Temporary processing files"
+            label={t("storage:tempCache")}
+            description={t("storage:tempDescription")}
             control={<span className="settings-value storage-size">{formatBytes(otherCacheBytes)}</span>}
           />
         </SettingsSection>
 
-        <SettingsSection id="storage.ai" title="AI Features">
+        <SettingsSection id="storage.ai" title={t("storage:ai")}>
           <SettingRow
-            label="AI packages"
-            description="PyTorch & AI dependencies"
+            label={t("storage:packages")}
+            description={t("storage:packagesDescription")}
             control={<span className="settings-value storage-size">{formatBytes(packagesBytes)}</span>}
           />
           <SettingRow
-            label="Pass model weights"
-            description="Depth & upscale weights"
+            label={t("storage:modelWeights")}
+            description={t("storage:modelDescription")}
             control={<span className="settings-value storage-size">{formatBytes(modelsBytes)}</span>}
           />
           <SettingRow
-            label="Scene Scout model"
-            description="SigLIP 2 search model"
+            label={t("storage:scoutModel")}
+            description={t("storage:scoutModelDescription")}
             control={<span className="settings-value storage-size">{formatBytes(scoutModelBytes)}</span>}
           />
           <SettingRow
-            label="Total AI storage"
-            description="Combined AI disk usage"
+            label={t("storage:totalAi")}
+            description={t("storage:totalAiDescription")}
             control={<span className="settings-value storage-size-total">{formatBytes(aiTotalBytes)}</span>}
           />
           <SettingRow
-            label="Uninstall AI features"
-            description="Remove packages, keep weights"
+            label={t("storage:uninstall")}
+            description={t("storage:uninstallDescription")}
             control={
               <button
                 type="button"
@@ -433,16 +435,16 @@ export default function StorageSection() {
                 onClick={() => void removeEnv()}
                 disabled={busy || !status?.envReady || !managed}
               >
-                {removingAi ? "Removing…" : "Remove"}
+                {removingAi ? t("storage:removing") : t("storage:remove")}
               </button>
             }
           />
         </SettingsSection>
 
-        <SettingsSection id="storage.maintenance" title="Maintenance">
+        <SettingsSection id="storage.maintenance" title={t("storage:maintenance")}>
           <SettingRow
-            label="Clear Episode Panel"
-            description="Delete all imported episodes"
+            label={t("storage:clearPanel")}
+            description={t("storage:clearPanelDescription")}
             control={
               <div className="settings-control">
                 <button
@@ -452,15 +454,15 @@ export default function StorageSection() {
                   style={{ width: "auto", padding: "0 16px", marginBottom: 0, color: "red" }}
                   disabled={busy || clearingPanel}
                 >
-                  {clearingPanel ? "Clearing..." : "Clear Episode Storage"}
+                  {clearingPanel ? t("storage:clearingDots") : t("storage:clearEpisodeStorage")}
                 </button>
               </div>
             }
           />
 
           <SettingRow
-            label="Clear Scenepack Storage"
-            description="Delete all saved scenepacks"
+            label={t("storage:clearScenepacks")}
+            description={t("storage:clearScenepacksDescription")}
             control={
               <div className="settings-control">
                 <button
@@ -470,7 +472,7 @@ export default function StorageSection() {
                   style={{ width: "auto", padding: "0 16px", marginBottom: 0, color: "red" }}
                   disabled={busy || clearingScenepacks}
                 >
-                  {clearingScenepacks ? "Clearing..." : "Clear Scenepack Storage"}
+                  {clearingScenepacks ? t("storage:clearingDots") : t("storage:clearScenepacks")}
                 </button>
               </div>
             }
@@ -479,17 +481,16 @@ export default function StorageSection() {
 
         {!managed ? (
           <p className="setting-description">
-            Dev build: AI packages run from the AMVerge-CLI checkout's venv unless you pick a custom location.
-          </p>
+            {t("storage:devBuild")}</p>
         ) : null}
         {error ? <p className="pxm-errors">{error}</p> : null}
       </div>
 
       {showClearPanelConfirm && (
         <ConfirmModal
-          title="Clear Episode Storage"
-          message="This will remove ALL episodes from the Episode Panel and delete their cached files on disk. This cannot be undone."
-          confirmLabel={clearingPanel ? "Clearing..." : "Clear Episode Storage"}
+          title={t("storage:clearEpisodeStorage")}
+          message={t("storage:clearPanelConfirm")}
+          confirmLabel={clearingPanel ? t("storage:clearingDots") : t("storage:clearEpisodeStorage")}
           busy={clearingPanel}
           onClose={() => setShowClearPanelConfirm(false)}
           onConfirm={() => void handleClearEpisodePanel()}
@@ -498,9 +499,9 @@ export default function StorageSection() {
 
       {showClearScenepacksConfirm && (
         <ConfirmModal
-          title="Clear Scenepack Storage"
-          message="This will remove ALL Scenepacks and delete their materialized clip files on disk. This cannot be undone."
-          confirmLabel={clearingScenepacks ? "Clearing..." : "Clear Scenepack Storage"}
+          title={t("storage:clearScenepacks")}
+          message={t("storage:clearScenepacksConfirm")}
+          confirmLabel={clearingScenepacks ? t("storage:clearingDots") : t("storage:clearScenepacks")}
           busy={clearingScenepacks}
           onClose={() => setShowClearScenepacksConfirm(false)}
           onConfirm={() => void handleClearScenepacks()}

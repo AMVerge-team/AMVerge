@@ -1,3 +1,5 @@
+import { t } from "../../i18n";
+
 export function formatClipTime(seconds?: number | null): string | null {
   if (typeof seconds !== "number" || isNaN(seconds)) return null;
   const h = Math.floor(seconds / 3600);
@@ -46,16 +48,18 @@ export interface ScoreConfidence {
 
 export function getScoreConfidence(score?: number | null): ScoreConfidence | null {
   if (typeof score !== "number" || isNaN(score)) return null;
-  if (score >= 0.30) return { label: "Very High Confidence", tier: "very_high" };
-  if (score >= 0.24) return { label: "High Confidence", tier: "high" };
-  if (score >= 0.18) return { label: "Good Confidence", tier: "good" };
-  if (score >= 0.12) return { label: "Fair Confidence", tier: "fair" };
-  return { label: "Low Confidence", tier: "low" };
+  if (score >= 0.30) return { label: t("library:confidence.veryHigh"), tier: "very_high" };
+  if (score >= 0.24) return { label: t("library:confidence.high"), tier: "high" };
+  if (score >= 0.18) return { label: t("library:confidence.good"), tier: "good" };
+  if (score >= 0.12) return { label: t("library:confidence.fair"), tier: "fair" };
+  return { label: t("library:confidence.low"), tier: "low" };
 }
 
 export function formatScoreWithConfidence(score?: number | null): string | null {
   if (typeof score !== "number" || isNaN(score)) return null;
   const pct = Math.round(score * 100);
   const conf = getScoreConfidence(score);
-  return conf ? `Match: ${pct}% (${conf.label})` : `Match: ${pct}%`;
+  return conf
+    ? t("library:confidence.matchWithLabel", { pct, label: conf.label })
+    : t("library:confidence.match", { pct });
 }

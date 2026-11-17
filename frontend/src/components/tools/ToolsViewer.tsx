@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { FaExpand, FaPause, FaPlay } from "react-icons/fa";
+import { useTranslation } from "react-i18next";
 
 import Tooltip from "../common/Tooltip";
 import LoadingSpinner from "../common/LoadingSpinner";
-import { useToolsStore, type ToolKind } from "../../stores/toolsStore";
+import { useToolsStore } from "../../stores/toolsStore";
 import { useToolsPlayable } from "../../features/tools/useToolsPlayable";
 import { UPSCALE_MODEL_OPTIONS } from "../../features/export/postPasses";
 
@@ -12,8 +13,6 @@ type Size = { width: number; height: number };
 
 const formatSize = (size: Size | null) => (size ? `${size.width} × ${size.height}` : "");
 
-const RESULT_LABEL: Record<ToolKind, string> = { upscale: "Upscaled", depth: "Depth map" };
-const RENDER_VERB: Record<ToolKind, string> = { upscale: "upscaled", depth: "depth map" };
 // past this the right video jumps back onto the left; below it, its speed is nudged so it glides back without a stutter
 const JUMP_SEC = 0.25;
 // close enough to leave alone
@@ -29,6 +28,7 @@ function formatTime(seconds: number): string {
  * then the finished result. the left video leads; either player's controls drive both
  */
 export default function ToolsViewer() {
+  const { t } = useTranslation("scout");
   const source = useToolsStore((s) => s.source);
   const kind = useToolsStore((s) => s.kind);
   const status = useToolsStore((s) => s.status);
@@ -222,8 +222,8 @@ export default function ToolsViewer() {
   const controls = (frame: React.RefObject<HTMLDivElement | null>) =>
     rendering ? null : (
       <div className="controls">
-        <Tooltip content={playing ? "Pause" : "Play"}>
-          <button onClick={togglePlay} aria-label={playing ? "Pause" : "Play"}>
+        <Tooltip content={playing ? t("tools.viewer.pause") : t("tools.viewer.play")}>
+          <button onClick={togglePlay} aria-label={playing ? t("tools.viewer.pause") : t("tools.viewer.play")}>
             {playing ? <FaPause /> : <FaPlay />}
           </button>
         </Tooltip>
@@ -239,8 +239,8 @@ export default function ToolsViewer() {
         >
           <progress value={current} max={duration > 0 ? duration : 1} />
         </div>
-        <Tooltip content="Fullscreen" align="end">
-          <button onClick={() => fullscreen(frame.current)} aria-label="Fullscreen">
+        <Tooltip content={t("tools.viewer.fullscreen")} align="end">
+          <button onClick={() => fullscreen(frame.current)} aria-label={t("tools.viewer.fullscreen")}>
             <FaExpand />
           </button>
         </Tooltip>
@@ -299,7 +299,7 @@ export default function ToolsViewer() {
     />
   ) : (
     <div className="tools-pane-empty">
-      {original.failed ? "Could not prepare a preview of this clip." : <LoadingSpinner label="Preparing preview" />}
+      {original.failed ? t("tools.viewer.previewFailed") : <LoadingSpinner label={t("tools.viewer.preparingPreview")} />}
     </div>
   );
 
@@ -319,7 +319,7 @@ export default function ToolsViewer() {
       />
     );
   } else if (comparing && processed.failed) {
-    right = <div className="tools-pane-empty">Could not show the result.</div>;
+    right = <div className="tools-pane-empty">{t("tools.viewer.resultFailed")}</div>;
   } else if (rendering && (liveFrame || shownLive)) {
     // each live frame is a one-frame video encoded like the export, shown by the same player as the result;
     // the next loads unseen and swaps in once decoded, so nothing flashes between frames
@@ -342,13 +342,13 @@ export default function ToolsViewer() {
   } else if (rendering || comparing) {
     right = (
       <div className="tools-pane-empty">
-        <LoadingSpinner label={status === "running" ? "Waiting for the first frame" : message || "Preparing..."} />
+        <LoadingSpinner label={status === "running" ? t("tools.viewer.waitingFirstFrame") : message || t("tools.viewer.preparing")} />
       </div>
     );
   } else {
     right = (
       <div className="tools-pane-empty tools-pane-waiting">
-        <span className="tools-waiting-title">The {RENDER_VERB[kind]} version will preview here</span>
+        <span className="tools-waiting-title">{t(`tools.viewer.waiting.${kind}`)}</span>
       </div>
     );
   }
@@ -359,8 +359,8 @@ export default function ToolsViewer() {
 
   return (
     <div className="tools-pair" style={pairStyle}>
-      {player(leftFrameRef, "Original", left, true, inputSize)}
-      {player(rightFrameRef, RESULT_LABEL[kind], right, rightHasVideo, outputSize)}
+      {player(leftFrameRef, t("tools.viewer.original"), left, true, inputSize)}
+      {player(rightFrameRef, t(`tools.viewer.result.${kind}`), right, rightHasVideo, outputSize)}
     </div>
   );
 }

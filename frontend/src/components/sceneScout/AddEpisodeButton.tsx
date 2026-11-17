@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import Tooltip from "../common/Tooltip";
 import { useSceneScoutStore } from "../../stores/sceneScoutStore";
 
@@ -11,10 +12,11 @@ export function AddEpisodeButton({
   onClick: () => void;
   disabled: boolean;
 }) {
+  const { t } = useTranslation("scout");
   const indexing = useSceneScoutStore((s) => s.indexing);
   return (
     // wrapper span: a disabled button fires no pointer events, so the tooltip listens on it instead
-    <Tooltip content={indexing ? "Indexing..." : hint}>
+    <Tooltip content={indexing ? t("addEpisode.indexing") : hint}>
       <span className="tooltip-anchor" data-scout-tour="add-episode">
         <button
           type="button"
@@ -22,7 +24,7 @@ export function AddEpisodeButton({
           onClick={onClick}
           disabled={disabled || Boolean(indexing)}
         >
-          Add Episode
+          {t("addEpisode.label")}
         </button>
       </span>
     </Tooltip>

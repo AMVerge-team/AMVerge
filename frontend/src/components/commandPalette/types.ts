@@ -25,19 +25,19 @@ export interface CommandItem {
   };
 }
 
+/** label shown via t(`shell:palette.chips.${id}`) at render */
 export const CATEGORY_CHIPS: {
   id: CategoryFilter;
-  label: string;
   icon: any;
   feature?: FeatureId;
 }[] = [
-  { id: "all", label: "All", icon: FaSearch },
-  { id: "episodes", label: "Episodes", icon: FaPlay },
-  { id: "scenepacks", label: "Scenepacks", icon: FaLayerGroup, feature: "scenepacks" },
-  { id: "sceneScout", label: "Scene Scout", icon: FaSearchPlus, feature: "sceneScout" },
-  { id: "actions", label: "Actions", icon: FaBolt },
-  { id: "settings", label: "Settings", icon: FaCog },
-  { id: "menu", label: "System & Menu", icon: FaTerminal },
+  { id: "all", icon: FaSearch },
+  { id: "episodes", icon: FaPlay },
+  { id: "scenepacks", icon: FaLayerGroup, feature: "scenepacks" },
+  { id: "sceneScout", icon: FaSearchPlus, feature: "sceneScout" },
+  { id: "actions", icon: FaBolt },
+  { id: "settings", icon: FaCog },
+  { id: "menu", icon: FaTerminal },
 ];
 
 // a query prefix picks a category directly, so typing "@" jumps to episodes

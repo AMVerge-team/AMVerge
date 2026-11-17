@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { ScenepackFolder } from "../../../types/domain";
 import { useEscapeToClose } from "../../common/useEscapeToClose";
 
@@ -30,16 +31,17 @@ export function NewItemModal({
   onCreate,
   onClose,
 }: NewItemProps) {
+  const { t } = useTranslation("library");
   const isPack = modal.kind === "scenepack";
   useEscapeToClose(onClose);
   return (
     <div className="episode-modal-overlay" onClick={onClose}>
       <div className="episode-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="episode-modal-title">{isPack ? "New Scenepack" : "New Folder"}</div>
+        <div className="episode-modal-title">{isPack ? t("scenepacks.newItem.titleScenepack") : t("episodePanel.newFolder.title")}</div>
         <input
           type="text"
           className="episode-modal-input"
-          placeholder={isPack ? "Scenepack name..." : "Folder name..."}
+          placeholder={isPack ? t("scenepacks.newItem.placeholderScenepack") : t("episodePanel.newFolder.placeholder")}
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           onKeyDown={(e) => {
@@ -49,14 +51,14 @@ export function NewItemModal({
         />
         {isPack && rootFolders.length > 0 && (
           <div style={{ marginTop: 4 }}>
-            <div className="episode-context-menu-label">Category</div>
+            <div className="episode-context-menu-label">{t("episodePanel.newFolder.parent")}</div>
             <div style={{ maxHeight: CATEGORY_LIST_MAX_HEIGHT, overflowY: "auto" }}>
               <div
                 className={`episode-panel-row folder-row${selectedFolderId === null ? " is-selected" : ""}`}
                 onClick={() => onFolderChange(null)}
                 style={{ padding: "6px 8px", cursor: "pointer", marginBottom: 1 }}
               >
-                <span className="episode-panel-folder-name">None (root)</span>
+                <span className="episode-panel-folder-name">{t("episodePanel.newFolder.root")}</span>
               </div>
               {folders.map((f) => (
                 <div
@@ -73,10 +75,10 @@ export function NewItemModal({
         )}
         <div className="episode-modal-actions">
           <button className="episode-modal-btn" onClick={onClose}>
-            Cancel
+            {t("common:cancel")}
           </button>
           <button className="episode-modal-btn primary" onClick={onCreate} disabled={!name.trim()}>
-            Create
+            {t("episodePanel.newFolder.create")}
           </button>
         </div>
       </div>
@@ -92,15 +94,16 @@ type RenameProps = {
 };
 
 export function RenameItemModal({ name, onNameChange, onRename, onClose }: RenameProps) {
+  const { t } = useTranslation("library");
   useEscapeToClose(onClose);
   return (
     <div className="episode-modal-overlay" onClick={onClose}>
       <div className="episode-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="episode-modal-title">Rename</div>
+        <div className="episode-modal-title">{t("common:rename")}</div>
         <input
           type="text"
           className="episode-modal-input"
-          placeholder="New name..."
+          placeholder={t("scenepacks.rename.placeholder")}
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           onKeyDown={(e) => {
@@ -110,10 +113,10 @@ export function RenameItemModal({ name, onNameChange, onRename, onClose }: Renam
         />
         <div className="episode-modal-actions">
           <button className="episode-modal-btn" onClick={onClose}>
-            Cancel
+            {t("common:cancel")}
           </button>
           <button className="episode-modal-btn primary" onClick={onRename} disabled={!name.trim()}>
-            Rename
+            {t("common:rename")}
           </button>
         </div>
       </div>
@@ -128,30 +131,35 @@ type DeleteProps = {
 };
 
 export function DeleteItemModal({ target, onConfirm, onClose }: DeleteProps) {
+  const { t } = useTranslation("library");
   useEscapeToClose(onClose);
   return (
     <div className="episode-modal-overlay" onClick={onClose}>
       <div className="episode-modal" onClick={(e) => e.stopPropagation()}>
         <div className="episode-modal-title">
-          Delete {target.kind === "scenepack" ? "Scenepack" : "Folder"}
+          {target.kind === "scenepack"
+            ? t("scenepacks.deleteConfirm.titleScenepack")
+            : t("episodePanel.deleteConfirm.titleFolder")}
         </div>
         <div className="episode-modal-message">
-          Are you sure you want to delete this {target.kind === "scenepack" ? "Scenepack" : "folder"}?
+          {target.kind === "scenepack"
+            ? t("scenepacks.deleteConfirm.messageScenepack")
+            : t("episodePanel.deleteConfirm.messageFolder")}
         </div>
         <div className="episode-modal-subject" title={target.name}>
           {target.name}
         </div>
         {target.kind === "folder" && (
           <div className="episode-modal-note">
-            All Scenepacks inside this folder will be moved to root.
+            {t("scenepacks.deleteConfirm.noteFolder")}
           </div>
         )}
         <div className="episode-modal-actions">
           <button className="episode-modal-btn" onClick={onClose}>
-            Cancel
+            {t("common:cancel")}
           </button>
           <button className="episode-modal-btn danger" onClick={onConfirm}>
-            Delete
+            {t("common:delete")}
           </button>
         </div>
       </div>

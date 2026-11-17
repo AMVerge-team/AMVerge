@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 
@@ -14,6 +15,7 @@ function formatDuration(sec: number): string {
 
 /** Live CLI-style progress & log modal for moving Episodes or AI storage, with minimize-to-card support */
 export default function StorageMoveModal() {
+  const { t } = useTranslation("storage");
   const open = useStorageMoveStore((s) => s.open);
   const title = useStorageMoveStore((s) => s.title);
   const stage = useStorageMoveStore((s) => s.stage);
@@ -86,23 +88,23 @@ export default function StorageMoveModal() {
   const clampedPct = Math.max(0, Math.min(100, Math.round(percent)));
   const modalTitle =
     stage === "done"
-      ? `${title} complete`
+      ? t("storage:titleComplete", { title })
       : stage === "error"
-        ? `${title} failed`
-        : title || "Moving storage";
+        ? t("storage:titleFailed", { title })
+        : title || t("storage:movingStorage");
 
   if (minimized) {
     const jobLines = logs.map((text, idx) => ({ id: idx, kind: "log" as const, text }));
     return (
       <BackgroundJobCard
         id="storage-move"
-        ariaLabel="Storage move (minimized)"
+        ariaLabel={t("storage:minimized")}
         done={stage === "done"}
         lines={jobLines}
         title={stage === "moving" ? message || modalTitle : modalTitle}
         onExpand={() => useStorageMoveStore.getState().openModal()}
         onClose={stage === "moving" ? undefined : close}
-        closeLabel="Close"
+        closeLabel={t("storage:close")}
         footer={
           stage === "error" && error ? (
             <p className="pxm-errors">{error}</p>
@@ -119,20 +121,20 @@ export default function StorageMoveModal() {
             >
               {speedText && (
                 <span>
-                  Speed:{" "}
+                  {t("storage:speed")}{" "}
                   <strong style={{ color: "#38bdf8", fontFamily: "monospace" }}>{speedText}</strong>
                 </span>
               )}
               {transferredText && (
                 <span>
-                  Size:{" "}
+                  {t("storage:size")}{" "}
                   <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>
                     {transferredText}
                   </strong>
                 </span>
               )}
               <span>
-                Elapsed:{" "}
+                {t("storage:elapsed")}{" "}
                 <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>
                   {formatDuration(elapsed)}
                 </strong>
@@ -161,19 +163,19 @@ export default function StorageMoveModal() {
           <span className="pxm-title">{modalTitle}</span>
           <div className="pxm-actions">
             {stage === "moving" ? (
-              <Tooltip content="Minimize">
+              <Tooltip content={t("storage:minimize")}>
                 <button
                   type="button"
                   className="pxm-btn"
                   onClick={() => useStorageMoveStore.getState().minimize()}
-                  aria-label="Minimize"
+                  aria-label={t("storage:minimize")}
                 >
                   🗕
                 </button>
               </Tooltip>
             ) : (
-              <Tooltip content="Close">
-                <button type="button" className="pxm-btn" onClick={close} aria-label="Close">
+              <Tooltip content={t("storage:close")}>
+                <button type="button" className="pxm-btn" onClick={close} aria-label={t("storage:close")}>
                   ✕
                 </button>
               </Tooltip>
@@ -191,7 +193,7 @@ export default function StorageMoveModal() {
               marginBottom: 4,
             }}
           >
-            <span className="pxm-bar-label">Progress</span>
+            <span className="pxm-bar-label">{t("storage:progress")}</span>
             {stage === "moving" && (
               <div
                 style={{
@@ -204,7 +206,7 @@ export default function StorageMoveModal() {
               >
                 {speedText && (
                   <span>
-                    Speed:{" "}
+                    {t("storage:speed")}{" "}
                     <strong style={{ color: "#38bdf8", fontFamily: "monospace" }}>
                       {speedText}
                     </strong>
@@ -212,14 +214,14 @@ export default function StorageMoveModal() {
                 )}
                 {transferredText && (
                   <span>
-                    Size:{" "}
+                    {t("storage:size")}{" "}
                     <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>
                       {transferredText}
                     </strong>
                   </span>
                 )}
                 <span>
-                  Elapsed:{" "}
+                  {t("storage:elapsed")}{" "}
                   <strong style={{ color: "#ffffff", fontFamily: "monospace" }}>
                     {formatDuration(elapsed)}
                   </strong>
@@ -254,11 +256,10 @@ export default function StorageMoveModal() {
               className="aid-btn"
               onClick={() => useStorageMoveStore.getState().minimize()}
             >
-              Minimize
-            </button>
+              {t("storage:minimize")}</button>
           ) : (
             <button type="button" className="aid-btn aid-btn-primary" onClick={close}>
-              {stage === "done" ? "Done" : "Close"}
+              {stage === "done" ? t("storage:done") : t("storage:close")}
             </button>
           )}
         </div>

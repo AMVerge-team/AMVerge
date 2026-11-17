@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 
 import ModalShell from "../common/ModalShell";
 import Dropdown from "../common/Dropdown";
@@ -33,34 +34,21 @@ import {
   type UpscaleQuality,
 } from "../../features/export/postPasses";
 
-const TABS: { kind: ToolKind; label: string; icon: typeof FaExpand; blurb: string }[] = [
+const TABS: { kind: ToolKind; labelKey: string; icon: typeof FaExpand; blurbKey: string }[] = [
   {
     kind: "upscale",
-    label: "Upscale",
+    labelKey: "tools.upscale",
     icon: FaExpand,
-    blurb: "A sharper and higher resolution copy of the clip",
+    blurbKey: "tools.upscaleBlurb",
   },
   {
     kind: "depth",
-    label: "Depth map",
+    labelKey: "tools.depth",
     icon: FaLayerGroup,
-    blurb: "A video of how far each part of the frame is from the camera, used for compositing",
+    blurbKey: "tools.depthBlurb",
   },
 ];
 
-const RUN_LABEL: Record<ToolKind, string> = { upscale: "Generate Upscale", depth: "Generate Depth Map" };
-// once there is a result, running it again replaces it
-const RERUN_LABEL: Record<ToolKind, string> = { upscale: "Regenerate Upscale", depth: "Regenerate Depth Map" };
-const UNINSTALLED_COPY: Record<ToolKind, { title: string; hint: string }> = {
-  upscale: {
-    title: "Upscaling isn't installed yet",
-    hint: "Install it to unlock AI upscaling here. Click to install.",
-  },
-  depth: {
-    title: "Depth map isn't installed yet",
-    hint: "Install it to unlock depth map generation here. Click to install.",
-  },
-};
 
 
 /** whether the kind's AI pack is there; dev builds run from the CLI checkout, so always yes */
@@ -73,6 +61,7 @@ function usePackReady(kind: ToolKind): boolean {
 }
 
 function ToolsPage() {
+  const { t } = useTranslation("scout");
   const source = useToolsStore((s) => s.source);
   const kind = useToolsStore((s) => s.kind);
   const upscale = useToolsStore((s) => s.upscale);
@@ -124,7 +113,7 @@ function ToolsPage() {
 
   const packReady = usePackReady(kind);
   const store = useToolsStore.getState();
-  const tab = TABS.find((t) => t.kind === kind)!;
+  const tab = TABS.find((entry) => entry.kind === kind)!;
   const exportDir = lastExportDir(source);
   const fullRun = status === "preparing" || status === "running";
   const canExport = status === "done" && Boolean(outputPath) && !running;
@@ -174,37 +163,37 @@ function ToolsPage() {
       <>
         <FaCheckCircle className="tools-done-icon" aria-hidden="true" />
         <Tooltip content={exportedPath} maxWidth={420}>
-          <span className="tools-run-status-text tools-run-status-done">Saved {exportedPath.split(/[/\\]/).pop()}</span>
+          <span className="tools-run-status-text tools-run-status-done">{t("tools.saved", { name: exportedPath.split(/[/\\]/).pop() })}</span>
         </Tooltip>
         <button type="button" className="tools-link-btn tools-run-status-link" onClick={() => reveal(exportedPath)}>
-          Show
+          {t("tools.show")}
         </button>
       </>
     );
   } else if (status === "stopped") {
-    statusLine = <span className="tools-run-status-text">Stopped, nothing was saved</span>;
+    statusLine = <span className="tools-run-status-text">{t("tools.stopped")}</span>;
   } else if (status === "error") {
-    statusLine = <span className="tools-run-status-text tools-run-status-error">Ran into an error</span>;
+    statusLine = <span className="tools-run-status-text tools-run-status-error">{t("tools.error")}</span>;
   }
 
   return (
     <div className="menu-page tools-page" ref={pageRef}>
       <div className="menu-header">
-        <div className="menu-nav" role="tablist" aria-label="Tool">
-          {TABS.map((t) => {
-            const Icon = t.icon;
+        <div className="menu-nav" role="tablist" aria-label={t("tools.tabsLabel")}>
+          {TABS.map((entry) => {
+            const Icon = entry.icon;
             return (
               <button
-                key={t.kind}
+                key={entry.kind}
                 type="button"
                 role="tab"
-                aria-selected={kind === t.kind}
-                className={`menu-nav-btn${kind === t.kind ? " active" : ""}`}
-                onClick={() => chooseKind(t.kind)}
-                disabled={running && kind !== t.kind}
+                aria-selected={kind === entry.kind}
+                className={`menu-nav-btn${kind === entry.kind ? " active" : ""}`}
+                onClick={() => chooseKind(entry.kind)}
+                disabled={running && kind !== entry.kind}
               >
                 <Icon className="menu-nav-icon" />
-                <span>{t.label}</span>
+                <span>{t(entry.labelKey)}</span>
               </button>
             );
           })}
@@ -228,7 +217,7 @@ function ToolsPage() {
                   onClick={() => void pickFile()}
                   disabled={running}
                 >
-                  <FaFolderOpen aria-hidden="true" /> Import video
+                  <FaFolderOpen aria-hidden="true" /> {t("release202:importVideo")}
                 </button>
                 <button
                   type="button"
@@ -236,8 +225,7 @@ function ToolsPage() {
                   onClick={() => store.setSource(null)}
                   disabled={running}
                 >
-                  <FaTimes aria-hidden="true" /> Remove
-                </button>
+                  <FaTimes aria-hidden="true" /> {t("settingsExport:features.storage.uninstall.remove")}</button>
               </div>
             </div>
           )}
@@ -245,16 +233,16 @@ function ToolsPage() {
             {!packReady ? (
               <button type="button" className="tools-drop" onClick={() => void ensureToolPack(kind)}>
                 <FaFileVideo className="tools-drop-icon" aria-hidden="true" />
-                <span className="tools-drop-title">{UNINSTALLED_COPY[kind].title}</span>
-                <span className="tools-drop-hint">{UNINSTALLED_COPY[kind].hint}</span>
+                <span className="tools-drop-title">{t(`release202:${kind}Missing`)}</span>
+                <span className="tools-drop-hint">{t(`release202:${kind}MissingHint`)}</span>
               </button>
             ) : source ? (
               <ToolsViewer />
             ) : (
               <button type="button" className="tools-drop" onClick={() => void pickFile()}>
                 <FaFileVideo className="tools-drop-icon" aria-hidden="true" />
-                <span className="tools-drop-title">{dragging ? "Drop it here" : "Drop a video here"}</span>
-                <span className="tools-drop-hint">or click to choose one. Any format works.</span>
+                <span className="tools-drop-title">{dragging ? t("tools.dropHere") : t("tools.dropVideo")}</span>
+                <span className="tools-drop-hint">{t("tools.dropHint")}</span>
               </button>
             )}
           </div>
@@ -263,8 +251,8 @@ function ToolsPage() {
         <section className="tools-bottom about-card">
           <div className="tools-bottom-intro">
             <div className="tools-panel-head">
-              <h3 className="tools-panel-title">{tab.label}</h3>
-              <p className="tools-panel-blurb">{tab.blurb}</p>
+              <h3 className="tools-panel-title">{t(tab.labelKey)}</h3>
+              <p className="tools-panel-blurb">{t(tab.blurbKey)}</p>
             </div>
           </div>
 
@@ -272,7 +260,7 @@ function ToolsPage() {
             {kind === "upscale" ? (
               <>
                 <label className="tools-field">
-                  <span className="tools-field-label">Model</span>
+                  <span className="tools-field-label">{t("tools.model")}</span>
                   <Dropdown
                     className="settings-wide-dropdown"
                     preferredDirection="up"
@@ -283,7 +271,7 @@ function ToolsPage() {
                   />
                 </label>
                 <label className="tools-field">
-                  <span className="tools-field-label">File quality</span>
+                  <span className="tools-field-label">{t("tools.fileQuality")}</span>
                   <Dropdown
                     className="settings-wide-dropdown"
                     preferredDirection="up"
@@ -297,7 +285,7 @@ function ToolsPage() {
             ) : (
               <>
                 <label className="tools-field">
-                  <span className="tools-field-label">Model</span>
+                  <span className="tools-field-label">{t("tools.model")}</span>
                   <Dropdown
                     className="settings-wide-dropdown"
                     preferredDirection="up"
@@ -308,7 +296,7 @@ function ToolsPage() {
                   />
                 </label>
                 <label className="tools-field">
-                  <span className="tools-field-label">Colors</span>
+                  <span className="tools-field-label">{t("tools.colors")}</span>
                   <Dropdown
                     className="settings-wide-dropdown"
                     preferredDirection="up"
@@ -319,8 +307,8 @@ function ToolsPage() {
                   />
                 </label>
                 <div className="tools-field tools-field-inline">
-                  <span className="tools-field-label">Grayscale</span>
-                  <label className="custom-checkbox" aria-label="Grayscale">
+                  <span className="tools-field-label">{t("tools.grayscale")}</span>
+                  <label className="custom-checkbox" aria-label={t("tools.grayscale")}>
                     <input
                       type="checkbox"
                       className="checkbox"
@@ -341,7 +329,7 @@ function ToolsPage() {
 
             {running ? (
               <button type="button" className="event-secondary-btn tools-run-btn" onClick={() => void stopTool()}>
-                <FaTimes aria-hidden="true" /> Stop
+                <FaTimes aria-hidden="true" /> {t("tools.stop")}
               </button>
             ) : (
               <div className="tools-run-buttons">
@@ -351,16 +339,16 @@ function ToolsPage() {
                   onClick={() => void runTool()}
                   disabled={!packReady || !source || exporting}
                 >
-                  <FaPlay aria-hidden="true" /> {canExport ? RERUN_LABEL[kind] : RUN_LABEL[kind]}
+                  <FaPlay aria-hidden="true" /> {canExport ? t(`tools.rerun.${kind}`) : t(`tools.run.${kind}`)}
                 </button>
-                <Tooltip content={exportDir ? `Opens in ${exportDir}` : "Choose where to save it"} maxWidth={420}>
+                <Tooltip content={exportDir ? t("tools.opensIn", { dir: exportDir }) : t("tools.chooseWhere")} maxWidth={420}>
                   <button
                     type="button"
                     className="event-host-btn tools-run-btn"
                     onClick={() => void handleExport()}
                     disabled={!canExport || exporting}
                   >
-                    <FaFileExport aria-hidden="true" /> {exporting ? "Exporting..." : "Export"}
+                    <FaFileExport aria-hidden="true" /> {exporting ? t("tools.exporting") : t("tools.export")}
                   </button>
                 </Tooltip>
               </div>
@@ -395,8 +383,9 @@ function ToolsPage() {
 export default function ToolsModal() {
   const open = useUIStateStore((s) => s.toolsOpen);
   const closeTools = useUIStateStore((s) => s.closeTools);
+  const { t } = useTranslation("scout");
   return (
-    <ModalShell open={open} onClose={closeTools} label="Tools" className="tools-modal">
+    <ModalShell open={open} onClose={closeTools} label={t("tools.modalLabel")} className="tools-modal">
       <ToolsPage />
     </ModalShell>
   );

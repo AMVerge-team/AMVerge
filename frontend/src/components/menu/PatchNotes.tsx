@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { useTranslation } from "react-i18next";
 import changelog from "../../data/CHANGELOG.md?raw";
 import { FaChevronDown, FaArrowLeft, FaFileAlt } from '../icons/animated';
 
@@ -15,6 +16,7 @@ const updateDocFiles = import.meta.glob("../../../../updates/*.md", {
 }) as Record<string, { default: string } | string>;
 
 export default function PatchNotes() {
+  const { t } = useTranslation("menu");
   const [selectedDocVersion, setSelectedDocVersion] = useState<string | null>(null);
 
   // parse main summary list directly from CHANGELOG.md
@@ -109,7 +111,7 @@ export default function PatchNotes() {
               onClick={() => setSelectedDocVersion(null)}
             >
               <FaArrowLeft style={{ marginRight: 8 }} />
-              Back to Update Logs
+              {t("patchNotes.back")}
             </button>
             <span className="patchnotes-detail-badge">
               updates/{docData?.filename || `${selectedDocVersion}.md`}
@@ -118,7 +120,7 @@ export default function PatchNotes() {
 
           <div className="patchnotes-detail-card">
             <ReactMarkdown>
-              {docData?.content || `# ${selectedDocVersion}\n\nFull release notes document not found in updates/`}
+              {docData?.content || `# ${selectedDocVersion}\n\n${t("patchNotes.notFound")}`}
             </ReactMarkdown>
           </div>
         </div>
@@ -129,10 +131,8 @@ export default function PatchNotes() {
   return (
     <section className="panel menu-panel patchnotes-panel">
       <div className="patchnotes-hero">
-        <h2 className="about-hero-title">Update Logs</h2>
-        <p className="about-hero-subtitle">
-          Track features, engine changes, and bug fixes across AMVerge releases.
-        </p>
+        <h2 className="about-hero-title">{t("patchNotes.title")}</h2>
+        <p className="about-hero-subtitle">{t("patchNotes.subtitle")}</p>
       </div>
 
       <div className="patchnotes-collapsible-list">
@@ -175,7 +175,7 @@ export default function PatchNotes() {
                         onClick={() => setSelectedDocVersion(release.version)}
                       >
                         <FaFileAlt style={{ marginRight: 6 }} />
-                        View Full Update Log
+                        {t("patchNotes.viewFull")}
                       </button>
                     </div>
                   )}

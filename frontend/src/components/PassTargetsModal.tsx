@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 
 import { useEscapeToClose } from "./common/useEscapeToClose";
-import { PASS_LABEL } from "../features/export/postPasses";
 import {
   usePassTargetsStore,
   type PassClipPicks,
@@ -12,8 +12,6 @@ import {
 import { imageThumbnail, mediaSrc } from "../utils/mediaSrc";
 import { usePreviewTranscode, type PreviewTranscode } from "../features/preview/usePreviewTranscode";
 import type { ClipItem } from "../types/domain";
-
-const TOGGLE_NAME: Record<PassTargetKind, string> = { depth: "Depth", upscale: "Upscale" };
 
 function answerPassTargets(picks: PassClipPicks | null) {
   const req = usePassTargetsStore.getState().request;
@@ -55,6 +53,7 @@ export default function PassTargetsModal() {
 }
 
 function PassTargetsDialog() {
+  const { t } = useTranslation("jobs");
   const request = usePassTargetsStore((s) => s.request)!;
   const { clips, kinds, mergeEnabled } = request;
   const [picks, setPicks] = useState<PassClipPicks>(() => ({
@@ -106,29 +105,29 @@ function PassTargetsDialog() {
         className="episode-modal pass-targets-modal"
         role="dialog"
         aria-modal="true"
-        aria-label="Choose clips for each pass"
+        aria-label={t("passTargets.title")}
         tabIndex={-1}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="episode-modal-title">Choose clips for each pass</div>
+        <div className="episode-modal-title">{t("passTargets.title")}</div>
         <div className="episode-modal-message">
           {mergeEnabled
-            ? "The clips picked for a pass are merged into its own file"
-            : "Each picked clip gets its own output file for that pass"}
+            ? t("passTargets.mergedHint")
+            : t("passTargets.separateHint")}
         </div>
 
         <div className="pass-targets-header">
           {kinds.map((kind) => (
             <div key={kind} className="pass-targets-summary">
-              <span className="pass-targets-summary-label">{PASS_LABEL[kind]}</span>
+              <span className="pass-targets-summary-label">{t(`passLabel.${kind}`)}</span>
               <span className="pass-targets-count">
                 {picks[kind].size}/{clips.length}
               </span>
               <button type="button" className="pass-targets-link" onClick={() => setAll(kind, true)}>
-                All
+                {t("passTargets.all")}
               </button>
               <button type="button" className="pass-targets-link" onClick={() => setAll(kind, false)}>
-                None
+                {t("passTargets.none")}
               </button>
             </div>
           ))}
@@ -168,8 +167,8 @@ function PassTargetsDialog() {
                       onClick={() => toggle(kind, clip.id)}
                     >
                       {picks[kind].has(clip.id)
-                        ? `${TOGGLE_NAME[kind]} Enabled`
-                        : "Disabled"}
+                        ? t(`passTargets.enabled.${kind}`)
+                        : t("passTargets.disabled")}
                     </button>
                   ))}
                 </div>
@@ -180,14 +179,14 @@ function PassTargetsDialog() {
 
         <div className="episode-modal-actions">
           <button type="button" className="episode-modal-btn" onClick={cancel}>
-            Cancel
+            {t("common:cancel")}
           </button>
           <button
             type="button"
             className="episode-modal-btn primary"
             onClick={() => answerPassTargets(picks)}
           >
-            Export
+            {t("passTargets.export")}
           </button>
         </div>
       </div>

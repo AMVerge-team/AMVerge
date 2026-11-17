@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { create } from "zustand";
 
 const MAX_LOGS = 250;
@@ -41,12 +42,12 @@ export const useStorageMoveStore = create<StorageMoveStore>((set) => ({
       stage: "moving",
       percent: 0,
       indeterminate: true,
-      message: "Preparing files...",
+      message: t("storage:preparing"),
       logs: [],
       error: null,
     }),
 
-  finish: (message = "Storage move complete.") =>
+  finish: (message = t("storage:complete")) =>
     set({
       stage: "done",
       percent: 100,
@@ -59,7 +60,7 @@ export const useStorageMoveStore = create<StorageMoveStore>((set) => ({
       open: true,
       stage: "error",
       indeterminate: false,
-      message: "Storage move failed.",
+      message: t("storage:failed"),
       error,
     }),
 

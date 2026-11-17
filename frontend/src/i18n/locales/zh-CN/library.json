@@ -1,0 +1,202 @@
+{
+  "episodePanel": {
+    "fallbackEpisode": "视频",
+    "fallbackFolder": "文件夹",
+    "episodeCount_one": "{{count}} 个视频",
+    "episodeCount_other": "{{count}} 个视频",
+    "searchPlaceholder": "搜索视频…",
+    "clearSearch": "清除搜索",
+    "empty": {
+      "title": "还没有视频",
+      "description": "导入视频，将其切分为片段",
+      "importFirst": "导入第一个视频"
+    },
+    "header": {
+      "title": "视频面板",
+      "sortAsc": "按名称升序（A-Z）",
+      "sortDesc": "按名称降序（Z-A）",
+      "newFolder": "新建文件夹",
+      "showInFolder": "在文件夹中显示",
+      "deleteDisabled": "删除所选项（请先选择视频或文件夹）",
+      "deleteSelectedEpisodes_one": "删除所选的 {{count}} 个视频",
+      "deleteSelectedEpisodes_other": "删除所选的 {{count}} 个视频",
+      "deleteSelectedEpisode": "删除所选视频",
+      "deleteSelectedFolder": "删除所选文件夹"
+    },
+    "menu": {
+      "addFolder": "添加文件夹",
+      "addSubfolder": "添加子文件夹",
+      "showInExplorer": "在文件管理器中显示",
+      "deleteEpisodes_one": "删除 {{count}} 个视频",
+      "deleteEpisodes_other": "删除 {{count}} 个视频"
+    },
+    "row": {
+      "importedWebp": "以 WebP 预览导入",
+      "importedVideo": "以视频文件导入",
+      "webpEpisode": "WebP 预览类视频",
+      "videoEpisode": "视频文件类视频",
+      "pausedResume": "处理已暂停 · 继续",
+      "resume": "继续处理",
+      "collapseFolder": "折叠文件夹",
+      "expandFolder": "展开文件夹"
+    },
+    "rename": {
+      "episodeTitle": "重命名视频",
+      "episodePlaceholder": "视频名称",
+      "folderTitle": "重命名文件夹",
+      "folderPlaceholder": "文件夹名称"
+    },
+    "newFolder": {
+      "title": "新建文件夹",
+      "placeholder": "文件夹名称…",
+      "parent": "所属分类",
+      "root": "无（根目录）",
+      "create": "创建"
+    },
+    "deleteConfirm": {
+      "titleFolder": "删除文件夹",
+      "titleEpisode": "删除视频",
+      "linkedIntro": "以下视频已关联到数据库：",
+      "messageFolder": "确定要删除此文件夹吗？",
+      "messageEpisodes": "确定要删除这些视频吗？",
+      "messageEpisode": "确定要删除此视频吗？",
+      "checkingDatabases": "正在检查场景搜索（Scene Scout）数据库…",
+      "noteLinked": "这也会删除缓存的片段文件，并将这些视频从对应数据库中移除。",
+      "note": "这也会删除磁盘上所有缓存的片段文件。"
+    }
+  },
+  "scenepacks": {
+    "searchPlaceholder": "搜索片段集…",
+    "header": {
+      "title": "片段集",
+      "newScenepack": "新建片段集",
+      "deleteSelected": "删除所选项"
+    },
+    "empty": {
+      "title": "还没有片段集",
+      "description": "按角色、打斗或事件整理片段",
+      "createFirst": "创建第一个片段集"
+    },
+    "row": {
+      "addingClips_one": "正在添加 {{count}} 个片段…",
+      "addingClips_other": "正在添加 {{count}} 个片段…",
+      "nothingStored": "尚未存储任何内容"
+    },
+    "menu": {
+      "addScenepack": "添加片段集",
+      "open": "打开",
+      "changeThumbnail": "更换缩略图",
+      "moveTo": "移动到",
+      "noFolder": "不放入文件夹"
+    },
+    "newItem": {
+      "titleScenepack": "新建片段集",
+      "placeholderScenepack": "片段集名称…"
+    },
+    "rename": {
+      "placeholder": "新名称…"
+    },
+    "deleteConfirm": {
+      "titleScenepack": "删除片段集",
+      "messageScenepack": "确定要删除此片段集吗？",
+      "noteFolder": "此文件夹中的所有片段集将移至根目录。"
+    },
+    "thumbnail": {
+      "invalidType": "缩略图必须是 PNG、JPEG、WebP 或 GIF 图片。",
+      "filterName": "图片",
+      "saving": "正在保存…",
+      "dropHint": "将图片拖放到此处，或点击浏览",
+      "formats": "PNG、JPEG、WebP 或 GIF"
+    }
+  },
+  "addToScenepack": {
+    "title": "添加到片段集",
+    "titleCount_one": "将 {{count}} 个片段添加到片段集",
+    "titleCount_other": "将 {{count}} 个片段添加到片段集",
+    "existing": "现有",
+    "createNew": "新建",
+    "noScenepacks": "还没有片段集。切换到“新建”来创建一个。",
+    "alreadyAdded": "已添加",
+    "adding": "正在添加…",
+    "createAndAdd": "创建并添加",
+    "addClips_one": "添加片段",
+    "addClips_other": "添加 {{count}} 个片段",
+    "failed_one": "无法将片段添加到片段集。",
+    "failed_other": "无法将 {{count}} 个片段添加到片段集。",
+    "nothingToAdd": "没有可添加的内容。"
+  },
+  "picker": {
+    "findMatching": "查找匹配片段",
+    "setThumbnail": "设为片段集缩略图",
+    "added": "已添加",
+    "newScenepack": "新建片段集…"
+  },
+  "selection": {
+    "count_one": "已选择 {{count}} 个",
+    "count_other": "已选择 {{count}} 个",
+    "addSelectedTooltip": "将所选片段添加到片段集",
+    "deselectAll": "取消全选",
+    "clear": "清除",
+    "clearSelection": "清除选择",
+    "addingProgress_one": "正在添加 {{count}} 个片段…",
+    "addingProgress_other": "正在添加 {{count}} 个片段…",
+    "addFailed": "无法将片段添加到片段集。",
+    "createAndAddAll": "创建并全部添加"
+  },
+  "clip": {
+    "download": "下载此片段",
+    "downloading": "正在下载…",
+    "openInTools": "在工具中打开",
+    "videoFilter": "视频",
+    "deleteClips_one": "删除片段",
+    "deleteClips_other": "删除 {{count}} 个片段",
+    "select": "选择片段",
+    "deselect": "取消选择片段",
+    "removeFromScenepack": "从片段集中移除",
+    "status": {
+      "merging": "正在合并…",
+      "splitting": "正在拆分…",
+      "adding": "正在添加…"
+    },
+    "tooltip": {
+      "timeframe": "时间范围：{{timeframe}}",
+      "starts": "开头：{{motion}}",
+      "ends": "结尾：{{motion}}"
+    }
+  },
+  "confidence": {
+    "veryHigh": "置信度极高",
+    "high": "置信度高",
+    "good": "置信度良好",
+    "fair": "置信度一般",
+    "low": "置信度低",
+    "match": "匹配度：{{pct}}%",
+    "matchWithLabel": "匹配度：{{pct}}%（{{label}}）"
+  },
+  "emptyGrid": {
+    "noScenepack": {
+      "title": "未打开片段集。",
+      "hint": "从侧边栏选择一个片段集以查看其中的片段。"
+    },
+    "flowNoScenes": {
+      "title": "未找到与此片段匹配的场景。",
+      "hint": "请在左侧的搜索列表中添加数据库。"
+    },
+    "flowNoClip": {
+      "title": "还没有可延续的片段。",
+      "hint": "在上方输入视频，或在素材库中右键点击片段并选择“查找匹配片段”。"
+    },
+    "searchNoMatch": {
+      "title": "没有与搜索匹配的场景。",
+      "hint": "请尝试修改搜索词。"
+    },
+    "searchIdle": {
+      "title": "未找到场景。",
+      "hint": "在左侧选择一个或多个数据库，描述一个场景，然后按 Enter 搜索。"
+    },
+    "noVideo": {
+      "title": "未加载视频。",
+      "hint": "如果没有显示片段，请尝试在常规设置中更改视频存储路径。"
+    }
+  }
+}
