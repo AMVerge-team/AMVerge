@@ -305,7 +305,14 @@ fn venv_python_in(runtime_root: &Path) -> PathBuf {
 pub(crate) fn cli_models_dir_for_app(app: &AppHandle) -> Option<PathBuf> {
     if let Ok(loc) = resolve_ai_location(app) {
         if let Some(config) = loc.config_dir {
-            return Some(config.join("models"));
+            let candidate = config.join("models");
+            if candidate.is_dir() || loc.custom_path.is_some() {
+                return Some(candidate);
+            }
+            if let Some(legacy) = legacy_cli_models_dir().filter(|p| p.is_dir()) {
+                return Some(legacy);
+            }
+            return Some(candidate);
         }
     }
     legacy_cli_models_dir()
@@ -314,7 +321,14 @@ pub(crate) fn cli_models_dir_for_app(app: &AppHandle) -> Option<PathBuf> {
 pub(crate) fn scout_model_dir_for_app(app: &AppHandle) -> Option<PathBuf> {
     if let Ok(loc) = resolve_ai_location(app) {
         if let Some(hf) = loc.hf_home_dir {
-            return Some(hf.join("hub").join(SIGLIP_CACHE_DIR_NAME));
+            let candidate = hf.join("hub").join(SIGLIP_CACHE_DIR_NAME);
+            if candidate.is_dir() || loc.custom_path.is_some() {
+                return Some(candidate);
+            }
+            if let Some(legacy) = legacy_scout_model_dir().filter(|p| p.is_dir()) {
+                return Some(legacy);
+            }
+            return Some(candidate);
         }
     }
     legacy_scout_model_dir()
@@ -488,7 +502,7 @@ fn dev_venv_dir() -> Result<PathBuf, String> {
     root.pop();
     let cli_dir = std::env::var("AMVERGE_CLI_DIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| root.join("AMVerge-CLI"));
+        .unwrap_or_else(|_| std::env::var("HOME").ok().map(|h| PathBuf::from(h).join("AMVerge-CLI")).unwrap_or_else(|| root.join("AMVerge-CLI")));
     Ok(cli_dir.join(".venv"))
 }
 
@@ -507,6 +521,10 @@ fn sidecar_rel_dir() -> Result<&'static str, String> {
         Ok("bin/amverge-aarch64-apple-darwin")
     } else if cfg!(target_os = "macos") {
         Ok("bin/amverge-x86_64-apple-darwin")
+    } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+        Ok("bin/amverge-x86_64-unknown-linux-gnu")
+    } else if cfg!(all(target_os = "linux", target_arch = "aarch64")) {
+        Ok("bin/amverge-aarch64-unknown-linux-gnu")
     } else {
         Err("amverge sidecar: unsupported platform".to_string())
     }
@@ -531,6 +549,10 @@ pub fn uv_binary(app: &AppHandle) -> Result<PathBuf, String> {
         "aarch64-apple-darwin"
     } else if cfg!(target_os = "macos") {
         "x86_64-apple-darwin"
+    } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+        "x86_64-unknown-linux-gnu"
+    } else if cfg!(all(target_os = "linux", target_arch = "aarch64")) {
+        "aarch64-unknown-linux-gnu"
     } else {
         return Err("uv: unsupported platform".to_string());
     };

@@ -84,9 +84,13 @@ export default function StorageSection() {
     aiInstallRunning ||
     activeJob !== null;
 
-  const defaultEpisodesPathLabel = navigator.userAgent.includes("Mac OS X")
+  const isMac = navigator.userAgent.includes("Mac OS X");
+  const isLinux = navigator.userAgent.includes("Linux");
+  const defaultEpisodesPathLabel = isMac
     ? "Default (Application Support)"
-    : "Default (App Data)";
+    : isLinux
+      ? "Default (~/.local/share)"
+      : "Default (App Data)";
 
   const episodesLabel = movingEpisodesTo
     ? `Moving to ${movingEpisodesTo}...`
@@ -293,6 +297,18 @@ export default function StorageSection() {
                     <FaFolderOpen size={15} />
                   </button>
                 </Tooltip>
+                {episodesPath && (
+                  <Tooltip content={`Move back to ${defaultEpisodesPathLabel}`}>
+                    <button
+                      type="button"
+                      className="aid-btn"
+                      onClick={() => void handleMoveEpisodes(null)}
+                      disabled={busy}
+                    >
+                      Reset
+                    </button>
+                  </Tooltip>
+                )}
               </div>
             }
           />
@@ -318,6 +334,18 @@ export default function StorageSection() {
                     <FaFolderOpen size={15} />
                   </button>
                 </Tooltip>
+                {status?.aiCustomPath && (
+                  <Tooltip content={`Move back to ${status.aiDefaultPath || "default location"}`}>
+                    <button
+                      type="button"
+                      className="aid-btn"
+                      onClick={() => void handleMoveAi(null)}
+                      disabled={busy}
+                    >
+                      Reset
+                    </button>
+                  </Tooltip>
+                )}
               </div>
             }
           />

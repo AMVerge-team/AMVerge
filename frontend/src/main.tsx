@@ -13,7 +13,10 @@ import { askNotice, showNotice } from "./features/notice/notice";
 initConsoleCapture();
 
 async function maybeCheckForUpdatesOnStartup() {
-  if (typeof window === "undefined" || !("__TAURI_INTERNALS__" in window)) {
+  // In dev builds (`import.meta.env.DEV`) or without Tauri internals, skip update checking:
+  // dev mode has no packaged bundle/updater artifacts, and testing unreleased platforms
+  // (like Linux before its first release) would otherwise fail with target not found.
+  if (import.meta.env.DEV || typeof window === "undefined" || !("__TAURI_INTERNALS__" in window)) {
     return;
   }
 

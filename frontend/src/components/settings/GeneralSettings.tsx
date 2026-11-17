@@ -45,8 +45,11 @@ export default function GeneralSettings({
   const setGridPreview = useUIStateStore((s) => s.setGridPreview);
   const davinciInstalled = useDavinciInstalled();
   const [showFactoryResetConfirm, setShowFactoryResetConfirm] = useState(false);
+  const isMac = navigator.userAgent.includes("Mac OS X");
+  const isLinux = navigator.userAgent.includes("Linux");
+  const storageLocationName = isMac ? "Application Support" : isLinux ? "~/.local/share" : "AppData";
   const factoryResetConfirmation =
-    "This will restore AMVerge to its default settings and move your episode storage folder back to AppData. Any custom settings or storage location changes you made will be reset.";
+    `This will restore AMVerge to its default settings and move your episode storage folder back to ${storageLocationName}. Any custom settings or storage location changes you made will be reset.`;
 
   // TransNetV2 needs the `ml` pack, so the install is offered when it is chosen
   const aiStatus = useAiDepsStore((s) => s.status);

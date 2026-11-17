@@ -165,6 +165,7 @@ enum SmiOutcome {
 
 /// PATH first, then the driver's install locations: a GUI process may not inherit PATH
 fn nvidia_smi_candidates() -> Vec<PathBuf> {
+    #[allow(unused_mut)]
     let mut out = vec![PathBuf::from("nvidia-smi")];
 
     #[cfg(windows)]

@@ -5,8 +5,8 @@ use tauri::{AppHandle, State};
 
 use crate::commands::scene_scout::SceneScoutWorkerState;
 use crate::commands::settings::{
-    emit_move_progress, format_bytes_human, move_entry_tracked, scan_path_stats,
-    MoveProgressTracker,
+    emit_move_progress, format_bytes_human, move_entry_tracked, path_is_inside_fs, same_fs_path,
+    scan_path_stats, MoveProgressTracker,
 };
 use crate::state::ActiveInstall;
 use crate::utils::logging::console_log;
@@ -219,14 +219,28 @@ pub async fn move_ai_storage_to_new_dir(
             }
         };
 
-        if old_loc.root == target_loc.root {
-            save_custom_ai_root(&app_for_task, cleaned_new.as_deref())?;
+        let pointer_to_save = match (cleaned_new.as_ref(), default_ai_root(&app_for_task).ok()) {
+            (Some(p), Some(def)) if same_fs_path(p, &def) => None,
+            (other, _) => other.map(|p| p.to_path_buf()),
+        };
+
+        if same_fs_path(&old_loc.root, &target_loc.root) {
+            save_custom_ai_root(&app_for_task, pointer_to_save.as_deref())?;
             return Ok(());
         }
 
         for protected in [&old_loc.runtime_dir, &old_loc.root] {
-            if target_loc.root.starts_with(protected) && target_loc.root != *protected {
+            if path_is_inside_fs(&target_loc.root, protected)
+                && !same_fs_path(&target_loc.root, protected)
+            {
                 return Err("Pick a folder outside the current AI storage folder.".to_string());
+            }
+        }
+        for sub in ["runtime", "config", "hf-cache"] {
+            let new_sub = target_loc.root.join(sub);
+            if path_is_inside_fs(&old_loc.root, &new_sub) && !same_fs_path(&old_loc.root, &new_sub)
+            {
+                return Err("Pick a folder that does not overlap the current AI storage subfolders.".to_string());
             }
         }
 
@@ -246,12 +260,14 @@ pub async fn move_ai_storage_to_new_dir(
             .config_dir
             .as_ref()
             .map(|c| c.join("models"))
-            .or_else(legacy_cli_models_dir);
+            .filter(|p| p.is_dir())
+            .or_else(|| legacy_cli_models_dir().filter(|p| p.is_dir()));
         let old_scout = old_loc
             .hf_home_dir
             .as_ref()
             .map(|h| h.join("hub").join(SIGLIP_CACHE_DIR_NAME))
-            .or_else(legacy_scout_model_dir);
+            .filter(|p| p.is_dir())
+            .or_else(|| legacy_scout_model_dir().filter(|p| p.is_dir()));
 
         emit_move_progress(Some(&app_for_task), 0.0, true, "Scanning AI files...");
         let mut total_bytes = 0u64;
@@ -352,11 +368,15 @@ pub async fn move_ai_storage_to_new_dir(
             }
         }
 
+        // Persist the new AI root as soon as runtime/ is relocated so an error on optional model weights
+        // never orphans the moved Python environment.
+        save_custom_ai_root(&app_for_task, pointer_to_save.as_deref())?;
+
         // 2. Move CLI model weights (`models/upscale`, `models/depth`, etc.).
         if let Some(src_models) = old_models {
-            if src_models.is_dir() {
+            let dest_models = target_config.join("models");
+            if src_models.is_dir() && !same_fs_path(&src_models, &dest_models) {
                 tracker.log("Relocating model weights...");
-                let dest_models = target_config.join("models");
                 if let Some(parent) = dest_models.parent() {
                     std::fs::create_dir_all(parent)
                         .map_err(|e| format!("Failed to create models folder: {e}"))?;
@@ -373,26 +393,21 @@ pub async fn move_ai_storage_to_new_dir(
 
         // 3. Move Scene Scout's SigLIP 2 folder only (never touch unrelated HF models).
         if let Some(src_scout) = old_scout {
-            if src_scout.is_dir() {
+            let dest_hub = target_hf.join("hub");
+            let dest_scout = dest_hub.join(SIGLIP_CACHE_DIR_NAME);
+            if src_scout.is_dir() && !same_fs_path(&src_scout, &dest_scout) {
                 tracker.log("Relocating Scene Scout SigLIP 2 model...");
-                let dest_hub = target_hf.join("hub");
                 std::fs::create_dir_all(&dest_hub)
                     .map_err(|e| format!("Failed to create HF cache folder: {e}"))?;
                 move_entry_tracked(
                     &src_scout,
-                    &dest_hub.join(SIGLIP_CACHE_DIR_NAME),
+                    &dest_scout,
                     &mut leftovers,
                     Some(&mut tracker),
                     "hf-cache/siglip2",
                 )?;
             }
         }
-
-        let pointer_to_save = match (cleaned_new.as_ref(), default_ai_root(&app_for_task).ok()) {
-            (Some(p), Some(def)) if *p == def => None,
-            (other, _) => other.map(|p| p.to_path_buf()),
-        };
-        save_custom_ai_root(&app_for_task, pointer_to_save.as_deref())?;
         if !leftovers.is_empty() {
             tracker.log(format!(
                 "Finished copying; {} locked source item(s) left behind.",

@@ -1,3 +1,4 @@
+import { getRevealInFileManagerLabel } from "../../../utils/platformUtils";
 import type React from "react";
 import { memo } from "react";
 import { FaFolderOpen, FaImage, FaPlay, FaVideo } from '../../icons/animated';
@@ -125,14 +126,14 @@ export default memo(function EpisodeRow({
           </span>
         </Tooltip>
       )}
-      <Tooltip content="Show in File Explorer" side="right">
+      <Tooltip content={getRevealInFileManagerLabel()} side="right">
         <button
           type="button"
           className="episode-panel-import-icon episode-folder-btn"
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           onClick={handleReveal}
-          aria-label="Show in File Explorer"
+          aria-label={getRevealInFileManagerLabel()}
         >
           <FaFolderOpen />
         </button>

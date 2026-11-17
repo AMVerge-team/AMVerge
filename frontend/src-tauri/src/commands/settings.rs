@@ -138,7 +138,7 @@ pub async fn move_storage_to_new_dir(
     let old_episodes = resolve_episodes_storage_dir(&app, old_dir.as_deref())?;
     let old_episodes_string = old_episodes.to_string_lossy().to_string();
 
-    if old_root == new_root {
+    if same_fs_path(&old_root, &new_root) {
         return Ok(old_episodes_string);
     }
 
@@ -312,17 +312,64 @@ fn move_storage(old_root: &Path, new_root: &Path) -> Result<(), String> {
     move_storage_with_progress(old_root, new_root, None)
 }
 
+pub(crate) fn normalize_fs_path(path: &Path) -> PathBuf {
+    let resolved = fs::canonicalize(path).unwrap_or_else(|_| {
+        // resolve the longest existing ancestor so non-existent child paths still normalize drive/symlinks
+        let mut tail = Vec::new();
+        let mut cur = Some(path);
+        while let Some(p) = cur {
+            if let Ok(canon) = fs::canonicalize(p) {
+                let mut out = canon;
+                for part in tail.into_iter().rev() {
+                    out.push(part);
+                }
+                return out;
+            }
+            if let Some(name) = p.file_name() {
+                tail.push(name.to_os_string());
+                cur = p.parent();
+            } else {
+                break;
+            }
+        }
+        path.to_path_buf()
+    });
+
+    let raw = resolved.to_string_lossy();
+    let stripped = raw.trim_start_matches(r"\\?\");
+    let clean = stripped.trim_end_matches(['/', '\\']);
+    if cfg!(windows) || cfg!(target_os = "macos") {
+        PathBuf::from(clean.replace('/', "\\").to_lowercase())
+    } else {
+        PathBuf::from(clean)
+    }
+}
+
+pub(crate) fn same_fs_path(a: &Path, b: &Path) -> bool {
+    normalize_fs_path(a) == normalize_fs_path(b)
+}
+
+pub(crate) fn path_is_inside_fs(child: &Path, parent: &Path) -> bool {
+    let norm_child = normalize_fs_path(child);
+    let norm_parent = normalize_fs_path(parent);
+    norm_child.starts_with(&norm_parent)
+}
+
 fn move_storage_with_progress(
     old_root: &Path,
     new_root: &Path,
     app: Option<&AppHandle>,
 ) -> Result<(), String> {
+    if same_fs_path(old_root, new_root) {
+        return Ok(());
+    }
+
     // source folders that were copied but could not be deleted (locked files)
     let mut leftovers: Vec<String> = Vec::new();
 
     // a root inside one of the folders being moved would move that folder into itself
     for dir_name in OWNED_STORAGE_DIRS {
-        if new_root.starts_with(old_root.join(dir_name)) {
+        if path_is_inside_fs(new_root, &old_root.join(dir_name)) {
             return Err(format!("Pick a folder outside the current {dir_name} folder."));
         }
     }
@@ -418,12 +465,16 @@ pub(crate) fn move_entry_tracked(
     mut tracker: Option<&mut MoveProgressTracker<'_>>,
     rel_label: &str,
 ) -> Result<(), String> {
+    if same_fs_path(src, dest) {
+        return Ok(());
+    }
+
     let sym_meta = fs::symlink_metadata(src)
         .map_err(|e| format!("Failed to inspect {}: {e}", src.display()))?;
     let is_symlink = sym_meta.file_type().is_symlink();
 
-    // fast path: same volume, nothing holding the files open (only when destination doesn't already exist as a dir)
-    if !dest.exists() && fs::rename(src, dest).is_ok() {
+    // fast path: same volume, nothing holding the files open (only when destination doesn't already exist)
+    if fs::symlink_metadata(dest).is_err() && fs::rename(src, dest).is_ok() {
         if let Some(t) = tracker.as_deref_mut() {
             let (b, f) = scan_path_stats(dest);
             t.advance(b, f, rel_label, true);
@@ -454,9 +505,20 @@ pub(crate) fn move_entry_tracked(
     if sym_meta.is_dir() {
         fs::create_dir_all(dest)
             .map_err(|e| format!("Failed to create destination folder: {e}"))?;
-        let entries = fs::read_dir(src).map_err(|e| format!("Failed to read directory: {e}"))?;
+        let mut entries: Vec<fs::DirEntry> = fs::read_dir(src)
+            .map_err(|e| format!("Failed to read directory: {e}"))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("Failed to read entry: {e}"))?;
+        // move real files/folders (e.g. HF `blobs/`) before symlinks or `snapshots/` so relative targets exist in dest first
+        entries.sort_by_key(|entry| {
+            let is_sym = fs::symlink_metadata(entry.path())
+                .map(|m| m.file_type().is_symlink())
+                .unwrap_or(false);
+            let name = entry.file_name().to_string_lossy().to_lowercase();
+            let is_snapshots = name == "snapshots";
+            (is_sym || is_snapshots, name)
+        });
         for entry in entries {
-            let entry = entry.map_err(|e| format!("Failed to read entry: {e}"))?;
             let child_src = entry.path();
             let child_name = entry.file_name();
             let child_dest = dest.join(&child_name);
@@ -1060,14 +1122,18 @@ pub fn reveal_in_file_manager(file_path: String) -> Result<(), String> {
 #[cfg(not(target_os = "windows"))]
 #[tauri::command]
 pub fn reveal_in_file_manager(file_path: String) -> Result<(), String> {
-    let path = PathBuf::from(file_path.trim());
-    let dir = path
-        .parent()
-        .ok_or("Could not resolve exported file directory.".to_string())?;
+    let raw = PathBuf::from(file_path.trim());
+    let target = if raw.is_dir() {
+        raw
+    } else {
+        raw.parent()
+            .map(|p| p.to_path_buf())
+            .unwrap_or(raw)
+    };
 
     let opener = if cfg!(target_os = "macos") { "open" } else { "xdg-open" };
     Command::new(opener)
-        .arg(dir)
+        .arg(target)
         .spawn()
         .map_err(|e| format!("Failed to open file manager: {e}"))?;
 
@@ -1131,5 +1197,66 @@ mod tests {
         let err = move_storage(&old, &old.join("episodes_storage/inner")).unwrap_err();
         assert!(err.contains("episodes_storage"));
         assert!(old.join("episodes_storage/ep1/manifest.json").is_file());
+    }
+
+    #[test]
+    fn moving_to_same_path_with_trailing_slash_or_case_keeps_files_intact() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path().join("StorageRoot");
+        let ep_file = root.join("episodes_storage/ep1/manifest.json");
+        fs::create_dir_all(ep_file.parent().unwrap()).unwrap();
+        fs::write(&ep_file, b"{\"important\":true}").unwrap();
+
+        let variant = PathBuf::from(format!("{}/", root.to_string_lossy()));
+        move_storage(&root, &variant).unwrap();
+        assert_eq!(fs::read(&ep_file).unwrap(), b"{\"important\":true}");
+
+        let mut leftovers = Vec::new();
+        move_entry_tracked(&ep_file, &ep_file, &mut leftovers, None, "manifest.json").unwrap();
+        assert_eq!(fs::read(&ep_file).unwrap(), b"{\"important\":true}");
+    }
+
+    #[test]
+    fn moves_hf_snapshot_symlinks_when_copy_fallback_moves_blobs_first() {
+        let tmp = tempfile::tempdir().unwrap();
+        let src = tmp.path().join("src_siglip");
+        let dst = tmp.path().join("dst_siglip");
+        let blob = src.join("blobs/11a61a2068800d5f4f35cb041c1fea25");
+        let snap_dir = src.join("snapshots/cc24074f717b6129");
+        fs::create_dir_all(blob.parent().unwrap()).unwrap();
+        fs::create_dir_all(&snap_dir).unwrap();
+        fs::write(&blob, b"safetensors-weights").unwrap();
+
+        let snap_link = snap_dir.join("model.safetensors");
+        let rel_target = PathBuf::from("..").join("..").join("blobs").join("11a61a2068800d5f4f35cb041c1fea25");
+        #[cfg(windows)]
+        let linked = std::os::windows::fs::symlink_file(&rel_target, &snap_link).is_ok();
+        #[cfg(unix)]
+        let linked = std::os::unix::fs::symlink(&rel_target, &snap_link).is_ok();
+
+        if !linked {
+            // if Windows blocks symlink creation in test runner without dev mode, test recreate_or_materialize_symlink directly
+            let dst_blob = dst.join("blobs/11a61a2068800d5f4f35cb041c1fea25");
+            let dst_snap = dst.join("snapshots/cc24074f717b6129/model.safetensors");
+            fs::create_dir_all(dst_blob.parent().unwrap()).unwrap();
+            fs::create_dir_all(dst_snap.parent().unwrap()).unwrap();
+            fs::rename(&blob, &dst_blob).unwrap();
+            let dummy_meta = fs::metadata(&dst_blob).unwrap();
+            recreate_or_materialize_symlink(&snap_link, &dst_snap, &rel_target, &dummy_meta).unwrap();
+            assert_eq!(fs::read(&dst_snap).unwrap(), b"safetensors-weights");
+            return;
+        }
+
+        // pre-create dst so top-level fs::rename(src, dst) fails and takes the recursive copy+delete path
+        fs::create_dir_all(dst.join("snapshots/cc24074f717b6129")).unwrap();
+        fs::write(dst.join("snapshots/cc24074f717b6129/keep.txt"), b"1").unwrap();
+
+        let mut leftovers = Vec::new();
+        move_entry_tracked(&src, &dst, &mut leftovers, None, "hf-cache/siglip2").unwrap();
+
+        let moved_snap = dst.join("snapshots/cc24074f717b6129/model.safetensors");
+        assert!(moved_snap.exists());
+        assert_eq!(fs::read(&moved_snap).unwrap(), b"safetensors-weights");
+        assert!(!src.exists());
     }
 }
