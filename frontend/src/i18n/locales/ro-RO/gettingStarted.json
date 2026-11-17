@@ -30,24 +30,24 @@
     },
     "7": {
       "title": "7. Metode de detectare a scenelor",
-      "body": "Choose how imports find cuts: <br/>• <b>Keyframe Detection</b> cuts instantly on video keyframes and works on any PC with no GPU. <br/>• <b>AI Scene Detection</b> checks every frame with TransNetV2 for exact shot changes (slower without a GPU; install anytime)."
+      "body": "Alege ce metoda de detectare doresti pentru separarea scenelor. <br/>• <b>Detectarea prin Keyframe-uri</b> speara instant videoclipurile prin metoda de keyframe-uri, aceasta metoda functioneaza pe orice PC, chiar si pe cele fara GPU, dar nu o sa taie scenele chiar perfect. <br/>• <b>Detectarea prin AI</b> verifica fiecare frame folosind TransNetV2 pentru a avea scene aproape perfecte, aceasta metoda este recomandata sa fie utilizata cu un GPU si o sa fie mai lenta deoarece este mult mai precisa."
     },
     "8": {
-      "title": "8. Preview Methods",
-      "body": "Choose how the grid plays clips when you hover: <br/>• <b>Video Files</b> cuts real video clips per scene so previews match your export. <br/>• <b>WebP Files</b> builds lightweight animated previews for smoother scrolling and lower memory usage (exports still cut from full quality)."
+      "title": "8. Previzualizeaza Metodele",
+      "body": "Alege cum vrei ca aplicatia sa-ti afiseze scenele cand dai cu cursorul pe ele. <br/>• <b>Fisiere Video</b> arata videoclipurile reale asa cum sunt ele. <br/>• <b>Fisiere WebP</b> afiseaza scenele prin fisiere animate, o metoda care este mult mai folosita pentru ca este mai usoara si nu afecteaza foarte mult din experienta, acest lucru salvand din memoria RAM a sistemului tau."
     },
     "9": {
-      "title": "9. Features & Downloads",
-      "body": "In <b>Features</b> you can switch on and download optional tools whenever you want them, including <b>Scene Scout</b>, <b>AI Scene Detection</b>, <b>Scenepacks</b>, <b>Upscaling</b>, and <b>Depth Maps</b>."
+      "title": "9. Caracteristici si Descarcari",
+      "body": "In <b>Caracteristici</b> poti sa activezi sau sa dezactivezi uneltele optionale. De retinut ca o sa inceapa descarcarea modelelor atunci cand activezi o unealta optionala. <b>Scene Scout</b>, <b>Detectarea scenelor prin AI</b>, <b>Scenepack-uri</b>, <b>Upscaling</b>, si <b>Depth Map</b>."
     },
     "10": {
-      "title": "10. All Set",
-      "body": "That's about it for the tutorial, if you need this guide again, it's located in the <b>\"How to Use\"</b> section on the right side of the page. Enjoy!"
+      "title": "10. Atat",
+      "body": "Cam asta a fost tot tutorialul. Daca uiti cum sa folosesti ceva poti sa mergi la <b>\"Cum sa folosesti AMVerge\"</b> din partea dreapta a paginii. Speram ca o sa-ti placa programul nostru!"
     }
   },
-  "ariaLabel": "Getting started guide",
-  "skip": "Skip",
-  "back": "Back",
-  "finish": "Finish",
-  "next": "Next"
+  "ariaLabel": "Ghid de incepere",
+  "skip": "Omite",
+  "back": "Inapoi",
+  "finish": "Termina",
+  "next": "Urmatorul"
 }
