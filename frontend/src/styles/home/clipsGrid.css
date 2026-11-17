@@ -34,6 +34,7 @@
 }
 
 .clip-wrapper {
+    container-type: inline-size;
     --clip-overlay-inset: 7px;
     width: 100%;
     aspect-ratio: var(--clip-tile-aspect, 1 / 1);
@@ -382,6 +383,10 @@
 }
 
 .clip-original-timestamp {
+    box-sizing: border-box;
+    width: max-content;
+    overflow: hidden;
+    text-overflow: ellipsis;
     position: absolute;
     bottom: var(--clip-overlay-inset);
     left: 50%;
@@ -404,6 +409,13 @@
 
 .clip-original-timestamp.is-timeframe {
     letter-spacing: normal;
+}
+
+/* Preserve a complete start time when a narrow grid tile cannot fit the range. */
+@container (max-width: 110px) {
+    .clip-timestamp-end {
+        display: none;
+    }
 }
 
 .clip-duration-badge {
