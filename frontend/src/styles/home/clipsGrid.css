@@ -389,20 +389,19 @@
     text-overflow: ellipsis;
     position: absolute;
     bottom: var(--clip-overlay-inset);
-    left: 50%;
-    transform: translateX(-50%);
+    right: var(--clip-overlay-inset);
     max-width: calc(100% - 2 * var(--clip-overlay-inset));
     z-index: 12;
-    background: rgba(0, 0, 0, 0.4);
-    color: rgba(255, 255, 255, 0.85);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
     font-size: 11px;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    padding: 2px 4px;
+    padding: 2px 5px;
     border-radius: 4px;
     font-weight: 500;
     pointer-events: none;
     letter-spacing: normal;
-    text-align: center;
+    text-align: right;
     line-height: 16px;
     white-space: nowrap;
 }

@@ -140,9 +140,9 @@ body.is-resizing-sidebar {
 }
 
 .episode-panel-title {
-    font-size: 16px;
+    font-size: 20px;
     font-weight: 600;
-    line-height: 1.5;
+    line-height: 1.4;
     color: white;
     letter-spacing: normal;
     flex: 1 1 auto;
@@ -227,6 +227,7 @@ body.is-resizing-sidebar {
     border-radius: 8px;
     cursor: pointer;
     color: white;
+    font-size: 15px;
     min-width: 0;
     user-select: none;
     margin-top: 1px;

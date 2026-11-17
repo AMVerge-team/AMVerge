@@ -271,7 +271,7 @@
 
 .export-dir-row {
     display: flex;
-    gap: 8px;
+    gap: 5px;
     width: 100%;
     align-items: center;
     justify-content: center;
@@ -302,38 +302,41 @@
     min-width: 0;
 }
 
-/* keep the two switches and language picker on one shared row */
+/* center the switches and language picker together so wide windows don't spread them apart */
 .export-options-row .export-dir-row {
-    display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1.35fr);
-    align-items: start;
-    gap: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 12px 16px;
 }
 
 .export-options-row .export-dir-item {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     justify-content: flex-start;
     gap: 8px;
 }
 
 .export-options-row .export-dir-item:has(.davinci-export-toggle) {
-    grid-column: 1 / -1;
+    flex-basis: 100%;
     order: 1;
 }
 
 .export-options-row .export-language-option {
-    grid-column: auto;
+    flex: 0 1 auto;
 }
 
 .export-language-option .audio-stream-field {
     flex-direction: column;
-    align-items: stretch;
+    align-items: center;
     gap: 8px;
 }
 
 .export-language-option .audio-stream-select {
-    width: 100%;
+    width: auto;
+    min-width: 108px;
+    max-width: 190px;
 }
 
 .post-passes-label {
@@ -346,7 +349,7 @@
     font-size: 12px;
     font-weight: var(--font-weight-label);
     line-height: 18px;
-    text-align: left;
+    text-align: center;
     cursor: pointer;
 }
 
@@ -361,7 +364,7 @@
 
 .export-options-row .export-merge-option {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     justify-content: flex-start;
     gap: 8px;
 }
@@ -456,7 +459,7 @@
     font-weight: var(--font-weight-label);
     letter-spacing: normal;
     color: rgba(255, 255, 255, 0.85);
-    text-align: left;
+    text-align: center;
     user-select: none;
 }
 
@@ -508,6 +511,7 @@
     width: 36px !important;
     height: 36px !important;
     min-width: 36px;
+    margin: 0 !important;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -517,6 +521,17 @@
     color: rgba(255, 255, 255, 0.8);
     cursor: pointer;
     transition: all 0.2s ease !important;
+}
+
+.export-settings-row .export-dir-row {
+    align-items: stretch;
+}
+
+.export-settings-row .export-dir-browse {
+    width: 38px !important;
+    min-width: 38px;
+    height: auto !important;
+    min-height: 36px;
 }
 
 .export-dir-browse:hover {
