@@ -69,7 +69,7 @@
         "preview": "Cliquez une fois sur un résultat pour le <b>voir</b>"
       },
       "library": {
-        "focus": "Cliquez une fois sur un clip pour le <b>mettre au premier plan</b>",
+        "focus": "Cliquez une fois sur un clip pour l'<b>ouvrir dans l'aperçu</b>",
         "profile": "Choisissez un <b>profil d'export</b> pour les paramètres d'export",
         "start": "Cliquez sur <b>Exporter</b> pour lancer l'export"
       }
