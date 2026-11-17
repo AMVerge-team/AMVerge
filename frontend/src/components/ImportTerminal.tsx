@@ -6,7 +6,9 @@ import {
   type ReactNode,
 } from "react";
 import { listen, type Event, type UnlistenFn } from "@tauri-apps/api/event";
+import { useTranslation } from "react-i18next";
 
+import { t as translate } from "../i18n";
 import Tooltip from "./common/Tooltip";
 import BackgroundJobCard, { type JobLine, type JobLineKind } from "./BackgroundJobCard";
 
@@ -84,6 +86,7 @@ export default function ImportTerminal({
   onClose,
   bgBar,
 }: ImportTerminalProps) {
+  const { t } = useTranslation("jobs");
   const [lines, setLines] = useState<JobLine[]>([]);
   const [spinnerFrame, setSpinnerFrame] = useState(0);
   const [elapsed, setElapsed] = useState(0);
@@ -144,7 +147,7 @@ export default function ImportTerminal({
       const step = Math.floor((done * 5) / total);
       if (step > lastStep[stage]) {
         lastStep[stage] = step;
-        pushLine("event", `${label} ${done}/${total}`);
+        pushLine("event", translate("jobs:terminal.countedStep", { label, done, total }));
       }
     };
 
@@ -159,19 +162,19 @@ export default function ImportTerminal({
         listen<ClipReadyEvent>("clip_ready", (e: Event<ClipReadyEvent>) => {
           const { scene_index, clip_path, clip_mode } = e.payload;
           const name = clip_path ? fileNameOf(clip_path) : `scene_${scene_index}`;
-          pushLine("event", `✓ ${name} · ${clip_mode || "done"}`);
+          pushLine("event", `✓ ${name} · ${clip_mode || translate("jobs:terminal.clipDone")}`);
         }),
         // a webp episode's scene previews, encoded by the app's own ffmpeg rather than the cli
         listen<{ sceneId: string; path: string }>("scene_webp_ready", (e) => {
           const scene = e.payload.sceneId.split("::")[0].split("_").pop();
-          pushLine("event", `✓ scene ${scene} · preview`);
+          pushLine("event", translate("jobs:terminal.scenePreviewReady", { scene }));
         }),
         listen("phase1_complete", () => {
           pushLine(
             "event",
             detectionMethod.startsWith("keyframe")
-              ? "keyframe clips ready"
-              : "scenes detected · encoding exact previews"
+              ? translate("jobs:terminal.keyframeClipsReady")
+              : translate("jobs:terminal.scenesDetected")
           );
         }),
         listen<{ stage: string; done: number; total: number; video?: string | null }>(
@@ -179,23 +182,23 @@ export default function ImportTerminal({
           (e) => {
             const { stage, done, total } = e.payload;
             if (stage === "loading_model") {
-              pushLine("event", "loading SigLIP 2 model weights…");
+              pushLine("event", translate("jobs:terminal.loadingSiglip"));
             } else if (stage === "detecting") {
               // repeats as detection streams its percent; the live bar shows that
               if (!(stage in lastStep)) {
                 lastStep[stage] = 0;
-                pushLine("event", "detecting scenes…");
+                pushLine("event", translate("jobs:terminal.detectingScenes"));
               }
             } else if (stage === "sampling") {
-              pushCounted(stage, `sampling ${total} representative frames…`, "sampled frames", done, total);
+              pushCounted(stage, translate("jobs:terminal.sampling", { count: total }), translate("jobs:terminal.sampledFrames"), done, total);
             } else if (stage === "embedding") {
-              pushCounted(stage, `embedding ${total} scenes…`, "embedding scenes", done, total);
+              pushCounted(stage, translate("jobs:terminal.embedding", { count: total }), translate("jobs:terminal.embeddingScenes"), done, total);
             } else if (stage === "thumbnails") {
-              pushCounted(stage, `making ${total} thumbnails…`, "thumbnails", done, total);
+              pushCounted(stage, translate("jobs:terminal.makingThumbnails", { count: total }), translate("jobs:terminal.thumbnails"), done, total);
             } else if (stage === "done") {
               // a batch of episodes repeats every stage, so the next one prints its own steps
               for (const key of Object.keys(lastStep)) delete lastStep[key];
-              pushLine("event", `indexed ${total} scenes successfully`);
+              pushLine("event", translate("jobs:terminal.indexed", { count: total }));
             }
           }
         ),
@@ -262,13 +265,13 @@ export default function ImportTerminal({
     return (
       <BackgroundJobCard
         id="cli"
-        ariaLabel="Import progress (minimized)"
+        ariaLabel={t("terminal.minimizedAria")}
         done={done}
         lines={lines}
         title={
           isBatch
-            ? (operation === "scout_add" ? "Embedding videos" : "Importing videos")
-            : progressMsg || (operation === "scout_add" ? "Embedding scenes…" : operation === "scout_open" ? "Opening database…" : operation === "scout_search" ? "Searching scenes…" : operation === "scout_thumbnails" ? "Generating thumbnails…" : operation === "previews" ? "Generating previews…" : "Finishing import…")
+            ? (operation === "scout_add" ? t("terminal.embeddingVideos") : t("terminal.importingVideos"))
+            : progressMsg || (operation === "scout_add" ? t("terminal.minTitle.scoutAdd") : operation === "scout_open" ? t("terminal.minTitle.scoutOpen") : operation === "scout_search" ? t("terminal.minTitle.scoutSearch") : operation === "scout_thumbnails" ? t("terminal.minTitle.scoutThumbnails") : operation === "previews" ? t("terminal.minTitle.previews") : t("terminal.minTitle.import"))
         }
         onExpand={onToggleMinimize}
         onClose={onClose}
@@ -280,21 +283,21 @@ export default function ImportTerminal({
           <>
             <div className="lm-batch-row">
               <span className="lm-batch-count">
-                Video {currentVideoNum}/{batchTotal}
+                {t("terminal.videoCount", { current: currentVideoNum, total: batchTotal })}
               </span>
               {batchCurrentFile ? (
                 <span className="lm-batch-file">{batchCurrentFile}</span>
               ) : null}
             </div>
             <div className="lm-progress">
-              <span className="lm-bar-label">Overall</span>
+              <span className="lm-bar-label">{t("terminal.overall")}</span>
               <div className="progress-bar lm-progress-bar">
                 <div className="progress-fill" style={{ width: `${overallPct}%` }} />
               </div>
               <span className="lm-pct">{overallPct}%</span>
             </div>
             <div className="lm-progress">
-              <span className="lm-bar-label">Current</span>
+              <span className="lm-bar-label">{t("terminal.current")}</span>
               <div className="progress-bar lm-progress-bar">
                 <div className="progress-fill" style={{ width: `${clamped}%` }} />
               </div>
@@ -315,26 +318,26 @@ export default function ImportTerminal({
 
   return (
     <div className="loading-overlay">
-      <div className="import-terminal" role="log" aria-label="AMVerge CLI output">
+      <div className="import-terminal" role="log" aria-label={t("terminal.outputAria")}>
         <div className="it-header">
           <span className="it-title">
             {operation === "scout_add"
-              ? "Scene Scout - Indexing"
+              ? t("terminal.title.scoutAdd")
               : operation === "scout_open"
-              ? "Scene Scout - Database"
+              ? t("terminal.title.scoutOpen")
               : operation === "scout_search"
-              ? "Scene Scout - Search"
+              ? t("terminal.title.scoutSearch")
               : operation === "scout_thumbnails"
-              ? "Scene Scout - Thumbnails"
+              ? t("terminal.title.scoutThumbnails")
               : "AMVerge CLI"}
           </span>
           {onToggleMinimize ? (
-            <Tooltip content="Minimize">
+            <Tooltip content={t("terminal.minimize")}>
               <button
                 type="button"
                 className="it-min"
                 onClick={onToggleMinimize}
-                aria-label="Minimize"
+                aria-label={t("terminal.minimize")}
               >
                 ─
               </button>
@@ -353,18 +356,18 @@ export default function ImportTerminal({
         <div className="it-live">
           <div className="it-status">
             <span className="it-spinner">{done ? "✓" : SPINNER[spinnerFrame]}</span>
-            <span className="it-stage">{progressMsg || "Working…"}</span>
+            <span className="it-stage">{progressMsg || t("terminal.working")}</span>
           </div>
           {isBatch && (
             <div className="it-progress">
-              <span className="it-bar-label">Overall</span>
+              <span className="it-bar-label">{t("terminal.overall")}</span>
               {renderBar(overallPct)}
               <span className="it-pct">{overallPct}%</span>
               <span className="it-elapsed">{formatElapsed(elapsed)}</span>
             </div>
           )}
           <div className="it-progress">
-            {isBatch && <span className="it-bar-label">Current</span>}
+            {isBatch && <span className="it-bar-label">{t("terminal.current")}</span>}
             {renderBar(clamped)}
             <span className="it-pct">{clamped}%</span>
             {!isBatch && <span className="it-elapsed">{formatElapsed(elapsed)}</span>}
@@ -372,12 +375,12 @@ export default function ImportTerminal({
 
           {isBatch && (
             <div className="it-batch">
-              {operation === "scout_add" ? "Embedding videos" : "Cutting videos"} {batchDone + 1}/{batchTotal} · {batchCurrentFile}
+              {t(operation === "scout_add" ? "terminal.batchEmbedding" : "terminal.batchCutting", { current: batchDone + 1, total: batchTotal, file: batchCurrentFile })}
             </div>
           )}
 
           <button className="abort-button it-abort" onClick={onAbort}>
-            Abort
+            {t("terminal.abort")}
           </button>
         </div>
       </div>

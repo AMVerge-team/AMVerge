@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import InfoButton from "../common/InfoButton";
 import { useSceneScoutStore } from "../../stores/sceneScoutStore";
 
@@ -8,60 +9,40 @@ export function ScoutInfoButton() {
 }
 
 function SearchInfo() {
+  const { t } = useTranslation("scout");
   return (
-    <InfoButton title="Scene Scout: Search" variant="toolbar">
-      <p>
-        Scene Scout searches your indexed episodes by description rather than by filename. Type what
-        you remember of a scene and it finds the closest matches.
-      </p>
+    <InfoButton title={t("info.search.title")} variant="toolbar">
+      <p>{t("info.search.intro")}</p>
 
-      <h4>Getting started</h4>
+      <h4>{t("info.search.gettingStarted")}</h4>
       <ol>
-        <li>Create or open a database in the left panel. One per series works well.</li>
-        <li>
-          Move it into Searching by double-clicking it, dragging it up, or right-clicking it. All
-          databases lists everything you have; only the ones in Searching are searched.
-        </li>
-        <li>
-          Press Add Episode and pick one or more videos. Indexing watches every scene once and stores a
-          fingerprint of each, which takes a while but only happens once per episode.
-        </li>
-        <li>Describe the scene you want in plain language and press Enter.</li>
+        <li>{t("info.search.step1")}</li>
+        <li>{t("info.search.step2")}</li>
+        <li>{t("info.search.step3")}</li>
+        <li>{t("info.search.step4")}</li>
       </ol>
 
-      <h4>Search settings</h4>
-      <p>
-        Results controls how many matches come back. Scene detection is chosen each time you add
-        episodes.
-      </p>
+      <h4>{t("info.search.settingsTitle")}</h4>
+      <p>{t("info.search.settings")}</p>
     </InfoButton>
   );
 }
 
 function FlowInfo() {
+  const { t } = useTranslation("scout");
   return (
-    <InfoButton title="Scene Scout: Match" variant="toolbar">
-      <p>
-        Match finds scenes that could come right after a clip you already have. It looks at the clip's
-        last frame and returns the scenes in your databases that look most like it, so the cut between
-        them feels continuous.
-      </p>
+    <InfoButton title={t("info.flow.title")} variant="toolbar">
+      <p>{t("info.flow.intro")}</p>
 
-      <h4>How to use it</h4>
+      <h4>{t("info.flow.howTitle")}</h4>
       <ol>
-        <li>Add the databases to search to the Searching list on the left.</li>
-        <li>
-          Press Import and pick a video file, or right-click a clip in your Library or in
-          Search results and pick Find matching clips.
-        </li>
-        <li>Click a match to play it in the preview pane, and export it from there as usual.</li>
+        <li>{t("info.flow.step1")}</li>
+        <li>{t("info.flow.step2")}</li>
+        <li>{t("info.flow.step3")}</li>
       </ol>
 
-      <h4>Tips</h4>
-      <p>
-        Drag the bar between the clip and the results to give either more room. The refresh button runs
-        the same clip again, for example after changing which databases are searched.
-      </p>
+      <h4>{t("info.flow.tipsTitle")}</h4>
+      <p>{t("info.flow.tips")}</p>
     </InfoButton>
   );
 }

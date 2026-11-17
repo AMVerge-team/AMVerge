@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import Sidebar from "./sidebar/Sidebar";
 import Navbar from "./Navbar";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -28,6 +29,7 @@ export default function AppLayout({
   loadingOverlay,
   isDragging,
 }: AppLayoutProps) {
+  const { t } = useTranslation("shell");
   const backgroundMediaPath = useThemeSettingsStore((s) => s.backgroundImagePath);
   // Tools lights up its own drop zone, and a drop there never imports
   const toolsOpen = useUIStateStore((s) => s.toolsOpen);
@@ -57,7 +59,7 @@ export default function AppLayout({
       {loadingOverlay}
       {isDragging && !toolsOpen && (
         <div className="dragging-overlay">
-          <h1>Drag file(s) here.</h1>
+          <h1>{t("layout.dropFiles")}</h1>
         </div>
       )}
       <div
@@ -82,7 +84,7 @@ export default function AppLayout({
             onPointerDown={dividerProps.onPointerDown}
             role="separator"
             aria-orientation="vertical"
-            aria-label="Resize sidebar"
+            aria-label={t("layout.resizeSidebar")}
             tabIndex={-1}
           />
           <div className="content-wrapper">

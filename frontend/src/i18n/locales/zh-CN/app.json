@@ -1,0 +1,13 @@
+{
+  "updater": {
+    "title": "AMVerge 更新",
+    "available": "有新版本可用（v{{version}}）。现在安装吗？",
+    "install": "安装",
+    "starting": "开始更新到 v{{version}}。\n\n完成前请保持应用开启。",
+    "installedTitle": "AMVerge 更新已安装",
+    "installed": "已安装 v{{version}} 更新。\n\n如果 macOS 上应用没有自动重启，请手动关闭并重新打开一次 AMVerge。",
+    "genericError": "更新下载或安装失败。",
+    "failedTitle": "AMVerge 更新失败",
+    "failed": "无法安装更新。{{error}}"
+  }
+}

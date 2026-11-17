@@ -1,6 +1,7 @@
 import { getRevealInFileManagerLabel } from "../../../utils/platformUtils";
 import type React from "react";
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { FaLayerGroup, FaFolderPlus, FaSortAlphaDown, FaSortAlphaUp, FaTrashAlt, FaSearch, FaTimes, FaSpinner, FaFolderOpen } from '../../icons/animated';
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import Tooltip from "../../common/Tooltip";
@@ -34,6 +35,7 @@ const DOUBLE_CLICK_MS = 260;
 const ROW_INDENT_PX = 12;
 
 export function ScenepacksPanel() {
+  const { t } = useTranslation("library");
   const panelRef = useRef<HTMLDivElement | null>(null);
   const clickGestureRef = useRef<{ key: string | null; ts: number }>({ key: null, ts: 0 });
   const [nextSortDirection, setNextSortDirection] = useState<"asc" | "desc">("asc");
@@ -211,7 +213,7 @@ export function ScenepacksPanel() {
     close: () => setContextMenu(null),
   };
 
-  const sortLabel = nextSortDirection === "asc" ? "Sort A-Z" : "Sort Z-A";
+  const sortLabel = nextSortDirection === "asc" ? t("episodePanel.header.sortAsc") : t("episodePanel.header.sortDesc");
   const SortIcon = nextSortDirection === "asc" ? FaSortAlphaDown : FaSortAlphaUp;
   const rootFolders = foldersByParentId.get(null) ?? [];
 
@@ -274,13 +276,13 @@ export function ScenepacksPanel() {
         )}
         <span className="episode-panel-episode-name">{sp.name}</span>
         {pendingCount > 0 && (
-          <Tooltip content={`Adding ${pendingCount} clip${pendingCount > 1 ? "s" : ""}…`} side="right">
+          <Tooltip content={t("scenepacks.row.addingClips", { count: pendingCount })} side="right">
             <FaSpinner className="scenepack-spinner scenepack-row-spinner" aria-hidden="true" />
           </Tooltip>
         )}
         <span className="episode-panel-count">{sp.clips.length}</span>
         <Tooltip
-          content={sp.clips.length === 0 ? "Nothing stored yet" : getRevealInFileManagerLabel()}
+          content={sp.clips.length === 0 ? t("scenepacks.row.nothingStored") : getRevealInFileManagerLabel()}
           side="right"
         >
           <span className="tooltip-anchor">
@@ -330,7 +332,7 @@ export function ScenepacksPanel() {
             openItemMenu(e, folder.id, "folder");
           }}
         >
-          <Tooltip content={isExpanded ? "Collapse folder" : "Expand folder"} side="right">
+          <Tooltip content={isExpanded ? t("episodePanel.row.collapseFolder") : t("episodePanel.row.expandFolder")} side="right">
             <button
               type="button"
               className={`episode-panel-caret${isExpanded ? " is-expanded" : ""}`}
@@ -339,7 +341,7 @@ export function ScenepacksPanel() {
                 e.stopPropagation();
                 toggleScenepackFolderExpanded(folder.id);
               }}
-              aria-label={isExpanded ? "Collapse folder" : "Expand folder"}
+              aria-label={isExpanded ? t("episodePanel.row.collapseFolder") : t("episodePanel.row.expandFolder")}
               tabIndex={-1}
             >
               ▸
@@ -361,7 +363,7 @@ export function ScenepacksPanel() {
     <div className="eps-container">
       <div className="episode-panel">
         <div className="episode-panel-header">
-          <div className="episode-panel-title">Scenepacks</div>
+          <div className="episode-panel-title">{t("scenepacks.header.title")}</div>
           <div className="episode-panel-actions">
             <Tooltip content={sortLabel}>
               <button
@@ -374,7 +376,7 @@ export function ScenepacksPanel() {
               </button>
             </Tooltip>
 
-            <Tooltip content="New folder">
+            <Tooltip content={t("episodePanel.header.newFolder")}>
               <button
                 type="button"
                 className="episode-panel-action icon-only"
@@ -383,13 +385,13 @@ export function ScenepacksPanel() {
                   setNewItemName("");
                   setModalFolderId(null);
                 }}
-                aria-label="New folder"
+                aria-label={t("episodePanel.header.newFolder")}
               >
                 <FaFolderPlus aria-hidden="true" />
               </button>
             </Tooltip>
 
-            <Tooltip content="New Scenepack">
+            <Tooltip content={t("scenepacks.header.newScenepack")}>
               <button
                 type="button"
                 className="episode-panel-action icon-only"
@@ -398,21 +400,21 @@ export function ScenepacksPanel() {
                   setNewItemName("");
                   setModalFolderId(selectedScenepackFolderId);
                 }}
-                aria-label="New Scenepack"
+                aria-label={t("scenepacks.header.newScenepack")}
               >
                 <FaLayerGroup aria-hidden="true" />
               </button>
             </Tooltip>
 
             {/* wrapper span: disabled until something is selected */}
-            <Tooltip content="Delete selected item">
+            <Tooltip content={t("scenepacks.header.deleteSelected")}>
               <span className="tooltip-anchor">
                 <button
                   type="button"
                   className="episode-panel-action icon-only"
                   onClick={handleDeleteSelected}
                   disabled={!selectedScenepackId && !selectedScenepackFolderId}
-                  aria-label="Delete selected"
+                  aria-label={t("scenepacks.header.deleteSelected")}
                 >
                   <FaTrashAlt aria-hidden="true" />
                 </button>
@@ -426,16 +428,16 @@ export function ScenepacksPanel() {
           <input
             type="text"
             className="scenepack-search-input"
-            placeholder="Search Scenepacks..."
+            placeholder={t("scenepacks.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           {searchQuery && (
-            <Tooltip content="Clear search">
+            <Tooltip content={t("episodePanel.clearSearch")}>
               <button
                 className="scenepack-search-clear"
                 onClick={() => setSearchQuery("")}
-                aria-label="Clear search"
+                aria-label={t("episodePanel.clearSearch")}
               >
                 <FaTimes />
               </button>
@@ -472,9 +474,9 @@ export function ScenepacksPanel() {
           {displayRootFolders.length === 0 && displayRootScenepacks.length === 0 && (
             <div className="scenepacks-empty-cta">
               <FaLayerGroup style={{ fontSize: 28, opacity: 0.3 }} />
-              <span style={{ fontSize: 15, opacity: 0.6 }}>No Scenepacks yet</span>
+              <span style={{ fontSize: 15, opacity: 0.6 }}>{t("scenepacks.empty.title")}</span>
               <span style={{ fontSize: 12, opacity: 0.4 }}>
-                Group clips by character, fight, or event
+                {t("scenepacks.empty.description")}
               </span>
               <button
                 className="episode-modal-btn primary"
@@ -485,7 +487,7 @@ export function ScenepacksPanel() {
                 }}
                 style={{ marginTop: 8, fontSize: 14 }}
               >
-                Create your first Scenepack
+                {t("scenepacks.empty.createFirst")}
               </button>
             </div>
           )}

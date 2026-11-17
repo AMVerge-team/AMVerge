@@ -1,5 +1,6 @@
 // episode Panel modal renderer. displays text input modals and confirmation modals
 import type React from "react";
+import { useTranslation } from "react-i18next";
 import type { ConfirmModalState, TextModalState } from "../types";
 import { useEscapeToClose } from "../../common/useEscapeToClose";
 
@@ -35,6 +36,7 @@ export default function EpisodePanelModals({
   closeNewFolderModal,
   handleCreateNewFolder,
 }: EpisodePanelModalsProps) {
+  const { t } = useTranslation("library");
   useEscapeToClose(() => setTextModal(null), textModal !== null);
   useEscapeToClose(closeNewFolderModal, newFolderModal !== null);
   useEscapeToClose(() => setConfirmModal(null), confirmModal !== null);
@@ -68,7 +70,7 @@ export default function EpisodePanelModals({
                 className="episode-modal-btn"
                 onClick={() => setTextModal(null)}
               >
-                Cancel
+                {t("common:cancel")}
               </button>
 
               <button
@@ -92,12 +94,12 @@ export default function EpisodePanelModals({
       {newFolderModal && (
         <div className="episode-modal-overlay" onMouseDown={closeNewFolderModal}>
           <div className="episode-modal" onMouseDown={(e) => e.stopPropagation()}>
-            <div className="episode-modal-title">New Folder</div>
+            <div className="episode-modal-title">{t("episodePanel.newFolder.title")}</div>
 
             <input
               type="text"
               className="episode-modal-input"
-              placeholder="Folder name..."
+              placeholder={t("episodePanel.newFolder.placeholder")}
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               onKeyDown={(e) => {
@@ -108,7 +110,7 @@ export default function EpisodePanelModals({
 
             {episodeFolders.length > 0 && (
               <div style={{ marginTop: 8 }}>
-                <div className="episode-context-menu-label">Category</div>
+                <div className="episode-context-menu-label">{t("episodePanel.newFolder.parent")}</div>
                 <div style={{ maxHeight: 140, overflowY: "auto" }}>
                   <div
                     className={`episode-panel-row folder-row${
@@ -117,7 +119,7 @@ export default function EpisodePanelModals({
                     onClick={() => setNewFolderParentId(null)}
                     style={{ padding: "6px 8px", cursor: "pointer", marginBottom: 1 }}
                   >
-                    <span className="episode-panel-folder-name">None (root)</span>
+                    <span className="episode-panel-folder-name">{t("episodePanel.newFolder.root")}</span>
                   </div>
                   {episodeFolders.map((f) => (
                     <div
@@ -141,7 +143,7 @@ export default function EpisodePanelModals({
                 className="episode-modal-btn"
                 onClick={closeNewFolderModal}
               >
-                Cancel
+                {t("common:cancel")}
               </button>
 
               <button
@@ -150,7 +152,7 @@ export default function EpisodePanelModals({
                 onClick={handleCreateNewFolder}
                 disabled={!newFolderName.trim()}
               >
-                Create
+                {t("episodePanel.newFolder.create")}
               </button>
             </div>
           </div>
@@ -172,7 +174,7 @@ export default function EpisodePanelModals({
                 className="episode-modal-btn"
                 onClick={() => setConfirmModal(null)}
               >
-                No
+                {t("common:no")}
               </button>
 
               <button

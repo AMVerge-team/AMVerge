@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import { FaInfo, FaTimes } from '../icons/animated';
 
 import Tooltip from "./Tooltip";
@@ -14,18 +15,19 @@ type InfoButtonProps = {
 
 /** small "i" beside a setting label that opens a short explainer */
 export default function InfoButton({ title, children, variant = "inline" }: InfoButtonProps) {
+  const { t } = useTranslation("shell");
   const [open, setOpen] = useState(false);
 
   useEscapeToClose(() => setOpen(false), open);
 
   return (
     <>
-      <Tooltip content={`About ${title}`}>
+      <Tooltip content={t("infoButton.about", { title })}>
         <button
           type="button"
           className={variant === "toolbar" ? "info-button toolbar-info-button" : "info-button"}
           onClick={() => setOpen(true)}
-          aria-label={`About ${title}`}
+          aria-label={t("infoButton.about", { title })}
         >
           <FaInfo aria-hidden="true" />
         </button>
@@ -42,12 +44,12 @@ export default function InfoButton({ title, children, variant = "inline" }: Info
           <div className="info-modal" role="dialog" aria-modal="true" aria-label={title}>
             <div className="info-modal-head">
               <h3 className="info-modal-title">{title}</h3>
-              <Tooltip content="Close">
+              <Tooltip content={t("common:close")}>
                 <button
                   type="button"
                   className="info-modal-close"
                   onClick={() => setOpen(false)}
-                  aria-label="Close"
+                  aria-label={t("common:close")}
                 >
                   <FaTimes aria-hidden="true" />
                 </button>

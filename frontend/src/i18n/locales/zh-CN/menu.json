@@ -1,0 +1,160 @@
+{
+  "about": {
+    "title": "关于 AMVerge",
+    "subtitle": "AMVerge 让挑选场景更轻松。它会把一集视频拆分成一个个场景，让你浏览得比在视频编辑器里快得多，也更不容易漏掉场景。",
+    "what": {
+      "title": "AMVerge 是什么？",
+      "p1": "一款为动漫剪辑师打造的片段切割工具。导入一集视频，它会找出每一次镜头切换，并把整集排成可快速浏览的网格。",
+      "p2": "点选你想要的场景，它会直接从源文件中提取，无需重新编码，片段保持原始画质。导出的片段存放在文件夹中，可直接拖入 After Effects、Premiere 或 Resolve。",
+      "p3": "它不会替你剪辑，也不会替你判断哪些场景好。它只是省去了你在一集里来回拖动、苦苦寻找记忆中那四秒画面的过程。"
+    },
+    "workflow": {
+      "title": "快速上手",
+      "import": "<strong>导入：</strong>拖放视频文件（MP4、MKV、WebM 等）。",
+      "select": "<strong>选择：</strong>浏览网格并选中需要的场景。按 <code>Shift + 单击</code> 选择范围，按 <code>Ctrl + 单击</code> 逐个选择片段。",
+      "export": "<strong>合并与导出：</strong>选择一个导出预设（或开启“合并片段”将连续片段拼接），然后点击<strong>立即导出</strong>。"
+    },
+    "shortcuts": {
+      "title": "导航与快捷键",
+      "singleClick": "单击",
+      "singleClickDesc": "聚焦片段并播放预览",
+      "ctrlClick": "Ctrl + 单击",
+      "ctrlClickDesc": "切换单个片段的选中状态",
+      "shiftClick": "Shift + 单击",
+      "shiftClickDesc": "选择连续的片段范围",
+      "cmdScroll": "Cmd + 滚轮",
+      "ctrlScroll": "Ctrl + 滚轮",
+      "scrollDesc": "调整网格列数",
+      "esc": "Esc",
+      "escDesc": "打开快速导航，或关闭当前打开的内容"
+    },
+    "community": {
+      "title": "社区与支持",
+      "text": "加入我们的社区，反馈问题、获取更新、提出功能建议，并分享你的作品：",
+      "discord": "Discord 社区",
+      "github": "GitHub",
+      "authorNote": "由 <strong>Crptk</strong> 创建，现由 AMVerge 团队维护。"
+    }
+  },
+  "bugReport": {
+    "title": "反馈问题",
+    "subtitle": "遇到错误或异常行为？直接将详情提交给 AMVerge 团队。",
+    "altText": "想直接反馈？你也可以在 GitHub 上提交 issue，或在我们的 Discord 服务器中联系我们：",
+    "discordCommunity": "Discord 社区",
+    "githubIssues": "GitHub Issues",
+    "types": {
+      "video": "视频相关问题",
+      "videoDesc": "导入、播放、GOP 切割、音画不同步或导出异常",
+      "app": "应用相关问题",
+      "appDesc": "界面错误、崩溃、设置、AI 依赖安装器或卡死",
+      "feature": "功能建议",
+      "featureDesc": "对 AMVerge 的建议或工作流改进"
+    },
+    "details": "问题详情",
+    "bugType": "问题类型",
+    "description": "描述",
+    "descriptionPlaceholder": "发生了什么？你期望的结果是什么？如何复现？",
+    "recording": "屏幕录像（可选）",
+    "recordingPlaceholder": "例如 Google Drive 链接、种子、剧集…",
+    "systemContact": "系统与联系方式（可选）",
+    "pcSpecs": "电脑配置",
+    "readingSpecs": "正在读取本机配置…",
+    "fillSpecs": "填入本机配置",
+    "fillSpecsTooltip": "自动填入本机的操作系统、CPU、内存和 GPU",
+    "pcSpecsPlaceholder": "例如 RTX 3080，Win 11",
+    "contact": "联系方式",
+    "fillDiscord": "填入我的 Discord",
+    "fillDiscordTooltip": "自动填入你的 Discord 用户名",
+    "fillDiscordUnavailable": "需要开启 Discord 动态状态（Rich Presence）并运行 Discord",
+    "contactPlaceholder": "Discord 用户名 / 邮箱",
+    "screenshotsSubmit": "截图与提交",
+    "chooseScreenshots": "选择截图",
+    "noScreenshot": "未选择截图",
+    "screenshotsSelected_one": "已选择 {{count}} 张截图",
+    "screenshotsSelected_other": "已选择 {{count}} 张截图",
+    "submitting": "正在提交…",
+    "submit": "提交问题报告",
+    "errors": {
+      "specs": "无法读取你的配置，请手动填写。",
+      "discord": "Discord 未连接。请在社区活动页面登录或开启动态状态（Rich Presence），或手动输入用户名。",
+      "issueRequired": "提交前请先描述问题。",
+      "cooldown": "请等待 {{time}} 后再提交下一份报告。",
+      "imagesOnly": "截图只能是图片文件。",
+      "tooLarge": "有截图超过 8MB 的大小限制。",
+      "submitFailed": "问题报告提交失败。",
+      "submitRetry": "无法提交问题报告，请重试。"
+    },
+    "success": "问题报告已成功提交。"
+  },
+  "console": {
+    "title": "开发者控制台",
+    "subtitle": "应用与后台 CLI 的实时诊断日志。",
+    "searchPlaceholder": "搜索日志…",
+    "levels": {
+      "all": "全部",
+      "info": "信息",
+      "warn": "警告",
+      "error": "错误"
+    },
+    "copyTooltip": "复制筛选后的日志",
+    "copyLabel": "复制日志",
+    "clearTooltip": "清空日志",
+    "clearLabel": "清空日志",
+    "noLogsCopy": "暂无控制台日志。",
+    "empty": "没有符合当前筛选条件的日志。"
+  },
+  "credits": {
+    "title": "AMVerge 背后的人们",
+    "subtitle": "AMVerge 是由动漫剪辑师共同打造的开源项目。它的定位是一款社区工具，不属于某一位创作者，而是由社区通过建议等方式共同建设。",
+    "contributors": "贡献者",
+    "roles": {
+      "crptk": "应用创建者与核心架构",
+      "netsuma": "界面系统、导出引擎与提示框",
+      "moongetsu": "设置、AI 安装器、Discord RPC 与多平台支持",
+      "lewis": "macOS 引擎、后台导入与性能优化",
+      "khaos": "网格虚拟化与渲染修复",
+      "tosin": "macOS 解封装与视频兼容性",
+      "markShun": "场景搜索（Scene Scout）"
+    },
+    "contribute": "参与贡献与社区",
+    "contributeText": "想帮助改进 AMVerge？无论是添加新功能、修复错误，还是在不同硬件上测试，我们都欢迎你的贡献。",
+    "contributeGithub": "在 GitHub 上参与贡献"
+  },
+  "resources": {
+    "title": "资源",
+    "subtitle": "AMV 社区制作的免费优质工具",
+    "devNote": "开发者点评",
+    "visit": "访问 {{name}}",
+    "play": "播放 {{title}}",
+    "watchOnYoutube": "在 YouTube 上观看",
+    "items": {
+      "resyncbot": {
+        "tagline": "与好友一起在几秒内自动重新卡点作品",
+        "details": "这是由 AMVerge 作者开发的 Discord 机器人，已在 300 多个服务器中使用，覆盖近 20 万人，可在几秒内自动为作品重新卡点。借助 BPM 与音频波形分析，你可以把作品自动同步到指定音乐，或随机抽取一首合适的音乐。",
+        "devNote": "这是我的第一个项目，大概也是我做过最有趣的一个。出乎意料的是，它至今每天仍被频繁使用，所以我会尽可能长久地维护它。"
+      },
+      "sammieRoto": {
+        "tagline": "针对动漫训练的 AI 抠像",
+        "details": "由 AMVerge 场景搜索（Scene Scout）功能的开发者参与创建，这是一款免费开源的 AI 抠像工具，支持物体检测与移除，并配有专门针对动漫训练的 AI 模型。效果好到连发丝都能完美抠出（Adobe 该学学了……）",
+        "devNote": "毫不夸张地说，这是我用过最好的动态抠像工具，它的动漫模型让我大开眼界。如果你还没试过，强烈推荐。"
+      },
+      "animeclips": {
+        "tagline": "快速下载动漫片段",
+        "details": "收录超过 45 万个片段，是规模最大的高质量动漫片段资源库。",
+        "devNote": "当我找不到想剪的动漫的下载资源时，一直用这个网站，它也深受数千名剪辑师信赖。强烈推荐！"
+      },
+      "hyetta": {
+        "tagline": "排名第一的剪辑比赛管理平台。",
+        "details": "一个举办剪辑比赛的平台，主要面向限时赛（HC）。它自带评审表和计分器，可自动完成总分计算、迟交扣分等工作，使用直观，还能把一场活动的所有参赛作品集中在一处管理。",
+        "devNote": "除了动漫选择和限制规则之外，这个平台帮你包办了举办限时赛的所有繁琐环节。"
+      }
+    }
+  },
+  "patchNotes": {
+    "title": "更新日志",
+    "subtitle": "查看 AMVerge 各版本的新功能、引擎改动和错误修复。",
+    "back": "返回更新日志",
+    "viewFull": "查看完整更新日志",
+    "notFound": "在 updates/ 中未找到完整的发行说明文档"
+  }
+}

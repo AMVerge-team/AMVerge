@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { Trans, useTranslation } from "react-i18next";
 import { ConfirmModal } from "../settings/general/ConfirmModal";
 import { useAppStateStore } from "../../stores/appStore";
 import { useSceneScoutStore } from "../../stores/sceneScoutStore";
@@ -8,6 +9,7 @@ type Missing = { database: string; videoPath: string; name: string };
 
 /** clicking a hit whose source episode isn't on this computer offers to drop it from the database */
 export function MissingEpisodePrompt() {
+  const { t } = useTranslation("scout");
   const focusedClipId = useAppStateStore((s) => s.focusedClipId);
   const [missing, setMissing] = useState<Missing | null>(null);
   const [busy, setBusy] = useState(false);
@@ -40,15 +42,17 @@ export function MissingEpisodePrompt() {
 
   return (
     <ConfirmModal
-      title="Episode not found"
+      title={t("missing.title")}
       message={
-        <>
-          <b>{missing.name}</b> is no longer at <code>{missing.videoPath}</code>, so its scenes can't play.
-          Remove this episode from the database?
-        </>
+        <Trans
+          t={t}
+          i18nKey="missing.message"
+          values={{ name: missing.name, path: missing.videoPath }}
+          components={{ b: <b />, code: <code /> }}
+        />
       }
-      confirmLabel={busy ? "Removing…" : "Remove from database"}
-      cancelLabel="Keep"
+      confirmLabel={busy ? t("missing.removing") : t("missing.remove")}
+      cancelLabel={t("missing.keep")}
       busy={busy}
       onConfirm={() => void remove()}
       onClose={() => setMissing(null)}

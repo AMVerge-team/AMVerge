@@ -1,0 +1,244 @@
+{
+  "process": {
+    "labels": {
+      "import": "导入视频",
+      "export": "导出片段",
+      "resume": "完成视频片段的切割",
+      "scout_add": "向场景搜索（Scene Scout）数据库添加视频",
+      "scout_thumbnails": "生成场景搜索（Scene Scout）缩略图",
+      "tools": "在工具中对片段进行超分辨率或深度图处理"
+    },
+    "conflictTitle": "另一个任务正在运行",
+    "conflictRunning": "AMVerge 正在{{process}}。同一时间只能运行一个任务。",
+    "conflictQuestion": "要停止它并改为{{process}}吗？",
+    "stoppingIt": "正在停止…",
+    "stopping": "正在停止…",
+    "stopAndContinue": "停止并继续",
+    "keepRunning": "保持运行"
+  },
+  "startupNotification": {
+    "closeAria": "关闭通知",
+    "bannerAlt": "通知横幅",
+    "doNotShowAgain": "不再显示"
+  },
+  "updateNotice": {
+    "title": "有可用更新",
+    "body": "AMVerge 有新版本了！欢迎[点此](https://amverge.app/)下载。"
+  },
+  "v1Import": {
+    "title": "欢迎使用 AMVerge V2！",
+    "lead": "以下功能现已可用：",
+    "features": {
+      "sceneDetection": "AI 场景检测",
+      "sceneSearch": "场景搜索",
+      "sceneMatching": "场景匹配",
+      "scenepack": "片段集创建"
+    },
+    "episodesInLibrary_one": "素材库中有 {{count}} 个视频",
+    "episodesInLibrary_other": "素材库中有 {{count}} 个视频",
+    "note": "此外还有许多其他改进。所有 AI 功能均在本地运行，<br/>可在<strong>设置 › 功能</strong>中开启。",
+    "confirm": "开始体验！"
+  },
+  "jobCard": {
+    "dismiss": "关闭",
+    "expand": "展开"
+  },
+  "bgProgress": {
+    "header": "后台任务",
+    "closeAria": "关闭处理进度",
+    "countLine": "{{label}} {{done}}/{{total}}",
+    "processingClips": "正在处理片段",
+    "loadingPreviews": "正在加载预览",
+    "installingAi": "正在安装 AI 模型",
+    "importingVideos": "正在导入视频 {{done}}/{{total}}",
+    "aiDetailsTooltip": "点击查看完整安装详情"
+  },
+  "terminal": {
+    "countedStep": "{{label}} {{done}}/{{total}}",
+    "clipDone": "完成",
+    "scenePreviewReady": "✓ 场景 {{scene}} · 预览",
+    "keyframeClipsReady": "关键帧片段已就绪",
+    "scenesDetected": "场景检测完成 · 正在编码精确预览",
+    "loadingSiglip": "正在加载 SigLIP 2 模型权重…",
+    "detectingScenes": "正在检测场景…",
+    "sampling_one": "正在采样 {{count}} 个代表帧…",
+    "sampling_other": "正在采样 {{count}} 个代表帧…",
+    "sampledFrames": "已采样帧",
+    "embedding_one": "正在嵌入 {{count}} 个场景…",
+    "embedding_other": "正在嵌入 {{count}} 个场景…",
+    "embeddingScenes": "正在嵌入场景",
+    "makingThumbnails_one": "正在生成 {{count}} 张缩略图…",
+    "makingThumbnails_other": "正在生成 {{count}} 张缩略图…",
+    "thumbnails": "缩略图",
+    "indexed_one": "已成功索引 {{count}} 个场景",
+    "indexed_other": "已成功索引 {{count}} 个场景",
+    "minimizedAria": "导入进度（已最小化）",
+    "embeddingVideos": "正在嵌入视频",
+    "importingVideos": "正在导入视频",
+    "minTitle": {
+      "scoutAdd": "正在嵌入场景…",
+      "scoutOpen": "正在打开数据库…",
+      "scoutSearch": "正在搜索场景…",
+      "scoutThumbnails": "正在生成缩略图…",
+      "previews": "正在生成预览…",
+      "import": "正在完成导入…"
+    },
+    "videoCount": "视频 {{current}}/{{total}}",
+    "overall": "总进度",
+    "current": "当前",
+    "outputAria": "AMVerge CLI 输出",
+    "title": {
+      "scoutAdd": "Scene Scout - 索引",
+      "scoutOpen": "Scene Scout - 数据库",
+      "scoutSearch": "Scene Scout - 搜索",
+      "scoutThumbnails": "Scene Scout - 缩略图"
+    },
+    "minimize": "最小化",
+    "working": "处理中…",
+    "batchEmbedding": "正在嵌入视频 {{current}}/{{total}} · {{file}}",
+    "batchCutting": "正在切割视频 {{current}}/{{total}} · {{file}}",
+    "abort": "中止"
+  },
+  "importButtons": {
+    "hideEpisodePanel": "隐藏视频面板",
+    "showEpisodePanel": "显示视频面板",
+    "importEpisode": "导入视频",
+    "import": "导入",
+    "refreshEpisode": "刷新视频",
+    "showPreviewPanel": "显示预览面板",
+    "hidePreviewPanel": "隐藏预览面板"
+  },
+  "packs": {
+    "ml": {
+      "label": "AI 场景检测",
+      "description": "使用 AI 查找场景切点。最准确的方式，在 NVIDIA GPU 上速度很快。"
+    },
+    "depth": {
+      "label": "深度图处理",
+      "description": "为每个导出文件生成深度图。"
+    },
+    "scout": {
+      "label": "场景搜索（Scene Scout）",
+      "description": "通过描述场景来搜索已索引的视频，无需知道文件名。"
+    },
+    "upscale": {
+      "label": "超分辨率处理",
+      "description": "为每个导出文件生成更高分辨率的副本。"
+    }
+  },
+  "aiDeps": {
+    "starting": "正在开始…",
+    "installed": "已安装。",
+    "packagesMissing": "安装已结束，但仍缺少所需的包。",
+    "packagesMissingError": "安装已完成，但未添加预期的包。",
+    "installFailed": "安装失败。",
+    "reinstallingGpu": "正在重新安装支持 GPU 的 PyTorch…",
+    "gpuSupport": "GPU 支持",
+    "gpuSupportInstalled": "GPU 支持已安装",
+    "gpuSupportInstalledMsg": "GPU 支持已安装。",
+    "stillCpu": "仍为 CPU 版本。",
+    "stillCpuError": "重新安装后 PyTorch 仍为 CPU 版本。",
+    "reinstallFailed": "重新安装失败。",
+    "installingGpuDecode": "正在安装 GPU 解码…",
+    "removingGpuDecode": "正在移除 GPU 解码…",
+    "gpuDecode": "GPU 解码",
+    "gpuDecodeInstalled": "GPU 解码已安装",
+    "removingGpuDecodeTitle": "移除 GPU 解码",
+    "gpuDecodeRemoved": "GPU 解码已移除",
+    "gpuDecodeInstalledMsg": "GPU 解码已安装。",
+    "gpuDecodeRemovedMsg": "GPU 解码已移除。",
+    "nothingChanged": "没有任何更改。",
+    "neluxMissing": "安装后仍缺少 Nelux。",
+    "neluxStillInstalled": "Nelux 仍处于安装状态。",
+    "removalFailed": "移除失败。",
+    "canceling": "正在取消…"
+  },
+  "aiInstall": {
+    "installedTitle": "{{name}} 已安装",
+    "jobFailedTitle": "{{title}}失败",
+    "installFailedTitle": "{{name}} 安装失败",
+    "minimize": "最小化并在后台运行",
+    "lede": "尚未安装 <strong>{{name}}</strong>。要现在安装吗？",
+    "download": "下载大小",
+    "torchBuild": "PyTorch 版本",
+    "torchAlreadyInstalled": "已安装（{{variant}}）",
+    "torchCudaDetected": "GPU / CUDA（检测到 NVIDIA GPU）",
+    "torchCpuUnknown": "CPU（无法检测 NVIDIA GPU）",
+    "torchCpuNoGpu": "CPU（未检测到 NVIDIA GPU）",
+    "cpuPlanUnknown": "AMVerge 无法运行 nvidia-smi 检测 GPU，因此将安装 CPU 版本。",
+    "cpuPlanNoGpu": "未找到 NVIDIA GPU，将安装 CPU 版本。",
+    "installGpuAnyway": "仍然安装 GPU 版本",
+    "uvMissing": "此版本缺少安装组件，AMVerge 无法自动添加该依赖。重新安装 AMVerge 即可恢复。",
+    "notNow": "以后再说",
+    "install": "安装",
+    "progress": "进度",
+    "speed": "速度：",
+    "size": "大小：",
+    "elapsed": "已用时间：",
+    "keepDownloading": "在后台继续下载",
+    "runInBackground": "后台运行",
+    "tryAgain": "重试",
+    "done": "完成"
+  },
+  "passLabel": {
+    "depth": "深度图",
+    "upscale": "超分辨率"
+  },
+  "passTargets": {
+    "title": "为每项处理选择片段",
+    "mergedHint": "为某项处理选中的片段将合并为一个单独的文件",
+    "separateHint": "每个选中的片段都会为该处理生成单独的输出文件",
+    "all": "全选",
+    "none": "全不选",
+    "enabled": {
+      "depth": "深度图：已启用",
+      "upscale": "超分辨率：已启用"
+    },
+    "disabled": "已停用",
+    "export": "导出"
+  },
+  "passes": {
+    "title": "导出后处理",
+    "minimizedAria": "导出后处理（已最小化）",
+    "finishedWithErrorsShort": "处理完成，但有错误",
+    "completeShort": "处理完成",
+    "finishedWithErrors": "导出后处理已完成，但有错误",
+    "complete": "导出后处理已完成",
+    "stop": "停止",
+    "failed": "失败：{{list}}",
+    "done": "完成",
+    "passCount": "处理 {{current}}/{{total}}",
+    "previewAlt": "处理预览",
+    "waitingPreview": "正在等待第一帧预览…",
+    "starting": "正在开始…",
+    "stopping": "正在停止…",
+    "jobLabel": "{{pass}} · {{name}}",
+    "skipped": "[已跳过] {{pass}}处理：未安装 {{name}}",
+    "jobError": "{{label}}：{{error}}"
+  },
+  "passErrors": {
+    "outdated": "已安装的 AMVerge AI 工具版本过旧，无法执行此操作。更新发布后，AMVerge 会在下次启动时自动更新它们。",
+    "outdatedFlag": "已安装的 AMVerge AI 工具版本过旧，无法执行此操作（不支持 {{flag}}）。更新发布后，AMVerge 会在下次启动时自动更新它们。"
+  },
+  "export": {
+    "failedTitle": "导出失败",
+    "failedMsg": "导出失败：{{message}}",
+    "noFiles": "导出未生成任何文件。"
+  },
+  "dialog": {
+    "videoFilter": "视频"
+  },
+  "import": {
+    "starting": "正在开始…",
+    "transnetMissing": "未安装 TransNetV2。请安装它，或在设置中将场景检测切换为关键帧检测。",
+    "finishingClips": "正在完成 {{name}} 的片段",
+    "failedTitle_one": "视频导入失败",
+    "failedTitle_other": "{{count}} 个视频导入失败",
+    "permissionHint": "AMVerge 无法访问视频或存储目录。请检查目录权限和常规设置中的视频存储路径。开发版请从正常的终端重新启动。",
+    "failureHint": "请确认视频可以读取，且常规设置中的视频存储路径可写入。详细信息请查看控制台。"
+  },
+  "scenepack": {
+    "cutFailed": "无法切割此片段。",
+    "nothingToAdd": "没有可添加的内容。"
+  }
+}

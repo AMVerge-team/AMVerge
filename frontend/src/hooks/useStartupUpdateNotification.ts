@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
+
+import { t } from "../i18n";
 import type { StartupNotification } from "../components/StartupNotificationModal";
 
 type GitHubLatestRelease = {
@@ -99,9 +101,8 @@ export default function useStartupUpdateNotification(): StartupNotification | nu
           id: `github-update-${latestVersion}`,
           mode: "update",
           targetVersion: latestVersion,
-          title: "Update Available",
-          bodyMarkdown:
-            "There's a new update for AMVerge! Feel free to download it [here](https://amverge.app/).",
+          title: t("jobs:updateNotice.title"),
+          bodyMarkdown: t("jobs:updateNotice.body"),
           bannerImageUrl: null,
           createdAt: null,
         });

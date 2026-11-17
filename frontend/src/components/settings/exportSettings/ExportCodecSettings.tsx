@@ -1,9 +1,10 @@
+import { useTranslation } from "react-i18next";
 import Dropdown from "../../common/Dropdown";
 import SettingRow from "../../common/SettingRow";
 import {
-  EXPORT_AUDIO_OPTIONS,
   EXPORT_CODEC_FAMILY_OPTIONS,
   getCodecFamily,
+  getExportAudioOptions,
   getCodecOptionsForFamily,
   type ExportCodecFamily,
   type ExportProfile,
@@ -22,6 +23,7 @@ export default function ExportCodecSettings({
   showAudioSetting,
   updateActiveProfile,
 }: ExportCodecSettingsProps) {
+  const { t } = useTranslation("settingsExport");
   const codecFamily = getCodecFamily(activeProfile.codec);
   const codecProfileOptions = getCodecOptionsForFamily(codecFamily);
 
@@ -37,8 +39,8 @@ export default function ExportCodecSettings({
       {showCodecSettings && (
         <>
           <SettingRow
-            label="Codec"
-            description="The video codec used when exporting."
+            label={t("codec.label")}
+            description={t("codec.description")}
             control={
               <Dropdown
                 className="settings-wide-dropdown"
@@ -50,8 +52,8 @@ export default function ExportCodecSettings({
           />
 
           <SettingRow
-            label="Codec Profile"
-            description="Quality and compression level for that codec."
+            label={t("codec.profile.label")}
+            description={t("codec.profile.description")}
             control={
               <Dropdown
                 className="settings-wide-dropdown"
@@ -66,12 +68,12 @@ export default function ExportCodecSettings({
 
       {showAudioSetting && (
         <SettingRow
-          label="Audio Codec"
-          description="Re-encode the audio, copy it as it is, or drop it."
+          label={t("audio.label")}
+          description={t("audio.description")}
           control={
             <Dropdown
               className="settings-wide-dropdown"
-              options={EXPORT_AUDIO_OPTIONS}
+              options={getExportAudioOptions()}
               value={activeProfile.audioMode}
               onChange={(audioMode) => updateActiveProfile({ audioMode })}
             />

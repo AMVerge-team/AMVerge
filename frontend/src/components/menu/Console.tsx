@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FaCopy, FaTrashAlt, FaSearch } from '../icons/animated';
 import Tooltip from "../common/Tooltip";
 import {
@@ -9,6 +10,7 @@ import {
 } from "../../utils/appConsole";
 
 export default function Console() {
+  const { t } = useTranslation("menu");
   const [logs, setLogs] = useState<ConsoleEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [levelFilter, setLevelFilter] = useState<"all" | "info" | "warn" | "error">("all");
@@ -42,7 +44,7 @@ export default function Console() {
   }, [filteredLogs]);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(consoleText || "No console logs yet.");
+    await navigator.clipboard.writeText(consoleText || t("console.noLogsCopy"));
   };
 
   const handleClear = () => {
@@ -53,8 +55,8 @@ export default function Console() {
     <section className="panel menu-panel console-panel">
       <div className="console-header">
         <div>
-          <h3>Developer Console</h3>
-          <p>Live application and background CLI diagnostics log.</p>
+          <h3>{t("console.title")}</h3>
+          <p>{t("console.subtitle")}</p>
         </div>
 
         <div className="console-controls-bar">
@@ -62,7 +64,7 @@ export default function Console() {
             <FaSearch className="console-search-icon" />
             <input
               type="text"
-              placeholder="Search logs..."
+              placeholder={t("console.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="console-search-input"
@@ -77,28 +79,28 @@ export default function Console() {
                 className={`console-filter-btn ${levelFilter === lvl ? "active" : ""} ${lvl}`}
                 onClick={() => setLevelFilter(lvl)}
               >
-                {lvl.toUpperCase()}
+                {t(`console.levels.${lvl}`)}
               </button>
             ))}
           </div>
 
           <div className="console-actions">
-            <Tooltip content="Copy filtered logs">
+            <Tooltip content={t("console.copyTooltip")}>
               <button
                 className="console-action-icon"
                 type="button"
                 onClick={handleCopy}
-                aria-label="Copy Logs"
+                aria-label={t("console.copyLabel")}
               >
                 <FaCopy aria-hidden="true" />
               </button>
             </Tooltip>
-            <Tooltip content="Clear logs">
+            <Tooltip content={t("console.clearTooltip")}>
               <button
                 className="console-action-icon clear"
                 type="button"
                 onClick={handleClear}
-                aria-label="Clear Logs"
+                aria-label={t("console.clearLabel")}
               >
                 <FaTrashAlt aria-hidden="true" />
               </button>
@@ -110,7 +112,7 @@ export default function Console() {
       <div className="console-output">
         {filteredLogs.length === 0 ? (
           <div className="console-empty">
-            <span>No logs found matching current filter.</span>
+            <span>{t("console.empty")}</span>
           </div>
         ) : (
           filteredLogs.map((log) => (

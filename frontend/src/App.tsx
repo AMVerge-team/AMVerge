@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 import { Event, listen } from "@tauri-apps/api/event";
 import { DEFAULT_GENERAL_SETTINGS } from "./stores/settingsStore";
 
@@ -67,6 +68,7 @@ const SIDEBAR_COLLAPSE_BELOW_PX = 140;
 
 
 function App() {
+  const { t } = useTranslation("shell");
   const loading = useAppStateStore((s) => s.loading);
   const progress = useAppStateStore((s) => s.progress);
   const progressMsg = useAppStateStore((s) => s.progressMsg);
@@ -80,7 +82,7 @@ function App() {
   const reencodeQueueLength = useAppStateStore((s) => s.reencodeQueue.length);
   // scene scout indexing reports two counted stages, so the card names whichever is running
   const scoutIndexStage = useSceneScoutStore((s) => s.indexing?.stage);
-  const scoutAddLabel = scoutIndexStage === "sampling" ? "Sampling frames" : "Embedding scenes";
+  const scoutAddLabel = scoutIndexStage === "sampling" ? t("app.progress.sampling") : t("app.progress.embedding");
   const webpLoadDone = useWebpLoadingStore((s) => s.done);
   const webpLoadTotalRaw = useWebpLoadingStore((s) => s.total);
   const webpDismissed = useWebpLoadingStore((s) => s.dismissed);
@@ -148,7 +150,7 @@ function App() {
       // no custom path now, so this resolves to app data's storage root
       await rebaseStoragePaths();
     } catch (err) {
-      void showNotice("Reset failed", "Failed to reset episode directory: " + errorText(err));
+      void showNotice(t("app.resetFailedTitle"), t("app.resetFailed", { error: errorText(err) }));
     } finally {
       restoreOpenedEpisodeGrid();
     }
@@ -462,10 +464,10 @@ function App() {
   const clipProgress = reencodeProgress ?? bgProgress;
   const clipLabel =
     activeOperation === "scout_add" ? scoutAddLabel
-    : activeOperation === "scout_search" ? "Searching scenes"
-    : activeOperation === "scout_thumbnails" ? "Generating thumbnails"
-    : reencodeProgress ? "Reencoding"
-    : "Processing clips";
+    : activeOperation === "scout_search" ? t("app.progress.searching")
+    : activeOperation === "scout_thumbnails" ? t("app.progress.thumbnails")
+    : reencodeProgress ? t("app.progress.reencoding")
+    : t("app.progress.processing");
 
   return (
       <AppLayout
@@ -475,7 +477,7 @@ function App() {
         importUiActive ? (
           <ImportTerminal
             progress={previewsOnly ? Math.round((webpLoadDone / webpLoadTotal) * 100) : progress}
-            progressMsg={previewsOnly ? `Generating previews ${webpLoadDone}/${webpLoadTotal}` : progressMsg}
+            progressMsg={previewsOnly ? t("app.progress.previews", { done: webpLoadDone, total: webpLoadTotal }) : progressMsg}
             batchTotal={batchTotal}
             batchDone={batchDone}
             batchCurrentFile={batchCurrentFile || ""}

@@ -530,13 +530,25 @@ function hexToRgbTriplet(hex: string): string | null {
     return `${r} ${g} ${b}`;
 }
 
-// calibri everywhere it is installed; carlito is its metric twin on linux
-export const DEFAULT_FONT_STACK =
-    "Calibri, Carlito, 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+const CJK_FALLBACK_STACK =
+    "'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', 'WenQuanYi Micro Hei'";
 
-/** the bundled pixel font, offered right under the default */
+// calibri stays first, with the original platform fallbacks and chinese fonts
+export const DEFAULT_FONT_STACK =
+    `Calibri, Carlito, 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, ${CJK_FALLBACK_STACK}, sans-serif`;
+
+/** the bundled pixel font, offered right under the default; paired with a bundled chinese pixel font */
 export const JERSEY_FONT = "Jersey 10";
-const JERSEY_FONT_STACK = "'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+export const CJK_PIXEL_FONT = "Fusion Pixel 12px Proportional SC";
+const JERSEY_FONT_STACK =
+    `'Jersey 10', '${CJK_PIXEL_FONT}', system-ui, -apple-system, BlinkMacSystemFont, ${CJK_FALLBACK_STACK}, sans-serif`;
+
+// null uses the original calibri default; jersey 10 keeps its chinese pixel pair
+export function fontStackFor(family: string | null): string {
+    if (family === JERSEY_FONT) return JERSEY_FONT_STACK;
+    if (family) return `"${family}", ${DEFAULT_FONT_STACK}`;
+    return DEFAULT_FONT_STACK;
+}
 
 export function applyThemeSettings(settings: ThemeSettings) {
     const root = document.documentElement;
@@ -582,12 +594,11 @@ export function applyThemeSettings(settings: ThemeSettings) {
     body.style.setProperty("--clip-tile-aspect", clipTileAspect);
 
     const family = settings.appFontFamily;
-    const appFont =
-        family === JERSEY_FONT ? JERSEY_FONT_STACK : family ? `"${family}", ${DEFAULT_FONT_STACK}` : DEFAULT_FONT_STACK;
+    const appFont = fontStackFor(family);
     root.style.setProperty("--app-font", appFont);
     body.style.setProperty("--app-font", appFont);
 
-    // the pixel font's sizes were tuned without an adjust; every other font is scaled to match them
+    // preserve the original size adjustment for the default and custom fonts
     const fontAdjust = family === JERSEY_FONT ? "none" : String(settings.appFontAdjust ?? 0.47);
     root.style.setProperty("--app-font-adjust", fontAdjust);
     body.style.setProperty("--app-font-adjust", fontAdjust);

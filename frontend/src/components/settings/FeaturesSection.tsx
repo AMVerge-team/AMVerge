@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 
 import SettingRow from "../common/SettingRow";
 import SettingsSection from "../common/SettingsSection";
@@ -25,6 +26,7 @@ import {
 
 /** Settings > Features: switch major features on and off; storage breakdown lives in Settings > Storage */
 export default function FeaturesSection() {
+  const { t } = useTranslation("settingsExport");
   const settings = useGeneralSettingsStore();
   const status = useAiDepsStore((s) => s.status);
   const gpuPreference = useAiDepsStore((s) => s.gpuPreference);
@@ -96,17 +98,17 @@ export default function FeaturesSection() {
 
   return (
     <section className="panel menu-panel settings-panel">
-      <h3>Features</h3>
+      <h3>{t("features.title")}</h3>
       <div className="about-content">
         <SettingRow
-          label="Hide disabled features"
-          description="Remove switched-off features from the app instead of greying them out."
+          label={t("features.hideDisabled.label")}
+          description={t("features.hideDisabled.description")}
           control={
             <button
               type="button"
               role="switch"
               aria-checked={settings.hideDisabledFeatures}
-              aria-label="Hide disabled features"
+              aria-label={t("features.hideDisabled.label")}
               className="aid-switch"
               onClick={() => useGeneralSettingsStore.setState({ hideDisabledFeatures: !settings.hideDisabledFeatures })}
             />
@@ -114,11 +116,11 @@ export default function FeaturesSection() {
         />
 
         <SettingRow
-          label="Install all AI features"
+          label={t("release202:installAll")}
           description={
             allAiInstalled
-              ? "All AI feature packs are already installed."
-              : "Download and enable AI Scene Detection, Scene Scout, Depth Map, and Upscaling together."
+              ? t("release202:allInstalledDescription")
+              : t("release202:installAllDescription")
           }
           control={
             <button
@@ -127,26 +129,26 @@ export default function FeaturesSection() {
               onClick={() => void installAllAiFeatures()}
               disabled={allAiInstalled || !status || busy !== null || (managed && status.uvAvailable === false)}
             >
-              {allAiInstalled ? "All installed" : "Install all AI features"}
+              {allAiInstalled ? t("release202:allInstalled") : t("release202:installAll")}
             </button>
           }
         />
 
-        <SettingsSection id="features.list" title="Features" tourTarget="features-list">
+        <SettingsSection id="features.list" title={t("shell:settingsPage.tabs.features")} tourTarget="features-list">
           {FEATURES.map((feature) => {
             const enabled = settings[feature.setting];
             const installed = feature.pack ? isPackInstalled(status, feature.pack) : true;
             // the text follows the switch; a pack not on disk yet adds its download size
-            const onOff = enabled ? "On" : "Off";
+            const onOff = enabled ? t("common:on") : t("common:off");
             const needsDownload = Boolean(feature.pack) && !installed && managed;
             const downloadSize = needsDownload
               ? formatSizeMb(estimateDownloadMb(status, feature.pack!, gpuPreference))
               : "";
             const stateText = !needsDownload
-              ? feature.pack && installed && !enabled ? "Off · downloaded" : onOff
+              ? feature.pack && installed && !enabled ? t("features.state.offDownloaded") : onOff
               : enabled
-                ? `On · ~${downloadSize} download on first use`
-                : `Off · ~${downloadSize} download`;
+                ? t("features.state.onDownload", { size: downloadSize })
+                : t("features.state.offDownload", { size: downloadSize });
             // a running import uses this pack, so installing or removing it underneath breaks the episode
             const lockedByImport = feature.id === "aiSceneDetection" && importRunning;
             return (
@@ -165,10 +167,10 @@ export default function FeaturesSection() {
                         onClick={() => void freeUpSpace(feature.id, feature.pack!)}
                         disabled={busy !== null || lockedByImport}
                       >
-                        {busy === feature.id ? "Removing…" : "Free up space"}
+                        {busy === feature.id ? t("features.removing") : t("features.freeUpSpace")}
                       </button>
                     ) : null}
-                    <Tooltip content="Setting disabled while imports are running" disabled={!lockedByImport}>
+                    <Tooltip content={t("features.lockedByImport")} disabled={!lockedByImport}>
                       {/* a disabled button gets no hover events, so the span carries the tooltip */}
                       <span style={{ display: "inline-flex" }}>
                         <button
@@ -194,13 +196,13 @@ export default function FeaturesSection() {
         </SettingsSection>
 
         {gpuRepairAvailable ? (
-          <SettingsSection id="features.gpu" title="GPU">
+          <SettingsSection id="features.gpu" title={t("features.gpu.section")}>
             <SettingRow
               label="PyTorch"
               description={
                 status?.gpuAvailable
-                  ? "The CPU version is installed, but this PC has an NVIDIA GPU. AI features are running much slower than they could."
-                  : "The CPU version is installed. If this PC has an NVIDIA GPU, reinstalling with GPU support makes AI features much faster."
+                  ? t("features.gpu.cpuWithNvidia")
+                  : t("features.gpu.cpuInstalled")
               }
               control={
                 <button
@@ -209,21 +211,20 @@ export default function FeaturesSection() {
                   onClick={() => void useAiDepsStore.getState().repairGpu()}
                   disabled={busy !== null}
                 >
-                  Reinstall with GPU support
+                  {t("features.gpu.reinstall")}
                 </button>
               }
             />
           </SettingsSection>
         ) : null}
 
-        <SettingsSection id="features.models" title="Model weights">
+        <SettingsSection id="features.models" title={t("features.modelWeights")}>
           <AiModelsSection />
         </SettingsSection>
 
         {!managed ? (
           <p className="setting-description">
-            Dev build: AI features run from the AMVerge-CLI checkout's venv, so nothing is downloaded or
-            removed from here.
+            {t("features.devBuild")}
           </p>
         ) : null}
         {error ? <p className="pxm-errors">{error}</p> : null}
@@ -231,17 +232,11 @@ export default function FeaturesSection() {
 
       {confirmScenepacksOff && (
         <ConfirmModal
-          title="Disable Scenepacks"
-          message={
-            <>
-              You have {scenepacksCount} Scenepack{scenepacksCount !== 1 ? "s" : ""}. Would you like to
-              delete {scenepacksCount !== 1 ? "them" : "it"} too, or just disable the feature and keep
-              {scenepacksCount !== 1 ? " them" : " it"} for later?
-            </>
-          }
-          confirmLabel="Delete Scenepacks"
+          title={t("features.scenepacksOff.title")}
+          message={t("features.scenepacksOff.message", { count: scenepacksCount })}
+          confirmLabel={t("features.scenepacksOff.delete")}
           secondary={{
-            label: "Keep Scenepacks",
+            label: t("features.scenepacksOff.keep"),
             onClick: () => {
               setEnabled("scenepacks", false);
               setConfirmScenepacksOff(false);
@@ -251,7 +246,7 @@ export default function FeaturesSection() {
           onConfirm={() => {
             setEnabled("scenepacks", false);
             setConfirmScenepacksOff(false);
-            void clearScenepacksStorage().catch((err) => setError("Failed to clear Scenepack storage: " + String(err)));
+            void clearScenepacksStorage().catch((err) => setError(t("features.scenepacksOff.clearFailed", { error: String(err) })));
           }}
         />
       )}

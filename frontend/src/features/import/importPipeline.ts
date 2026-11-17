@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { t } from "../../i18n";
 import type { EpisodeEntry } from "../../types/domain";
 import { fileNameFromPath, loadEpisodeManifest } from "../../utils/episodeUtils";
 import { useAiDepsStore } from "../../stores/aiDepsStore";
@@ -32,9 +33,7 @@ export async function runImportPipeline(file: string, episodeId: string, options
 
   // the ml pack may be gone since it was chosen, so prompt now instead of failing mid-import
   if (detection === "transnetv2_gpu" && !(await useAiDepsStore.getState().ensurePack("ml"))) {
-    throw new Error(
-      "TransNetV2 is not installed. Install it, or switch scene detection to Keyframe Detection in Settings."
-    );
+    throw new Error(t("jobs:import.transnetMissing"));
   }
 
   const detectScenes = () =>

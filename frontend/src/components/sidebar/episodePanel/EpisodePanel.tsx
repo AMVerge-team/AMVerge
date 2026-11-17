@@ -1,6 +1,7 @@
 // main Episode Panel coordinator. wires together structure, menus, drag/drop, keyboard shortcuts, and UI sections
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FaSearch, FaTimes, FaVideo } from '../../icons/animated';
 import { useEscapeToClose } from "../../common/useEscapeToClose";
 
@@ -27,6 +28,7 @@ import {
 } from "../../../features/sceneScout/databaseLinks";
 
 export default function EpisodePanel() {
+  const { t } = useTranslation("library");
   const panelListRef = useRef<HTMLDivElement | null>(null);
   const suppressClickRef = useRef(false);
   const clickGestureRef = useRef<{ key: string | null; ts: number }>({
@@ -175,11 +177,11 @@ export default function EpisodePanel() {
 
   const confirmDeleteEpisode = (id: string) => {
     const ep = episodes.find((e) => e.id === id);
-    askDeleteEpisodes("episode", [id], ep?.displayName ?? ep?.id ?? "episode");
+    askDeleteEpisodes("episode", [id], ep?.displayName ?? ep?.id ?? t("episodePanel.fallbackEpisode"));
   };
 
   const confirmDeleteEpisodes = (ids: string[]) => {
-    askDeleteEpisodes("episodes", ids, `${ids.length} episodes`);
+    askDeleteEpisodes("episodes", ids, t("episodePanel.episodeCount", { count: ids.length }));
   };
 
   const confirmDeleteFolder = (id: string) => {
@@ -187,7 +189,7 @@ export default function EpisodePanel() {
     setConfirmDelete({
       kind: "folder",
       ids: [id],
-      label: f?.name ?? "folder",
+      label: f?.name ?? t("episodePanel.fallbackFolder"),
       links: [],
     });
   };
@@ -391,16 +393,16 @@ export default function EpisodePanel() {
           <input
             type="text"
             className="scenepack-search-input"
-            placeholder="Search episodes..."
+            placeholder={t("episodePanel.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           {searchQuery && (
-            <Tooltip content="Clear search">
+            <Tooltip content={t("episodePanel.clearSearch")}>
               <button
                 className="scenepack-search-clear"
                 onClick={() => setSearchQuery("")}
-                aria-label="Clear search"
+                aria-label={t("episodePanel.clearSearch")}
               >
                 <FaTimes />
               </button>
@@ -454,14 +456,14 @@ export default function EpisodePanel() {
           {isLibraryEmpty && (
             <div className="episode-panel-empty-cta">
               <FaVideo style={{ fontSize: 28, opacity: 0.3 }} />
-              <span style={{ fontSize: 15, opacity: 0.6 }}>No episodes yet</span>
-              <span style={{ fontSize: 12, opacity: 0.4 }}>Import a video to cut it into clips</span>
+              <span style={{ fontSize: 15, opacity: 0.6 }}>{t("episodePanel.empty.title")}</span>
+              <span style={{ fontSize: 12, opacity: 0.4 }}>{t("episodePanel.empty.description")}</span>
               <button
                 className="episode-modal-btn primary"
                 onClick={() => void onImportClick()}
                 style={{ marginTop: 8, fontSize: 14 }}
               >
-                Import your first episode
+                {t("episodePanel.empty.importFirst")}
               </button>
             </div>
           )}
@@ -487,11 +489,13 @@ export default function EpisodePanel() {
           <div className="episode-modal-overlay" onClick={() => setConfirmDelete(null)}>
             <div className="episode-modal" onClick={(e) => e.stopPropagation()}>
               <div className="episode-modal-title">
-                Delete {confirmDelete.kind === "folder" ? "Folder" : "Episode"}
+                {confirmDelete.kind === "folder"
+                  ? t("episodePanel.deleteConfirm.titleFolder")
+                  : t("episodePanel.deleteConfirm.titleEpisode")}
               </div>
               {linkedEpisodes.length > 0 && (
                 <div className="episode-modal-links">
-                  <div className="episode-modal-message">The following episodes are attached to databases:</div>
+                  <div className="episode-modal-message">{t("episodePanel.deleteConfirm.linkedIntro")}</div>
                   <ul className="episode-modal-link-list">
                     {linkedEpisodes.map((entry) => (
                       <li key={entry.episodeName} title={entry.episodeName}>
@@ -504,27 +508,29 @@ export default function EpisodePanel() {
               )}
               <div className="episode-modal-message">
                 {confirmDelete.kind === "folder"
-                  ? "Are you sure you want to delete this folder?"
-                  : `Are you sure you'd like to delete ${confirmDelete.kind === "episodes" ? "these episodes" : "this episode"}?`}
+                  ? t("episodePanel.deleteConfirm.messageFolder")
+                  : confirmDelete.kind === "episodes"
+                    ? t("episodePanel.deleteConfirm.messageEpisodes")
+                    : t("episodePanel.deleteConfirm.messageEpisode")}
               </div>
               <div className="episode-modal-subject" title={confirmDelete.label}>
                 {confirmDelete.label}
               </div>
               <div className="episode-modal-note">
                 {confirmDelete.links === null
-                  ? "Checking Scene Scout databases…"
+                  ? t("episodePanel.deleteConfirm.checkingDatabases")
                   : linkedEpisodes.length > 0
-                    ? "This also deletes the cached clip files and removes the episodes from those databases."
-                    : "This will also delete all cached clip files on disk."}
+                    ? t("episodePanel.deleteConfirm.noteLinked")
+                    : t("episodePanel.deleteConfirm.note")}
               </div>
               <div className="episode-modal-actions">
-                <button className="episode-modal-btn" onClick={() => setConfirmDelete(null)}>Cancel</button>
+                <button className="episode-modal-btn" onClick={() => setConfirmDelete(null)}>{t("common:cancel")}</button>
                 <button
                   className="episode-modal-btn danger"
                   onClick={handleConfirmDelete}
                   disabled={confirmDelete.links === null}
                 >
-                  Delete
+                  {t("common:delete")}
                 </button>
               </div>
             </div>

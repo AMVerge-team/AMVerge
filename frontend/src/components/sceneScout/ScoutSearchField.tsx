@@ -1,4 +1,5 @@
 import { useMemo, type Ref } from "react";
+import { useTranslation } from "react-i18next";
 import { FaSearch, FaTimes } from '../icons/animated';
 
 import Tooltip from "../common/Tooltip";
@@ -14,6 +15,7 @@ type Props = {
 
 /** the scene search field, shared by the centered first-visit layout and the top toolbar */
 export function ScoutSearchField({ fieldRef, onSubmit, blockedHint = null }: Props) {
+  const { t } = useTranslation("scout");
   const query = useSceneScoutStore((s) => s.query);
   const setQuery = useSceneScoutStore((s) => s.setQuery);
   const runSearch = useSceneScoutStore((s) => s.runSearch);
@@ -34,20 +36,20 @@ export function ScoutSearchField({ fieldRef, onSubmit, blockedHint = null }: Pro
     if (selectedDatabases.length > 0) {
       if (selectedDatabases.length === 1) {
         const db = databases.find((d) => samePath(d.path, selectedDatabases[0]));
-        const dbName = db ? displayNames[db.path] ?? db.name : "selected database";
-        return `Describe a scene to search in "${dbName}"...`;
+        const dbName = db ? displayNames[db.path] ?? db.name : t("searchField.selectedDatabaseFallback");
+        return t("searchField.placeholderOne", { name: dbName });
       }
-      return `Describe a scene to search across ${selectedDatabases.length} selected databases...`;
+      return t("searchField.placeholderMany", { count: selectedDatabases.length });
     }
-    if (databases.length > 0) return "Describe a scene to search for...";
-    return "Create a database to start searching...";
-  }, [blockedHint, selectedDatabases, databases, displayNames]);
+    if (databases.length > 0) return t("searchField.placeholderAny");
+    return t("searchField.placeholderNoDatabase");
+  }, [blockedHint, selectedDatabases, databases, displayNames, t]);
 
   // a search while one is loading replaces it (the newest wins in the store)
   const canSubmit = !blocked && !indexing && Boolean(query.trim());
 
   return (
-    <Tooltip content={blocked ? placeholder : "Search the selected databases and episodes"}>
+    <Tooltip content={blocked ? placeholder : t("searchField.tooltip")}>
       <div ref={fieldRef} data-scout-tour="search-field" className={`scene-scout-search-field${blocked ? " is-disabled" : ""}`}>
         <FaSearch aria-hidden="true" className="scene-scout-search-icon" />
         <input
@@ -61,12 +63,12 @@ export function ScoutSearchField({ fieldRef, onSubmit, blockedHint = null }: Pro
           }}
         />
         {query && (
-          <button type="button" className="scene-scout-search-clear" onClick={clearResults} aria-label="Clear search">
+          <button type="button" className="scene-scout-search-clear" onClick={clearResults} aria-label={t("searchField.clear")}>
             <FaTimes aria-hidden="true" />
           </button>
         )}
         <button type="button" className="scene-scout-search-go" onClick={submit} disabled={!canSubmit}>
-          {searching ? "Searching..." : "Search"}
+          {searching ? t("searchField.searching") : t("common:search")}
         </button>
       </div>
     </Tooltip>

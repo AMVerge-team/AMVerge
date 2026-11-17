@@ -1,5 +1,6 @@
 import { PanelLeftIcon, PanelRightIcon } from "./icons/chrome/ChromeIcons";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FaSyncAlt } from './icons/animated';
 import Tooltip from "./common/Tooltip";
 import PreviewAllToggle from "./common/PreviewAllToggle";
@@ -11,6 +12,7 @@ import { openEpisodeById } from "../hooks/useEpisodePanelState";
 import useImportExport from "../hooks/useImportExport";
 
 export default function ImportButtons({ showImportControls = true }: { showImportControls?: boolean }) {
+  const { t } = useTranslation("jobs");
   const hasSelection = useAppStateStore((s: any) => s.selectedClips.size > 0);
   const loading = useAppStateStore((s: any) => s.loading);
   const bgProgress = useAppStateStore((s: any) => s.bgProgress);
@@ -45,12 +47,12 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
         }
       >
         <div className="import-buttons-container home-toolbar-buttons">
-          <Tooltip content={sidebarEnabled ? "Hide episode panel" : "Show episode panel"}>
+          <Tooltip content={sidebarEnabled ? t("importButtons.hideEpisodePanel") : t("importButtons.showEpisodePanel")}>
               <button
                 type="button"
                 className={`import-button panel-toggle-button episode-panel-toggle${sidebarEnabled ? " active" : ""}`}
                 onClick={() => setSidebarEnabled(!sidebarEnabled)}
-                aria-label={sidebarEnabled ? "Hide episode panel" : "Show episode panel"}
+                aria-label={sidebarEnabled ? t("importButtons.hideEpisodePanel") : t("importButtons.showEpisodePanel")}
                 aria-pressed={sidebarEnabled}
               >
                 <PanelLeftIcon filled={sidebarEnabled} />
@@ -60,13 +62,13 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
           {showImportControls && (
             <>
             {/* stays enabled while something runs: importing then asks whether to stop it */}
-            <Tooltip content="Import episode">
+            <Tooltip content={t("importButtons.importEpisode")}>
               <span className="tooltip-anchor">
                 <button onClick={onImportClick}
                         className="import-button icon-action-button import-text-button"
                         id="file-button"
                 >
-                  Import
+                  {t("importButtons.import")}
                 </button>
               </span>
             </Tooltip>
@@ -79,13 +81,13 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
             <>
             {/* wrapper span: a disabled button fires no pointer events of its
                 own, so the tooltip listens on the element around it */}
-            <Tooltip content="Refresh episode">
+            <Tooltip content={t("importButtons.refreshEpisode")}>
               <span className="tooltip-anchor">
                 <button
                   onClick={handleRefreshEpisode}
                   className="import-button refresh-button"
                   disabled={importBusy || !openedEpisodeId}
-                  aria-label="Refresh episode"
+                  aria-label={t("importButtons.refreshEpisode")}
                 >
                   <FaSyncAlt
                     className={refreshSpinning ? "refresh-icon spinning" : "refresh-icon"}
@@ -101,12 +103,12 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
           {/* the span keeps the panel toggle at the row's far end with nothing selected */}
           {hasSelection ? <SelectionCount /> : <span />}
 
-          <Tooltip content={previewCollapsed ? "Show preview panel" : "Hide preview panel"} placement="bottom-end">
+          <Tooltip content={previewCollapsed ? t("importButtons.showPreviewPanel") : t("importButtons.hidePreviewPanel")} placement="bottom-end">
             <button
               type="button"
               className={`import-button panel-toggle-button${previewCollapsed ? "" : " active"}`}
               onClick={() => setPreviewCollapsed(!previewCollapsed)}
-              aria-label={previewCollapsed ? "Show preview panel" : "Hide preview panel"}
+              aria-label={previewCollapsed ? t("importButtons.showPreviewPanel") : t("importButtons.hidePreviewPanel")}
               aria-pressed={!previewCollapsed}
             >
               <PanelRightIcon filled={!previewCollapsed} />

@@ -195,3 +195,8 @@ body::before {
     line-clamp: 4;
     overflow: hidden;
 }
+
+/* chinese text does not use latin letter spacing */
+html:lang(zh-CN) body * {
+    letter-spacing: normal !important;
+}
