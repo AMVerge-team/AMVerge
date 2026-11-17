@@ -1,0 +1,122 @@
+name: Linux Dev Build
+
+# A test build for the current branch, packaging AppImage, deb, and rpm packages
+# on Ubuntu 22.04 for testing across Linux distributions. Not a release: no
+# updater artifacts are collected and nothing is published.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - moon/linux-app
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-dev-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-linux:
+    name: Build Linux Packages
+    runs-on: ubuntu-22.04
+    env:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      AMVERGE_NOTIFICATIONS_API_URL: ${{ secrets.AMVERGE_NOTIFICATIONS_API_URL }}
+      VITE_ADMIN_API_URL: ${{ secrets.VITE_ADMIN_API_URL }}
+      AMVERGE_NOTIFICATIONS_API_KEY: ${{ secrets.AMVERGE_NOTIFICATIONS_API_KEY }}
+      AMVERGE_BUG_REPORT_API_URL: ${{ secrets.AMVERGE_BUG_REPORT_API_URL }}
+      AMVERGE_BUG_REPORT_API_KEY: ${{ secrets.AMVERGE_BUG_REPORT_API_KEY }}
+      AMVERGE_BUG_REPORT_KEY_ID: ${{ secrets.AMVERGE_BUG_REPORT_KEY_ID }}
+      AMVERGE_BUG_REPORT_SIGNING_SECRET: ${{ secrets.AMVERGE_BUG_REPORT_SIGNING_SECRET }}
+      # Same sidecar as a release: the published CLI wheel, no torch
+      AMVERGE_CLI_INSTALL_SPEC: "amverge[edge,discord,dev]"
+      AMVERGE_API_BASE_URL: ${{ secrets.AMVERGE_API_BASE_URL }}
+      AMVERGE_DISCORD_APP_CLIENT_ID: ${{ secrets.AMVERGE_DISCORD_APP_CLIENT_ID }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libssl-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libxdo-dev \
+            libwebkit2gtk-4.1-dev \
+            libfuse2 \
+            rpm \
+            patchelf \
+            ffmpeg
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Tauri CLI (Rust)
+        run: cargo install tauri-cli --version '^2.0'
+
+      - name: Stage FFmpeg binaries for the sidecar
+        run: |
+          FFMPEG_DIR="$GITHUB_WORKSPACE/frontend/.ffmpeg-bin"
+          mkdir -p "$FFMPEG_DIR"
+          cp "$(which ffmpeg)" "$FFMPEG_DIR/ffmpeg"
+          cp "$(which ffprobe)" "$FFMPEG_DIR/ffprobe"
+          chmod +x "$FFMPEG_DIR/ffmpeg" "$FFMPEG_DIR/ffprobe"
+          "$FFMPEG_DIR/ffmpeg" -version | head -n 1
+          "$FFMPEG_DIR/ffprobe" -version | head -n 1
+          echo "FFMPEG_BIN_DIR=$FFMPEG_DIR" >> "$GITHUB_ENV"
+
+      - name: Build Python sidecar
+        working-directory: frontend
+        run: node scripts/build-sidecar.mjs --target x86_64-unknown-linux-gnu
+
+      - name: Verify Linux sidecar exists
+        run: |
+          SIDECAR_DIR="frontend/src-tauri/bin/amverge-x86_64-unknown-linux-gnu"
+          [ -f "$SIDECAR_DIR/amverge" ] || { echo "Missing sidecar amverge"; exit 1; }
+          [ -f "$SIDECAR_DIR/_internal/ffmpeg" ] || { echo "Missing sidecar ffmpeg"; exit 1; }
+          [ -f "$SIDECAR_DIR/_internal/ffprobe" ] || { echo "Missing sidecar ffprobe"; exit 1; }
+
+      - name: Build Linux packages
+        working-directory: frontend/src-tauri
+        run: cargo tauri build --target x86_64-unknown-linux-gnu --config tauri.linux.conf.json
+
+      - name: Collect Linux packages
+        run: |
+          mkdir -p artifacts/linux-packages
+          BUNDLE_ROOT="frontend/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle"
+          find "$BUNDLE_ROOT" -type f \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' \) -exec cp {} artifacts/linux-packages/ \;
+          ls -la artifacts/linux-packages/
+
+      - name: Upload Linux packages artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-dev-packages
+          path: artifacts/linux-packages/*
+          if-no-files-found: error
+

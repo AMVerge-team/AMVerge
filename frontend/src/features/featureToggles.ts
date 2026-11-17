@@ -45,14 +45,14 @@ export const FEATURES: FeatureDef[] = [
   },
   {
     id: "depthPass",
-    label: "Depth Map Pass",
+    label: "Depth Map",
     description: "Creates a depth map of each exported file.",
     setting: "depthPassEnabled",
     pack: "depth",
   },
   {
     id: "upscalePass",
-    label: "Upscale Pass",
+    label: "Upscaling",
     description: "Creates a higher resolution copy of each exported file with AI.",
     setting: "upscalePassEnabled",
     pack: "upscale",

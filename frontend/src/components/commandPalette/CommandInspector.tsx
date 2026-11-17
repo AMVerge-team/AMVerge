@@ -1,3 +1,4 @@
+import { getFileManagerName } from "../../utils/platformUtils";
 import React from "react";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { FaBolt, FaFolderOpen } from '../icons/animated';
@@ -65,7 +66,7 @@ export function CommandInspector({ command }: Props) {
             onClick={() => void invoke("reveal_in_file_manager", { path: preview.filePath })}
           >
             <FaFolderOpen />
-            <span>Reveal in Explorer</span>
+            <span>Reveal in {getFileManagerName()}</span>
           </button>
         )}
       </div>

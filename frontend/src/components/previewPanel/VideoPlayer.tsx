@@ -143,25 +143,59 @@ export default function VideoPlayer({
   // releases the player on unmount like grid tiles (a detached video keeps playing audio); setup restores src for StrictMode
   useEffect(() => {
     const v = videoRef.current;
-    if (!v) return;
+    if (!v || !src) return;
 
-    if (src && v.getAttribute("src") !== src) {
-      v.setAttribute("src", src);
-      try {
-        v.volume = silent ? 0 : (dragVolume ?? volume);
-        v.muted = silent || muted || (dragVolume ?? volume) === 0;
-        v.load();
-        v.play().catch(() => {});
-      } catch {
+    let active = true;
+    let createdBlobUrl: string | null = null;
+
+    if (navigator.userAgent.includes("Linux")) {
+      fetch(src)
+        .then((res) => res.blob())
+        .then((blob) => {
+          if (!active || !videoRef.current) return;
+          createdBlobUrl = URL.createObjectURL(blob);
+          videoRef.current.src = createdBlobUrl;
+          try {
+            videoRef.current.volume = silent ? 0 : (dragVolume ?? volume);
+            videoRef.current.muted = silent || muted || (dragVolume ?? volume) === 0;
+            videoRef.current.load();
+            videoRef.current.play().catch(() => {});
+          } catch {}
+        })
+        .catch(() => {
+          if (active && videoRef.current) {
+            videoRef.current.setAttribute("src", src);
+            try {
+              videoRef.current.volume = silent ? 0 : (dragVolume ?? volume);
+              videoRef.current.muted = silent || muted || (dragVolume ?? volume) === 0;
+              videoRef.current.load();
+              videoRef.current.play().catch(() => {});
+            } catch {}
+          }
+        });
+    } else {
+      if (v.getAttribute("src") !== src) {
+        v.setAttribute("src", src);
+        try {
+          v.volume = silent ? 0 : (dragVolume ?? volume);
+          v.muted = silent || muted || (dragVolume ?? volume) === 0;
+          v.load();
+          v.play().catch(() => {});
+        } catch {
+        }
       }
     }
 
     return () => {
+      active = false;
       try {
         v.pause();
         v.removeAttribute("src");
         v.load();
       } catch {
+      }
+      if (createdBlobUrl) {
+        URL.revokeObjectURL(createdBlobUrl);
       }
     };
   }, [src]);

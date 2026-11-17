@@ -1,5 +1,6 @@
 # v2.0.2
 
+- Added a dedicated **Storage** settings tab next to Export with Episodes & App/AI location pickers, a live breakdown across Episodes, Scenepacks, Scene Scout indexes, AI packages/models, and caches, plus safe AI relocation (and defaulted new non-Program-Files installs to keep AI packages & models beside the install folder instead of `AppData`)
 - Added an interactive first-time Getting Started tour covering pages, detection/preview methods, Features, and a final wrap-up back in Library (replayable anytime from "How to use" in Library)
 - Enabled the preview audio language selector in WebP mode so you can pick the export audio track
 - Added "Show in episode" to Scene Scout's clip right-click menu to jump straight to that clip in Library

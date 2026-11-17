@@ -151,6 +151,142 @@ jobs:
           path: artifacts/windows-updater/*
           if-no-files-found: error
 
+  build-linux:
+    name: Build Linux Release Packages
+    runs-on: ubuntu-22.04
+    env:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      AMVERGE_NOTIFICATIONS_API_URL: ${{ secrets.AMVERGE_NOTIFICATIONS_API_URL }}
+      VITE_ADMIN_API_URL: ${{ secrets.VITE_ADMIN_API_URL }}
+      AMVERGE_NOTIFICATIONS_API_KEY: ${{ secrets.AMVERGE_NOTIFICATIONS_API_KEY }}
+      AMVERGE_BUG_REPORT_API_URL: ${{ secrets.AMVERGE_BUG_REPORT_API_URL }}
+      AMVERGE_BUG_REPORT_API_KEY: ${{ secrets.AMVERGE_BUG_REPORT_API_KEY }}
+      AMVERGE_BUG_REPORT_KEY_ID: ${{ secrets.AMVERGE_BUG_REPORT_KEY_ID }}
+      AMVERGE_BUG_REPORT_SIGNING_SECRET: ${{ secrets.AMVERGE_BUG_REPORT_SIGNING_SECRET }}
+      # Bundle the published CLI wheel (dev extra pulls PyInstaller). No torch
+      # the AI extras are installed at runtime into the app-managed uv venv.
+      AMVERGE_CLI_INSTALL_SPEC: "amverge[edge,discord,dev]"
+      # Events + Discord sign-in, baked in at compile time via option_env!.
+      # Held as repository secrets so the backend host is not published in the
+      # repo. Note both values are still readable from any shipped binary, so
+      # this narrows who stumbles on them, not who can determine them.
+      AMVERGE_API_BASE_URL: ${{ secrets.AMVERGE_API_BASE_URL }}
+      AMVERGE_DISCORD_APP_CLIENT_ID: ${{ secrets.AMVERGE_DISCORD_APP_CLIENT_ID }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libssl-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libxdo-dev \
+            libwebkit2gtk-4.1-dev \
+            libfuse2 \
+            rpm \
+            patchelf \
+            ffmpeg
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Tauri CLI (Rust)
+        run: cargo install tauri-cli --version '^2.0'
+
+      - name: Stage FFmpeg binaries for the sidecar
+        run: |
+          FFMPEG_DIR="$GITHUB_WORKSPACE/frontend/.ffmpeg-bin"
+          mkdir -p "$FFMPEG_DIR"
+          cp "$(which ffmpeg)" "$FFMPEG_DIR/ffmpeg"
+          cp "$(which ffprobe)" "$FFMPEG_DIR/ffprobe"
+          chmod +x "$FFMPEG_DIR/ffmpeg" "$FFMPEG_DIR/ffprobe"
+          "$FFMPEG_DIR/ffmpeg" -version | head -n 1
+          "$FFMPEG_DIR/ffprobe" -version | head -n 1
+          echo "FFMPEG_BIN_DIR=$FFMPEG_DIR" >> "$GITHUB_ENV"
+
+      - name: Build Python sidecar
+        working-directory: frontend
+        run: node scripts/build-sidecar.mjs --target x86_64-unknown-linux-gnu
+
+      - name: Verify Linux sidecar exists
+        run: |
+          SIDECAR_DIR="frontend/src-tauri/bin/amverge-x86_64-unknown-linux-gnu"
+          [ -f "$SIDECAR_DIR/amverge" ] || { echo "Missing sidecar amverge"; exit 1; }
+          [ -f "$SIDECAR_DIR/_internal/ffmpeg" ] || { echo "Missing sidecar ffmpeg"; exit 1; }
+          [ -f "$SIDECAR_DIR/_internal/ffprobe" ] || { echo "Missing sidecar ffprobe"; exit 1; }
+
+      - name: Build Linux packages
+        working-directory: frontend/src-tauri
+        run: cargo tauri build --target x86_64-unknown-linux-gnu --config tauri.linux.conf.json
+
+      - name: Collect Linux release assets
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/linux-packages
+          mkdir -p artifacts/linux-updater
+
+          BUNDLE_ROOT="frontend/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle"
+
+          # Copy .AppImage, .deb, .rpm
+          find "$BUNDLE_ROOT" -type f \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' \) -exec cp {} artifacts/linux-packages/ \;
+
+          # Copy updater artifact and signature
+          FOUND_UPDATER=0
+          while IFS= read -r -d '' sig; do
+            target="${sig%.sig}"
+            if [ -f "$target" ]; then
+              cp "$target" artifacts/linux-updater/
+              cp "$sig" artifacts/linux-updater/
+              FOUND_UPDATER=1
+            fi
+          done < <(find "$BUNDLE_ROOT" -type f -name '*.sig' -print0)
+
+          if [ "$FOUND_UPDATER" -ne 1 ]; then
+            echo "No updater artifact/signature pair found under $BUNDLE_ROOT"
+            find "$BUNDLE_ROOT" -maxdepth 4 -print || true
+            exit 1
+          fi
+
+      - name: Upload Linux packages artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: artifacts/linux-packages/*
+          if-no-files-found: error
+
+      - name: Upload Linux updater artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-updater
+          path: artifacts/linux-updater/*
+          if-no-files-found: error
+
   build-macos-arch:
     name: Build macOS App (${{ matrix.arch_label }})
     runs-on: ${{ matrix.runner }}
@@ -652,6 +788,7 @@ jobs:
       - build-windows
       - package-universal-macos
       - build-macos-arch
+      - build-linux
 
     steps:
       - name: Checkout release changelog
@@ -673,6 +810,18 @@ jobs:
         with:
           name: windows-updater
           path: release-input/windows-updater
+
+      - name: Download Linux package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-packages
+          path: release-input/linux-packages
+
+      - name: Download Linux updater artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-updater
+          path: release-input/linux-updater
 
       - name: Download macOS universal DMG artifact
         uses: actions/download-artifact@v4
@@ -703,23 +852,37 @@ jobs:
           ARM_SIG="$(find release-input/macos-arm64-updater -type f -name '*.sig' | head -n 1)"
           X64_SIG="$(find release-input/macos-x64-updater -type f -name '*.sig' | head -n 1)"
           MAC_DMG_SRC="$(find release-input/macos-dmg -type f -name '*.dmg' | head -n 1)"
+          LINUX_APPIMAGE="$(find release-input/linux-packages -type f -name '*.AppImage' | head -n 1)"
+          LINUX_DEB="$(find release-input/linux-packages -type f -name '*.deb' | head -n 1)"
+          LINUX_RPM="$(find release-input/linux-packages -type f -name '*.rpm' | head -n 1)"
+          LINUX_SIG="$(find release-input/linux-updater -type f -name '*.sig' | head -n 1)"
 
           [ -n "$WIN_EXE" ] || { echo "Missing Windows .exe"; exit 1; }
           [ -n "$WIN_SIG" ] || { echo "Missing Windows updater signature"; exit 1; }
           [ -n "$ARM_SIG" ] || { echo "Missing macOS arm64 updater signature"; exit 1; }
           [ -n "$X64_SIG" ] || { echo "Missing macOS x64 updater signature"; exit 1; }
           [ -n "$MAC_DMG_SRC" ] || { echo "Missing universal macOS DMG"; exit 1; }
+          [ -n "$LINUX_APPIMAGE" ] || { echo "Missing Linux AppImage"; exit 1; }
+          [ -n "$LINUX_DEB" ] || { echo "Missing Linux .deb"; exit 1; }
+          [ -n "$LINUX_RPM" ] || { echo "Missing Linux .rpm"; exit 1; }
+          [ -n "$LINUX_SIG" ] || { echo "Missing Linux updater signature"; exit 1; }
 
           WIN_UPDATER_FILE="${WIN_SIG%.sig}"
           ARM_UPDATER_FILE="${ARM_SIG%.sig}"
           X64_UPDATER_FILE="${X64_SIG%.sig}"
+          LINUX_UPDATER_FILE="${LINUX_SIG%.sig}"
 
           [ -f "$WIN_UPDATER_FILE" ] || { echo "Missing Windows updater file pair"; exit 1; }
           [ -f "$ARM_UPDATER_FILE" ] || { echo "Missing macOS arm64 updater file pair"; exit 1; }
           [ -f "$X64_UPDATER_FILE" ] || { echo "Missing macOS x64 updater file pair"; exit 1; }
+          [ -f "$LINUX_UPDATER_FILE" ] || { echo "Missing Linux updater file pair"; exit 1; }
 
           WIN_EXE_NAME="$(basename "$WIN_EXE")"
           MAC_DMG_NAME="${WIN_EXE_NAME%.exe}.dmg"
+
+          LINUX_APPIMAGE_NAME="$(basename "$LINUX_APPIMAGE")"
+          LINUX_DEB_NAME="$(basename "$LINUX_DEB")"
+          LINUX_RPM_NAME="$(basename "$LINUX_RPM")"
 
           WIN_UPDATER_NAME="$(basename "$WIN_UPDATER_FILE")"
           WIN_SIG_NAME="$(basename "$WIN_SIG")"
@@ -734,6 +897,11 @@ jobs:
           X64_UPDATER_NAME="darwin-x86_64-${X64_UPDATER_BASENAME}"
           X64_SIG_NAME="darwin-x86_64-${X64_SIG_BASENAME}"
 
+          LINUX_UPDATER_BASENAME="$(basename "$LINUX_UPDATER_FILE")"
+          LINUX_SIG_BASENAME="$(basename "$LINUX_SIG")"
+          LINUX_UPDATER_NAME="linux-x86_64-${LINUX_UPDATER_BASENAME}"
+          LINUX_SIG_NAME="linux-x86_64-${LINUX_SIG_BASENAME}"
+
           if [ "$ARM_UPDATER_NAME" = "$X64_UPDATER_NAME" ] || [ "$ARM_SIG_NAME" = "$X64_SIG_NAME" ]; then
             echo "macOS updater artifact naming collision detected"
             exit 1
@@ -741,6 +909,9 @@ jobs:
 
           cp "$WIN_EXE" "release-assets/$WIN_EXE_NAME"
           cp "$MAC_DMG_SRC" "release-assets/$MAC_DMG_NAME"
+          cp "$LINUX_APPIMAGE" "release-assets/$LINUX_APPIMAGE_NAME"
+          cp "$LINUX_DEB" "release-assets/$LINUX_DEB_NAME"
+          cp "$LINUX_RPM" "release-assets/$LINUX_RPM_NAME"
 
           cp "$WIN_UPDATER_FILE" "release-assets/$WIN_UPDATER_NAME"
           cp "$WIN_SIG" "release-assets/$WIN_SIG_NAME"
@@ -748,6 +919,8 @@ jobs:
           cp "$ARM_SIG" "release-assets/$ARM_SIG_NAME"
           cp "$X64_UPDATER_FILE" "release-assets/$X64_UPDATER_NAME"
           cp "$X64_SIG" "release-assets/$X64_SIG_NAME"
+          cp "$LINUX_UPDATER_FILE" "release-assets/$LINUX_UPDATER_NAME"
+          cp "$LINUX_SIG" "release-assets/$LINUX_SIG_NAME"
 
           [ -f "release-assets/$WIN_UPDATER_NAME" ] || { echo "Missing staged Windows updater file"; exit 1; }
           [ -f "release-assets/$WIN_SIG_NAME" ] || { echo "Missing staged Windows updater signature"; exit 1; }
@@ -755,6 +928,8 @@ jobs:
           [ -f "release-assets/$ARM_SIG_NAME" ] || { echo "Missing staged macOS arm64 updater signature"; exit 1; }
           [ -f "release-assets/$X64_UPDATER_NAME" ] || { echo "Missing staged macOS x64 updater file"; exit 1; }
           [ -f "release-assets/$X64_SIG_NAME" ] || { echo "Missing staged macOS x64 updater signature"; exit 1; }
+          [ -f "release-assets/$LINUX_UPDATER_NAME" ] || { echo "Missing staged Linux updater file"; exit 1; }
+          [ -f "release-assets/$LINUX_SIG_NAME" ] || { echo "Missing staged Linux updater signature"; exit 1; }
 
           VERSION="${GITHUB_REF_NAME#v}"
           NOW_UTC="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
@@ -762,6 +937,7 @@ jobs:
           WIN_SIG_VAL="$(tr -d '\r\n' < "$WIN_SIG")"
           ARM_SIG_VAL="$(tr -d '\r\n' < "$ARM_SIG")"
           X64_SIG_VAL="$(tr -d '\r\n' < "$X64_SIG")"
+          LINUX_SIG_VAL="$(tr -d '\r\n' < "$LINUX_SIG")"
 
           # V1 1.3.3's V2UpgradeModal renders latest.json's `notes` as Markdown; include the
           # macOS reopen note because V1's V2UpgradeModal does not auto-relaunch after extracting.
@@ -784,6 +960,10 @@ jobs:
               "darwin-x86_64": {
                 "signature": "$X64_SIG_VAL",
                 "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/$X64_UPDATER_NAME"
+              },
+              "linux-x86_64": {
+                "signature": "$LINUX_SIG_VAL",
+                "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/$LINUX_UPDATER_NAME"
               }
             }
           }
@@ -798,29 +978,38 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          DOWNLOADS_TABLE="$(printf '%s\n' \
+            "### Downloads" \
+            "" \
+            "| Platform | Type | Architecture | Direct Package |" \
+            "| :--- | :--- | :---: | :---: |" \
+            "| ![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011-0078D6?style=flat&logo=windows&logoColor=white) | <kbd>.exe installer</kbd> | <kbd>x86-64</kbd> | [![Download for Windows](https://img.shields.io/badge/Download_for_Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${WIN_EXE_NAME}) |" \
+            "| ![macOS](https://img.shields.io/badge/macOS-Universal-000000?style=flat&logo=apple&logoColor=white) | <kbd>.dmg disk image</kbd> | <kbd>M-Series & Intel</kbd> | [![Download for macOS](https://img.shields.io/badge/Download_for_macOS-333333?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${MAC_DMG_NAME}) |" \
+            "" \
+            "---" \
+            "")"
+
           NOTES_FILE="updates/${GITHUB_REF_NAME}.md"
           if [ -f "$NOTES_FILE" ]; then
-            gh release create "$GITHUB_REF_NAME" \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "$GITHUB_REF_NAME" \
-              --notes-file "$NOTES_FILE" \
-              --prerelease \
-              || gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --notes-file "$NOTES_FILE"
+            RELEASE_BODY="$(printf '%s\n\n%s' "$DOWNLOADS_TABLE" "$(cat "$NOTES_FILE")")"
           else
-            RELEASE_BODY="$(printf '%s\n' \
+            RELEASE_BODY="$(printf '%s\n\n%s\n' \
+              "$DOWNLOADS_TABLE" \
               "## AMVerge $GITHUB_REF_NAME" \
               "" \
               "- **AI Scene Detection** finds cuts more accurately than keyframes" \
               "- **Scene Scout**: search your episodes by describing a scene" \
               "- **Scenepacks**, post-export passes, and a faster, redesigned app" \
+              "- **Linux support**: AppImage, deb, and rpm packages for Ubuntu, Fedora, Debian, Mint, and Zorin OS" \
               "- **macOS users upgrading from V1**: once in-app installation finishes, quit and reopen AMVerge once to launch AMVerge 2.")"
-            gh release create "$GITHUB_REF_NAME" \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "$GITHUB_REF_NAME" \
-              --notes "$RELEASE_BODY" \
-              --prerelease \
-              || true
           fi
+
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --notes "$RELEASE_BODY" \
+            --prerelease \
+            || gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --notes "$RELEASE_BODY"
 
       - name: Upload assets to release
         env:

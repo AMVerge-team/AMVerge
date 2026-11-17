@@ -1,5 +1,5 @@
 use std::io::{BufRead, BufReader, Read};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 use std::sync::{Arc, Mutex};
 
@@ -7,35 +7,282 @@ use tauri::{AppHandle, Manager};
 
 use crate::utils::process::{apply_no_window, bind_to_app_lifetime};
 
+const AI_STORAGE_POINTER_FILE: &str = "ai_storage_path.txt";
+pub(crate) const SIGLIP_CACHE_DIR_NAME: &str = "models--google--siglip2-so400m-patch16-naflex";
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AiLocation {
+    pub root: PathBuf,
+    pub runtime_dir: PathBuf,
+    pub config_dir: Option<PathBuf>,
+    pub hf_home_dir: Option<PathBuf>,
+    pub custom_path: Option<PathBuf>,
+}
+
 pub fn app_data_dir(app: &AppHandle) -> Result<PathBuf, String> {
     app.path().app_data_dir().map_err(|e| e.to_string())
 }
 
-/// shared python runtime (uv cache, python, AI venv) under local data, named for the product so the extension finds it
-pub fn shared_runtime_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    if let Ok(dir) = std::env::var("AMVERGE_RUNTIME_DIR") {
-        if !dir.trim().is_empty() {
-            return Ok(PathBuf::from(dir));
+pub fn load_custom_ai_root(app: &AppHandle) -> Option<PathBuf> {
+    let pointer = app_data_dir(app).ok()?.join(AI_STORAGE_POINTER_FILE);
+    let raw = std::fs::read_to_string(pointer).ok()?;
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(PathBuf::from(trimmed))
+    }
+}
+
+pub fn save_custom_ai_root(app: &AppHandle, custom: Option<&Path>) -> Result<(), String> {
+    let dir = app_data_dir(app)?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let pointer = dir.join(AI_STORAGE_POINTER_FILE);
+    match custom {
+        Some(p) => {
+            let trimmed = p.to_string_lossy().trim().to_string();
+            if trimmed.is_empty() {
+                if pointer.is_file() {
+                    let _ = std::fs::remove_file(pointer);
+                }
+            } else {
+                std::fs::write(pointer, trimmed).map_err(|e| e.to_string())?;
+            }
         }
+        None => {
+            if pointer.is_file() {
+                std::fs::remove_file(pointer).map_err(|e| e.to_string())?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn home_dir() -> Option<PathBuf> {
+    std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
+        .filter(|v| !v.is_empty())
+        .map(PathBuf::from)
+}
+
+pub(crate) fn legacy_cli_models_dir() -> Option<PathBuf> {
+    let config = match std::env::var_os("APPDATA").filter(|v| !v.is_empty()) {
+        Some(appdata) => PathBuf::from(appdata).join("com.amverge.cli"),
+        None => {
+            let home = home_dir()?;
+            if cfg!(windows) {
+                home.join("AppData").join("Roaming").join("com.amverge.cli")
+            } else if cfg!(target_os = "macos") {
+                home.join("Library")
+                    .join("Application Support")
+                    .join("com.amverge.cli")
+            } else {
+                home.join(".config").join("com.amverge.cli")
+            }
+        }
+    };
+    Some(config.join("models"))
+}
+
+pub(crate) fn legacy_scout_model_dir() -> Option<PathBuf> {
+    let env_dir = |key: &str| std::env::var_os(key).filter(|v| !v.is_empty()).map(PathBuf::from);
+    let hub = env_dir("HF_HUB_CACHE")
+        .or_else(|| env_dir("HF_HOME").map(|home| home.join("hub")))
+        .or_else(|| env_dir("XDG_CACHE_HOME").map(|cache| cache.join("huggingface").join("hub")))
+        .or_else(|| home_dir().map(|home| home.join(".cache").join("huggingface").join("hub")))?;
+    Some(hub.join(SIGLIP_CACHE_DIR_NAME))
+}
+
+fn is_system_install_dir(dir: &Path) -> bool {
+    let norm = dir.to_string_lossy().to_lowercase();
+    if cfg!(windows) {
+        let mut system_prefixes = vec![
+            "\\program files\\".to_string(),
+            "\\program files (x86)\\".to_string(),
+            "\\windows\\".to_string(),
+        ];
+        for key in ["ProgramFiles", "ProgramFiles(x86)", "ProgramW6432", "SystemRoot"] {
+            if let Ok(val) = std::env::var(key) {
+                let low = val.trim().to_lowercase();
+                if !low.is_empty() {
+                    if norm == low || norm.starts_with(&(low.clone() + "\\")) {
+                        return true;
+                    }
+                    system_prefixes.push(low);
+                }
+            }
+        }
+        system_prefixes.iter().any(|p| norm.contains(p))
+    } else if cfg!(target_os = "macos") {
+        norm.starts_with("/applications/") || norm.contains(".app/contents/")
+    } else {
+        norm.starts_with("/usr/") || norm.starts_with("/opt/") || norm.starts_with("/bin/")
+    }
+}
+
+fn dir_is_writable(dir: &Path) -> bool {
+    if !dir.is_dir() {
+        return false;
+    }
+    let probe = dir.join(format!(".amverge-write-probe-{}", std::process::id()));
+    match std::fs::OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(&probe)
+    {
+        Ok(_) => {
+            let _ = std::fs::remove_file(&probe);
+            true
+        }
+        Err(_) => false,
+    }
+}
+
+/// Default AI root for release builds when installed outside protected system directories (e.g. `D:\AMVerge\ai`).
+fn install_adjacent_ai_root() -> Option<PathBuf> {
+    if cfg!(debug_assertions) {
+        return None;
+    }
+    let exe = std::env::current_exe().ok()?;
+    let parent = exe.parent()?;
+    if is_system_install_dir(parent) {
+        return None;
+    }
+    let candidate = parent.join("ai");
+    if candidate.is_dir() {
+        if dir_is_writable(&candidate) {
+            return Some(candidate);
+        }
+        return None;
+    }
+    if dir_is_writable(parent) {
+        return Some(candidate);
+    }
+    None
+}
+
+/// Default AI root if no legacy AppData install or custom override exists (e.g. `D:\AMVerge\ai`).
+pub fn default_ai_root(app: &AppHandle) -> Result<PathBuf, String> {
+    if let Some(install_ai) = install_adjacent_ai_root() {
+        return Ok(install_ai);
     }
     Ok(app
         .path()
         .local_data_dir()
         .map_err(|e| e.to_string())?
-        .join("AMVerge")
-        .join("runtime"))
+        .join("AMVerge"))
 }
 
-/// the runtime in use: an existing legacy env stays where it is, since a venv can't be moved
+/// Resolves the active AI storage root, keeping existing AppData/legacy installs working until moved.
+pub fn resolve_ai_location(app: &AppHandle) -> Result<AiLocation, String> {
+    if let Ok(dir) = std::env::var("AMVERGE_RUNTIME_DIR") {
+        let trimmed = dir.trim();
+        if !trimmed.is_empty() {
+            let runtime_dir = PathBuf::from(trimmed);
+            let root = runtime_dir
+                .parent()
+                .map(Path::to_path_buf)
+                .unwrap_or_else(|| runtime_dir.clone());
+            return Ok(AiLocation {
+                root,
+                runtime_dir,
+                config_dir: None,
+                hf_home_dir: None,
+                custom_path: None,
+            });
+        }
+    }
+
+    if let Some(custom_root) = load_custom_ai_root(app) {
+        return Ok(AiLocation {
+            runtime_dir: custom_root.join("runtime"),
+            config_dir: Some(custom_root.join("config")),
+            hf_home_dir: Some(custom_root.join("hf-cache")),
+            custom_path: Some(custom_root.clone()),
+            root: custom_root,
+        });
+    }
+
+    let local_root = app
+        .path()
+        .local_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("AMVerge");
+    let local_runtime = local_root.join("runtime");
+    let legacy_appdata = app_data_dir(app).ok();
+
+    // Preserve any existing legacy/local AppData AI venv untouched until the user moves it.
+    let existing_legacy = pick_existing_legacy_runtime(&local_runtime, legacy_appdata.as_ref());
+    if let Some(runtime_dir) = existing_legacy {
+        let root = runtime_dir
+            .parent()
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| runtime_dir.clone());
+        return Ok(AiLocation {
+            root,
+            runtime_dir,
+            config_dir: None,
+            hf_home_dir: None,
+            custom_path: None,
+        });
+    }
+
+    if let Some(install_ai) = install_adjacent_ai_root() {
+        return Ok(AiLocation {
+            runtime_dir: install_ai.join("runtime"),
+            config_dir: Some(install_ai.join("config")),
+            hf_home_dir: Some(install_ai.join("hf-cache")),
+            custom_path: None,
+            root: install_ai,
+        });
+    }
+
+    if cfg!(debug_assertions) {
+        return Ok(AiLocation {
+            root: local_root,
+            runtime_dir: local_runtime,
+            config_dir: None,
+            hf_home_dir: None,
+            custom_path: None,
+        });
+    }
+
+    Ok(AiLocation {
+        runtime_dir: local_runtime,
+        config_dir: Some(local_root.join("config")),
+        hf_home_dir: Some(local_root.join("hf-cache")),
+        custom_path: None,
+        root: local_root,
+    })
+}
+
+fn pick_existing_legacy_runtime(
+    local_runtime: &PathBuf,
+    legacy_appdata: Option<&PathBuf>,
+) -> Option<PathBuf> {
+    if venv_python_in(local_runtime).is_file() {
+        return Some(local_runtime.clone());
+    }
+    if let Some(legacy) = legacy_appdata {
+        if venv_python_in(legacy).is_file() {
+            return Some(legacy.clone());
+        }
+    }
+    None
+}
+
+/// shared python runtime (uv cache, python, AI venv) under the resolved AI location
+#[allow(dead_code)]
+pub fn shared_runtime_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(resolve_ai_location(app)?.runtime_dir)
+}
+
+/// the runtime in use: an existing legacy env stays where it is until moved
 pub fn runtime_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    Ok(pick_runtime_dir(
-        shared_runtime_dir(app)?,
-        app_data_dir(app).ok(),
-        |root| venv_python_in(root).is_file(),
-    ))
+    Ok(resolve_ai_location(app)?.runtime_dir)
 }
 
 /// shared unless the legacy location already has an env; `has_env` is injected for tests
+#[allow(dead_code)]
 fn pick_runtime_dir<F>(shared: PathBuf, legacy: Option<PathBuf>, has_env: F) -> PathBuf
 where
     F: Fn(&PathBuf) -> bool,
@@ -51,8 +298,92 @@ where
     shared
 }
 
-fn venv_python_in(runtime_root: &PathBuf) -> PathBuf {
+fn venv_python_in(runtime_root: &Path) -> PathBuf {
     venv_bin_dir(&runtime_root.join("pyenv")).join(exe_name("python"))
+}
+
+pub(crate) fn cli_models_dir_for_app(app: &AppHandle) -> Option<PathBuf> {
+    if let Ok(loc) = resolve_ai_location(app) {
+        if let Some(config) = loc.config_dir {
+            let candidate = config.join("models");
+            if candidate.is_dir() || loc.custom_path.is_some() {
+                return Some(candidate);
+            }
+            if let Some(legacy) = legacy_cli_models_dir().filter(|p| p.is_dir()) {
+                return Some(legacy);
+            }
+            return Some(candidate);
+        }
+    }
+    legacy_cli_models_dir()
+}
+
+pub(crate) fn scout_model_dir_for_app(app: &AppHandle) -> Option<PathBuf> {
+    if let Ok(loc) = resolve_ai_location(app) {
+        if let Some(hf) = loc.hf_home_dir {
+            let candidate = hf.join("hub").join(SIGLIP_CACHE_DIR_NAME);
+            if candidate.is_dir() || loc.custom_path.is_some() {
+                return Some(candidate);
+            }
+            if let Some(legacy) = legacy_scout_model_dir().filter(|p| p.is_dir()) {
+                return Some(legacy);
+            }
+            return Some(candidate);
+        }
+    }
+    legacy_scout_model_dir()
+}
+
+pub(crate) fn apply_ai_env_vars(app: &AppHandle, cmd: &mut Command) {
+    if let Ok(loc) = resolve_ai_location(app) {
+        if let Some(config) = loc.config_dir {
+            cmd.env("AMVERGE_CONFIG_DIR", config);
+        }
+        if let Some(hf) = loc.hf_home_dir {
+            cmd.env("HF_HOME", hf);
+        }
+    }
+}
+
+pub(crate) fn patch_pyvenv_home(
+    pyvenv_cfg: &Path,
+    old_python_root: &Path,
+    new_python_root: &Path,
+) -> Result<(), String> {
+    if !pyvenv_cfg.is_file() {
+        return Ok(());
+    }
+    let content = std::fs::read_to_string(pyvenv_cfg).map_err(|e| e.to_string())?;
+    let old_prefix = old_python_root.to_string_lossy().to_string();
+    let new_prefix = new_python_root.to_string_lossy().to_string();
+    let old_prefix_lower = old_prefix.to_lowercase();
+
+    let mut changed = false;
+    let mut out_lines = Vec::new();
+    for line in content.lines() {
+        if let Some((key, val)) = line.split_once('=') {
+            let k_trim = key.trim();
+            if k_trim.eq_ignore_ascii_case("home") || k_trim.eq_ignore_ascii_case("executable") {
+                let v_trim = val.trim();
+                let v_lower = v_trim.to_lowercase();
+                if v_lower.starts_with(&old_prefix_lower) {
+                    let suffix = &v_trim[old_prefix.len()..];
+                    out_lines.push(format!("{k_trim} = {new_prefix}{suffix}"));
+                    changed = true;
+                    continue;
+                }
+            }
+        }
+        out_lines.push(line.to_string());
+    }
+    if changed {
+        let mut updated = out_lines.join("\n");
+        if content.ends_with('\n') {
+            updated.push('\n');
+        }
+        std::fs::write(pyvenv_cfg, updated).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -68,7 +399,6 @@ mod runtime_dir_tests {
 
     #[test]
     fn existing_legacy_env_is_used_where_it_stands() {
-        // a venv hardcodes its own path, so moving one would break it
         let picked = pick_runtime_dir(shared(), Some(legacy()), |root| *root == legacy());
         assert_eq!(picked, legacy());
     }
@@ -90,6 +420,34 @@ mod runtime_dir_tests {
         let picked = pick_runtime_dir(shared(), None, |_| false);
         assert_eq!(picked, shared());
     }
+
+    #[test]
+    fn system_install_dirs_are_detected() {
+        if cfg!(windows) {
+            assert!(is_system_install_dir(Path::new("C:\\Program Files\\AMVerge")));
+            assert!(is_system_install_dir(Path::new("C:\\Program Files (x86)\\AMVerge")));
+            assert!(!is_system_install_dir(Path::new("D:\\AMVerge")));
+        }
+    }
+
+    #[test]
+    fn patch_pyvenv_home_updates_prefix_preserving_cpython_subdir() {
+        let temp = std::env::temp_dir().join(format!("amverge-pyvenv-test-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&temp);
+        let cfg = temp.join("pyvenv.cfg");
+        let old_py = PathBuf::from("C:\\Users\\alex\\AppData\\Local\\AMVerge\\runtime\\python");
+        let new_py = PathBuf::from("D:\\AMVerge\\ai\\runtime\\python");
+        std::fs::write(
+            &cfg,
+            "home = C:\\Users\\alex\\AppData\\Local\\AMVerge\\runtime\\python\\cpython-3.12.9-windows-x86_64-none\nimplementation = CPython\n",
+        )
+        .unwrap();
+
+        patch_pyvenv_home(&cfg, &old_py, &new_py).unwrap();
+        let written = std::fs::read_to_string(&cfg).unwrap();
+        assert!(written.contains("home = D:\\AMVerge\\ai\\runtime\\python\\cpython-3.12.9-windows-x86_64-none"));
+        let _ = std::fs::remove_dir_all(&temp);
+    }
 }
 
 pub fn ai_env_dir(app: &AppHandle) -> Result<PathBuf, String> {
@@ -105,7 +463,7 @@ pub fn uv_cache_dir(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 /// `Scripts` on Windows, `bin` everywhere else
-fn venv_bin_dir(root: &PathBuf) -> PathBuf {
+fn venv_bin_dir(root: &Path) -> PathBuf {
     if cfg!(windows) {
         root.join("Scripts")
     } else {
@@ -144,7 +502,7 @@ fn dev_venv_dir() -> Result<PathBuf, String> {
     root.pop();
     let cli_dir = std::env::var("AMVERGE_CLI_DIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| root.join("AMVerge-CLI"));
+        .unwrap_or_else(|_| std::env::var("HOME").ok().map(|h| PathBuf::from(h).join("AMVerge-CLI")).unwrap_or_else(|| root.join("AMVerge-CLI")));
     Ok(cli_dir.join(".venv"))
 }
 
@@ -163,6 +521,10 @@ fn sidecar_rel_dir() -> Result<&'static str, String> {
         Ok("bin/amverge-aarch64-apple-darwin")
     } else if cfg!(target_os = "macos") {
         Ok("bin/amverge-x86_64-apple-darwin")
+    } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+        Ok("bin/amverge-x86_64-unknown-linux-gnu")
+    } else if cfg!(all(target_os = "linux", target_arch = "aarch64")) {
+        Ok("bin/amverge-aarch64-unknown-linux-gnu")
     } else {
         Err("amverge sidecar: unsupported platform".to_string())
     }
@@ -187,6 +549,10 @@ pub fn uv_binary(app: &AppHandle) -> Result<PathBuf, String> {
         "aarch64-apple-darwin"
     } else if cfg!(target_os = "macos") {
         "x86_64-apple-darwin"
+    } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+        "x86_64-unknown-linux-gnu"
+    } else if cfg!(all(target_os = "linux", target_arch = "aarch64")) {
+        "aarch64-unknown-linux-gnu"
     } else {
         return Err("uv: unsupported platform".to_string());
     };
@@ -222,23 +588,29 @@ pub fn amverge_command(app: &AppHandle) -> Result<Command, String> {
     } else {
         prod_amverge_exe(app)?
     };
-    Ok(base_command(exe))
+    let mut cmd = base_command(exe);
+    apply_ai_env_vars(app, &mut cmd);
+    Ok(cmd)
 }
 
-/// like [`amverge_command`] but from the AI venv (sidecar `_internal` on PATH for ffmpeg); falls back to the sidecar so the CLI explains a missing pack
+/// like [`amverge_command`] but from the AI venv via `python -m amverge` (safe across relocated venvs, with sidecar `_internal` on PATH for ffmpeg)
 pub fn amverge_ai_command(app: &AppHandle) -> Result<Command, String> {
     if cfg!(debug_assertions) {
-        // the dev venv already has every extra installed
-        return Ok(base_command(dev_amverge_exe()?));
+        let mut cmd = base_command(dev_amverge_exe()?);
+        apply_ai_env_vars(app, &mut cmd);
+        return Ok(cmd);
     }
 
     // a venv without its amverge script (install interrupted) must not be launched
     let ai_exe = ai_env_amverge(app)?;
+    let ai_py = ai_env_python(app)?;
     if !ai_env_ready(app) || !ai_exe.is_file() {
         return amverge_command(app);
     }
 
-    let mut cmd = base_command(ai_exe);
+    let mut cmd = base_command(ai_py);
+    cmd.arg("-m").arg("amverge");
+    apply_ai_env_vars(app, &mut cmd);
     if let Ok(dir) = sidecar_dir(app) {
         let internal = dir.join("_internal");
         let existing = std::env::var_os("PATH").unwrap_or_default();

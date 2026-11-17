@@ -45,7 +45,13 @@ function stub() {
   for (const rel of resources()) {
     if (isUv(rel)) continue;
     if (isGlob(rel)) {
-      mkdirSync(path.join(TAURI_DIR, globRoot(rel)), { recursive: true });
+      const dir = path.join(TAURI_DIR, globRoot(rel));
+      mkdirSync(dir, { recursive: true });
+      // Tauri's resource glob verification requires at least one matched file
+      const placeholder = path.join(dir, ".stub");
+      if (!existsSync(placeholder)) {
+        writeFileSync(placeholder, "");
+      }
       continue;
     }
     const abs = path.join(TAURI_DIR, rel);

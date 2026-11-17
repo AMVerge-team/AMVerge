@@ -39,6 +39,7 @@ const V1ImportNotice = lazy(() =>
 const PostExportPassesModal = lazy(() => import("./components/PostExportPassesModal"));
 const PassTargetsModal = lazy(() => import("./components/PassTargetsModal"));
 const AiInstallModal = lazy(() => import("./components/AiInstallModal"));
+const StorageMoveModal = lazy(() => import("./components/StorageMoveModal"));
 const GettingStartedTour = lazy(() => import("./components/GettingStartedTour"));
 
 import useDiscordRPC from "./hooks/useDiscordRPC";
@@ -563,6 +564,7 @@ function App() {
         <PostExportPassesModal />
         <PassTargetsModal />
         <AiInstallModal />
+        <StorageMoveModal />
         {splashVisible ? null : <V1ImportNotice />}
         {!splashVisible && !showStartupNotification && !gettingStartedSeen && !menuOpen && !toolsOpen && (
           <GettingStartedTour />

@@ -3,12 +3,14 @@ import AppearanceSection from "../components/settings/AppearanceSection";
 import FeaturesSection from "../components/settings/FeaturesSection";
 import DiscordRPCSection from "../components/settings/DiscordRPCSection";
 import ExportSection from "../components/settings/exportSettings/ExportSection";
+import StorageSection from "../components/settings/StorageSection";
 import { useUIStateStore } from "../stores/UIStore";
 import { useTabKeys } from "../components/common/useTabKeys";
 
 const PAGES = [
   { key: "general", label: "General" },
   { key: "export", label: "Export" },
+  { key: "storage", label: "Storage" },
   { key: "appearance", label: "Appearance" },
   { key: "features", label: "Features" },
   { key: "discord", label: "Discord RPC" },
@@ -60,6 +62,10 @@ export default function Settings({
 
             {activeTab === "export" && (
               <ExportSection />
+            )}
+
+            {activeTab === "storage" && (
+              <StorageSection />
             )}
 
             {activeTab === "features" && (

@@ -14,6 +14,17 @@ use std::sync::atomic::Ordering;
 use tauri::Manager;
 
 fn main() {
+    #[cfg(target_os = "linux")]
+    {
+        // On Linux (especially inside VMs or setups with Mesa Zink / NVIDIA), WebKitGTK's
+        // DMA-BUF renderer conflicts with video playback and causes crashes/error_code=4.
+        if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+            unsafe {
+                std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+            }
+        }
+    }
+
     let _ = dotenvy::dotenv();
 
     tauri::Builder::default()
@@ -55,6 +66,7 @@ fn main() {
             commands::deps::abort_ai_install,
             commands::deps::uninstall_ai_pack,
             commands::deps::remove_ai_env,
+            commands::deps::move_ai_storage_to_new_dir,
             commands::deps::update_ai_cli,
             commands::models::list_models,
             commands::models::download_model,
@@ -115,6 +127,7 @@ fn main() {
             commands::settings::delete_profile_icon_file,
             commands::settings::reveal_in_file_manager,
             commands::settings::move_storage_to_new_dir,
+            commands::settings::get_storage_breakdown,
             commands::settings::path_exists,
             commands::migration::v1_migration_source,
             commands::migration::import_v1_files,

@@ -44,6 +44,12 @@ function getRustTargetTriple() {
       : "x86_64-apple-darwin";
   }
 
+  if (process.platform === "linux") {
+    return process.arch === "arm64"
+      ? "aarch64-unknown-linux-gnu"
+      : "x86_64-unknown-linux-gnu";
+  }
+
   throw new Error(`Unsupported platform: ${process.platform}`);
 }
 
