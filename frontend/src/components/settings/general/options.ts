@@ -68,9 +68,9 @@ export function previewTranscodeModeOptions(): DropdownOption<PreviewTranscodeMo
 
 export function previewTranscodeQualityOptions(): DropdownOption<PreviewTranscodeQuality>[] {
   return [
-    { value: "360p", label: "360p", description: t("settings:options.transcodeQuality.360p") },
-    { value: "480p", label: "480p", description: t("settings:options.transcodeQuality.480p") },
-    { value: "720p", label: "720p", description: t("settings:options.transcodeQuality.720p") },
-    { value: "1080p", label: "1080p", description: t("settings:options.transcodeQuality.1080p") },
+    { value: "360p", label: "360p", trailingLabel: t("settings:options.transcodeQuality.360p") },
+    { value: "480p", label: "480p", trailingLabel: t("settings:options.transcodeQuality.480p") },
+    { value: "720p", label: "720p", trailingLabel: t("settings:options.transcodeQuality.720p") },
+    { value: "1080p", label: "1080p", trailingLabel: t("settings:options.transcodeQuality.1080p") },
   ];
 }

@@ -120,6 +120,10 @@
   },
   "passes": {
     "section": "导出后处理",
+    "master": {
+      "label": "启用导出后处理",
+      "description": "导出完成后运行下方已启用的处理。关闭时跳过后处理，并保留各项配置。"
+    },
     "labels": {
       "depth": "深度图",
       "upscale": "超分辨率"

@@ -5,6 +5,7 @@ export interface DropdownOption<T> {
   value: T;
   label: string;
   description?: string;
+  trailingLabel?: string;
   icon?: ReactNode;
   muted?: boolean;
 }
@@ -99,6 +100,7 @@ export default function Dropdown<T extends string | number>({
       <div className="dropdown-item-main">
         {option.icon && <span className="dropdown-item-icon">{option.icon}</span>}
         <span className="dropdown-item-label">{option.label}</span>
+        {!isTrigger && option.trailingLabel && <span className="dropdown-item-trailing">{option.trailingLabel}</span>}
       </div>
       {option.description && (!isTrigger || showTriggerDescription) && (
         <span className="dropdown-item-description">{option.description}</span>

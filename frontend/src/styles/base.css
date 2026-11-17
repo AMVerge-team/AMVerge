@@ -37,9 +37,14 @@ body {
     margin: 0;
     overflow: hidden;
     font-family: var(--app-font);
+    font-size: 14px;
+    font-weight: var(--font-weight-body);
+    line-height: 1.5;
     font-size-adjust: var(--app-font-adjust, none);
 
-    font-synthesis-weight: none;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
 }
 
 body::before {
@@ -82,7 +87,8 @@ body::before {
     height: 30px;
     width: 100px;
     font-family: var(--app-font);
-    font-size: 20px;
+    font-size: 14px;
+    font-weight: var(--font-weight-label);
     border: 1px solid white;
     margin-bottom: 5px;
     background: rgba(15, 0, 0, 0.1);

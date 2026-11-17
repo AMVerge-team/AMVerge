@@ -32,7 +32,7 @@ export default function Settings({
   useTabKeys(PAGES.map((page) => page.key), activeTab, setActiveTab);
 
   return (
-    <div className="menu-page">
+    <div className="menu-page settings-page">
       <div className="menu-header">
         <h2 className="menu-title">{t("settingsPage.title")}</h2>
         <div className="menu-nav">

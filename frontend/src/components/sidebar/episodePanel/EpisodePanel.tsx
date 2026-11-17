@@ -456,12 +456,10 @@ export default function EpisodePanel() {
           {isLibraryEmpty && (
             <div className="episode-panel-empty-cta">
               <FaVideo style={{ fontSize: 28, opacity: 0.3 }} />
-              <span style={{ fontSize: 15, opacity: 0.6 }}>{t("episodePanel.empty.title")}</span>
-              <span style={{ fontSize: 12, opacity: 0.4 }}>{t("episodePanel.empty.description")}</span>
+              <span className="episode-panel-empty-title">{t("episodePanel.empty.title")}</span>
               <button
-                className="episode-modal-btn primary"
+                className="episode-modal-btn primary episode-empty-import-button"
                 onClick={() => void onImportClick()}
-                style={{ marginTop: 8, fontSize: 14 }}
               >
                 {t("episodePanel.empty.importFirst")}
               </button>

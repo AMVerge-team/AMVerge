@@ -217,7 +217,7 @@ export default function GeneralSettings({
             description={t("general.preview.quality.description")}
             control={
               <Dropdown
-                className="settings-wide-dropdown"
+                className="quality-dropdown"
                 options={previewTranscodeQualityOptions()}
                 value={generalSettings.previewTranscodeQuality}
                 onChange={(quality) => setPreviewTranscodeQuality(quality)}

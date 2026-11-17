@@ -26,6 +26,7 @@ type VideoPlayerProps = {
   startTime?: number;
   endTime?: number;
   onTimeUpdate?: (time: number) => void;
+  onError?: () => void;
   /** always muted, with no volume control (scene scout flow's input clip) */
   silent?: boolean;
 };
@@ -37,6 +38,7 @@ export default function VideoPlayer({
   startTime,
   endTime,
   onTimeUpdate,
+  onError,
   silent = false,
 }: VideoPlayerProps) {
   const { t } = useTranslation("preview");
@@ -317,6 +319,7 @@ export default function VideoPlayer({
           src={src}
           autoPlay
           playsInline
+          onError={onError}
           muted={silent || muted || volume === 0}
           onClick={togglePlay}
           onLoadedMetadata={(e) => {
