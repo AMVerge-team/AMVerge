@@ -13,7 +13,7 @@
     "fullscreen": "Fullscreen"
   },
   "export": {
-    "title": "EXPORT SETTINGS",
+    "title": "Export settings",
     "untitledProfile": "Untitled Profile",
     "editSettings": "Edit export settings",
     "destinationPlaceholder": "Select destination...",
@@ -25,6 +25,10 @@
     "davinciOff": "Send exported clips to the DaVinci Resolve timeline (Studio only)",
     "davinciAria": "Send exported clips to DaVinci Resolve",
     "previewLanguageAria": "Preview language selector",
+    "previewLanguage": "Preview language",
+    "postPasses": "Post-export",
+    "postPassesToggle": "Enable post-export passes",
+    "configurePostPasses": "Configure post-export passes in export settings. Turning this off keeps your configuration.",
     "previewLanguageLine1": "PREVIEW",
     "previewLanguageLine2": "LANGUAGE",
     "selectAtLeastOne": "Select at least one clip to export",
@@ -39,10 +43,10 @@
   },
   "howToUse": {
     "titles": {
-      "library": "HOW TO USE",
-      "scenepacks": "HOW TO USE SCENEPACKS",
-      "sceneScoutSearch": "HOW TO USE SCENE SCOUT",
-      "sceneScoutFlow": "HOW TO USE MATCH"
+      "library": "How to use",
+      "scenepacks": "How to use Scenepacks",
+      "sceneScoutSearch": "How to use Scene Scout",
+      "sceneScoutFlow": "How to use Match"
     },
     "hide": "Hide the guide",
     "show": "Show the guide",
