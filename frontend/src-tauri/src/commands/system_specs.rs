@@ -44,7 +44,6 @@ fn join_summary(parts: Vec<String>) -> Result<String, String> {
 }
 
 /// bytes as the whole gigabytes a user would say out loud, empty when unknown
-#[cfg(any(windows, target_os = "macos"))]
 fn format_ram_gb(gb: f64) -> String {
     let rounded = gb.round() as u64;
     if rounded == 0 {
