@@ -86,10 +86,7 @@ AMVerge supports both stream-copied keyframe splitting and AI cut detection:
 ```txt
 AMVerge/
 ├── setup.ps1                  # Windows dev setup (clones & links AMVerge-CLI)
-├── setup.sh                   # macOS / Linux dev setup (multi-distro)
-├── setup-fedora.sh            # Fedora one-shot dev setup (DNF & RPM Fusion codecs)
-├── install-fedora.sh          # Fedora package installer (auto-detects .rpm or .AppImage)
-├── LINUX_DEVELOPMENT.md       # Linux multi-distribution guide & architecture
+├── setup.sh                   # macOS / Linux dev setup
 ├── frontend/
 │   ├── src/
 │   │   ├── App.tsx
@@ -134,13 +131,7 @@ From the repo root (clones sibling `../AMVerge-CLI`, sets up its `.venv`, config
 ```
 
 ```bash
-./setup.sh         # macOS / Linux (Ubuntu, Debian, Zorin, Arch)
-```
-
-For Fedora systems (installs DNF system packages and enables RPM Fusion for H.264/AAC multimedia playback):
-
-```bash
-./setup-fedora.sh  # Fedora
+./setup.sh         # macOS / Linux
 ```
 
 To also install the AI extras (TransNetV2, Scene Scout, depth, upscale) into the dev CLI virtualenv:
@@ -153,18 +144,30 @@ To also install the AI extras (TransNetV2, Scene Scout, depth, upscale) into the
 ./setup.sh --ai    # macOS / Linux
 ```
 
-### Linux Packages & Setup
+### Linux Dependencies
 
-AMVerge supports **Ubuntu / Debian / Zorin OS** (`.deb`, `.AppImage`), **Fedora** (`.rpm`, `.AppImage`), and **Arch / Manjaro** (`.AppImage`).
+AMVerge on Linux runs using WebKit2GTK and GStreamer:
 
-- **Fedora Users**: Run `./setup-fedora.sh` for one-shot environment preparation, or use `./install-fedora.sh <package.rpm>` to install pre-built RPM packages.
-- **Debian / Ubuntu / Zorin OS Users**: Ensure standard WebKit2GTK and GStreamer decoders are installed:
+- **Debian / Ubuntu / Zorin OS / Linux Mint**:
   ```bash
-  sudo apt install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
+  sudo apt update && sudo apt install -y \
+    libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
     gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav
   ```
-
-For full multi-distribution compatibility notes and packaging targets, see [LINUX_DEVELOPMENT.md](LINUX_DEVELOPMENT.md).
+- **Fedora / RHEL**:
+  ```bash
+  # Enable RPM Fusion for full media codecs (H.264/AAC playback)
+  sudo dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
+    https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+  sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
+  sudo dnf install -y webkit2gtk4.1-devel gtk3-devel libappindicator-gtk3-devel librsvg2-devel \
+    gstreamer1-plugins-good gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly gstreamer1-libav
+  ```
+- **Arch / Manjaro**:
+  ```bash
+  sudo pacman -S --needed webkit2gtk-4.1 gtk3 libappindicator-gtk3 \
+    gst-plugins-good gst-plugins-bad gst-plugins-ugly gst-libav
+  ```
 
 ### Run in Development
 
