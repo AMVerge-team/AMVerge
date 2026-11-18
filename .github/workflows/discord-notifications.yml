@@ -5,7 +5,11 @@ on:
     branches-ignore:
       - "l10n_*"
   pull_request:
-    types: [opened, closed, reopened]
+    types: [opened, closed, reopened, ready_for_review, review_requested]
+  pull_request_review:
+    types: [submitted]
+  issue_comment:
+    types: [created]
   release:
     types: [published]
   issues:
