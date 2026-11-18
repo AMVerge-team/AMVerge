@@ -104,7 +104,7 @@ def handle_push(event):
     desc = (
         f"# [{repo_name}]({repo_url})\n"
         f"{action_line}\n"
-        f"**[{count} new {commit_word}]({compare_url})** to [`{branch}`]({repo_url}/tree/{branch})\n"
+        f"## [{count} new {commit_word}]({compare_url}) to [{branch}]({repo_url}/tree/{branch})\n"
         + "\n".join(lines)
     )
 
