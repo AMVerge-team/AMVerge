@@ -90,12 +90,12 @@ def handle_push(event):
     if count > 8:
         lines.append(f"*...and {count - 8} more commit(s) on GitHub*")
 
-    action_line = f"[{sender_name} pushed to {repo_full}]({compare_url})"
+    action_line = f"{sender_name} pushed to {repo_full}"
 
     desc = (
         f"# [{repo_name}]({repo_url})\n"
-        f"{action_line}\n\n"
-        f"**[{count} new {commit_word}]({compare_url})** to [`{branch}`]({repo_url}/tree/{branch})\n\n"
+        f"{action_line}\n"
+        f"**[{count} new {commit_word}]({compare_url})** to [`{branch}`]({repo_url}/tree/{branch})\n"
         + "\n".join(lines)
     )
 
@@ -155,10 +155,10 @@ def handle_pull_request(event):
     stat_str = f"`{changed_files} files changed` (+{additions} / -{deletions})"
 
     body_codeblock = clean_codeblock(pr.get("body"), max_len=320)
-    action_line = f"[{sender_name} {action_verb} in {repo_full}]({pr_url})"
+    action_line = f"{sender_name} {action_verb} in {repo_full}"
 
     desc_parts = [
-        f"# [{repo_name}]({repo_url})\n{action_line}\n",
+        f"# [{repo_name}]({repo_url})\n{action_line}",
         f"### [#{pr_num} {pr_title}]({pr_url})",
         f"🔀 `{base_branch}` ← `{head_branch}`",
     ]
@@ -167,7 +167,7 @@ def handle_pull_request(event):
 
     desc_parts.append(f"📊 **Changes:** {stat_str}\n📌 **Status:** `{status_label}`")
 
-    desc = "\n\n".join(desc_parts)
+    desc = "\n".join(desc_parts)
 
     return {
         "username": "AMVerge Desktop",
@@ -203,16 +203,16 @@ def handle_release(event):
     sender_url = sender.get("html_url") or repo_url
 
     body_codeblock = clean_codeblock(rel.get("body"), max_len=300)
-    action_line = f"[{sender_name} published a release in {repo_full}]({rel_url})"
+    action_line = f"{sender_name} published a release in {repo_full}"
 
     desc_parts = [
-        f"# [{repo_name}]({repo_url})\n{action_line}\n",
+        f"# [{repo_name}]({repo_url})\n{action_line}",
         f"🚀 **[{rel_name}]({rel_url})** is now live!\n🏷️ **Tag:** `{tag_name}`",
     ]
     if body_codeblock:
         desc_parts.append(body_codeblock)
 
-    desc = "\n\n".join(desc_parts)
+    desc = "\n".join(desc_parts)
 
     return {
         "username": "AMVerge Desktop",
@@ -261,10 +261,10 @@ def handle_issues(event):
     label_tags = " ".join([f"`{l.get('name')}`" for l in raw_labels[:4]]) if raw_labels else "None"
 
     body_codeblock = clean_codeblock(issue.get("body"), max_len=300)
-    action_line = f"[{sender_name} {action} issue in {repo_full}]({issue_url})"
+    action_line = f"{sender_name} {action} issue in {repo_full}"
 
     desc_parts = [
-        f"# [{repo_name}]({repo_url})\n{action_line}\n",
+        f"# [{repo_name}]({repo_url})\n{action_line}",
         f"### [#{issue_num} {issue_title}]({issue_url})",
     ]
     if body_codeblock:
@@ -272,7 +272,7 @@ def handle_issues(event):
 
     desc_parts.append(f"🏷️ **Labels:** {label_tags}\n📌 **Status:** `{status_label}`")
 
-    desc = "\n\n".join(desc_parts)
+    desc = "\n".join(desc_parts)
 
     return {
         "username": "AMVerge Desktop",
