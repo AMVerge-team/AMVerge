@@ -152,7 +152,10 @@ def handle_pull_request(event):
     changed_files = pr.get("changed_files", 0)
     additions = pr.get("additions", 0)
     deletions = pr.get("deletions", 0)
-    stat_str = f"`{changed_files} files changed` (+{additions} / -{deletions})"
+    stat_str = f"`{changed_files} files` (+{additions} / -{deletions})"
+
+    raw_labels = pr.get("labels") or []
+    label_tags = " ".join([f"`{l.get('name')}`" for l in raw_labels[:4]]) if raw_labels else "None"
 
     body_codeblock = clean_codeblock(pr.get("body"), max_len=320)
     action_line = f"{sender_name} {action_verb} in {repo_full}"
@@ -165,7 +168,11 @@ def handle_pull_request(event):
     if body_codeblock:
         desc_parts.append(body_codeblock)
 
-    desc_parts.append(f"📊 **Changes:** {stat_str}\n📌 **Status:** `{status_label}`")
+    desc_parts.append(
+        f"📊 **Changes:** {stat_str}\n"
+        f"🏷️ **Labels:** {label_tags}\n"
+        f"📌 **Status:** `{status_label}`"
+    )
 
     desc = "\n".join(desc_parts)
 
