@@ -6,10 +6,10 @@
   },
   "player": {
     "play": "Lire",
-    "pause": "Pause",
+    "pause": "",
     "mute": "Couper le son",
     "unmute": "Remettre le son",
-    "volume": "Volume",
+    "volume": "",
     "fullscreen": "Plein écran"
   },
   "export": {
@@ -25,6 +25,10 @@
     "davinciOff": "Envoyer les clips exportés sur la timeline DaVinci Resolve (Studio uniquement)",
     "davinciAria": "Envoyer les clips exportés vers DaVinci Resolve",
     "previewLanguageAria": "Sélecteur de langue de l'aperçu",
+    "previewLanguage": "",
+    "postPasses": "",
+    "postPassesToggle": "",
+    "configurePostPasses": "",
     "previewLanguageLine1": "LANGUE DE",
     "previewLanguageLine2": "L'APERÇU",
     "selectAtLeastOne": "Sélectionnez au moins un clip à exporter",
