@@ -12,10 +12,19 @@ COLOR_GOLD = 0xEAB308    # Release
 COLOR_RED = 0xEF4444     # Closed PR / Issue
 
 
-def send_discord_payload(payload):
-    raw_url = os.environ.get("WEBHOOK_URL", "").strip()
+def send_discord_payload(payload, channel="updates"):
+    """
+    channel: "updates" (milestones) or "feed" (activity stream)
+    """
+    raw_url = ""
+    if channel == "feed":
+        # Check feed webhook first; fall back to updates webhook if not configured
+        raw_url = os.environ.get("FEED_WEBHOOK_URL", "").strip() or os.environ.get("WEBHOOK_URL", "").strip()
+    else:
+        raw_url = os.environ.get("WEBHOOK_URL", "").strip()
+
     if not raw_url:
-        print("DISCORD_WEBHOOK_URL not set; skipping.")
+        print(f"Webhook URL for channel '{channel}' not set; skipping.")
         return
 
     url = raw_url.rstrip("/")
@@ -418,21 +427,40 @@ def main():
         event = json.load(f)
 
     payload = None
-    if event_name == "push":
-        payload = handle_push(event)
+    target_channel = "feed"  # Default routing
+
+    if event_name == "release":
+        payload = handle_release(event)
+        target_channel = "updates"
     elif event_name == "pull_request":
         payload = handle_pull_request(event)
-    elif event_name == "pull_request_review":
-        payload = handle_pull_request_review(event)
-    elif event_name == "issue_comment":
-        payload = handle_issue_comment(event)
-    elif event_name == "release":
-        payload = handle_release(event)
+        action = event.get("action", "")
+        pr = event.get("pull_request") or {}
+        # Merged PRs are major milestones for #github-updates; others go to #github-feed
+        if action == "closed" and pr.get("merged", False):
+            target_channel = "updates"
+        else:
+            target_channel = "feed"
     elif event_name == "issues":
         payload = handle_issues(event)
+        action = event.get("action", "")
+        # Newly opened user issues go to #github-updates for visibility
+        if action == "opened":
+            target_channel = "updates"
+        else:
+            target_channel = "feed"
+    elif event_name == "push":
+        payload = handle_push(event)
+        target_channel = "feed"
+    elif event_name == "pull_request_review":
+        payload = handle_pull_request_review(event)
+        target_channel = "feed"
+    elif event_name == "issue_comment":
+        payload = handle_issue_comment(event)
+        target_channel = "feed"
 
     if payload:
-        send_discord_payload(payload)
+        send_discord_payload(payload, channel=target_channel)
 
 
 if __name__ == "__main__":
