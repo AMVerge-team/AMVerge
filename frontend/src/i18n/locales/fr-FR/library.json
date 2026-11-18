@@ -68,7 +68,7 @@
   "scenepacks": {
     "searchPlaceholder": "Rechercher un Scenepack…",
     "header": {
-      "title": "Scenepacks",
+      "title": "",
       "newScenepack": "Nouveau Scenepack",
       "deleteSelected": "Supprimer l'élément sélectionné"
     },
@@ -103,7 +103,7 @@
     },
     "thumbnail": {
       "invalidType": "La vignette doit être une image PNG, JPEG, WebP ou GIF.",
-      "filterName": "Images",
+      "filterName": "",
       "saving": "Enregistrement…",
       "dropHint": "Déposez une image ici, ou cliquez pour parcourir",
       "formats": "PNG, JPEG, WebP ou GIF"
