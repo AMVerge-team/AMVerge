@@ -337,6 +337,14 @@ export const LazyClip = memo(function LazyClip({
   };
 
   const isScout = activePage === "sceneScout";
+  const durationLabel = showClipDuration && (activePage === "home" || isScout)
+    ? formatClipDuration(clip.startSec, clip.endSec)
+    : null;
+  const startTimeLabel = showClipTimestamps ? formatClipTime(clip.startSec) : null;
+  const endTimeLabel = startTimeLabel && showClipEndTime &&
+    clip.startSec !== undefined && clip.endSec !== undefined && clip.endSec > clip.startSec
+    ? formatClipTime(clip.endSec)
+    : null;
   const scoutTooltip = isScout
     ? [
         clip.originalName,
@@ -512,16 +520,16 @@ export const LazyClip = memo(function LazyClip({
             </div>
           )}
 
-          {showClipDuration && (activePage === "home" || activePage === "sceneScout") && (() => {
-            const dur = formatClipDuration(clip.startSec, clip.endSec);
-            return dur ? <div className="clip-duration-badge">{dur}</div> : null;
-          })()}
-
-          {showClipTimestamps && clip.startSec !== undefined && (
-            <div className={`clip-original-timestamp${showClipEndTime && clip.endSec !== undefined ? " is-timeframe" : ""}`}>
-              <span>{formatClipTime(clip.startSec)}</span>
-              {showClipEndTime && clip.endSec !== undefined && clip.endSec > clip.startSec && (
-                <span className="clip-timestamp-end">{` - ${formatClipTime(clip.endSec)}`}</span>
+          {(durationLabel || startTimeLabel) && (
+            <div className="clip-timing-overlay">
+              {durationLabel && <div className="clip-timing-badge clip-duration-badge">{durationLabel}</div>}
+              {startTimeLabel && (
+                <div className="clip-timing-badge clip-original-timestamp">
+                  <span className="clip-timestamp-line">
+                    <span className="clip-timestamp-start">{startTimeLabel}</span>
+                    {endTimeLabel && <span className="clip-timestamp-end">{` - ${endTimeLabel}`}</span>}
+                  </span>
+                </div>
               )}
             </div>
           )}
