@@ -1,0 +1,101 @@
+name: Discord Push Notifications
+
+on:
+  push:
+    branches-ignore:
+      - "l10n_*"
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord notification
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+        run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "DISCORD_WEBHOOK_URL secret is not set; skipping."
+            exit 0
+          fi
+
+          python3 - << 'EOF'
+          import datetime
+          import json
+          import os
+          import urllib.request
+
+          webhook_url = os.environ["WEBHOOK_URL"].strip().rstrip("/")
+          if webhook_url.endswith("/github"):
+              webhook_url = webhook_url[: -len("/github")]
+
+          with open(os.environ["GITHUB_EVENT_PATH"], "r", encoding="utf-8") as f:
+              event = json.load(f)
+
+          commits = event.get("commits") or []
+          if not commits:
+              raise SystemExit(0)
+
+          repo_full = event["repository"]["full_name"]
+          branch = event["ref"].removeprefix("refs/heads/")
+          compare_url = event.get("compare") or event["repository"]["html_url"]
+          sender = event.get("sender") or {}
+          sender_name = sender.get("login", "github")
+          sender_avatar = sender.get("avatar_url", "")
+          sender_url = sender.get("html_url", "")
+
+          lines = []
+          for c in commits[:10]:
+              sha = c["id"][:7]
+              url = c["url"]
+              msg = (c.get("message") or "").splitlines()[0]
+              author = (c.get("author") or {}).get("username") or (c.get("author") or {}).get("name") or sender_name
+              lines.append(f"• [`{sha}`]({url}) {msg} — *{author}*")
+          if len(commits) > 10:
+              lines.append(f"*...and {len(commits) - 10} more commit(s)*")
+
+          count = len(commits)
+          commit_label = "1 commit" if count == 1 else f"{count} commits"
+
+          payload = {
+              "username": "AMVerge Desktop",
+              "avatar_url": "https://github.com/AMVerge-team.png",
+              "embeds": [
+                  {
+                      "author": {
+                          "name": sender_name,
+                          "url": sender_url,
+                          "icon_url": sender_avatar,
+                      },
+                      "title": f"AMVerge Desktop  •  {branch}",
+                      "url": compare_url,
+                      "description": "\n".join(lines)[:4096],
+                      "color": 0x22C55E,
+                      "fields": [
+                          {"name": "Branch", "value": f"`{branch}`", "inline": True},
+                          {"name": "Changes", "value": commit_label, "inline": True},
+                      ],
+                      "footer": {
+                          "text": f"{repo_full} • Desktop App",
+                          "icon_url": "https://github.com/AMVerge-team.png",
+                      },
+                      "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                  }
+              ],
+          }
+
+          req = urllib.request.Request(
+              webhook_url,
+              data=json.dumps(payload).encode("utf-8"),
+              headers={
+                  "Content-Type": "application/json",
+                  "User-Agent": "AMVerge-GitHub-Actions",
+              },
+              method="POST",
+          )
+          with urllib.request.urlopen(req, timeout=15) as resp:
+              print("Discord webhook status:", resp.status)
+          EOF
