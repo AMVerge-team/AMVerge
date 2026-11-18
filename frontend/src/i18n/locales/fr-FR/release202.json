@@ -27,8 +27,6 @@
   "depthMissingHint": "Installez-le pour générer des depth maps ici. Cliquez pour l'installer.",
   "contributorsLoading": "Chargement des contributeurs depuis GitHub…",
   "contributorsFailed": "Impossible de charger les contributeurs depuis GitHub pour le moment. Voir la liste complète sur",
-  "commits_one": "{{count}} commit",
-  "commits_other": "{{count}} commits",
   "enableTitle": "Activer {{name}} ?",
   "enableMessage": "{{name}} est désactivé. Voulez-vous l'activer ?",
   "enable": "Activer",
