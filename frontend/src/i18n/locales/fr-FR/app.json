@@ -1,0 +1,13 @@
+{
+  "updater": {
+    "title": "Mise à jour d'AMVerge",
+    "available": "Une mise à jour est disponible (v{{version}}). L'installer maintenant ?",
+    "install": "Installer",
+    "starting": "Installation de la v{{version}} en cours.\n\nGardez l'application ouverte jusqu'à la fin.",
+    "installedTitle": "Mise à jour d'AMVerge installée",
+    "installed": "La mise à jour v{{version}} est installée.\n\nSur macOS, si l'application ne redémarre pas toute seule, fermez puis rouvrez AMVerge une fois.",
+    "genericError": "Impossible de télécharger ou d'installer la mise à jour.",
+    "failedTitle": "Échec de la mise à jour d'AMVerge",
+    "failed": "Impossible d'installer la mise à jour. {{error}}"
+  }
+}
