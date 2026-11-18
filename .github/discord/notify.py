@@ -296,6 +296,118 @@ def handle_issues(event):
     }
 
 
+def handle_pull_request_review(event):
+    action = event.get("action", "")
+    review = event.get("review") or {}
+    pr = event.get("pull_request") or {}
+    if not review or not pr or action != "submitted":
+        return None
+
+    repo_name = event["repository"]["name"]
+    repo_full = event["repository"]["full_name"]
+    repo_url = event["repository"]["html_url"]
+    pr_num = pr.get("number")
+    pr_title = pr.get("title", "")
+    review_url = review.get("html_url") or pr.get("html_url") or repo_url
+
+    sender = event.get("sender") or {}
+    sender_name = sender.get("login", "github")
+    sender_avatar = sender.get("avatar_url") or "https://github.com/AMVerge-team.png"
+    sender_url = sender.get("html_url") or repo_url
+
+    state = (review.get("state") or "").lower()
+    if state == "approved":
+        state_label = "Approved"
+        action_verb = "approved changes on pull request"
+        color = COLOR_GREEN
+    elif state == "changes_requested":
+        state_label = "Changes Requested"
+        action_verb = "requested changes on pull request"
+        color = COLOR_RED
+    else:
+        state_label = "Reviewed"
+        action_verb = "submitted a review on pull request"
+        color = COLOR_BLUE
+
+    review_body = clean_codeblock(review.get("body"), max_len=300)
+    action_line = f"{sender_name} {action_verb} in {repo_full}"
+
+    desc_parts = [
+        f"# [{repo_name}]({repo_url})\n{action_line}",
+        f"### [#{pr_num} {pr_title}]({review_url})",
+    ]
+    if review_body:
+        desc_parts.append(review_body)
+
+    desc_parts.append(f"📌 **Review State:** `{state_label}`")
+    desc = "\n".join(desc_parts)
+
+    return {
+        "username": "AMVerge Desktop",
+        "avatar_url": "https://github.com/AMVerge-team.png",
+        "embeds": [
+            {
+                "author": {"name": sender_name, "url": sender_url, "icon_url": sender_avatar},
+                "description": desc[:4096],
+                "color": color,
+                "footer": {"text": f"{repo_full} • PR #{pr_num} Review", "icon_url": "https://github.com/AMVerge-team.png"},
+            }
+        ],
+        "components": make_buttons([("View Review", review_url), ("Open Repository", repo_url)]),
+    }
+
+
+def handle_issue_comment(event):
+    action = event.get("action", "")
+    comment = event.get("comment") or {}
+    issue = event.get("issue") or {}
+    if not comment or not issue or action != "created":
+        return None
+
+    repo_name = event["repository"]["name"]
+    repo_full = event["repository"]["full_name"]
+    repo_url = event["repository"]["html_url"]
+    item_num = issue.get("number")
+    item_title = issue.get("title", "")
+    comment_url = comment.get("html_url") or issue.get("html_url") or repo_url
+    is_pr = "pull_request" in issue
+    kind_str = "pull request" if is_pr else "issue"
+
+    sender = event.get("sender") or {}
+    sender_name = sender.get("login", "github")
+    sender_avatar = sender.get("avatar_url") or "https://github.com/AMVerge-team.png"
+    sender_url = sender.get("html_url") or repo_url
+
+    comment_body = clean_codeblock(comment.get("body"), max_len=300)
+    action_line = f"{sender_name} commented on {kind_str} in {repo_full}"
+
+    desc_parts = [
+        f"# [{repo_name}]({repo_url})\n{action_line}",
+        f"### [#{item_num} {item_title}]({comment_url})",
+    ]
+    if comment_body:
+        desc_parts.append(comment_body)
+
+    desc = "\n".join(desc_parts)
+
+    btn_label = "View PR Comment" if is_pr else "View Issue Comment"
+    footer_text = f"{repo_full} • {'PR' if is_pr else 'Issue'} #{item_num} Comment"
+
+    return {
+        "username": "AMVerge Desktop",
+        "avatar_url": "https://github.com/AMVerge-team.png",
+        "embeds": [
+            {
+                "author": {"name": sender_name, "url": sender_url, "icon_url": sender_avatar},
+                "description": desc[:4096],
+                "color": COLOR_BLUE,
+                "footer": {"text": footer_text, "icon_url": "https://github.com/AMVerge-team.png"},
+            }
+        ],
+        "components": make_buttons([(btn_label, comment_url), ("Open Repository", repo_url)]),
+    }
+
+
 def main():
     event_path = os.environ.get("GITHUB_EVENT_PATH")
     event_name = os.environ.get("GITHUB_EVENT_NAME", "")
@@ -310,6 +422,10 @@ def main():
         payload = handle_push(event)
     elif event_name == "pull_request":
         payload = handle_pull_request(event)
+    elif event_name == "pull_request_review":
+        payload = handle_pull_request_review(event)
+    elif event_name == "issue_comment":
+        payload = handle_issue_comment(event)
     elif event_name == "release":
         payload = handle_release(event)
     elif event_name == "issues":
