@@ -4,11 +4,8 @@ import sys
 import urllib.parse
 import urllib.request
 
-COLOR_GREEN = 0x22C55E
-COLOR_BLUE = 0x3B82F6
-COLOR_GOLD = 0xEAB308
-COLOR_PURPLE = 0xA855F7
-COLOR_RED = 0xEF4444
+# AMVerge Desktop theme color
+THEME_COLOR = 0x22C55E
 
 
 def send_discord_payload(payload):
@@ -91,7 +88,7 @@ def handle_push(event):
                 "title": repo_name,
                 "url": repo_url,
                 "description": desc[:4096],
-                "color": COLOR_GREEN,
+                "color": THEME_COLOR,
                 "footer": {"text": f"{repo_full} • {branch}", "icon_url": "https://github.com/AMVerge-team.png"},
             }
         ],
@@ -123,13 +120,10 @@ def handle_pull_request(event):
     merged = pr.get("merged", False)
     if action == "closed" and merged:
         action_verb = "merged pull request"
-        color = COLOR_PURPLE
     elif action == "closed":
         action_verb = "closed pull request"
-        color = COLOR_RED
     else:
         action_verb = f"{action} pull request"
-        color = COLOR_GREEN
 
     body_preview = (pr.get("body") or "").strip().splitlines()
     preview_line = body_preview[0] if body_preview else ""
@@ -151,7 +145,7 @@ def handle_pull_request(event):
                 "title": repo_name,
                 "url": repo_url,
                 "description": desc[:4096],
-                "color": color,
+                "color": THEME_COLOR,
                 "footer": {"text": f"{repo_full} • PR #{pr_num}", "icon_url": "https://github.com/AMVerge-team.png"},
             }
         ],
@@ -188,7 +182,7 @@ def handle_release(event):
                 "title": repo_name,
                 "url": repo_url,
                 "description": desc[:4096],
-                "color": COLOR_GOLD,
+                "color": THEME_COLOR,
                 "footer": {"text": f"{repo_full} • Release {tag_name}", "icon_url": "https://github.com/AMVerge-team.png"},
             }
         ],
@@ -214,7 +208,6 @@ def handle_issues(event):
     sender_avatar = sender.get("avatar_url") or "https://github.com/AMVerge-team.png"
     sender_url = sender.get("html_url") or repo_url
 
-    color = COLOR_BLUE if action == "opened" else (COLOR_PURPLE if action == "reopened" else COLOR_RED)
     desc = f"**[#{issue_num} {issue_title}]({issue_url})**\n\nStatus: **{action.capitalize()}**"
 
     return {
@@ -226,7 +219,7 @@ def handle_issues(event):
                 "title": repo_name,
                 "url": repo_url,
                 "description": desc[:4096],
-                "color": color,
+                "color": THEME_COLOR,
                 "footer": {"text": f"{repo_full} • Issue #{issue_num}", "icon_url": "https://github.com/AMVerge-team.png"},
             }
         ],
