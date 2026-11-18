@@ -15,13 +15,13 @@
   },
   "tabs": {
     "ariaLabel": "Mode Scene Scout",
-    "search": "Search",
+    "search": "",
     "searchHint": "Trouver des scènes en les décrivant",
-    "match": "Match",
+    "match": "",
     "matchHint": "Sélectionner un clip et trouver les scènes qui semblent suivre sa dernière image"
   },
   "addEpisode": {
-    "label": "Add Episode",
+    "label": "",
     "indexing": "Indexation…"
   },
   "searchField": {
@@ -95,7 +95,7 @@
   "flow": {
     "heroInput": "Chargez un fichier pour trouver des scènes qui enchaînent",
     "noDatabaseHint": "Ajoutez d'abord une base à la liste Searching, à gauche",
-    "import": "Import",
+    "import": "",
     "searchAgainHint": "Relancer la recherche, par exemple après avoir changé les bases sélectionnées",
     "searchAgain": "Relancer la recherche",
     "inputtedClip": "Clip chargé",
@@ -105,11 +105,11 @@
     "resizeLabel": "Redimensionner le clip et les résultats"
   },
   "tools": {
-    "modalLabel": "Tools",
+    "modalLabel": "",
     "tabsLabel": "Outil",
-    "upscale": "Upscale",
+    "upscale": "",
     "upscaleBlurb": "Une copie du clip plus nette et en plus haute résolution",
-    "depth": "Depth map",
+    "depth": "",
     "depthBlurb": "Une vidéo de la distance entre la caméra et chaque partie de l'image, pour le compositing",
     "run": {
       "upscale": "Générer l'upscale",
@@ -120,8 +120,8 @@
       "depth": "Regénérer la depth map"
     },
     "pack": {
-      "upscale": "Upscaling",
-      "depth": "Depth mapping"
+      "upscale": "",
+      "depth": ""
     },
     "packMissing": "{{pack}} n'est pas encore installé.",
     "install": "Installer",
@@ -143,17 +143,17 @@
     "export": "Exporter",
     "viewer": {
       "play": "Lire",
-      "pause": "Pause",
+      "pause": "",
       "fullscreen": "Plein écran",
       "previewFailed": "Impossible de préparer un aperçu de ce clip.",
       "preparingPreview": "Préparation de l'aperçu",
       "resultFailed": "Impossible d'afficher le résultat.",
       "waitingFirstFrame": "En attente de la première image",
       "preparing": "Préparation…",
-      "original": "Original",
+      "original": "",
       "result": {
         "upscale": "Upscalé",
-        "depth": "Depth map"
+        "depth": ""
       },
       "waiting": {
         "upscale": "La version upscalée s'affichera ici",
@@ -203,9 +203,9 @@
     "info": {
       "title": "Événements de la communauté",
       "intro": "La communauté est énorme, et beaucoup de concours de montage passent inaperçus. Cette page les réunit au même endroit : les éditeurs trouvent les occasions qui valent le coup, et les organisateurs touchent les gens les plus susceptibles de venir. Plus de participants font de meilleurs événements, et un événement réussi donne envie au suivant d'en lancer un.",
-      "hcTitle": "Hour Challenge (HC)",
+      "hcTitle": "",
       "hc": "Une fenêtre courte et fixe. Les éditeurs ont un nombre d'heures donné, souvent sur une seule journée, pour faire un montage du début à la fin. Ça engage moins, et j'adore y participer (crptk)",
-      "ecTitle": "Editing Contest (EC)",
+      "ecTitle": "",
       "ec": "Un format plus long, d'au moins une journée et souvent bien plus. Il y a de la place pour préparer et peaufiner, en général moins de contraintes, et les lots sont plus gros.",
       "hostTitle": "Organiser un événement",
       "step1": "Connectez-vous avec Discord via le bouton Se connecter, pour pouvoir gérer l'événement ensuite. Tout passe par l'API officielle de Discord, nous n'avons donc accès à aucune de vos données.",
