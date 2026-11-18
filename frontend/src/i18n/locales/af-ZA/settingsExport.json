@@ -168,7 +168,6 @@
     },
     "upscaleModels": {
       "fallin_soft": "Fallin Soft - 2x, cleanest",
-      "adore": "Adore - 2x, high quality",
       "fallin_strong": "Fallin Strong - 2x, sharper",
       "shufflecugan": "ShuffleCUGAN - 2x, general purpose"
     },
