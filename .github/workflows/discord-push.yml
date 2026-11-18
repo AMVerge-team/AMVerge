@@ -25,11 +25,19 @@ jobs:
           python3 - << 'EOF'
           import json
           import os
+          import urllib.parse
           import urllib.request
 
           webhook_url = os.environ["WEBHOOK_URL"].strip().rstrip("/")
           if webhook_url.endswith("/github"):
               webhook_url = webhook_url[: -len("/github")]
+
+          # Discord ignores the components field on standard webhooks unless with_components=true is present
+          parsed_url = urllib.parse.urlparse(webhook_url)
+          query_params = urllib.parse.parse_qs(parsed_url.query)
+          query_params["with_components"] = ["true"]
+          new_query = urllib.parse.urlencode(query_params, doseq=True)
+          webhook_url = urllib.parse.urlunparse(parsed_url._replace(query=new_query))
 
           with open(os.environ["GITHUB_EVENT_PATH"], "r", encoding="utf-8") as f:
               event = json.load(f)
@@ -38,6 +46,7 @@ jobs:
           if not commits:
               raise SystemExit(0)
 
+          repo_name = event["repository"]["name"]
           repo_full = event["repository"]["full_name"]
           repo_url = event["repository"]["html_url"]
           branch = event["ref"].removeprefix("refs/heads/")
@@ -57,19 +66,14 @@ jobs:
               url = c["url"]
               msg = (c.get("message") or "").splitlines()[0]
               author = (c.get("author") or {}).get("username") or (c.get("author") or {}).get("name") or sender_name
-              added = len(c.get("added") or [])
-              modified = len(c.get("modified") or [])
-              removed = len(c.get("removed") or [])
-              files_stat = f"{added + modified + removed} file(s)"
-              commit_lines.append(f"• [`{sha}`]({url}) {msg}\n  -# by **{author}** • {files_stat}")
+              commit_lines.append(f"[`{sha}`]({url}) {msg} — *{author}*")
 
           if count > 8:
-              commit_lines.append(f"-# *...and {count - 8} more commit(s) on GitHub*")
+              commit_lines.append(f"*...and {count - 8} more commit(s) on GitHub*")
 
           desc = (
-              f"### [`{branch}`]({compare_url}) • {count} new {commit_word}\n\n"
-              + "\n\n".join(commit_lines)
-              + f"\n\n[Compare on GitHub]({compare_url}) • [Open Repository]({repo_url})"
+              f"**[{count} new {commit_word}]({compare_url})** to [`{branch}`]({repo_url}/tree/{branch})\n\n"
+              + "\n".join(commit_lines)
           )
 
           payload = {
@@ -97,13 +101,13 @@ jobs:
                           {
                               "type": 2,
                               "style": 5,
-                              "label": "Compare Changes",
+                              "label": "Compare on GitHub",
                               "url": compare_url,
                           },
                           {
                               "type": 2,
                               "style": 5,
-                              "label": "View Repository",
+                              "label": "Open Repository",
                               "url": repo_url,
                           },
                       ],
