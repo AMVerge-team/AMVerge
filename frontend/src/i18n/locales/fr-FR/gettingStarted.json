@@ -1,53 +1,53 @@
 {
   "steps": {
     "0": {
-      "title": "Bienvenue dans AMVerge",
-      "body": "Un tour rapide d'AMVerge pour savoir où se trouve chaque page, comment fonctionnent les imports et les aperçus, et où activer les fonctionnalités IA."
+      "title": "Welcome to AMVerge",
+      "body": "Let's take a quick lap around AMVerge so you know where every page lives, how imports and previews work, and where to unlock optional AI features."
     },
     "1": {
       "title": "1. Library",
-      "body": "<b>Library</b> est votre espace de travail. Importez-y des épisodes ou des fichiers vidéo pour les découper en scènes, survolez un clip pour le voir, et exportez ceux que vous choisissez directement vers votre logiciel de montage."
+      "body": "<b>Library</b> is your home workspace. Import episodes or video files here to split them into scenes, hover to preview every cut, and export the clips you select straight to your editor."
     },
     "2": {
       "title": "2. Scenepacks",
-      "body": "<b>Scenepacks</b> réunit vos clips préférés, pris dans n'importe quel épisode, en collections par personnage, par ambiance, etc. Vous pouvez l'activer quand vous voulez dans <b>Paramètres › Fonctionnalités</b>."
+      "body": "<b>Scenepacks</b> lets you group favorite clips from any episode into custom collections by character, mood, etc. You can turn it on anytime in <b>Settings › Features</b>."
     },
     "3": {
       "title": "3. Scene Scout",
-      "body": "<b>Scene Scout</b> cherche dans vos épisodes indexés à partir d'une description, avec vos mots (ou trouve les clips qui enchaînent avec un clip que vous avez déjà). Activez-le et téléchargez-le quand vous voulez dans <b>Paramètres › Fonctionnalités</b>."
+      "body": "<b>Scene Scout</b> searches across your indexed episodes from a plain-English description (or finds clips that flow from a clip you already have). Enable and download it anytime in <b>Settings › Features</b>."
     },
     "4": {
       "title": "4. Community Events",
-      "body": "<b>Events</b> liste les concours AMV et les Hour Challenges en cours dans la communauté. Parcourez les tournois, rejoignez leurs serveurs Discord, ou connectez-vous avec Discord pour organiser le vôtre."
+      "body": "<b>Events</b> lists active AMV contests and Hour Challenges from the community. Browse active brackets, join their Discord servers, or sign in with Discord to host your own."
     },
     "5": {
-      "title": "5. Ouvrir le menu",
-      "body": "Cliquez sur le <b>bouton ☰</b>, juste à côté du logo AMVerge, pour ouvrir la navigation rapide, ou appuyez sur <b>Suivant</b> pour entrer directement."
+      "title": "5. Open the Menu",
+      "body": "Click the <b>☰ menu button</b> right next to the AMVerge logo to open Quick Navigation, or press <b>Next</b> to jump straight in."
     },
     "6": {
-      "title": "6. Ouvrir les paramètres",
-      "body": "Cliquez sur <b>Paramètres</b> ici pour choisir comment AMVerge détecte les coupes, lit les aperçus et installe les fonctionnalités optionnelles."
+      "title": "6. Open Settings",
+      "body": "Click <b>Settings</b> here to configure how AMVerge detects cuts, plays previews, and installs optional features."
     },
     "7": {
-      "title": "7. Méthodes de détection de scènes",
-      "body": "Choisissez comment les imports trouvent les coupes : <br/>• <b>Keyframe Detection</b> coupe sur les images clés de la vidéo, sans attente, et fonctionne sur n'importe quel PC sans carte graphique. <br/>• <b>AI Scene Detection</b> analyse chaque image avec TransNetV2 pour trouver les changements de plan exacts (plus lent sans carte graphique ; installable à tout moment)."
+      "title": "7. Scene Detection Methods",
+      "body": "Choose how imports find cuts: <br/>• <b>Keyframe Detection</b> cuts instantly on video keyframes and works on any PC with no GPU. <br/>• <b>AI Scene Detection</b> checks every frame with TransNetV2 for exact shot changes (slower without a GPU; install anytime)."
     },
     "8": {
-      "title": "8. Méthodes d'aperçu",
-      "body": "Choisissez ce que la grille lit au survol : <br/>• <b>Video Files</b> découpe de vraies vidéos pour chaque scène, l'aperçu est donc identique à l'export. <br/>• <b>WebP Files</b> crée des aperçus animés légers, pour un défilement plus souple et moins de mémoire utilisée (les exports partent toujours de la qualité d'origine)."
+      "title": "8. Preview Methods",
+      "body": "Choose how the grid plays clips when you hover: <br/>• <b>Video Files</b> cuts real video clips per scene so previews match your export. <br/>• <b>WebP Files</b> builds lightweight animated previews for smoother scrolling and lower memory usage (exports still cut from full quality)."
     },
     "9": {
-      "title": "9. Fonctionnalités et téléchargements",
-      "body": "Dans <b>Fonctionnalités</b>, activez et téléchargez les outils optionnels quand vous en avez besoin : <b>Scene Scout</b>, <b>AI Scene Detection</b>, <b>Scenepacks</b>, <b>Upscaling</b> et <b>Depth Maps</b>."
+      "title": "9. Features & Downloads",
+      "body": "In <b>Features</b> you can switch on and download optional tools whenever you want them, including <b>Scene Scout</b>, <b>AI Scene Detection</b>, <b>Scenepacks</b>, <b>Upscaling</b>, and <b>Depth Maps</b>."
     },
     "10": {
-      "title": "10. C'est prêt",
-      "body": "Le tutoriel s'arrête là. Pour le revoir, il est dans la section <b>« How to Use »</b>, à droite de la page. Bon montage !"
+      "title": "10. All Set",
+      "body": "That's about it for the tutorial, if you need this guide again, it's located in the <b>\"How to Use\"</b> section on the right side of the page. Enjoy!"
     }
   },
-  "ariaLabel": "Guide de prise en main",
-  "skip": "Passer",
-  "back": "Précédent",
-  "finish": "Terminer",
-  "next": "Suivant"
+  "ariaLabel": "Getting started guide",
+  "skip": "Skip",
+  "back": "Back",
+  "finish": "Finish",
+  "next": "Next"
 }
