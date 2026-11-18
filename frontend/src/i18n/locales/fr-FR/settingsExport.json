@@ -1,5 +1,5 @@
 {
-  "title": "Export",
+  "title": "",
   "profile": {
     "section": "Profil",
     "active": {
@@ -39,7 +39,7 @@
     "auto": "Conteneur automatique"
   },
   "codec": {
-    "label": "Codec",
+    "label": "",
     "description": "Le codec vidéo utilisé à l'export.",
     "profile": {
       "label": "Profil du codec",
@@ -62,14 +62,14 @@
     },
     "labels": {
       "copy": "Copie du son",
-      "aac": "AAC",
-      "aac_320": "AAC 320k",
+      "aac": "",
+      "aac_320": "",
       "pcm16": "PCM 16 bits",
       "pcm24": "PCM 24 bits",
-      "flac": "FLAC",
-      "alac": "ALAC",
-      "opus": "Opus",
-      "mp3": "MP3",
+      "flac": "",
+      "alac": "",
+      "opus": "",
+      "mp3": "",
       "none": "Pas de son"
     }
   },
@@ -101,7 +101,7 @@
   "icons": {
     "names": {
       "video": "Vidéo",
-      "remux": "Remux",
+      "remux": "",
       "custom": "Personnalisée"
     },
     "profileIconAlt": "Icône du profil",
@@ -114,18 +114,22 @@
     "customIcons": "Icônes personnalisées",
     "pin": "Épingler aux icônes rapides",
     "unpin": "Retirer des icônes rapides",
-    "imageFilter": "Image",
+    "imageFilter": "",
     "cropTitle": "Recadrer l'icône du profil",
     "cropHint": "Un recadrage carré donne la meilleure icône"
   },
   "passes": {
     "section": "Passes après export",
+    "master": {
+      "label": "",
+      "description": ""
+    },
     "labels": {
-      "depth": "Depth map",
-      "upscale": "Upscale"
+      "depth": "",
+      "upscale": ""
     },
     "depth": {
-      "label": "Depth map",
+      "label": "",
       "description": "Enregistre aussi une depth map de chaque export, sous <nom>_depth.",
       "descriptionOff": "Enregistre aussi une depth map de chaque export, sous <nom>_depth. Activez-la dans Paramètres › Fonctionnalités.",
       "toggle": "Activer ou désactiver la depth map",
@@ -144,7 +148,7 @@
       }
     },
     "upscale": {
-      "label": "Upscaling",
+      "label": "",
       "description": "Enregistre aussi une copie en plus haute résolution de chaque export, sous <nom>_upscaled.",
       "descriptionOff": "Enregistre aussi une copie en plus haute résolution de chaque export, sous <nom>_upscaled. Activez-le dans Paramètres › Fonctionnalités.",
       "toggle": "Activer ou désactiver l'upscaling",
@@ -159,7 +163,7 @@
     },
     "depthEncoders": {
       "vits": "Depth Anything V2 - Small (le plus rapide)",
-      "vitb": "Depth Anything V2 - Base",
+      "vitb": "",
       "vitl": "Depth Anything V2 - Large (le meilleur)"
     },
     "upscaleModels": {
@@ -180,23 +184,23 @@
     "list": "Fonctionnalités",
     "items": {
       "aiSceneDetection": {
-        "label": "AI Scene Detection",
+        "label": "",
         "description": "Trouve les coupes avec une IA (TransNetV2), la façon la plus précise d'importer."
       },
       "sceneScout": {
-        "label": "Scene Scout",
+        "label": "",
         "description": "Cherchez dans vos épisodes en décrivant une scène, et trouvez les clips qui enchaînent."
       },
       "scenepacks": {
-        "label": "Scenepacks",
+        "label": "",
         "description": "Regroupez des clips en collections."
       },
       "depthPass": {
-        "label": "Depth Map",
+        "label": "",
         "description": "Crée une depth map de chaque fichier exporté."
       },
       "upscalePass": {
-        "label": "Upscaling",
+        "label": "",
         "description": "Crée une copie en plus haute résolution de chaque fichier exporté, avec une IA."
       }
     },
@@ -240,7 +244,7 @@
         "clearing": "Vidage…"
       },
       "total": {
-        "label": "Total",
+        "label": "",
         "description": "Tout ce que les fonctionnalités IA occupent sur ce PC."
       },
       "uninstall": {
