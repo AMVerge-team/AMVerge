@@ -60,6 +60,7 @@ import { useWebpLoadingStore } from "./stores/webpLoadingStore";
 import { useUIStateStore } from "./stores/UIStore";
 import { applyThemeSettings, useGeneralSettingsStore, useThemeSettingsStore } from "./stores/settingsStore";
 import { useEpisodePanelRuntimeStore } from "./stores/episodeStore";
+import { useScenePreviewStore } from "./stores/scenePreviewStore";
 
 /** dragging the sidebar divider past this folds the sidebar away, well under its 220px minimum */
 const SIDEBAR_COLLAPSE_BELOW_PX = 140;
@@ -357,6 +358,7 @@ function App() {
     s.episodes.find((e) => e.id === s.openedEpisodeId)
   );
   const openedEpisodeClipsLen = openedEpisode?.clips.length ?? 0;
+  const animatedByClipId = useScenePreviewStore((s) => s.animatedByClipId);
 
   useEffect(() => {
     if (!openedEpisodeId || !openedEpisode) {
@@ -372,6 +374,15 @@ function App() {
       method: openedEpisode.importMethod || "video_files",
       updated_at: Math.floor(Date.now() / 1000),
       custom_path: episodesPath ?? null,
+      previews: openedEpisode.clips.flatMap((clip, index) => {
+        const preview = animatedByClipId[clip.id];
+        if (!preview) return [];
+        return [{
+          scene_index: clip.sceneIndex ?? index,
+          preview_webp_path: preview,
+          preview_poster_path: preview.replace(/\.webp$/i, ".jpg"),
+        }];
+      }),
     };
 
     void invoke("write_active_episode_sync", { payload }).catch(() => {});
@@ -381,6 +392,7 @@ function App() {
     openedEpisode?.videoPath,
     openedEpisodeClipsLen,
     openedEpisode?.importMethod,
+    animatedByClipId,
     episodesPath,
   ]);
 

@@ -130,6 +130,7 @@ fn main() {
             commands::settings::delete_profile_icon_file,
             commands::settings::reveal_in_file_manager,
             commands::settings::move_storage_to_new_dir,
+            commands::settings::rebase_storage_manifests,
             commands::settings::get_storage_breakdown,
             commands::settings::path_exists,
             commands::migration::v1_migration_source,

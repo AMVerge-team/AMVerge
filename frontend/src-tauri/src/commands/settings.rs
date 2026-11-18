@@ -26,6 +26,94 @@ pub fn get_default_episodes_dir(app: AppHandle) -> Result<String, String> {
     Ok(path.to_string_lossy().to_string())
 }
 
+fn rebase_owned_path(raw: &str, new_root: &Path) -> String {
+    let slashed = raw.replace('\\', "/");
+    let lower = slashed.to_lowercase();
+    for dir in OWNED_STORAGE_DIRS {
+        let with_child = format!("/{dir}/");
+        if let Some(at) = lower.rfind(&with_child) {
+            return new_root
+                .join(&slashed[at + 1..])
+                .to_string_lossy()
+                .to_string();
+        }
+        let whole_dir = format!("/{dir}");
+        if lower.ends_with(&whole_dir) {
+            return new_root.join(dir).to_string_lossy().to_string();
+        }
+    }
+    raw.to_string()
+}
+
+fn rebase_manifest_value(value: &mut serde_json::Value, new_root: &Path) {
+    match value {
+        serde_json::Value::String(path) => *path = rebase_owned_path(path, new_root),
+        serde_json::Value::Array(items) => {
+            for item in items {
+                rebase_manifest_value(item, new_root);
+            }
+        }
+        serde_json::Value::Object(map) => {
+            for item in map.values_mut() {
+                rebase_manifest_value(item, new_root);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn rebase_manifest_file(path: &Path, new_root: &Path) -> Result<bool, String> {
+    let raw = fs::read_to_string(path).map_err(|e| e.to_string())?;
+    let Ok(mut manifest) = serde_json::from_str::<serde_json::Value>(&raw) else {
+        return Ok(false);
+    };
+    let original = manifest.clone();
+    rebase_manifest_value(&mut manifest, new_root);
+    if manifest == original {
+        return Ok(false);
+    }
+    let serialized = serde_json::to_vec_pretty(&manifest).map_err(|e| e.to_string())?;
+    let temp = path.with_extension("json.tmp");
+    fs::write(&temp, serialized).map_err(|e| e.to_string())?;
+    fs::rename(&temp, path).map_err(|e| e.to_string())?;
+    Ok(true)
+}
+
+fn rebase_storage_manifests_sync(storage_root: &Path) -> Result<usize, String> {
+    let episodes = storage_root.join("episodes_storage");
+    let Ok(entries) = fs::read_dir(episodes) else {
+        return Ok(0);
+    };
+    let mut changed = 0;
+    for entry in entries.flatten() {
+        for name in ["manifest.json", "sync_preview.json"] {
+            let manifest = entry.path().join(name);
+            if manifest.is_file() {
+                match rebase_manifest_file(&manifest, storage_root) {
+                    Ok(true) => changed += 1,
+                    Ok(false) => {}
+                    Err(err) => console_log(
+                        "SETTINGS|rebase",
+                        &format!("could not repair {}: {err}", manifest.display()),
+                    ),
+                }
+            }
+        }
+    }
+    Ok(changed)
+}
+
+#[tauri::command]
+pub async fn rebase_storage_manifests(
+    app: AppHandle,
+    custom_episodes_path: Option<String>,
+) -> Result<usize, String> {
+    let root = resolve_storage_root(&app, custom_episodes_path.as_deref())?;
+    tauri::async_runtime::spawn_blocking(move || rebase_storage_manifests_sync(&root))
+        .await
+        .map_err(|e| format!("Manifest path repair failed: {e}"))?
+}
+
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StorageBreakdown {
@@ -446,6 +534,8 @@ fn move_storage_with_progress(
             ),
         );
     }
+
+    rebase_storage_manifests_sync(new_root)?;
 
     emit_move_progress(app, 100.0, false, "Storage move complete.");
     tracker.log("Storage move complete.");
@@ -1197,6 +1287,87 @@ mod tests {
         let err = move_storage(&old, &old.join("episodes_storage/inner")).unwrap_err();
         assert!(err.contains("episodes_storage"));
         assert!(old.join("episodes_storage/ep1/manifest.json").is_file());
+    }
+
+    #[test]
+    fn rebases_webp_sync_metadata_with_the_episode() {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = tmp.path().join("old");
+        let new = tmp.path().join("new");
+        let sync = new.join("episodes_storage/ep1/sync_preview.json");
+        fs::create_dir_all(sync.parent().unwrap()).unwrap();
+        fs::write(
+            &sync,
+            serde_json::to_vec_pretty(&serde_json::json!({
+                "previews": [{
+                    "scene_index": 0,
+                    "preview_webp_path": old.join("episodes_storage/ep1/scenes/scene_hash.webp"),
+                    "preview_poster_path": old.join("episodes_storage/ep1/scenes/scene_hash.jpg")
+                }]
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(rebase_storage_manifests_sync(&new).unwrap(), 1);
+        let repaired: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&sync).unwrap()).unwrap();
+        assert_eq!(
+            repaired["previews"][0]["preview_webp_path"],
+            new.join("episodes_storage/ep1/scenes/scene_hash.webp")
+                .to_string_lossy()
+                .to_string()
+        );
+    }
+
+    #[test]
+    fn rebases_manifest_paths_after_a_move_without_moving_external_sources() {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = tmp.path().join("old");
+        let new = tmp.path().join("new");
+        let external = tmp.path().join("source.mkv");
+        let manifest = new.join("episodes_storage/ep1/manifest.json");
+        fs::create_dir_all(manifest.parent().unwrap()).unwrap();
+        fs::write(
+            &manifest,
+            serde_json::to_vec_pretty(&serde_json::json!({
+                "source": {
+                    "videoPath": external,
+                    "outputDir": old.join("episodes_storage/ep1")
+                },
+                "initialClips": [{
+                    "path": external,
+                    "original_path": external,
+                    "clip_path": old.join("episodes_storage/ep1/scenes/scene_0000.mp4"),
+                    "thumbnail": old.join("episodes_storage/ep1/scenes/scene_0000.webp")
+                }],
+                "backendPayload": {
+                    "cache": {"secs_path": old.join("episodes_storage/ep1/cache/secs.npy")}
+                }
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(rebase_storage_manifests_sync(&new).unwrap(), 1);
+        assert_eq!(rebase_storage_manifests_sync(&new).unwrap(), 0);
+
+        let repaired: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&manifest).unwrap()).unwrap();
+        assert_eq!(repaired["source"]["videoPath"], external.to_string_lossy().to_string());
+        assert_eq!(repaired["initialClips"][0]["path"], external.to_string_lossy().to_string());
+        assert_eq!(
+            repaired["initialClips"][0]["clip_path"],
+            new.join("episodes_storage/ep1/scenes/scene_0000.mp4").to_string_lossy().to_string()
+        );
+        assert_eq!(
+            repaired["initialClips"][0]["thumbnail"],
+            new.join("episodes_storage/ep1/scenes/scene_0000.webp").to_string_lossy().to_string()
+        );
+        assert_eq!(
+            repaired["backendPayload"]["cache"]["secs_path"],
+            new.join("episodes_storage/ep1/cache/secs.npy").to_string_lossy().to_string()
+        );
     }
 
     #[test]

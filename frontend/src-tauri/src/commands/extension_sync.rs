@@ -18,13 +18,25 @@ pub struct AppPathsSyncPayload {
     pub runtime_dir: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ai_config_dir: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hf_home_dir: Option<String>,
     pub episodes_storage_dir: String,
     pub updated_at: u64,
 }
 
+fn preserved_episodes_path(
+    episodes_path_update: Option<Option<&str>>,
+    existing: Option<String>,
+) -> Option<String> {
+    if episodes_path_update.is_some() {
+        return None;
+    }
+    existing.filter(|path| !path.trim().is_empty())
+}
+
 pub fn write_app_paths_file(
     app: &AppHandle,
-    custom_episodes_path: Option<&str>,
+    episodes_path_update: Option<Option<&str>>,
 ) -> Result<(), String> {
     let data_dir = app
         .path()
@@ -33,17 +45,21 @@ pub fn write_app_paths_file(
     std::fs::create_dir_all(&data_dir).map_err(|e| e.to_string())?;
 
     let ai_loc = resolve_ai_location(app)?;
-    let episodes_storage_dir = resolve_episodes_storage_dir(app, custom_episodes_path)?;
-
-    let existing_episodes = if custom_episodes_path.is_none() {
+    let existing = if episodes_path_update.is_none() {
         let paths_file = data_dir.join("paths.json");
         std::fs::read_to_string(&paths_file)
             .ok()
             .and_then(|raw| serde_json::from_str::<AppPathsSyncPayload>(&raw).ok())
             .map(|p| p.episodes_storage_dir)
-            .filter(|s| !s.trim().is_empty())
     } else {
         None
+    };
+    let existing_episodes = preserved_episodes_path(episodes_path_update, existing);
+    let episodes_storage_dir = match episodes_path_update {
+        Some(custom) => resolve_episodes_storage_dir(app, custom)?,
+        None => existing_episodes
+            .map(PathBuf::from)
+            .unwrap_or(resolve_episodes_storage_dir(app, None)?),
     };
 
     let updated_at = std::time::SystemTime::now()
@@ -56,8 +72,10 @@ pub fn write_app_paths_file(
         ai_config_dir: ai_loc
             .config_dir
             .map(|p| p.to_string_lossy().to_string()),
-        episodes_storage_dir: existing_episodes
-            .unwrap_or_else(|| episodes_storage_dir.to_string_lossy().to_string()),
+        hf_home_dir: ai_loc
+            .hf_home_dir
+            .map(|p| p.to_string_lossy().to_string()),
+        episodes_storage_dir: episodes_storage_dir.to_string_lossy().to_string(),
         updated_at,
     };
 
@@ -77,7 +95,7 @@ pub fn write_app_paths_sync(
     app: AppHandle,
     custom_episodes_path: Option<String>,
 ) -> Result<(), String> {
-    write_app_paths_file(&app, custom_episodes_path.as_deref())
+    write_app_paths_file(&app, Some(custom_episodes_path.as_deref()))
 }
 
 #[tauri::command]
@@ -101,6 +119,13 @@ pub fn write_app_theme(app: AppHandle, theme_json: String) -> Result<(), String>
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct EpisodePreviewSyncPayload {
+    pub scene_index: u32,
+    pub preview_webp_path: String,
+    pub preview_poster_path: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct ActiveEpisodeSyncPayload {
     pub episode_id: String,
     pub video_path: String,
@@ -111,6 +136,8 @@ pub struct ActiveEpisodeSyncPayload {
     pub updated_at: u64,
     #[serde(default)]
     pub custom_path: Option<String>,
+    #[serde(default)]
+    pub previews: Vec<EpisodePreviewSyncPayload>,
 }
 
 fn active_episode_pointer_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -149,7 +176,55 @@ pub fn write_active_episode_sync(app: AppHandle, mut payload: ActiveEpisodeSyncP
     std::fs::rename(&temp_path, &sync_path)
         .map_err(|e| format!("Failed to finalize active_episode.json: {e}"))?;
 
+    if let Some(episode_dir) = PathBuf::from(&payload.manifest_path).parent().map(PathBuf::from) {
+        let preview_path = episode_dir.join("sync_preview.json");
+        let preview_temp = episode_dir.join("sync_preview.json.tmp");
+        let preview_data = serde_json::json!({
+            "episode_id": payload.episode_id,
+            "updated_at": payload.updated_at,
+            "previews": payload.previews,
+        });
+        let serialized = serde_json::to_vec_pretty(&preview_data)
+            .map_err(|e| format!("Failed to serialize sync_preview.json: {e}"))?;
+        std::fs::write(&preview_temp, serialized)
+            .map_err(|e| format!("Failed to write sync_preview.json: {e}"))?;
+        std::fs::rename(&preview_temp, &preview_path)
+            .map_err(|e| format!("Failed to finalize sync_preview.json: {e}"))?;
+    }
+
     Ok(())
+}
+
+#[cfg(test)]
+mod path_sync_tests {
+    use super::preserved_episodes_path;
+
+    #[test]
+    fn ai_refresh_preserves_the_episodes_path() {
+        assert_eq!(
+            preserved_episodes_path(None, Some("D:\\Library\\episodes_storage".to_string())),
+            Some("D:\\Library\\episodes_storage".to_string())
+        );
+    }
+
+    #[test]
+    fn explicit_default_does_not_reuse_a_stale_custom_path() {
+        assert_eq!(
+            preserved_episodes_path(Some(None), Some("D:\\Library\\episodes_storage".to_string())),
+            None
+        );
+    }
+
+    #[test]
+    fn explicit_custom_path_replaces_the_previous_one() {
+        assert_eq!(
+            preserved_episodes_path(
+                Some(Some("E:\\Library")),
+                Some("D:\\Library\\episodes_storage".to_string())
+            ),
+            None
+        );
+    }
 }
 
 #[tauri::command]

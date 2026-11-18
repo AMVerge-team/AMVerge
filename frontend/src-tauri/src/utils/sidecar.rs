@@ -64,7 +64,7 @@ fn home_dir() -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
-pub(crate) fn legacy_cli_models_dir() -> Option<PathBuf> {
+pub(crate) fn legacy_cli_config_dir() -> Option<PathBuf> {
     let config = match std::env::var_os("APPDATA").filter(|v| !v.is_empty()) {
         Some(appdata) => PathBuf::from(appdata).join("com.amverge.cli"),
         None => {
@@ -80,7 +80,11 @@ pub(crate) fn legacy_cli_models_dir() -> Option<PathBuf> {
             }
         }
     };
-    Some(config.join("models"))
+    Some(config)
+}
+
+pub(crate) fn legacy_cli_models_dir() -> Option<PathBuf> {
+    Some(legacy_cli_config_dir()?.join("models"))
 }
 
 pub(crate) fn legacy_scout_model_dir() -> Option<PathBuf> {

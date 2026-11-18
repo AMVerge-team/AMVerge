@@ -12,7 +12,7 @@ use crate::state::ActiveInstall;
 use crate::utils::logging::console_log;
 use crate::utils::process::kill_process_tree;
 use crate::utils::sidecar::{
-    ai_env_dir, ai_env_python, ai_env_ready, default_ai_root, legacy_cli_models_dir,
+    ai_env_dir, ai_env_python, ai_env_ready, default_ai_root, legacy_cli_config_dir,
     legacy_scout_model_dir, load_custom_ai_root, patch_pyvenv_home, resolve_ai_location,
     save_custom_ai_root, uv_cache_dir, uv_python_dir, SIGLIP_CACHE_DIR_NAME,
 };
@@ -263,18 +263,29 @@ pub async fn move_ai_storage_to_new_dir(
         std::fs::create_dir_all(&target_loc.runtime_dir)
             .map_err(|e| format!("Failed to create target AI runtime directory: {e}"))?;
 
-        let old_models = old_loc
+        let old_config = old_loc
             .config_dir
-            .as_ref()
-            .map(|c| c.join("models"))
+            .clone()
             .filter(|p| p.is_dir())
-            .or_else(|| legacy_cli_models_dir().filter(|p| p.is_dir()));
+            .or_else(|| legacy_cli_config_dir().filter(|p| p.is_dir()));
         let old_scout = old_loc
             .hf_home_dir
             .as_ref()
             .map(|h| h.join("hub").join(SIGLIP_CACHE_DIR_NAME))
             .filter(|p| p.is_dir())
             .or_else(|| legacy_scout_model_dir().filter(|p| p.is_dir()));
+
+        if let Some(ref config) = old_config {
+            if path_is_inside_fs(&target_config, config) && !same_fs_path(&target_config, config) {
+                return Err("Pick a folder outside the current CLI config folder.".to_string());
+            }
+        }
+        if let Some(ref scout) = old_scout {
+            let target_scout = target_hf.join("hub").join(SIGLIP_CACHE_DIR_NAME);
+            if path_is_inside_fs(&target_scout, scout) && !same_fs_path(&target_scout, scout) {
+                return Err("Pick a folder outside the current Scene Scout model folder.".to_string());
+            }
+        }
 
         emit_move_progress(Some(&app_for_task), 0.0, true, "Scanning AI files...");
         let mut total_bytes = 0u64;
@@ -284,8 +295,8 @@ pub async fn move_ai_storage_to_new_dir(
             total_bytes += b;
             total_files += f;
         }
-        if let Some(ref m) = old_models {
-            let (b, f) = scan_path_stats(m);
+        if let Some(ref config) = old_config {
+            let (b, f) = scan_path_stats(config);
             total_bytes += b;
             total_files += f;
         }
@@ -379,21 +390,20 @@ pub async fn move_ai_storage_to_new_dir(
         // never orphans the moved Python environment.
         save_custom_ai_root(&app_for_task, pointer_to_save.as_deref())?;
 
-        // 2. Move CLI model weights (`models/upscale`, `models/depth`, etc.).
-        if let Some(src_models) = old_models {
-            let dest_models = target_config.join("models");
-            if src_models.is_dir() && !same_fs_path(&src_models, &dest_models) {
-                tracker.log("Relocating model weights...");
-                if let Some(parent) = dest_models.parent() {
+        // move the whole cli config so weights, ffmpeg, presets and editor paths all survive
+        if let Some(src_config) = old_config {
+            if src_config.is_dir() && !same_fs_path(&src_config, &target_config) {
+                tracker.log("Relocating CLI config and model weights...");
+                if let Some(parent) = target_config.parent() {
                     std::fs::create_dir_all(parent)
-                        .map_err(|e| format!("Failed to create models folder: {e}"))?;
+                        .map_err(|e| format!("Failed to create CLI config folder: {e}"))?;
                 }
                 move_entry_tracked(
-                    &src_models,
-                    &dest_models,
+                    &src_config,
+                    &target_config,
                     &mut leftovers,
                     Some(&mut tracker),
-                    "config/models",
+                    "config",
                 )?;
             }
         }
@@ -532,7 +542,7 @@ mod tests {
     }
 
     #[test]
-    fn relocates_ai_runtime_models_and_siglip_across_multiple_locations() {
+    fn relocates_ai_runtime_config_and_siglip_across_multiple_locations() {
         let tmp = tempfile::tempdir().unwrap();
         let loc_a = tmp.path().join("ai_a");
         let loc_b = tmp.path().join("ai_b");
@@ -543,6 +553,9 @@ mod tests {
         let venv_cfg = loc_a.join("runtime/pyenv/pyvenv.cfg");
         let uv_marker = loc_a.join("runtime/uv-cache/CACHEDIR.TAG");
         let depth_weight = loc_a.join("config/models/depth_anything_v2_vits.pth");
+        let ffmpeg = loc_a.join("config/ffmpeg/bin/ffmpeg.exe");
+        let preset = loc_a.join("config/pipelines/look.json");
+        let flowframes = loc_a.join("config/flowframes_path.txt");
         let siglip_blob = loc_a
             .join("hf-cache/hub")
             .join(SIGLIP_CACHE_DIR_NAME)
@@ -552,7 +565,16 @@ mod tests {
             .join(SIGLIP_CACHE_DIR_NAME)
             .join("snapshots/cc24074f");
 
-        for p in [&py_bin, &venv_cfg, &uv_marker, &depth_weight, &siglip_blob] {
+        for p in [
+            &py_bin,
+            &venv_cfg,
+            &uv_marker,
+            &depth_weight,
+            &ffmpeg,
+            &preset,
+            &flowframes,
+            &siglip_blob,
+        ] {
             fs::create_dir_all(p.parent().unwrap()).unwrap();
         }
         fs::create_dir_all(&siglip_snap_dir).unwrap();
@@ -567,6 +589,9 @@ mod tests {
         .unwrap();
         fs::write(&uv_marker, b"cache").unwrap();
         fs::write(&depth_weight, b"depth-weights").unwrap();
+        fs::write(&ffmpeg, b"ffmpeg").unwrap();
+        fs::write(&preset, b"{}").unwrap();
+        fs::write(&flowframes, b"D:\\Flowframes\\Flowframes.exe").unwrap();
         fs::write(&siglip_blob, b"siglip-weights").unwrap();
 
         let snap_link = siglip_snap_dir.join("model.safetensors");
@@ -604,11 +629,11 @@ mod tests {
             )
             .unwrap();
             move_entry_tracked(
-                &from.join("config/models"),
-                &to.join("config/models"),
+                &from.join("config"),
+                &to.join("config"),
                 &mut leftovers,
                 None,
-                "config/models",
+                "config",
             )
             .unwrap();
             move_entry_tracked(
@@ -627,6 +652,12 @@ mod tests {
         assert_eq!(
             fs::read(loc_c.join("config/models/depth_anything_v2_vits.pth")).unwrap(),
             b"depth-weights"
+        );
+        assert_eq!(fs::read(loc_c.join("config/ffmpeg/bin/ffmpeg.exe")).unwrap(), b"ffmpeg");
+        assert_eq!(fs::read(loc_c.join("config/pipelines/look.json")).unwrap(), b"{}");
+        assert_eq!(
+            fs::read_to_string(loc_c.join("config/flowframes_path.txt")).unwrap(),
+            "D:\\Flowframes\\Flowframes.exe"
         );
         assert_eq!(
             fs::read(
