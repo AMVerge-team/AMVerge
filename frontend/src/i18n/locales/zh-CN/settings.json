@@ -176,6 +176,10 @@
       "gradient": {
         "label": "背景渐变",
         "description": "背景渐变中的第二种颜色。"
+      },
+      "episodePanel": {
+        "label": "",
+        "description": ""
       }
     },
     "background": {
