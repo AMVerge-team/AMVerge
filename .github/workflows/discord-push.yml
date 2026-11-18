@@ -1,0 +1,134 @@
+name: Discord Push Notifications
+
+on:
+  push:
+    branches-ignore:
+      - "l10n_*"
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord notification
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+        run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "DISCORD_WEBHOOK_URL secret is not set; skipping."
+            exit 0
+          fi
+
+          python3 - << 'EOF'
+          import json
+          import os
+          import urllib.parse
+          import urllib.request
+
+          webhook_url = os.environ["WEBHOOK_URL"].strip().rstrip("/")
+          if webhook_url.endswith("/github"):
+              webhook_url = webhook_url[: -len("/github")]
+
+          # Discord ignores the components field on standard webhooks unless with_components=true is present
+          parsed_url = urllib.parse.urlparse(webhook_url)
+          query_params = urllib.parse.parse_qs(parsed_url.query)
+          query_params["with_components"] = ["true"]
+          new_query = urllib.parse.urlencode(query_params, doseq=True)
+          webhook_url = urllib.parse.urlunparse(parsed_url._replace(query=new_query))
+
+          with open(os.environ["GITHUB_EVENT_PATH"], "r", encoding="utf-8") as f:
+              event = json.load(f)
+
+          commits = event.get("commits") or []
+          if not commits:
+              raise SystemExit(0)
+
+          repo_name = event["repository"]["name"]
+          repo_full = event["repository"]["full_name"]
+          repo_url = event["repository"]["html_url"]
+          branch = event["ref"].removeprefix("refs/heads/")
+          compare_url = event.get("compare") or repo_url
+
+          sender = event.get("sender") or {}
+          sender_name = sender.get("login", "github")
+          sender_avatar = sender.get("avatar_url") or "https://github.com/AMVerge-team.png"
+          sender_url = sender.get("html_url") or repo_url
+
+          count = len(commits)
+          commit_word = "commit" if count == 1 else "commits"
+
+          commit_lines = []
+          for c in commits[:8]:
+              sha = c["id"][:7]
+              url = c["url"]
+              msg = (c.get("message") or "").splitlines()[0]
+              author = (c.get("author") or {}).get("username") or (c.get("author") or {}).get("name") or sender_name
+              commit_lines.append(f"[`{sha}`]({url}) {msg} — *{author}*")
+
+          if count > 8:
+              commit_lines.append(f"*...and {count - 8} more commit(s) on GitHub*")
+
+          desc = (
+              f"**[{count} new {commit_word}]({compare_url})** to [`{branch}`]({repo_url}/tree/{branch})\n\n"
+              + "\n".join(commit_lines)
+          )
+
+          payload = {
+              "username": "AMVerge Desktop",
+              "avatar_url": "https://github.com/AMVerge-team.png",
+              "embeds": [
+                  {
+                      "author": {
+                          "name": f"{sender_name} pushed to {repo_full}",
+                          "url": sender_url,
+                          "icon_url": sender_avatar,
+                      },
+                      "description": desc[:4096],
+                      "color": 0x22C55E,
+                      "footer": {
+                          "text": f"{repo_full} • {branch}",
+                          "icon_url": "https://github.com/AMVerge-team.png",
+                      },
+                  }
+              ],
+              "components": [
+                  {
+                      "type": 1,
+                      "components": [
+                          {
+                              "type": 2,
+                              "style": 5,
+                              "label": "Compare on GitHub",
+                              "url": compare_url,
+                          },
+                          {
+                              "type": 2,
+                              "style": 5,
+                              "label": "Open Repository",
+                              "url": repo_url,
+                          },
+                      ],
+                  }
+              ],
+          }
+
+          req = urllib.request.Request(
+              webhook_url,
+              data=json.dumps(payload).encode("utf-8"),
+              headers={
+                  "Content-Type": "application/json",
+                  "User-Agent": "AMVerge-GitHub-Actions",
+              },
+              method="POST",
+          )
+          try:
+              with urllib.request.urlopen(req, timeout=15) as resp:
+                  print("Discord webhook delivered successfully, status:", resp.status)
+          except urllib.error.HTTPError as e:
+              err_body = e.read().decode("utf-8", errors="replace")
+              print(f"Discord webhook failed with HTTP {e.code}: {err_body}")
+              raise SystemExit(1)
+          EOF
