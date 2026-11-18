@@ -557,12 +557,7 @@ def main():
             target_channel = "feed"
     elif event_name == "issues":
         payload = handle_issues(event)
-        action = event.get("action", "")
-        # Newly opened user issues go to #github-updates for visibility
-        if action == "opened":
-            target_channel = "updates"
-        else:
-            target_channel = "feed"
+        target_channel = "feed"
     elif event_name == "push":
         payload = handle_push(event)
         target_channel = "updates"
