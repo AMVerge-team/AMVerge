@@ -565,7 +565,7 @@ def main():
             target_channel = "feed"
     elif event_name == "push":
         payload = handle_push(event)
-        target_channel = "feed"
+        target_channel = "updates"
     elif event_name == "pull_request_review":
         payload = handle_pull_request_review(event)
         target_channel = "feed"
