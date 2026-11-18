@@ -4,6 +4,8 @@
 - Added a dedicated **Storage** settings tab next to Export with Episodes & App/AI location pickers, a live breakdown across Episodes, Scenepacks, Scene Scout indexes, AI packages/models, and caches, plus safe cross-drive AI relocation (and defaulted new non-system installs to keep AI packages & models beside the install folder)
 - Fixed **Free up space** on **Depth Map** not uninstalling `torchvision` (and stopped unrelated pack installs from pulling it in), and renamed **Depth Map Pass** / **Upscale Pass** to **Depth Map** and **Upscaling**
 - Hardened storage relocation and **Clear Episode Storage** against same-path casing/trailing-slash self-overwrites, overlapping AI folders, Hugging Face symlink ordering, Windows file locks, and leftover partial episode folders
+- Fixed storage moves leaving stale absolute paths in episode manifests, WebP sync metadata, Scene Scout database state, and extension pointers; AI relocation now carries the full CLI config (including FFmpeg, presets, and model weights), and standalone CLI launches discover moved storage
+- Added custom runtime/episodes discovery and manual fallbacks to the After Effects extension, with WebP-mode episode preview sync and source-range AE imports
 - Fixed WebP companion `.jpg` posters capturing up to `0.5s` before the scene start (`-ss` now applies to both WebP and JPG outputs)
 - Disabled the auto-updater during development runs, enabled RAM formatting on all platforms, and added a multi-platform downloads table to `README.md` and release workflows
 
