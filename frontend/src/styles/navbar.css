@@ -10,6 +10,7 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(16px);
     z-index: 100;
+    position: relative;
 }
 
 .navbar svg {
@@ -109,6 +110,13 @@
     justify-content: center;
     gap: 12px;
     flex: 0 0 auto;
+}
+
+/* centered over the clip grid instead of the window, left is set by the navbar */
+.navbar-center.over-grid {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .zoomWrapper {

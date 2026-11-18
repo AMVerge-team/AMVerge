@@ -8,7 +8,8 @@
     border-radius: 14px;
     padding: 20px;
     display: grid;
-    grid-template-columns: 1fr;
+    /* minmax(0, ...): webkit grows a bare 1fr to the options row's content and it spills out on macos */
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
         "header"
         "profile"
@@ -580,7 +581,7 @@
 
 @container exportPanel (min-width: 520px) {
     .export-panel {
-        grid-template-columns: 1fr 130px;
+        grid-template-columns: minmax(0, 1fr) 130px;
         grid-template-areas:
             "header header"
             "profile button"
