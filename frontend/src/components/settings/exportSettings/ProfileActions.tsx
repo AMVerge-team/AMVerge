@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { FaPlus, FaTrash } from '../../icons/animated';
 
 type ProfileActionsProps = {
@@ -11,6 +12,7 @@ export default function ProfileActions({
   onAddProfile,
   onDeleteProfile,
 }: ProfileActionsProps) {
+  const { t } = useTranslation("settingsExport");
   return (
     <div className="export-profile-actions-row">
       <button
@@ -19,7 +21,7 @@ export default function ProfileActions({
         onClick={onAddProfile}
       >
         <FaPlus />
-        <span>New Profile</span>
+        <span>{t("profile.new")}</span>
       </button>
 
       <button
@@ -29,7 +31,7 @@ export default function ProfileActions({
         disabled={!canDelete}
       >
         <FaTrash />
-        <span>Delete Profile</span>
+        <span>{t("profile.delete")}</span>
       </button>
     </div>
   );

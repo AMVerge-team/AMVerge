@@ -9,6 +9,7 @@ import {
 } from "../features/export/profiles";
 import {
     DEFAULT_POST_EXPORT_PASSES,
+    anyPassEnabled,
     normalizePostExportPasses,
     type PostExportPasses,
     type PostExportPassKind,
@@ -56,6 +57,7 @@ export type GeneralSettings = {
     previewTranscodeMode: PreviewTranscodeMode;
     previewTranscodeQuality: PreviewTranscodeQuality;
     postExportPasses: PostExportPasses;
+    postExportPassesEnabled: boolean;
     scenepacksEnabled: boolean;
     /** Settings > Features switches (see features/featureToggles.ts) */
     aiSceneDetectionEnabled: boolean;
@@ -99,6 +101,7 @@ export type GeneralSettingsStore = GeneralSettings & {
     setImportMethod: (method: importMethod) => void;
     setPreviewTranscodeMode: (mode: PreviewTranscodeMode) => void;
     setPreviewTranscodeQuality: (quality: PreviewTranscodeQuality) => void;
+    setPostExportPassesEnabled: (enabled: boolean) => void;
     updatePostExportPasses: <K extends PostExportPassKind>(
         pass: K,
         changes: Partial<PostExportPasses[K]>,
@@ -130,6 +133,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     previewTranscodeMode: "hevc",
     previewTranscodeQuality: "480p",
     postExportPasses: DEFAULT_POST_EXPORT_PASSES,
+    postExportPassesEnabled: false,
     scenepacksEnabled: false,
     // a fresh install starts with every feature off; switching one on downloads what it needs
     aiSceneDetectionEnabled: false,
@@ -288,8 +292,10 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                 set({ davinciExportSelected: selected }),
 
             resetGeneralSettings: () => set(DEFAULT_GENERAL_SETTINGS),
+            setPostExportPassesEnabled: (enabled) => set({ postExportPassesEnabled: enabled }),
             updatePostExportPasses: (pass, changes) =>
                 set((state) => ({
+                    ...(changes.enabled === true ? { postExportPassesEnabled: true } : {}),
                     postExportPasses: {
                         ...state.postExportPasses,
                         [pass]: { ...state.postExportPasses[pass], ...changes },
@@ -372,6 +378,9 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                             ? persisted.previewTranscodeQuality
                             : currentState.previewTranscodeQuality,
                     postExportPasses: normalizePostExportPasses(persisted.postExportPasses),
+                    postExportPassesEnabled: typeof persisted.postExportPassesEnabled === "boolean"
+                        ? persisted.postExportPassesEnabled
+                        : anyPassEnabled(normalizePostExportPasses(persisted.postExportPasses)),
                 };
             },
         }
@@ -530,13 +539,25 @@ function hexToRgbTriplet(hex: string): string | null {
     return `${r} ${g} ${b}`;
 }
 
-// calibri everywhere it is installed; carlito is its metric twin on linux
-export const DEFAULT_FONT_STACK =
-    "Calibri, Carlito, 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+const CJK_FALLBACK_STACK =
+    "'Noto Sans SC Variable', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', 'WenQuanYi Micro Hei'";
 
-/** the bundled pixel font, offered right under the default */
+// use the native windows ui font with platform and chinese fallbacks
+export const DEFAULT_FONT_STACK =
+    `'Segoe UI Variable Text', 'Segoe UI', ${CJK_FALLBACK_STACK}, system-ui, -apple-system, BlinkMacSystemFont, sans-serif`;
+
+/** the bundled pixel font, offered right under the default; paired with a bundled chinese pixel font */
 export const JERSEY_FONT = "Jersey 10";
-const JERSEY_FONT_STACK = "'Jersey 10', system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+export const CJK_PIXEL_FONT = "Fusion Pixel 12px Proportional SC";
+const JERSEY_FONT_STACK =
+    `'Jersey 10', '${CJK_PIXEL_FONT}', system-ui, -apple-system, BlinkMacSystemFont, ${CJK_FALLBACK_STACK}, sans-serif`;
+
+// null uses the system default; jersey 10 keeps its chinese pixel pair
+export function fontStackFor(family: string | null): string {
+    if (family === JERSEY_FONT) return JERSEY_FONT_STACK;
+    if (family) return `"${family}", ${DEFAULT_FONT_STACK}`;
+    return DEFAULT_FONT_STACK;
+}
 
 export function applyThemeSettings(settings: ThemeSettings) {
     const root = document.documentElement;
@@ -582,13 +603,14 @@ export function applyThemeSettings(settings: ThemeSettings) {
     body.style.setProperty("--clip-tile-aspect", clipTileAspect);
 
     const family = settings.appFontFamily;
-    const appFont =
-        family === JERSEY_FONT ? JERSEY_FONT_STACK : family ? `"${family}", ${DEFAULT_FONT_STACK}` : DEFAULT_FONT_STACK;
+    const appFont = fontStackFor(family);
     root.style.setProperty("--app-font", appFont);
     body.style.setProperty("--app-font", appFont);
 
-    // the pixel font's sizes were tuned without an adjust; every other font is scaled to match them
-    const fontAdjust = family === JERSEY_FONT ? "none" : String(settings.appFontAdjust ?? 0.47);
+    // keep native proportions at the default size and retain explicit size adjustments
+    const sizeAdjust = (settings.appFontAdjust ?? 0.47) * (family ? 1 : 0.52 / 0.47);
+    const nativeDefault = !family && Math.abs((settings.appFontAdjust ?? 0.47) - 0.47) < 0.0001;
+    const fontAdjust = family === JERSEY_FONT || nativeDefault ? "none" : String(sizeAdjust);
     root.style.setProperty("--app-font-adjust", fontAdjust);
     body.style.setProperty("--app-font-adjust", fontAdjust);
 }

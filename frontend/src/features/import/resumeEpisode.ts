@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { t } from "../../i18n";
 import { ClipItem, EpisodeEntry } from "../../types/domain";
 import { useAppStateStore } from "../../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore";
@@ -78,7 +79,7 @@ export async function finishEpisodeClips(episodeId: string, options: FinishOptio
 
   const total = episode.clips.length;
   let done = total - episode.clips.filter(isResumable).length;
-  const label = `Finishing clips for ${episode.displayName}`;
+  const label = t("jobs:import.finishingClips", { name: episode.displayName });
   // a running import owns the mini window's main bar, so this reports on the bar under it
   const progressUpdate = () =>
     quiet

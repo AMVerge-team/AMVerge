@@ -1,4 +1,5 @@
 import { FaSyncAlt } from '../../icons/animated';
+import { useTranslation } from "react-i18next";
 
 import Tooltip from "../../common/Tooltip";
 import { SelectionCount } from "../../clipsGrid/SelectionCount";
@@ -11,6 +12,7 @@ import { PreviewToggle, SidebarToggle, usePreviewPaneClearance } from "../PanelT
 
 /** the Flow tab's row: pick the clip to continue, or re-run it against the current databases */
 export function SceneScoutFlowToolbar() {
+  const { t } = useTranslation("scout");
   const flowFrom = useSceneScoutStore((s) => s.flowFrom);
   const flowSearching = useSceneScoutStore((s) => s.flowSearching);
   const flowError = useSceneScoutStore((s) => s.flowError);
@@ -34,7 +36,7 @@ export function SceneScoutFlowToolbar() {
           <SidebarToggle />
 
           {/* wrapper span: a disabled button fires no pointer events, so the tooltip listens on it instead */}
-          <Tooltip content={noDatabase ? "Add a database to the Searching list on the left first" : "Input a file to find scene matches"}>
+          <Tooltip content={noDatabase ? t("flow.noDatabaseHint") : t("flow.heroInput")}>
             <span className="tooltip-anchor">
               <button
                 type="button"
@@ -42,7 +44,7 @@ export function SceneScoutFlowToolbar() {
                 onClick={() => void pickClip()}
                 disabled={busy || noDatabase}
               >
-                Import
+                {t("flow.import")}
               </button>
             </span>
           </Tooltip>
@@ -50,13 +52,13 @@ export function SceneScoutFlowToolbar() {
           <ScoutModeTabs />
           <ScoutInfoButton />
 
-          <Tooltip content="Search again, e.g. after changing which databases are searched">
+          <Tooltip content={t("flow.searchAgainHint")}>
             <button
               type="button"
               className="import-button refresh-button"
               onClick={() => void runFlowSearch()}
               disabled={busy || !flowFrom}
-              aria-label="Search again"
+              aria-label={t("flow.searchAgain")}
             >
               <FaSyncAlt aria-hidden="true" />
             </button>

@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 
 import { useUIStateStore } from "../stores/UIStore";
@@ -20,8 +21,8 @@ type StepId =
 type Step = {
   id: StepId;
   targets: string[];
-  title: string;
-  body: ReactNode;
+  titleKey: string;
+  bodyKey: string;
   interactive?: boolean;
 };
 
@@ -29,132 +30,70 @@ const STEPS: Step[] = [
   {
     id: "welcome",
     targets: [],
-    title: "Welcome to AMVerge",
-    body: (
-      <>
-        Let&apos;s take a quick lap around AMVerge so you know where every page lives, how imports and
-        previews work, and where to unlock optional AI features.
-      </>
-    ),
+    titleKey: "steps.0.title",
+    bodyKey: "steps.0.body",
   },
   {
     id: "library",
     targets: ["nav-home"],
-    title: "1. Library",
-    body: (
-      <>
-        <b>Library</b> is your home workspace. Import episodes or video files here to split them into
-        scenes, hover to preview every cut, and export the clips you select straight to your editor.
-      </>
-    ),
+    titleKey: "steps.1.title",
+    bodyKey: "steps.1.body",
   },
   {
     id: "scenepacks",
     targets: ["nav-scenepacks"],
-    title: "2. Scenepacks",
-    body: (
-      <>
-        <b>Scenepacks</b> lets you group favorite clips from any episode into custom collections by
-        character, mood, etc. You can turn it on anytime in <b>Settings › Features</b>.
-      </>
-    ),
+    titleKey: "steps.2.title",
+    bodyKey: "steps.2.body",
   },
   {
     id: "sceneScout",
     targets: ["nav-sceneScout"],
-    title: "3. Scene Scout",
-    body: (
-      <>
-        <b>Scene Scout</b> searches across your indexed episodes from a plain-English description (or
-        finds clips that flow from a clip you already have). Enable and download it anytime in{" "}
-        <b>Settings › Features</b>.
-      </>
-    ),
+    titleKey: "steps.3.title",
+    bodyKey: "steps.3.body",
   },
   {
     id: "events",
     targets: ["nav-events"],
-    title: "4. Community Events",
-    body: (
-      <>
-        <b>Events</b> lists active AMV contests and Hour Challenges from the community. Browse active
-        brackets, join their Discord servers, or sign in with Discord to host your own.
-      </>
-    ),
+    titleKey: "steps.4.title",
+    bodyKey: "steps.4.body",
   },
   {
     id: "menu",
     targets: ["menu-btn"],
     interactive: true,
-    title: "5. Open the Menu",
-    body: (
-      <>
-        Click the <b>☰ menu button</b> right next to the AMVerge logo to open Quick Navigation, or press{" "}
-        <b>Next</b> to jump straight in.
-      </>
-    ),
+    titleKey: "steps.5.title",
+    bodyKey: "steps.5.body",
   },
   {
     id: "quickSettings",
     targets: ["quick-settings"],
     interactive: true,
-    title: "6. Open Settings",
-    body: (
-      <>
-        Click <b>Settings</b> here to configure how AMVerge detects cuts, plays previews, and installs
-        optional features.
-      </>
-    ),
+    titleKey: "steps.6.title",
+    bodyKey: "steps.6.body",
   },
   {
     id: "sceneDetection",
     targets: ["scene-detection"],
-    title: "7. Scene Detection Methods",
-    body: (
-      <>
-        Choose how imports find cuts:
-        <br />• <b>Keyframe Detection</b> cuts instantly on video keyframes and works on any PC with no
-        GPU.
-        <br />• <b>AI Scene Detection</b> checks every frame with TransNetV2 for exact shot changes
-        (slower without a GPU; install anytime).
-      </>
-    ),
+    titleKey: "steps.7.title",
+    bodyKey: "steps.7.body",
   },
   {
     id: "previewMethod",
     targets: ["preview-method"],
-    title: "8. Preview Methods",
-    body: (
-      <>
-        Choose how the grid plays clips when you hover:
-        <br />• <b>Video Files</b> cuts real video clips per scene so previews match your export.
-        <br />• <b>WebP Files</b> builds lightweight animated previews for smoother scrolling and lower
-        memory usage (exports still cut from full quality).
-      </>
-    ),
+    titleKey: "steps.8.title",
+    bodyKey: "steps.8.body",
   },
   {
     id: "features",
     targets: ["features-list", "settings-tab-features"],
-    title: "9. Features & Downloads",
-    body: (
-      <>
-        In <b>Features</b> you can switch on and download optional tools whenever you want them,
-        including <b>Scene Scout</b>, <b>AI Scene Detection</b>, <b>Scenepacks</b>, <b>Upscaling</b>,
-        and <b>Depth Maps</b>.
-      </>
-    ),
+    titleKey: "steps.9.title",
+    bodyKey: "steps.9.body",
   },
   {
     id: "done",
     targets: ["how-to-use"],
-    title: "10. All Set",
-    body: (
-      <>
-        That&apos;s about it for the tutorial, if you need this guide again, it&apos;s located in the{" "}
-        <b>&quot;How to Use&quot;</b> section on the right side of the page. Enjoy!
-      </>
-    ),
+    titleKey: "steps.10.title",
+    bodyKey: "steps.10.body",
   },
 ];
 
@@ -188,6 +127,7 @@ function placeCard(box: Box | null, w: number, h: number) {
 
 /** app-wide first-visit walkthrough, replayable from "How to use" in Library */
 export function GettingStartedTour() {
+  const { t } = useTranslation("gettingStarted");
   const quickMenuOpen = useUIStateStore((s) => s.quickMenuOpen);
   const settingsOpen = useUIStateStore((s) => s.settingsOpen);
   const [index, setIndex] = useState(0);
@@ -337,7 +277,7 @@ export function GettingStartedTour() {
       className={`scout-tour${interactiveHole ? " is-interactive" : ""}`}
       role="dialog"
       aria-modal={!interactiveHole}
-      aria-label="Getting started guide"
+      aria-label={t("ariaLabel")}
     >
       {interactiveHole && box ? (
         <>
@@ -360,8 +300,8 @@ export function GettingStartedTour() {
       {box ? <div className="scout-tour-highlight" style={box} /> : <div className="scout-tour-dim" />}
 
       <div ref={cardRef} className="scout-tour-card" style={pos}>
-        <h3 className="scout-tour-title">{step.title}</h3>
-        <p className="scout-tour-body">{step.body}</p>
+        <h3 className="scout-tour-title">{t(step.titleKey)}</h3>
+        <p className="scout-tour-body"><Trans t={t} i18nKey={step.bodyKey} components={{ b: <b />, br: <br /> }} /></p>
 
         <div className="scout-tour-footer">
           <span className="scout-tour-count">
@@ -370,16 +310,16 @@ export function GettingStartedTour() {
           <div className="scout-tour-actions">
             {!last && (
               <button type="button" className="scout-tour-btn is-ghost" onClick={finish}>
-                Skip
+                {t("skip")}
               </button>
             )}
             {index > 0 && (
               <button type="button" className="scout-tour-btn" onClick={back}>
-                Back
+                {t("back")}
               </button>
             )}
             <button type="button" className="scout-tour-btn is-primary" onClick={next}>
-              {last ? "Finish" : "Next"}
+              {last ? t("finish") : t("next")}
             </button>
           </div>
         </div>

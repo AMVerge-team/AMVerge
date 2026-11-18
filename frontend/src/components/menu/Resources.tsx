@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { open } from "@tauri-apps/plugin-shell";
+import { useTranslation } from "react-i18next";
 import { FaChevronDown, FaCommentDots, FaExternalLinkAlt, FaPlay, FaYoutube } from '../icons/animated';
 
 import resyncbotLogo from "../../assets/resources/resyncbot.png";
@@ -14,65 +15,53 @@ type ResourceVideo = {
 };
 
 type Resource = {
+  /** key under menu:resources.items holding tagline, details and devNote */
+  id: string;
   name: string;
-  tagline: string;
   logo: string;
   url: string;
-  details: string[];
-  /** the AMVerge creator's own take, shown under the description; leave empty to hide it */
-  devNote: string;
+  /** the AMVerge creator's own take, shown under the description */
+  hasDevNote: boolean;
   videos: ResourceVideo[];
 };
 
 const RESOURCES: Resource[] = [
   {
+    id: "resyncbot",
     name: "ResyncBot",
-    tagline: "Automatically resync edits in seconds with your friends",
     logo: resyncbotLogo,
     url: "https://www.resyncbot.app/",
-    details: [
-      "Used in 300+ servers with nearly 200,000 people, this is a discord bot made by the AMVerge creator that resyncs edits automatically in seconds. Using BPM & audio waveform analysis, you can automatically resync your edit to a desired one or roll a random one that would fit. ",
-    ],
-    devNote: "This was my first project, and probably the most fun one I've made, to my surprise it's still being used many times a day, and as a result I'll be maintaining this for as long as I can.",
+    hasDevNote: true,
     videos: [
       { title: "Introducing Resyncbot", url: "https://youtu.be/zV8PnmXrJCs" }
     ],
   },
   {
+    id: "sammieRoto",
     name: "Sammie Roto",
-    tagline: "AI masking trained on anime",
     logo: sammieRotoLogo,
     url: "https://github.com/Zarxrax/Sammie-Roto-2",
-    details: [
-      "Co-created by the developer of AMVerge's Scene Scout feature, this is a free, open source AI masking tool featuring object detection + removal, and an exclusive AI model trained on anime. So good that it even captures hair strands flawlessly (Adobe, take notes..)",
-    ],
-    devNote: "Quite literally the best rotobrush tool I have used, their anime model blew my mind. Would highly recommend this if you haven't tried it already.",
+    hasDevNote: true,
     videos: [
       { title: "Introducing Sammie-Roto", url: "https://www.youtube.com/watch?v=HWpdLjILhj0" }
     ],
   },
   {
+    id: "animeclips",
     name: "animeclips.online",
-    tagline: "Download anime clips quickly",
     logo: animeclipsLogo,
     url: "https://animeclips.online/",
-    details: [
-      "With over 450,000+ clips, this is the largest library and resource for high quality anime clips.",
-    ],
-    devNote: "This is a resource I've used for a while now if I can't find a download for an anime I'm looking to edit, and a website trusted by thousands of editors today. Highly recommend!",
+    hasDevNote: true,
     videos: [
       { title: "how to get anime clips for edits", url: "https://youtu.be/uC2ipIQKmkY" }
     ],
   },
   {
+    id: "hyetta",
     name: "Hyetta",
-    tagline: "The #1 editing contest manager & platform.",
     logo: hyettaLogo,
     url: "https://hyetta.net/",
-    details: [
-      "A place to host editing contests, catered towards hour contests (HCs). It has its own judging sheet with an scorer that automates things like score sums and late penalties, is super intuitive, and gives you one easy place to hold all of an event's entries.",
-    ],
-    devNote: "This platform handles all the annoying parts of hosting an HC for you, aside from the anime selection / limitations.",
+    hasDevNote: true,
     videos: [],
   },
 ];
@@ -97,6 +86,7 @@ function startAtHalfVolume(frame: HTMLIFrameElement) {
 
 /** a thumbnail until clicked, so no youtube player loads until the user wants one */
 function ResourceVideoCard({ video }: { video: ResourceVideo }) {
+  const { t } = useTranslation("menu");
   const [playing, setPlaying] = useState(false);
   const id = youtubeId(video.url);
   if (!id) return null;
@@ -115,7 +105,7 @@ function ResourceVideoCard({ video }: { video: ResourceVideo }) {
             referrerPolicy="strict-origin-when-cross-origin"
           />
         ) : (
-          <button type="button" className="resource-video-poster" onClick={() => setPlaying(true)} aria-label={`Play ${video.title}`}>
+          <button type="button" className="resource-video-poster" onClick={() => setPlaying(true)} aria-label={t("resources.play", { title: video.title })}>
             <img src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`} alt="" />
             <span className="resource-video-play">
               <FaPlay aria-hidden="true" />
@@ -131,7 +121,7 @@ function ResourceVideoCard({ video }: { video: ResourceVideo }) {
           onClick={() => void open(`https://www.youtube.com/watch?v=${id}`)}
         >
           <FaYoutube aria-hidden="true" />
-          Watch on YouTube
+          {t("resources.watchOnYoutube")}
         </button>
       </div>
     </div>
@@ -139,13 +129,14 @@ function ResourceVideoCard({ video }: { video: ResourceVideo }) {
 }
 
 export default function Resources() {
+  const { t } = useTranslation("menu");
   const [expanded, setExpanded] = useState<string | null>(null);
 
   return (
     <div className="panel menu-panel resources-panel">
       <div className="credits-hero">
-        <h2 className="about-hero-title">Resources</h2>
-        <p className="about-hero-subtitle">Free, noteworthy tools made by the AMV community</p>
+        <h2 className="about-hero-title">{t("resources.title")}</h2>
+        <p className="about-hero-subtitle">{t("resources.subtitle")}</p>
       </div>
 
       <div className="resources-list">
@@ -162,24 +153,22 @@ export default function Resources() {
                 <img className="resource-logo" src={resource.logo} alt="" />
                 <span className="resource-titles">
                   <span className="resource-name">{resource.name}</span>
-                  <span className="resource-tagline">{resource.tagline}</span>
+                  <span className="resource-tagline">{t(`resources.items.${resource.id}.tagline`)}</span>
                 </span>
                 <FaChevronDown className="resource-chevron" aria-hidden="true" />
               </button>
 
               {isOpen && (
                 <div className="resource-body">
-                  {resource.details.map((line) => (
-                    <p key={line} className="about-card-text">{line}</p>
-                  ))}
+                  <p className="about-card-text">{t(`resources.items.${resource.id}.details`)}</p>
 
-                  {resource.devNote && (
+                  {resource.hasDevNote && (
                     <div className="resource-dev-note">
                       <span className="resource-dev-note-label">
                         <FaCommentDots aria-hidden="true" />
-                        Dev note
+                        {t("resources.devNote")}
                       </span>
-                      <p className="about-card-text">{resource.devNote}</p>
+                      <p className="about-card-text">{t(`resources.items.${resource.id}.devNote`)}</p>
                     </div>
                   )}
 
@@ -193,7 +182,7 @@ export default function Resources() {
 
                   <button type="button" className="about-link-btn resource-visit" onClick={() => void open(resource.url)}>
                     <FaExternalLinkAlt aria-hidden="true" />
-                    Visit {resource.name}
+                    {t("resources.visit", { name: resource.name })}
                   </button>
                 </div>
               )}

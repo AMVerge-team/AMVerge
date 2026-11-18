@@ -8,6 +8,8 @@ import {
   type ReactNode,
   type SubmitEvent,
 } from "react";
+import { useTranslation } from "react-i18next";
+import { t } from "../../i18n";
 import {
   getConsoleLogsSnapshot,
   serializeConsoleLogs,
@@ -25,23 +27,26 @@ const BUG_REPORT_COOLDOWN_MS = 60 * 60 * 1000;
 const BUG_REPORT_COOLDOWN_STORAGE_KEY = "amverge_bug_report_last_submitted_at";
 const MAX_SCREENSHOT_BYTES = 8 * 1024 * 1024;
 
-const BUG_TYPE_OPTIONS: DropdownOption<string>[] = [
-  {
-    value: "Issue with video",
-    label: "Issue with video",
-    description: "Import, playback, GOP cuts, audio desync, or export glitches",
-  },
-  {
-    value: "Issue with app",
-    label: "Issue with app",
-    description: "UI bug, crash, settings, AI dependency installer, or freezes",
-  },
-  {
-    value: "Feature request",
-    label: "Feature request",
-    description: "Suggestions or workflow improvements for AMVerge",
-  },
-];
+// values are sent to the backend as-is; only labels are translated
+function getBugTypeOptions(): DropdownOption<string>[] {
+  return [
+    {
+      value: "Issue with video",
+      label: t("menu:bugReport.types.video"),
+      description: t("menu:bugReport.types.videoDesc"),
+    },
+    {
+      value: "Issue with app",
+      label: t("menu:bugReport.types.app"),
+      description: t("menu:bugReport.types.appDesc"),
+    },
+    {
+      value: "Feature request",
+      label: t("menu:bugReport.types.feature"),
+      description: t("menu:bugReport.types.featureDesc"),
+    },
+  ];
+}
 
 function readLastSubmittedAt(): number | null {
   if (typeof window === "undefined") return null;
@@ -152,6 +157,7 @@ function AutofillButton({
 }
 
 export default function BugReport() {
+  const { t } = useTranslation("menu");
   const [bugType, setBugType] = useState("Issue with video");
   const [issueText, setIssueText] = useState("");
   const [PCSpecs, setPCSpecs] = useState("");
@@ -214,10 +220,10 @@ export default function BugReport() {
 
   const screenshotLabel = useMemo(() => {
     const files = screenShots ? Array.from(screenShots) : [];
-    if (files.length === 0) return "No screenshot selected";
+    if (files.length === 0) return t("bugReport.noScreenshot");
     if (files.length === 1) return files[0].name;
-    return `${files.length} screenshots selected`;
-  }, [screenShots]);
+    return t("bugReport.screenshotsSelected", { count: files.length });
+  }, [screenShots, t]);
 
   async function onAutoFillSpecs() {
     setSpecsError(null);
@@ -228,7 +234,7 @@ export default function BugReport() {
       setPCSpecs(specs);
     } catch (err) {
       console.error(err);
-      setSpecsError("Could not read your specs. Please type them in.");
+      setSpecsError(t("bugReport.errors.specs"));
     } finally {
       setIsDetectingSpecs(false);
     }
@@ -236,9 +242,7 @@ export default function BugReport() {
 
   function onFillDiscordContact() {
     if (!discordUser) {
-      setContactError(
-        "Discord isn't connected. Sign in on the Events page or turn on Rich Presence, or type your username."
-      );
+      setContactError(t("bugReport.errors.discord"));
       return;
     }
 
@@ -253,26 +257,26 @@ export default function BugReport() {
     setIssueError(null);
 
     if (!issueText.trim()) {
-      setIssueError("Please describe the issue before submitting.");
+      setIssueError(t("bugReport.errors.issueRequired"));
       issueTextRef.current?.focus();
       return;
     }
 
     if (isCooldownActive) {
       setSubmitError(
-        `Please wait ${formatCooldown(cooldownRemainingMs)} before submitting another report.`
+        t("bugReport.errors.cooldown", { time: formatCooldown(cooldownRemainingMs) })
       );
       return;
     }
 
     const screenshotFiles = screenShots ? Array.from(screenShots) : [];
     if (screenshotFiles.some((file) => !file.type.startsWith("image/"))) {
-      setSubmitError("Only image files are allowed for screenshots.");
+      setSubmitError(t("bugReport.errors.imagesOnly"));
       return;
     }
 
     if (screenshotFiles.some((file) => file.size > MAX_SCREENSHOT_BYTES)) {
-      setSubmitError("One or more screenshots exceed the 8MB limit.");
+      setSubmitError(t("bugReport.errors.tooLarge"));
       return;
     }
 
@@ -302,11 +306,11 @@ export default function BugReport() {
       setIsSubmitting(true);
       const res = await invoke<BugReportResponse>("submit_bug_report", { request });
       if (!res.ok) {
-        setSubmitError(res.message || "Failed to submit bug report.");
+        setSubmitError(res.message || t("bugReport.errors.submitFailed"));
         return;
       }
 
-      setSubmitSuccess(res.message || "Bug report submitted successfully.");
+      setSubmitSuccess(res.message || t("bugReport.success"));
       setIssueText("");
       setIssueError(null);
       setPCSpecs("");
@@ -331,7 +335,7 @@ export default function BugReport() {
       }
     } catch (err) {
       console.error(err);
-      setSubmitError("Could not submit bug report. Please try again.");
+      setSubmitError(t("bugReport.errors.submitRetry"));
     } finally {
       setIsSubmitting(false);
     }
@@ -340,18 +344,14 @@ export default function BugReport() {
   return (
     <section className="panel menu-panel bugreport-panel">
       <div className="bugreport-hero">
-        <h2 className="about-hero-title">Report an Issue</h2>
-        <p className="about-hero-subtitle">
-          Found an error or unexpected behavior? Submit details directly to the AMVerge team.
-        </p>
+        <h2 className="about-hero-title">{t("bugReport.title")}</h2>
+        <p className="about-hero-subtitle">{t("bugReport.subtitle")}</p>
       </div>
 
       <div className="bugreport-alt-banner">
         <div className="bugreport-alt-text">
           <FaInfoCircle className="bugreport-alt-icon" />
-          <span>
-            Prefer reporting directly? You can also open an issue on GitHub or chat with us in our Discord server:
-          </span>
+          <span>{t("bugReport.altText")}</span>
         </div>
         <div className="bugreport-alt-buttons">
           <button
@@ -360,7 +360,7 @@ export default function BugReport() {
             onClick={() => void open("https://discord.gg/bmXjTgsAaN")}
           >
             <FaDiscord style={{ marginRight: 6, fontSize: "0.95rem" }} />
-            Discord Community
+            {t("bugReport.discordCommunity")}
           </button>
           <button
             type="button"
@@ -368,7 +368,7 @@ export default function BugReport() {
             onClick={() => void open("https://github.com/AMVerge-team/AMVerge/issues")}
           >
             <FaGithub style={{ marginRight: 6, fontSize: "0.95rem" }} />
-            GitHub Issues
+            {t("bugReport.githubIssues")}
           </button>
         </div>
       </div>
@@ -383,13 +383,13 @@ export default function BugReport() {
             <span className="about-card-icon">
               <FaBug />
             </span>
-            <h4>Issue Details</h4>
+            <h4>{t("bugReport.details")}</h4>
           </div>
 
           <div className="bugreport-field">
-            <label className="bugreport-label">Bug Type</label>
+            <label className="bugreport-label">{t("bugReport.bugType")}</label>
             <Dropdown
-              options={BUG_TYPE_OPTIONS}
+              options={getBugTypeOptions()}
               value={bugType}
               onChange={setBugType}
               className="bugreport-dropdown"
@@ -399,14 +399,14 @@ export default function BugReport() {
 
           <div className="bugreport-field flex-grow">
             <label htmlFor="issue-text" className="bugreport-label">
-              Description <span className="required-star">*</span>
+              {t("bugReport.description")} <span className="required-star">*</span>
             </label>
             <textarea
               id="issue-text"
               ref={issueTextRef}
               rows={6}
               value={issueText}
-              placeholder="What happened, what did you expect, and how can we reproduce it?"
+              placeholder={t("bugReport.descriptionPlaceholder")}
               onChange={(e) => {
                 setIssueText(e.target.value);
                 if (issueError) setIssueError(null);
@@ -426,14 +426,14 @@ export default function BugReport() {
               <span className="about-card-icon">
                 <FaFileVideo />
               </span>
-              <h4>Screen Recording (Optional)</h4>
+              <h4>{t("bugReport.recording")}</h4>
             </div>
             <div className="bugreport-field">
               <input
                 id="video-reference"
                 type="text"
                 value={videoReference}
-                placeholder="e.g. Google Drive link, torrent, episode..."
+                placeholder={t("bugReport.recordingPlaceholder")}
                 onChange={(e) => setVideoReference(e.target.value)}
               />
             </div>
@@ -445,17 +445,17 @@ export default function BugReport() {
               <span className="about-card-icon">
                 <FaDesktop />
               </span>
-              <h4>System & Contact (Optional)</h4>
+              <h4>{t("bugReport.systemContact")}</h4>
             </div>
             <div className="bugreport-field">
               <div className="bugreport-label-row">
                 <label htmlFor="pc-specs" className="bugreport-label">
-                  PC Specs
+                  {t("bugReport.pcSpecs")}
                 </label>
                 <AutofillButton
                   icon={isDetectingSpecs ? <FaSpinner className="spin" /> : <FaMicrochip />}
-                  label={isDetectingSpecs ? "Reading this PC..." : "Fill with my PC specs"}
-                  tooltip="Fills in this computer's OS, CPU, RAM and GPU"
+                  label={isDetectingSpecs ? t("bugReport.readingSpecs") : t("bugReport.fillSpecs")}
+                  tooltip={t("bugReport.fillSpecsTooltip")}
                   onClick={() => void onAutoFillSpecs()}
                   disabled={isDetectingSpecs}
                 />
@@ -464,7 +464,7 @@ export default function BugReport() {
                 id="pc-specs"
                 type="text"
                 value={PCSpecs}
-                placeholder="e.g. RTX 3080, Win 11"
+                placeholder={t("bugReport.pcSpecsPlaceholder")}
                 onChange={(e) => setPCSpecs(e.target.value)}
               />
               {specsError && <p className="bugreport-field-error">{specsError}</p>}
@@ -473,15 +473,15 @@ export default function BugReport() {
             <div className="bugreport-field">
               <div className="bugreport-label-row">
                 <label htmlFor="contact" className="bugreport-label">
-                  Contact
+                  {t("bugReport.contact")}
                 </label>
                 <AutofillButton
                   icon={<FaDiscord />}
-                  label="Fill with my Discord"
+                  label={t("bugReport.fillDiscord")}
                   tooltip={
                     discordUser
-                      ? "Fills in your Discord username"
-                      : "Needs Discord Rich Presence on and Discord running"
+                      ? t("bugReport.fillDiscordTooltip")
+                      : t("bugReport.fillDiscordUnavailable")
                   }
                   onClick={onFillDiscordContact}
                   variant="discord"
@@ -491,7 +491,7 @@ export default function BugReport() {
                 id="contact"
                 type="text"
                 value={contact}
-                placeholder="Discord username / email"
+                placeholder={t("bugReport.contactPlaceholder")}
                 onChange={(e) => {
                   setContact(e.target.value);
                   if (contactError) setContactError(null);
@@ -507,7 +507,7 @@ export default function BugReport() {
               <span className="about-card-icon">
                 <FaImage />
               </span>
-              <h4>Screenshots & Submit</h4>
+              <h4>{t("bugReport.screenshotsSubmit")}</h4>
             </div>
             <div className="bugreport-field">
               {/* The native file input labels itself in the system's language,
@@ -520,7 +520,7 @@ export default function BugReport() {
                   onClick={() => screenshotInputRef.current?.click()}
                 >
                   <FaImage />
-                  Choose screenshots
+                  {t("bugReport.chooseScreenshots")}
                 </button>
                 <Tooltip content={screenShots?.length ? screenshotLabel : ""}>
                   <span className="bugreport-file-status">{screenshotLabel}</span>
@@ -548,12 +548,12 @@ export default function BugReport() {
               {isSubmitting ? (
                 <>
                   <FaSpinner className="spin" style={{ marginRight: 8 }} />
-                  Submitting...
+                  {t("bugReport.submitting")}
                 </>
               ) : (
                 <>
                   <FaPaperPlane style={{ marginRight: 8 }} />
-                  Submit Bug Report
+                  {t("bugReport.submit")}
                 </>
               )}
             </button>

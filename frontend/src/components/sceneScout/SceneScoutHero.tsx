@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { FaDatabase, FaPlus } from '../icons/animated';
 import { FiDatabase } from '../icons/animated';
 
@@ -16,6 +17,7 @@ import { FlowHeroClip } from "./flow/FlowHeroClip";
 
 /** the centered layout Scene Scout opens with each session, until the first search slides the bar up */
 export function SceneScoutHero() {
+  const { t } = useTranslation("scout");
   const databases = useSceneScoutStore((s) => s.databases);
   const loading = useSceneScoutStore((s) => s.loading);
   const selectedDatabases = useSceneScoutStore((s) => s.selectedDatabases);
@@ -52,16 +54,16 @@ export function SceneScoutHero() {
   const addTarget =
     opened && inSearch(opened) ? opened : selectedDatabases.length > 0 ? selectedDatabases[0] : null;
   const addTargetName = addTarget
-    ? labelFor(addTarget, databases.find((d) => samePath(d.path, addTarget))?.name ?? "database")
+    ? labelFor(addTarget, databases.find((d) => samePath(d.path, addTarget))?.name ?? t("hero.databaseFallback"))
     : null;
 
   const selectedHaveScenes = databases.some((d) => inSearch(d.path) && d.sceneCount > 0);
   // with nothing selected, searching asks which databases to use
   const blockedHint =
     databases.length === 0
-      ? "Create a database below to start searching..."
+      ? t("hero.blockedNoDatabase")
       : selectedDatabases.length > 0 && !selectedHaveScenes
-        ? "Add episodes to the selected database before searching..."
+        ? t("hero.blockedNoScenes")
         : null;
 
   const toggleDatabase = (path: string) => {
@@ -101,7 +103,7 @@ export function SceneScoutHero() {
         <div className="scene-scout-hero-actions">
           <SidebarToggle />
           <AddEpisodeButton
-            hint={addTargetName ? `Add episodes to ${addTargetName}` : "Select or create a database below first"}
+            hint={addTargetName ? t("hero.addTo", { name: addTargetName }) : t("hero.addNoTarget")}
             onClick={onAddEpisodes}
             disabled={!addTarget || searching}
           />
@@ -121,16 +123,16 @@ export function SceneScoutHero() {
 
         <div className="scene-scout-hero-dbs" data-scout-tour="hero-dbs">
           <div className="scene-scout-hero-dbs-head">
-            <span>Your databases</span>
+            <span>{t("hero.yourDatabases")}</span>
             <button type="button" className="scene-scout-hero-new" onClick={() => void startCreate()}>
               <FaPlus aria-hidden="true" />
-              New database
+              {t("hero.newDatabase")}
             </button>
           </div>
 
           {databases.length === 0 ? (
             <div className="scene-scout-hero-empty">
-              {loading ? "Loading databases..." : "No databases yet. Create one to start indexing episodes."}
+              {loading ? t("hero.loadingDatabases") : t("hero.noDatabases")}
             </div>
           ) : (
             <div className="scene-scout-hero-db-list">
@@ -152,7 +154,7 @@ export function SceneScoutHero() {
                     )}
                     <span className="scene-scout-hero-db-name">{labelFor(database.path, database.name)}</span>
                     <span className="scene-scout-hero-db-count">
-                      {database.sceneCount > 0 ? `${database.sceneCount} scenes` : "empty"}
+                      {database.sceneCount > 0 ? t("hero.sceneCount", { count: database.sceneCount }) : t("hero.empty")}
                     </span>
                   </button>
                 );

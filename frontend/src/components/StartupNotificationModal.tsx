@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 
 import Tooltip from "./common/Tooltip";
@@ -115,6 +116,7 @@ export default function StartupNotificationModal({
   notification,
   onClose,
 }: StartupNotificationModalProps) {
+  const { t } = useTranslation("jobs");
   const isUpdateMode = notification.mode === "update";
   const [doNotShowAgain, setDoNotShowAgain] = useState(false);
   const [bannerCandidates, setBannerCandidates] = useState<string[]>([]);
@@ -158,11 +160,11 @@ export default function StartupNotificationModal({
     <div className="startup-notification-overlay" role="dialog" aria-modal="true" aria-labelledby="startup-notification-title">
       <div className={`startup-notification-modal ${isUpdateMode ? "startup-notification-modal--update" : ""}`.trim()}>
         {isUpdateMode ? (
-          <Tooltip content="Close">
+          <Tooltip content={t("common:close")}>
             <button
               type="button"
               className="startup-notification-icon-close"
-              aria-label="Close notification"
+              aria-label={t("startupNotification.closeAria")}
               onClick={() => onClose(false)}
             >
               x
@@ -173,7 +175,7 @@ export default function StartupNotificationModal({
           <img
             className="startup-notification-banner"
             src={bannerSrc}
-            alt="Notification banner"
+            alt={t("startupNotification.bannerAlt")}
             loading="eager"
             onError={() => {
               setBannerIndex((current) =>
@@ -199,7 +201,7 @@ export default function StartupNotificationModal({
                 checked={doNotShowAgain}
                 onChange={(event) => setDoNotShowAgain(event.target.checked)}
               />
-              <span>Do not show again</span>
+              <span>{t("startupNotification.doNotShowAgain")}</span>
             </label>
 
             <button
@@ -207,7 +209,7 @@ export default function StartupNotificationModal({
               className="startup-notification-close"
               onClick={() => onClose(doNotShowAgain)}
             >
-              Close
+              {t("common:close")}
             </button>
           </div>
         ) : null}

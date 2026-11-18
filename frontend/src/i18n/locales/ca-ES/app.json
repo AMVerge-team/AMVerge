@@ -1,0 +1,13 @@
+{
+  "updater": {
+    "title": "AMVerge Update",
+    "available": "A new update is available (v{{version}}). Install now?",
+    "install": "Install",
+    "starting": "Starting update to v{{version}}.\n\nPlease keep the app open until it completes.",
+    "installedTitle": "AMVerge Update Installed",
+    "installed": "Update v{{version}} was installed.\n\nIf the app does not restart automatically on macOS, please close and reopen AMVerge once.",
+    "genericError": "Update download/install failed.",
+    "failedTitle": "AMVerge Update Failed",
+    "failed": "Could not install the update. {{error}}"
+  }
+}

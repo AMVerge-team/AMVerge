@@ -1,7 +1,8 @@
+import { useTranslation } from "react-i18next";
 import Dropdown from "../../common/Dropdown";
 import SettingRow from "../../common/SettingRow";
 import {
-  EXPORT_HARDWARE_OPTIONS,
+  getExportHardwareOptions,
   NVIDIA_ENCODER_SUPPORT_MATRIX_URL,
   type ExportProfile,
   type GpuEncoderCapabilities,
@@ -40,31 +41,35 @@ export default function ExportHardwareSettings({
   parallelExportOptions,
   updateActiveProfile,
 }: ExportHardwareSettingsProps) {
+  const { t } = useTranslation("settingsExport");
   return (
     <>
       <SettingRow
-        label="Video Encoder"
+        label={t("hardware.encoder.label")}
         description={
           encoderLockedToCpu ? (
-            "This codec can only be encoded on the CPU."
+            t("hardware.encoder.cpuOnly")
           ) : (
             <>
               {!gpuProbeComplete
-                ? "Detecting hardware encoders..."
+                ? t("hardware.encoder.detecting")
                 : gpuReadyForCodec
-                  ? `Using your ${gpuCapabilities.preferredBackend} GPU${
-                      selectedGpuEncoder ? ` (${selectedGpuEncoder})` : ""
-                    }. Auto falls back to the CPU if it fails.`
+                  ? selectedGpuEncoder
+                    ? t("hardware.encoder.usingGpuWithEncoder", {
+                        backend: gpuCapabilities.preferredBackend,
+                        encoder: selectedGpuEncoder,
+                      })
+                    : t("hardware.encoder.usingGpu", { backend: gpuCapabilities.preferredBackend })
                   : gpuCapabilities.hasGpuEncoder
-                    ? "Your GPU can't encode this codec, so Auto uses the CPU."
-                    : "No GPU encoder found, so Auto uses the CPU."}{" "}
+                    ? t("hardware.encoder.gpuUnsupported")
+                    : t("hardware.encoder.noGpu")}{" "}
               {nvidiaDetection.hasNvidiaGpu ? (
                 <a
                   href={NVIDIA_ENCODER_SUPPORT_MATRIX_URL}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  NVIDIA matrix
+                  {t("hardware.encoder.nvidiaMatrix")}
                 </a>
               ) : null}
             </>
@@ -73,7 +78,7 @@ export default function ExportHardwareSettings({
         control={
           <Dropdown
             className="settings-wide-dropdown"
-            options={EXPORT_HARDWARE_OPTIONS}
+            options={getExportHardwareOptions()}
             value={encoderLockedToCpu ? "cpu" : activeProfile.hardwareMode}
             onChange={(hardwareMode) => updateActiveProfile({ hardwareMode })}
             disabled={encoderLockedToCpu}
@@ -82,11 +87,11 @@ export default function ExportHardwareSettings({
       />
 
       <SettingRow
-        label="Parallel Encodes"
+        label={t("hardware.parallel.label")}
         description={
           parallelLocked
-            ? "Only available on GPUs that can run more than one encode at a time."
-            : `How many exports run at the same time. This codec supports up to ${parallelLimit}.`
+            ? t("hardware.parallel.locked")
+            : t("hardware.parallel.description", { count: parallelLimit })
         }
         control={
           <Dropdown

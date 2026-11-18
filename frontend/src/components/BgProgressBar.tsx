@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import Tooltip from "./common/Tooltip";
 
@@ -24,19 +25,20 @@ type BgProgress = {
 export default function BgProgressBar({
   clipDone = 0,
   clipTotal = 0,
-  clipLabel = "Processing clips",
+  clipLabel,
   importDone = 0,
   importTotal = 0,
   webpDone = 0,
   webpTotal = 0,
-  webpLabel = "Loading previews",
+  webpLabel,
   aiDone = 0,
   aiTotal = 0,
-  aiLabel = "Installing AI models",
+  aiLabel,
   onAiClick,
   onClose,
   attached = false,
 }: BgProgress) {
+  const { t } = useTranslation("jobs");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [dragging, setDragging] = useState(false);
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
@@ -140,13 +142,13 @@ export default function BgProgressBar({
     >
       {!attached ? (
         <div className={`bg-progress-head${dragging ? " dragging" : ""}`} onPointerDown={handlePointerDown}>
-          <span className="bg-progress-label header">Background tasks</span>
-          <Tooltip content="Close">
+          <span className="bg-progress-label header">{t("bgProgress.header")}</span>
+          <Tooltip content={t("common:close")}>
             <button
               type="button"
               className="bg-progress-close"
               onClick={onClose}
-              aria-label="Close processing indicator"
+              aria-label={t("bgProgress.closeAria")}
             >
               x
             </button>
@@ -155,7 +157,7 @@ export default function BgProgressBar({
       ) : null}
       {showClipProgress ? (
         <>
-          <p className="bg-progress-label">{clipLabel} {clipDone}/{clipTotal}</p>
+          <p className="bg-progress-label">{t("bgProgress.countLine", { label: clipLabel ?? t("bgProgress.processingClips"), done: clipDone, total: clipTotal })}</p>
           <div className="progress-bar" style={{ width: "100%", marginTop: 4, marginLeft: 0, marginRight: 0 }}>
             <div className="progress-fill" style={{ width: `${clipPercent}%` }} />
           </div>
@@ -167,13 +169,13 @@ export default function BgProgressBar({
           <div className="progress-bar" style={{ width: "100%", marginTop: 6, marginLeft: 0, marginRight: 0 }}>
             <div className="progress-fill" style={{ width: `${importPercent}%` }} />
           </div>
-          <span className="bg-progress-label">Importing {importDone}/{importTotal} videos</span>
+          <span className="bg-progress-label">{t("bgProgress.importingVideos", { done: importDone, total: importTotal })}</span>
         </>
       ) : null}
 
       {showWebpProgress ? (
         <>
-          <p className="bg-progress-label">{webpLabel} {webpDone}/{webpTotal}</p>
+          <p className="bg-progress-label">{t("bgProgress.countLine", { label: webpLabel ?? t("bgProgress.loadingPreviews"), done: webpDone, total: webpTotal })}</p>
           <div className="progress-bar" style={{ width: "100%", marginTop: 4, marginLeft: 0, marginRight: 0 }}>
             <div className="progress-fill" style={{ width: `${webpPercent}%` }} />
           </div>
@@ -181,13 +183,13 @@ export default function BgProgressBar({
       ) : null}
 
       {showAiProgress ? (
-        <Tooltip content="Click to view full installation details">
+        <Tooltip content={t("bgProgress.aiDetailsTooltip")}>
         <div
           onClick={onAiClick}
           style={{ cursor: onAiClick ? "pointer" : "default", marginTop: 6 }}
         >
           <p className="bg-progress-label" style={{ display: "flex", justifyContent: "space-between" }}>
-            <span>{aiLabel}</span>
+            <span>{aiLabel ?? t("bgProgress.installingAi")}</span>
             <strong style={{ color: "var(--accent)" }}>{aiPercent}%</strong>
           </p>
           <div className="progress-bar" style={{ width: "100%", marginTop: 4, marginLeft: 0, marginRight: 0 }}>

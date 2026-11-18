@@ -22,13 +22,13 @@
     border-radius: 999px;
 }
 
-/* the guide is read, not glanced at, so it stays in calibri whatever font the user picks */
+/* keep guide text in the readable ui font regardless of the display font */
 .info-panel {
     font-family: var(--ui-font);
     font-size-adjust: none;
     width: 100%;
     max-width: 650px;
-    margin-top: 12px;
+    margin-top: 16px;
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -47,7 +47,7 @@
 }
 
 .info-header {
-    padding: 12px 16px;
+    padding: 16px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -63,7 +63,7 @@
 .info-header-left {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .info-icon {
@@ -73,10 +73,11 @@
 }
 
 .info-title {
-    font-size: 0.9rem;
+    font-size: 14px;
+    line-height: 20px;
     color: var(--accent);
-    letter-spacing: 1.2px;
-    font-weight: 600;
+    letter-spacing: normal;
+    font-weight: var(--font-weight-heading);
 }
 
 .info-toggle {
@@ -91,14 +92,12 @@
 }
 
 .info-content {
-    padding: 0 16px 16px 16px;
+    padding: 0 20px 20px;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     animation: slideDown 0.3s ease-out;
     display: flex;
     flex-direction: column;
-    max-height: 250px;
-
-    overflow: hidden;
+    overflow: visible;
 }
 
 @keyframes slideDown {
@@ -128,7 +127,9 @@
     border: none;
     background: transparent;
     color: rgba(255, 255, 255, 0.5);
-    font-size: 0.75rem;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 18px;
     font-family: inherit;
     cursor: pointer;
     border-radius: 6px;
@@ -136,7 +137,7 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    letter-spacing: 1px;
+    letter-spacing: normal;
     transition: all 0.2s ease;
 }
 
@@ -152,21 +153,11 @@
 
 .info-steps {
     position: relative;
-    overflow-y: auto;
-    padding-right: 8px;
-    margin-right: -8px;
+    overflow: visible;
 }
 
 .info-steps::after {
-    content: "";
-    position: sticky;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 30px;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.4), transparent);
-    pointer-events: none;
-    transition: opacity 0.3s ease;
+    display: none;
 }
 
 .info-steps::-webkit-scrollbar {
@@ -200,9 +191,10 @@
 }
 
 .steps-list li {
-    font-size: 0.95rem;
+    font-size: 13px;
+    font-weight: 400;
     color: rgba(255, 255, 255, 0.7);
-    line-height: 1.4;
+    line-height: 20px;
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -220,10 +212,10 @@
 .steps-list li::before {
     content: counter(step-counter);
     color: var(--accent);
-    font-weight: 400;
+    font-weight: 550;
 
     opacity: 1;
-    font-size: 1.1rem;
+    font-size: 13px;
     font-family: var(--ui-font);
     min-width: 14px;
     text-align: center;
@@ -231,7 +223,7 @@
 
 .steps-list li b {
     color: white;
-    font-weight: 500;
+    font-weight: 550;
 }
 
 .info-tour-link {
@@ -240,7 +232,9 @@
     background: none;
     border: none;
     color: var(--accent);
-    font-size: 0.85rem;
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 18px;
     cursor: pointer;
 }
 
@@ -250,7 +244,7 @@
 
 @media (max-width: 980px) {
     .preview-container {
-        padding: 12px;
+        padding: 20px;
     }
 
     .export-panel,
@@ -277,8 +271,8 @@
     }
 
     .export-title {
-        font-size: 0.95rem;
-        letter-spacing: 1.5px;
+        font-size: 14px;
+        letter-spacing: normal;
     }
 
     .export-label {
@@ -320,8 +314,8 @@
 
     .export-main-button {
         height: 38px !important;
-        font-size: 1rem !important;
-        letter-spacing: 1px;
+        font-size: 14px !important;
+        letter-spacing: normal;
     }
 
     .platform-switcher {
@@ -331,8 +325,8 @@
     }
 
     .platform-btn {
-        font-size: 0.68rem;
-        letter-spacing: 0.6px;
+        font-size: 12px;
+        letter-spacing: normal;
         gap: 4px;
         padding: 6px 4px;
     }
@@ -349,8 +343,8 @@
     }
 
     .export-main-button {
-        font-size: 0.92rem !important;
-        letter-spacing: 0.7px;
+        font-size: 14px !important;
+        letter-spacing: normal;
         gap: 8px;
     }
 }

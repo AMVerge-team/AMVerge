@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { open } from "@tauri-apps/plugin-shell";
+import { useTranslation } from "react-i18next";
 
 import {
   useDiscordAppInfo,
@@ -54,6 +55,7 @@ export default function DiscordPresencePreview({
   activity: DiscordActivity | null;
   dim: boolean;
 }) {
+  const { t } = useTranslation("settings");
   const info = useDiscordAppInfo();
   const start = activity?.timestamps?.start;
 
@@ -79,7 +81,7 @@ export default function DiscordPresencePreview({
 
   return (
     <div className={`discord-preview${dim ? " discord-preview--dim" : ""}`}>
-      <p className="discord-preview-heading">Playing a game</p>
+      <p className="discord-preview-heading">{t("discord.preview.heading")}</p>
 
       <div className="discord-preview-body">
         <div className="discord-preview-art">
@@ -121,13 +123,13 @@ export default function DiscordPresencePreview({
           )}
           {start ? (
             <p className="discord-preview-line discord-preview-elapsed">
-              {formatElapsed(start, now)} elapsed
+              {t("discord.preview.elapsed", { time: formatElapsed(start, now) })}
             </p>
           ) : null}
         </div>
       </div>
 
-      {empty && <p className="discord-preview-empty">Nothing to show yet.</p>}
+      {empty && <p className="discord-preview-empty">{t("discord.preview.empty")}</p>}
     </div>
   );
 }

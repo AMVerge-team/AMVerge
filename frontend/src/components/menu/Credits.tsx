@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-shell";
@@ -34,6 +35,7 @@ function loadContributors(): Promise<GithubContributor[]> {
 }
 
 export default function Credits() {
+  const { t } = useTranslation("menu");
   const [contributors, setContributors] = useState<GithubContributor[] | null>(null);
   const [error, setError] = useState(false);
 
@@ -54,10 +56,9 @@ export default function Credits() {
   return (
     <div className="panel menu-panel credits-panel">
       <div className="credits-hero">
-        <h2 className="about-hero-title">The People Behind AMVerge</h2>
+        <h2 className="about-hero-title">{t("menu:credits.title")}</h2>
         <p className="about-hero-subtitle">
-          AMVerge is an open-source collaboration built by anime editors. It&apos;s intended to be a
-          community tool, shaped and improved together through contributions and suggestions.
+          {t("credits.subtitle")}
         </p>
       </div>
 
@@ -65,22 +66,21 @@ export default function Credits() {
         <div className="about-card credits-card">
           <div className="about-card-header">
             <span className="about-card-icon"><FaCodeBranch /></span>
-            <h4>Contributors</h4>
+            <h4>{t("menu:credits.contributors")}</h4>
           </div>
           {error ? (
             <p className="about-card-text">
-              Could not load contributors from GitHub right now. View the full list on{" "}
+              {t("release202:contributorsFailed")}{" "}
               <button
                 type="button"
                 className="info-tour-link"
                 onClick={() => void open("https://github.com/AMVerge-team/AMVerge/graphs/contributors")}
               >
-                GitHub
-              </button>
+                {t("menu:about.community.github")}</button>
               .
             </p>
           ) : contributors === null ? (
-            <p className="about-card-text">Loading contributors from GitHub...</p>
+            <p className="about-card-text">{t("release202:contributorsLoading")}</p>
           ) : (
             <div className="credits-team-grid">
               {contributors.map((member) => (
@@ -108,7 +108,7 @@ export default function Credits() {
                   <div className="member-info">
                     <span className="member-name">{member.login}</span>
                     <span className="member-role">
-                      {member.contributions} {member.contributions === 1 ? "commit" : "commits"}
+                      {t("release202:commits", { count: member.contributions })}
                     </span>
                   </div>
                 </div>
@@ -120,11 +120,10 @@ export default function Credits() {
         <div className="about-card credits-card">
           <div className="about-card-header">
             <span className="about-card-icon"><FaHeart /></span>
-            <h4>Contribute &amp; Community</h4>
+            <h4>{t("credits.contribute")}</h4>
           </div>
           <p className="about-card-text">
-            Want to help improve AMVerge? Whether it&apos;s adding new features, fixing bugs, or testing on
-            different hardware, all contributions are welcome.
+            {t("credits.contributeText")}
           </p>
           <div className="about-links-group" style={{ marginTop: "auto" }}>
             <button
@@ -135,8 +134,7 @@ export default function Credits() {
               }}
             >
               <FaGithub style={{ marginRight: 8, fontSize: "1.1rem" }} />
-              Contribute on GitHub
-            </button>
+              {t("menu:credits.contributeGithub")}</button>
           </div>
         </div>
       </div>

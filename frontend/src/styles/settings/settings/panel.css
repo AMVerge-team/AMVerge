@@ -178,8 +178,9 @@
     overflow-x: hidden;
     padding-top: 0;
     padding-right: 8px;
-    scrollbar-width: thin;
-    scrollbar-color: rgb(var(--accent-rgb) / 0.42) rgb(255 255 255 / 0.02);
+    /* Let WebView's custom scrollbar rules remove the native arrow buttons. */
+    scrollbar-width: auto;
+    scrollbar-color: auto;
 }
 
 .settings-tab-content > .panel.settings-panel > h3 {
@@ -200,23 +201,35 @@
 }
 
 .settings-tab-content > .panel.settings-panel::-webkit-scrollbar {
-    width: 8px;
+    width: 4px;
+    background: transparent;
+}
+
+.settings-tab-content > .panel.settings-panel::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
 }
 
 .settings-tab-content > .panel.settings-panel::-webkit-scrollbar-track {
-    background: rgb(255 255 255 / 0.02);
+    background: transparent;
     border-radius: 10px;
+    margin-block: 12px;
 }
 
 .settings-tab-content > .panel.settings-panel::-webkit-scrollbar-thumb {
-    background: rgb(var(--accent-rgb) / 0.34);
+    background: rgb(var(--accent-rgb) / 0.2);
     border-radius: 10px;
-    border: 2px solid transparent;
+    border: 1px solid transparent;
     background-clip: content-box;
 }
 
+.settings-tab-content > .panel.settings-panel:hover::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--accent-rgb) / 0.34);
+}
+
 .settings-tab-content > .panel.settings-panel::-webkit-scrollbar-thumb:hover {
-    background: rgb(var(--accent-rgb) / 0.52);
+    background-color: rgb(var(--accent-rgb) / 0.52);
 }
 
 .settings-tab-content > .panel.settings-panel > .about-content {

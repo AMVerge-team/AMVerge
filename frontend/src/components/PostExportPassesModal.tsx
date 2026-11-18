@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 
 import Tooltip from "./common/Tooltip";
 import BackgroundJobCard from "./BackgroundJobCard";
@@ -7,6 +8,7 @@ import { useEscapeToClose } from "./common/useEscapeToClose";
 import { usePassRunStore } from "../stores/passRunStore";
 
 export default function PostExportPassesModal() {
+  const { t } = useTranslation("jobs");
   const active = usePassRunStore((s) => s.active);
   const minimized = usePassRunStore((s) => s.minimized);
   const label = usePassRunStore((s) => s.label);
@@ -34,8 +36,8 @@ export default function PostExportPassesModal() {
   // auto-close a short while after everything finishes with no errors
   useEffect(() => {
     if (!active || !finished || errors.length > 0) return;
-    const t = window.setTimeout(() => usePassRunStore.getState().close(), 2500);
-    return () => window.clearTimeout(t);
+    const timer = window.setTimeout(() => usePassRunStore.getState().close(), 2500);
+    return () => window.clearTimeout(timer);
   }, [active, finished, errors.length]);
 
   if (!active) return null;
@@ -56,36 +58,36 @@ export default function PostExportPassesModal() {
     return (
       <BackgroundJobCard
         id="passes"
-        ariaLabel="Post-export passes (minimized)"
+        ariaLabel={t("passes.minimizedAria")}
         done={finished}
         lines={logs}
         title={
           finished
             ? errors.length > 0
-              ? "Passes finished with errors"
-              : "Passes complete"
-            : message || "Post-export passes"
+              ? t("passes.finishedWithErrorsShort")
+              : t("passes.completeShort")
+            : message || t("passes.title")
         }
         onExpand={() => setMinimized(false)}
         onClose={finished ? close : stop}
-        closeLabel={finished ? "Close" : "Stop"}
-        footer={finished && errors.length > 0 ? <p className="pxm-errors">Failed: {errors.join(", ")}</p> : null}
+        closeLabel={finished ? t("common:close") : t("passes.stop")}
+        footer={finished && errors.length > 0 ? <p className="pxm-errors">{t("passes.failed", { list: errors.join(", ") })}</p> : null}
       >
         <div className="lm-batch-row">
-          <span className="lm-batch-count">{finished ? "Done" : `Pass ${currentJobNum}/${jobTotal}`}</span>
+          <span className="lm-batch-count">{finished ? t("passes.done") : t("passes.passCount", { current: currentJobNum, total: jobTotal })}</span>
           {label ? <span className="lm-batch-file">{label}</span> : null}
         </div>
         {jobTotal > 1 ? (
           <>
             <div className="lm-progress">
-              <span className="lm-bar-label">Overall</span>
+              <span className="lm-bar-label">{t("terminal.overall")}</span>
               <div className="progress-bar lm-progress-bar">
                 <div className="progress-fill" style={{ width: `${shownOverall}%` }} />
               </div>
               <span className="lm-pct">{shownOverall}%</span>
             </div>
             <div className="lm-progress">
-              <span className="lm-bar-label">Current</span>
+              <span className="lm-bar-label">{t("terminal.current")}</span>
               <div className="progress-bar lm-progress-bar">
                 <div className="progress-fill" style={{ width: `${finished ? 100 : percent}%` }} />
               </div>
@@ -111,25 +113,25 @@ export default function PostExportPassesModal() {
           <span className="pxm-title">
             {finished
               ? errors.length > 0
-                ? "Post-export passes finished with errors"
-                : "Post-export passes complete"
-              : "Post-export passes"}
+                ? t("passes.finishedWithErrors")
+                : t("passes.complete")
+              : t("passes.title")}
           </span>
           <div className="pxm-actions">
-            <Tooltip content="Minimize">
-              <button type="button" className="pxm-btn" onClick={() => setMinimized(true)} aria-label="Minimize">
+            <Tooltip content={t("terminal.minimize")}>
+              <button type="button" className="pxm-btn" onClick={() => setMinimized(true)} aria-label={t("terminal.minimize")}>
                 ─
               </button>
             </Tooltip>
             {finished ? (
-              <Tooltip content="Close">
-                <button type="button" className="pxm-btn" onClick={close} aria-label="Close">
+              <Tooltip content={t("common:close")}>
+                <button type="button" className="pxm-btn" onClick={close} aria-label={t("common:close")}>
                   ✕
                 </button>
               </Tooltip>
             ) : (
-              <Tooltip content="Stop">
-                <button type="button" className="pxm-btn pxm-stop" onClick={stop} aria-label="Stop">
+              <Tooltip content={t("passes.stop")}>
+                <button type="button" className="pxm-btn pxm-stop" onClick={stop} aria-label={t("passes.stop")}>
                   ✕
                 </button>
               </Tooltip>
@@ -139,28 +141,28 @@ export default function PostExportPassesModal() {
 
         <div className="pxm-preview">
           {previewSrc ? (
-            <img className="pxm-preview-img" src={previewSrc} alt="Pass preview" draggable={false} />
+            <img className="pxm-preview-img" src={previewSrc} alt={t("passes.previewAlt")} draggable={false} />
           ) : (
-            <span className="pxm-preview-empty">Waiting for first preview frame…</span>
+            <span className="pxm-preview-empty">{t("passes.waitingPreview")}</span>
           )}
         </div>
 
         <div className="pxm-status">
           <span className="pxm-job">
-            {finished ? "Done" : `Pass ${currentJobNum}/${jobTotal}`}
+            {finished ? t("passes.done") : t("passes.passCount", { current: currentJobNum, total: jobTotal })}
           </span>
           <span className="pxm-label">{label}</span>
         </div>
 
         <div className="pxm-progress">
-          <span className="pxm-bar-label">Overall</span>
+          <span className="pxm-bar-label">{t("terminal.overall")}</span>
           <div className="progress-bar pxm-bar">
             <div className="progress-fill" style={{ width: `${finished ? 100 : overallPct}%` }} />
           </div>
           <span className="pxm-pct">{finished ? 100 : overallPct}%</span>
         </div>
         <div className="pxm-progress">
-          <span className="pxm-bar-label">Current</span>
+          <span className="pxm-bar-label">{t("terminal.current")}</span>
           <div className="progress-bar pxm-bar">
             <div className="progress-fill" style={{ width: `${percent}%` }} />
           </div>
@@ -178,7 +180,7 @@ export default function PostExportPassesModal() {
         </div>
 
         {finished && errors.length > 0 ? (
-          <p className="pxm-errors">Failed: {errors.join(", ")}</p>
+          <p className="pxm-errors">{t("passes.failed", { list: errors.join(", ") })}</p>
         ) : null}
       </div>
     </div>

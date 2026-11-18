@@ -1,0 +1,226 @@
+{
+  "hero": {
+    "blockedNoDatabase": "Créez une base ci-dessous pour commencer à chercher…",
+    "blockedNoScenes": "Ajoutez des épisodes à la base sélectionnée avant de chercher…",
+    "addTo": "Ajouter des épisodes à {{name}}",
+    "addNoTarget": "Sélectionnez ou créez d'abord une base ci-dessous",
+    "databaseFallback": "base",
+    "yourDatabases": "Vos bases",
+    "newDatabase": "Nouvelle base",
+    "loadingDatabases": "Chargement des bases…",
+    "noDatabases": "Aucune base pour l'instant. Créez-en une pour commencer à indexer des épisodes.",
+    "sceneCount_one": "{{count}} scène",
+    "sceneCount_other": "{{count}} scènes",
+    "empty": "vide"
+  },
+  "tabs": {
+    "ariaLabel": "Mode Scene Scout",
+    "search": "Search",
+    "searchHint": "Trouver des scènes en les décrivant",
+    "match": "Match",
+    "matchHint": "Sélectionner un clip et trouver les scènes qui semblent suivre sa dernière image"
+  },
+  "addEpisode": {
+    "label": "Add Episode",
+    "indexing": "Indexation…"
+  },
+  "searchField": {
+    "placeholderOne": "Décrivez une scène à chercher dans « {{name}} »…",
+    "placeholderMany_one": "Décrivez une scène à chercher dans {{count}} base sélectionnée…",
+    "placeholderMany_other": "Décrivez une scène à chercher dans {{count}} bases sélectionnées…",
+    "selectedDatabaseFallback": "base sélectionnée",
+    "placeholderAny": "Décrivez la scène que vous cherchez…",
+    "placeholderNoDatabase": "Créez une base pour commencer à chercher…",
+    "tooltip": "Chercher dans les bases et les épisodes sélectionnés",
+    "clear": "Effacer la recherche",
+    "searching": "Recherche…"
+  },
+  "toolbar": {
+    "gateHint": "Sélectionnez d'abord une base dans le panneau de gauche, ou créez-en une.",
+    "refreshDatabases": "Actualiser les bases"
+  },
+  "panels": {
+    "hideDatabasePanel": "Masquer le panneau des bases",
+    "showDatabasePanel": "Afficher le panneau des bases",
+    "hidePreviewPanel": "Masquer le panneau d'aperçu",
+    "showPreviewPanel": "Afficher le panneau d'aperçu"
+  },
+  "dbPrompt": {
+    "titleFlow": "Sélectionnez les bases où chercher les correspondances",
+    "titleSearch": "Sélectionnez les bases où chercher",
+    "clearAll": "Tout effacer",
+    "selectAll": "Tout sélectionner",
+    "listLabel": "Bases",
+    "episodeCount_one": "{{count}} épisode",
+    "episodeCount_other": "{{count}} épisodes",
+    "confirmFlow": "Trouver les clips qui enchaînent"
+  },
+  "missing": {
+    "title": "Épisode introuvable",
+    "message": "<b>{{name}}</b> n'est plus dans <code>{{path}}</code>, ses scènes ne peuvent donc pas être lues. Retirer cet épisode de la base ?",
+    "removing": "Suppression…",
+    "remove": "Retirer de la base",
+    "keep": "Garder"
+  },
+  "visibility": {
+    "ariaLabel": "Épisodes pris en compte dans {{name}}",
+    "showAll": "Tout afficher",
+    "hideAll": "Tout masquer",
+    "loading": "Chargement des épisodes…",
+    "empty": "Aucun épisode indexé pour l'instant."
+  },
+  "info": {
+    "search": {
+      "title": "Scene Scout : Search",
+      "intro": "Scene Scout cherche dans vos épisodes indexés par description, pas par nom de fichier. Tapez ce dont vous vous souvenez d'une scène, il trouve les plus proches.",
+      "gettingStarted": "Pour commencer",
+      "step1": "Créez ou ouvrez une base dans le panneau de gauche. Une base par série fonctionne bien.",
+      "step2": "Mettez-la dans Searching : double clic, glissez-la vers le haut, ou clic droit. All databases montre tout ce que vous avez ; seules celles dans Searching sont incluses dans la recherche.",
+      "step3": "Cliquez sur Add Episode et choisissez une ou plusieurs vidéos. L'indexation analyse chaque scène une fois et garde une empreinte de chacune : c'est long, mais cela n'arrive qu'une fois par épisode.",
+      "step4": "Décrivez la scène que vous cherchez, avec vos mots, et appuyez sur Entrée.",
+      "settingsTitle": "Paramètres de recherche",
+      "settings": "Results décide du nombre de résultats renvoyés. La détection de scènes se choisit à chaque ajout d'épisodes."
+    },
+    "flow": {
+      "title": "Scene Scout : Match",
+      "intro": "Match trouve les scènes qui pourraient venir juste après un clip que vous avez déjà. Il analyse la dernière image du clip et renvoie les scènes de vos bases qui lui ressemblent le plus, pour que l'enchaînement paraîsse continu.",
+      "howTitle": "Comment s'en servir",
+      "step1": "Ajoutez les bases où chercher à la liste Searching, à gauche.",
+      "step2": "Cliquez sur Import et choisissez un fichier vidéo, ou faites un clic droit sur un clip dans Library ou dans les résultats de Search et choisissez Trouver les clips qui enchaînent.",
+      "step3": "Cliquez sur un résultat pour le lire dans le panneau d'aperçu, et exportez-le de là comme d'habitude.",
+      "tipsTitle": "Astuces",
+      "tips": "Glissez la barre entre le clip et les résultats pour donner plus de place à l'un ou à l'autre. Le bouton d'actualisation relance le même clip, par exemple après avoir changé les bases sélectionnées."
+    }
+  },
+  "flow": {
+    "heroInput": "Chargez un fichier pour trouver des scènes qui enchaînent",
+    "noDatabaseHint": "Ajoutez d'abord une base à la liste Searching, à gauche",
+    "import": "Import",
+    "searchAgainHint": "Relancer la recherche, par exemple après avoir changé les bases sélectionnées",
+    "searchAgain": "Relancer la recherche",
+    "inputtedClip": "Clip chargé",
+    "previewFailed": "Impossible de préparer un aperçu de ce clip.",
+    "preparingPreview": "Préparation de l'aperçu",
+    "inputEpisode": "Charger un épisode",
+    "resizeLabel": "Redimensionner le clip et les résultats"
+  },
+  "tools": {
+    "modalLabel": "Tools",
+    "tabsLabel": "Outil",
+    "upscale": "Upscale",
+    "upscaleBlurb": "Une copie du clip plus nette et en plus haute résolution",
+    "depth": "Depth map",
+    "depthBlurb": "Une vidéo de la distance entre la caméra et chaque partie de l'image, pour le compositing",
+    "run": {
+      "upscale": "Générer l'upscale",
+      "depth": "Générer la depth map"
+    },
+    "rerun": {
+      "upscale": "Regénérer l'upscale",
+      "depth": "Regénérer la depth map"
+    },
+    "pack": {
+      "upscale": "Upscaling",
+      "depth": "Depth mapping"
+    },
+    "packMissing": "{{pack}} n'est pas encore installé.",
+    "install": "Installer",
+    "saved": "{{name}} enregistré",
+    "show": "Afficher",
+    "stopped": "Arrêté, rien n'a été enregistré",
+    "error": "L'opération a échoué",
+    "dropHere": "Déposez-le ici",
+    "dropVideo": "Déposez une vidéo ici",
+    "dropHint": "ou cliquez pour en choisir une. Tous les formats sont acceptés.",
+    "model": "Modèle",
+    "fileQuality": "Qualité du fichier",
+    "colors": "Couleurs",
+    "grayscale": "Niveaux de gris",
+    "stop": "Arrêter",
+    "opensIn": "S'ouvre dans {{dir}}",
+    "chooseWhere": "Choisir où l'enregistrer",
+    "exporting": "Export…",
+    "export": "Exporter",
+    "viewer": {
+      "play": "Lire",
+      "pause": "Pause",
+      "fullscreen": "Plein écran",
+      "previewFailed": "Impossible de préparer un aperçu de ce clip.",
+      "preparingPreview": "Préparation de l'aperçu",
+      "resultFailed": "Impossible d'afficher le résultat.",
+      "waitingFirstFrame": "En attente de la première image",
+      "preparing": "Préparation…",
+      "original": "Original",
+      "result": {
+        "upscale": "Upscalé",
+        "depth": "Depth map"
+      },
+      "waiting": {
+        "upscale": "La version upscalée s'affichera ici",
+        "depth": "La depth map s'affichera ici"
+      }
+    }
+  },
+  "events": {
+    "hideEpisodePanel": "Masquer le panneau des épisodes",
+    "showEpisodePanel": "Afficher le panneau des épisodes",
+    "bannedHint": "Vous n'avez plus le droit d'organiser d'événement. Cliquez pour savoir pourquoi",
+    "cooldownHint": "Vous pourrez demander un autre événement dans {{time}}",
+    "requestHint": "Demander un événement communautaire",
+    "banned": "Banni",
+    "host": "Organiser un événement",
+    "muteNotifications": "Couper les notifications de nouveaux événements",
+    "unmuteNotifications": "Remettre les notifications de nouveaux événements",
+    "refresh": "Actualiser les événements",
+    "connected": "Connecté : <strong>{{name}}</strong>",
+    "signOut": "Se déconnecter",
+    "signOutDiscord": "Se déconnecter de Discord",
+    "waiting": "Attente…",
+    "login": "Se connecter",
+    "searchPlaceholder": "Rechercher un événement",
+    "searchLabel": "Rechercher des événements",
+    "clearSearch": "Effacer la recherche",
+    "filter": {
+      "all": "Tous les événements",
+      "allDescription": "Tout",
+      "mine": "Mes événements",
+      "mineDescription": "Les événements que vous organisez",
+      "hc": "HC seulement",
+      "hcDescription": "Hour Challenges seulement",
+      "ec": "EC seulement",
+      "ecDescription": "Concours longs seulement"
+    },
+    "sort": {
+      "dateDesc": "Date, plus récente",
+      "dateDescDescription": "Date de début la plus récente d'abord",
+      "dateAsc": "Date, plus ancienne",
+      "dateAscDescription": "Date de début la plus ancienne d'abord",
+      "prizeDesc": "Cagnotte, plus grande",
+      "prizeDescDescription": "Plus grosse cagnotte d'abord",
+      "prizeAsc": "Cagnotte, plus petite",
+      "prizeAscDescription": "Plus petite cagnotte d'abord"
+    },
+    "info": {
+      "title": "Événements de la communauté",
+      "intro": "La communauté est énorme, et beaucoup de concours de montage passent inaperçus. Cette page les réunit au même endroit : les éditeurs trouvent les occasions qui valent le coup, et les organisateurs touchent les gens les plus susceptibles de venir. Plus de participants font de meilleurs événements, et un événement réussi donne envie au suivant d'en lancer un.",
+      "hcTitle": "Hour Challenge (HC)",
+      "hc": "Une fenêtre courte et fixe. Les éditeurs ont un nombre d'heures donné, souvent sur une seule journée, pour faire un montage du début à la fin. Ça engage moins, et j'adore y participer (crptk)",
+      "ecTitle": "Editing Contest (EC)",
+      "ec": "Un format plus long, d'au moins une journée et souvent bien plus. Il y a de la place pour préparer et peaufiner, en général moins de contraintes, et les lots sont plus gros.",
+      "hostTitle": "Organiser un événement",
+      "step1": "Connectez-vous avec Discord via le bouton Se connecter, pour pouvoir gérer l'événement ensuite. Tout passe par l'API officielle de Discord, nous n'avons donc accès à aucune de vos données.",
+      "step2": "Cliquez sur Organiser un événement et choisissez le format : HC pour un concours chronométré, EC pour un concours long.",
+      "step3": "Remplissez le titre, l'image de couverture, la description, les dates, et une invitation vers le serveur Discord où l'événement a vraiment lieu. Ajoutez une cagnotte s'il y en a une.",
+      "step4": "Envoyez-le pour relecture. Un modérateur vérifie chaque envoi avant la mise en ligne, en général assez vite.",
+      "step5": "Vous recevrez un message une fois l'événement validé. Vous pourrez encore corriger vous-même les dates, le lien d'invitation ou la cagnotte ; changer le titre, la description ou la couverture le renvoie en relecture rapide."
+    }
+  },
+  "createDb": {
+    "dialogTitle": "Créer une base Scene Scout",
+    "filter": "Base Scene Scout",
+    "title": "Nommez cette base",
+    "placeholder": "Nom de la base",
+    "failed": "Impossible de créer la base.",
+    "done": "Terminé"
+  }
+}

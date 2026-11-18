@@ -1,5 +1,6 @@
 /** custom-skinned preview player, rendering the markup the preview css targets */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FaPlay, FaPause, FaVolumeUp, FaVolumeDown, FaVolumeMute, FaExpand } from "react-icons/fa";
 
 import Tooltip from "../common/Tooltip";
@@ -25,6 +26,7 @@ type VideoPlayerProps = {
   startTime?: number;
   endTime?: number;
   onTimeUpdate?: (time: number) => void;
+  onError?: () => void;
   /** always muted, with no volume control (scene scout flow's input clip) */
   silent?: boolean;
 };
@@ -36,8 +38,10 @@ export default function VideoPlayer({
   startTime,
   endTime,
   onTimeUpdate,
+  onError,
   silent = false,
 }: VideoPlayerProps) {
+  const { t } = useTranslation("preview");
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
   const volumeRef = useRef<HTMLDivElement | null>(null);
@@ -315,6 +319,7 @@ export default function VideoPlayer({
           src={src}
           autoPlay
           playsInline
+          onError={onError}
           muted={silent || muted || volume === 0}
           onClick={togglePlay}
           onLoadedMetadata={(e) => {
@@ -378,8 +383,8 @@ export default function VideoPlayer({
           }}
         />
         <div className="controls">
-          <Tooltip content={playing ? "Pause" : "Play"}>
-            <button onClick={togglePlay} aria-label={playing ? "Pause" : "Play"}>
+          <Tooltip content={playing ? t("player.pause") : t("player.play")}>
+            <button onClick={togglePlay} aria-label={playing ? t("player.pause") : t("player.play")}>
               {playing ? <FaPause /> : <FaPlay />}
             </button>
           </Tooltip>
@@ -402,11 +407,11 @@ export default function VideoPlayer({
             onMouseEnter={showVolume}
             onMouseLeave={scheduleHide}
           >
-            <Tooltip content={muted ? "Unmute" : "Mute"}>
+            <Tooltip content={muted ? t("player.unmute") : t("player.mute")}>
             <button
               onClick={toggleMute}
               onFocus={showVolume}
-              aria-label={muted ? "Unmute" : "Mute"}
+              aria-label={muted ? t("player.unmute") : t("player.mute")}
             >
               {muted || displayVolume === 0
                 ? <FaVolumeMute />
@@ -422,7 +427,7 @@ export default function VideoPlayer({
                 max={1}
                 step={0.01}
                 value={muted ? 0 : displayVolume}
-                aria-label="Volume"
+                aria-label={t("player.volume")}
                 tabIndex={volumeOpen ? 0 : -1}
                 style={{ "--volume-fill": `${(muted ? 0 : displayVolume) * 100}%` } as React.CSSProperties}
                 onPointerDown={() => { draggingRef.current = true; cancelHide(); }}
@@ -432,8 +437,8 @@ export default function VideoPlayer({
           </div>
           )}
 
-          <Tooltip content="Fullscreen" align="end">
-            <button onClick={toggleFullscreen} aria-label="Fullscreen">
+          <Tooltip content={t("player.fullscreen")} align="end">
+            <button onClick={toggleFullscreen} aria-label={t("player.fullscreen")}>
               <FaExpand />
             </button>
           </Tooltip>

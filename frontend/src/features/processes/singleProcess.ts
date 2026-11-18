@@ -1,19 +1,16 @@
 import { create } from "zustand";
 
+import { t } from "../../i18n";
 import { useAppStateStore } from "../../stores/appStore";
 
 // one long job at a time: starting one while another runs asks to stop it or drop the new one; every job calls `claimProcess`
 
 export type ProcessKind = "import" | "export" | "resume" | "scout_add" | "scout_thumbnails" | "tools";
 
-export const PROCESS_LABELS: Record<ProcessKind, string> = {
-  import: "importing an episode",
-  export: "exporting clips",
-  resume: "finishing episode clips",
-  scout_add: "adding episodes to a Scene Scout database",
-  scout_thumbnails: "generating Scene Scout thumbnails",
-  tools: "upscaling or depth mapping a clip in Tools",
-};
+/** what the job is doing, as a sentence fragment */
+export function processLabel(kind: ProcessKind): string {
+  return t(`jobs:process.labels.${kind}`);
+}
 
 /** a Tools run, which keeps no app-wide progress state of its own */
 export const useToolsRunState = create<{ running: boolean }>(() => ({ running: false }));

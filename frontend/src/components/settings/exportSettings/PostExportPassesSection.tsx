@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import Dropdown from "../../common/Dropdown";
 import SettingRow from "../../common/SettingRow";
 import { useGeneralSettingsStore } from "../../../stores/settingsStore";
@@ -6,9 +7,9 @@ import { isPackInstalled, type AiPackId } from "../../../features/aiDeps/packs";
 import { useFeature } from "../../../features/featureToggles";
 import {
   DEPTH_COLORMAP_OPTIONS,
-  DEPTH_ENCODER_OPTIONS,
-  UPSCALE_MODEL_OPTIONS,
-  UPSCALE_QUALITY_OPTIONS,
+  getDepthEncoderOptions,
+  getUpscaleModelOptions,
+  getUpscaleQualityOptions,
   type DepthColormap,
   type DepthEncoder,
   type PostExportPassKind,
@@ -42,13 +43,15 @@ function ToggleControl({
 }
 
 export default function PostExportPassesSection() {
+  const { t } = useTranslation("settingsExport");
   const passes = useGeneralSettingsStore((s) => s.postExportPasses);
   const update = useGeneralSettingsStore((s) => s.updatePostExportPasses);
+  const enabled = useGeneralSettingsStore((s) => s.postExportPassesEnabled);
+  const setEnabled = useGeneralSettingsStore((s) => s.setPostExportPassesEnabled);
   const { depth, upscale } = passes;
   // each pass is a feature in Settings > Features: off greys its switch, hidden leaves it out
   const depthFeature = useFeature("depthPass");
   const upscaleFeature = useFeature("upscalePass");
-  const OFF_NOTE = " Turn it on in Settings › Features.";
 
   const aiStatus = useAiDepsStore((s) => s.status);
 
@@ -62,13 +65,20 @@ export default function PostExportPassesSection() {
 
   return (
     <>
+      <SettingRow
+        label={t("passes.master.label")}
+        description={t("passes.master.description")}
+        control={<ToggleControl label={t("passes.master.label")} checked={enabled} onChange={setEnabled} />}
+      />
       {!depthFeature.hidden && (
         <SettingRow
-          label="Depth map"
-          description={`Also save a depth map of each export as <name>_depth.${depthFeature.enabled ? "" : OFF_NOTE}`}
+          label={t("passes.depth.label")}
+          description={
+            depthFeature.enabled ? t("passes.depth.description") : t("passes.depth.descriptionOff")
+          }
           control={
             <ToggleControl
-              label="Toggle depth map"
+              label={t("passes.depth.toggle")}
               checked={depth.enabled && depthFeature.enabled}
               disabled={!depthFeature.enabled}
               onChange={(enabled) => void enableGatedPass("depth", enabled)}
@@ -79,20 +89,20 @@ export default function PostExportPassesSection() {
       {depth.enabled && depthFeature.enabled && (
         <div className="pass-config">
           <SettingRow
-            label="Depth model"
-            description="Bigger models look better but take longer."
+            label={t("passes.depth.model.label")}
+            description={t("passes.depth.model.description")}
             control={
               <Dropdown
                 className="settings-wide-dropdown"
-                options={DEPTH_ENCODER_OPTIONS}
+                options={getDepthEncoderOptions()}
                 value={depth.encoder}
                 onChange={(encoder) => update("depth", { encoder: encoder as DepthEncoder })}
               />
             }
           />
           <SettingRow
-            label="Colormap"
-            description="Color palette for the depth map."
+            label={t("passes.depth.colormap.label")}
+            description={t("passes.depth.colormap.description")}
             control={
               <Dropdown
                 className="settings-wide-dropdown"
@@ -103,11 +113,11 @@ export default function PostExportPassesSection() {
             }
           />
           <SettingRow
-            label="Grayscale"
-            description="Use black and white instead of a color palette."
+            label={t("passes.depth.grayscale.label")}
+            description={t("passes.depth.grayscale.description")}
             control={
               <ToggleControl
-                label="Toggle grayscale depth"
+                label={t("passes.depth.grayscale.toggle")}
                 checked={depth.grayscale}
                 onChange={(grayscale) => update("depth", { grayscale })}
               />
@@ -117,11 +127,13 @@ export default function PostExportPassesSection() {
       )}
       {!upscaleFeature.hidden && (
         <SettingRow
-          label="Upscaling"
-          description={`Also save a higher resolution copy of each export as <name>_upscaled.${upscaleFeature.enabled ? "" : OFF_NOTE}`}
+          label={t("passes.upscale.label")}
+          description={
+            upscaleFeature.enabled ? t("passes.upscale.description") : t("passes.upscale.descriptionOff")
+          }
           control={
             <ToggleControl
-              label="Toggle upscaling"
+              label={t("passes.upscale.toggle")}
               checked={upscale.enabled && upscaleFeature.enabled}
               disabled={!upscaleFeature.enabled}
               onChange={(enabled) => void enableGatedPass("upscale", enabled)}
@@ -132,24 +144,24 @@ export default function PostExportPassesSection() {
       {upscale.enabled && upscaleFeature.enabled && (
         <div className="pass-config">
           <SettingRow
-            label="Upscale model"
-            description="All are trained on anime. Downloads the first time you use it."
+            label={t("passes.upscale.model.label")}
+            description={t("passes.upscale.model.description")}
             control={
               <Dropdown
                 className="settings-wide-dropdown"
-                options={UPSCALE_MODEL_OPTIONS}
+                options={getUpscaleModelOptions()}
                 value={upscale.model}
                 onChange={(model) => update("upscale", { model: model as UpscaleModel })}
               />
             }
           />
           <SettingRow
-            label="File quality"
-            description="How the upscaled video is compressed. Outputs are always H.264."
+            label={t("passes.upscale.quality.label")}
+            description={t("passes.upscale.quality.description")}
             control={
               <Dropdown
                 className="settings-wide-dropdown"
-                options={UPSCALE_QUALITY_OPTIONS}
+                options={getUpscaleQualityOptions()}
                 value={upscale.quality}
                 onChange={(quality) => update("upscale", { quality: quality as UpscaleQuality })}
               />

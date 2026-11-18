@@ -1,17 +1,19 @@
 import { open } from "@tauri-apps/plugin-shell";
+import { Trans, useTranslation } from "react-i18next";
 import { FaQuestionCircle, FaWrench, FaKeyboard, FaGlobe, FaDiscord, FaGithub } from '../icons/animated';
 
 // navigator.platform is deprecated but the only synchronous read
 const IS_MAC = /mac/i.test(navigator.platform);
 
 export default function About() {
+  const { t } = useTranslation("menu");
+  const rich = { strong: <strong />, code: <code /> };
+
   return (
     <section className="panel menu-panel about-panel">
       <div className="about-hero">
-        <h2 className="about-hero-title">About AMVerge</h2>
-        <p className="about-hero-subtitle">
-          AMVerge makes scene selection easier. It splits an episode into every scene, so you can skim through it much faster and miss less scenes than you would in a video editor.
-        </p>
+        <h2 className="about-hero-title">{t("about.title")}</h2>
+        <p className="about-hero-subtitle">{t("about.subtitle")}</p>
       </div>
 
       <div className="about-grid">
@@ -19,48 +21,36 @@ export default function About() {
         <div className="about-card">
           <div className="about-card-header">
             <span className="about-card-icon"><FaQuestionCircle /></span>
-            <h4>What is AMVerge?</h4>
+            <h4>{t("about.what.title")}</h4>
           </div>
-          <p className="about-card-text">
-            A clip cutter for anime editors. Give it an episode and it finds every
-            shot change, then lays the whole thing out as a grid you can skim.
-          </p>
-          <p className="about-card-text">
-            Click the scenes you want and it pulls them out of the source file
-            without re-encoding, so the clips keep the quality of the original.
-            They land in a folder ready to drag into After Effects, Premiere, or
-            Resolve.
-          </p>
-          <p className="about-card-text">
-            It doesn't edit anything for you or decide which scenes are good. It
-            just takes out the part where you scrub through an episode hunting for
-            the four seconds you remembered.
-          </p>
+          <p className="about-card-text">{t("about.what.p1")}</p>
+          <p className="about-card-text">{t("about.what.p2")}</p>
+          <p className="about-card-text">{t("about.what.p3")}</p>
         </div>
 
         {/* Card 2: Recommended Workflow */}
         <div className="about-card">
           <div className="about-card-header">
             <span className="about-card-icon"><FaWrench /></span>
-            <h4>Fast Workflow</h4>
+            <h4>{t("about.workflow.title")}</h4>
           </div>
           <ol className="about-card-steps">
             <li>
               <span className="step-num">1</span>
               <div>
-                <strong>Import:</strong> Drag & drop your video files (MP4, MKV, WebM, etc.).
+                <Trans t={t} i18nKey="about.workflow.import" components={rich} />
               </div>
             </li>
             <li>
               <span className="step-num">2</span>
               <div>
-                <strong>Select:</strong> Skim the grid and select the scenes you need. Use <code>Shift + Click</code> for ranges or <code>Ctrl + Click</code> for individual clips.
+                <Trans t={t} i18nKey="about.workflow.select" components={rich} />
               </div>
             </li>
             <li>
               <span className="step-num">3</span>
               <div>
-                <strong>Merge & Export:</strong> Pick an export profile (or enable Merge Clips to join sequences) and hit <strong>Export Now</strong>.
+                <Trans t={t} i18nKey="about.workflow.export" components={rich} />
               </div>
             </li>
           </ol>
@@ -70,28 +60,28 @@ export default function About() {
         <div className="about-card">
           <div className="about-card-header">
             <span className="about-card-icon"><FaKeyboard /></span>
-            <h4>Navigation & Shortcuts</h4>
+            <h4>{t("about.shortcuts.title")}</h4>
           </div>
           <div className="about-shortcuts-table">
             <div className="shortcut-row">
-              <span className="shortcut-key">Single Click</span>
-              <span className="shortcut-desc">Focus clip and play preview</span>
+              <span className="shortcut-key">{t("about.shortcuts.singleClick")}</span>
+              <span className="shortcut-desc">{t("about.shortcuts.singleClickDesc")}</span>
             </div>
             <div className="shortcut-row">
-              <span className="shortcut-key">Ctrl + Click</span>
-              <span className="shortcut-desc">Toggle individual clip selection</span>
+              <span className="shortcut-key">{t("about.shortcuts.ctrlClick")}</span>
+              <span className="shortcut-desc">{t("about.shortcuts.ctrlClickDesc")}</span>
             </div>
             <div className="shortcut-row">
-              <span className="shortcut-key">Shift + Click</span>
-              <span className="shortcut-desc">Select continuous clip range</span>
+              <span className="shortcut-key">{t("about.shortcuts.shiftClick")}</span>
+              <span className="shortcut-desc">{t("about.shortcuts.shiftClickDesc")}</span>
             </div>
             <div className="shortcut-row">
-              <span className="shortcut-key">{IS_MAC ? "Cmd + Scroll" : "Ctrl + Scroll"}</span>
-              <span className="shortcut-desc">Adjust the number of grid columns</span>
+              <span className="shortcut-key">{IS_MAC ? t("about.shortcuts.cmdScroll") : t("about.shortcuts.ctrlScroll")}</span>
+              <span className="shortcut-desc">{t("about.shortcuts.scrollDesc")}</span>
             </div>
             <div className="shortcut-row">
-              <span className="shortcut-key">Esc</span>
-              <span className="shortcut-desc">Open quick navigation, or close what is open</span>
+              <span className="shortcut-key">{t("about.shortcuts.esc")}</span>
+              <span className="shortcut-desc">{t("about.shortcuts.escDesc")}</span>
             </div>
           </div>
         </div>
@@ -100,29 +90,27 @@ export default function About() {
         <div className="about-card">
           <div className="about-card-header">
             <span className="about-card-icon"><FaGlobe /></span>
-            <h4>Community & Support</h4>
+            <h4>{t("about.community.title")}</h4>
           </div>
-          <p className="about-card-text">
-            Join our community for bug reports, updates, feature requests, and to share your edits:
-          </p>
+          <p className="about-card-text">{t("about.community.text")}</p>
           <div className="about-links-group">
             <button
               className="about-link-btn discord"
               onClick={() => void open("https://discord.gg/bmXjTgsAaN")}
             >
               <FaDiscord style={{ marginRight: 8, fontSize: "1.1rem" }} />
-              Discord Community
+              {t("about.community.discord")}
             </button>
             <button
               className="about-link-btn github"
               onClick={() => void open("https://github.com/AMVerge-team/AMVerge")}
             >
               <FaGithub style={{ marginRight: 8, fontSize: "1.1rem" }} />
-              GitHub
+              {t("about.community.github")}
             </button>
           </div>
           <div className="about-author-note">
-            <em>Originally created by <strong>Crptk</strong>. Maintained by the AMVerge Team.</em>
+            <em><Trans t={t} i18nKey="about.community.authorNote" components={rich} /></em>
           </div>
         </div>
       </div>

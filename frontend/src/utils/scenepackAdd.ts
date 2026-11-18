@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { useScenepacksStore } from "../stores/scenepackStore";
 import { useScenepackPendingStore } from "../stores/scenepackPendingStore";
 import { materializeClipsForScenepack } from "./scenepackMaterialize";
@@ -32,7 +33,7 @@ export function addClipsToScenepack(
       if (materialized.length === 0) {
         useScenepackPendingStore
           .getState()
-          .failPending(keys, failedCount > 0 ? "Could not cut this clip." : "Nothing to add.");
+          .failPending(keys, failedCount > 0 ? t("jobs:scenepack.cutFailed") : t("jobs:scenepack.nothingToAdd"));
         return;
       }
 
@@ -45,7 +46,7 @@ export function addClipsToScenepack(
       if (failedCount > 0) {
         useScenepackPendingStore
           .getState()
-          .failPending(keys.slice(materialized.length), "Could not cut this clip.");
+          .failPending(keys.slice(materialized.length), t("jobs:scenepack.cutFailed"));
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
