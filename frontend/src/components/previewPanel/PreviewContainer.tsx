@@ -15,6 +15,7 @@ import { useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
 import { usePreviewTranscode } from "../../features/preview/usePreviewTranscode.ts";
 import LoadingSpinner from "../common/LoadingSpinner";
+import { imageThumbnail, mediaSrcVersioned } from "../../utils/mediaSrc";
 import { anyPassEnabled } from "../../features/export/postPasses";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
@@ -129,10 +130,19 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   );
   const hasSource = !!props.sourceClip && !!sourceClipObj;
 
-  // uncut scenes share the grid's short x264 preview instead of decoding the source episode
+  // the clip's jpg poster covers the panel while its video loads, so a click never shows black
+  const posterPath = imageThumbnail(sourceClipObj?.thumbnail);
+  const previewPoster = posterPath ? mediaSrcVersioned(posterPath, importToken) : undefined;
+
+  const { needed: configuredTranscode, preset: transcodePreset } = usePreviewTranscode();
+
+  // an uncut scene plays straight from its source episode, seeked to its range, which is instant.
+  // only a scout result or a source the webview can't decode (10-bit hevc, xvid) waits on the short
+  // x264 range cut; doing that for every uncut clip ran an ffmpeg encode per click during imports
   const sceneRange =
     !sourceClipObj?.clipPath &&
     !webpPreviewMode &&
+    (Boolean(sourceClipObj?.database) || configuredTranscode) &&
     sourceClipObj?.startSec !== undefined &&
     sourceClipObj?.endSec !== undefined &&
     sourceClipObj.endSec > sourceClipObj.startSec
@@ -156,7 +166,6 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const [languageProxy, setLanguageProxy] = React.useState<{ key: string; path: string } | null>(null);
   const [proxyErrorKey, setProxyErrorKey] = React.useState<string | null>(null);
 
-  const { needed: configuredTranscode, preset: transcodePreset } = usePreviewTranscode();
   const [decodeErrorSource, setDecodeErrorSource] = React.useState<string | null>(null);
   const needsPreviewTranscode = configuredTranscode || (previewVideoSrc !== null && decodeErrorSource === previewVideoSrc);
 
@@ -384,6 +393,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                   startTime={sceneStartTime}
                   endTime={sceneEndTime}
                   onTimeUpdate={props.onTimeUpdate}
+                  poster={previewPoster}
                   onError={() => {
                     if (sceneRangeKey) setSceneRangeErrorKey(sceneRangeKey);
                     else if (languageProxySrc) setProxyErrorKey(previewProxyKey);
@@ -395,7 +405,12 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                   {previewFailed ? (
                     <p>{t("preview.sceneLoadFailed")}</p>
                   ) : (
-                    <LoadingSpinner label={t("preview.loading")} />
+                    <>
+                      {previewPoster && (
+                        <img className="preview-loading-poster" src={previewPoster} alt="" draggable={false} />
+                      )}
+                      <LoadingSpinner label={t("preview.loading")} />
+                    </>
                   )}
                 </div>
               )}

@@ -55,6 +55,8 @@ export type GeneralSettings = {
     sceneDetectionMethod: SceneDetectionMethod;
     importMethod: importMethod;
     previewTranscodeMode: PreviewTranscodeMode;
+    /** true once the user picks a mode in Settings; until then the HEVC check picks it (off when this PC plays HEVC) */
+    previewTranscodeModeUserSet: boolean;
     previewTranscodeQuality: PreviewTranscodeQuality;
     postExportPasses: PostExportPasses;
     postExportPassesEnabled: boolean;
@@ -131,6 +133,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     sceneDetectionMethod: "keyframe_detection",
     importMethod: "video_files",
     previewTranscodeMode: "hevc",
+    previewTranscodeModeUserSet: false,
     previewTranscodeQuality: "480p",
     postExportPasses: DEFAULT_POST_EXPORT_PASSES,
     postExportPassesEnabled: false,
@@ -253,7 +256,7 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
             setImportMethod: (method) =>
                 set({ importMethod: method }),
             setPreviewTranscodeMode: (mode) =>
-                set({ previewTranscodeMode: mode }),
+                set({ previewTranscodeMode: mode, previewTranscodeModeUserSet: true }),
             setPreviewTranscodeQuality: (quality) =>
                 set({ previewTranscodeQuality: quality }),
             setAudioPlaybackHover: (enabled) =>
@@ -372,6 +375,8 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                         persisted.previewTranscodeMode === "always"
                             ? persisted.previewTranscodeMode
                             : currentState.previewTranscodeMode,
+                    // settings saved before this flag never made a choice the app can tell apart from the default
+                    previewTranscodeModeUserSet: persisted.previewTranscodeModeUserSet === true,
                     previewTranscodeQuality:
                         persisted.previewTranscodeQuality !== undefined &&
                         persisted.previewTranscodeQuality in PREVIEW_TRANSCODE_PRESETS

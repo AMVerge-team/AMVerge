@@ -69,6 +69,22 @@
     border-radius: 0;
 }
 
+/* a proxy still building shows the clip's poster, dimmed, under the spinner */
+.preview-window.empty>.preview-loading-poster {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: brightness(0.55);
+    pointer-events: none;
+}
+
+.preview-window.empty>.loading-spinner {
+    position: relative;
+    z-index: 1;
+}
+
 .preview-window > .preview-window.empty {
     height: 100%;
     aspect-ratio: auto;
