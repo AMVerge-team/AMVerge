@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
 use crate::utils::paths::{resolve_episodes_storage_dir, sanitize_episode_cache_id};
+use crate::utils::sidecar::resolve_ai_location;
 
 fn extension_sync_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let data_dir = app
@@ -10,6 +11,73 @@ fn extension_sync_dir(app: &AppHandle) -> Result<PathBuf, String> {
         .app_data_dir()
         .map_err(|e| e.to_string())?;
     Ok(data_dir.join("extension_sync"))
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct AppPathsSyncPayload {
+    pub runtime_dir: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ai_config_dir: Option<String>,
+    pub episodes_storage_dir: String,
+    pub updated_at: u64,
+}
+
+pub fn write_app_paths_file(
+    app: &AppHandle,
+    custom_episodes_path: Option<&str>,
+) -> Result<(), String> {
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&data_dir).map_err(|e| e.to_string())?;
+
+    let ai_loc = resolve_ai_location(app)?;
+    let episodes_storage_dir = resolve_episodes_storage_dir(app, custom_episodes_path)?;
+
+    let existing_episodes = if custom_episodes_path.is_none() {
+        let paths_file = data_dir.join("paths.json");
+        std::fs::read_to_string(&paths_file)
+            .ok()
+            .and_then(|raw| serde_json::from_str::<AppPathsSyncPayload>(&raw).ok())
+            .map(|p| p.episodes_storage_dir)
+            .filter(|s| !s.trim().is_empty())
+    } else {
+        None
+    };
+
+    let updated_at = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+
+    let payload = AppPathsSyncPayload {
+        runtime_dir: ai_loc.runtime_dir.to_string_lossy().to_string(),
+        ai_config_dir: ai_loc
+            .config_dir
+            .map(|p| p.to_string_lossy().to_string()),
+        episodes_storage_dir: existing_episodes
+            .unwrap_or_else(|| episodes_storage_dir.to_string_lossy().to_string()),
+        updated_at,
+    };
+
+    let serialized = serde_json::to_vec_pretty(&payload)
+        .map_err(|e| format!("Failed to serialize paths.json: {e}"))?;
+    let paths_file = data_dir.join("paths.json");
+    let temp_path = data_dir.join("paths.json.tmp");
+    std::fs::write(&temp_path, serialized)
+        .map_err(|e| format!("Failed to write paths.json: {e}"))?;
+    std::fs::rename(&temp_path, &paths_file)
+        .map_err(|e| format!("Failed to finalize paths.json: {e}"))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn write_app_paths_sync(
+    app: AppHandle,
+    custom_episodes_path: Option<String>,
+) -> Result<(), String> {
+    write_app_paths_file(&app, custom_episodes_path.as_deref())
 }
 
 #[tauri::command]

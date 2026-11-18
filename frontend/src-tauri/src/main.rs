@@ -95,6 +95,7 @@ fn main() {
             commands::export::fast_merge,
             commands::export::fast_split,
             commands::extension_sync::write_app_theme,
+            commands::extension_sync::write_app_paths_sync,
             commands::extension_sync::write_active_episode_sync,
             commands::extension_sync::clear_active_episode_sync,
             commands::extension_sync::read_extension_sync_theme,

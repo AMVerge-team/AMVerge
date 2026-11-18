@@ -346,6 +346,12 @@ function App() {
 
   // Synchronize the currently opened episode with the AE extension sync pointer
   const episodesPath = useGeneralSettingsStore((s) => s.episodesPath);
+
+  useEffect(() => {
+    void invoke("write_app_paths_sync", {
+      customEpisodesPath: episodesPath ?? null,
+    }).catch(() => {});
+  }, [episodesPath]);
   const openedEpisodeId = useEpisodePanelRuntimeStore((s) => s.openedEpisodeId);
   const openedEpisode = useEpisodePanelRuntimeStore((s) =>
     s.episodes.find((e) => e.id === s.openedEpisodeId)
