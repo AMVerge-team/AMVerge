@@ -97,7 +97,7 @@
       "export": "导出",
       "appearance": "外观",
       "features": "功能",
-      "discord": "Discord RPC",
+      "discord": "",
       "storage": "存储"
     }
   },
@@ -147,7 +147,7 @@
       "description": "浏览、筛选并批量导出此片段集中的片段。"
     },
     "scoutDb": {
-      "subtitle": "{{episodes}} • {{scenes}}",
+      "subtitle": "",
       "episodes_one": "{{count}} 个视频",
       "episodes_other": "{{count}} 个视频",
       "scenes_one": "{{count}} 个场景",
@@ -334,7 +334,7 @@
     "closeLabel": "关闭{{label}}"
   },
   "previewAll": {
-    "start": "预览全部片段",
-    "stop": "停止预览全部片段"
+    "start": "",
+    "stop": ""
   }
 }
