@@ -90,8 +90,11 @@ def handle_push(event):
     if count > 8:
         lines.append(f"*...and {count - 8} more commit(s) on GitHub*")
 
+    action_line = f"[{sender_name} pushed to {repo_full}]({compare_url})"
+
     desc = (
-        f"# [{repo_name}]({repo_url})\n\n"
+        f"# [{repo_name}]({repo_url})\n"
+        f"{action_line}\n\n"
         f"**[{count} new {commit_word}]({compare_url})** to [`{branch}`]({repo_url}/tree/{branch})\n\n"
         + "\n".join(lines)
     )
@@ -101,7 +104,7 @@ def handle_push(event):
         "avatar_url": "https://github.com/AMVerge-team.png",
         "embeds": [
             {
-                "author": {"name": f"{sender_name} pushed to {repo_full}", "url": sender_url, "icon_url": sender_avatar},
+                "author": {"name": sender_name, "url": sender_url, "icon_url": sender_avatar},
                 "description": desc[:4096],
                 "color": COLOR_GREEN,
                 "footer": {"text": f"{repo_full} • {branch}", "icon_url": "https://github.com/AMVerge-team.png"},
@@ -152,9 +155,10 @@ def handle_pull_request(event):
     stat_str = f"`{changed_files} files changed` (+{additions} / -{deletions})"
 
     body_codeblock = clean_codeblock(pr.get("body"), max_len=320)
+    action_line = f"[{sender_name} {action_verb} in {repo_full}]({pr_url})"
 
     desc_parts = [
-        f"# [{repo_name}]({repo_url})\n",
+        f"# [{repo_name}]({repo_url})\n{action_line}\n",
         f"### [#{pr_num} {pr_title}]({pr_url})",
         f"🔀 `{base_branch}` ← `{head_branch}`",
     ]
@@ -170,7 +174,7 @@ def handle_pull_request(event):
         "avatar_url": "https://github.com/AMVerge-team.png",
         "embeds": [
             {
-                "author": {"name": f"{sender_name} {action_verb} in {repo_full}", "url": sender_url, "icon_url": sender_avatar},
+                "author": {"name": sender_name, "url": sender_url, "icon_url": sender_avatar},
                 "description": desc[:4096],
                 "color": color,
                 "footer": {"text": f"{repo_full} • PR #{pr_num}", "icon_url": "https://github.com/AMVerge-team.png"},
@@ -199,8 +203,10 @@ def handle_release(event):
     sender_url = sender.get("html_url") or repo_url
 
     body_codeblock = clean_codeblock(rel.get("body"), max_len=300)
+    action_line = f"[{sender_name} published a release in {repo_full}]({rel_url})"
+
     desc_parts = [
-        f"# [{repo_name}]({repo_url})\n",
+        f"# [{repo_name}]({repo_url})\n{action_line}\n",
         f"🚀 **[{rel_name}]({rel_url})** is now live!\n🏷️ **Tag:** `{tag_name}`",
     ]
     if body_codeblock:
@@ -213,7 +219,7 @@ def handle_release(event):
         "avatar_url": "https://github.com/AMVerge-team.png",
         "embeds": [
             {
-                "author": {"name": f"{sender_name} published a release in {repo_full}", "url": sender_url, "icon_url": sender_avatar},
+                "author": {"name": sender_name, "url": sender_url, "icon_url": sender_avatar},
                 "description": desc[:4096],
                 "color": COLOR_GOLD,
                 "footer": {"text": f"{repo_full} • Release {tag_name}", "icon_url": "https://github.com/AMVerge-team.png"},
@@ -255,9 +261,10 @@ def handle_issues(event):
     label_tags = " ".join([f"`{l.get('name')}`" for l in raw_labels[:4]]) if raw_labels else "None"
 
     body_codeblock = clean_codeblock(issue.get("body"), max_len=300)
+    action_line = f"[{sender_name} {action} issue in {repo_full}]({issue_url})"
 
     desc_parts = [
-        f"# [{repo_name}]({repo_url})\n",
+        f"# [{repo_name}]({repo_url})\n{action_line}\n",
         f"### [#{issue_num} {issue_title}]({issue_url})",
     ]
     if body_codeblock:
@@ -272,7 +279,7 @@ def handle_issues(event):
         "avatar_url": "https://github.com/AMVerge-team.png",
         "embeds": [
             {
-                "author": {"name": f"{sender_name} {action} issue in {repo_full}", "url": sender_url, "icon_url": sender_avatar},
+                "author": {"name": sender_name, "url": sender_url, "icon_url": sender_avatar},
                 "description": desc[:4096],
                 "color": color,
                 "footer": {"text": f"{repo_full} • Issue #{issue_num}", "icon_url": "https://github.com/AMVerge-team.png"},
