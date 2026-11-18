@@ -21,6 +21,12 @@ import SettingRow from "../common/SettingRow";
 import FontPicker from "./FontPicker";
 import SettingsSection from "../common/SettingsSection";
 
+// black first: it's the default; the rest are the accent presets' dark gradients, which suit a tint
+const EPISODE_PANEL_PRESET_COLORS = [
+  "#000000",
+  ...GRADIENT_PRESET_COLORS.filter((c) => c.toLowerCase() !== "#000000"),
+];
+
 type AppearanceSectionProps = {
   onThemeReset: () => void;
 };
@@ -200,6 +206,27 @@ export default function AppearanceSection({
               />
               <span className="settings-value">
                 {themeSettings.backgroundGradientColor.toUpperCase()}
+              </span>
+            </div>
+          }
+        />
+        <SettingRow
+          label={t("appearance.colors.episodePanel.label")}
+          description={t("appearance.colors.episodePanel.description")}
+          control={
+            <div className="settings-control">
+              <ColorPicker
+                color={themeSettings.episodePanelColor}
+                presets={EPISODE_PANEL_PRESET_COLORS}
+                onChange={(newColor) =>
+                  setThemeSettings((prev) => ({
+                    ...prev,
+                    episodePanelColor: newColor,
+                  }))
+                }
+              />
+              <span className="settings-value">
+                {themeSettings.episodePanelColor.toUpperCase()}
               </span>
             </div>
           }

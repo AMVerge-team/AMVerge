@@ -176,6 +176,10 @@
       "gradient": {
         "label": "Background Gradient",
         "description": "The second color in the background gradient."
+      },
+      "episodePanel": {
+        "label": "Episode Panel",
+        "description": "The tint behind the episode list on the left."
       }
     },
     "background": {

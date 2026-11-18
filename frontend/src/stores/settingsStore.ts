@@ -410,6 +410,8 @@ export type ThemeSettings = {
     /** clip tiles show duration in the bottom left on Library and Scene Scout */
     showClipDuration: boolean;
     widescreenClipTiles: boolean;
+    /** tint of the left episode panel's list box, drawn at 22% over the background */
+    episodePanelColor: string;
 };
 
 export type ThemeSettingsStore = ThemeSettings & {
@@ -442,6 +444,8 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
     showClipEndTime: true,
     showClipDuration: false,
     widescreenClipTiles: false,
+    // black at 22% is the v2.0.2 panel, so updating doesn't change how it looks
+    episodePanelColor: "#000000",
 };
 
 export const useThemeSettingsStore = create<ThemeSettingsStore>()(
@@ -585,6 +589,12 @@ export function applyThemeSettings(settings: ThemeSettings) {
     if (rgb) {
         root.style.setProperty("--accent-rgb", rgb);
         body.style.setProperty("--accent-rgb", rgb);
+    }
+
+    const panelRgb = hexToRgbTriplet(settings.episodePanelColor ?? DEFAULT_THEME_SETTINGS.episodePanelColor);
+    if (panelRgb) {
+        root.style.setProperty("--episode-panel-rgb", panelRgb);
+        body.style.setProperty("--episode-panel-rgb", panelRgb);
     }
 
     let bgValue = "none";

@@ -176,6 +176,10 @@
       "gradient": {
         "label": "Dégradé du fond",
         "description": "La deuxième couleur du dégradé de fond."
+      },
+      "episodePanel": {
+        "label": "Panneau des épisodes",
+        "description": "La teinte derrière la liste des épisodes, à gauche."
       }
     },
     "background": {
