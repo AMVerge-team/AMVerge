@@ -46,7 +46,7 @@
   "bgProgress": {
     "header": "Tâches en arrière-plan",
     "closeAria": "Fermer l'indicateur de traitement",
-    "countLine": "{{label}} {{done}}/{{total}}",
+    "countLine": "",
     "processingClips": "Traitement des clips",
     "loadingPreviews": "Chargement des aperçus",
     "installingAi": "Installation des modèles IA",
@@ -54,7 +54,7 @@
     "aiDetailsTooltip": "Cliquer pour voir le détail de l'installation"
   },
   "terminal": {
-    "countedStep": "{{label}} {{done}}/{{total}}",
+    "countedStep": "",
     "clipDone": "fait",
     "scenePreviewReady": "✓ scène {{scene}} · aperçu",
     "keyframeClipsReady": "clips par images clés prêts",
@@ -114,15 +114,15 @@
       "description": "Trouve les coupes avec une IA. L'option la plus précise, et rapide sur une carte NVIDIA."
     },
     "depth": {
-      "label": "Depth map",
+      "label": "",
       "description": "Crée une depth map de chaque fichier exporté."
     },
     "scout": {
-      "label": "Scene Scout",
+      "label": "",
       "description": "Cherchez dans vos épisodes indexés en décrivant une scène, plutôt qu'en nommant un fichier."
     },
     "upscale": {
-      "label": "Upscaling",
+      "label": "",
       "description": "Crée une copie en plus haute résolution de chaque fichier exporté."
     }
   },
@@ -181,8 +181,8 @@
     "done": "Terminé"
   },
   "passLabel": {
-    "depth": "Depth map",
-    "upscale": "Upscale"
+    "depth": "",
+    "upscale": ""
   },
   "passTargets": {
     "title": "Sélectionnez les clips de chaque passe",
@@ -212,7 +212,7 @@
     "waitingPreview": "En attente de la première image d'aperçu…",
     "starting": "Démarrage…",
     "stopping": "Arrêt…",
-    "jobLabel": "{{pass}} · {{name}}",
+    "jobLabel": "",
     "skipped": "[ignorée] passe {{pass}} : {{name}} n'est pas installé",
     "jobError": "{{label}} : {{error}}"
   },
