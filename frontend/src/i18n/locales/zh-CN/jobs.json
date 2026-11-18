@@ -46,7 +46,7 @@
   "bgProgress": {
     "header": "后台任务",
     "closeAria": "关闭处理进度",
-    "countLine": "{{label}} {{done}}/{{total}}",
+    "countLine": "",
     "processingClips": "正在处理片段",
     "loadingPreviews": "正在加载预览",
     "installingAi": "正在安装 AI 模型",
@@ -54,7 +54,7 @@
     "aiDetailsTooltip": "点击查看完整安装详情"
   },
   "terminal": {
-    "countedStep": "{{label}} {{done}}/{{total}}",
+    "countedStep": "",
     "clipDone": "完成",
     "scenePreviewReady": "✓ 场景 {{scene}} · 预览",
     "keyframeClipsReady": "关键帧片段已就绪",
@@ -212,7 +212,7 @@
     "waitingPreview": "正在等待第一帧预览…",
     "starting": "正在开始…",
     "stopping": "正在停止…",
-    "jobLabel": "{{pass}} · {{name}}",
+    "jobLabel": "",
     "skipped": "[已跳过] {{pass}}处理：未安装 {{name}}",
     "jobError": "{{label}}：{{error}}"
   },
