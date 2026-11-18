@@ -1,202 +1,202 @@
 {
   "episodePanel": {
-    "fallbackEpisode": "episode",
-    "fallbackFolder": "folder",
-    "episodeCount_one": "{{count}} episode",
-    "episodeCount_other": "{{count}} episodes",
-    "searchPlaceholder": "Search episodes...",
-    "clearSearch": "Clear search",
+    "fallbackEpisode": "",
+    "fallbackFolder": "",
+    "episodeCount_one": "",
+    "episodeCount_other": "",
+    "searchPlaceholder": "",
+    "clearSearch": "",
     "empty": {
-      "title": "No episodes yet",
-      "description": "Import a video to cut it into clips",
-      "importFirst": "Import your first episode"
+      "title": "",
+      "description": "",
+      "importFirst": ""
     },
     "header": {
-      "title": "Episode Panel",
-      "sortAsc": "Sort A-Z",
-      "sortDesc": "Sort Z-A",
-      "newFolder": "New folder",
-      "showInFolder": "Show in folder",
-      "deleteDisabled": "Delete selected item (select an episode or folder first)",
-      "deleteSelectedEpisodes_one": "Delete {{count}} selected episode",
-      "deleteSelectedEpisodes_other": "Delete {{count}} selected episodes",
-      "deleteSelectedEpisode": "Delete selected episode",
-      "deleteSelectedFolder": "Delete selected folder"
+      "title": "",
+      "sortAsc": "",
+      "sortDesc": "",
+      "newFolder": "",
+      "showInFolder": "",
+      "deleteDisabled": "",
+      "deleteSelectedEpisodes_one": "",
+      "deleteSelectedEpisodes_other": "",
+      "deleteSelectedEpisode": "",
+      "deleteSelectedFolder": ""
     },
     "menu": {
-      "addFolder": "Add Folder",
-      "addSubfolder": "Add Subfolder",
-      "showInExplorer": "Show in File Explorer",
-      "deleteEpisodes_one": "Delete {{count}} episode",
-      "deleteEpisodes_other": "Delete {{count}} episodes"
+      "addFolder": "",
+      "addSubfolder": "",
+      "showInExplorer": "",
+      "deleteEpisodes_one": "",
+      "deleteEpisodes_other": ""
     },
     "row": {
-      "importedWebp": "Imported as WebP previews",
-      "importedVideo": "Imported as video files",
-      "webpEpisode": "WebP preview episode",
-      "videoEpisode": "Video preview episode",
-      "pausedResume": "Processing paused · resume",
-      "resume": "Resume processing",
-      "collapseFolder": "Collapse folder",
-      "expandFolder": "Expand folder"
+      "importedWebp": "",
+      "importedVideo": "",
+      "webpEpisode": "",
+      "videoEpisode": "",
+      "pausedResume": "",
+      "resume": "",
+      "collapseFolder": "",
+      "expandFolder": ""
     },
     "rename": {
-      "episodeTitle": "Rename Episode",
-      "episodePlaceholder": "Episode name",
-      "folderTitle": "Rename Folder",
-      "folderPlaceholder": "Folder name"
+      "episodeTitle": "",
+      "episodePlaceholder": "",
+      "folderTitle": "",
+      "folderPlaceholder": ""
     },
     "newFolder": {
-      "title": "New Folder",
-      "placeholder": "Folder name...",
-      "parent": "Category",
-      "root": "None (root)",
-      "create": "Create"
+      "title": "",
+      "placeholder": "",
+      "parent": "",
+      "root": "",
+      "create": ""
     },
     "deleteConfirm": {
-      "titleFolder": "Delete Folder",
-      "titleEpisode": "Delete Episode",
-      "linkedIntro": "The following episodes are attached to databases:",
-      "messageFolder": "Are you sure you want to delete this folder?",
-      "messageEpisodes": "Are you sure you'd like to delete these episodes?",
-      "messageEpisode": "Are you sure you'd like to delete this episode?",
-      "checkingDatabases": "Checking Scene Scout databases…",
-      "noteLinked": "This also deletes the cached clip files and removes the episodes from those databases.",
-      "note": "This will also delete all cached clip files on disk."
+      "titleFolder": "",
+      "titleEpisode": "",
+      "linkedIntro": "",
+      "messageFolder": "",
+      "messageEpisodes": "",
+      "messageEpisode": "",
+      "checkingDatabases": "",
+      "noteLinked": "",
+      "note": ""
     }
   },
   "scenepacks": {
-    "searchPlaceholder": "Search Scenepacks...",
+    "searchPlaceholder": "",
     "header": {
-      "title": "Scenepacks",
-      "newScenepack": "New Scenepack",
-      "deleteSelected": "Delete selected item"
+      "title": "",
+      "newScenepack": "",
+      "deleteSelected": ""
     },
     "empty": {
-      "title": "No Scenepacks yet",
-      "description": "Group clips by character, fight, or event",
-      "createFirst": "Create your first Scenepack"
+      "title": "",
+      "description": "",
+      "createFirst": ""
     },
     "row": {
-      "addingClips_one": "Adding {{count}} clip…",
-      "addingClips_other": "Adding {{count}} clips…",
-      "nothingStored": "Nothing stored yet"
+      "addingClips_one": "",
+      "addingClips_other": "",
+      "nothingStored": ""
     },
     "menu": {
-      "addScenepack": "Add Scenepack",
-      "open": "Open",
-      "changeThumbnail": "Change Thumbnail",
-      "moveTo": "Move to",
-      "noFolder": "No folder"
+      "addScenepack": "",
+      "open": "",
+      "changeThumbnail": "",
+      "moveTo": "",
+      "noFolder": ""
     },
     "newItem": {
-      "titleScenepack": "New Scenepack",
-      "placeholderScenepack": "Scenepack name..."
+      "titleScenepack": "",
+      "placeholderScenepack": ""
     },
     "rename": {
-      "placeholder": "New name..."
+      "placeholder": ""
     },
     "deleteConfirm": {
-      "titleScenepack": "Delete Scenepack",
-      "messageScenepack": "Are you sure you want to delete this Scenepack?",
-      "noteFolder": "All Scenepacks inside this folder will be moved to root."
+      "titleScenepack": "",
+      "messageScenepack": "",
+      "noteFolder": ""
     },
     "thumbnail": {
-      "invalidType": "Thumbnail must be a PNG, JPEG, WebP, or GIF image.",
-      "filterName": "Images",
-      "saving": "Saving...",
-      "dropHint": "Drop an image here, or click to browse",
-      "formats": "PNG, JPEG, WebP, or GIF"
+      "invalidType": "",
+      "filterName": "",
+      "saving": "",
+      "dropHint": "",
+      "formats": ""
     }
   },
   "addToScenepack": {
-    "title": "Add to Scenepack",
-    "titleCount_one": "Add {{count}} clip to Scenepack",
-    "titleCount_other": "Add {{count}} clips to Scenepack",
-    "existing": "Existing",
-    "createNew": "Create New",
-    "noScenepacks": "No Scenepacks yet. Switch to \"Create New\" to make one.",
-    "alreadyAdded": "already added",
-    "adding": "Adding...",
-    "createAndAdd": "Create & Add",
-    "addClips_one": "Add Clip",
-    "addClips_other": "Add {{count}} Clips",
-    "failed_one": "Failed to add clip to Scenepack.",
-    "failed_other": "Failed to add {{count}} clips to Scenepack.",
-    "nothingToAdd": "Nothing to add."
+    "title": "",
+    "titleCount_one": "",
+    "titleCount_other": "",
+    "existing": "",
+    "createNew": "",
+    "noScenepacks": "",
+    "alreadyAdded": "",
+    "adding": "",
+    "createAndAdd": "",
+    "addClips_one": "",
+    "addClips_other": "",
+    "failed_one": "",
+    "failed_other": "",
+    "nothingToAdd": ""
   },
   "picker": {
-    "findMatching": "Find matching clips",
-    "setThumbnail": "Set as Scenepack thumbnail",
-    "added": "added",
-    "newScenepack": "New Scenepack…"
+    "findMatching": "",
+    "setThumbnail": "",
+    "added": "",
+    "newScenepack": ""
   },
   "selection": {
-    "count_one": "{{count}} selected",
-    "count_other": "{{count}} selected",
-    "addSelectedTooltip": "Add selected clips to Scenepack",
-    "deselectAll": "Deselect all",
-    "clear": "Clear",
-    "clearSelection": "Clear selection",
-    "addingProgress_one": "Adding {{count}} clip...",
-    "addingProgress_other": "Adding {{count}} clips...",
-    "addFailed": "Failed to add clips to Scenepack.",
-    "createAndAddAll": "Create & Add All"
+    "count_one": "",
+    "count_other": "",
+    "addSelectedTooltip": "",
+    "deselectAll": "",
+    "clear": "",
+    "clearSelection": "",
+    "addingProgress_one": "",
+    "addingProgress_other": "",
+    "addFailed": "",
+    "createAndAddAll": ""
   },
   "clip": {
-    "download": "Download this clip",
-    "downloading": "Downloading…",
-    "openInTools": "Open in Tools",
-    "videoFilter": "Video",
-    "deleteClips_one": "Delete clip",
-    "deleteClips_other": "Delete {{count}} clips",
-    "select": "Select clip",
-    "deselect": "Deselect clip",
-    "removeFromScenepack": "Remove from Scenepack",
+    "download": "",
+    "downloading": "",
+    "openInTools": "",
+    "videoFilter": "",
+    "deleteClips_one": "",
+    "deleteClips_other": "",
+    "select": "",
+    "deselect": "",
+    "removeFromScenepack": "",
     "status": {
-      "merging": "Merging...",
-      "splitting": "Splitting...",
-      "adding": "Adding..."
+      "merging": "",
+      "splitting": "",
+      "adding": ""
     },
     "tooltip": {
-      "timeframe": "Timeframe: {{timeframe}}",
-      "starts": "Starts: {{motion}}",
-      "ends": "Ends: {{motion}}"
+      "timeframe": "",
+      "starts": "",
+      "ends": ""
     }
   },
   "confidence": {
-    "veryHigh": "Very High Confidence",
-    "high": "High Confidence",
-    "good": "Good Confidence",
-    "fair": "Fair Confidence",
-    "low": "Low Confidence",
-    "match": "Match: {{pct}}%",
-    "matchWithLabel": "Match: {{pct}}% ({{label}})"
+    "veryHigh": "",
+    "high": "",
+    "good": "",
+    "fair": "",
+    "low": "",
+    "match": "",
+    "matchWithLabel": ""
   },
   "emptyGrid": {
     "noScenepack": {
-      "title": "No Scenepack opened.",
-      "hint": "Select one from the sidebar to view its clips."
+      "title": "",
+      "hint": ""
     },
     "flowNoScenes": {
-      "title": "No scenes found for this clip.",
-      "hint": "Add a database to the Searching list on the left."
+      "title": "",
+      "hint": ""
     },
     "flowNoClip": {
-      "title": "No clip to continue yet.",
-      "hint": "Input an episode above, or right-click a clip in your Library and pick Find matching clips."
+      "title": "",
+      "hint": ""
     },
     "searchNoMatch": {
-      "title": "No scenes matched your search.",
-      "hint": "Try changing your search terms."
+      "title": "",
+      "hint": ""
     },
     "searchIdle": {
-      "title": "No scenes found.",
-      "hint": "Select one or more databases on the left, describe a scene, and press Enter to search."
+      "title": "",
+      "hint": ""
     },
     "noVideo": {
-      "title": "No video loaded.",
-      "hint": "If no clips are displaying, try changing the episode storage path in general settings."
+      "title": "",
+      "hint": ""
     }
   }
 }
