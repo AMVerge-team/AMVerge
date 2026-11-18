@@ -20,7 +20,6 @@ export type DepthPassConfig = {
 
 export type UpscaleModel =
   | "shufflecugan"
-  | "adore"
   | "fallin_soft"
   | "fallin_strong";
 export type UpscaleQuality = "archival" | "high" | "balanced" | "fast";
@@ -75,7 +74,6 @@ export const DEPTH_COLORMAP_OPTIONS: { value: DepthColormap; label: string }[] =
 // torch models only (artcnn runs on onnxruntime's cpu build), each at its native scale: anything else is just a resize
 export const UPSCALE_MODEL_OPTIONS: { value: UpscaleModel; label: string; scale: number }[] = [
   lazyOption<UpscaleModel, { scale: number }>("fallin_soft", "settingsExport:passes.upscaleModels.fallin_soft", { scale: 2 }),
-  lazyOption<UpscaleModel, { scale: number }>("adore", "settingsExport:passes.upscaleModels.adore", { scale: 2 }),
   lazyOption<UpscaleModel, { scale: number }>("fallin_strong", "settingsExport:passes.upscaleModels.fallin_strong", { scale: 2 }),
   lazyOption<UpscaleModel, { scale: number }>("shufflecugan", "settingsExport:passes.upscaleModels.shufflecugan", { scale: 2 }),
 ];

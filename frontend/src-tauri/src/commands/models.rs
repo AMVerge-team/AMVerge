@@ -192,9 +192,9 @@ mod models_json_tests {
     #[test]
     fn reads_clean_json() {
         let payload: ModelsListPayload =
-            parse_models_json(r#"{"depth":[],"upscale":[{"key":"adore","name":"Adore","method":"ml","downloaded":false,"scales":[2,4]}]}"#).unwrap();
+            parse_models_json(r#"{"depth":[],"upscale":[{"key":"shufflecugan","name":"ShuffleCUGAN","method":"ml","downloaded":false,"scales":[2,4]}]}"#).unwrap();
         assert!(payload.depth.is_empty());
-        assert_eq!(payload.upscale[0].key, "adore");
+        assert_eq!(payload.upscale[0].key, "shufflecugan");
     }
 
     #[test]
