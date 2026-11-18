@@ -23,7 +23,6 @@ jobs:
           fi
 
           python3 - << 'EOF'
-          import datetime
           import json
           import os
           import urllib.request
@@ -40,25 +39,38 @@ jobs:
               raise SystemExit(0)
 
           repo_full = event["repository"]["full_name"]
+          repo_url = event["repository"]["html_url"]
           branch = event["ref"].removeprefix("refs/heads/")
-          compare_url = event.get("compare") or event["repository"]["html_url"]
+          compare_url = event.get("compare") or repo_url
+
           sender = event.get("sender") or {}
           sender_name = sender.get("login", "github")
-          sender_avatar = sender.get("avatar_url", "")
-          sender_url = sender.get("html_url", "")
+          sender_avatar = sender.get("avatar_url") or "https://github.com/AMVerge-team.png"
+          sender_url = sender.get("html_url") or repo_url
 
-          lines = []
-          for c in commits[:10]:
+          count = len(commits)
+          commit_word = "commit" if count == 1 else "commits"
+
+          commit_lines = []
+          for c in commits[:8]:
               sha = c["id"][:7]
               url = c["url"]
               msg = (c.get("message") or "").splitlines()[0]
               author = (c.get("author") or {}).get("username") or (c.get("author") or {}).get("name") or sender_name
-              lines.append(f"• [`{sha}`]({url}) {msg} — *{author}*")
-          if len(commits) > 10:
-              lines.append(f"*...and {len(commits) - 10} more commit(s)*")
+              added = len(c.get("added") or [])
+              modified = len(c.get("modified") or [])
+              removed = len(c.get("removed") or [])
+              files_stat = f"{added + modified + removed} file(s)"
+              commit_lines.append(f"• [`{sha}`]({url}) {msg}\n  -# by **{author}** • {files_stat}")
 
-          count = len(commits)
-          commit_label = "1 commit" if count == 1 else f"{count} commits"
+          if count > 8:
+              commit_lines.append(f"-# *...and {count - 8} more commit(s) on GitHub*")
+
+          desc = (
+              f"### [`{branch}`]({compare_url}) • {count} new {commit_word}\n\n"
+              + "\n\n".join(commit_lines)
+              + f"\n\n[Compare on GitHub]({compare_url}) • [Open Repository]({repo_url})"
+          )
 
           payload = {
               "username": "AMVerge Desktop",
@@ -66,23 +78,35 @@ jobs:
               "embeds": [
                   {
                       "author": {
-                          "name": sender_name,
+                          "name": f"{sender_name} pushed to {repo_full}",
                           "url": sender_url,
                           "icon_url": sender_avatar,
                       },
-                      "title": f"AMVerge Desktop  •  {branch}",
-                      "url": compare_url,
-                      "description": "\n".join(lines)[:4096],
+                      "description": desc[:4096],
                       "color": 0x22C55E,
-                      "fields": [
-                          {"name": "Branch", "value": f"`{branch}`", "inline": True},
-                          {"name": "Changes", "value": commit_label, "inline": True},
-                      ],
                       "footer": {
-                          "text": f"{repo_full} • Desktop App",
+                          "text": f"{repo_full} • {branch}",
                           "icon_url": "https://github.com/AMVerge-team.png",
                       },
-                      "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                  }
+              ],
+              "components": [
+                  {
+                      "type": 1,
+                      "components": [
+                          {
+                              "type": 2,
+                              "style": 5,
+                              "label": "Compare Changes",
+                              "url": compare_url,
+                          },
+                          {
+                              "type": 2,
+                              "style": 5,
+                              "label": "View Repository",
+                              "url": repo_url,
+                          },
+                      ],
                   }
               ],
           }
@@ -96,6 +120,11 @@ jobs:
               },
               method="POST",
           )
-          with urllib.request.urlopen(req, timeout=15) as resp:
-              print("Discord webhook status:", resp.status)
+          try:
+              with urllib.request.urlopen(req, timeout=15) as resp:
+                  print("Discord webhook delivered successfully, status:", resp.status)
+          except urllib.error.HTTPError as e:
+              err_body = e.read().decode("utf-8", errors="replace")
+              print(f"Discord webhook failed with HTTP {e.code}: {err_body}")
+              raise SystemExit(1)
           EOF
