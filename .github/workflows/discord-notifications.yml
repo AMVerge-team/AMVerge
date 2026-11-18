@@ -14,8 +14,8 @@ on:
     types: [published]
   issues:
     types: [opened, closed, reopened]
-  star:
-    types: [created]
+  watch:
+    types: [started]
   create:
   delete:
 

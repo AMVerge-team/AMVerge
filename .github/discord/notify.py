@@ -419,7 +419,7 @@ def handle_issue_comment(event):
 
 def handle_star(event):
     action = event.get("action", "")
-    if action != "created":
+    if action not in ("created", "started"):
         return None
 
     repo_name = event["repository"]["name"]
@@ -572,7 +572,7 @@ def main():
     elif event_name == "issue_comment":
         payload = handle_issue_comment(event)
         target_channel = "feed"
-    elif event_name == "star":
+    elif event_name in ("star", "watch"):
         payload = handle_star(event)
         target_channel = "feed"
     elif event_name == "create":
