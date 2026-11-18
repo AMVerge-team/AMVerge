@@ -81,6 +81,7 @@ export const LazyClip = memo(function LazyClip({
   const episodeId = clip.episodeId ?? openedEpisodeId ?? clip.id.split("_").slice(0, -1).join("_");
 
   const [isVisible, setIsVisible] = useState(false);
+  const [isOnScreen, setIsOnScreen] = useState(false);
   const [hovered, setIsHovered] = useState(false);
   useEffect(() => {
     if (!active) setIsHovered(false);
@@ -121,7 +122,7 @@ export const LazyClip = memo(function LazyClip({
     clip.endSec !== undefined &&
     clip.endSec > clip.startSec;
   const isVideoPlayable = (isVideoMode || isUncutScene) && clip.clipMode !== "failed";
-  const usesRangePreview = isUncutScene && Boolean(clip.database);
+  const usesRangePreview = isUncutScene;
   const isProcessing =
     clip.originalName === "Merging..." ||
     clip.originalName === "Splitting..." ||
@@ -146,11 +147,7 @@ export const LazyClip = memo(function LazyClip({
   const staggerReady = useClipStagger({
     clipId: clip.id,
     index,
-    gridPreview,
-    isHovered,
-    isVisible,
-    needsDecodeProxy,
-    resetKey,
+    enabled: gridPreview && isOnScreen && (isVideoPlayable || Boolean(previewWebpPath)),
     reportStaggerDemand,
   });
 
@@ -174,7 +171,7 @@ export const LazyClip = memo(function LazyClip({
     rangeEnd: usesRangePreview ? clip.endSec : undefined,
   });
 
-  // a scout result plays its range preview; seeking the full source is only the hover fallback
+  // Play a short range preview for uncut scenes. Only hover may fall back to the full source.
   const seekIntoSource = isUncutScene && !source.rangeProxySrc;
 
   // mount on hover or preview-all only, so live decoders stay bounded; wait for a needed proxy or the clip renders black
@@ -233,10 +230,9 @@ export const LazyClip = memo(function LazyClip({
     reportWebpDemand,
   });
 
-  // gated on visibility: WebP mode forces preview-all, and animating every clip kills the renderer
-  const shouldShowWebpOverlay = webp.hasAnimatedWebp && (isHovered || (gridPreview && isVisible));
-  // the static layer falls back to the animated file until its jpeg exists, only safe near the viewport
-  const webpStaticReady = Boolean(webp.webpThumbnail) || !webp.hasAnimatedWebp;
+  const shouldShowWebpOverlay = webp.hasAnimatedWebp && (isHovered || staggerReady);
+  const staticThumbnail = webp.webpThumbnail ??
+    (webp.thumbnailSrc ? mediaSrcVersioned(webp.thumbnailSrc, importToken) : undefined);
 
   const shouldShowThumbnail = !shouldMountVideo || !video.isVideoReady;
   // a video-mode clip not cut yet shows a skeleton until clip_ready
@@ -249,7 +245,7 @@ export const LazyClip = memo(function LazyClip({
     ? clip.thumbnailReady === false || videoThumbFailed
     : clip.thumbnailReady === false || !webp.thumbnailLoaded || webp.thumbnailFailed;
 
-  // separates on-screen tiles from overscan rows, scoped to the scroll container
+  // Preload thumbnails near the viewport without granting playback there.
   useEffect(() => {
     const el = wrapperRef.current;
     if (!el) return;
@@ -266,6 +262,18 @@ export const LazyClip = memo(function LazyClip({
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    setIsOnScreen(false);
+    const el = wrapperRef.current;
+    if (!gridPreview || !el) return;
+    const root = el.closest(".clips-container");
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsOnScreen(entry.isIntersecting && entry.intersectionRatio >= 0.01);
+    }, { root, threshold: 0.01 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [gridPreview]);
 
   useEffect(() => {
     if (!showDownloadButton) return;
@@ -421,18 +429,11 @@ export const LazyClip = memo(function LazyClip({
           {!isVideoPlayable &&
             !webp.thumbnailFailed &&
             clip.thumbnailReady !== false &&
-            (webpStaticReady || isVisible) &&
-            // no image yet (a webp episode has no posters): the skeleton shows until its webp is made
-            Boolean(webp.webpThumbnail || webp.hasAnimatedWebp || webp.thumbnailSrc) && (
+            staticThumbnail && (
               <img
                 ref={setThumbnailEl}
                 className="clip"
-                src={
-                  webp.webpThumbnail ??
-                  (webp.hasAnimatedWebp
-                    ? mediaSrcVersioned(previewWebpPath!, importToken)
-                    : mediaSrcVersioned(webp.thumbnailSrc, importToken))
-                }
+                src={staticThumbnail}
                 style={{ opacity: shouldShowThumbnail ? 1 : 0 }}
                 draggable={false}
                 onLoad={(e) => {

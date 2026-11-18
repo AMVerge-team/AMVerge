@@ -334,7 +334,7 @@
     "closeLabel": "Fermer {{label}}"
   },
   "previewAll": {
-    "start": "Lire tous les clips",
-    "stop": "Arrêter la lecture de tous les clips"
+    "start": "Lire les aperçus visibles à l’écran",
+    "stop": "Arrêter la lecture automatique des aperçus"
   }
 }

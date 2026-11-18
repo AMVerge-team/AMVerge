@@ -1,76 +1,23 @@
-import { useEffect, useRef, useState } from "react";
-import { LazyClipProps } from "./types.ts";
+import { useEffect, useState } from "react";
+import type { LazyClipProps } from "./types.ts";
 
 type Params = {
   clipId: string;
   index: number;
-  gridPreview: boolean;
-  isHovered: boolean;
-  isVisible: boolean;
-  needsDecodeProxy: boolean;
-  resetKey: unknown;
+  enabled: boolean;
   reportStaggerDemand: LazyClipProps["reportStaggerDemand"];
 };
 
-// preview-all lights tiles in order through a central queue that calls onReady on their turn
-export function useClipStagger({
-  clipId,
-  index,
-  gridPreview,
-  isHovered,
-  isVisible,
-  needsDecodeProxy,
-  resetKey,
-  reportStaggerDemand,
-}: Params) {
-  const [staggerReady, setStaggerReady] = useState(false);
-  const doneRef = useRef(false);
+export function useClipStagger({ clipId, index, enabled, reportStaggerDemand }: Params) {
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    doneRef.current = false;
-    setStaggerReady(false);
-  }, [resetKey]);
+    setReady(false);
+    if (!enabled) return;
+    reportStaggerDemand(clipId, { order: index, onReady: () => setReady(true) });
+    // A queued tile may scroll away before its turn to start.
+    return () => reportStaggerDemand(clipId, null);
+  }, [enabled, clipId, index, reportStaggerDemand]);
 
-  useEffect(() => {
-    const clear = () => reportStaggerDemand(clipId, null);
-
-    if (!gridPreview) {
-      clear();
-      return;
-    }
-
-    // hover skips the queue so the hovered tile plays instantly
-    if (isHovered) {
-      doneRef.current = true;
-      setStaggerReady(true);
-      clear();
-      return;
-    }
-
-    if (!isVisible) {
-      doneRef.current = false;
-      setStaggerReady(false);
-      clear();
-      return;
-    }
-
-    // already mounted and still visible, or serialised by the proxy queue instead
-    if (doneRef.current || needsDecodeProxy) {
-      setStaggerReady(true);
-      clear();
-      return;
-    }
-
-    reportStaggerDemand(clipId, {
-      order: index,
-      onReady: () => {
-        doneRef.current = true;
-        setStaggerReady(true);
-      },
-    });
-
-    return clear;
-  }, [gridPreview, isHovered, isVisible, needsDecodeProxy, clipId, index, reportStaggerDemand]);
-
-  return staggerReady;
+  return enabled && ready;
 }

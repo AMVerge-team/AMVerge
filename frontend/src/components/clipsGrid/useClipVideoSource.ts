@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ClipItem } from "../../types/domain";
 import { LazyClipProps } from "./types.ts";
 import { usePreviewTranscode } from "../../features/preview/usePreviewTranscode.ts";
+import { queueGridVideoPreview } from "./gridVideoPreviewQueue.ts";
 
 type Params = {
   clip: ClipItem;
@@ -20,7 +21,7 @@ type Params = {
   videoRef: RefObject<HTMLVideoElement | null>;
   requestProxySequential: LazyClipProps["requestProxySequential"];
   reportProxyDemand: LazyClipProps["reportProxyDemand"];
-  /** set for a tile that points into a full source video (scene scout) instead of a cut clip */
+  /** set for a tile that points into a full source video instead of a cut clip */
   rangeStart?: number;
   rangeEnd?: number;
 };
@@ -75,6 +76,7 @@ export function useClipVideoSource({
   // excludes isHovered so hovering does not rebuild the proxy
   const proxyAudioStreamIndex =
     selectedMappedAudioStreamIndex !== null && audioPlaybackHover ? selectedMappedAudioStreamIndex : null;
+  const wantsPlayback = isHovered || staggerReady;
 
   // the exact proxy this tile wants, so a quality or language change rebuilds it
   const targetVideoPath = clip.clipPath ?? clip.src;
@@ -172,30 +174,32 @@ export function useClipVideoSource({
 
   // video mode proxies the cut clip once, covering both an undecodable codec and a non-default language
   useEffect(() => {
-    if (!isVideoMode || !clip.clipPath || !videoProxyKey) return;
+    const clipPath = clip.clipPath;
+    if (!isVideoMode || !clipPath || !videoProxyKey) return;
     if (videoProxySrc) return;
 
     const wantsAudioMapped = proxyAudioStreamIndex !== null && isHovered;
     if (!needsPreviewTranscode && !wantsAudioMapped) return;
     // mirrors shouldMountVideo; keying off visibility queued an encode per tile and froze the app
-    if (!isHovered && !(gridPreview && staggerReady)) return;
+    if (!wantsPlayback) return;
 
-    const requestedKey = videoProxyKey;
-    let cancelled = false;
-    invoke<string>("ensure_preview_proxy", {
-      clipPath: clip.clipPath,
-      audioStreamIndex: proxyAudioStreamIndex,
-      transcodeVideo: needsPreviewTranscode,
-      previewHeight: transcodePreset.height,
-      previewCrf: transcodePreset.crf,
-    })
-      .then((path) => {
-        if (!cancelled && path) setVideoProxy({ key: requestedKey, path });
-      })
-      .catch((err) => console.warn("video preview proxy failed", err));
-    return () => {
-      cancelled = true;
-    };
+    return queueGridVideoPreview(
+      `clip:${videoProxyKey}`,
+      (cacheOnly) => invoke<string>("ensure_preview_proxy", {
+        clipPath,
+        cacheOnly,
+        audioStreamIndex: proxyAudioStreamIndex,
+        transcodeVideo: needsPreviewTranscode,
+        previewHeight: transcodePreset.height,
+        previewCrf: transcodePreset.crf,
+      }),
+      {
+        order: index,
+        hovered: isHovered,
+        onReady: (path) => { if (path) setVideoProxy({ key: videoProxyKey, path }); },
+        onError: (err) => console.warn("video preview proxy failed", err),
+      },
+    );
   }, [
     isVideoMode,
     clip.clipPath,
@@ -205,37 +209,37 @@ export function useClipVideoSource({
     needsPreviewTranscode,
     transcodePreset,
     isHovered,
-    gridPreview,
-    staggerReady,
+    wantsPlayback,
+    index,
   ]);
 
   // same gate as the cut-clip proxy above: hover, or this tile's turn in preview-all
   useEffect(() => {
     if (!rangeKey || rangeProxySrc || rangeFailed) return;
-    if (!isHovered && !(gridPreview && staggerReady)) return;
+    if (!wantsPlayback) return;
 
-    const requestedKey = rangeKey;
-    let cancelled = false;
-    invoke<string>("ensure_scene_range_preview", {
-      videoPath: clip.src,
-      startSec: rangeStart,
-      endSec: rangeEnd,
-      previewHeight: transcodePreset.height,
-      previewCrf: transcodePreset.crf,
-    })
-      .then((path) => {
-        if (!cancelled && path) setRangeProxy({ key: requestedKey, path });
-      })
-      .catch((err) => {
-        console.warn("scene range preview failed", err);
-        if (cancelled) return;
-        setRangeFailedKey(requestedKey);
-        if (String(err).startsWith("Video not found")) setSourceMissingKey(requestedKey);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [rangeKey, rangeProxySrc, rangeFailed, clip.src, rangeStart, rangeEnd, transcodePreset, isHovered, gridPreview, staggerReady]);
+    return queueGridVideoPreview(
+      `range:${rangeKey}`,
+      (cacheOnly) => invoke<string>("ensure_scene_range_preview", {
+        videoPath: clip.src,
+        cacheOnly,
+        startSec: rangeStart,
+        endSec: rangeEnd,
+        previewHeight: transcodePreset.height,
+        previewCrf: transcodePreset.crf,
+      }),
+      {
+        order: index,
+        hovered: isHovered,
+        onReady: (path) => { if (path) setRangeProxy({ key: rangeKey, path }); },
+        onError: (err) => {
+          console.warn("scene range preview failed", err);
+          setRangeFailedKey(rangeKey);
+          if (String(err).startsWith("Video not found")) setSourceMissingKey(rangeKey);
+        },
+      },
+    );
+  }, [rangeKey, rangeProxySrc, rangeFailed, clip.src, rangeStart, rangeEnd, transcodePreset, isHovered, wantsPlayback, index]);
 
   // WebP mode proxies the source video instead
   useEffect(() => {

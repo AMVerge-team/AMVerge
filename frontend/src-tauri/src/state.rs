@@ -80,14 +80,14 @@ pub struct PreviewTranscodeSlots {
 
 impl Default for PreviewTranscodeSlots {
     fn default() -> Self {
-        // headroom for the UI and imports: a quarter of the threads, 1..=3
+        // One grid encode and, on larger machines, room for the focused preview.
         let parallelism = std::thread::available_parallelism()
             .map(|n| n.get())
             .unwrap_or(4);
-        let permits = (parallelism / 4).clamp(1, 3);
+        let permits = (parallelism / 4).clamp(1, 2);
         Self {
             semaphore: Arc::new(tokio::sync::Semaphore::new(permits)),
-            threads_per_encode: (parallelism / permits).max(1),
+            threads_per_encode: (parallelism / (permits * 3)).clamp(1, 2),
         }
     }
 }

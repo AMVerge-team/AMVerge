@@ -94,13 +94,13 @@ export function useClipVideoElement({
     } catch {}
   }, []);
 
-  // a source swap re-arms error handling and thumbnail gating
+  // Keep the poster up until each newly mounted source has a frame.
   useEffect(() => {
     cancelFrameCallback(videoRef.current);
     hasReportedErrorRef.current = false;
     hasFirstFrameRef.current = false;
     setIsVideoReady(false);
-  }, [effectiveSrc, resetKey, cancelFrameCallback]);
+  }, [effectiveSrc, resetKey, videoSrcUrl, cancelFrameCallback]);
 
   // cleanup clears src + load() so chromium frees the decoder now (zombies break new videos); setup restores src for StrictMode, before playback runs
   useEffect(() => {
@@ -328,7 +328,6 @@ export function useClipVideoElement({
         const vid = videoRef.current;
         window.setTimeout(() => {
           if (!vid || !vid.isConnected) return;
-          hasReportedErrorRef.current = false;
           try {
             vid.load();
             vid.play().catch(() => {});
