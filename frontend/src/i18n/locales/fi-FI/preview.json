@@ -1,81 +1,81 @@
 {
   "preview": {
-    "sceneLoadFailed": "Couldn't load this scene. Its episode may have moved.",
-    "loading": "Loading preview",
-    "noClip": "No clip selected"
+    "sceneLoadFailed": "",
+    "loading": "",
+    "noClip": ""
   },
   "player": {
-    "play": "Play",
-    "pause": "Pause",
-    "mute": "Mute",
-    "unmute": "Unmute",
-    "volume": "Volume",
-    "fullscreen": "Fullscreen"
+    "play": "",
+    "pause": "",
+    "mute": "",
+    "unmute": "",
+    "volume": "",
+    "fullscreen": ""
   },
   "export": {
-    "title": "Export settings",
-    "untitledProfile": "Untitled Profile",
-    "editSettings": "Edit export settings",
-    "destinationPlaceholder": "Select destination...",
-    "browseFolder": "Browse for output folder",
-    "mergeLabelLine1": "MERGE",
-    "mergeLabelLine2": "CLIPS",
-    "mergeClips": "Merge clips",
-    "davinciOn": "Exported clips go to the DaVinci Resolve timeline",
-    "davinciOff": "Send exported clips to the DaVinci Resolve timeline (Studio only)",
-    "davinciAria": "Send exported clips to DaVinci Resolve",
-    "previewLanguageAria": "Preview language selector",
-    "previewLanguage": "Preview language",
-    "postPasses": "Post-export",
-    "postPassesToggle": "Enable post-export passes",
-    "configurePostPasses": "Configure post-export passes in export settings. Turning this off keeps your configuration.",
-    "previewLanguageLine1": "PREVIEW",
-    "previewLanguageLine2": "LANGUAGE",
-    "selectAtLeastOne": "Select at least one clip to export",
-    "exportSelected": "Export selected clips",
-    "exportNow": "Export Now",
-    "unknownError": "Unknown error"
+    "title": "",
+    "untitledProfile": "",
+    "editSettings": "",
+    "destinationPlaceholder": "",
+    "browseFolder": "",
+    "mergeLabelLine1": "",
+    "mergeLabelLine2": "",
+    "mergeClips": "",
+    "davinciOn": "",
+    "davinciOff": "",
+    "davinciAria": "",
+    "previewLanguageAria": "",
+    "previewLanguage": "",
+    "postPasses": "",
+    "postPassesToggle": "",
+    "configurePostPasses": "",
+    "previewLanguageLine1": "",
+    "previewLanguageLine2": "",
+    "selectAtLeastOne": "",
+    "exportSelected": "",
+    "exportNow": "",
+    "unknownError": ""
   },
   "mergeModal": {
-    "title": "Merged file name",
-    "placeholder": "Enter file name...",
-    "export": "Export"
+    "title": "",
+    "placeholder": "",
+    "export": ""
   },
   "howToUse": {
     "titles": {
-      "library": "How to use",
-      "scenepacks": "How to use Scenepacks",
-      "sceneScoutSearch": "How to use Scene Scout",
-      "sceneScoutFlow": "How to use Match"
+      "library": "",
+      "scenepacks": "",
+      "sceneScoutSearch": "",
+      "sceneScoutFlow": ""
     },
-    "hide": "Hide the guide",
-    "show": "Show the guide",
-    "showTour": "Show the walkthrough again",
+    "hide": "",
+    "show": "",
+    "showTour": "",
     "steps": {
-      "select": "Select clips with <b>{{mod}} + Click</b>, <b>Shift + Click</b>, or <b>Double Click</b>",
-      "exportNow": "Click <b>Export Now</b> to export what you picked",
+      "select": "",
+      "exportNow": "",
       "scenepacks": {
-        "create": "Create a Scenepack in the left panel",
-        "add": "In the <b>Library</b>, select clips and click <b>Add to Scenepack</b>",
-        "open": "Open a Scenepack to see its clips"
+        "create": "",
+        "add": "",
+        "open": ""
       },
       "sceneScoutSearch": {
-        "database": "Create or open a <b>Database</b> in the left panel",
-        "searching": "Move it into <b>Searching</b>: <b>Double Click</b> it, drag it up, or right click it. Only databases in Searching are searched",
-        "addEpisode": "Click <b>Add Episode</b> to index episodes into it",
-        "describe": "Describe a scene in the search bar and press <b>Enter</b>",
-        "preview": "Single click a result to <b>Preview</b> it"
+        "database": "",
+        "searching": "",
+        "addEpisode": "",
+        "describe": "",
+        "preview": ""
       },
       "sceneScoutFlow": {
-        "import": "Click <b>Import</b>, or right-click a clip and pick <b>Find matching clips</b>",
-        "matches": "Matches are scenes that look like they continue from your clip's last frame",
-        "resize": "Drag the line between your clip and the matches to resize them",
-        "preview": "Single click a match to <b>Preview</b> it"
+        "import": "",
+        "matches": "",
+        "resize": "",
+        "preview": ""
       },
       "library": {
-        "focus": "Single click to <b>Focus</b> a clip",
-        "profile": "Select <b>Export Profile</b> for export settings",
-        "start": "Click <b>Export Now</b> to start the process"
+        "focus": "",
+        "profile": "",
+        "start": ""
       }
     }
   }
