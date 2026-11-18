@@ -20,7 +20,8 @@
     "system": "Sistem",
     "systemResolved": "Sistem ({{language}})",
     "en": "Engleza",
-    "zh-CN": "Chineza"
+    "zh-CN": "Chineza",
+    "fr-FR": "Français"
   },
   "showInFileManager": "Afiseaza in {{manager}}",
   "fileManagers": {
