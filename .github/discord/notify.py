@@ -417,6 +417,120 @@ def handle_issue_comment(event):
     }
 
 
+def handle_star(event):
+    action = event.get("action", "")
+    if action != "created":
+        return None
+
+    repo_name = event["repository"]["name"]
+    repo_full = event["repository"]["full_name"]
+    repo_url = event["repository"]["html_url"]
+    stars_count = event["repository"].get("stargazers_count", 0)
+
+    sender = event.get("sender") or {}
+    sender_name = sender.get("login", "github")
+    sender_avatar = sender.get("avatar_url") or "https://github.com/AMVerge-team.png"
+    sender_url = sender.get("html_url") or repo_url
+
+    action_line = f"{sender_name} starred {repo_full}"
+    desc = (
+        f"# [{repo_name}]({repo_url})\n"
+        f"{action_line}\n"
+        f"⭐ **Total Stars:** `{stars_count}`"
+    )
+
+    return {
+        "username": "AMVerge Desktop",
+        "avatar_url": "https://github.com/AMVerge-team.png",
+        "embeds": [
+            {
+                "author": {"name": sender_name, "url": sender_url, "icon_url": sender_avatar},
+                "description": desc,
+                "color": COLOR_GOLD,
+                "footer": {"text": f"{repo_full} • Star", "icon_url": "https://github.com/AMVerge-team.png"},
+            }
+        ],
+        "components": make_buttons([("Open Repository", repo_url)]),
+    }
+
+
+def handle_create(event):
+    ref_type = event.get("ref_type", "")
+    ref_name = event.get("ref", "")
+    if ref_type not in ("branch", "tag") or not ref_name:
+        return None
+
+    repo_name = event["repository"]["name"]
+    repo_full = event["repository"]["full_name"]
+    repo_url = event["repository"]["html_url"]
+    ref_url = f"{repo_url}/tree/{ref_name}"
+
+    sender = event.get("sender") or {}
+    sender_name = sender.get("login", "github")
+    sender_avatar = sender.get("avatar_url") or "https://github.com/AMVerge-team.png"
+    sender_url = sender.get("html_url") or repo_url
+
+    action_line = f"{sender_name} created {ref_type} in {repo_full}"
+    icon = "🌿" if ref_type == "branch" else "🏷️"
+
+    desc = (
+        f"# [{repo_name}]({repo_url})\n"
+        f"{action_line}\n"
+        f"{icon} **{ref_type.capitalize()}:** [`{ref_name}`]({ref_url})"
+    )
+
+    return {
+        "username": "AMVerge Desktop",
+        "avatar_url": "https://github.com/AMVerge-team.png",
+        "embeds": [
+            {
+                "author": {"name": sender_name, "url": sender_url, "icon_url": sender_avatar},
+                "description": desc,
+                "color": COLOR_GREEN,
+                "footer": {"text": f"{repo_full} • Created {ref_type}", "icon_url": "https://github.com/AMVerge-team.png"},
+            }
+        ],
+        "components": make_buttons([(f"View {ref_type.capitalize()}", ref_url), ("Open Repository", repo_url)]),
+    }
+
+
+def handle_delete(event):
+    ref_type = event.get("ref_type", "")
+    ref_name = event.get("ref", "")
+    if ref_type not in ("branch", "tag") or not ref_name:
+        return None
+
+    repo_name = event["repository"]["name"]
+    repo_full = event["repository"]["full_name"]
+    repo_url = event["repository"]["html_url"]
+
+    sender = event.get("sender") or {}
+    sender_name = sender.get("login", "github")
+    sender_avatar = sender.get("avatar_url") or "https://github.com/AMVerge-team.png"
+    sender_url = sender.get("html_url") or repo_url
+
+    action_line = f"{sender_name} deleted {ref_type} in {repo_full}"
+    desc = (
+        f"# [{repo_name}]({repo_url})\n"
+        f"{action_line}\n"
+        f"🗑️ **Deleted {ref_type.capitalize()}:** `{ref_name}`"
+    )
+
+    return {
+        "username": "AMVerge Desktop",
+        "avatar_url": "https://github.com/AMVerge-team.png",
+        "embeds": [
+            {
+                "author": {"name": sender_name, "url": sender_url, "icon_url": sender_avatar},
+                "description": desc,
+                "color": COLOR_RED,
+                "footer": {"text": f"{repo_full} • Deleted {ref_type}", "icon_url": "https://github.com/AMVerge-team.png"},
+            }
+        ],
+        "components": make_buttons([("Open Repository", repo_url)]),
+    }
+
+
 def main():
     event_path = os.environ.get("GITHUB_EVENT_PATH")
     event_name = os.environ.get("GITHUB_EVENT_NAME", "")
@@ -457,6 +571,15 @@ def main():
         target_channel = "feed"
     elif event_name == "issue_comment":
         payload = handle_issue_comment(event)
+        target_channel = "feed"
+    elif event_name == "star":
+        payload = handle_star(event)
+        target_channel = "feed"
+    elif event_name == "create":
+        payload = handle_create(event)
+        target_channel = "feed"
+    elif event_name == "delete":
+        payload = handle_delete(event)
         target_channel = "feed"
 
     if payload:
