@@ -28,6 +28,7 @@ jobs:
       - name: Send Discord notification
         env:
           WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          FEED_WEBHOOK_URL: ${{ secrets.DISCORD_FEED_WEBHOOK_URL }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
