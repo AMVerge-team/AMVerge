@@ -66,7 +66,7 @@ jobs:
               url = c["url"]
               msg = (c.get("message") or "").splitlines()[0]
               author = (c.get("author") or {}).get("username") or (c.get("author") or {}).get("name") or sender_name
-              commit_lines.append(f"[`{sha}`]({url}) {msg} — *{author}*")
+              commit_lines.append(f"[`{sha}`]({url}) {msg} - *{author}*")
 
           if count > 8:
               commit_lines.append(f"*...and {count - 8} more commit(s) on GitHub*")
@@ -86,6 +86,8 @@ jobs:
                           "url": sender_url,
                           "icon_url": sender_avatar,
                       },
+                      "title": repo_name,
+                      "url": repo_url,
                       "description": desc[:4096],
                       "color": 0x22C55E,
                       "footer": {
