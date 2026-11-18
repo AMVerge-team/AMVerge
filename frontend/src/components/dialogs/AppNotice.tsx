@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
-import { ConfirmModal } from "./settings/general/ConfirmModal";
-import { answerNotice, useNoticeStore } from "../features/notice/notice";
+import { ConfirmModal } from "../settings/general/ConfirmModal";
+import { answerNotice, useNoticeStore } from "../../features/notice/notice";
 
 /** shows queued notices one at a time, in the app's own modal instead of an os box */
 export function AppNotice() {

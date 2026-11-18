@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import ImportButtons from "./ImportButtons";
-import MainLayout from "../MainLayout";
+import MainLayout from "../../MainLayout";
 
 type GridPageLayoutProps = {
   /** false while the page is mounted but covered, so previews stand down */

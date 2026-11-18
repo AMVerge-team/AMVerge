@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 
-import Tooltip from "./common/Tooltip";
-import { useEscapeToClose } from "./common/useEscapeToClose";
+import Tooltip from "../common/Tooltip";
+import { useEscapeToClose } from "../common/useEscapeToClose";
 
 export type StartupNotification = {
   id: string;

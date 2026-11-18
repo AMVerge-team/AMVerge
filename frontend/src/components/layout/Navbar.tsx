@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { FaBars, FaDiscord } from './icons/animated';
-import { WindowCloseIcon, WindowMaximizeIcon, WindowMinimizeIcon, WindowPinIcon, ZoomInIcon, ZoomOutIcon } from './icons/chrome/ChromeIcons';
-import Tooltip from "./common/Tooltip";
-import { MAX_EVENT_COLUMNS } from "./events/EventsBrowser";
-import { useUIStateStore } from "../stores/UIStore";
-import { useAiDepsStore } from "../stores/aiDepsStore";
+import { FaBars, FaDiscord } from '../icons/animated';
+import { WindowCloseIcon, WindowMaximizeIcon, WindowMinimizeIcon, WindowPinIcon, ZoomInIcon, ZoomOutIcon } from '../icons/chrome/ChromeIcons';
+import Tooltip from "../common/Tooltip";
+import { MAX_EVENT_COLUMNS } from "../events/EventsBrowser";
+import { useUIStateStore } from "../../stores/UIStore";
+import { useAiDepsStore } from "../../stores/aiDepsStore";
 import { open } from "@tauri-apps/plugin-shell";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { applyWindowSize, readWinSize, rememberWinSize } from "../utils/windowSize";
+import { applyWindowSize, readWinSize, rememberWinSize } from "../../utils/windowSize";
 
 type NavbarProps = {
     userHasHEVC: boolean

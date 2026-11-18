@@ -2,10 +2,10 @@ import { useTranslation } from "react-i18next";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 
-import Tooltip from "./common/Tooltip";
+import Tooltip from "../common/Tooltip";
 import BackgroundJobCard from "./BackgroundJobCard";
-import { useEscapeToClose } from "./common/useEscapeToClose";
-import { useStorageMoveStore } from "../stores/storageMoveStore";
+import { useEscapeToClose } from "../common/useEscapeToClose";
+import { useStorageMoveStore } from "../../stores/storageMoveStore";
 
 function formatDuration(sec: number): string {
   const m = Math.floor(sec / 60);

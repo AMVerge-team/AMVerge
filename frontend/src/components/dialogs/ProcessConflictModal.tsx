@@ -1,11 +1,11 @@
 import { useTranslation } from "react-i18next";
 
-import { ConfirmModal } from "./settings/general/ConfirmModal";
+import { ConfirmModal } from "../settings/general/ConfirmModal";
 import {
   answerConflict,
   processLabel,
   useProcessConflictStore,
-} from "../features/processes/singleProcess";
+} from "../../features/processes/singleProcess";
 
 /** asks before a second long job starts: stop the running one, or keep it (see singleProcess.ts) */
 export default function ProcessConflictModal() {

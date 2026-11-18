@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 import { t } from "../i18n";
-import type { JobLine, JobLineKind } from "../components/BackgroundJobCard";
+import type { JobLine, JobLineKind } from "../components/jobs/BackgroundJobCard";
 
 const MAX_LOGS = 200;
 let nextLineId = 0;

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import GridPageLayout from "../components/GridPageLayout";
+import GridPageLayout from "../components/layout/GridPageLayout";
 import { useAppStateStore } from "../stores/appStore";
 import { useScenepacksStore } from "../stores/scenepackStore";
 import { useScenepackPendingStore } from "../stores/scenepackPendingStore";

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
-import { FaBars, FaCog, FaTimes, FaDiscord, FaGithub, FaSearch, FaWrench } from './icons/animated';
-import Tooltip from "./common/Tooltip";
-import { useUIStateStore } from "../stores/UIStore";
+import { FaBars, FaCog, FaTimes, FaDiscord, FaGithub, FaSearch, FaWrench } from '../icons/animated';
+import Tooltip from "../common/Tooltip";
+import { useUIStateStore } from "../../stores/UIStore";
 
 /** dialogs that own Escape themselves - the quick menu stays out of their way */
 const BLOCKING_OVERLAYS =

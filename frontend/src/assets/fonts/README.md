@@ -4,6 +4,8 @@
 |---|---|---|
 | `Jersey10-latin.woff2` | latin | 13 KB |
 | `Jersey10-latin-ext.woff2` | latin extended | 10 KB |
+
+Jersey 10 is SIL OFL 1.1, Copyright 2023 The Soft Type Project Authors. The notice is `licenses/jersey-10-OFL.txt` and is included in the app bundle.
 | `fusion-pixel-12px-proportional-zh_hans.ttf.woff2` | GB/T 2312 han + the shipped locales | 224 KB |
 
 ## The CJK face

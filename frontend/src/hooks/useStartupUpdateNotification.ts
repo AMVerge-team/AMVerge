@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
 
 import { t } from "../i18n";
-import type { StartupNotification } from "../components/StartupNotificationModal";
+import type { StartupNotification } from "../components/dialogs/StartupNotificationModal";
 
 type GitHubLatestRelease = {
   tag_name?: string;

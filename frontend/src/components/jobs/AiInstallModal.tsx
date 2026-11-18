@@ -2,11 +2,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { Trans, useTranslation } from "react-i18next";
 
-import Tooltip from "./common/Tooltip";
+import Tooltip from "../common/Tooltip";
 import BackgroundJobCard from "./BackgroundJobCard";
-import { ConfirmModal } from "./settings/general/ConfirmModal";
-import { useEscapeToClose } from "./common/useEscapeToClose";
-import { useAiDepsStore } from "../stores/aiDepsStore";
+import { ConfirmModal } from "../settings/general/ConfirmModal";
+import { useEscapeToClose } from "../common/useEscapeToClose";
+import { useAiDepsStore } from "../../stores/aiDepsStore";
 import {
   AI_PACKS,
   VISIBLE_PACK_IDS,
@@ -14,7 +14,7 @@ import {
   formatSizeMb,
   isPackInstalled,
   plannedTorchVariant,
-} from "../features/aiDeps/packs";
+} from "../../features/aiDeps/packs";
 
 function formatDuration(sec: number): string {
   const m = Math.floor(sec / 60);

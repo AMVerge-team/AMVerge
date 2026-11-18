@@ -2,8 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 
-import { useUIStateStore } from "../stores/UIStore";
-import { useSettingsSectionsStore } from "../stores/settingsSectionsStore";
+import { useUIStateStore } from "../../stores/UIStore";
+import { useSettingsSectionsStore } from "../../stores/settingsSectionsStore";
 
 type StepId =
   | "welcome"

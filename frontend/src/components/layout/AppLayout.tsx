@@ -1,11 +1,11 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import Sidebar from "./sidebar/Sidebar";
+import Sidebar from "../sidebar/Sidebar";
 import Navbar from "./Navbar";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { isVideoBackgroundPath, useThemeSettingsStore } from "../stores/settingsStore";
-import { useViewportAlignedDivider } from "../hooks/useViewportAlignedDivider";
-import { useUIStateStore } from "../stores/UIStore";
+import { isVideoBackgroundPath, useThemeSettingsStore } from "../../stores/settingsStore";
+import { useViewportAlignedDivider } from "../../hooks/useViewportAlignedDivider";
+import { useUIStateStore } from "../../stores/UIStore";
 
 export interface AppLayoutProps {
   windowWrapperRef: React.RefObject<HTMLDivElement | null>;

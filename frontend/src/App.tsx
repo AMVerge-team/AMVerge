@@ -4,23 +4,22 @@ import { useTranslation } from "react-i18next";
 import { Event, listen } from "@tauri-apps/api/event";
 import { DEFAULT_GENERAL_SETTINGS } from "./stores/settingsStore";
 
-import AppLayout from "./components/AppLayout";
+import AppLayout from "./components/layout/AppLayout";
 import HomePage from "./pages/HomePage";
-import { AppNotice } from "./components/AppNotice";
+import { AppNotice } from "./components/dialogs/AppNotice";
 import { errorText, showNotice } from "./features/notice/notice";
-import type { StartupNotification } from "./components/StartupNotificationModal";
-import ImportTerminal from "./components/ImportTerminal";
-import BgProgressBar from "./components/BgProgressBar";
-import SplashScreen from "./components/SplashScreen";
+import type { StartupNotification } from "./components/dialogs/StartupNotificationModal";
+import ImportTerminal from "./components/jobs/ImportTerminal";
+import SplashScreen from "./components/layout/SplashScreen";
 import { useIntroStore } from "./features/intro/introStore";
-import ProcessConflictModal from "./components/ProcessConflictModal";
+import ProcessConflictModal from "./components/dialogs/ProcessConflictModal";
 import { registerProcessAbort } from "./features/processes/singleProcess";
 import { clearReencodeQueue, resumeBackgroundCuts } from "./features/import/reencodeQueue";
 import { importAbortRef } from "./features/import/importPipeline";
 
 const SettingsModal = lazy(() => import("./components/settings/SettingsModal"));
-const QuickMenu = lazy(() => import("./components/QuickMenu"));
-const CommandPalette = lazy(() => import("./components/CommandPalette"));
+const QuickMenu = lazy(() => import("./components/menu/QuickMenu"));
+const CommandPalette = lazy(() => import("./components/commandPalette/CommandPalette"));
 const MenuModal = lazy(() => import("./components/menu/MenuModal"));
 const ToolsModal = lazy(() => import("./components/tools/ToolsModal"));
 const FlowDatabasePrompt = lazy(() =>
@@ -33,15 +32,15 @@ const DenialNoticeModal = lazy(() => import("./components/events/DenialNoticeMod
 const ApprovalNoticeModal = lazy(() => import("./components/events/ApprovalNoticeModal"));
 const ScenepacksPage = lazy(() => import("./pages/ScenepacksPage"));
 const SceneScoutPage = lazy(() => import("./pages/SceneScoutPage"));
-const StartupNotificationModal = lazy(() => import("./components/StartupNotificationModal"));
+const StartupNotificationModal = lazy(() => import("./components/dialogs/StartupNotificationModal"));
 const V1ImportNotice = lazy(() =>
-  import("./components/V1ImportNotice").then((m) => ({ default: m.V1ImportNotice }))
+  import("./components/dialogs/V1ImportNotice").then((m) => ({ default: m.V1ImportNotice }))
 );
-const PostExportPassesModal = lazy(() => import("./components/PostExportPassesModal"));
-const PassTargetsModal = lazy(() => import("./components/PassTargetsModal"));
-const AiInstallModal = lazy(() => import("./components/AiInstallModal"));
-const StorageMoveModal = lazy(() => import("./components/StorageMoveModal"));
-const GettingStartedTour = lazy(() => import("./components/GettingStartedTour"));
+const PostExportPassesModal = lazy(() => import("./components/jobs/PostExportPassesModal"));
+const PassTargetsModal = lazy(() => import("./components/jobs/PassTargetsModal"));
+const AiInstallModal = lazy(() => import("./components/jobs/AiInstallModal"));
+const StorageMoveModal = lazy(() => import("./components/jobs/StorageMoveModal"));
+const GettingStartedTour = lazy(() => import("./components/dialogs/GettingStartedTour"));
 
 import useDiscordRPC from "./hooks/useDiscordRPC";
 import useHEVCSupport from "./hooks/useHEVCSupport";
@@ -58,7 +57,6 @@ import { rebaseStoragePaths, restoreOpenedEpisodeGrid } from "./features/storage
 import { useAiDepsStore } from "./stores/aiDepsStore";
 import { useAppStateStore } from "./stores/appStore";
 import { useWebpLoadingStore } from "./stores/webpLoadingStore";
-import { useSceneScoutStore } from "./stores/sceneScoutStore";
 import { useUIStateStore } from "./stores/UIStore";
 import { applyThemeSettings, useGeneralSettingsStore, useThemeSettingsStore } from "./stores/settingsStore";
 import { useEpisodePanelRuntimeStore } from "./stores/episodeStore";
@@ -80,9 +78,6 @@ function App() {
   const bgImportProgress = useAppStateStore((s) => s.bgImportProgress);
   const reencodeProgress = useAppStateStore((s) => s.reencodeProgress);
   const reencodeQueueLength = useAppStateStore((s) => s.reencodeQueue.length);
-  // scene scout indexing reports two counted stages, so the card names whichever is running
-  const scoutIndexStage = useSceneScoutStore((s) => s.indexing?.stage);
-  const scoutAddLabel = scoutIndexStage === "sampling" ? t("app.progress.sampling") : t("app.progress.embedding");
   const webpLoadDone = useWebpLoadingStore((s) => s.done);
   const webpLoadTotalRaw = useWebpLoadingStore((s) => s.total);
   const webpDismissed = useWebpLoadingStore((s) => s.dismissed);
@@ -494,15 +489,6 @@ function App() {
     };
   }, [importedVideoPath, importToken, setVideoIsHEVC, setVideoNeedsProxy]);
 
-  // shared by the bar attached to the mini window and the standalone one
-  const clipProgress = reencodeProgress ?? bgProgress;
-  const clipLabel =
-    activeOperation === "scout_add" ? scoutAddLabel
-    : activeOperation === "scout_search" ? t("app.progress.searching")
-    : activeOperation === "scout_thumbnails" ? t("app.progress.thumbnails")
-    : reencodeProgress ? t("app.progress.reencoding")
-    : t("app.progress.processing");
-
   return (
       <AppLayout
       windowWrapperRef={windowWrapperRef}
@@ -526,31 +512,6 @@ function App() {
             onToggleMinimize={() =>
               setMinimizeOverride((prev) => !(prev ?? autoMinimized))
             }
-            onClose={handleAbortAndCloseBgProgress}
-            bgBar={
-              <BgProgressBar
-                clipDone={clipProgress?.done ?? 0}
-                clipTotal={clipProgress?.total ?? 0}
-                clipLabel={clipLabel}
-                importDone={bgImportProgress?.done ?? 0}
-                importTotal={bgImportProgress?.total ?? 0}
-                webpDone={webpLoadDone}
-                // the window's own bar already shows previews when they are the job
-                webpTotal={previewsOnly ? 0 : webpLoadTotal}
-                onClose={handleAbortAndCloseBgProgress}
-                attached
-              />
-            }
-          />
-        ) : (bgProgress || bgImportProgress || reencodeProgress || webpLoadTotal > 0) ? (
-          <BgProgressBar
-            clipDone={clipProgress?.done ?? 0}
-            clipTotal={clipProgress?.total ?? 0}
-            clipLabel={clipLabel}
-            importDone={bgImportProgress?.done ?? 0}
-            importTotal={bgImportProgress?.total ?? 0}
-            webpDone={webpLoadDone}
-            webpTotal={webpLoadTotal}
             onClose={handleAbortAndCloseBgProgress}
           />
         ) : null

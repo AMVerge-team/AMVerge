@@ -5,7 +5,8 @@
     "resources": [
       "bin/amverge-x86_64-unknown-linux-gnu/amverge",
       "bin/amverge-x86_64-unknown-linux-gnu/_internal/**/*",
-      "bin/uv/x86_64-unknown-linux-gnu/uv"
+      "bin/uv/x86_64-unknown-linux-gnu/uv",
+      "../src/assets/fonts/licenses/jersey-10-OFL.txt"
     ],
     "linux": {
       "appimage": {

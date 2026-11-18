@@ -3,13 +3,12 @@ import {
   useLayoutEffect,
   useRef,
   useState,
-  type ReactNode,
 } from "react";
 import { listen, type Event, type UnlistenFn } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 
-import { t as translate } from "../i18n";
-import Tooltip from "./common/Tooltip";
+import { t as translate } from "../../i18n";
+import Tooltip from "../common/Tooltip";
 import BackgroundJobCard, { type JobLine, type JobLineKind } from "./BackgroundJobCard";
 
 interface ImportTerminalProps {
@@ -33,8 +32,6 @@ interface ImportTerminalProps {
   onToggleMinimize?: () => void;
   /** dismiss the minimized card (abort + clear background progress) */
   onClose?: () => void;
-  /** BgProgressBar (in `attached` mode) rendered below the minimized card */
-  bgBar?: ReactNode;
 }
 
 interface ConsoleLogEvent {
@@ -84,7 +81,6 @@ export default function ImportTerminal({
   minimized = false,
   onToggleMinimize,
   onClose,
-  bgBar,
 }: ImportTerminalProps) {
   const { t } = useTranslation("jobs");
   const [lines, setLines] = useState<JobLine[]>([]);
@@ -275,9 +271,6 @@ export default function ImportTerminal({
         }
         onExpand={onToggleMinimize}
         onClose={onClose}
-        // In batch mode the batch rows are the progress; the per-clip bgBar
-        // would be redundant/misleading, so only show it for single import.
-        footer={isBatch ? null : bgBar}
       >
         {isBatch ? (
           <>

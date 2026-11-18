@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEventHandler, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
-import Tooltip from "./common/Tooltip";
+import Tooltip from "../common/Tooltip";
 
 export type JobLineKind = "cmd" | "log" | "warn" | "error" | "event";
 

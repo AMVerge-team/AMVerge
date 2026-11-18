@@ -28,7 +28,8 @@
       "bin/amverge-x86_64-apple-darwin/_internal/ffmpeg",
       "bin/amverge-x86_64-apple-darwin/_internal/ffprobe",
       "bin/uv/aarch64-apple-darwin/uv",
-      "bin/uv/x86_64-apple-darwin/uv"
+      "bin/uv/x86_64-apple-darwin/uv",
+      "../src/assets/fonts/licenses/jersey-10-OFL.txt"
     ]
   }
 }

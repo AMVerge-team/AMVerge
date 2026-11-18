@@ -3,15 +3,15 @@ import { createPortal } from "react-dom";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 
-import { useEscapeToClose } from "./common/useEscapeToClose";
+import { useEscapeToClose } from "../common/useEscapeToClose";
 import {
   usePassTargetsStore,
   type PassClipPicks,
   type PassTargetKind,
-} from "../features/export/passTargets";
-import { imageThumbnail, mediaSrc } from "../utils/mediaSrc";
-import { usePreviewTranscode, type PreviewTranscode } from "../features/preview/usePreviewTranscode";
-import type { ClipItem } from "../types/domain";
+} from "../../features/export/passTargets";
+import { imageThumbnail, mediaSrc } from "../../utils/mediaSrc";
+import { usePreviewTranscode, type PreviewTranscode } from "../../features/preview/usePreviewTranscode";
+import type { ClipItem } from "../../types/domain";
 
 function answerPassTargets(picks: PassClipPicks | null) {
   const req = usePassTargetsStore.getState().request;

@@ -2,10 +2,10 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 
-import Tooltip from "./common/Tooltip";
+import Tooltip from "../common/Tooltip";
 import BackgroundJobCard from "./BackgroundJobCard";
-import { useEscapeToClose } from "./common/useEscapeToClose";
-import { usePassRunStore } from "../stores/passRunStore";
+import { useEscapeToClose } from "../common/useEscapeToClose";
+import { usePassRunStore } from "../../stores/passRunStore";
 
 export default function PostExportPassesModal() {
   const { t } = useTranslation("jobs");

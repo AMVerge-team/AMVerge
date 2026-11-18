@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { v1ImportSummary } from "../features/migration/importV1";
-import { useEscapeToClose } from "./common/useEscapeToClose";
+import { v1ImportSummary } from "../../features/migration/importV1";
+import { useEscapeToClose } from "../common/useEscapeToClose";
 
 // banner image link (imgur etc.); empty or broken shows the placeholder
 const BANNER_URL = "https://i.imgur.com/7g65E7d.jpeg";
