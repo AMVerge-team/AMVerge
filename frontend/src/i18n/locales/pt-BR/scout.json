@@ -1,0 +1,226 @@
+{
+  "hero": {
+    "blockedNoDatabase": "Create a database below to start searching...",
+    "blockedNoScenes": "Add episodes to the selected database before searching...",
+    "addTo": "Add episodes to {{name}}",
+    "addNoTarget": "Select or create a database below first",
+    "databaseFallback": "database",
+    "yourDatabases": "Your databases",
+    "newDatabase": "New database",
+    "loadingDatabases": "Loading databases...",
+    "noDatabases": "No databases yet. Create one to start indexing episodes.",
+    "sceneCount_one": "{{count}} scene",
+    "sceneCount_other": "{{count}} scenes",
+    "empty": "empty"
+  },
+  "tabs": {
+    "ariaLabel": "Scene Scout mode",
+    "search": "Search",
+    "searchHint": "Find scenes by describing them",
+    "match": "Match",
+    "matchHint": "Pick a clip and find scenes that look like they follow its last frame"
+  },
+  "addEpisode": {
+    "label": "Add Episode",
+    "indexing": "Indexing..."
+  },
+  "searchField": {
+    "placeholderOne": "Describe a scene to search in \"{{name}}\"...",
+    "placeholderMany_one": "Describe a scene to search across {{count}} selected database...",
+    "placeholderMany_other": "Describe a scene to search across {{count}} selected databases...",
+    "selectedDatabaseFallback": "selected database",
+    "placeholderAny": "Describe a scene to search for...",
+    "placeholderNoDatabase": "Create a database to start searching...",
+    "tooltip": "Search the selected databases and episodes",
+    "clear": "Clear search",
+    "searching": "Searching..."
+  },
+  "toolbar": {
+    "gateHint": "Please select a Database or Create one on the left panel first.",
+    "refreshDatabases": "Refresh databases"
+  },
+  "panels": {
+    "hideDatabasePanel": "Hide database panel",
+    "showDatabasePanel": "Show database panel",
+    "hidePreviewPanel": "Hide preview panel",
+    "showPreviewPanel": "Show preview panel"
+  },
+  "dbPrompt": {
+    "titleFlow": "Select databases to search for matches on",
+    "titleSearch": "Select databases to search through",
+    "clearAll": "Clear all",
+    "selectAll": "Select all",
+    "listLabel": "Databases",
+    "episodeCount_one": "{{count}} episode",
+    "episodeCount_other": "{{count}} episodes",
+    "confirmFlow": "Find matching clips"
+  },
+  "missing": {
+    "title": "Episode not found",
+    "message": "<b>{{name}}</b> is no longer at <code>{{path}}</code>, so its scenes can't play. Remove this episode from the database?",
+    "removing": "Removing…",
+    "remove": "Remove from database",
+    "keep": "Keep"
+  },
+  "visibility": {
+    "ariaLabel": "Episodes searched in {{name}}",
+    "showAll": "Show all",
+    "hideAll": "Hide all",
+    "loading": "Loading episodes…",
+    "empty": "No episodes indexed yet."
+  },
+  "info": {
+    "search": {
+      "title": "Scene Scout: Search",
+      "intro": "Scene Scout searches your indexed episodes by description rather than by filename. Type what you remember of a scene and it finds the closest matches.",
+      "gettingStarted": "Getting started",
+      "step1": "Create or open a database in the left panel. One per series works well.",
+      "step2": "Move it into Searching by double-clicking it, dragging it up, or right-clicking it. All databases lists everything you have; only the ones in Searching are searched.",
+      "step3": "Press Add Episode and pick one or more videos. Indexing watches every scene once and stores a fingerprint of each, which takes a while but only happens once per episode.",
+      "step4": "Describe the scene you want in plain language and press Enter.",
+      "settingsTitle": "Search settings",
+      "settings": "Results controls how many matches come back. Scene detection is chosen each time you add episodes."
+    },
+    "flow": {
+      "title": "Scene Scout: Match",
+      "intro": "Match finds scenes that could come right after a clip you already have. It looks at the clip's last frame and returns the scenes in your databases that look most like it, so the cut between them feels continuous.",
+      "howTitle": "How to use it",
+      "step1": "Add the databases to search to the Searching list on the left.",
+      "step2": "Press Import and pick a video file, or right-click a clip in your Library or in Search results and pick Find matching clips.",
+      "step3": "Click a match to play it in the preview pane, and export it from there as usual.",
+      "tipsTitle": "Tips",
+      "tips": "Drag the bar between the clip and the results to give either more room. The refresh button runs the same clip again, for example after changing which databases are searched."
+    }
+  },
+  "flow": {
+    "heroInput": "Input a file to find scene matches",
+    "noDatabaseHint": "Add a database to the Searching list on the left first",
+    "import": "Import",
+    "searchAgainHint": "Search again, e.g. after changing which databases are searched",
+    "searchAgain": "Search again",
+    "inputtedClip": "Inputted clip",
+    "previewFailed": "Could not prepare a preview of this clip.",
+    "preparingPreview": "Preparing preview",
+    "inputEpisode": "Input episode",
+    "resizeLabel": "Resize clip and results"
+  },
+  "tools": {
+    "modalLabel": "Tools",
+    "tabsLabel": "Tool",
+    "upscale": "Upscale",
+    "upscaleBlurb": "A sharper and higher resolution copy of the clip",
+    "depth": "Depth map",
+    "depthBlurb": "A video of how far each part of the frame is from the camera, used for compositing",
+    "run": {
+      "upscale": "Generate Upscale",
+      "depth": "Generate Depth Map"
+    },
+    "rerun": {
+      "upscale": "Regenerate Upscale",
+      "depth": "Regenerate Depth Map"
+    },
+    "pack": {
+      "upscale": "Upscaling",
+      "depth": "Depth mapping"
+    },
+    "packMissing": "{{pack}} isn't installed yet.",
+    "install": "Install",
+    "saved": "Saved {{name}}",
+    "show": "Show",
+    "stopped": "Stopped, nothing was saved",
+    "error": "Ran into an error",
+    "dropHere": "Drop it here",
+    "dropVideo": "Drop a video here",
+    "dropHint": "or click to choose one. Any format works.",
+    "model": "Model",
+    "fileQuality": "File quality",
+    "colors": "Colors",
+    "grayscale": "Grayscale",
+    "stop": "Stop",
+    "opensIn": "Opens in {{dir}}",
+    "chooseWhere": "Choose where to save it",
+    "exporting": "Exporting...",
+    "export": "Export",
+    "viewer": {
+      "play": "Play",
+      "pause": "Pause",
+      "fullscreen": "Fullscreen",
+      "previewFailed": "Could not prepare a preview of this clip.",
+      "preparingPreview": "Preparing preview",
+      "resultFailed": "Could not show the result.",
+      "waitingFirstFrame": "Waiting for the first frame",
+      "preparing": "Preparing...",
+      "original": "Original",
+      "result": {
+        "upscale": "Upscaled",
+        "depth": "Depth map"
+      },
+      "waiting": {
+        "upscale": "The upscaled version will preview here",
+        "depth": "The depth map version will preview here"
+      }
+    }
+  },
+  "events": {
+    "hideEpisodePanel": "Hide episode panel",
+    "showEpisodePanel": "Show episode panel",
+    "bannedHint": "You are banned from hosting. Click to see why",
+    "cooldownHint": "You can request another event in {{time}}",
+    "requestHint": "Request a community event",
+    "banned": "Banned",
+    "host": "Host Event",
+    "muteNotifications": "Mute new event notifications",
+    "unmuteNotifications": "Unmute new event notifications",
+    "refresh": "Refresh events",
+    "connected": "Connected: <strong>{{name}}</strong>",
+    "signOut": "Sign out",
+    "signOutDiscord": "Sign out of Discord",
+    "waiting": "Waiting...",
+    "login": "Login",
+    "searchPlaceholder": "Search Event",
+    "searchLabel": "Search events",
+    "clearSearch": "Clear search",
+    "filter": {
+      "all": "All events",
+      "allDescription": "Everything",
+      "mine": "My events",
+      "mineDescription": "Events you host",
+      "hc": "HC only",
+      "hcDescription": "Hour Challenges only",
+      "ec": "EC only",
+      "ecDescription": "Long Contests only"
+    },
+    "sort": {
+      "dateDesc": "Date, latest",
+      "dateDescDescription": "Latest start date first",
+      "dateAsc": "Date, oldest",
+      "dateAscDescription": "Earliest start date first",
+      "prizeDesc": "Prize pool, largest",
+      "prizeDescDescription": "Largest prize first",
+      "prizeAsc": "Prize pool, smallest",
+      "prizeAscDescription": "Smallest prize first"
+    },
+    "info": {
+      "title": "Community Events",
+      "intro": "The community is pretty huge, and editing contests often go unnoticed as a result. This page gathers them in one place so editors can find opportunities worth entering, and hosts reach the people most likely to show up. Better turnout makes for better events, and events that go well encourage the next person to run one.",
+      "hcTitle": "Hour Challenge (HC)",
+      "hc": "A short, fixed window. Editors get a set number of hours, usually on a single day, to make an edit from start to finish. These are lower commitment and I personally love participating in these (crptk)",
+      "ecTitle": "Editing Contest (EC)",
+      "ec": "A longer format that runs at least a day and often much more. There is room to plan and refine, usually less restrictions, and the prizes tend to be bigger.",
+      "hostTitle": "Hosting an event",
+      "step1": "Sign in with Discord using the Login button so you can manage the event going forward. All logins are done through Discord's official API, so we have no access to your data.",
+      "step2": "Press Host Event and pick the format: HC for a timed contest, EC for a longer contest.",
+      "step3": "Fill in the title, cover image, description, dates, and an invite to the Discord server where the event actually happens. Add a prize pool if there is one.",
+      "step4": "Send it for review. A moderator checks every submission before it goes live, which usually takes a short while.",
+      "step5": "You will get a notice once it is approved. After that you can still correct the dates, invite link, or prize pool yourself; changing the title, description, or cover sends it back for another quick review."
+    }
+  },
+  "createDb": {
+    "dialogTitle": "Create Scene Scout database",
+    "filter": "Scene Scout database",
+    "title": "Name this database",
+    "placeholder": "Database name",
+    "failed": "Could not create the database.",
+    "done": "Done"
+  }
+}

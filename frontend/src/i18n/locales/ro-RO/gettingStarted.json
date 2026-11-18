@@ -1,0 +1,53 @@
+{
+  "steps": {
+    "0": {
+      "title": "Bine ai venit in AMVerge",
+      "body": "Hai sa facem un tur in AMVerge ca sa stii unde se afla fiecare pagina si functionalitate, cum dai import si cum functioneaza preview-urile si de unde poti activa functiile AI optionale."
+    },
+    "1": {
+      "title": "1. Librarie",
+      "body": "<b>Libraria</b> este pagina principala. Importa episoade sau videoclipuri direct aici ca sa le separi scenele, pune cursor-ul pe preview la fiecare taietira si da export la videoclipurile selectate direct in programul tau de editat."
+    },
+    "2": {
+      "title": "2. Scenepack-uri",
+      "body": "<b>Scenepack-urile</b> te ajuta sa iti grupezi clipurile favorite din orice episod intr-o colectie custom dupa caracter, dupa actiune etc. Poti sa activezi aceasta optiune oricand din <b>Setari › Caracteristici</b>."
+    },
+    "3": {
+      "title": "3. Scene Scout",
+      "body": "<b>Scene Scout-ul</b> te ajuta sa cauti in episoadele tale dintr-o descriere in Engleza (sau cauta clipuri care se potrivesc cu alte clipuri pe care le ai deja). Activeaza si descarca aceasta optiune din <b>Setari › Caracteristici</b>."
+    },
+    "4": {
+      "title": "4. Evenimente comunitare",
+      "body": "<b>Event-urile</b> afiseaza evenimente active in lumea AMV si Hours Challenger-uri din comunitate, pentru a participa trebuie sa intrati pe serverele organizatorilor de Discord si trebuie sa te conectezi cu contul de Discord daca doresti sa organizezi tu un eveniment."
+    },
+    "5": {
+      "title": "5. Deschide meniul",
+      "body": "Click the <b>☰ menu button</b> right next to the AMVerge logo to open Quick Navigation, or press <b>Next</b> to jump straight in."
+    },
+    "6": {
+      "title": "6. Deschide Setarile",
+      "body": "Apasa pe <b>Setari</b> ca sa vezi cum poti configura AMVerge-ul. Cum AMVerge detecteaza taieturile, cum reda preview-urile, si cum sa instalezi caracteristicile optionale."
+    },
+    "7": {
+      "title": "7. Metode de detectare a scenelor",
+      "body": "Alege ce metoda de detectare doresti pentru separarea scenelor. <br/>• <b>Detectarea prin Keyframe-uri</b> speara instant videoclipurile prin metoda de keyframe-uri, aceasta metoda functioneaza pe orice PC, chiar si pe cele fara GPU, dar nu o sa taie scenele chiar perfect. <br/>• <b>Detectarea prin AI</b> verifica fiecare frame folosind TransNetV2 pentru a avea scene aproape perfecte, aceasta metoda este recomandata sa fie utilizata cu un GPU si o sa fie mai lenta deoarece este mult mai precisa."
+    },
+    "8": {
+      "title": "8. Previzualizeaza Metodele",
+      "body": "Alege cum vrei ca aplicatia sa-ti afiseze scenele cand dai cu cursorul pe ele. <br/>• <b>Fisiere Video</b> arata videoclipurile reale asa cum sunt ele. <br/>• <b>Fisiere WebP</b> afiseaza scenele prin fisiere animate, o metoda care este mult mai folosita pentru ca este mai usoara si nu afecteaza foarte mult din experienta, acest lucru salvand din memoria RAM a sistemului tau."
+    },
+    "9": {
+      "title": "9. Caracteristici si Descarcari",
+      "body": "In <b>Caracteristici</b> poti sa activezi sau sa dezactivezi uneltele optionale. De retinut ca o sa inceapa descarcarea modelelor atunci cand activezi o unealta optionala. <b>Scene Scout</b>, <b>Detectarea scenelor prin AI</b>, <b>Scenepack-uri</b>, <b>Upscaling</b>, si <b>Depth Map</b>."
+    },
+    "10": {
+      "title": "10. Atat",
+      "body": "Cam asta a fost tot tutorialul. Daca uiti cum sa folosesti ceva poti sa mergi la <b>\"Cum sa folosesti AMVerge\"</b> din partea dreapta a paginii. Speram ca o sa-ti placa programul nostru!"
+    }
+  },
+  "ariaLabel": "Ghid de incepere",
+  "skip": "Omite",
+  "back": "Inapoi",
+  "finish": "Termina",
+  "next": "Urmatorul"
+}

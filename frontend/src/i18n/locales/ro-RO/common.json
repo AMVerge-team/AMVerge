@@ -1,0 +1,31 @@
+{
+  "ok": "OK",
+  "cancel": "Anuleaza",
+  "save": "Salveaza",
+  "close": "Inchide",
+  "confirm": "Confirm",
+  "delete": "Sterge",
+  "rename": "Redenumeste",
+  "reset": "Reseteaza",
+  "search": "Cauta",
+  "loading": "Se incarca...",
+  "noResults": "Niciun rezultat",
+  "yes": "Da",
+  "no": "Nu",
+  "on": "Activat",
+  "off": "Dezactivat",
+  "language": {
+    "label": "Limba",
+    "description": "Alege limba interfetei. Se aplica imediat si se va pastra.",
+    "system": "Sistem",
+    "systemResolved": "Sistem ({{language}})",
+    "en": "Engleza",
+    "zh-CN": "Chineza",
+    "fr-FR": "Français"
+  },
+  "showInFileManager": "Afiseaza in {{manager}}",
+  "fileManagers": {
+    "explorer": "File Explorer",
+    "linux": "File Manager"
+  }
+}
