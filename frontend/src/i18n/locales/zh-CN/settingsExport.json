@@ -53,23 +53,23 @@
     "description": "重新编码音频、原样复制，或不保留音频。",
     "options": {
       "copy": "兼容时复制音频（否则自动选择备选格式）",
-      "aac": "AAC 192 kbps",
-      "aac_320": "AAC 320 kbps",
+      "aac": "",
+      "aac_320": "",
       "pcm16": "PCM 16 位",
       "pcm24": "PCM 24 位",
-      "mp3": "MP3 320 kbps",
+      "mp3": "",
       "none": "无音频"
     },
     "labels": {
       "copy": "复制音频",
-      "aac": "AAC",
-      "aac_320": "AAC 320k",
+      "aac": "",
+      "aac_320": "",
       "pcm16": "PCM 16 位",
       "pcm24": "PCM 24 位",
-      "flac": "FLAC",
-      "alac": "ALAC",
-      "opus": "Opus",
-      "mp3": "MP3",
+      "flac": "",
+      "alac": "",
+      "opus": "",
+      "mp3": "",
       "none": "无音频"
     }
   },
@@ -121,8 +121,8 @@
   "passes": {
     "section": "导出后处理",
     "master": {
-      "label": "启用导出后处理",
-      "description": "导出完成后运行下方已启用的处理。关闭时跳过后处理，并保留各项配置。"
+      "label": "",
+      "description": ""
     },
     "labels": {
       "depth": "深度图",
@@ -163,7 +163,7 @@
     },
     "depthEncoders": {
       "vits": "Depth Anything V2 - Small（最快）",
-      "vitb": "Depth Anything V2 - Base",
+      "vitb": "",
       "vitl": "Depth Anything V2 - Large（最佳）"
     },
     "upscaleModels": {
@@ -217,7 +217,7 @@
     "freeUpSpace": "释放空间",
     "lockedByImport": "导入进行中，此设置已禁用",
     "gpu": {
-      "section": "GPU",
+      "section": "",
       "cpuWithNvidia": "当前安装的是 CPU 版本，但此电脑有 NVIDIA GPU。AI 功能的运行速度远低于应有水平。",
       "cpuInstalled": "当前安装的是 CPU 版本。如果此电脑有 NVIDIA GPU，重新安装 GPU 版本可大幅提升 AI 功能速度。",
       "reinstall": "重新安装 GPU 版本"
