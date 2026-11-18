@@ -19,9 +19,9 @@
     "description": "选择界面语言。立即生效，下次打开时保留。",
     "system": "跟随系统",
     "systemResolved": "跟随系统（{{language}}）",
-    "en": "English",
-    "zh-CN": "简体中文",
-    "fr-FR": "Français"
+    "en": "",
+    "zh-CN": "",
+    "fr-FR": ""
   },
   "showInFileManager": "在{{manager}}中显示",
   "fileManagers": {
