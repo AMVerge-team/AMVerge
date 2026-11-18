@@ -32,7 +32,7 @@
       "title": "Communauté et aide",
       "text": "Rejoignez la communauté pour signaler un bug, suivre les nouveautés, proposer une fonctionnalité et partager vos montages :",
       "discord": "Communauté Discord",
-      "github": "GitHub",
+      "github": "",
       "authorNote": "Créé à l'origine par <strong>Crptk</strong>. Maintenu par l'équipe AMVerge."
     }
   },
@@ -52,7 +52,7 @@
     },
     "details": "Détails du problème",
     "bugType": "Type de bug",
-    "description": "Description",
+    "description": "",
     "descriptionPlaceholder": "Ce qui s'est passé, ce que vous attendiez, et comment le reproduire ?",
     "recording": "Capture vidéo de l'écran (facultatif)",
     "recordingPlaceholder": "ex. : lien Google Drive, torrent, épisode…",
@@ -62,7 +62,7 @@
     "fillSpecs": "Remplir avec la config de mon PC",
     "fillSpecsTooltip": "Remplit le système, le processeur, la RAM et la carte graphique de cet ordinateur",
     "pcSpecsPlaceholder": "ex. : RTX 3080, Win 11",
-    "contact": "Contact",
+    "contact": "",
     "fillDiscord": "Remplir avec mon Discord",
     "fillDiscordTooltip": "Remplit votre nom d'utilisateur Discord",
     "fillDiscordUnavailable": "Nécessite Discord Rich Presence activé et Discord lancé",
@@ -92,7 +92,7 @@
     "searchPlaceholder": "Rechercher dans le journal…",
     "levels": {
       "all": "TOUT",
-      "info": "INFO",
+      "info": "",
       "warn": "AVERT",
       "error": "ERREUR"
     },
@@ -114,7 +114,7 @@
       "lewis": "Moteur macOS, import en arrière-plan et optimisation",
       "khaos": "Virtualisation de la grille et correctifs de rendu",
       "tosin": "Démultiplexage macOS et compatibilité vidéo",
-      "markShun": "Scene Scout"
+      "markShun": ""
     },
     "contribute": "Contribuer et communauté",
     "contributeText": "Envie d'aider à améliorer AMVerge ? Nouvelles fonctionnalités, correction de bugs, tests sur d'autres machines : tout apport est bienvenu.",
