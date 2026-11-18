@@ -1,340 +1,340 @@
 {
   "app": {
-    "resetFailedTitle": "Reset failed",
-    "resetFailed": "Failed to reset episode directory: {{error}}",
+    "resetFailedTitle": "",
+    "resetFailed": "",
     "aiPack": {
-      "ml": "AI Scene Detection",
-      "depth": "Depth Maps",
-      "upscale": "Upscaling",
-      "generic": "AI Models"
+      "ml": "",
+      "depth": "",
+      "upscale": "",
+      "generic": ""
     },
     "progress": {
-      "sampling": "Sampling frames",
-      "embedding": "Embedding scenes",
-      "searching": "Searching scenes",
-      "thumbnails": "Generating thumbnails",
-      "reencoding": "Reencoding",
-      "processing": "Processing clips",
-      "previews": "Generating previews {{done}}/{{total}}",
-      "downloading": "Downloading {{name}}"
+      "sampling": "",
+      "embedding": "",
+      "searching": "",
+      "thumbnails": "",
+      "reencoding": "",
+      "processing": "",
+      "previews": "",
+      "downloading": ""
     }
   },
   "layout": {
-    "dropFiles": "Drag file(s) here.",
-    "resizeSidebar": "Resize sidebar"
+    "dropFiles": "",
+    "resizeSidebar": ""
   },
   "navbar": {
-    "quickNav": "Quick navigation (Esc)",
-    "menu": "Menu",
-    "joinDiscord": "Join AMVerge Discord",
-    "bigger": "Bigger tiles, fewer columns",
-    "smaller": "Smaller tiles, more columns",
-    "gridCols_one": "Grid: <strong>{{count}}</strong> col",
-    "gridCols_other": "Grid: <strong>{{count}}</strong> cols",
-    "unpin": "Unpin window",
-    "pin": "Keep window on top",
-    "minimize": "Minimize",
-    "restore": "Restore",
-    "maximize": "Maximize"
+    "quickNav": "",
+    "menu": "",
+    "joinDiscord": "",
+    "bigger": "",
+    "smaller": "",
+    "gridCols_one": "",
+    "gridCols_other": "",
+    "unpin": "",
+    "pin": "",
+    "minimize": "",
+    "restore": "",
+    "maximize": ""
   },
   "quickMenu": {
-    "ariaLabel": "Quick menu",
-    "title": "Quick Navigation",
-    "subtitle": "Quickly jump between pages, search, or configure preferences.",
+    "ariaLabel": "",
+    "title": "",
+    "subtitle": "",
     "search": {
-      "title": "Search",
-      "desc": "Search across episodes, scenepacks, settings, and commands"
+      "title": "",
+      "desc": ""
     },
     "tools": {
-      "title": "Tools",
-      "desc": "Upscale a clip or turn it into a depth map"
+      "title": "",
+      "desc": ""
     },
     "menu": {
-      "title": "Menu",
-      "desc": "About, Update Logs, Console, Credits, and Bug Reports"
+      "title": "",
+      "desc": ""
     },
     "settings": {
-      "title": "Settings",
-      "desc": "General options, export profiles, appearance, and AI models"
+      "title": "",
+      "desc": ""
     }
   },
   "splash": {
-    "tagline": "Scene selection made easy."
+    "tagline": ""
   },
   "features": {
-    "aiSceneDetection": "AI Scene Detection",
-    "sceneScout": "Scene Scout",
-    "scenepacks": "Scenepacks",
-    "depthPass": "Depth Map Pass",
-    "upscalePass": "Upscale Pass",
-    "turnOn": "Turn on {{feature}} in Settings › Features"
+    "aiSceneDetection": "",
+    "sceneScout": "",
+    "scenepacks": "",
+    "depthPass": "",
+    "upscalePass": "",
+    "turnOn": ""
   },
   "sidebar": {
-    "library": "Library",
-    "scenepacks": "Scenepacks",
-    "sceneScout": "Scene Scout",
-    "events": "Community Events",
-    "newEvents_one": "{{count}} new event",
-    "newEvents_other": "{{count}} new events",
-    "muteEvents": "Mute event notifications",
-    "unmuteEvents": "Unmute event notifications"
+    "library": "",
+    "scenepacks": "",
+    "sceneScout": "",
+    "events": "",
+    "newEvents_one": "",
+    "newEvents_other": "",
+    "muteEvents": "",
+    "unmuteEvents": ""
   },
   "menuPage": {
-    "label": "Menu",
+    "label": "",
     "tabs": {
-      "about": "About",
-      "console": "Console",
-      "logs": "Update Logs",
-      "credits": "Credits",
-      "resources": "Resources",
-      "bugreport": "Report Bug"
+      "about": "",
+      "console": "",
+      "logs": "",
+      "credits": "",
+      "resources": "",
+      "bugreport": ""
     }
   },
   "settingsPage": {
-    "title": "Settings",
+    "title": "",
     "tabs": {
-      "general": "General",
-      "export": "Export",
-      "appearance": "Appearance",
-      "features": "Features",
-      "discord": "Discord RPC",
-      "storage": "Storage"
+      "general": "",
+      "export": "",
+      "appearance": "",
+      "features": "",
+      "discord": "",
+      "storage": ""
     }
   },
   "scenepacksPage": {
-    "failed": "Failed: {{error}}"
+    "failed": ""
   },
   "palette": {
-    "ariaLabel": "Spotlight Command Center",
-    "placeholder": "Search episodes, scenepacks, actions, settings, menu...",
-    "clear": "Clear search",
-    "emptyTitle": "No matching results found",
-    "emptyHint": "Try searching another title or use category filter chips above",
-    "navigate": "Navigate",
-    "open": "Open",
-    "nextFilter": "Next Filter",
-    "close": "Close",
+    "ariaLabel": "",
+    "placeholder": "",
+    "clear": "",
+    "emptyTitle": "",
+    "emptyHint": "",
+    "navigate": "",
+    "open": "",
+    "nextFilter": "",
+    "close": "",
     "chips": {
-      "all": "All",
-      "episodes": "Episodes",
-      "scenepacks": "Scenepacks",
-      "sceneScout": "Scene Scout",
-      "actions": "Actions",
-      "settings": "Settings",
-      "menu": "System & Menu"
+      "all": "",
+      "episodes": "",
+      "scenepacks": "",
+      "sceneScout": "",
+      "actions": "",
+      "settings": "",
+      "menu": ""
     },
     "inspector": {
-      "empty": "Select an item to view preview",
-      "target": "Target",
-      "execute": "Execute Command",
-      "reveal": "Reveal in {{manager}}"
+      "empty": "",
+      "target": "",
+      "execute": "",
+      "reveal": ""
     }
   },
   "commands": {
-    "openShortcut": "↵ Open",
+    "openShortcut": "",
     "episode": {
-      "fallbackName": "Episode {{id}}",
-      "subtitle_one": "{{count}} cut scene • {{path}}",
-      "subtitle_other": "{{count}} cut scenes • {{path}}",
-      "readyInWorkspace": "Ready in workspace",
-      "localFile": "Local video file",
-      "description": "Immediately loads and streams all cut scenes into the grid timeline."
+      "fallbackName": "",
+      "subtitle_one": "",
+      "subtitle_other": "",
+      "readyInWorkspace": "",
+      "localFile": "",
+      "description": ""
     },
     "scenepack": {
-      "subtitle_one": "{{count}} scene in collection",
-      "subtitle_other": "{{count}} scenes in collection",
-      "meta": "Custom Scenepack Folder",
-      "description": "Browse, filter, and batch export clips collected in this scenepack."
+      "subtitle_one": "",
+      "subtitle_other": "",
+      "meta": "",
+      "description": ""
     },
     "scoutDb": {
-      "subtitle": "{{episodes}} • {{scenes}}",
-      "episodes_one": "{{count}} episode",
-      "episodes_other": "{{count}} episodes",
-      "scenes_one": "{{count}} scene",
-      "scenes_other": "{{count}} scenes",
-      "description": "Opens this database in Scene Scout and searches it."
+      "subtitle": "",
+      "episodes_one": "",
+      "episodes_other": "",
+      "scenes_one": "",
+      "scenes_other": "",
+      "description": ""
     },
     "scoutSearch": {
-      "title": "Scene Scout: Search",
-      "subtitle": "Find scenes by describing them",
-      "meta": "Scene Scout Search",
-      "description": "Describe a scene in words and Scene Scout finds it across your databases."
+      "title": "",
+      "subtitle": "",
+      "meta": "",
+      "description": ""
     },
     "scoutFlow": {
-      "title": "Scene Scout: Find matching clips",
-      "subtitle": "Pick a video file and find scenes that could follow it",
-      "meta": "Match Search",
-      "description": "Finds scenes that look like they follow the last frame of the file you pick."
+      "title": "",
+      "subtitle": "",
+      "meta": "",
+      "description": ""
     },
     "import": {
-      "title": "Import New Episode",
-      "subtitle": "Select video file to detect and cut into scene clips",
-      "meta": "Scene Detection Pipeline",
-      "description": "Open file dialog to run TransNetV2 AI or fast keyframe demux."
+      "title": "",
+      "subtitle": "",
+      "meta": "",
+      "description": ""
     },
     "selectAll": {
-      "title": "Select All Clips",
-      "subtitle_one": "Highlight all {{count}} scene in timeline",
-      "subtitle_other": "Highlight all {{count}} scenes in timeline",
-      "meta": "Bulk Selection",
-      "description": "Selects every scene for batch export, merging, or scenepack grouping."
+      "title": "",
+      "subtitle_one": "",
+      "subtitle_other": "",
+      "meta": "",
+      "description": ""
     },
     "clearSelection": {
-      "title": "Clear Clip Selection",
-      "subtitle_one": "Deselect currently selected {{count}} scene",
-      "subtitle_other": "Deselect currently selected {{count}} scenes",
-      "meta": "Deselect All",
-      "description": "Clears selection state across the grid."
+      "title": "",
+      "subtitle_one": "",
+      "subtitle_other": "",
+      "meta": "",
+      "description": ""
     },
     "pin": {
-      "unpinTitle": "Unpin Window (Normal Mode)",
-      "pinTitle": "Pin Window (Always on Top)",
-      "subtitle": "Toggle floating companion window for After Effects / Premiere",
-      "meta": "Always on Top Mode",
-      "description": "Shrinks and pins AMVerge floating above your editing application."
+      "unpinTitle": "",
+      "pinTitle": "",
+      "subtitle": "",
+      "meta": "",
+      "description": ""
     },
     "sidebar": {
-      "hideTitle": "Hide Sidebar",
-      "showTitle": "Show Sidebar",
-      "subtitle": "Toggle left navigation and episode tree panel",
-      "meta": "Sidebar Visibility",
-      "description": "Expands or collapses the left episode panel to save screen space."
+      "hideTitle": "",
+      "showTitle": "",
+      "subtitle": "",
+      "meta": "",
+      "description": ""
     },
     "preview": {
-      "showTitle": "Show Video Preview Panel",
-      "hideTitle": "Hide Video Preview Panel",
-      "subtitle": "Toggle the right preview player to expand clip grid full-width",
-      "meta": "Preview Pane Toggle",
-      "description": "Hides or restores the right video playback and export controls pane."
+      "showTitle": "",
+      "hideTitle": "",
+      "subtitle": "",
+      "meta": "",
+      "description": ""
     },
-    "columns_one": "Currently {{count}} column per row",
-    "columns_other": "Currently {{count}} columns per row",
+    "columns_one": "",
+    "columns_other": "",
     "zoomIn": {
-      "title": "Grid: Zoom In (Larger Tiles)",
-      "meta": "Bigger Clip Tiles",
-      "description": "Decreases columns to give each clip thumbnail more screen real estate."
+      "title": "",
+      "meta": "",
+      "description": ""
     },
     "zoomOut": {
-      "title": "Grid: Zoom Out (More Columns)",
-      "meta": "Smaller Clip Tiles",
-      "description": "Increases columns to view more scene clips at a glance."
+      "title": "",
+      "meta": "",
+      "description": ""
     },
     "audio": {
-      "muteTitle": "Mute Audio on Hover",
-      "enableTitle": "Enable Audio on Hover",
-      "subtitle": "Toggle clip hover sound in the scene grid",
-      "meta": "Hover Audio Playback",
-      "description": "Controls whether hovering over a clip tile plays its synchronized audio track."
+      "muteTitle": "",
+      "enableTitle": "",
+      "subtitle": "",
+      "meta": "",
+      "description": ""
     },
     "settingsGeneral": {
-      "title": "Settings: General",
-      "subtitle": "Scene detection methods, episodes storage path, and app defaults",
-      "meta": "General Preferences",
-      "defaultPath": "Default Cache Directory",
-      "description": "Configure detection algorithms, cache locations, and video decode pipelines."
+      "title": "",
+      "subtitle": "",
+      "meta": "",
+      "defaultPath": "",
+      "description": ""
     },
     "settingsExport": {
-      "title": "Settings: Export Profiles",
-      "subtitle": "GPU acceleration encoders (NVENC / AMF / QSV) and video codecs",
-      "meta": "Export Configuration",
-      "defaultPath": "Default Export Folder",
-      "description": "Manage export encoders, bitrates, hardware profiles, and container formats."
+      "title": "",
+      "subtitle": "",
+      "meta": "",
+      "defaultPath": "",
+      "description": ""
     },
     "settingsAppearance": {
-      "title": "Settings: Appearance",
-      "subtitle": "Custom colors, wallpaper background blur, and clip styling",
-      "meta": "Visual Styling",
-      "accent": "Accent: {{color}}",
-      "description": "Personalize app colors, background images, opacity, and typography."
+      "title": "",
+      "subtitle": "",
+      "meta": "",
+      "accent": "",
+      "description": ""
     },
     "settingsFeatures": {
-      "title": "Settings: Features",
-      "subtitle": "Turn AI Scene Detection, Scene Scout, Scenepacks and export passes on or off",
-      "meta": "Features & storage",
-      "description": "Switch major features on or off, download what they need, and see how much disk space they use."
+      "title": "",
+      "subtitle": "",
+      "meta": "",
+      "description": ""
     },
     "settingsDiscord": {
-      "title": "Settings: Discord Rich Presence",
-      "subtitle": "Configure Discord status badges, filenames, and rich details",
-      "meta": "Discord RPC Integration",
-      "description": "Show your editing status and active clips count on Discord."
+      "title": "",
+      "subtitle": "",
+      "meta": "",
+      "description": ""
     },
     "library": {
-      "title": "Library",
-      "subtitle": "Your imported episodes and their clips",
-      "description": "Back to the episode grid."
+      "title": "",
+      "subtitle": "",
+      "description": ""
     },
     "scenepacks": {
-      "title": "Scenepacks",
-      "subtitle": "Themed collections of clips",
-      "description": "Browse and export the clips you grouped into Scenepacks."
+      "title": "",
+      "subtitle": "",
+      "description": ""
     },
     "sceneScout": {
-      "title": "Scene Scout",
-      "subtitle": "Search your episodes by describing a scene",
-      "description": "Search indexed episodes by text, or find clips that match each other."
+      "title": "",
+      "subtitle": "",
+      "description": ""
     },
     "events": {
-      "title": "Community Events",
-      "subtitle": "Browse contests, collabs, and jams, or host your own",
-      "description": "Events hosted by the AMVerge community, reviewed before they appear."
+      "title": "",
+      "subtitle": "",
+      "description": ""
     },
     "console": {
-      "title": "Developer Console Logs",
-      "subtitle": "Live CLI IPC events, backend streams, and diagnostic logs",
-      "meta": "Diagnostic Console",
-      "description": "Inspect live stderr/stdout telemetry from FFmpeg, PyAV, and AI sidecars."
+      "title": "",
+      "subtitle": "",
+      "meta": "",
+      "description": ""
     },
     "patchNotes": {
-      "title": "Update Logs & Patch Notes",
-      "subtitle": "Read release history and new features in AMVerge v2",
-      "meta": "Version Release Logs",
-      "description": "Browse changelogs, bug fixes, and feature additions."
+      "title": "",
+      "subtitle": "",
+      "meta": "",
+      "description": ""
     },
     "about": {
-      "title": "About AMVerge",
-      "subtitle": "Architecture, system info, and open-source licenses",
-      "meta": "About AMVerge Desktop",
-      "description": "High-performance anime & video scene cutter by Crptk & team."
+      "title": "",
+      "subtitle": "",
+      "meta": "",
+      "description": ""
     },
     "bugReport": {
-      "title": "Report a Bug / Issue",
-      "subtitle": "Submit feedback with diagnostic telemetry or connect to Discord",
-      "meta": "Feedback & Bug Reports",
-      "description": "Submit reproducible bugs directly to the development team."
+      "title": "",
+      "subtitle": "",
+      "meta": "",
+      "description": ""
     }
   },
   "colorPicker": {
-    "choose": "Choose color",
-    "presets": "Presets"
+    "choose": "",
+    "presets": ""
   },
   "crop": {
-    "title": "Crop & Transform",
-    "hint": "Drag corners to resize freely",
-    "resetTooltip": "Reset all changes",
-    "imageAlt": "Crop me",
-    "aspectRatio": "Aspect Ratio",
-    "free": "Free",
-    "widthShort": "W",
-    "heightShort": "H",
-    "width": "Width",
-    "height": "Height",
-    "rotateFlip": "Rotate & Flip",
-    "rotateLeft": "Rotate left",
-    "rotateRight": "Rotate right",
-    "flipHorizontal": "Flip horizontal",
-    "flipVertical": "Flip vertical",
-    "zoom": "Zoom ({{percent}}%)",
-    "saveApply": "Save & Apply"
+    "title": "",
+    "hint": "",
+    "resetTooltip": "",
+    "imageAlt": "",
+    "aspectRatio": "",
+    "free": "",
+    "widthShort": "",
+    "heightShort": "",
+    "width": "",
+    "height": "",
+    "rotateFlip": "",
+    "rotateLeft": "",
+    "rotateRight": "",
+    "flipHorizontal": "",
+    "flipVertical": "",
+    "zoom": "",
+    "saveApply": ""
   },
   "infoButton": {
-    "about": "About {{title}}"
+    "about": ""
   },
   "modal": {
-    "closeLabel": "Close {{label}}"
+    "closeLabel": ""
   },
   "previewAll": {
-    "start": "Preview all clips",
-    "stop": "Stop previewing all clips"
+    "start": "",
+    "stop": ""
   }
 }
