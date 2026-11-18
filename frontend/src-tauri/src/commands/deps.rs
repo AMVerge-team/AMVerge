@@ -436,6 +436,7 @@ pub async fn move_ai_storage_to_new_dir(
         }
         emit_move_progress(Some(&app_for_task), 100.0, false, "AI storage move complete.");
         tracker.log("AI storage move complete.");
+        let _ = crate::commands::extension_sync::write_app_paths_file(&app_for_task, None);
         Ok(())
     })
     .await
