@@ -334,7 +334,7 @@
     "closeLabel": "Close {{label}}"
   },
   "previewAll": {
-    "start": "Preview all clips",
-    "stop": "Stop previewing all clips"
+    "start": "Preview clips on screen",
+    "stop": "Stop automatic previews"
   }
 }

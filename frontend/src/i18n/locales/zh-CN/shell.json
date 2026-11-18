@@ -334,7 +334,7 @@
     "closeLabel": "关闭{{label}}"
   },
   "previewAll": {
-    "start": "预览全部片段",
-    "stop": "停止预览全部片段"
+    "start": "预览屏幕内的片段",
+    "stop": "停止自动预览"
   }
 }
