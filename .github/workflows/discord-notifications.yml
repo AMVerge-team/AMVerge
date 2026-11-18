@@ -1,0 +1,30 @@
+name: Discord Notifications
+
+on:
+  push:
+    branches-ignore:
+      - "l10n_*"
+  pull_request:
+    types: [opened, closed, reopened]
+  release:
+    types: [published]
+  issues:
+    types: [opened, closed, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Send Discord notification
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: |
+          python3 .github/discord/notify.py
