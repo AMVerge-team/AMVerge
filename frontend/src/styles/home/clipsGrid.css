@@ -382,17 +382,24 @@
     }
 }
 
-.clip-original-timestamp {
+.clip-timing-overlay {
+    position: absolute;
+    right: var(--clip-overlay-inset);
+    bottom: var(--clip-overlay-inset);
+    left: var(--clip-overlay-inset);
+    z-index: 12;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    direction: ltr;
+    pointer-events: none;
+}
+
+.clip-timing-badge {
     box-sizing: border-box;
-    width: max-content;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    position: absolute;
-    bottom: var(--clip-overlay-inset);
-    left: 50%;
-    transform: translateX(-50%);
-    max-width: calc(100% - 2 * var(--clip-overlay-inset));
-    z-index: 12;
     background: rgba(0, 0, 0, 0.4);
     color: rgba(255, 255, 255, 0.85);
     font-size: 11px;
@@ -400,39 +407,52 @@
     padding: 2px 4px;
     border-radius: 4px;
     font-weight: 500;
-    pointer-events: none;
     letter-spacing: normal;
     text-align: center;
     line-height: 16px;
     white-space: nowrap;
 }
 
-.clip-original-timestamp.is-timeframe {
-    letter-spacing: normal;
+.clip-original-timestamp {
+    margin-left: auto;
 }
 
-/* Preserve a complete start time when a narrow grid tile cannot fit the range. */
-@container (max-width: 110px) {
-    .clip-timestamp-end {
+/* Keep the end time together and hide the second line when the range doesn't fit. */
+.clip-timestamp-line {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-height: 1lh;
+    overflow: hidden;
+}
+
+.clip-timestamp-start {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.clip-timestamp-end {
+    flex: none;
+    white-space: pre;
+}
+
+.clip-duration-badge:not(:only-child) {
+    flex: none;
+    max-width: 42%;
+}
+
+/* Make room for the start time if both labels are enabled on a narrow tile. */
+@container (width < 96px) {
+    .clip-duration-badge:not(:only-child) {
         display: none;
     }
 }
 
-.clip-duration-badge {
-    position: absolute;
-    bottom: var(--clip-overlay-inset);
-    left: var(--clip-overlay-inset);
-    z-index: 12;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    font-size: 11px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    padding: 2px 5px;
-    border-radius: 4px;
-    font-weight: 500;
-    pointer-events: none;
-    letter-spacing: 0.2px;
-    white-space: nowrap;
+/* Leave tiny tiles clear when there's too little room for a readable time label. */
+@container (width < 72px) {
+    .clip-timing-overlay {
+        display: none;
+    }
 }
 
 
