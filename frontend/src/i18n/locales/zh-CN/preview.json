@@ -13,7 +13,7 @@
     "fullscreen": "全屏"
   },
   "export": {
-    "title": "导出设置",
+    "title": "",
     "untitledProfile": "未命名预设",
     "editSettings": "编辑导出设置",
     "destinationPlaceholder": "选择导出位置…",
@@ -25,10 +25,10 @@
     "davinciOff": "将导出的片段发送到 DaVinci Resolve 时间线（仅限 Studio 版）",
     "davinciAria": "将导出的片段发送到 DaVinci Resolve",
     "previewLanguageAria": "预览语言选择",
-    "previewLanguage": "预览语言",
-    "postPasses": "导出后处理",
-    "postPassesToggle": "启用导出后处理",
-    "configurePostPasses": "在导出设置中配置后处理。关闭总开关会保留原有配置。",
+    "previewLanguage": "",
+    "postPasses": "",
+    "postPassesToggle": "",
+    "configurePostPasses": "",
     "previewLanguageLine1": "预览",
     "previewLanguageLine2": "语言",
     "selectAtLeastOne": "请至少选择一个片段再导出",
@@ -43,10 +43,10 @@
   },
   "howToUse": {
     "titles": {
-      "library": "使用说明",
-      "scenepacks": "片段集使用说明",
-      "sceneScoutSearch": "场景搜索使用说明",
-      "sceneScoutFlow": "匹配功能使用说明"
+      "library": "",
+      "scenepacks": "",
+      "sceneScoutSearch": "",
+      "sceneScoutFlow": ""
     },
     "hide": "隐藏说明",
     "show": "显示说明",
