@@ -349,6 +349,40 @@ function App() {
     void invoke("write_app_theme", { themeJson: JSON.stringify(themeSettings) }).catch(() => {});
   }, [themeSettings]);
 
+  // Synchronize the currently opened episode with the AE extension sync pointer
+  const episodesPath = useGeneralSettingsStore((s) => s.episodesPath);
+  const openedEpisodeId = useEpisodePanelRuntimeStore((s) => s.openedEpisodeId);
+  const openedEpisode = useEpisodePanelRuntimeStore((s) =>
+    s.episodes.find((e) => e.id === s.openedEpisodeId)
+  );
+  const openedEpisodeClipsLen = openedEpisode?.clips.length ?? 0;
+
+  useEffect(() => {
+    if (!openedEpisodeId || !openedEpisode) {
+      void invoke("clear_active_episode_sync").catch(() => {});
+      return;
+    }
+
+    const payload = {
+      episode_id: openedEpisode.id,
+      video_path: openedEpisode.videoPath || "",
+      manifest_path: "",
+      scene_count: openedEpisodeClipsLen,
+      method: openedEpisode.importMethod || "video_files",
+      updated_at: Math.floor(Date.now() / 1000),
+      custom_path: episodesPath ?? null,
+    };
+
+    void invoke("write_active_episode_sync", { payload }).catch(() => {});
+  }, [
+    openedEpisodeId,
+    openedEpisode?.id,
+    openedEpisode?.videoPath,
+    openedEpisodeClipsLen,
+    openedEpisode?.importMethod,
+    episodesPath,
+  ]);
+
   // keeps the AI env's cli on the newest compatible patch; delayed so it never competes with startup
   useEffect(() => {
     if (!import.meta.env.PROD) return;
