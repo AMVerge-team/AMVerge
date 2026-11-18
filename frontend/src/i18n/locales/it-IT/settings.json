@@ -176,6 +176,10 @@
       "gradient": {
         "label": "",
         "description": ""
+      },
+      "episodePanel": {
+        "label": "",
+        "description": ""
       }
     },
     "background": {
