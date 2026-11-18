@@ -4,8 +4,12 @@ import sys
 import urllib.parse
 import urllib.request
 
-# AMVerge Desktop theme color
-THEME_COLOR = 0x22C55E
+# Semantic action colors
+COLOR_GREEN = 0x22C55E   # Push, Open PR
+COLOR_PURPLE = 0xA855F7  # Merged PR, Reopened
+COLOR_BLUE = 0x3B82F6    # Open Issue
+COLOR_GOLD = 0xEAB308    # Release
+COLOR_RED = 0xEF4444     # Closed PR / Issue
 
 
 def send_discord_payload(payload):
@@ -42,6 +46,19 @@ def make_buttons(buttons):
     for label, link in buttons:
         items.append({"type": 2, "style": 5, "label": label, "url": link})
     return [{"type": 1, "components": items}] if items else []
+
+
+def clean_body_quote(body_text, max_len=300):
+    if not body_text:
+        return ""
+    lines = [line.strip() for line in body_text.strip().splitlines() if line.strip()]
+    if not lines:
+        return ""
+    joined = " ".join(lines)
+    if len(joined) > max_len:
+        joined = joined[: max_len - 3].rstrip() + "..."
+    # Format as a discord quote block
+    return "> " + joined.replace("\n", "\n> ")
 
 
 def handle_push(event):
@@ -88,7 +105,7 @@ def handle_push(event):
                 "title": repo_name,
                 "url": repo_url,
                 "description": desc[:4096],
-                "color": THEME_COLOR,
+                "color": COLOR_GREEN,
                 "footer": {"text": f"{repo_full} • {branch}", "icon_url": "https://github.com/AMVerge-team.png"},
             }
         ],
@@ -111,7 +128,6 @@ def handle_pull_request(event):
     head_branch = pr.get("head", {}).get("ref", "")
     base_branch = pr.get("base", {}).get("ref", "")
 
-    # Skip Crowdin background PR noise if desired, or keep it styled
     sender = event.get("sender") or {}
     sender_name = sender.get("login", "github")
     sender_avatar = sender.get("avatar_url") or "https://github.com/AMVerge-team.png"
@@ -120,21 +136,34 @@ def handle_pull_request(event):
     merged = pr.get("merged", False)
     if action == "closed" and merged:
         action_verb = "merged pull request"
+        status_label = "Merged"
+        color = COLOR_PURPLE
     elif action == "closed":
         action_verb = "closed pull request"
+        status_label = "Closed"
+        color = COLOR_RED
     else:
         action_verb = f"{action} pull request"
+        status_label = "Open"
+        color = COLOR_GREEN
 
-    body_preview = (pr.get("body") or "").strip().splitlines()
-    preview_line = body_preview[0] if body_preview else ""
-    if len(preview_line) > 120:
-        preview_line = preview_line[:117] + "..."
+    # Gather stats
+    changed_files = pr.get("changed_files", 0)
+    additions = pr.get("additions", 0)
+    deletions = pr.get("deletions", 0)
+    stat_str = f"`{changed_files} files changed` (+{additions} / -{deletions})"
 
-    desc = (
-        f"**[#{pr_num} {pr_title}]({pr_url})**\n\n"
-        f"`{base_branch}` ← `{head_branch}`\n"
-        + (f"\n> {preview_line}" if preview_line else "")
-    )
+    quote = clean_body_quote(pr.get("body"), max_len=320)
+
+    desc_parts = [
+        f"**[#{pr_num} {pr_title}]({pr_url})**\n",
+        f"🔀 `{base_branch}` ← `{head_branch}`",
+    ]
+    if quote:
+        desc_parts.append(quote)
+    desc_parts.append(f"📊 **Changes:** {stat_str}  •  📌 **Status:** `{status_label}`")
+
+    desc = "\n\n".join(desc_parts)
 
     return {
         "username": "AMVerge Desktop",
@@ -145,7 +174,7 @@ def handle_pull_request(event):
                 "title": repo_name,
                 "url": repo_url,
                 "description": desc[:4096],
-                "color": THEME_COLOR,
+                "color": color,
                 "footer": {"text": f"{repo_full} • PR #{pr_num}", "icon_url": "https://github.com/AMVerge-team.png"},
             }
         ],
@@ -171,7 +200,14 @@ def handle_release(event):
     sender_avatar = sender.get("avatar_url") or "https://github.com/AMVerge-team.png"
     sender_url = sender.get("html_url") or repo_url
 
-    desc = f"🚀 **[{rel_name}]({rel_url})** is now live!\n\nRelease tag: `{tag_name}`"
+    quote = clean_body_quote(rel.get("body"), max_len=300)
+    desc_parts = [
+        f"🚀 **[{rel_name}]({rel_url})** is now available!\n\n🏷️ **Tag:** `{tag_name}`"
+    ]
+    if quote:
+        desc_parts.append(quote)
+
+    desc = "\n\n".join(desc_parts)
 
     return {
         "username": "AMVerge Desktop",
@@ -182,7 +218,7 @@ def handle_release(event):
                 "title": repo_name,
                 "url": repo_url,
                 "description": desc[:4096],
-                "color": THEME_COLOR,
+                "color": COLOR_GOLD,
                 "footer": {"text": f"{repo_full} • Release {tag_name}", "icon_url": "https://github.com/AMVerge-team.png"},
             }
         ],
@@ -208,7 +244,31 @@ def handle_issues(event):
     sender_avatar = sender.get("avatar_url") or "https://github.com/AMVerge-team.png"
     sender_url = sender.get("html_url") or repo_url
 
-    desc = f"**[#{issue_num} {issue_title}]({issue_url})**\n\nStatus: **{action.capitalize()}**"
+    # Action-based color
+    if action == "opened":
+        color = COLOR_BLUE
+        status_label = "Opened"
+    elif action == "reopened":
+        color = COLOR_PURPLE
+        status_label = "Reopened"
+    else:
+        color = COLOR_RED
+        status_label = "Closed"
+
+    # Labels
+    raw_labels = issue.get("labels") or []
+    label_tags = " ".join([f"`{l.get('name')}`" for l in raw_labels[:4]]) if raw_labels else "None"
+
+    quote = clean_body_quote(issue.get("body"), max_len=300)
+
+    desc_parts = [
+        f"**[#{issue_num} {issue_title}]({issue_url})**"
+    ]
+    if quote:
+        desc_parts.append(quote)
+    desc_parts.append(f"🏷️ **Labels:** {label_tags}  •  📌 **Status:** `{status_label}`")
+
+    desc = "\n\n".join(desc_parts)
 
     return {
         "username": "AMVerge Desktop",
@@ -219,7 +279,7 @@ def handle_issues(event):
                 "title": repo_name,
                 "url": repo_url,
                 "description": desc[:4096],
-                "color": THEME_COLOR,
+                "color": color,
                 "footer": {"text": f"{repo_full} • Issue #{issue_num}", "icon_url": "https://github.com/AMVerge-team.png"},
             }
         ],
