@@ -48,17 +48,13 @@ def make_buttons(buttons):
     return [{"type": 1, "components": items}] if items else []
 
 
-def clean_body_quote(body_text, max_len=300):
+def clean_codeblock(body_text, max_len=300):
     if not body_text:
         return ""
-    lines = [line.strip() for line in body_text.strip().splitlines() if line.strip()]
-    if not lines:
-        return ""
-    joined = " ".join(lines)
-    if len(joined) > max_len:
-        joined = joined[: max_len - 3].rstrip() + "..."
-    # Format as a discord quote block
-    return "> " + joined.replace("\n", "\n> ")
+    cleaned = body_text.strip().replace("```", "'''")
+    if len(cleaned) > max_len:
+        cleaned = cleaned[: max_len - 3].rstrip() + "..."
+    return f"```\n{cleaned}\n```"
 
 
 def handle_push(event):
@@ -94,7 +90,11 @@ def handle_push(event):
     if count > 8:
         lines.append(f"*...and {count - 8} more commit(s) on GitHub*")
 
-    desc = f"**[{count} new {commit_word}]({compare_url})** to [`{branch}`]({repo_url}/tree/{branch})\n\n" + "\n".join(lines)
+    desc = (
+        f"# [{repo_name}]({repo_url})\n\n"
+        f"**[{count} new {commit_word}]({compare_url})** to [`{branch}`]({repo_url}/tree/{branch})\n\n"
+        + "\n".join(lines)
+    )
 
     return {
         "username": "AMVerge Desktop",
@@ -102,8 +102,6 @@ def handle_push(event):
         "embeds": [
             {
                 "author": {"name": f"{sender_name} pushed to {repo_full}", "url": sender_url, "icon_url": sender_avatar},
-                "title": repo_name,
-                "url": repo_url,
                 "description": desc[:4096],
                 "color": COLOR_GREEN,
                 "footer": {"text": f"{repo_full} • {branch}", "icon_url": "https://github.com/AMVerge-team.png"},
@@ -153,15 +151,17 @@ def handle_pull_request(event):
     deletions = pr.get("deletions", 0)
     stat_str = f"`{changed_files} files changed` (+{additions} / -{deletions})"
 
-    quote = clean_body_quote(pr.get("body"), max_len=320)
+    body_codeblock = clean_codeblock(pr.get("body"), max_len=320)
 
     desc_parts = [
-        f"**[#{pr_num} {pr_title}]({pr_url})**\n",
+        f"# [{repo_name}]({repo_url})\n",
+        f"### [#{pr_num} {pr_title}]({pr_url})",
         f"🔀 `{base_branch}` ← `{head_branch}`",
     ]
-    if quote:
-        desc_parts.append(quote)
-    desc_parts.append(f"📊 **Changes:** {stat_str}  •  📌 **Status:** `{status_label}`")
+    if body_codeblock:
+        desc_parts.append(body_codeblock)
+
+    desc_parts.append(f"📊 **Changes:** {stat_str}\n📌 **Status:** `{status_label}`")
 
     desc = "\n\n".join(desc_parts)
 
@@ -171,8 +171,6 @@ def handle_pull_request(event):
         "embeds": [
             {
                 "author": {"name": f"{sender_name} {action_verb} in {repo_full}", "url": sender_url, "icon_url": sender_avatar},
-                "title": repo_name,
-                "url": repo_url,
                 "description": desc[:4096],
                 "color": color,
                 "footer": {"text": f"{repo_full} • PR #{pr_num}", "icon_url": "https://github.com/AMVerge-team.png"},
@@ -200,12 +198,13 @@ def handle_release(event):
     sender_avatar = sender.get("avatar_url") or "https://github.com/AMVerge-team.png"
     sender_url = sender.get("html_url") or repo_url
 
-    quote = clean_body_quote(rel.get("body"), max_len=300)
+    body_codeblock = clean_codeblock(rel.get("body"), max_len=300)
     desc_parts = [
-        f"🚀 **[{rel_name}]({rel_url})** is now available!\n\n🏷️ **Tag:** `{tag_name}`"
+        f"# [{repo_name}]({repo_url})\n",
+        f"🚀 **[{rel_name}]({rel_url})** is now live!\n🏷️ **Tag:** `{tag_name}`",
     ]
-    if quote:
-        desc_parts.append(quote)
+    if body_codeblock:
+        desc_parts.append(body_codeblock)
 
     desc = "\n\n".join(desc_parts)
 
@@ -215,8 +214,6 @@ def handle_release(event):
         "embeds": [
             {
                 "author": {"name": f"{sender_name} published a release in {repo_full}", "url": sender_url, "icon_url": sender_avatar},
-                "title": repo_name,
-                "url": repo_url,
                 "description": desc[:4096],
                 "color": COLOR_GOLD,
                 "footer": {"text": f"{repo_full} • Release {tag_name}", "icon_url": "https://github.com/AMVerge-team.png"},
@@ -244,7 +241,6 @@ def handle_issues(event):
     sender_avatar = sender.get("avatar_url") or "https://github.com/AMVerge-team.png"
     sender_url = sender.get("html_url") or repo_url
 
-    # Action-based color
     if action == "opened":
         color = COLOR_BLUE
         status_label = "Opened"
@@ -255,18 +251,19 @@ def handle_issues(event):
         color = COLOR_RED
         status_label = "Closed"
 
-    # Labels
     raw_labels = issue.get("labels") or []
     label_tags = " ".join([f"`{l.get('name')}`" for l in raw_labels[:4]]) if raw_labels else "None"
 
-    quote = clean_body_quote(issue.get("body"), max_len=300)
+    body_codeblock = clean_codeblock(issue.get("body"), max_len=300)
 
     desc_parts = [
-        f"**[#{issue_num} {issue_title}]({issue_url})**"
+        f"# [{repo_name}]({repo_url})\n",
+        f"### [#{issue_num} {issue_title}]({issue_url})",
     ]
-    if quote:
-        desc_parts.append(quote)
-    desc_parts.append(f"🏷️ **Labels:** {label_tags}  •  📌 **Status:** `{status_label}`")
+    if body_codeblock:
+        desc_parts.append(body_codeblock)
+
+    desc_parts.append(f"🏷️ **Labels:** {label_tags}\n📌 **Status:** `{status_label}`")
 
     desc = "\n\n".join(desc_parts)
 
@@ -276,8 +273,6 @@ def handle_issues(event):
         "embeds": [
             {
                 "author": {"name": f"{sender_name} {action} issue in {repo_full}", "url": sender_url, "icon_url": sender_avatar},
-                "title": repo_name,
-                "url": repo_url,
                 "description": desc[:4096],
                 "color": color,
                 "footer": {"text": f"{repo_full} • Issue #{issue_num}", "icon_url": "https://github.com/AMVerge-team.png"},
