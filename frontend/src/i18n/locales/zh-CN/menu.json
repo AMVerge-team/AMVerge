@@ -25,14 +25,14 @@
       "cmdScroll": "Cmd + 滚轮",
       "ctrlScroll": "Ctrl + 滚轮",
       "scrollDesc": "调整网格列数",
-      "esc": "Esc",
+      "esc": "",
       "escDesc": "打开快速导航，或关闭当前打开的内容"
     },
     "community": {
       "title": "社区与支持",
       "text": "加入我们的社区，反馈问题、获取更新、提出功能建议，并分享你的作品：",
       "discord": "Discord 社区",
-      "github": "GitHub",
+      "github": "",
       "authorNote": "由 <strong>Crptk</strong> 创建，现由 AMVerge 团队维护。"
     }
   },
@@ -41,7 +41,7 @@
     "subtitle": "遇到错误或异常行为？直接将详情提交给 AMVerge 团队。",
     "altText": "想直接反馈？你也可以在 GitHub 上提交 issue，或在我们的 Discord 服务器中联系我们：",
     "discordCommunity": "Discord 社区",
-    "githubIssues": "GitHub Issues",
+    "githubIssues": "",
     "types": {
       "video": "视频相关问题",
       "videoDesc": "导入、播放、GOP 切割、音画不同步或导出异常",
