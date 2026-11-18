@@ -1,285 +1,281 @@
 {
   "title": "Export",
   "profile": {
-    "section": "Profile",
+    "section": "Profil",
     "active": {
-      "label": "Active Profile",
-      "description": "Export Now uses this profile."
+      "label": "Profil actif",
+      "description": "Le bouton Exporter utilise ce profil."
     },
     "name": {
-      "label": "Profile Name",
-      "description": "The name shown in the profile selector."
+      "label": "Nom du profil",
+      "description": "Le nom affiché dans le sélecteur de profil."
     },
     "icon": {
-      "label": "Profile Icon",
-      "description": "The icon shown in the profile selector."
+      "label": "Icône du profil",
+      "description": "L'icône affichée dans le sélecteur de profil."
     },
-    "untitled": "Untitled Profile",
-    "newName": "Export Profile {{index}}",
-    "new": "New Profile",
-    "delete": "Delete Profile"
+    "untitled": "Profil sans nom",
+    "newName": "Profil d'export {{index}}",
+    "new": "Nouveau profil",
+    "delete": "Supprimer le profil"
   },
   "workflow": {
-    "section": "Workflow & Encoding",
-    "label": "Workflow",
-    "description": "Re-encode at exact scene boundaries, or stream-copy with boundaries snapped to keyframes.",
+    "section": "Méthode et encodage",
+    "label": "Méthode",
+    "description": "Réencoder aux bornes exactes des scènes, ou copier le flux avec des bornes calées sur les images clés.",
     "options": {
-      "video_encode": "Export video (re-encode exact cuts)",
-      "video_remux": "Fast remux (stream copy)"
+      "video_encode": "Exporter la vidéo (réencodage aux coupes exactes)",
+      "video_remux": "Remux rapide (copie du flux)"
     }
   },
   "openLocation": {
-    "label": "Open file location after export",
-    "description": "Open the folder and highlight the file when an export finishes.",
-    "toggle": "Toggle opening exported file location"
+    "label": "Ouvrir le dossier après l'export",
+    "description": "Ouvre le dossier et met le fichier en évidence quand un export se termine.",
+    "toggle": "Activer ou désactiver l'ouverture du dossier d'export"
   },
   "container": {
-    "label": "Container",
-    "description": "The file format: MP4 or MOV.",
-    "auto": "Auto container"
+    "label": "Conteneur",
+    "description": "Le format de fichier : MP4 ou MOV.",
+    "auto": "Conteneur automatique"
   },
   "codec": {
     "label": "Codec",
-    "description": "The video codec used when exporting.",
+    "description": "Le codec vidéo utilisé à l'export.",
     "profile": {
-      "label": "Codec Profile",
-      "description": "Quality and compression level for that codec."
+      "label": "Profil du codec",
+      "description": "Niveau de qualité et de compression de ce codec."
     },
-    "unknown": "Unknown codec",
-    "streamCopy": "Stream copy"
+    "unknown": "Codec inconnu",
+    "streamCopy": "Copie du flux"
   },
   "audio": {
-    "label": "Audio Codec",
-    "description": "Re-encode the audio, copy it as it is, or drop it.",
+    "label": "Codec audio",
+    "description": "Réencoder le son, le copier tel quel, ou l'enlever.",
     "options": {
-      "copy": "Copy audio when compatible (auto-select fallback)",
-      "aac": "AAC 192 kbps",
-      "aac_320": "AAC 320 kbps",
-      "pcm16": "PCM 16-bit",
-      "pcm24": "PCM 24-bit",
-      "mp3": "MP3 320 kbps",
-      "none": "No audio"
+      "copy": "Copier le son quand c'est compatible (repli automatique)",
+      "aac": "AAC 192 kb/s",
+      "aac_320": "AAC 320 kb/s",
+      "pcm16": "PCM 16 bits",
+      "pcm24": "PCM 24 bits",
+      "mp3": "MP3 320 kb/s",
+      "none": "Pas de son"
     },
     "labels": {
-      "copy": "Audio copy",
+      "copy": "Copie du son",
       "aac": "AAC",
       "aac_320": "AAC 320k",
-      "pcm16": "PCM 16-bit",
-      "pcm24": "PCM 24-bit",
+      "pcm16": "PCM 16 bits",
+      "pcm24": "PCM 24 bits",
       "flac": "FLAC",
       "alac": "ALAC",
       "opus": "Opus",
       "mp3": "MP3",
-      "none": "No audio"
+      "none": "Pas de son"
     }
   },
   "hardware": {
     "options": {
-      "auto": "Auto GPU / CPU"
+      "auto": "Carte graphique / processeur automatique"
     },
     "encoder": {
-      "label": "Video Encoder",
-      "cpuOnly": "This codec can only be encoded on the CPU.",
-      "detecting": "Detecting hardware encoders...",
-      "usingGpu": "Using your {{backend}} GPU. Auto falls back to the CPU if it fails.",
-      "usingGpuWithEncoder": "Using your {{backend}} GPU ({{encoder}}). Auto falls back to the CPU if it fails.",
-      "gpuUnsupported": "Your GPU can't encode this codec, so Auto uses the CPU.",
-      "noGpu": "No GPU encoder found, so Auto uses the CPU.",
-      "nvidiaMatrix": "NVIDIA matrix"
+      "label": "Encodeur vidéo",
+      "cpuOnly": "Ce codec ne peut être encodé que sur le processeur.",
+      "detecting": "Recherche des encodeurs matériels…",
+      "usingGpu": "Utilise votre carte {{backend}}. En automatique, le processeur prend le relais en cas d'échec.",
+      "usingGpuWithEncoder": "Utilise votre carte {{backend}} ({{encoder}}). En automatique, le processeur prend le relais en cas d'échec.",
+      "gpuUnsupported": "Votre carte graphique ne peut pas encoder ce codec, l'automatique passe donc par le processeur.",
+      "noGpu": "Aucun encodeur matériel trouvé, l'automatique passe donc par le processeur.",
+      "nvidiaMatrix": "Tableau NVIDIA"
     },
     "parallel": {
-      "label": "Parallel Encodes",
-      "locked": "Only available on GPUs that can run more than one encode at a time.",
-      "description_one": "How many exports run at the same time. This codec supports up to {{count}}.",
-      "description_other": "How many exports run at the same time. This codec supports up to {{count}}."
+      "label": "Encodages en parallèle",
+      "locked": "Disponible seulement sur les cartes qui savent encoder plusieurs flux à la fois.",
+      "description_one": "Nombre d'exports lancés en même temps. Ce codec en accepte jusqu'à {{count}}.",
+      "description_other": "Nombre d'exports lancés en même temps. Ce codec en accepte jusqu'à {{count}}."
     },
-    "parallelMax_one": "Maximum ({{count}} Export)",
-    "parallelMax_other": "Maximum ({{count}} Exports)",
-    "parallelCount_one": "{{count}} Export",
-    "parallelCount_other": "{{count}} Exports"
+    "parallelMax_one": "Maximum ({{count}} export)",
+    "parallelMax_other": "Maximum ({{count}} exports)",
+    "parallelCount_one": "{{count}} export",
+    "parallelCount_other": "{{count}} exports"
   },
   "icons": {
     "names": {
-      "video": "Video",
+      "video": "Vidéo",
       "remux": "Remux",
-      "custom": "Custom"
+      "custom": "Personnalisée"
     },
-    "profileIconAlt": "Profile icon",
-    "customAlt": "Custom profile icon",
-    "useCustom": "Use custom icon",
-    "deleteCustom": "Delete custom icon",
-    "addCustom": "Add custom icon",
-    "chooseIcon": "Choose icon",
-    "chooseProfileIcon": "Choose Profile Icon",
-    "customIcons": "Custom Icons",
-    "pin": "Pin to quick icons",
-    "unpin": "Unpin from quick icons",
+    "profileIconAlt": "Icône du profil",
+    "customAlt": "Icône de profil personnalisée",
+    "useCustom": "Utiliser une icône personnalisée",
+    "deleteCustom": "Supprimer l'icône personnalisée",
+    "addCustom": "Ajouter une icône personnalisée",
+    "chooseIcon": "Choisir une icône",
+    "chooseProfileIcon": "Choisir l'icône du profil",
+    "customIcons": "Icônes personnalisées",
+    "pin": "Épingler aux icônes rapides",
+    "unpin": "Retirer des icônes rapides",
     "imageFilter": "Image",
-    "cropTitle": "Crop Profile Icon",
-    "cropHint": "Use a square crop for best icon quality"
+    "cropTitle": "Recadrer l'icône du profil",
+    "cropHint": "Un recadrage carré donne la meilleure icône"
   },
   "passes": {
-    "section": "Post-export passes",
-    "master": {
-      "label": "Enable post-export passes",
-      "description": "Run the enabled passes below after exporting. Turn off to skip them while keeping their settings."
-    },
+    "section": "Passes après export",
     "labels": {
       "depth": "Depth map",
       "upscale": "Upscale"
     },
     "depth": {
       "label": "Depth map",
-      "description": "Also save a depth map of each export as <name>_depth.",
-      "descriptionOff": "Also save a depth map of each export as <name>_depth. Turn it on in Settings › Features.",
-      "toggle": "Toggle depth map",
+      "description": "Enregistre aussi une depth map de chaque export, sous <nom>_depth.",
+      "descriptionOff": "Enregistre aussi une depth map de chaque export, sous <nom>_depth. Activez-la dans Paramètres › Fonctionnalités.",
+      "toggle": "Activer ou désactiver la depth map",
       "model": {
-        "label": "Depth model",
-        "description": "Bigger models look better but take longer."
+        "label": "Modèle de depth",
+        "description": "Les gros modèles rendent mieux mais prennent plus de temps."
       },
       "colormap": {
-        "label": "Colormap",
-        "description": "Color palette for the depth map."
+        "label": "Palette",
+        "description": "Palette de couleurs de la depth map."
       },
       "grayscale": {
-        "label": "Grayscale",
-        "description": "Use black and white instead of a color palette.",
-        "toggle": "Toggle grayscale depth"
+        "label": "Niveaux de gris",
+        "description": "Utilise du noir et blanc au lieu d'une palette de couleurs.",
+        "toggle": "Activer ou désactiver les niveaux de gris"
       }
     },
     "upscale": {
       "label": "Upscaling",
-      "description": "Also save a higher resolution copy of each export as <name>_upscaled.",
-      "descriptionOff": "Also save a higher resolution copy of each export as <name>_upscaled. Turn it on in Settings › Features.",
-      "toggle": "Toggle upscaling",
+      "description": "Enregistre aussi une copie en plus haute résolution de chaque export, sous <nom>_upscaled.",
+      "descriptionOff": "Enregistre aussi une copie en plus haute résolution de chaque export, sous <nom>_upscaled. Activez-le dans Paramètres › Fonctionnalités.",
+      "toggle": "Activer ou désactiver l'upscaling",
       "model": {
-        "label": "Upscale model",
-        "description": "All are trained on anime. Downloads the first time you use it."
+        "label": "Modèle d'upscale",
+        "description": "Tous sont entraînés sur de l'anime. Téléchargé à la première utilisation."
       },
       "quality": {
-        "label": "File quality",
-        "description": "How the upscaled video is compressed. Outputs are always H.264."
+        "label": "Qualité du fichier",
+        "description": "Comment la vidéo upscalée est compressée. La sortie est toujours en H.264."
       }
     },
     "depthEncoders": {
-      "vits": "Depth Anything V2 - Small (fastest)",
+      "vits": "Depth Anything V2 - Small (le plus rapide)",
       "vitb": "Depth Anything V2 - Base",
-      "vitl": "Depth Anything V2 - Large (best)"
+      "vitl": "Depth Anything V2 - Large (le meilleur)"
     },
     "upscaleModels": {
-      "fallin_soft": "Fallin Soft - 2x, cleanest",
-      "adore": "Adore - 2x, high quality",
-      "fallin_strong": "Fallin Strong - 2x, sharper",
-      "shufflecugan": "ShuffleCUGAN - 2x, general purpose"
+      "fallin_soft": "Fallin Soft - 2x, le plus propre",
+      "adore": "Adore - 2x, haute qualité",
+      "fallin_strong": "Fallin Strong - 2x, plus net",
+      "shufflecugan": "ShuffleCUGAN - 2x, polyvalent"
     },
     "upscaleQualities": {
-      "archival": "Lossless",
-      "high": "High",
-      "balanced": "Balanced",
-      "fast": "Fast"
+      "archival": "Sans perte",
+      "high": "Haute",
+      "balanced": "Équilibrée",
+      "fast": "Rapide"
     }
   },
   "features": {
-    "title": "Features",
-    "list": "Features",
+    "title": "Fonctionnalités",
+    "list": "Fonctionnalités",
     "items": {
       "aiSceneDetection": {
         "label": "AI Scene Detection",
-        "description": "Finds scene cuts with AI (TransNetV2), the most accurate way to import."
+        "description": "Trouve les coupes avec une IA (TransNetV2), la façon la plus précise d'importer."
       },
       "sceneScout": {
         "label": "Scene Scout",
-        "description": "Search your episodes by describing a scene, and find clips that match each other."
+        "description": "Cherchez dans vos épisodes en décrivant une scène, et trouvez les clips qui enchaînent."
       },
       "scenepacks": {
         "label": "Scenepacks",
-        "description": "Group clips into collections."
+        "description": "Regroupez des clips en collections."
       },
       "depthPass": {
         "label": "Depth Map",
-        "description": "Creates a depth map of each exported file."
+        "description": "Crée une depth map de chaque fichier exporté."
       },
       "upscalePass": {
         "label": "Upscaling",
-        "description": "Creates a higher resolution copy of each exported file with AI."
+        "description": "Crée une copie en plus haute résolution de chaque fichier exporté, avec une IA."
       }
     },
     "hideDisabled": {
-      "label": "Hide disabled features",
-      "description": "Remove switched-off features from the app instead of greying them out."
+      "label": "Masquer les fonctionnalités désactivées",
+      "description": "Retire les fonctionnalités désactivées de l'application au lieu de les griser."
     },
     "state": {
-      "offDownloaded": "Off · downloaded",
-      "onDownload": "On · ~{{size}} download on first use",
-      "offDownload": "Off · ~{{size}} download"
+      "offDownloaded": "Désactivé · téléchargé",
+      "onDownload": "Activé · ~{{size}} à télécharger à la première utilisation",
+      "offDownload": "Désactivé · ~{{size}} à télécharger"
     },
-    "removing": "Removing…",
-    "freeUpSpace": "Free up space",
-    "lockedByImport": "Setting disabled while imports are running",
+    "removing": "Suppression…",
+    "freeUpSpace": "Libérer de la place",
+    "lockedByImport": "Paramètre désactivé pendant les imports",
     "gpu": {
-      "section": "GPU",
-      "cpuWithNvidia": "The CPU version is installed, but this PC has an NVIDIA GPU. AI features are running much slower than they could.",
-      "cpuInstalled": "The CPU version is installed. If this PC has an NVIDIA GPU, reinstalling with GPU support makes AI features much faster.",
-      "reinstall": "Reinstall with GPU support"
+      "section": "Carte graphique",
+      "cpuWithNvidia": "La version processeur est installée, alors que ce PC a une carte NVIDIA. Les fonctionnalités IA sont bien plus lentes qu'elles ne pourraient l'être.",
+      "cpuInstalled": "La version processeur est installée. Si ce PC a une carte NVIDIA, réinstaller avec la prise en charge GPU rend les fonctionnalités IA bien plus rapides.",
+      "reinstall": "Réinstaller avec la prise en charge GPU"
     },
-    "modelWeights": "Model weights",
+    "modelWeights": "Poids des modèles",
     "storage": {
-      "section": "Storage",
+      "section": "Stockage",
       "packages": {
-        "label": "AI packages",
-        "description": "PyTorch, every feature's packages, and the Python they run on."
+        "label": "Paquets IA",
+        "description": "PyTorch, les paquets de chaque fonctionnalité, et le Python qui les exécute."
       },
       "passModels": {
-        "label": "Pass model weights",
-        "description": "Depth and upscale models you downloaded under Model weights."
+        "label": "Poids des modèles de passe",
+        "description": "Les modèles depth et upscale téléchargés dans Poids des modèles."
       },
       "scoutModel": {
-        "label": "Scene Scout model",
-        "description": "SigLIP 2, kept in the shared Hugging Face cache, so other apps that use it share this copy."
+        "label": "Modèle Scene Scout",
+        "description": "SigLIP 2, gardé dans le cache Hugging Face partagé, donc les autres apps qui l'utilisent partagent cette copie."
       },
       "previewCache": {
-        "label": "Preview cache",
-        "description": "Playable previews of Scene Scout results and Match clips. Kept under 1 GB automatically, oldest first, and remade when needed.",
-        "clear": "Clear",
-        "clearing": "Clearing…"
+        "label": "Cache des aperçus",
+        "description": "Aperçus lisibles des résultats Scene Scout et des clips Match. Limité à 1 Go automatiquement, les plus anciens d'abord, et refait au besoin.",
+        "clear": "Vider",
+        "clearing": "Vidage…"
       },
       "total": {
         "label": "Total",
-        "description": "Everything the AI features use on this PC."
+        "description": "Tout ce que les fonctionnalités IA occupent sur ce PC."
       },
       "uninstall": {
-        "label": "Uninstall AI features",
-        "description": "Deletes the AI packages and switches the AI features off. Model weights are kept; delete them under Model weights.",
-        "remove": "Remove"
+        "label": "Désinstaller les fonctionnalités IA",
+        "description": "Supprime les paquets IA et coupe les fonctionnalités IA. Les poids des modèles sont gardés ; supprimez-les dans Poids des modèles.",
+        "remove": "Supprimer"
       }
     },
-    "devBuild": "Dev build: AI features run from the AMVerge-CLI checkout's venv, so nothing is downloaded or removed from here.",
+    "devBuild": "Version de développement : les fonctionnalités IA s'exécutent depuis le venv du dépôt AMVerge-CLI, rien n'est donc téléchargé ni supprimé d'ici.",
     "scenepacksOff": {
-      "title": "Disable Scenepacks",
-      "message_one": "You have {{count}} Scenepack. Would you like to delete it too, or just disable the feature and keep it for later?",
-      "message_other": "You have {{count}} Scenepacks. Would you like to delete them too, or just disable the feature and keep them for later?",
-      "delete": "Delete Scenepacks",
-      "keep": "Keep Scenepacks",
-      "clearFailed": "Failed to clear Scenepack storage: {{error}}"
+      "title": "Désactiver Scenepacks",
+      "message_one": "Vous avez {{count}} Scenepack. Le supprimer aussi, ou seulement désactiver la fonctionnalité et le garder pour plus tard ?",
+      "message_other": "Vous avez {{count}} Scenepacks. Les supprimer aussi, ou seulement désactiver la fonctionnalité et les garder pour plus tard ?",
+      "delete": "Supprimer les Scenepacks",
+      "keep": "Garder les Scenepacks",
+      "clearFailed": "Impossible de vider le stockage des Scenepacks : {{error}}"
     }
   },
   "models": {
     "categories": {
-      "depth": "Depth Models",
-      "upscale": "Upscale Models"
+      "depth": "Modèles de depth",
+      "upscale": "Modèles d'upscale"
     },
-    "description": "Model weights used by this feature. Download them ahead of time for fast offline exporting.",
+    "description": "Les poids des modèles utilisés par cette fonctionnalité. Téléchargez-les à l'avance pour exporter vite et hors ligne.",
     "turnOn": {
-      "depth": "Turn on the depth pass above to manage its models.",
-      "upscale": "Turn on the upscale pass above to manage its models."
+      "depth": "Activez la passe depth ci-dessus pour gérer ses modèles.",
+      "upscale": "Activez la passe upscale ci-dessus pour gérer ses modèles."
     },
-    "loading": "Loading models…",
-    "count_one": "{{count}} model",
-    "count_other": "{{count}} models",
-    "notAvailable": "Not available",
-    "downloaded": "Downloaded",
-    "notDownloaded": "Not downloaded",
-    "downloading": "Downloading…",
-    "download": "Download"
+    "loading": "Chargement des modèles…",
+    "count_one": "{{count}} modèle",
+    "count_other": "{{count}} modèles",
+    "notAvailable": "Indisponible",
+    "downloaded": "Téléchargé",
+    "notDownloaded": "Non téléchargé",
+    "downloading": "Téléchargement…",
+    "download": "Télécharger"
   }
 }

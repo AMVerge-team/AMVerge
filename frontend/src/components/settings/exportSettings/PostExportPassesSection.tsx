@@ -46,6 +46,8 @@ export default function PostExportPassesSection() {
   const { t } = useTranslation("settingsExport");
   const passes = useGeneralSettingsStore((s) => s.postExportPasses);
   const update = useGeneralSettingsStore((s) => s.updatePostExportPasses);
+  const enabled = useGeneralSettingsStore((s) => s.postExportPassesEnabled);
+  const setEnabled = useGeneralSettingsStore((s) => s.setPostExportPassesEnabled);
   const { depth, upscale } = passes;
   // each pass is a feature in Settings > Features: off greys its switch, hidden leaves it out
   const depthFeature = useFeature("depthPass");
@@ -63,6 +65,11 @@ export default function PostExportPassesSection() {
 
   return (
     <>
+      <SettingRow
+        label={t("passes.master.label")}
+        description={t("passes.master.description")}
+        control={<ToggleControl label={t("passes.master.label")} checked={enabled} onChange={setEnabled} />}
+      />
       {!depthFeature.hidden && (
         <SettingRow
           label={t("passes.depth.label")}

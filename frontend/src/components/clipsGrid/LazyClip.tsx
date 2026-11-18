@@ -519,9 +519,10 @@ export const LazyClip = memo(function LazyClip({
 
           {showClipTimestamps && clip.startSec !== undefined && (
             <div className={`clip-original-timestamp${showClipEndTime && clip.endSec !== undefined ? " is-timeframe" : ""}`}>
-              {showClipEndTime && clip.endSec !== undefined
-                ? formatClipTimeframe(clip.startSec, clip.endSec)
-                : formatClipTime(clip.startSec)}
+              <span>{formatClipTime(clip.startSec)}</span>
+              {showClipEndTime && clip.endSec !== undefined && clip.endSec > clip.startSec && (
+                <span className="clip-timestamp-end">{` - ${formatClipTime(clip.endSec)}`}</span>
+              )}
             </div>
           )}
 

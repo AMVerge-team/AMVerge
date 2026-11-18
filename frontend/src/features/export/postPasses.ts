@@ -130,6 +130,13 @@ export function anyPassEnabled(passes: PostExportPasses): boolean {
   return POST_EXPORT_PASS_KINDS.some((kind) => passes[kind].enabled);
 }
 
+export function effectivePostExportPasses(passes: PostExportPasses, enabled: boolean): PostExportPasses {
+  return enabled ? passes : {
+    depth: { ...passes.depth, enabled: false },
+    upscale: { ...passes.upscale, enabled: false },
+  };
+}
+
 // deep-merges persisted config over defaults so a missing or corrupt field never breaks anything
 export function normalizePostExportPasses(raw: unknown): PostExportPasses {
   const r = (raw ?? {}) as Partial<PostExportPasses>;

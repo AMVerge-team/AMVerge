@@ -1,244 +1,244 @@
 {
   "process": {
     "labels": {
-      "import": "importing an episode",
-      "export": "exporting clips",
-      "resume": "finishing episode clips",
-      "scout_add": "adding episodes to a Scene Scout database",
-      "scout_thumbnails": "generating Scene Scout thumbnails",
-      "tools": "upscaling or depth mapping a clip in Tools"
+      "import": "importe un épisode",
+      "export": "exporte des clips",
+      "resume": "termine les clips d'un épisode",
+      "scout_add": "ajoute des épisodes à une base Scene Scout",
+      "scout_thumbnails": "génère les vignettes Scene Scout",
+      "tools": "upscale ou génère une depth map dans Tools"
     },
-    "conflictTitle": "Another process is running",
-    "conflictRunning": "AMVerge is {{process}}. Only one process runs at a time.",
-    "conflictQuestion": "Stop it and start {{process}} instead?",
-    "stoppingIt": "Stopping it…",
-    "stopping": "Stopping…",
-    "stopAndContinue": "Stop it and continue",
-    "keepRunning": "Keep it running"
+    "conflictTitle": "Un autre traitement est en cours",
+    "conflictRunning": "AMVerge {{process}}. Un seul traitement à la fois.",
+    "conflictQuestion": "L'arrêter et lancer l'autre ({{process}}) ?",
+    "stoppingIt": "Arrêt en cours…",
+    "stopping": "Arrêt…",
+    "stopAndContinue": "L'arrêter et continuer",
+    "keepRunning": "Le laisser tourner"
   },
   "startupNotification": {
-    "closeAria": "Close notification",
-    "bannerAlt": "Notification banner",
-    "doNotShowAgain": "Do not show again"
+    "closeAria": "Fermer la notification",
+    "bannerAlt": "Bannière de notification",
+    "doNotShowAgain": "Ne plus afficher"
   },
   "updateNotice": {
-    "title": "Update Available",
-    "body": "There's a new update for AMVerge! Feel free to download it [here](https://amverge.app/)."
+    "title": "Mise à jour disponible",
+    "body": "Une nouvelle version d'AMVerge est sortie ! Vous pouvez la télécharger [ici](https://amverge.app/)."
   },
   "v1Import": {
-    "title": "Welcome to AMVerge V2!",
-    "lead": "The following features are now available:",
+    "title": "Bienvenue dans AMVerge V2 !",
+    "lead": "Ces fonctionnalités sont désormais disponibles :",
     "features": {
-      "sceneDetection": "AI scene detection",
-      "sceneSearch": "Scene searching",
-      "sceneMatching": "Scene matching",
-      "scenepack": "Scene pack creation"
+      "sceneDetection": "Détection de scènes par IA",
+      "sceneSearch": "Recherche de scènes",
+      "sceneMatching": "Scènes qui enchaînent",
+      "scenepack": "Création de Scenepacks"
     },
-    "episodesInLibrary_one": "{{count}} episode in your library",
-    "episodesInLibrary_other": "{{count}} episodes in your library",
-    "note": "As well as many other changes. All of the AI features are run locally, <br/>you can turn them on in <strong>Settings › Features</strong>.",
-    "confirm": "Enjoy!"
+    "episodesInLibrary_one": "{{count}} épisode dans votre bibliothèque",
+    "episodesInLibrary_other": "{{count}} épisodes dans votre bibliothèque",
+    "note": "Et bien d'autres changements. Toutes les fonctionnalités IA tournent sur votre machine,<br/>activez-les dans <strong>Paramètres › Fonctionnalités</strong>.",
+    "confirm": "Bon montage !"
   },
   "jobCard": {
-    "dismiss": "Dismiss",
-    "expand": "Expand"
+    "dismiss": "Masquer",
+    "expand": "Déplier"
   },
   "bgProgress": {
-    "header": "Background tasks",
-    "closeAria": "Close processing indicator",
+    "header": "Tâches en arrière-plan",
+    "closeAria": "Fermer l'indicateur de traitement",
     "countLine": "{{label}} {{done}}/{{total}}",
-    "processingClips": "Processing clips",
-    "loadingPreviews": "Loading previews",
-    "installingAi": "Installing AI models",
-    "importingVideos": "Importing {{done}}/{{total}} videos",
-    "aiDetailsTooltip": "Click to view full installation details"
+    "processingClips": "Traitement des clips",
+    "loadingPreviews": "Chargement des aperçus",
+    "installingAi": "Installation des modèles IA",
+    "importingVideos": "Import de {{done}}/{{total}} vidéos",
+    "aiDetailsTooltip": "Cliquer pour voir le détail de l'installation"
   },
   "terminal": {
     "countedStep": "{{label}} {{done}}/{{total}}",
-    "clipDone": "done",
-    "scenePreviewReady": "✓ scene {{scene}} · preview",
-    "keyframeClipsReady": "keyframe clips ready",
-    "scenesDetected": "scenes detected · encoding exact previews",
-    "loadingSiglip": "loading SigLIP 2 model weights…",
-    "detectingScenes": "detecting scenes…",
-    "sampling_one": "sampling {{count}} representative frame…",
-    "sampling_other": "sampling {{count}} representative frames…",
-    "sampledFrames": "sampled frames",
-    "embedding_one": "embedding {{count}} scene…",
-    "embedding_other": "embedding {{count}} scenes…",
-    "embeddingScenes": "embedding scenes",
-    "makingThumbnails_one": "making {{count}} thumbnail…",
-    "makingThumbnails_other": "making {{count}} thumbnails…",
-    "thumbnails": "thumbnails",
-    "indexed_one": "indexed {{count}} scene successfully",
-    "indexed_other": "indexed {{count}} scenes successfully",
-    "minimizedAria": "Import progress (minimized)",
-    "embeddingVideos": "Embedding videos",
-    "importingVideos": "Importing videos",
+    "clipDone": "fait",
+    "scenePreviewReady": "✓ scène {{scene}} · aperçu",
+    "keyframeClipsReady": "clips par images clés prêts",
+    "scenesDetected": "scènes détectées · encodage des aperçus exacts",
+    "loadingSiglip": "chargement des poids du modèle SigLIP 2…",
+    "detectingScenes": "détection des scènes…",
+    "sampling_one": "échantillonnage de {{count}} image représentative…",
+    "sampling_other": "échantillonnage de {{count}} images représentatives…",
+    "sampledFrames": "images échantillonnées",
+    "embedding_one": "encodage de {{count}} scène…",
+    "embedding_other": "encodage de {{count}} scènes…",
+    "embeddingScenes": "encodage des scènes",
+    "makingThumbnails_one": "création de {{count}} vignette…",
+    "makingThumbnails_other": "création de {{count}} vignettes…",
+    "thumbnails": "vignettes",
+    "indexed_one": "{{count}} scène indexée",
+    "indexed_other": "{{count}} scènes indexées",
+    "minimizedAria": "Progression de l'import (réduite)",
+    "embeddingVideos": "Encodage des vidéos",
+    "importingVideos": "Import des vidéos",
     "minTitle": {
-      "scoutAdd": "Embedding scenes…",
-      "scoutOpen": "Opening database…",
-      "scoutSearch": "Searching scenes…",
-      "scoutThumbnails": "Generating thumbnails…",
-      "previews": "Generating previews…",
-      "import": "Finishing import…"
+      "scoutAdd": "Encodage des scènes…",
+      "scoutOpen": "Ouverture de la base…",
+      "scoutSearch": "Recherche de scènes…",
+      "scoutThumbnails": "Création des vignettes…",
+      "previews": "Création des aperçus…",
+      "import": "Fin de l'import…"
     },
-    "videoCount": "Video {{current}}/{{total}}",
-    "overall": "Overall",
-    "current": "Current",
-    "outputAria": "AMVerge CLI output",
+    "videoCount": "Vidéo {{current}}/{{total}}",
+    "overall": "Global",
+    "current": "En cours",
+    "outputAria": "Sortie du CLI AMVerge",
     "title": {
-      "scoutAdd": "Scene Scout - Indexing",
-      "scoutOpen": "Scene Scout - Database",
-      "scoutSearch": "Scene Scout - Search",
-      "scoutThumbnails": "Scene Scout - Thumbnails"
+      "scoutAdd": "Scene Scout - Indexation",
+      "scoutOpen": "Scene Scout - Base",
+      "scoutSearch": "Scene Scout - Recherche",
+      "scoutThumbnails": "Scene Scout - Vignettes"
     },
-    "minimize": "Minimize",
-    "working": "Working…",
-    "batchEmbedding": "Embedding videos {{current}}/{{total}} · {{file}}",
-    "batchCutting": "Cutting videos {{current}}/{{total}} · {{file}}",
-    "abort": "Abort"
+    "minimize": "Réduire",
+    "working": "Opération en cours…",
+    "batchEmbedding": "Encodage des vidéos {{current}}/{{total}} · {{file}}",
+    "batchCutting": "Découpage des vidéos {{current}}/{{total}} · {{file}}",
+    "abort": "Interrompre"
   },
   "importButtons": {
-    "hideEpisodePanel": "Hide episode panel",
-    "showEpisodePanel": "Show episode panel",
-    "importEpisode": "Import episode",
-    "import": "Import",
-    "refreshEpisode": "Refresh episode",
-    "showPreviewPanel": "Show preview panel",
-    "hidePreviewPanel": "Hide preview panel"
+    "hideEpisodePanel": "Masquer le panneau des épisodes",
+    "showEpisodePanel": "Afficher le panneau des épisodes",
+    "importEpisode": "Importer un épisode",
+    "import": "Importer",
+    "refreshEpisode": "Actualiser l'épisode",
+    "showPreviewPanel": "Afficher le panneau d'aperçu",
+    "hidePreviewPanel": "Masquer le panneau d'aperçu"
   },
   "packs": {
     "ml": {
-      "label": "AI scene detection",
-      "description": "Finds scene cuts with AI. The most accurate option, and fast on an NVIDIA GPU."
+      "label": "Détection de scènes par IA",
+      "description": "Trouve les coupes avec une IA. L'option la plus précise, et rapide sur une carte NVIDIA."
     },
     "depth": {
       "label": "Depth map",
-      "description": "Creates a depth map of each exported file."
+      "description": "Crée une depth map de chaque fichier exporté."
     },
     "scout": {
       "label": "Scene Scout",
-      "description": "Search your indexed episodes by describing a scene instead of naming a file."
+      "description": "Cherchez dans vos épisodes indexés en décrivant une scène, plutôt qu'en nommant un fichier."
     },
     "upscale": {
       "label": "Upscaling",
-      "description": "Creates a higher resolution copy of each exported file."
+      "description": "Crée une copie en plus haute résolution de chaque fichier exporté."
     }
   },
   "aiDeps": {
-    "starting": "Starting...",
-    "installed": "Installed.",
-    "packagesMissing": "Install finished but the packages are still missing.",
-    "packagesMissingError": "The install completed without adding the expected packages.",
-    "installFailed": "Install failed.",
-    "reinstallingGpu": "Reinstalling PyTorch with GPU support...",
-    "gpuSupport": "GPU support",
-    "gpuSupportInstalled": "GPU support installed",
-    "gpuSupportInstalledMsg": "GPU support installed.",
-    "stillCpu": "Still on the CPU build.",
-    "stillCpuError": "PyTorch is still the CPU build after reinstalling.",
-    "reinstallFailed": "Reinstall failed.",
-    "installingGpuDecode": "Installing GPU decoding...",
-    "removingGpuDecode": "Removing GPU decoding...",
-    "gpuDecode": "GPU decoding",
-    "gpuDecodeInstalled": "GPU decoding installed",
-    "removingGpuDecodeTitle": "Removing GPU decoding",
-    "gpuDecodeRemoved": "GPU decoding removed",
-    "gpuDecodeInstalledMsg": "GPU decoding installed.",
-    "gpuDecodeRemovedMsg": "GPU decoding removed.",
-    "nothingChanged": "Nothing changed.",
-    "neluxMissing": "Nelux is still missing after the install.",
-    "neluxStillInstalled": "Nelux is still installed.",
-    "removalFailed": "Removal failed.",
-    "canceling": "Canceling..."
+    "starting": "Démarrage…",
+    "installed": "Installé.",
+    "packagesMissing": "L'installation s'est terminée mais les paquets manquent toujours.",
+    "packagesMissingError": "L'installation s'est terminée sans ajouter les paquets attendus.",
+    "installFailed": "Échec de l'installation.",
+    "reinstallingGpu": "Réinstallation de PyTorch avec la prise en charge GPU…",
+    "gpuSupport": "Prise en charge GPU",
+    "gpuSupportInstalled": "Prise en charge GPU installée",
+    "gpuSupportInstalledMsg": "Prise en charge GPU installée.",
+    "stillCpu": "Toujours sur la version processeur.",
+    "stillCpuError": "PyTorch est toujours en version processeur après la réinstallation.",
+    "reinstallFailed": "Échec de la réinstallation.",
+    "installingGpuDecode": "Installation du décodage GPU…",
+    "removingGpuDecode": "Suppression du décodage GPU…",
+    "gpuDecode": "Décodage GPU",
+    "gpuDecodeInstalled": "Décodage GPU installé",
+    "removingGpuDecodeTitle": "Suppression du décodage GPU",
+    "gpuDecodeRemoved": "Décodage GPU supprimé",
+    "gpuDecodeInstalledMsg": "Décodage GPU installé.",
+    "gpuDecodeRemovedMsg": "Décodage GPU supprimé.",
+    "nothingChanged": "Rien n'a changé.",
+    "neluxMissing": "Nelux manque toujours après l'installation.",
+    "neluxStillInstalled": "Nelux est toujours installé.",
+    "removalFailed": "Échec de la suppression.",
+    "canceling": "Annulation…"
   },
   "aiInstall": {
-    "installedTitle": "{{name}} installed",
-    "jobFailedTitle": "{{title}} failed",
-    "installFailedTitle": "{{name}} install failed",
-    "minimize": "Minimize and run in background",
-    "lede": "You don't have <strong>{{name}}</strong> installed. Would you like to install it now?",
-    "download": "Download",
-    "torchBuild": "PyTorch build",
-    "torchAlreadyInstalled": "already installed ({{variant}})",
-    "torchCudaDetected": "GPU / CUDA (NVIDIA GPU detected)",
-    "torchCpuUnknown": "CPU (failed to check for NVIDIA GPU)",
-    "torchCpuNoGpu": "CPU (no NVIDIA GPU detected)",
-    "cpuPlanUnknown": "AMVerge couldn't run nvidia-smi to check for a GPU, so it's planning the CPU build.",
-    "cpuPlanNoGpu": "No NVIDIA GPU was found, planning the CPU build.",
-    "installGpuAnyway": "Install the GPU build anyway",
-    "uvMissing": "The installer component is missing from this build, so AMVerge can't add the dependency automatically. Reinstalling AMVerge restores it.",
-    "notNow": "Not now",
-    "install": "Install",
-    "progress": "Progress",
-    "speed": "Speed: ",
-    "size": "Size: ",
-    "elapsed": "Elapsed: ",
-    "keepDownloading": "Keep downloading in the background",
-    "runInBackground": "Run in background",
-    "tryAgain": "Try again",
-    "done": "Done"
+    "installedTitle": "{{name}} installé",
+    "jobFailedTitle": "{{title}} : échec",
+    "installFailedTitle": "Échec de l'installation de {{name}}",
+    "minimize": "Réduire et continuer en arrière-plan",
+    "lede": "<strong>{{name}}</strong> n'est pas installé. Voulez-vous l'installer maintenant ?",
+    "download": "Téléchargement",
+    "torchBuild": "Version de PyTorch",
+    "torchAlreadyInstalled": "déjà installée ({{variant}})",
+    "torchCudaDetected": "GPU / CUDA (carte NVIDIA détectée)",
+    "torchCpuUnknown": "Processeur (impossible de vérifier la présence d'une carte NVIDIA)",
+    "torchCpuNoGpu": "Processeur (aucune carte NVIDIA détectée)",
+    "cpuPlanUnknown": "AMVerge n'a pas pu lancer nvidia-smi pour chercher une carte graphique, il part donc sur la version processeur.",
+    "cpuPlanNoGpu": "Aucune carte NVIDIA trouvée, départ sur la version processeur.",
+    "installGpuAnyway": "Installer quand même la version GPU",
+    "uvMissing": "Le composant d'installation manque dans cette version, AMVerge ne peut donc pas ajouter la dépendance tout seul. Réinstaller AMVerge le remet en place.",
+    "notNow": "Plus tard",
+    "install": "Installer",
+    "progress": "Progression",
+    "speed": "Vitesse : ",
+    "size": "Taille : ",
+    "elapsed": "Temps écoulé : ",
+    "keepDownloading": "Continuer le téléchargement en arrière-plan",
+    "runInBackground": "Continuer en arrière-plan",
+    "tryAgain": "Réessayer",
+    "done": "Terminé"
   },
   "passLabel": {
     "depth": "Depth map",
     "upscale": "Upscale"
   },
   "passTargets": {
-    "title": "Choose clips for each pass",
-    "mergedHint": "The clips picked for a pass are merged into its own file",
-    "separateHint": "Each picked clip gets its own output file for that pass",
-    "all": "All",
-    "none": "None",
+    "title": "Sélectionnez les clips de chaque passe",
+    "mergedHint": "Les clips sélectionnés pour une passe sont fusionnés dans son propre fichier",
+    "separateHint": "Chaque clip sélectionné a son propre fichier de sortie pour cette passe",
+    "all": "Tous",
+    "none": "Aucun",
     "enabled": {
-      "depth": "Depth Enabled",
-      "upscale": "Upscale Enabled"
+      "depth": "Depth activée",
+      "upscale": "Upscale activé"
     },
-    "disabled": "Disabled",
-    "export": "Export"
+    "disabled": "Désactivée",
+    "export": "Exporter"
   },
   "passes": {
-    "title": "Post-export passes",
-    "minimizedAria": "Post-export passes (minimized)",
-    "finishedWithErrorsShort": "Passes finished with errors",
-    "completeShort": "Passes complete",
-    "finishedWithErrors": "Post-export passes finished with errors",
-    "complete": "Post-export passes complete",
-    "stop": "Stop",
-    "failed": "Failed: {{list}}",
-    "done": "Done",
-    "passCount": "Pass {{current}}/{{total}}",
-    "previewAlt": "Pass preview",
-    "waitingPreview": "Waiting for first preview frame…",
-    "starting": "Starting...",
-    "stopping": "Stopping...",
+    "title": "Passes après export",
+    "minimizedAria": "Passes après export (réduites)",
+    "finishedWithErrorsShort": "Passes terminées avec des erreurs",
+    "completeShort": "Passes terminées",
+    "finishedWithErrors": "Passes après export terminées avec des erreurs",
+    "complete": "Passes après export terminées",
+    "stop": "Arrêter",
+    "failed": "Échec : {{list}}",
+    "done": "Terminé",
+    "passCount": "Passe {{current}}/{{total}}",
+    "previewAlt": "Aperçu de la passe",
+    "waitingPreview": "En attente de la première image d'aperçu…",
+    "starting": "Démarrage…",
+    "stopping": "Arrêt…",
     "jobLabel": "{{pass}} · {{name}}",
-    "skipped": "[skipped] {{pass}} pass: {{name}} is not installed",
-    "jobError": "{{label}}: {{error}}"
+    "skipped": "[ignorée] passe {{pass}} : {{name}} n'est pas installé",
+    "jobError": "{{label}} : {{error}}"
   },
   "passErrors": {
-    "outdated": "The installed AMVerge AI tools are too old for this. AMVerge updates them by itself the next time it starts after the update is released.",
-    "outdatedFlag": "The installed AMVerge AI tools are too old for this (they don't know {{flag}}). AMVerge updates them by itself the next time it starts after the update is released."
+    "outdated": "Les outils IA d'AMVerge installés sont trop anciens pour cette opération. AMVerge les met à jour tout seul au démarrage suivant la sortie de la mise à jour.",
+    "outdatedFlag": "Les outils IA d'AMVerge installés sont trop anciens pour cette opération (ils ne connaissent pas {{flag}}). AMVerge les met à jour tout seul au démarrage suivant la sortie de la mise à jour."
   },
   "export": {
-    "failedTitle": "Export failed",
-    "failedMsg": "Export failed: {{message}}",
-    "noFiles": "Export produced no files."
+    "failedTitle": "Échec de l'export",
+    "failedMsg": "Échec de l'export : {{message}}",
+    "noFiles": "L'export n'a produit aucun fichier."
   },
   "dialog": {
-    "videoFilter": "Video"
+    "videoFilter": "Vidéo"
   },
   "import": {
-    "starting": "Starting...",
-    "transnetMissing": "TransNetV2 is not installed. Install it, or switch scene detection to Keyframe Detection in Settings.",
-    "finishingClips": "Finishing clips for {{name}}",
-    "failedTitle_one": "Video import failed",
-    "failedTitle_other": "{{count}} video imports failed",
-    "permissionHint": "AMVerge could not access the video or its storage folder. Check the folder permissions and the video storage path in General Settings. If this is a development build, restart it from your normal terminal.",
-    "failureHint": "Check that the video is readable and the video storage path in General Settings is writable. See Console for details."
+    "starting": "Démarrage…",
+    "transnetMissing": "TransNetV2 n'est pas installé. Installez-le, ou passez la détection de scènes sur Keyframe Detection dans les paramètres.",
+    "finishingClips": "Finition des clips de {{name}}",
+    "failedTitle_one": "Échec de l'import de la vidéo",
+    "failedTitle_other": "Échec de l'import de {{count}} vidéos",
+    "permissionHint": "AMVerge n'a pas pu accéder à la vidéo ou à son dossier de stockage. Vérifiez les droits du dossier et le chemin de stockage des vidéos dans les paramètres généraux. S'il s'agit d'un build de développement, relancez-le depuis votre terminal habituel.",
+    "failureHint": "Vérifiez que la vidéo est lisible et que le dossier de stockage indiqué dans les paramètres généraux est accessible en écriture. Voir la console pour le détail."
   },
   "scenepack": {
-    "cutFailed": "Could not cut this clip.",
-    "nothingToAdd": "Nothing to add."
+    "cutFailed": "Impossible de découper ce clip.",
+    "nothingToAdd": "Rien à ajouter."
   }
 }

@@ -1,81 +1,77 @@
 {
   "preview": {
-    "sceneLoadFailed": "Couldn't load this scene. Its episode may have moved.",
-    "loading": "Loading preview",
-    "noClip": "No clip selected"
+    "sceneLoadFailed": "Impossible de charger cette scène. Son épisode a peut-être été déplacé.",
+    "loading": "Chargement de l'aperçu",
+    "noClip": "Aucun clip sélectionné"
   },
   "player": {
-    "play": "Play",
+    "play": "Lire",
     "pause": "Pause",
-    "mute": "Mute",
-    "unmute": "Unmute",
+    "mute": "Couper le son",
+    "unmute": "Remettre le son",
     "volume": "Volume",
-    "fullscreen": "Fullscreen"
+    "fullscreen": "Plein écran"
   },
   "export": {
-    "title": "Export settings",
-    "untitledProfile": "Untitled Profile",
-    "editSettings": "Edit export settings",
-    "destinationPlaceholder": "Select destination...",
-    "browseFolder": "Browse for output folder",
-    "mergeLabelLine1": "MERGE",
-    "mergeLabelLine2": "CLIPS",
-    "mergeClips": "Merge clips",
-    "davinciOn": "Exported clips go to the DaVinci Resolve timeline",
-    "davinciOff": "Send exported clips to the DaVinci Resolve timeline (Studio only)",
-    "davinciAria": "Send exported clips to DaVinci Resolve",
-    "previewLanguageAria": "Preview language selector",
-    "previewLanguage": "Preview language",
-    "postPasses": "Post-export",
-    "postPassesToggle": "Enable post-export passes",
-    "configurePostPasses": "Configure post-export passes in export settings. Turning this off keeps your configuration.",
-    "previewLanguageLine1": "PREVIEW",
-    "previewLanguageLine2": "LANGUAGE",
-    "selectAtLeastOne": "Select at least one clip to export",
-    "exportSelected": "Export selected clips",
-    "exportNow": "Export Now",
-    "unknownError": "Unknown error"
+    "title": "PARAMÈTRES D'EXPORT",
+    "untitledProfile": "Profil sans nom",
+    "editSettings": "Modifier les paramètres d'export",
+    "destinationPlaceholder": "Choisir une destination…",
+    "browseFolder": "Parcourir pour choisir le dossier de sortie",
+    "mergeLabelLine1": "FUSIONNER",
+    "mergeLabelLine2": "LES CLIPS",
+    "mergeClips": "Fusionner les clips",
+    "davinciOn": "Les clips exportés vont sur la timeline DaVinci Resolve",
+    "davinciOff": "Envoyer les clips exportés sur la timeline DaVinci Resolve (Studio uniquement)",
+    "davinciAria": "Envoyer les clips exportés vers DaVinci Resolve",
+    "previewLanguageAria": "Sélecteur de langue de l'aperçu",
+    "previewLanguageLine1": "LANGUE DE",
+    "previewLanguageLine2": "L'APERÇU",
+    "selectAtLeastOne": "Sélectionnez au moins un clip à exporter",
+    "exportSelected": "Exporter les clips sélectionnés",
+    "exportNow": "Exporter",
+    "unknownError": "Échec sans message d'erreur"
   },
   "mergeModal": {
-    "title": "Merged file name",
-    "placeholder": "Enter file name...",
-    "export": "Export"
+    "title": "Nom du fichier fusionné",
+    "placeholder": "Saisir un nom de fichier…",
+    "export": "Exporter"
   },
   "howToUse": {
     "titles": {
-      "library": "How to use",
-      "scenepacks": "How to use Scenepacks",
-      "sceneScoutSearch": "How to use Scene Scout",
-      "sceneScoutFlow": "How to use Match"
+      "library": "COMMENT FAIRE",
+      "scenepacks": "COMMENT UTILISER SCENEPACKS",
+      "sceneScoutSearch": "COMMENT UTILISER SCENE SCOUT",
+      "sceneScoutFlow": "COMMENT UTILISER MATCH"
     },
-    "hide": "Hide the guide",
-    "show": "Show the guide",
-    "showTour": "Show the walkthrough again",
+    "hide": "Masquer le guide",
+    "show": "Afficher le guide",
+    "showTour": "Revoir la visite guidée",
     "steps": {
-      "select": "Select clips with <b>{{mod}} + Click</b>, <b>Shift + Click</b>, or <b>Double Click</b>",
-      "exportNow": "Click <b>Export Now</b> to export what you picked",
+      "select": "Sélectionnez des clips avec <b>{{mod}} + clic</b>, <b>Maj + clic</b> ou un <b>double clic</b>",
+      "exportNow": "Cliquez sur <b>Exporter</b> pour exporter votre sélection",
       "scenepacks": {
-        "create": "Create a Scenepack in the left panel",
-        "add": "In the <b>Library</b>, select clips and click <b>Add to Scenepack</b>",
-        "open": "Open a Scenepack to see its clips"
+        "create": "Créez un Scenepack dans le panneau de gauche",
+        "add": "Dans <b>Library</b>, sélectionnez des clips et cliquez sur <b>Ajouter au Scenepack</b>",
+        "open": "Ouvrez un Scenepack pour voir ses clips"
       },
       "sceneScoutSearch": {
-        "database": "Create or open a <b>Database</b> in the left panel",
-        "searching": "Move it into <b>Searching</b>: <b>Double Click</b> it, drag it up, or right click it. Only databases in Searching are searched",
-        "addEpisode": "Click <b>Add Episode</b> to index episodes into it",
-        "describe": "Describe a scene in the search bar and press <b>Enter</b>",
-        "preview": "Single click a result to <b>Preview</b> it"
+        "database": "Créez ou ouvrez une <b>base</b> dans le panneau de gauche",
+        "searching": "Mettez-la dans <b>Searching</b> : <b>double clic</b>, glissez-la vers le haut, ou faites un clic droit. Seules les bases dans Searching sont incluses dans la recherche",
+        "addEpisode": "Cliquez sur <b>Add Episode</b> pour y indexer des épisodes",
+        "describe": "Décrivez une scène dans la barre de recherche et appuyez sur <b>Entrée</b>",
+        "preview": "Cliquez une fois sur un résultat pour le <b>voir</b>"
       },
       "sceneScoutFlow": {
-        "import": "Click <b>Import</b>, or right-click a clip and pick <b>Find matching clips</b>",
-        "matches": "Matches are scenes that look like they continue from your clip's last frame",
-        "resize": "Drag the line between your clip and the matches to resize them",
-        "preview": "Single click a match to <b>Preview</b> it"
+        "import": "Cliquez sur <b>Import</b>, ou faites un clic droit sur un clip et choisissez <b>Trouver les clips qui enchaînent</b>",
+        "matches": "Les résultats sont des scènes qui semblent enchaîner avec la dernière image de votre clip",
+        "resize": "Glissez la ligne entre votre clip et les résultats pour changer leur taille",
+        "preview": "Cliquez une fois sur un résultat pour le <b>voir</b>"
       },
       "library": {
-        "focus": "Single click to <b>Focus</b> a clip",
-        "profile": "Select <b>Export Profile</b> for export settings",
-        "start": "Click <b>Export Now</b> to start the process"
+        "focus": "Cliquez une fois sur un clip pour l'<b>ouvrir dans l'aperçu</b>",
+        "profile": "Choisissez un <b>profil d'export</b> pour les paramètres d'export",
+        "start": "Cliquez sur <b>Exporter</b> pour lancer l'export"
       }
     }
   }

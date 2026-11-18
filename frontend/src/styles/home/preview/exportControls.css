@@ -1,21 +1,22 @@
 .export-panel {
     width: 100%;
     max-width: 650px;
-    margin-top: 20px;
+    margin-top: 24px;
     background: rgba(0, 0, 0, 0.45);
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 12px;
-    padding: 16px;
+    border-radius: 14px;
+    padding: 20px;
     display: grid;
-    grid-template-columns: 1fr;
+    /* minmax(0, ...): webkit grows a bare 1fr to the options row's content and it spills out on macos */
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
         "header"
         "profile"
         "path"
         "options"
         "button";
-    gap: 8px;
+    gap: 16px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     position: relative;
     z-index: 20;
@@ -25,25 +26,26 @@
 
 .export-header {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 8px;
-    margin-bottom: 5px;
+    padding-bottom: 12px;
+    margin-bottom: 0;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     grid-area: header;
 }
 
 .header-icon {
     color: var(--accent);
-    font-size: 1.2rem;
+    font-size: 16px;
     opacity: 0.9;
 }
 
 .export-title {
-    font-size: 1.1rem;
+    font-size: 14px;
+    line-height: 20px;
     color: var(--accent);
-    letter-spacing: 2px;
-    font-weight: 500;
+    letter-spacing: normal;
+    font-weight: var(--font-weight-heading);
 }
 
 .export-settings-row {
@@ -112,7 +114,7 @@
 
 .export-profile-select .dropdown-value,
 .export-format-select .dropdown-value {
-    letter-spacing: 1px !important;
+    letter-spacing: normal !important;
 }
 
 .export-profile-select .dropdown-item-content,
@@ -130,6 +132,12 @@
 
 .export-profile-select .dropdown-item-main {
     display: contents !important;
+}
+
+.export-profile-select .dropdown-value:not(.rich) .dropdown-item-content {
+    grid-template-areas: "icon label" !important;
+    grid-template-columns: 28px minmax(0, 1fr) !important;
+    column-gap: 8px !important;
 }
 
 .export-profile-select .dropdown-item-icon,
@@ -175,10 +183,11 @@
 .export-profile-select .dropdown-item-label,
 .export-profile-select .dropdown-value.rich .dropdown-item-label {
     grid-area: label !important;
-    font-size: 0.85rem !important;
-    letter-spacing: 0.5px !important;
-    line-height: 1.05 !important;
-    font-weight: 500 !important;
+    font-size: 13px !important;
+    letter-spacing: normal !important;
+    line-height: 1.4 !important;
+    font-weight: var(--font-weight-label) !important;
+    text-transform: none !important;
     color: #ffffff !important;
     white-space: nowrap !important;
     overflow: hidden !important;
@@ -188,13 +197,14 @@
 .export-profile-select .dropdown-item-description,
 .export-profile-select .dropdown-value.rich .dropdown-item-description {
     grid-area: desc !important;
-    font-size: 0.6rem !important;
+    font-size: 12px !important;
+    font-weight: var(--font-weight-body) !important;
     color: rgba(255, 255, 255, 0.55) !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    letter-spacing: 0.2px !important;
-    line-height: 1.05 !important;
+    letter-spacing: normal !important;
+    line-height: 1.4 !important;
 }
 
 .export-profile-select .dropdown-item {
@@ -262,7 +272,7 @@
 
 .export-dir-row {
     display: flex;
-    gap: 4px;
+    gap: 8px;
     width: 100%;
     align-items: center;
     justify-content: center;
@@ -278,7 +288,8 @@
     border-radius: 8px;
     color: white;
     font-family: inherit;
-    font-size: 0.9rem;
+    font-size: 13px;
+    font-weight: var(--font-weight-body);
     outline: none;
     transition: border-color 0.2s ease;
 }
@@ -292,10 +303,123 @@
     min-width: 0;
 }
 
-/* merge, resolve and language wrap onto their own lines in a narrow pane instead of overlapping */
+/* keep the two switches and language picker on one shared row */
 .export-options-row .export-dir-row {
-    flex-wrap: wrap;
-    gap: 8px 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1.35fr);
+    align-items: start;
+    gap: 10px;
+}
+
+.export-options-row .export-dir-item {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+.export-options-row .export-dir-item:has(.davinci-export-toggle) {
+    grid-column: 1 / -1;
+    order: 1;
+}
+
+.export-options-row .export-language-option {
+    grid-column: auto;
+}
+
+.export-language-option .audio-stream-field {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.export-language-option .audio-stream-select {
+    width: 100%;
+}
+
+.post-passes-label {
+    display: block;
+    padding: 0;
+    border: none;
+    background: none;
+    color: rgba(255, 255, 255, 0.85);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: var(--font-weight-label);
+    line-height: 18px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.post-passes-label:hover {
+    color: var(--accent);
+}
+
+.post-passes-label:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+.export-options-row .export-merge-option {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 8px;
+}
+
+.export-merge-switch {
+    position: relative;
+    flex: none;
+    width: 40px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.export-merge-switch::before {
+    content: "";
+    position: absolute;
+    inset: 5px 0;
+    border: 2px solid rgba(255, 255, 255, 0.45);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    transition: background 150ms ease, border-color 150ms ease;
+}
+
+.export-merge-switch::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 4px;
+    width: 14px;
+    height: 14px;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.85);
+    transition: transform 150ms ease;
+}
+
+.export-merge-switch[aria-checked="true"]::before {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.export-merge-switch[aria-checked="true"]::after {
+    transform: translate(18px, -50%);
+    background: #fff;
+}
+
+.export-merge-switch:hover::before {
+    border-color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .export-merge-switch::before,
+    .export-merge-switch::after {
+        transition: none;
+    }
 }
 
 .davinci-export-toggle {
@@ -323,36 +447,57 @@
     filter: drop-shadow(0 0 6px rgb(var(--accent-rgb) / 0.45));
 }
 
-/* both labels size to their text and sit right against their control,
-   instead of centring in a fixed box that left a wide gap beside it */
+/* labels use sentence case and a shared baseline instead of split uppercase text */
 .merge-clips-label,
 .audio-stream-label {
     flex: none;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: flex-end;
-    line-height: 1.15;
+    display: block;
+    line-height: 18px;
     font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.6px;
+    font-weight: var(--font-weight-label);
+    letter-spacing: normal;
     color: rgba(255, 255, 255, 0.85);
-    text-align: right;
+    text-align: left;
     user-select: none;
 }
 
-/* sized to the language it shows, not stretched by the profile picker's width:100% */
-.export-profile-select.audio-stream-select {
-    width: auto !important;
-    min-width: 76px;
-    max-width: 180px;
+.audio-stream-select {
+    width: 100%;
+    min-width: 0;
+}
+
+.audio-stream-select .dropdown-trigger {
+    min-height: 32px;
+    padding: 5px 8px;
+    gap: 6px;
+}
+
+.audio-stream-select .dropdown-value,
+.audio-stream-select .dropdown-item-label {
+    font-size: 13px;
+    font-weight: var(--font-weight-label);
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.audio-stream-select .dropdown-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.audio-stream-select:focus-within,
+.export-merge-switch:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
 }
 
 .audio-stream-field {
-    flex: 0 1 auto;
+    width: 100%;
     min-width: 0;
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
     gap: 8px;
 }
 
@@ -397,13 +542,14 @@
 .export-main-button {
     width: 100%;
     height: 42px;
-    margin-top: 4px;
+    margin-top: 0;
     background: transparent;
     color: var(--accent);
     border: 1px solid var(--accent);
-    font-size: 1.2rem;
-    font-weight: 600;
-    letter-spacing: 1.5px;
+    font-size: 14px;
+    font-weight: var(--font-weight-heading);
+    letter-spacing: normal;
+    line-height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -418,8 +564,7 @@
 .export-main-button:not(:disabled):hover {
     background: var(--accent);
     color: black;
-    transform: translateY(-2px);
-    box-shadow: 0 0 25px rgba(var(--accent-rgb), 0.4);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.2);
 }
 
 .export-main-button:not(:disabled):active {
@@ -436,7 +581,7 @@
 
 @container exportPanel (min-width: 520px) {
     .export-panel {
-        grid-template-columns: 1fr 130px;
+        grid-template-columns: minmax(0, 1fr) 130px;
         grid-template-areas:
             "header header"
             "profile button"

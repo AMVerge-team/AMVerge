@@ -1,202 +1,202 @@
 {
   "episodePanel": {
-    "fallbackEpisode": "episode",
-    "fallbackFolder": "folder",
-    "episodeCount_one": "{{count}} episode",
-    "episodeCount_other": "{{count}} episodes",
-    "searchPlaceholder": "Search episodes...",
-    "clearSearch": "Clear search",
+    "fallbackEpisode": "épisode",
+    "fallbackFolder": "dossier",
+    "episodeCount_one": "{{count}} épisode",
+    "episodeCount_other": "{{count}} épisodes",
+    "searchPlaceholder": "Rechercher un épisode…",
+    "clearSearch": "Effacer la recherche",
     "empty": {
-      "title": "No episodes yet",
-      "description": "Import a video to cut it into clips",
-      "importFirst": "Import your first episode"
+      "title": "Aucun épisode pour l'instant",
+      "description": "Importez une vidéo pour la découper en clips",
+      "importFirst": "Importer votre premier épisode"
     },
     "header": {
-      "title": "Episode Panel",
-      "sortAsc": "Sort A-Z",
-      "sortDesc": "Sort Z-A",
-      "newFolder": "New folder",
-      "showInFolder": "Show in folder",
-      "deleteDisabled": "Delete selected item (select an episode or folder first)",
-      "deleteSelectedEpisodes_one": "Delete {{count}} selected episode",
-      "deleteSelectedEpisodes_other": "Delete {{count}} selected episodes",
-      "deleteSelectedEpisode": "Delete selected episode",
-      "deleteSelectedFolder": "Delete selected folder"
+      "title": "Panneau des épisodes",
+      "sortAsc": "Trier de A à Z",
+      "sortDesc": "Trier de Z à A",
+      "newFolder": "Nouveau dossier",
+      "showInFolder": "Afficher dans le dossier",
+      "deleteDisabled": "Supprimer l'élément sélectionné (sélectionnez d'abord un épisode ou un dossier)",
+      "deleteSelectedEpisodes_one": "Supprimer {{count}} épisode sélectionné",
+      "deleteSelectedEpisodes_other": "Supprimer {{count}} épisodes sélectionnés",
+      "deleteSelectedEpisode": "Supprimer l'épisode sélectionné",
+      "deleteSelectedFolder": "Supprimer le dossier sélectionné"
     },
     "menu": {
-      "addFolder": "Add Folder",
-      "addSubfolder": "Add Subfolder",
-      "showInExplorer": "Show in File Explorer",
-      "deleteEpisodes_one": "Delete {{count}} episode",
-      "deleteEpisodes_other": "Delete {{count}} episodes"
+      "addFolder": "Ajouter un dossier",
+      "addSubfolder": "Ajouter un sous-dossier",
+      "showInExplorer": "Afficher dans l'Explorateur de fichiers",
+      "deleteEpisodes_one": "Supprimer {{count}} épisode",
+      "deleteEpisodes_other": "Supprimer {{count}} épisodes"
     },
     "row": {
-      "importedWebp": "Imported as WebP previews",
-      "importedVideo": "Imported as video files",
-      "webpEpisode": "WebP preview episode",
-      "videoEpisode": "Video preview episode",
-      "pausedResume": "Processing paused · resume",
-      "resume": "Resume processing",
-      "collapseFolder": "Collapse folder",
-      "expandFolder": "Expand folder"
+      "importedWebp": "Importé en aperçus WebP",
+      "importedVideo": "Importé en fichiers vidéo",
+      "webpEpisode": "Épisode en aperçus WebP",
+      "videoEpisode": "Épisode en aperçus vidéo",
+      "pausedResume": "Traitement en pause · reprendre",
+      "resume": "Reprendre le traitement",
+      "collapseFolder": "Replier le dossier",
+      "expandFolder": "Déplier le dossier"
     },
     "rename": {
-      "episodeTitle": "Rename Episode",
-      "episodePlaceholder": "Episode name",
-      "folderTitle": "Rename Folder",
-      "folderPlaceholder": "Folder name"
+      "episodeTitle": "Renommer l'épisode",
+      "episodePlaceholder": "Nom de l'épisode",
+      "folderTitle": "Renommer le dossier",
+      "folderPlaceholder": "Nom du dossier"
     },
     "newFolder": {
-      "title": "New Folder",
-      "placeholder": "Folder name...",
-      "parent": "Category",
-      "root": "None (root)",
-      "create": "Create"
+      "title": "Nouveau dossier",
+      "placeholder": "Nom du dossier…",
+      "parent": "Catégorie",
+      "root": "Aucune (racine)",
+      "create": "Créer"
     },
     "deleteConfirm": {
-      "titleFolder": "Delete Folder",
-      "titleEpisode": "Delete Episode",
-      "linkedIntro": "The following episodes are attached to databases:",
-      "messageFolder": "Are you sure you want to delete this folder?",
-      "messageEpisodes": "Are you sure you'd like to delete these episodes?",
-      "messageEpisode": "Are you sure you'd like to delete this episode?",
-      "checkingDatabases": "Checking Scene Scout databases…",
-      "noteLinked": "This also deletes the cached clip files and removes the episodes from those databases.",
-      "note": "This will also delete all cached clip files on disk."
+      "titleFolder": "Supprimer le dossier",
+      "titleEpisode": "Supprimer l'épisode",
+      "linkedIntro": "Ces épisodes sont rattachés à des bases :",
+      "messageFolder": "Supprimer ce dossier ?",
+      "messageEpisodes": "Supprimer ces épisodes ?",
+      "messageEpisode": "Supprimer cet épisode ?",
+      "checkingDatabases": "Vérification des bases Scene Scout…",
+      "noteLinked": "Les fichiers de clips en cache seront supprimés et les épisodes retirés de ces bases.",
+      "note": "Tous les fichiers de clips en cache seront aussi supprimés du disque."
     }
   },
   "scenepacks": {
-    "searchPlaceholder": "Search Scenepacks...",
+    "searchPlaceholder": "Rechercher un Scenepack…",
     "header": {
       "title": "Scenepacks",
-      "newScenepack": "New Scenepack",
-      "deleteSelected": "Delete selected item"
+      "newScenepack": "Nouveau Scenepack",
+      "deleteSelected": "Supprimer l'élément sélectionné"
     },
     "empty": {
-      "title": "No Scenepacks yet",
-      "description": "Group clips by character, fight, or event",
-      "createFirst": "Create your first Scenepack"
+      "title": "Aucun Scenepack pour l'instant",
+      "description": "Regroupez des clips par personnage, par combat ou par moment",
+      "createFirst": "Créer votre premier Scenepack"
     },
     "row": {
-      "addingClips_one": "Adding {{count}} clip…",
-      "addingClips_other": "Adding {{count}} clips…",
-      "nothingStored": "Nothing stored yet"
+      "addingClips_one": "Ajout de {{count}} clip…",
+      "addingClips_other": "Ajout de {{count}} clips…",
+      "nothingStored": "Rien d'enregistré pour l'instant"
     },
     "menu": {
-      "addScenepack": "Add Scenepack",
-      "open": "Open",
-      "changeThumbnail": "Change Thumbnail",
-      "moveTo": "Move to",
-      "noFolder": "No folder"
+      "addScenepack": "Ajouter un Scenepack",
+      "open": "Ouvrir",
+      "changeThumbnail": "Changer la vignette",
+      "moveTo": "Déplacer vers",
+      "noFolder": "Aucun dossier"
     },
     "newItem": {
-      "titleScenepack": "New Scenepack",
-      "placeholderScenepack": "Scenepack name..."
+      "titleScenepack": "Nouveau Scenepack",
+      "placeholderScenepack": "Nom du Scenepack…"
     },
     "rename": {
-      "placeholder": "New name..."
+      "placeholder": "Nouveau nom…"
     },
     "deleteConfirm": {
-      "titleScenepack": "Delete Scenepack",
-      "messageScenepack": "Are you sure you want to delete this Scenepack?",
-      "noteFolder": "All Scenepacks inside this folder will be moved to root."
+      "titleScenepack": "Supprimer le Scenepack",
+      "messageScenepack": "Supprimer ce Scenepack ?",
+      "noteFolder": "Tous les Scenepacks de ce dossier repartiront à la racine."
     },
     "thumbnail": {
-      "invalidType": "Thumbnail must be a PNG, JPEG, WebP, or GIF image.",
+      "invalidType": "La vignette doit être une image PNG, JPEG, WebP ou GIF.",
       "filterName": "Images",
-      "saving": "Saving...",
-      "dropHint": "Drop an image here, or click to browse",
-      "formats": "PNG, JPEG, WebP, or GIF"
+      "saving": "Enregistrement…",
+      "dropHint": "Déposez une image ici, ou cliquez pour parcourir",
+      "formats": "PNG, JPEG, WebP ou GIF"
     }
   },
   "addToScenepack": {
-    "title": "Add to Scenepack",
-    "titleCount_one": "Add {{count}} clip to Scenepack",
-    "titleCount_other": "Add {{count}} clips to Scenepack",
-    "existing": "Existing",
-    "createNew": "Create New",
-    "noScenepacks": "No Scenepacks yet. Switch to \"Create New\" to make one.",
-    "alreadyAdded": "already added",
-    "adding": "Adding...",
-    "createAndAdd": "Create & Add",
-    "addClips_one": "Add Clip",
-    "addClips_other": "Add {{count}} Clips",
-    "failed_one": "Failed to add clip to Scenepack.",
-    "failed_other": "Failed to add {{count}} clips to Scenepack.",
-    "nothingToAdd": "Nothing to add."
+    "title": "Ajouter au Scenepack",
+    "titleCount_one": "Ajouter {{count}} clip à un Scenepack",
+    "titleCount_other": "Ajouter {{count}} clips à un Scenepack",
+    "existing": "Existant",
+    "createNew": "Créer",
+    "noScenepacks": "Aucun Scenepack pour l'instant. Passez sur « Créer » pour en faire un.",
+    "alreadyAdded": "déjà ajouté",
+    "adding": "Ajout…",
+    "createAndAdd": "Créer et ajouter",
+    "addClips_one": "Ajouter le clip",
+    "addClips_other": "Ajouter {{count}} clips",
+    "failed_one": "Impossible d'ajouter le clip au Scenepack.",
+    "failed_other": "Impossible d'ajouter les {{count}} clips au Scenepack.",
+    "nothingToAdd": "Rien à ajouter."
   },
   "picker": {
-    "findMatching": "Find matching clips",
-    "setThumbnail": "Set as Scenepack thumbnail",
-    "added": "added",
-    "newScenepack": "New Scenepack…"
+    "findMatching": "Trouver les clips qui enchaînent",
+    "setThumbnail": "Définir comme vignette du Scenepack",
+    "added": "ajouté",
+    "newScenepack": "Nouveau Scenepack…"
   },
   "selection": {
-    "count_one": "{{count}} selected",
-    "count_other": "{{count}} selected",
-    "addSelectedTooltip": "Add selected clips to Scenepack",
-    "deselectAll": "Deselect all",
-    "clear": "Clear",
-    "clearSelection": "Clear selection",
-    "addingProgress_one": "Adding {{count}} clip...",
-    "addingProgress_other": "Adding {{count}} clips...",
-    "addFailed": "Failed to add clips to Scenepack.",
-    "createAndAddAll": "Create & Add All"
+    "count_one": "{{count}} sélectionné",
+    "count_other": "{{count}} sélectionnés",
+    "addSelectedTooltip": "Ajouter les clips sélectionnés à un Scenepack",
+    "deselectAll": "Tout désélectionner",
+    "clear": "Effacer",
+    "clearSelection": "Effacer la sélection",
+    "addingProgress_one": "Ajout de {{count}} clip…",
+    "addingProgress_other": "Ajout de {{count}} clips…",
+    "addFailed": "Impossible d'ajouter les clips au Scenepack.",
+    "createAndAddAll": "Créer et tout ajouter"
   },
   "clip": {
-    "download": "Download this clip",
-    "downloading": "Downloading…",
-    "openInTools": "Open in Tools",
-    "videoFilter": "Video",
-    "deleteClips_one": "Delete clip",
-    "deleteClips_other": "Delete {{count}} clips",
-    "select": "Select clip",
-    "deselect": "Deselect clip",
-    "removeFromScenepack": "Remove from Scenepack",
+    "download": "Télécharger ce clip",
+    "downloading": "Téléchargement…",
+    "openInTools": "Ouvrir dans Tools",
+    "videoFilter": "Vidéo",
+    "deleteClips_one": "Supprimer le clip",
+    "deleteClips_other": "Supprimer {{count}} clips",
+    "select": "Sélectionner le clip",
+    "deselect": "Désélectionner le clip",
+    "removeFromScenepack": "Retirer du Scenepack",
     "status": {
-      "merging": "Merging...",
-      "splitting": "Splitting...",
-      "adding": "Adding..."
+      "merging": "Fusion…",
+      "splitting": "Découpage…",
+      "adding": "Ajout…"
     },
     "tooltip": {
-      "timeframe": "Timeframe: {{timeframe}}",
-      "starts": "Starts: {{motion}}",
-      "ends": "Ends: {{motion}}"
+      "timeframe": "Intervalle : {{timeframe}}",
+      "starts": "Début : {{motion}}",
+      "ends": "Fin : {{motion}}"
     }
   },
   "confidence": {
-    "veryHigh": "Very High Confidence",
-    "high": "High Confidence",
-    "good": "Good Confidence",
-    "fair": "Fair Confidence",
-    "low": "Low Confidence",
-    "match": "Match: {{pct}}%",
-    "matchWithLabel": "Match: {{pct}}% ({{label}})"
+    "veryHigh": "Confiance très élevée",
+    "high": "Confiance élevée",
+    "good": "Bonne confiance",
+    "fair": "Confiance moyenne",
+    "low": "Confiance faible",
+    "match": "Correspondance : {{pct}} %",
+    "matchWithLabel": "Correspondance : {{pct}} % ({{label}})"
   },
   "emptyGrid": {
     "noScenepack": {
-      "title": "No Scenepack opened.",
-      "hint": "Select one from the sidebar to view its clips."
+      "title": "Aucun Scenepack ouvert.",
+      "hint": "Sélectionnez-en un dans le panneau de gauche pour voir ses clips."
     },
     "flowNoScenes": {
-      "title": "No scenes found for this clip.",
-      "hint": "Add a database to the Searching list on the left."
+      "title": "Aucune scène trouvée pour ce clip.",
+      "hint": "Ajoutez une base à la liste Searching, à gauche."
     },
     "flowNoClip": {
-      "title": "No clip to continue yet.",
-      "hint": "Input an episode above, or right-click a clip in your Library and pick Find matching clips."
+      "title": "Aucun clip à prolonger pour l'instant.",
+      "hint": "Chargez un épisode au-dessus, ou faites un clic droit sur un clip de Library et choisissez Trouver les clips qui enchaînent."
     },
     "searchNoMatch": {
-      "title": "No scenes matched your search.",
-      "hint": "Try changing your search terms."
+      "title": "Aucune scène ne correspond à votre recherche.",
+      "hint": "Essayez d'autres mots."
     },
     "searchIdle": {
-      "title": "No scenes found.",
-      "hint": "Select one or more databases on the left, describe a scene, and press Enter to search."
+      "title": "Aucune scène trouvée.",
+      "hint": "Sélectionnez une ou plusieurs bases à gauche, décrivez une scène, puis appuyez sur Entrée."
     },
     "noVideo": {
-      "title": "No video loaded.",
-      "hint": "If no clips are displaying, try changing the episode storage path in general settings."
+      "title": "Aucune vidéo chargée.",
+      "hint": "Si aucun clip ne s'affiche, changez le dossier de stockage des épisodes dans les paramètres généraux."
     }
   }
 }

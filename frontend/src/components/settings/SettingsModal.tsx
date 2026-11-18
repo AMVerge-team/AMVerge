@@ -14,7 +14,7 @@ export default function SettingsModal(props: SettingsModalProps) {
   const closeSettings = useUIStateStore((s) => s.closeSettings);
 
   return (
-    <ModalShell open={open} onClose={closeSettings} label={t("settingsPage.title")}>
+    <ModalShell open={open} onClose={closeSettings} label={t("settingsPage.title")} className="settings-modal">
       <Settings {...props} />
     </ModalShell>
   );

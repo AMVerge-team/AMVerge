@@ -5,6 +5,7 @@ import {
     readLanguagePreference,
     resolveLanguage,
     writeLanguagePreference,
+    SUPPORTED_LANGUAGES,
     type LanguagePreference,
     type ResolvedLanguage,
 } from "./language";
@@ -68,7 +69,7 @@ export function initI18n() {
         resources,
         lng: language,
         fallbackLng: "en",
-        supportedLngs: ["en", "zh-CN"],
+        supportedLngs: [...SUPPORTED_LANGUAGES],
         ns: NAMESPACES,
         defaultNS: "common",
         fallbackNS: "common",

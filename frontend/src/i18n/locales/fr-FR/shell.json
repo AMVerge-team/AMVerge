@@ -1,340 +1,340 @@
 {
   "app": {
-    "resetFailedTitle": "Reset failed",
-    "resetFailed": "Failed to reset episode directory: {{error}}",
+    "resetFailedTitle": "Échec de la réinitialisation",
+    "resetFailed": "Impossible de réinitialiser le dossier des épisodes : {{error}}",
     "aiPack": {
       "ml": "AI Scene Detection",
       "depth": "Depth Maps",
       "upscale": "Upscaling",
-      "generic": "AI Models"
+      "generic": "Modèles IA"
     },
     "progress": {
-      "sampling": "Sampling frames",
-      "embedding": "Embedding scenes",
-      "searching": "Searching scenes",
-      "thumbnails": "Generating thumbnails",
-      "reencoding": "Reencoding",
-      "processing": "Processing clips",
-      "previews": "Generating previews {{done}}/{{total}}",
-      "downloading": "Downloading {{name}}"
+      "sampling": "Échantillonnage des images",
+      "embedding": "Encodage des scènes",
+      "searching": "Recherche de scènes",
+      "thumbnails": "Création des vignettes",
+      "reencoding": "Réencodage",
+      "processing": "Traitement des clips",
+      "previews": "Création des aperçus {{done}}/{{total}}",
+      "downloading": "Téléchargement de {{name}}"
     }
   },
   "layout": {
-    "dropFiles": "Drag file(s) here.",
-    "resizeSidebar": "Resize sidebar"
+    "dropFiles": "Déposez vos fichiers ici.",
+    "resizeSidebar": "Redimensionner le panneau"
   },
   "navbar": {
-    "quickNav": "Quick navigation (Esc)",
+    "quickNav": "Navigation rapide (Échap)",
     "menu": "Menu",
-    "joinDiscord": "Join AMVerge Discord",
-    "bigger": "Bigger tiles, fewer columns",
-    "smaller": "Smaller tiles, more columns",
-    "gridCols_one": "Grid: <strong>{{count}}</strong> col",
-    "gridCols_other": "Grid: <strong>{{count}}</strong> cols",
-    "unpin": "Unpin window",
-    "pin": "Keep window on top",
-    "minimize": "Minimize",
-    "restore": "Restore",
-    "maximize": "Maximize"
+    "joinDiscord": "Rejoindre le Discord AMVerge",
+    "bigger": "Vignettes plus grandes, moins de colonnes",
+    "smaller": "Vignettes plus petites, plus de colonnes",
+    "gridCols_one": "Grille : <strong>{{count}}</strong> colonne",
+    "gridCols_other": "Grille : <strong>{{count}}</strong> colonnes",
+    "unpin": "Détacher la fenêtre",
+    "pin": "Garder la fenêtre au premier plan",
+    "minimize": "Réduire",
+    "restore": "Restaurer",
+    "maximize": "Agrandir"
   },
   "quickMenu": {
-    "ariaLabel": "Quick menu",
-    "title": "Quick Navigation",
-    "subtitle": "Quickly jump between pages, search, or configure preferences.",
+    "ariaLabel": "Menu rapide",
+    "title": "Navigation rapide",
+    "subtitle": "Passez d'une page à l'autre, cherchez, ou réglez vos préférences.",
     "search": {
-      "title": "Search",
-      "desc": "Search across episodes, scenepacks, settings, and commands"
+      "title": "Rechercher",
+      "desc": "Chercher dans les épisodes, les Scenepacks, les paramètres et les commandes"
     },
     "tools": {
       "title": "Tools",
-      "desc": "Upscale a clip or turn it into a depth map"
+      "desc": "Upscaler un clip ou en faire une depth map"
     },
     "menu": {
       "title": "Menu",
-      "desc": "About, Update Logs, Console, Credits, and Bug Reports"
+      "desc": "À propos, journal des mises à jour, console, crédits et rapports de bug"
     },
     "settings": {
-      "title": "Settings",
-      "desc": "General options, export profiles, appearance, and AI models"
+      "title": "Paramètres",
+      "desc": "Options générales, profils d'export, apparence et modèles IA"
     }
   },
   "splash": {
-    "tagline": "Scene selection made easy."
+    "tagline": "Le choix des scènes, simplifié."
   },
   "features": {
     "aiSceneDetection": "AI Scene Detection",
     "sceneScout": "Scene Scout",
     "scenepacks": "Scenepacks",
-    "depthPass": "Depth Map Pass",
-    "upscalePass": "Upscale Pass",
-    "turnOn": "Turn on {{feature}} in Settings › Features"
+    "depthPass": "Passe Depth Map",
+    "upscalePass": "Passe Upscale",
+    "turnOn": "Activez {{feature}} dans Paramètres › Fonctionnalités"
   },
   "sidebar": {
     "library": "Library",
     "scenepacks": "Scenepacks",
     "sceneScout": "Scene Scout",
     "events": "Community Events",
-    "newEvents_one": "{{count}} new event",
-    "newEvents_other": "{{count}} new events",
-    "muteEvents": "Mute event notifications",
-    "unmuteEvents": "Unmute event notifications"
+    "newEvents_one": "{{count}} nouvel événement",
+    "newEvents_other": "{{count}} nouveaux événements",
+    "muteEvents": "Couper les notifications d'événements",
+    "unmuteEvents": "Remettre les notifications d'événements"
   },
   "menuPage": {
     "label": "Menu",
     "tabs": {
-      "about": "About",
+      "about": "À propos",
       "console": "Console",
-      "logs": "Update Logs",
-      "credits": "Credits",
-      "resources": "Resources",
-      "bugreport": "Report Bug"
+      "logs": "Mises à jour",
+      "credits": "Crédits",
+      "resources": "Ressources",
+      "bugreport": "Signaler un bug"
     }
   },
   "settingsPage": {
-    "title": "Settings",
+    "title": "Paramètres",
     "tabs": {
-      "general": "General",
+      "general": "Général",
       "export": "Export",
-      "appearance": "Appearance",
-      "features": "Features",
+      "appearance": "Apparence",
+      "features": "Fonctionnalités",
       "discord": "Discord RPC",
-      "storage": "Storage"
+      "storage": "Stockage"
     }
   },
   "scenepacksPage": {
-    "failed": "Failed: {{error}}"
+    "failed": "Échec : {{error}}"
   },
   "palette": {
-    "ariaLabel": "Spotlight Command Center",
-    "placeholder": "Search episodes, scenepacks, actions, settings, menu...",
-    "clear": "Clear search",
-    "emptyTitle": "No matching results found",
-    "emptyHint": "Try searching another title or use category filter chips above",
-    "navigate": "Navigate",
-    "open": "Open",
-    "nextFilter": "Next Filter",
-    "close": "Close",
+    "ariaLabel": "Centre de commandes",
+    "placeholder": "Chercher des épisodes, des Scenepacks, des actions, des paramètres, le menu…",
+    "clear": "Effacer la recherche",
+    "emptyTitle": "Aucun résultat",
+    "emptyHint": "Essayez un autre titre, ou servez-vous des filtres de catégorie au-dessus",
+    "navigate": "Se déplacer",
+    "open": "Ouvrir",
+    "nextFilter": "Filtre suivant",
+    "close": "Fermer",
     "chips": {
-      "all": "All",
-      "episodes": "Episodes",
+      "all": "Tout",
+      "episodes": "Épisodes",
       "scenepacks": "Scenepacks",
       "sceneScout": "Scene Scout",
       "actions": "Actions",
-      "settings": "Settings",
-      "menu": "System & Menu"
+      "settings": "Paramètres",
+      "menu": "Système et menu"
     },
     "inspector": {
-      "empty": "Select an item to view preview",
-      "target": "Target",
-      "execute": "Execute Command",
-      "reveal": "Reveal in {{manager}}"
+      "empty": "Sélectionnez un élément pour le voir",
+      "target": "Cible",
+      "execute": "Lancer la commande",
+      "reveal": "Afficher dans {{manager}}"
     }
   },
   "commands": {
-    "openShortcut": "↵ Open",
+    "openShortcut": "↵ Ouvrir",
     "episode": {
-      "fallbackName": "Episode {{id}}",
-      "subtitle_one": "{{count}} cut scene • {{path}}",
-      "subtitle_other": "{{count}} cut scenes • {{path}}",
-      "readyInWorkspace": "Ready in workspace",
-      "localFile": "Local video file",
-      "description": "Immediately loads and streams all cut scenes into the grid timeline."
+      "fallbackName": "Épisode {{id}}",
+      "subtitle_one": "{{count}} scène découpée • {{path}}",
+      "subtitle_other": "{{count}} scènes découpées • {{path}}",
+      "readyInWorkspace": "Prêt dans l'espace de travail",
+      "localFile": "Fichier vidéo local",
+      "description": "Charge tout de suite toutes les scènes découpées dans la grille."
     },
     "scenepack": {
-      "subtitle_one": "{{count}} scene in collection",
-      "subtitle_other": "{{count}} scenes in collection",
-      "meta": "Custom Scenepack Folder",
-      "description": "Browse, filter, and batch export clips collected in this scenepack."
+      "subtitle_one": "{{count}} scène dans la collection",
+      "subtitle_other": "{{count}} scènes dans la collection",
+      "meta": "Dossier Scenepack",
+      "description": "Parcourez, filtrez et exportez en lot les clips réunis dans ce Scenepack."
     },
     "scoutDb": {
       "subtitle": "{{episodes}} • {{scenes}}",
-      "episodes_one": "{{count}} episode",
-      "episodes_other": "{{count}} episodes",
-      "scenes_one": "{{count}} scene",
-      "scenes_other": "{{count}} scenes",
-      "description": "Opens this database in Scene Scout and searches it."
+      "episodes_one": "{{count}} épisode",
+      "episodes_other": "{{count}} épisodes",
+      "scenes_one": "{{count}} scène",
+      "scenes_other": "{{count}} scènes",
+      "description": "Ouvre cette base dans Scene Scout et y lance la recherche."
     },
     "scoutSearch": {
-      "title": "Scene Scout: Search",
-      "subtitle": "Find scenes by describing them",
-      "meta": "Scene Scout Search",
-      "description": "Describe a scene in words and Scene Scout finds it across your databases."
+      "title": "Scene Scout : Search",
+      "subtitle": "Trouver des scènes en les décrivant",
+      "meta": "Recherche Scene Scout",
+      "description": "Décrivez une scène avec des mots, Scene Scout la trouve dans vos bases."
     },
     "scoutFlow": {
-      "title": "Scene Scout: Find matching clips",
-      "subtitle": "Pick a video file and find scenes that could follow it",
-      "meta": "Match Search",
-      "description": "Finds scenes that look like they follow the last frame of the file you pick."
+      "title": "Scene Scout : trouver les clips qui enchaînent",
+      "subtitle": "Choisir un fichier vidéo et trouver les scènes qui pourraient le suivre",
+      "meta": "Recherche Match",
+      "description": "Trouve les scènes qui semblent suivre la dernière image du fichier sélectionné."
     },
     "import": {
-      "title": "Import New Episode",
-      "subtitle": "Select video file to detect and cut into scene clips",
-      "meta": "Scene Detection Pipeline",
-      "description": "Open file dialog to run TransNetV2 AI or fast keyframe demux."
+      "title": "Importer un nouvel épisode",
+      "subtitle": "Choisir un fichier vidéo à détecter et à découper en clips",
+      "meta": "Chaîne de détection de scènes",
+      "description": "Ouvre le sélecteur de fichiers pour lancer l'IA TransNetV2 ou le démultiplexage rapide par images clés."
     },
     "selectAll": {
-      "title": "Select All Clips",
-      "subtitle_one": "Highlight all {{count}} scene in timeline",
-      "subtitle_other": "Highlight all {{count}} scenes in timeline",
-      "meta": "Bulk Selection",
-      "description": "Selects every scene for batch export, merging, or scenepack grouping."
+      "title": "Sélectionner tous les clips",
+      "subtitle_one": "Mettre en évidence {{count}} scène de la grille",
+      "subtitle_other": "Mettre en évidence les {{count}} scènes de la grille",
+      "meta": "Sélection multiple",
+      "description": "Sélectionne toutes les scènes pour les exporter en lot, les fusionner ou les regrouper en Scenepack."
     },
     "clearSelection": {
-      "title": "Clear Clip Selection",
-      "subtitle_one": "Deselect currently selected {{count}} scene",
-      "subtitle_other": "Deselect currently selected {{count}} scenes",
-      "meta": "Deselect All",
-      "description": "Clears selection state across the grid."
+      "title": "Effacer la sélection de clips",
+      "subtitle_one": "Désélectionner {{count}} scène sélectionnée",
+      "subtitle_other": "Désélectionner les {{count}} scènes sélectionnées",
+      "meta": "Tout désélectionner",
+      "description": "Vide la sélection dans toute la grille."
     },
     "pin": {
-      "unpinTitle": "Unpin Window (Normal Mode)",
-      "pinTitle": "Pin Window (Always on Top)",
-      "subtitle": "Toggle floating companion window for After Effects / Premiere",
-      "meta": "Always on Top Mode",
-      "description": "Shrinks and pins AMVerge floating above your editing application."
+      "unpinTitle": "Détacher la fenêtre (mode normal)",
+      "pinTitle": "Épingler la fenêtre (toujours au premier plan)",
+      "subtitle": "Passer en fenêtre flottante à côté d'After Effects ou de Premiere",
+      "meta": "Mode toujours au premier plan",
+      "description": "Réduit AMVerge et le garde flottant au-dessus de votre logiciel de montage."
     },
     "sidebar": {
-      "hideTitle": "Hide Sidebar",
-      "showTitle": "Show Sidebar",
-      "subtitle": "Toggle left navigation and episode tree panel",
-      "meta": "Sidebar Visibility",
-      "description": "Expands or collapses the left episode panel to save screen space."
+      "hideTitle": "Masquer le panneau latéral",
+      "showTitle": "Afficher le panneau latéral",
+      "subtitle": "Afficher ou masquer la navigation et l'arborescence des épisodes",
+      "meta": "Affichage du panneau latéral",
+      "description": "Déplie ou replie le panneau de gauche pour gagner de la place à l'écran."
     },
     "preview": {
-      "showTitle": "Show Video Preview Panel",
-      "hideTitle": "Hide Video Preview Panel",
-      "subtitle": "Toggle the right preview player to expand clip grid full-width",
-      "meta": "Preview Pane Toggle",
-      "description": "Hides or restores the right video playback and export controls pane."
+      "showTitle": "Afficher le panneau d'aperçu",
+      "hideTitle": "Masquer le panneau d'aperçu",
+      "subtitle": "Masquer le lecteur de droite pour étendre la grille sur toute la largeur",
+      "meta": "Affichage du panneau d'aperçu",
+      "description": "Masque ou rétablit le panneau de lecture et les commandes d'export, à droite."
     },
-    "columns_one": "Currently {{count}} column per row",
-    "columns_other": "Currently {{count}} columns per row",
+    "columns_one": "Actuellement {{count}} colonne par ligne",
+    "columns_other": "Actuellement {{count}} colonnes par ligne",
     "zoomIn": {
-      "title": "Grid: Zoom In (Larger Tiles)",
-      "meta": "Bigger Clip Tiles",
-      "description": "Decreases columns to give each clip thumbnail more screen real estate."
+      "title": "Grille : agrandir (vignettes plus grandes)",
+      "meta": "Vignettes plus grandes",
+      "description": "Réduit le nombre de colonnes pour donner plus de place à chaque vignette."
     },
     "zoomOut": {
-      "title": "Grid: Zoom Out (More Columns)",
-      "meta": "Smaller Clip Tiles",
-      "description": "Increases columns to view more scene clips at a glance."
+      "title": "Grille : réduire (plus de colonnes)",
+      "meta": "Vignettes plus petites",
+      "description": "Ajoute des colonnes pour voir plus de clips d'un coup d'œil."
     },
     "audio": {
-      "muteTitle": "Mute Audio on Hover",
-      "enableTitle": "Enable Audio on Hover",
-      "subtitle": "Toggle clip hover sound in the scene grid",
-      "meta": "Hover Audio Playback",
-      "description": "Controls whether hovering over a clip tile plays its synchronized audio track."
+      "muteTitle": "Couper le son au survol",
+      "enableTitle": "Activer le son au survol",
+      "subtitle": "Activer ou couper le son des clips survolés dans la grille",
+      "meta": "Son au survol",
+      "description": "Décide si survoler une vignette joue sa piste audio."
     },
     "settingsGeneral": {
-      "title": "Settings: General",
-      "subtitle": "Scene detection methods, episodes storage path, and app defaults",
-      "meta": "General Preferences",
-      "defaultPath": "Default Cache Directory",
-      "description": "Configure detection algorithms, cache locations, and video decode pipelines."
+      "title": "Paramètres : Général",
+      "subtitle": "Méthodes de détection de scènes, dossier des épisodes et valeurs par défaut",
+      "meta": "Préférences générales",
+      "defaultPath": "Dossier de cache par défaut",
+      "description": "Réglez les algorithmes de détection, les emplacements de cache et le décodage vidéo."
     },
     "settingsExport": {
-      "title": "Settings: Export Profiles",
-      "subtitle": "GPU acceleration encoders (NVENC / AMF / QSV) and video codecs",
-      "meta": "Export Configuration",
-      "defaultPath": "Default Export Folder",
-      "description": "Manage export encoders, bitrates, hardware profiles, and container formats."
+      "title": "Paramètres : profils d'export",
+      "subtitle": "Encodeurs matériels (NVENC / AMF / QSV) et codecs vidéo",
+      "meta": "Configuration de l'export",
+      "defaultPath": "Dossier d'export par défaut",
+      "description": "Gérez les encodeurs, les débits, les profils matériels et les conteneurs."
     },
     "settingsAppearance": {
-      "title": "Settings: Appearance",
-      "subtitle": "Custom colors, wallpaper background blur, and clip styling",
-      "meta": "Visual Styling",
-      "accent": "Accent: {{color}}",
-      "description": "Personalize app colors, background images, opacity, and typography."
+      "title": "Paramètres : Apparence",
+      "subtitle": "Couleurs, flou du fond d'écran et style des clips",
+      "meta": "Style visuel",
+      "accent": "Accent : {{color}}",
+      "description": "Personnalisez les couleurs, les images de fond, l'opacité et la typographie."
     },
     "settingsFeatures": {
-      "title": "Settings: Features",
-      "subtitle": "Turn AI Scene Detection, Scene Scout, Scenepacks and export passes on or off",
-      "meta": "Features & storage",
-      "description": "Switch major features on or off, download what they need, and see how much disk space they use."
+      "title": "Paramètres : Fonctions",
+      "subtitle": "Activez ou désactivez AI Scene Detection, Scene Scout, Scenepacks et les passes d'export",
+      "meta": "Fonctionnalités et stockage",
+      "description": "Activez ou désactivez les grandes fonctionnalités, téléchargez ce dont elles ont besoin, et voyez la place qu'elles prennent."
     },
     "settingsDiscord": {
-      "title": "Settings: Discord Rich Presence",
-      "subtitle": "Configure Discord status badges, filenames, and rich details",
-      "meta": "Discord RPC Integration",
-      "description": "Show your editing status and active clips count on Discord."
+      "title": "Paramètres : Discord Rich Presence",
+      "subtitle": "Réglez les badges Discord, les noms de fichiers et le détail affiché",
+      "meta": "Intégration Discord RPC",
+      "description": "Affichez ce que vous montez et le nombre de clips en cours sur Discord."
     },
     "library": {
       "title": "Library",
-      "subtitle": "Your imported episodes and their clips",
-      "description": "Back to the episode grid."
+      "subtitle": "Vos épisodes importés et leurs clips",
+      "description": "Retour à la grille des épisodes."
     },
     "scenepacks": {
       "title": "Scenepacks",
-      "subtitle": "Themed collections of clips",
-      "description": "Browse and export the clips you grouped into Scenepacks."
+      "subtitle": "Collections de clips par thème",
+      "description": "Parcourez et exportez les clips que vous avez réunis en Scenepacks."
     },
     "sceneScout": {
       "title": "Scene Scout",
-      "subtitle": "Search your episodes by describing a scene",
-      "description": "Search indexed episodes by text, or find clips that match each other."
+      "subtitle": "Cherchez dans vos épisodes en décrivant une scène",
+      "description": "Cherchez par texte dans les épisodes indexés, ou trouvez les clips qui enchaînent."
     },
     "events": {
       "title": "Community Events",
-      "subtitle": "Browse contests, collabs, and jams, or host your own",
-      "description": "Events hosted by the AMVerge community, reviewed before they appear."
+      "subtitle": "Parcourez concours, collabs et jams, ou organisez les vôtres",
+      "description": "Les événements de la communauté AMVerge, relus avant d'apparaître."
     },
     "console": {
-      "title": "Developer Console Logs",
-      "subtitle": "Live CLI IPC events, backend streams, and diagnostic logs",
-      "meta": "Diagnostic Console",
-      "description": "Inspect live stderr/stdout telemetry from FFmpeg, PyAV, and AI sidecars."
+      "title": "Journal de la console développeur",
+      "subtitle": "Événements IPC du CLI, flux du backend et journaux de diagnostic",
+      "meta": "Console de diagnostic",
+      "description": "Regardez en direct la sortie de FFmpeg, PyAV et des processus IA."
     },
     "patchNotes": {
-      "title": "Update Logs & Patch Notes",
-      "subtitle": "Read release history and new features in AMVerge v2",
-      "meta": "Version Release Logs",
-      "description": "Browse changelogs, bug fixes, and feature additions."
+      "title": "Journal des mises à jour",
+      "subtitle": "L'historique des versions et les nouveautés d'AMVerge v2",
+      "meta": "Journal des versions",
+      "description": "Parcourez les changements, les corrections et les ajouts de fonctionnalités."
     },
     "about": {
-      "title": "About AMVerge",
-      "subtitle": "Architecture, system info, and open-source licenses",
-      "meta": "About AMVerge Desktop",
-      "description": "High-performance anime & video scene cutter by Crptk & team."
+      "title": "À propos d'AMVerge",
+      "subtitle": "Architecture, informations système et licences open source",
+      "meta": "À propos d'AMVerge Desktop",
+      "description": "Découpeur de scènes d'anime et de vidéo, par Crptk et son équipe."
     },
     "bugReport": {
-      "title": "Report a Bug / Issue",
-      "subtitle": "Submit feedback with diagnostic telemetry or connect to Discord",
-      "meta": "Feedback & Bug Reports",
-      "description": "Submit reproducible bugs directly to the development team."
+      "title": "Signaler un bug ou un problème",
+      "subtitle": "Envoyez un retour avec des informations de diagnostic, ou connectez-vous à Discord",
+      "meta": "Retours et rapports de bug",
+      "description": "Envoyez directement à l'équipe les bugs que vous savez reproduire."
     }
   },
   "colorPicker": {
-    "choose": "Choose color",
-    "presets": "Presets"
+    "choose": "Choisir une couleur",
+    "presets": "Préréglages"
   },
   "crop": {
-    "title": "Crop & Transform",
-    "hint": "Drag corners to resize freely",
-    "resetTooltip": "Reset all changes",
-    "imageAlt": "Crop me",
-    "aspectRatio": "Aspect Ratio",
-    "free": "Free",
-    "widthShort": "W",
+    "title": "Recadrer et transformer",
+    "hint": "Glissez les coins pour redimensionner librement",
+    "resetTooltip": "Annuler tous les changements",
+    "imageAlt": "Image à recadrer",
+    "aspectRatio": "Format",
+    "free": "Libre",
+    "widthShort": "L",
     "heightShort": "H",
-    "width": "Width",
-    "height": "Height",
-    "rotateFlip": "Rotate & Flip",
-    "rotateLeft": "Rotate left",
-    "rotateRight": "Rotate right",
-    "flipHorizontal": "Flip horizontal",
-    "flipVertical": "Flip vertical",
-    "zoom": "Zoom ({{percent}}%)",
-    "saveApply": "Save & Apply"
+    "width": "Largeur",
+    "height": "Hauteur",
+    "rotateFlip": "Pivoter et retourner",
+    "rotateLeft": "Pivoter à gauche",
+    "rotateRight": "Pivoter à droite",
+    "flipHorizontal": "Retourner horizontalement",
+    "flipVertical": "Retourner verticalement",
+    "zoom": "Zoom ({{percent}} %)",
+    "saveApply": "Enregistrer et appliquer"
   },
   "infoButton": {
-    "about": "About {{title}}"
+    "about": "À propos de {{title}}"
   },
   "modal": {
-    "closeLabel": "Close {{label}}"
+    "closeLabel": "Fermer {{label}}"
   },
   "previewAll": {
-    "start": "Preview all clips",
-    "stop": "Stop previewing all clips"
+    "start": "Lire tous les clips",
+    "stop": "Arrêter la lecture de tous les clips"
   }
 }

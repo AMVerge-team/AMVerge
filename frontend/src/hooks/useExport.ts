@@ -8,6 +8,7 @@ import { fileNameFromPath } from "../utils/episodeUtils";
 import { runPostExportPasses, type PassTarget } from "../features/export/runPostExportPasses";
 import {
   anyPassEnabled,
+  effectivePostExportPasses,
   PASS_SUFFIX,
   POST_EXPORT_PASS_KINDS,
   type PostExportPassKind,
@@ -237,7 +238,7 @@ export function useExport({ onRPCUpdate }: Params) {
         persistedState.setExportDir(dir);
       }
 
-      const passesSnapshot = generalSettings.postExportPasses;
+      const passesSnapshot = effectivePostExportPasses(generalSettings.postExportPasses, generalSettings.postExportPassesEnabled);
       // which selected clips get each pass; cancelling drops the export
       const picks = await pickPassTargets(selected, passesSnapshot, mergeEnabled);
       if (!picks) return;
@@ -312,6 +313,7 @@ export function useExport({ onRPCUpdate }: Params) {
     [
       persistedState,
       generalSettings.postExportPasses,
+      generalSettings.postExportPassesEnabled,
       exportMergedWithPasses,
       exportContextForClips,
       runExportClips,

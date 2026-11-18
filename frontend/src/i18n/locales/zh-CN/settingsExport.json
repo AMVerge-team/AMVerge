@@ -121,8 +121,8 @@
   "passes": {
     "section": "导出后处理",
     "master": {
-      "label": "Enable post-export passes",
-      "description": "Run the enabled passes below after exporting. Turn off to skip them while keeping their settings."
+      "label": "启用导出后处理",
+      "description": "导出完成后运行下方已启用的处理。关闭时跳过后处理，并保留各项配置。"
     },
     "labels": {
       "depth": "深度图",
