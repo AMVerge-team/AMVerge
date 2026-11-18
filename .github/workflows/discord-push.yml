@@ -32,7 +32,7 @@ jobs:
           if webhook_url.endswith("/github"):
               webhook_url = webhook_url[: -len("/github")]
 
-          # Discord ignores the components field on standard webhooks unless with_components=true is present
+          # Discord ignores components on webhooks unless with_components=true is set
           parsed_url = urllib.parse.urlparse(webhook_url)
           query_params = urllib.parse.parse_qs(parsed_url.query)
           query_params["with_components"] = ["true"]
@@ -46,7 +46,6 @@ jobs:
           if not commits:
               raise SystemExit(0)
 
-          repo_name = event["repository"]["name"]
           repo_full = event["repository"]["full_name"]
           repo_url = event["repository"]["html_url"]
           branch = event["ref"].removeprefix("refs/heads/")
@@ -66,49 +65,69 @@ jobs:
               url = c["url"]
               msg = (c.get("message") or "").splitlines()[0]
               author = (c.get("author") or {}).get("username") or (c.get("author") or {}).get("name") or sender_name
-              commit_lines.append(f"[`{sha}`]({url}) {msg} — *{author}*")
+              commit_lines.append(f"• [`{sha}`]({url}) {msg}\n  -# by **{author}**")
 
           if count > 8:
-              commit_lines.append(f"*...and {count - 8} more commit(s) on GitHub*")
+              commit_lines.append(f"-# *...and {count - 8} more commit(s) on GitHub*")
 
-          desc = (
-              f"**[{count} new {commit_word}]({compare_url})** to [`{branch}`]({repo_url}/tree/{branch})\n\n"
-              + "\n".join(commit_lines)
-          )
+          desc = "\n\n".join(commit_lines)
 
+          # Pure Components V2 payload following ZarScape/discord.js-v2-components spec
           payload = {
               "username": "AMVerge Desktop",
               "avatar_url": "https://github.com/AMVerge-team.png",
-              "embeds": [
-                  {
-                      "author": {
-                          "name": f"{sender_name} pushed to {repo_full}",
-                          "url": sender_url,
-                          "icon_url": sender_avatar,
-                      },
-                      "description": desc[:4096],
-                      "color": 0x22C55E,
-                      "footer": {
-                          "text": f"{repo_full} • {branch}",
-                          "icon_url": "https://github.com/AMVerge-team.png",
-                      },
-                  }
-              ],
+              "flags": 32768,
               "components": [
                   {
-                      "type": 1,
+                      "type": 17,
+                      "accent_color": 0x22C55E,
                       "components": [
                           {
-                              "type": 2,
-                              "style": 5,
-                              "label": "Compare on GitHub",
-                              "url": compare_url,
+                              "type": 9,
+                              "components": [
+                                  {
+                                      "type": 10,
+                                      "content": f"### [{branch}] {count} new {commit_word}\nPushed to [{repo_full}]({repo_url}) by [{sender_name}]({sender_url})",
+                                  }
+                              ],
+                              "accessory": {
+                                  "type": 11,
+                                  "media": {
+                                      "url": sender_avatar,
+                                  },
+                                  "description": f"{sender_name}'s avatar",
+                              },
                           },
                           {
-                              "type": 2,
-                              "style": 5,
-                              "label": "Open Repository",
-                              "url": repo_url,
+                              "type": 14,
+                              "divider": True,
+                              "spacing": 1,
+                          },
+                          {
+                              "type": 10,
+                              "content": desc,
+                          },
+                          {
+                              "type": 14,
+                              "divider": True,
+                              "spacing": 1,
+                          },
+                          {
+                              "type": 1,
+                              "components": [
+                                  {
+                                      "type": 2,
+                                      "style": 5,
+                                      "label": "Compare on GitHub",
+                                      "url": compare_url,
+                                  },
+                                  {
+                                      "type": 2,
+                                      "style": 5,
+                                      "label": "Open Repository",
+                                      "url": repo_url,
+                                  },
+                              ],
                           },
                       ],
                   }
@@ -126,9 +145,9 @@ jobs:
           )
           try:
               with urllib.request.urlopen(req, timeout=15) as resp:
-                  print("Discord webhook delivered successfully, status:", resp.status)
+                  print("Discord V2 webhook delivered successfully, status:", resp.status)
           except urllib.error.HTTPError as e:
               err_body = e.read().decode("utf-8", errors="replace")
-              print(f"Discord webhook failed with HTTP {e.code}: {err_body}")
+              print(f"Discord webhook response HTTP {e.code}: {err_body}")
               raise SystemExit(1)
           EOF
