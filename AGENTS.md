@@ -1,6 +1,6 @@
 # AMVerge v2: AI Agent Guide
 
-> Target: `main` / `development` (v2.0.2 — Tauri v2 + React + AMVerge-CLI)
+> Target: `main` / `development` (v2.0.5 — Tauri v2 + React + AMVerge-CLI)
 > Last updated: 2026-11-16
 
 ## Cross-Repo Contracts
