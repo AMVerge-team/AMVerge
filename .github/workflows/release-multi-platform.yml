@@ -44,17 +44,17 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "20"
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -138,14 +138,14 @@ jobs:
           }
 
       - name: Upload Windows installer artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-installer
           path: artifacts/windows-installer/*
           if-no-files-found: error
 
       - name: Upload Windows updater artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-updater
           path: artifacts/windows-updater/*
@@ -176,17 +176,17 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "20"
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -274,14 +274,14 @@ jobs:
           fi
 
       - name: Upload Linux packages artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-packages
           path: artifacts/linux-packages/*
           if-no-files-found: error
 
       - name: Upload Linux updater artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-updater
           path: artifacts/linux-updater/*
@@ -324,17 +324,17 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "20"
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -474,14 +474,14 @@ jobs:
           fi
 
       - name: Upload app artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.app_artifact_name }}
           path: artifacts/${{ matrix.app_artifact_name }}.tar.gz
           if-no-files-found: error
 
       - name: Upload updater artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.updater_artifact_name }}
           path: artifacts/updater/*
@@ -507,10 +507,10 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "20"
 
@@ -550,13 +550,13 @@ jobs:
           echo "EFFECTIVE_SIGNING_IDENTITY=$EFFECTIVE_SIGNING_IDENTITY" >> "$GITHUB_ENV"
 
       - name: Download arm64 app artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: amverge-macos-arm64-app
           path: artifacts/arm64
 
       - name: Download x64 app artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: amverge-macos-x64-app
           path: artifacts/x64
@@ -775,7 +775,7 @@ jobs:
           xcrun stapler validate "$DMG_PATH"
 
       - name: Upload universal DMG artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: amverge-macos-universal-dmg
           path: frontend/src-tauri/target/universal-apple-darwin/release/bundle/dmg/AMVerge-macos-universal.dmg
@@ -792,7 +792,7 @@ jobs:
 
     steps:
       - name: Checkout release changelog
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           sparse-checkout: |
             updates
@@ -800,43 +800,43 @@ jobs:
           sparse-checkout-cone-mode: false
 
       - name: Download Windows installer artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: windows-installer
           path: release-input/windows-installer
 
       - name: Download Windows updater artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: windows-updater
           path: release-input/windows-updater
 
       - name: Download Linux package artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: linux-packages
           path: release-input/linux-packages
 
       - name: Download Linux updater artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: linux-updater
           path: release-input/linux-updater
 
       - name: Download macOS universal DMG artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: amverge-macos-universal-dmg
           path: release-input/macos-dmg
 
       - name: Download macOS arm64 updater artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: amverge-macos-arm64-updater
           path: release-input/macos-arm64-updater
 
       - name: Download macOS x64 updater artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: amverge-macos-x64-updater
           path: release-input/macos-x64-updater
