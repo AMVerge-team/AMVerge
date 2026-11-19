@@ -16,7 +16,6 @@ import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
 import { usePreviewTranscode } from "../../features/preview/usePreviewTranscode.ts";
 import LoadingSpinner from "../common/LoadingSpinner";
 import { imageThumbnail, mediaSrcVersioned } from "../../utils/mediaSrc";
-import { anyPassEnabled } from "../../features/export/postPasses";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
 import { clampWebpEnd, webpFpsForRange } from "../clipsGrid/webpQueueUtils.ts";
@@ -65,8 +64,6 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const setActiveExportProfileId = useGeneralSettingsStore(s => s.setActiveExportProfileId);
   const mergeClipsEnabled = useGeneralSettingsStore(s => s.mergeClipsEnabled);
   const setMergeClipsEnabled = useGeneralSettingsStore(s => s.setMergeClipsEnabled);
-  const postExportPassesEnabled = useGeneralSettingsStore(s => s.postExportPassesEnabled);
-  const setPostExportPassesEnabled = useGeneralSettingsStore(s => s.setPostExportPassesEnabled);
   const davinciExportSelected = useGeneralSettingsStore(s => s.davinciExportSelected);
   const setDavinciExportSelected = useGeneralSettingsStore(s => s.setDavinciExportSelected);
   const previewAudioStreamIndex = useGeneralSettingsStore(s => s.previewAudioStreamIndex);
@@ -515,25 +512,6 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                 </Tooltip>
               </div>
             )}
-            <div className="export-dir-item export-post-passes-option">
-              <Tooltip content={t("export.configurePostPasses")}>
-                <button className="post-passes-label" type="button" onClick={() => openSettings("export")}>
-                  {t("export.postPasses")}
-                </button>
-              </Tooltip>
-              <button
-                type="button"
-                className="export-merge-switch"
-                role="switch"
-                aria-label={t("export.postPassesToggle")}
-                aria-checked={postExportPassesEnabled}
-                onClick={() => {
-                  const enabled = !postExportPassesEnabled;
-                  setPostExportPassesEnabled(enabled);
-                  if (enabled && !anyPassEnabled(generalSettings.postExportPasses)) openSettings("export");
-                }}
-              />
-            </div>
             <div className="export-dir-item export-language-option">
               <div className="audio-stream-field" aria-label={t("export.previewLanguageAria")}>
                 <span className="audio-stream-label" aria-hidden="true">
