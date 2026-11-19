@@ -62,6 +62,10 @@ impl ActiveInstall {
     pub fn canceled(&self) -> bool {
         self.cancel_requested.load(Ordering::SeqCst)
     }
+
+    pub fn is_running(&self) -> bool {
+        self.running.load(Ordering::SeqCst)
+    }
 }
 
 /// per-output-path locks that serialize duplicate proxy/WebP encode requests

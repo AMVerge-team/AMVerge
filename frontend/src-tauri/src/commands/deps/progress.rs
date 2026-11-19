@@ -216,10 +216,16 @@ impl Drop for DiskWatcher {
     }
 }
 
+// uv unpacks into `.tmp*` folders and renames them into place; windows refuses that rename while we hold a handle inside
+fn is_uv_temp(name: &std::ffi::OsStr) -> bool {
+    name.to_string_lossy().starts_with(".tmp")
+}
+
 fn dir_size(path: &Path) -> u64 {
     let Ok(entries) = std::fs::read_dir(path) else { return 0 };
     entries
         .flatten()
+        .filter(|entry| !is_uv_temp(&entry.file_name()))
         .map(|entry| match entry.file_type() {
             Ok(kind) if kind.is_dir() => dir_size(&entry.path()),
             Ok(_) => entry.metadata().map(|m| m.len()).unwrap_or(0),
@@ -236,5 +242,24 @@ fn format_bytes(bytes: u64) -> String {
         format!("{:.2} GB", b / GB)
     } else {
         format!("{:.0} MB", b / MB)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dir_size_skips_uv_temp_folders() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path();
+        std::fs::create_dir_all(root.join("archive-v0").join("pkg")).unwrap();
+        std::fs::write(root.join("archive-v0").join("pkg").join("a.py"), vec![0u8; 100]).unwrap();
+        std::fs::create_dir_all(root.join(".tmpGj0w7y").join("pkg")).unwrap();
+        std::fs::write(root.join(".tmpGj0w7y").join("pkg").join("b.py"), vec![0u8; 1000]).unwrap();
+        std::fs::write(root.join(".tmpAbC123"), vec![0u8; 10]).unwrap();
+        std::fs::write(root.join("CACHEDIR.TAG"), vec![0u8; 5]).unwrap();
+
+        assert_eq!(dir_size(root), 105);
     }
 }

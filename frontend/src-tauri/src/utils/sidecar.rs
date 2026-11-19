@@ -46,7 +46,9 @@ pub fn save_custom_ai_root(app: &AppHandle, custom: Option<&Path>) -> Result<(),
                     let _ = std::fs::remove_file(pointer);
                 }
             } else {
-                std::fs::write(pointer, trimmed).map_err(|e| e.to_string())?;
+                let temp = dir.join(format!("ai_storage_path.{}.tmp", uuid::Uuid::new_v4().simple()));
+                std::fs::write(&temp, trimmed).map_err(|e| e.to_string())?;
+                std::fs::rename(&temp, &pointer).map_err(|e| e.to_string())?;
             }
         }
         None => {
@@ -64,7 +66,7 @@ fn home_dir() -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
-pub(crate) fn legacy_cli_models_dir() -> Option<PathBuf> {
+pub(crate) fn legacy_cli_config_dir() -> Option<PathBuf> {
     let config = match std::env::var_os("APPDATA").filter(|v| !v.is_empty()) {
         Some(appdata) => PathBuf::from(appdata).join("com.amverge.cli"),
         None => {
@@ -80,7 +82,11 @@ pub(crate) fn legacy_cli_models_dir() -> Option<PathBuf> {
             }
         }
     };
-    Some(config.join("models"))
+    Some(config)
+}
+
+pub(crate) fn legacy_cli_models_dir() -> Option<PathBuf> {
+    Some(legacy_cli_config_dir()?.join("models"))
 }
 
 pub(crate) fn legacy_scout_model_dir() -> Option<PathBuf> {
@@ -172,6 +178,26 @@ pub fn default_ai_root(app: &AppHandle) -> Result<PathBuf, String> {
         .join("AMVerge"))
 }
 
+fn custom_ai_location(custom_root: PathBuf) -> AiLocation {
+    AiLocation {
+        runtime_dir: custom_root.join("runtime"),
+        config_dir: Some(custom_root.join("config")),
+        hf_home_dir: Some(custom_root.join("hf-cache")),
+        custom_path: Some(custom_root.clone()),
+        root: custom_root,
+    }
+}
+
+pub fn resolve_ai_location_for_move(
+    app: &AppHandle,
+    custom_root: Option<&Path>,
+) -> Result<AiLocation, String> {
+    if let Some(root) = custom_root {
+        return Ok(custom_ai_location(root.to_path_buf()));
+    }
+    resolve_default_ai_location(app)
+}
+
 /// Resolves the active AI storage root, keeping existing AppData/legacy installs working until moved.
 pub fn resolve_ai_location(app: &AppHandle) -> Result<AiLocation, String> {
     if let Ok(dir) = std::env::var("AMVERGE_RUNTIME_DIR") {
@@ -193,15 +219,13 @@ pub fn resolve_ai_location(app: &AppHandle) -> Result<AiLocation, String> {
     }
 
     if let Some(custom_root) = load_custom_ai_root(app) {
-        return Ok(AiLocation {
-            runtime_dir: custom_root.join("runtime"),
-            config_dir: Some(custom_root.join("config")),
-            hf_home_dir: Some(custom_root.join("hf-cache")),
-            custom_path: Some(custom_root.clone()),
-            root: custom_root,
-        });
+        return Ok(custom_ai_location(custom_root));
     }
 
+    resolve_default_ai_location(app)
+}
+
+fn resolve_default_ai_location(app: &AppHandle) -> Result<AiLocation, String> {
     let local_root = app
         .path()
         .local_data_dir()
@@ -340,7 +364,9 @@ pub(crate) fn apply_ai_env_vars(app: &AppHandle, cmd: &mut Command) {
             cmd.env("AMVERGE_CONFIG_DIR", config);
         }
         if let Some(hf) = loc.hf_home_dir {
-            cmd.env("HF_HOME", hf);
+            cmd.env("HF_HOME", &hf)
+                .env("HF_HUB_CACHE", hf.join("hub"))
+                .env_remove("TRANSFORMERS_CACHE");
         }
     }
 }

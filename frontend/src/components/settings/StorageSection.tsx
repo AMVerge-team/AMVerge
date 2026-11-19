@@ -11,7 +11,7 @@ import { ConfirmModal } from "./general/ConfirmModal";
 import { errorText, showNotice } from "../../features/notice/notice";
 import { formatBytes, type AiEnvStatus } from "../../features/aiDeps/packs";
 import { FEATURES } from "../../features/featureToggles";
-import { runningProcess } from "../../features/processes/singleProcess";
+import { processLabel, runningProcess } from "../../features/processes/singleProcess";
 import { rebaseStoragePaths, restoreOpenedEpisodeGrid } from "../../features/storage/rebaseStoragePaths";
 import { useAiDepsStore } from "../../stores/aiDepsStore";
 import { useAppStateStore } from "../../stores/appStore";
@@ -118,6 +118,11 @@ export default function StorageSection() {
 
   const handleMoveEpisodes = async (selected: string | null) => {
     if ((episodesPath || null) === selected) return;
+    const active = runningProcess();
+    if (active) {
+      setError(t("jobs:process.conflictRunning", { process: processLabel(active) }));
+      return;
+    }
     setError(null);
     setMovingEpisodesTo(selected ?? defaultEpisodesPathLabel);
     useStorageMoveStore.getState().begin(t("storage:movingEpisodes"));
@@ -135,6 +140,15 @@ export default function StorageSection() {
 
       setGeneralSettings((prev) => ({ ...prev, episodesPath: selected }));
       await rebaseStoragePaths(selected ?? undefined);
+      try {
+        const leftovers = await invoke<string[]>("finalize_storage_move", {
+          oldDir: episodesPath,
+          currentDir: selected,
+        });
+        if (leftovers.length) console.warn("[storage] previous files kept as a backup", leftovers);
+      } catch (err) {
+        console.warn("[storage] previous files kept as a backup", err);
+      }
       useStorageMoveStore.getState().finish(t("storage:episodesMoved"));
     } catch (err) {
       useStorageMoveStore.getState().fail(errorText(err));
@@ -158,6 +172,11 @@ export default function StorageSection() {
 
   const handleMoveAi = async (selected: string | null) => {
     if ((status?.aiCustomPath ?? null) === selected) return;
+    const active = runningProcess();
+    if (active) {
+      setError(t("jobs:process.conflictRunning", { process: processLabel(active) }));
+      return;
+    }
     setError(null);
     setMovingAiTo(selected ?? t("storage:defaultLocation"));
     useStorageMoveStore.getState().begin(t("storage:movingAi"));

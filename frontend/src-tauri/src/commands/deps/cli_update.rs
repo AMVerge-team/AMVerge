@@ -8,7 +8,7 @@ use crate::state::ActiveInstall;
 use crate::utils::logging::console_log;
 use crate::utils::sidecar::{ai_env_python, ai_env_ready, bundled_cli_version, uv_cache_dir};
 
-use super::install::run_uv_step;
+use super::install::run_uv_step_with_lock_retry;
 use super::packs::{NELUX_PIN_GPU_DECODE, PACKS, TORCH_PIN_GPU_DECODE};
 use super::status::{installed_distributions, uv_command};
 
@@ -165,13 +165,16 @@ pub async fn update_ai_cli(
     let state_for_task = state.clone();
     let python_for_task = python.clone();
     let outcome = tokio::task::spawn_blocking(move || -> Result<(), String> {
-        let mut cmd = uv_command(&app_for_task)?;
-        cmd.arg("pip").arg("install").arg("--python").arg(&python_for_task).arg(&spec);
-        // also repairs an env that took a Nelux built for a newer torch
-        if has_nelux {
-            cmd.arg(TORCH_PIN_GPU_DECODE).arg(NELUX_PIN_GPU_DECODE);
-        }
-        let result = run_uv_step(&app_for_task, &state_for_task, "cli", cmd, "CLI update");
+        let build = || -> Result<std::process::Command, String> {
+            let mut cmd = uv_command(&app_for_task)?;
+            cmd.arg("pip").arg("install").arg("--python").arg(&python_for_task).arg(&spec);
+            // also repairs an env that took a Nelux built for a newer torch
+            if has_nelux {
+                cmd.arg(TORCH_PIN_GPU_DECODE).arg(NELUX_PIN_GPU_DECODE);
+            }
+            Ok(cmd)
+        };
+        let result = run_uv_step_with_lock_retry(&app_for_task, &state_for_task, "cli", build, "CLI update");
         // same as pack installs: the wheel cache is a second copy of every download
         if let Ok(cache) = uv_cache_dir(&app_for_task) {
             let _ = std::fs::remove_dir_all(cache);
