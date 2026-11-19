@@ -1,0 +1,64 @@
+version: 2
+updates:
+  # 1. GitHub Actions workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "development"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "(update)"
+    labels:
+      - "dependencies"
+      - "ci"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # 2. Frontend npm dependencies (React, Vite, Tauri JS APIs)
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    target-branch: "development"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "03:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "(update)"
+    labels:
+      - "dependencies"
+      - "frontend"
+    groups:
+      npm-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+        patterns:
+          - "*"
+
+  # 3. Rust / Tauri backend dependencies
+  - package-ecosystem: "cargo"
+    directory: "/frontend/src-tauri"
+    target-branch: "development"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "03:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "(update)"
+    labels:
+      - "dependencies"
+      - "rust"
+    groups:
+      cargo-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+        patterns:
+          - "*"
