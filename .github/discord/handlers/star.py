@@ -1,6 +1,6 @@
-from ..config import COLOR_GOLD
-from ..core import make_buttons
-from ..formatting import format_card_header
+from config import COLOR_GOLD
+from core import make_buttons
+from formatting import format_card_header
 
 
 def handle_star(event):
