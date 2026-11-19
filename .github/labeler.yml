@@ -1,0 +1,49 @@
+frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "frontend/src/**"
+          - "!frontend/src/i18n/**"
+          - "frontend/public/**"
+          - "frontend/index.html"
+          - "frontend/vite.config.*"
+          - "frontend/tsconfig*.json"
+
+rust:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "frontend/src-tauri/**"
+
+i18n:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "frontend/src/i18n/**"
+          - "crowdin.yml"
+          - "frontend/scripts/check-i18n.mjs"
+
+packaging:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "flatpak/**"
+          - "winget/**"
+          - "frontend/scripts/**"
+          - "setup.sh"
+          - "setup.ps1"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/package.json"
+          - "**/package-lock.json"
+          - "**/Cargo.toml"
+          - "**/Cargo.lock"
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "updates/**"
