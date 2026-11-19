@@ -19,8 +19,15 @@ jobs:
           issue-message: |
             Thanks for opening your first issue in **AMVerge**!
 
-            A maintainer will take a look soon. If this is a bug report, make sure you've included your OS, AMVerge version, and steps to reproduce so we can help faster.
+            To help us look into this faster:
+            - Include your **OS**, **AMVerge version**, and **steps to reproduce** (plus any logs from **Menu → Console** if it's a bug).
+            - If the issue is specific to the Python video/AI backend, it may belong in [AMVerge-CLI](https://github.com/AMVerge-team/AMVerge-CLI).
+
+            You can also reach the team and community on our [Discord server](https://discord.gg/bmXjTgsAaN).
           pr-message: |
             Thanks for your first pull request to **AMVerge**!
 
-            Please make sure you've checked [CONTRIBUTING.md](https://github.com/AMVerge-team/AMVerge/blob/main/CONTRIBUTING.md) and attached screenshots or a short video if your PR changes the UI. A maintainer will review this soon.
+            A few quick notes while a maintainer reviews your changes:
+            - Make sure your PR targets the `development` branch and follows [CONTRIBUTING.md](https://github.com/AMVerge-team/AMVerge/blob/main/CONTRIBUTING.md).
+            - If your PR changes the UI, please attach **screenshots or a short video** in the description.
+            - Have questions or want to discuss your changes? Hop into the [AMVerge Discord](https://discord.gg/bmXjTgsAaN).
