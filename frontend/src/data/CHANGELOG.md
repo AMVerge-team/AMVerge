@@ -1,8 +1,8 @@
 # v2.0.5
 
-New storage tab! Now supports Linux!
+### New storage tab! Now supports Linux!
 
-- AMVerge now runs natively on Linux — grab the AppImage, deb, or rpm, with Flatpak and WinGet coming soon
+- AMVerge now supports Linux
 - New Storage tab in Settings: see exactly what's taking up space and move your episodes or AI files to another drive
 - Storage moves are now safe: episodes, previews, Scene Scout data, and AI models all come along, and nothing gets deleted until the move finishes
 - The After Effects extension follows your storage moves, syncs episodes more reliably, and imports WebP scenes properly

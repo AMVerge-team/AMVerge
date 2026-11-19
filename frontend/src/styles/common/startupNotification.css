@@ -25,7 +25,7 @@
 
 .startup-notification-modal--update {
     width: min(560px, 100%);
-    max-height: min(70vh, 380px);
+    max-height: min(85vh, 640px);
     padding-top: 8px;
 }
 
@@ -83,7 +83,7 @@
 
 .startup-notification-body--update {
     min-height: 0;
-    max-height: none;
+    max-height: 60vh;
     margin: 0 18px 18px;
     padding: 14px 16px;
 }
