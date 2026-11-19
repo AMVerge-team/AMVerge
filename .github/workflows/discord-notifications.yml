@@ -24,16 +24,8 @@ permissions:
 
 jobs:
   notify:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Send Discord notification
-        env:
-          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          FEED_WEBHOOK_URL: ${{ secrets.DISCORD_FEED_WEBHOOK_URL }}
-          GITHUB_EVENT_PATH: ${{ github.event_path }}
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
-        run: |
-          python3 .github/discord/notify.py
+    uses: AMVerge-team/.github/.github/workflows/discord-notify.yml@main
+    with:
+      bot_name: "AMVerge Desktop"
+      bot_avatar: "amverge-desktop.png"
+    secrets: inherit
