@@ -11,6 +11,7 @@ const VOLUME_HIDE_DELAY_MS = 700;
 const VOLUME_COMMIT_DELAY_MS = 150;
 /** unmuting always comes back this quiet, never at a level that blasts; drag up from there */
 const UNMUTE_VOLUME = 0.01;
+const PLAYBACK_SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3] as const;
 
 function formatTime(seconds: number): string {
   if (!isFinite(seconds) || seconds < 0) seconds = 0;
@@ -54,6 +55,8 @@ export default function VideoPlayer({
   // in the store because PreviewContainer remounts this per clip
   const muted = useGeneralSettingsStore((s) => s.playbackMuted);
   const setMuted = useGeneralSettingsStore((s) => s.setPlaybackMuted);
+  const playbackSpeed = useGeneralSettingsStore((s) => s.playbackSpeed);
+  const setPlaybackSpeed = useGeneralSettingsStore((s) => s.setPlaybackSpeed);
 
   const [playing, setPlaying] = useState(false);
   // false until a real frame is presented; the poster covers the black gap until then
@@ -61,6 +64,8 @@ export default function VideoPlayer({
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volumeOpen, setVolumeOpen] = useState(false);
+  const [speedOpen, setSpeedOpen] = useState(false);
+  const speedRef = useRef<HTMLDivElement | null>(null);
   // the level mid-drag, held locally; null follows the prop
   const [dragVolume, setDragVolume] = useState<number | null>(null);
 
@@ -74,6 +79,7 @@ export default function VideoPlayer({
     (el: HTMLVideoElement | null) => {
       videoRef.current = el;
       if (!el) return;
+      el.playbackRate = playbackSpeed;
       if (silent) {
         el.muted = true;
         return;
@@ -81,12 +87,13 @@ export default function VideoPlayer({
       el.volume = dragVolume ?? volume;
       el.muted = muted || (dragVolume ?? volume) === 0;
     },
-    [silent, volume, muted, dragVolume]
+    [silent, volume, muted, dragVolume, playbackSpeed]
   );
 
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
+    v.playbackRate = playbackSpeed;
     if (silent) {
       v.muted = true;
       return;
@@ -95,7 +102,18 @@ export default function VideoPlayer({
     if (dragVolume !== null) return;
     v.volume = volume;
     v.muted = muted || volume === 0;
-  }, [volume, muted, src, dragVolume, silent]);
+  }, [volume, muted, src, dragVolume, silent, playbackSpeed]);
+
+  useEffect(() => {
+    if (!speedOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (speedRef.current && !speedRef.current.contains(e.target as Node)) {
+        setSpeedOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [speedOpen]);
 
   // the store is persisted, so skip unchanged writes
   const syncMuted = useCallback((next: boolean) => {
@@ -380,6 +398,7 @@ export default function VideoPlayer({
           onDurationChange={(e) => setDuration(e.currentTarget.duration)}
           onPlay={(e) => {
             const v = e.currentTarget;
+            v.playbackRate = playbackSpeed;
             v.volume = silent ? 0 : (dragVolume ?? volume);
             v.muted = silent || muted || (dragVolume ?? volume) === 0;
             setPlaying(true);
@@ -475,6 +494,43 @@ export default function VideoPlayer({
             </div>
           </div>
           )}
+
+          <div
+            className={`speed-control${speedOpen ? " open" : ""}`}
+            ref={speedRef}
+          >
+            <Tooltip content={t("player.speed")}>
+              <button
+                className={`speed-btn${playbackSpeed !== 1 ? " is-active" : ""}`}
+                onClick={() => setSpeedOpen((open) => !open)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setPlaybackSpeed(1);
+                  setSpeedOpen(false);
+                }}
+                aria-label={t("player.speed")}
+                aria-expanded={speedOpen}
+              >
+                {playbackSpeed}x
+              </button>
+            </Tooltip>
+
+            <div className="speed-popup" aria-hidden={!speedOpen}>
+              {PLAYBACK_SPEEDS.map((speed) => (
+                <button
+                  key={speed}
+                  className={`speed-option${playbackSpeed === speed ? " is-selected" : ""}`}
+                  tabIndex={speedOpen ? 0 : -1}
+                  onClick={() => {
+                    setPlaybackSpeed(speed);
+                    setSpeedOpen(false);
+                  }}
+                >
+                  {speed}x
+                </button>
+              ))}
+            </div>
+          </div>
 
           <Tooltip content={t("player.fullscreen")} align="end">
             <button onClick={toggleFullscreen} aria-label={t("player.fullscreen")}>

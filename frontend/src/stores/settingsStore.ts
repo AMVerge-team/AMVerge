@@ -47,6 +47,7 @@ export type GeneralSettings = {
     previewAudioLanguage: string | null;
     playbackVolume: number;
     playbackMuted: boolean;
+    playbackSpeed: number;
     discordRPCEnabled: boolean;
     rpcShowFilename: boolean;
     rpcShowMiniIcons: boolean;
@@ -90,6 +91,7 @@ export type GeneralSettingsStore = GeneralSettings & {
     setPreviewAudioLanguage: (language: string | null) => void;
     setPlaybackVolume: (volume: number) => void;
     setPlaybackMuted: (muted: boolean) => void;
+    setPlaybackSpeed: (speed: number) => void;
     setDiscordRPCEnabled: (enabled: boolean) => void;
     setRpcShowFilename: (enabled: boolean) => void;
     setRpcShowMiniIcons: (enabled: boolean) => void;
@@ -125,6 +127,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     previewAudioLanguage: null,
     playbackVolume: 0.2,
     playbackMuted: false,
+    playbackSpeed: 1,
     discordRPCEnabled: true,
     rpcShowFilename: true,
     rpcShowMiniIcons: true,
@@ -277,6 +280,10 @@ export const useGeneralSettingsStore = create<GeneralSettingsStore>()(
                 ),
             setPlaybackVolume: (volume) => set({ playbackVolume: volume }),
             setPlaybackMuted: (muted) => set({ playbackMuted: muted }),
+            setPlaybackSpeed: (speed) => {
+                const clamped = Math.max(0.25, Math.min(3, Math.round(speed * 100) / 100));
+                set({ playbackSpeed: clamped });
+            },
             setDiscordRPCEnabled: (enabled) =>
                 set({ discordRPCEnabled: enabled }),
             setRpcShowFilename: (enabled) =>

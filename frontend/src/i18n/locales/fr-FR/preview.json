@@ -10,6 +10,7 @@
     "mute": "Couper le son",
     "unmute": "Remettre le son",
     "volume": "Volume",
+    "speed": "Playback speed",
     "fullscreen": "Plein écran"
   },
   "export": {
