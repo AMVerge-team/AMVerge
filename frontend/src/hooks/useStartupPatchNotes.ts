@@ -6,6 +6,7 @@ import changelog from "../data/CHANGELOG.md?raw";
 import type { StartupNotification } from "../components/dialogs/StartupNotificationModal";
 
 const LAST_SEEN_VERSION_KEY = "amverge.lastSeenAppVersion";
+const FORCE_PATCH_NOTES_FOR_DEV = import.meta.env.DEV;
 
 function sectionForVersion(version: string): string | null {
   const wanted = `v${version.trim().replace(/^v/i, "")}`;
@@ -41,13 +42,17 @@ export default function useStartupPatchNotes(): StartupNotification | null {
       try {
         const currentVersion = (await getVersion()).trim().replace(/^v/i, "");
         const seenVersion = window.localStorage.getItem(LAST_SEEN_VERSION_KEY);
-        if (seenVersion === currentVersion) {
+        if (!FORCE_PATCH_NOTES_FOR_DEV && seenVersion === currentVersion) {
           return;
         }
 
-        window.localStorage.setItem(LAST_SEEN_VERSION_KEY, currentVersion);
-        if (!seenVersion) {
-          return;
+        if (!FORCE_PATCH_NOTES_FOR_DEV) {
+          window.localStorage.setItem(LAST_SEEN_VERSION_KEY, currentVersion);
+          if (!seenVersion) {
+            return;
+          }
+        } else {
+          console.info("[patch-notes] dev mode: showing patch notes on every launch");
         }
 
         const body = sectionForVersion(currentVersion);
