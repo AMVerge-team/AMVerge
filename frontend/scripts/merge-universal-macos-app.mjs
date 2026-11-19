@@ -35,6 +35,28 @@ function normalizeResourcePattern(resource) {
   return resource.replace(/\*\*\/?\*?$/, "").replace(/\*+$/, "");
 }
 
+// Mirrors tauri-utils' resource_relpath: `..` becomes `_up_`, `/` becomes
+// `_root_`, and `.`/prefix components are dropped. Tauri bundles external
+// resources under Resources/_up_/..., not by escaping the Resources folder.
+function resourceTargetPath(resource) {
+  const normalized = normalizeResourcePattern(resource);
+  const components = [];
+  for (const part of normalized.split(/[\\/]+/)) {
+    if (!part || part === ".") continue;
+    if (part === "..") {
+      components.push("_up_");
+    } else if (part.endsWith(":")) {
+      continue;
+    } else {
+      components.push(part);
+    }
+  }
+  if (normalized.startsWith("/")) {
+    components.unshift("_root_");
+  }
+  return path.join(...components);
+}
+
 async function ensureParent(targetPath) {
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
 }
@@ -156,8 +178,7 @@ async function main() {
     const expectedResources = parsedConfig?.bundle?.resources ?? [];
 
     for (const relResource of expectedResources) {
-      const normalized = normalizeResourcePattern(relResource);
-      const resourcePath = path.join(outResources, normalized);
+      const resourcePath = path.join(outResources, resourceTargetPath(relResource));
       if (!(await pathExists(resourcePath))) {
         throw new Error(`Missing merged resource declared in config: ${relResource}`);
       }
