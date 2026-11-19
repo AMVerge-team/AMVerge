@@ -1,6 +1,6 @@
-from ..config import COLOR_GREEN, COLOR_RED
-from ..core import make_buttons
-from ..formatting import format_card_header
+from config import COLOR_GREEN, COLOR_RED
+from core import make_buttons
+from formatting import format_card_header
 
 
 def handle_create(event):

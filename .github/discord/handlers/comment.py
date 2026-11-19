@@ -1,6 +1,6 @@
-from ..config import COLOR_BLUE
-from ..core import make_buttons
-from ..formatting import clean_codeblock, format_card_header
+from config import COLOR_BLUE
+from core import make_buttons
+from formatting import clean_codeblock, format_card_header
 
 
 def handle_issue_comment(event):
