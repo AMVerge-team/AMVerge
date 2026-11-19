@@ -2,7 +2,6 @@ frontend:
   - changed-files:
       - any-glob-to-any-file:
           - "frontend/src/**"
-          - "!frontend/src/i18n/**"
           - "frontend/public/**"
           - "frontend/index.html"
           - "frontend/vite.config.*"

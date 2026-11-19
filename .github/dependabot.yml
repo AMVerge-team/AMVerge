@@ -33,6 +33,9 @@ updates:
     labels:
       - "dependencies"
       - "frontend"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       npm-minor-patch:
         update-types:
@@ -55,6 +58,9 @@ updates:
     labels:
       - "dependencies"
       - "rust"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       cargo-minor-patch:
         update-types:
