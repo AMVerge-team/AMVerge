@@ -1,0 +1,11 @@
+name: UI Media Check
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  ui-media-check:
+    permissions:
+      pull-requests: write
+    uses: AMVerge-team/.github/.github/workflows/ui-media-check.yml@main
