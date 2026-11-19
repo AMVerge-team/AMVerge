@@ -47,3 +47,14 @@ documentation:
       - any-glob-to-any-file:
           - "**/*.md"
           - "updates/**"
+
+bug:
+  - head-branch:
+      - "^fix/"
+      - "^bugfix/"
+      - "^hotfix/"
+
+enhancement:
+  - head-branch:
+      - "^feat/"
+      - "^feature/"
