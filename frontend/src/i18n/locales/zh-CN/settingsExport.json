@@ -1,0 +1,284 @@
+{
+  "title": "导出",
+  "profile": {
+    "section": "预设",
+    "active": {
+      "label": "当前预设",
+      "description": "“立即导出”使用此预设。"
+    },
+    "name": {
+      "label": "预设名称",
+      "description": "在预设选择器中显示的名称。"
+    },
+    "icon": {
+      "label": "预设图标",
+      "description": "在预设选择器中显示的图标。"
+    },
+    "untitled": "未命名预设",
+    "newName": "导出预设 {{index}}",
+    "new": "新建预设",
+    "delete": "删除预设"
+  },
+  "workflow": {
+    "section": "工作流与编码",
+    "label": "工作流",
+    "description": "在精确的场景边界处重新编码，或直接复制流（边界对齐到关键帧）。",
+    "options": {
+      "video_encode": "导出视频（重新编码，精确剪切）",
+      "video_remux": "快速封装（直接复制流）"
+    }
+  },
+  "openLocation": {
+    "label": "导出后打开文件位置",
+    "description": "导出完成后打开所在文件夹并选中该文件。",
+    "toggle": "切换导出后打开文件位置"
+  },
+  "container": {
+    "label": "封装格式",
+    "description": "输出文件格式：MP4 或 MOV。",
+    "auto": "自动封装格式"
+  },
+  "codec": {
+    "label": "编解码器",
+    "description": "导出时使用的视频编解码器。",
+    "profile": {
+      "label": "编码配置",
+      "description": "该编解码器的画质与压缩级别。"
+    },
+    "unknown": "未知编解码器",
+    "streamCopy": "直接复制流"
+  },
+  "audio": {
+    "label": "音频编解码器",
+    "description": "重新编码音频、原样复制，或不保留音频。",
+    "options": {
+      "copy": "兼容时复制音频（否则自动选择备选格式）",
+      "aac": "AAC 192 kbps",
+      "aac_320": "AAC 320 kbps",
+      "pcm16": "PCM 16 位",
+      "pcm24": "PCM 24 位",
+      "mp3": "MP3 320 kbps",
+      "none": "无音频"
+    },
+    "labels": {
+      "copy": "复制音频",
+      "aac": "AAC",
+      "aac_320": "AAC 320k",
+      "pcm16": "PCM 16 位",
+      "pcm24": "PCM 24 位",
+      "flac": "FLAC",
+      "alac": "ALAC",
+      "opus": "Opus",
+      "mp3": "MP3",
+      "none": "无音频"
+    }
+  },
+  "hardware": {
+    "options": {
+      "auto": "自动（GPU / CPU）"
+    },
+    "encoder": {
+      "label": "视频编码器",
+      "cpuOnly": "此编解码器只能使用 CPU 编码。",
+      "detecting": "正在检测硬件编码器…",
+      "usingGpu": "正在使用 {{backend}} GPU。失败时“自动”会回退到 CPU。",
+      "usingGpuWithEncoder": "正在使用 {{backend}} GPU（{{encoder}}）。失败时“自动”会回退到 CPU。",
+      "gpuUnsupported": "你的 GPU 无法编码此编解码器，“自动”将使用 CPU。",
+      "noGpu": "未找到 GPU 编码器，“自动”将使用 CPU。",
+      "nvidiaMatrix": "NVIDIA 支持列表"
+    },
+    "parallel": {
+      "label": "并行编码",
+      "locked": "仅适用于可同时运行多个编码任务的 GPU。",
+      "description_one": "同时运行的导出数量。此编解码器最多支持 {{count}} 个。",
+      "description_other": "同时运行的导出数量。此编解码器最多支持 {{count}} 个。"
+    },
+    "parallelMax_one": "最大（{{count}} 个导出）",
+    "parallelMax_other": "最大（{{count}} 个导出）",
+    "parallelCount_one": "{{count}} 个导出",
+    "parallelCount_other": "{{count}} 个导出"
+  },
+  "icons": {
+    "names": {
+      "video": "视频",
+      "remux": "封装",
+      "custom": "自定义"
+    },
+    "profileIconAlt": "预设图标",
+    "customAlt": "自定义预设图标",
+    "useCustom": "使用自定义图标",
+    "deleteCustom": "删除自定义图标",
+    "addCustom": "添加自定义图标",
+    "chooseIcon": "选择图标",
+    "chooseProfileIcon": "选择预设图标",
+    "customIcons": "自定义图标",
+    "pin": "固定到快捷图标",
+    "unpin": "从快捷图标取消固定",
+    "imageFilter": "图片",
+    "cropTitle": "裁剪预设图标",
+    "cropHint": "使用正方形裁剪可获得最佳图标效果"
+  },
+  "passes": {
+    "section": "导出后处理",
+    "master": {
+      "label": "启用导出后处理",
+      "description": "导出完成后运行下方已启用的处理。关闭时跳过后处理，并保留各项配置。"
+    },
+    "labels": {
+      "depth": "深度图",
+      "upscale": "超分辨率"
+    },
+    "depth": {
+      "label": "深度图处理",
+      "description": "同时为每个导出文件保存一张深度图，命名为 <name>_depth。",
+      "descriptionOff": "同时为每个导出文件保存一张深度图，命名为 <name>_depth。请在“设置 › 功能”中开启。",
+      "toggle": "切换深度图处理",
+      "model": {
+        "label": "深度模型",
+        "description": "模型越大效果越好，但耗时更长。"
+      },
+      "colormap": {
+        "label": "色彩映射",
+        "description": "深度图使用的调色板。"
+      },
+      "grayscale": {
+        "label": "灰度",
+        "description": "使用黑白而非彩色调色板。",
+        "toggle": "切换灰度深度图"
+      }
+    },
+    "upscale": {
+      "label": "超分辨率处理",
+      "description": "同时为每个导出文件保存一份更高分辨率的副本，命名为 <name>_upscaled。",
+      "descriptionOff": "同时为每个导出文件保存一份更高分辨率的副本，命名为 <name>_upscaled。请在“设置 › 功能”中开启。",
+      "toggle": "切换超分辨率处理",
+      "model": {
+        "label": "超分辨率模型",
+        "description": "均基于动漫训练。首次使用时下载。"
+      },
+      "quality": {
+        "label": "文件质量",
+        "description": "超分辨率视频的压缩方式。输出始终为 H.264。"
+      }
+    },
+    "depthEncoders": {
+      "vits": "Depth Anything V2 - Small（最快）",
+      "vitb": "Depth Anything V2 - Base",
+      "vitl": "Depth Anything V2 - Large（最佳）"
+    },
+    "upscaleModels": {
+      "fallin_soft": "Fallin Soft - 2x，最干净",
+      "fallin_strong": "Fallin Strong - 2x，更锐利",
+      "shufflecugan": "ShuffleCUGAN - 2x，通用"
+    },
+    "upscaleQualities": {
+      "archival": "无损",
+      "high": "高",
+      "balanced": "均衡",
+      "fast": "快速"
+    }
+  },
+  "features": {
+    "title": "功能",
+    "list": "功能",
+    "items": {
+      "aiSceneDetection": {
+        "label": "AI 场景检测",
+        "description": "使用 AI（TransNetV2）查找场景切点，是最准确的导入方式。"
+      },
+      "sceneScout": {
+        "label": "场景搜索（Scene Scout）",
+        "description": "通过描述场景来搜索视频，并找出彼此相似的片段。"
+      },
+      "scenepacks": {
+        "label": "片段集",
+        "description": "将片段归类到合集中。"
+      },
+      "depthPass": {
+        "label": "深度图处理",
+        "description": "为每个导出文件生成深度图。"
+      },
+      "upscalePass": {
+        "label": "超分辨率处理",
+        "description": "使用 AI 为每个导出文件生成更高分辨率的副本。"
+      }
+    },
+    "hideDisabled": {
+      "label": "隐藏已关闭的功能",
+      "description": "从应用中移除已关闭的功能，而不是显示为灰色。"
+    },
+    "state": {
+      "offDownloaded": "关 · 已下载",
+      "onDownload": "开 · 首次使用时需下载约 {{size}}",
+      "offDownload": "关 · 需下载约 {{size}}"
+    },
+    "removing": "正在移除…",
+    "freeUpSpace": "释放空间",
+    "lockedByImport": "导入进行中，此设置已禁用",
+    "gpu": {
+      "section": "GPU",
+      "cpuWithNvidia": "当前安装的是 CPU 版本，但此电脑有 NVIDIA GPU。AI 功能的运行速度远低于应有水平。",
+      "cpuInstalled": "当前安装的是 CPU 版本。如果此电脑有 NVIDIA GPU，重新安装 GPU 版本可大幅提升 AI 功能速度。",
+      "reinstall": "重新安装 GPU 版本"
+    },
+    "modelWeights": "模型权重",
+    "storage": {
+      "section": "存储",
+      "packages": {
+        "label": "AI 组件包",
+        "description": "PyTorch、各功能所需的组件包及其运行所用的 Python。"
+      },
+      "passModels": {
+        "label": "后处理模型权重",
+        "description": "在“模型权重”中下载的深度与超分辨率模型。"
+      },
+      "scoutModel": {
+        "label": "场景搜索模型",
+        "description": "SigLIP 2，保存在共享的 Hugging Face 缓存中，其他使用它的应用可共用这份副本。"
+      },
+      "previewCache": {
+        "label": "预览缓存",
+        "description": "场景搜索结果与匹配片段的可播放预览。自动保持在 1 GB 以内（优先清理最旧的），需要时会重新生成。",
+        "clear": "清除",
+        "clearing": "正在清除…"
+      },
+      "total": {
+        "label": "总计",
+        "description": "AI 功能在此电脑上占用的全部空间。"
+      },
+      "uninstall": {
+        "label": "卸载 AI 功能",
+        "description": "删除 AI 组件包并关闭 AI 功能。模型权重会保留，可在“模型权重”中删除。",
+        "remove": "移除"
+      }
+    },
+    "devBuild": "开发版本：AI 功能从 AMVerge-CLI 检出目录的 venv 运行，因此不会在此下载或移除任何内容。",
+    "scenepacksOff": {
+      "title": "关闭片段集",
+      "message_one": "你有 {{count}} 个片段集。要一并删除，还是仅关闭此功能并保留以后使用？",
+      "message_other": "你有 {{count}} 个片段集。要一并删除，还是仅关闭此功能并保留以后使用？",
+      "delete": "删除片段集",
+      "keep": "保留片段集",
+      "clearFailed": "清除片段集存储失败：{{error}}"
+    }
+  },
+  "models": {
+    "categories": {
+      "depth": "深度模型",
+      "upscale": "超分辨率模型"
+    },
+    "description": "此功能使用的模型权重。提前下载可实现快速离线导出。",
+    "turnOn": {
+      "depth": "请先在上方开启深度图处理，以管理其模型。",
+      "upscale": "请先在上方开启超分辨率处理，以管理其模型。"
+    },
+    "loading": "正在加载模型…",
+    "count_one": "{{count}} 个模型",
+    "count_other": "{{count}} 个模型",
+    "notAvailable": "不可用",
+    "downloaded": "已下载",
+    "notDownloaded": "未下载",
+    "downloading": "正在下载…",
+    "download": "下载"
+  }
+}

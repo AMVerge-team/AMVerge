@@ -1,0 +1,13 @@
+{
+  "updater": {
+    "title": "Update nou pe AMVerge",
+    "available": "Update-ul cu versiunea(v{{version}}) a fost lansata. Doresti sa o instalezi acum?",
+    "install": "Instaleaza",
+    "starting": "A inceput procesul de updatare la versiunea v{{version}}.\n\nTe rog sa lasi aplicatia pornita cand e gata.",
+    "installedTitle": "Noul update AMVerge a fost instalat",
+    "installed": "Update-ul cu versiunea v{{version}} a fost instalat.\n\nRedeschide aplicatia daca folosesti macOS si aplicatia nu si-a dat restart.",
+    "genericError": "Instalarea/descarcarea update-ului a esuat.",
+    "failedTitle": "Update-ul la AMVerge a esuat",
+    "failed": "Nu a putut fi instalat update-ul. {{error}}"
+  }
+}

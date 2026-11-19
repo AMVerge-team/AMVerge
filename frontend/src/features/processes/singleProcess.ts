@@ -1,19 +1,17 @@
 import { create } from "zustand";
 
+import { t } from "../../i18n";
 import { useAppStateStore } from "../../stores/appStore";
+import { useStorageMoveStore } from "../../stores/storageMoveStore";
 
 // one long job at a time: starting one while another runs asks to stop it or drop the new one; every job calls `claimProcess`
 
-export type ProcessKind = "import" | "export" | "resume" | "scout_add" | "scout_thumbnails" | "tools";
+export type ProcessKind = "import" | "export" | "resume" | "scout_add" | "scout_thumbnails" | "tools" | "storage";
 
-export const PROCESS_LABELS: Record<ProcessKind, string> = {
-  import: "importing an episode",
-  export: "exporting clips",
-  resume: "finishing episode clips",
-  scout_add: "adding episodes to a Scene Scout database",
-  scout_thumbnails: "generating Scene Scout thumbnails",
-  tools: "upscaling or depth mapping a clip in Tools",
-};
+/** what the job is doing, as a sentence fragment */
+export function processLabel(kind: ProcessKind): string {
+  return kind === "storage" ? t("storage:movingStorage") : t(`jobs:process.labels.${kind}`);
+}
 
 /** a Tools run, which keeps no app-wide progress state of its own */
 export const useToolsRunState = create<{ running: boolean }>(() => ({ running: false }));
@@ -24,6 +22,7 @@ export function registerToolsAbort(abort: () => Promise<void>): void {
 
 /** the job running right now, read from the state every job already keeps */
 export function runningProcess(): ProcessKind | null {
+  if (useStorageMoveStore.getState().stage === "moving") return "storage";
   if (useToolsRunState.getState().running) return "tools";
   const s = useAppStateStore.getState();
   if (s.activeOperation === "export") return "export";
@@ -92,6 +91,7 @@ function waitUntilIdle(): Promise<boolean> {
 export async function stopRunningProcess(): Promise<boolean> {
   const running = runningProcess();
   if (!running) return true;
+  if (running === "storage") return false;
   await (running === "tools" ? abortTools : abortRunning)?.();
   return waitUntilIdle();
 }

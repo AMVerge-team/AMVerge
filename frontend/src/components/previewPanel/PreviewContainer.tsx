@@ -1,6 +1,7 @@
 import HowToUse from "./HowToUse.tsx"
 import VideoPlayer from "./VideoPlayer.tsx"
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { FaFolderOpen, FaFileExport, FaPencilAlt } from '../icons/animated';
 import { SiDavinciresolve } from '../icons/animated';
@@ -14,6 +15,8 @@ import { useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
 import { usePreviewTranscode } from "../../features/preview/usePreviewTranscode.ts";
 import LoadingSpinner from "../common/LoadingSpinner";
+import { imageThumbnail, mediaSrcVersioned } from "../../utils/mediaSrc";
+import { anyPassEnabled } from "../../features/export/postPasses";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
 import { clampWebpEnd, webpFpsForRange } from "../clipsGrid/webpQueueUtils.ts";
@@ -44,6 +47,7 @@ type PreviewContainerProps = {
 };
 
 export default function PreviewContainer(props: PreviewContainerProps) {
+  const { t } = useTranslation("preview");
   const [showMergeNameModal, setShowMergeNameModal] = React.useState(false);
   useEscapeToClose(() => setShowMergeNameModal(false), showMergeNameModal);
   const mergeNameInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -61,6 +65,8 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const setActiveExportProfileId = useGeneralSettingsStore(s => s.setActiveExportProfileId);
   const mergeClipsEnabled = useGeneralSettingsStore(s => s.mergeClipsEnabled);
   const setMergeClipsEnabled = useGeneralSettingsStore(s => s.setMergeClipsEnabled);
+  const postExportPassesEnabled = useGeneralSettingsStore(s => s.postExportPassesEnabled);
+  const setPostExportPassesEnabled = useGeneralSettingsStore(s => s.setPostExportPassesEnabled);
   const davinciExportSelected = useGeneralSettingsStore(s => s.davinciExportSelected);
   const setDavinciExportSelected = useGeneralSettingsStore(s => s.setDavinciExportSelected);
   const previewAudioStreamIndex = useGeneralSettingsStore(s => s.previewAudioStreamIndex);
@@ -93,11 +99,11 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     () =>
       generalSettings.exportProfiles.map((profile) => ({
         value: profile.id,
-        label: profile.name.trim() || "Untitled Profile",
+        label: profile.name.trim() || t("export.untitledProfile"),
         description: getExportProfileSummary(profile),
         icon: renderProfileIcon(profile),
       })),
-    [generalSettings.exportProfiles]
+    [generalSettings.exportProfiles, t]
   );
 
   const audioStreamOptions = React.useMemo(
@@ -124,60 +130,76 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   );
   const hasSource = !!props.sourceClip && !!sourceClipObj;
 
-  // a scout result plays its tile's short x264 cut (same cache), never the source, which may be a 10-bit HEVC MKV
-  const scoutRange =
+  // the clip's jpg poster covers the panel while its video loads, so a click never shows black
+  const posterPath = imageThumbnail(sourceClipObj?.thumbnail);
+  const previewPoster = posterPath ? mediaSrcVersioned(posterPath, importToken) : undefined;
+
+  const { needed: configuredTranscode, preset: transcodePreset } = usePreviewTranscode();
+
+  // an uncut scene plays straight from its source episode, seeked to its range, which is instant.
+  // only a scout result or a source the webview can't decode (10-bit hevc, xvid) waits on the short
+  // x264 range cut; doing that for every uncut clip ran an ffmpeg encode per click during imports
+  const sceneRange =
     !sourceClipObj?.clipPath &&
-    Boolean(sourceClipObj?.database) &&
+    !webpPreviewMode &&
+    (Boolean(sourceClipObj?.database) || configuredTranscode) &&
     sourceClipObj?.startSec !== undefined &&
     sourceClipObj?.endSec !== undefined &&
     sourceClipObj.endSec > sourceClipObj.startSec
       ? { videoPath: sourceClipObj.src, startSec: sourceClipObj.startSec, endSec: sourceClipObj.endSec }
       : null;
-  const scoutRangeKey = scoutRange ? `${scoutRange.videoPath}|${scoutRange.startSec}|${scoutRange.endSec}` : null;
-  const [scoutRangeCut, setScoutRangeCut] = React.useState<{ key: string; path: string } | null>(null);
-  const scoutRangeSrc = scoutRangeCut && scoutRangeCut.key === scoutRangeKey ? scoutRangeCut.path : null;
-  const [scoutRangeErrorKey, setScoutRangeErrorKey] = React.useState<string | null>(null);
-  const scoutRangeFailed = scoutRangeKey !== null && scoutRangeErrorKey === scoutRangeKey;
+  const sceneRangeKey = sceneRange ? `${sceneRange.videoPath}|${sceneRange.startSec}|${sceneRange.endSec}` : null;
+  const [sceneRangeCut, setSceneRangeCut] = React.useState<{ key: string; path: string } | null>(null);
+  const sceneRangeSrc = sceneRangeCut && sceneRangeCut.key === sceneRangeKey ? sceneRangeCut.path : null;
+  const [sceneRangeErrorKey, setSceneRangeErrorKey] = React.useState<string | null>(null);
+  const sceneRangeFailed = sceneRangeKey !== null && sceneRangeErrorKey === sceneRangeKey;
 
-  const previewVideoSrc = scoutRange ? scoutRangeSrc : (sourceClipObj?.clipPath || props.sourceClip);
-  // a scout range cut is already just the scene, so it plays from 0 like a cut clip
-  const isCutClip = Boolean(sourceClipObj?.clipPath) || Boolean(scoutRange);
+  const previewVideoSrc = sceneRange ? sceneRangeSrc : (sourceClipObj?.clipPath || props.sourceClip);
+  // range previews start at zero like materialized clips
+  const isCutClip = Boolean(sourceClipObj?.clipPath) || Boolean(sceneRange);
   const sceneStartTime = isCutClip ? undefined : sourceClipObj?.startSec;
   const sceneEndTime = isCutClip ? undefined : sourceClipObj?.endSec;
 
   // a non-default Preview Language needs its audio track remuxed in
   const selectedMappedAudioStreamIndex =
     previewAudioStreamIndex !== null && previewAudioStreamIndex > 0 ? previewAudioStreamIndex : null;
-  const [languageProxySrc, setLanguageProxySrc] = React.useState<string | null>(null);
+  const [languageProxy, setLanguageProxy] = React.useState<{ key: string; path: string } | null>(null);
+  const [proxyErrorKey, setProxyErrorKey] = React.useState<string | null>(null);
 
-  const { needed: needsPreviewTranscode, preset: transcodePreset } = usePreviewTranscode();
+  const [decodeErrorSource, setDecodeErrorSource] = React.useState<string | null>(null);
+  const needsPreviewTranscode = configuredTranscode || (previewVideoSrc !== null && decodeErrorSource === previewVideoSrc);
 
-  // the scout scene's short cut, with the tile's own height/crf so both share one cached file
+  // match the grid's quality settings to reuse its cached range preview
   React.useEffect(() => {
-    if (webpPreviewMode || !scoutRange || !scoutRangeKey) return;
+    if (webpPreviewMode || !sceneRange || !sceneRangeKey) return;
     let cancelled = false;
     invoke<string>("ensure_scene_range_preview", {
-      videoPath: scoutRange.videoPath,
-      startSec: scoutRange.startSec,
-      endSec: scoutRange.endSec,
+      videoPath: sceneRange.videoPath,
+      startSec: sceneRange.startSec,
+      endSec: sceneRange.endSec,
       previewHeight: transcodePreset.height,
       previewCrf: transcodePreset.crf,
     })
-      .then((path) => { if (!cancelled && path) setScoutRangeCut({ key: scoutRangeKey, path }); })
+      .then((path) => { if (!cancelled && path) setSceneRangeCut({ key: sceneRangeKey, path }); })
       .catch((err) => {
         console.warn("scene range preview failed", err);
-        if (!cancelled) setScoutRangeErrorKey(scoutRangeKey);
+        if (!cancelled) setSceneRangeErrorKey(sceneRangeKey);
       });
     return () => { cancelled = true; };
-    // scoutRange is rebuilt every render; its key is what identifies it
+    // sceneRange is rebuilt every render; its key is what identifies it
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scoutRangeKey, webpPreviewMode, transcodePreset]);
+  }, [sceneRangeKey, webpPreviewMode, transcodePreset]);
 
-  // builds the proxy this clip needs (playable codec and/or audio track); video mode only, scout cuts are already x264
+  const previewProxyKey = previewVideoSrc && !sceneRange
+    ? `${previewVideoSrc}|${selectedMappedAudioStreamIndex ?? "default"}|${needsPreviewTranscode}|${transcodePreset.height}|${transcodePreset.crf}`
+    : null;
+  const languageProxySrc = languageProxy?.key === previewProxyKey ? languageProxy?.path ?? null : null;
+  const previewFailed = sceneRangeFailed || (previewProxyKey !== null && proxyErrorKey === previewProxyKey);
+
+  // build only the focused clip's proxy, keyed by source, audio and quality
   React.useEffect(() => {
-    setLanguageProxySrc(null);
     if (webpPreviewMode) return;
-    if (scoutRange) return;
+    if (sceneRange) return;
     if (!previewVideoSrc) return;
     if (selectedMappedAudioStreamIndex === null && !needsPreviewTranscode) return;
     let cancelled = false;
@@ -188,8 +210,11 @@ export default function PreviewContainer(props: PreviewContainerProps) {
       previewHeight: transcodePreset.height,
       previewCrf: transcodePreset.crf,
     })
-      .then((path) => { if (!cancelled && path) setLanguageProxySrc(path); })
-      .catch((err) => { console.warn("preview proxy failed", err); });
+      .then((path) => { if (!cancelled && path && previewProxyKey) setLanguageProxy({ key: previewProxyKey, path }); })
+      .catch((err) => {
+        console.warn("preview proxy failed", err);
+        if (!cancelled) setProxyErrorKey(previewProxyKey);
+      });
     return () => { cancelled = true; };
   }, [
     previewVideoSrc,
@@ -197,11 +222,12 @@ export default function PreviewContainer(props: PreviewContainerProps) {
     webpPreviewMode,
     needsPreviewTranscode,
     transcodePreset,
+    previewProxyKey,
   ]);
 
   // the raw clip renders black while a transcode is pending, so the player waits for the proxy
-  const playableVideoSrc = scoutRange
-    ? scoutRangeSrc
+  const playableVideoSrc = sceneRange
+    ? sceneRangeSrc
     : needsPreviewTranscode
       ? languageProxySrc
       : (languageProxySrc ?? previewVideoSrc);
@@ -358,22 +384,33 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                   style={{ width: "100%", height: "100%", objectFit: "contain" }}
                   alt=""
                 />
-              ) : !webpPreviewMode && previewVideoSrc && props.active !== false ? (
+              ) : !webpPreviewMode && playableVideoSrc && !previewFailed && props.active !== false ? (
                 <VideoPlayer
                   key={`${playableVideoSrc}-${importToken}`}
-                  src={convertFileSrc(playableVideoSrc!)}
+                  src={convertFileSrc(playableVideoSrc)}
                   volume={generalSettings.playbackVolume}
                   clipId={sourceClipObj?.id}
                   startTime={sceneStartTime}
                   endTime={sceneEndTime}
                   onTimeUpdate={props.onTimeUpdate}
+                  poster={previewPoster}
+                  onError={() => {
+                    if (sceneRangeKey) setSceneRangeErrorKey(sceneRangeKey);
+                    else if (languageProxySrc) setProxyErrorKey(previewProxyKey);
+                    else if (previewVideoSrc) setDecodeErrorSource(previewVideoSrc);
+                  }}
                 />
               ) : (
                 <div className="preview-window empty">
-                  {scoutRangeFailed ? (
-                    <p>Couldn't load this scene. Its episode may have moved.</p>
+                  {previewFailed ? (
+                    <p>{t("preview.sceneLoadFailed")}</p>
                   ) : (
-                    <LoadingSpinner label="Loading preview" />
+                    <>
+                      {previewPoster && (
+                        <img className="preview-loading-poster" src={previewPoster} alt="" draggable={false} />
+                      )}
+                      <LoadingSpinner label={t("preview.loading")} />
+                    </>
                   )}
                 </div>
               )}
@@ -383,14 +420,14 @@ export default function PreviewContainer(props: PreviewContainerProps) {
 
         {!hasSource && (
           <div className="preview-window empty" key="empty-preview">
-            <p>No clip selected</p>
+            <p className="preview-empty-title">{t("preview.noClip")}</p>
           </div>
         )}
       </div>
       <div className="export-panel">
         <div className="export-header">
           <FaFileExport className="header-icon" />
-          <span className="export-title">EXPORT SETTINGS</span>
+          <span className="export-title">{t("export.title")}</span>
         </div>
 
         <div className="export-settings-row">
@@ -404,12 +441,13 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                 value={activeExportProfile.id}
                 onChange={setActiveExportProfileId}
                 preferredDirection="down"
+                showTriggerDescription={false}
               />
-              <Tooltip content="Edit export settings">
+              <Tooltip content={t("export.editSettings")}>
                 <button
                   className="buttons export-dir-browse"
                   onClick={() => openSettings("export")}
-                  aria-label="Edit export settings"
+                  aria-label={t("export.editSettings")}
                 >
                   <FaPencilAlt />
                 </button>
@@ -425,15 +463,15 @@ export default function PreviewContainer(props: PreviewContainerProps) {
             <input
               type="text"
               className="export-dir-input"
-              placeholder="Select destination..."
+              placeholder={t("export.destinationPlaceholder")}
               value={exportDir || ""}
               onChange={(e) => setExportDir(e.target.value)}
             />
-            <Tooltip content="Browse for output folder">
+            <Tooltip content={t("export.browseFolder")}>
               <button
                 className="buttons export-dir-browse"
                 onClick={handlePickExportDir}
-                aria-label="Browse for output folder"
+                aria-label={t("export.browseFolder")}
               >
                 <FaFolderOpen />
               </button>
@@ -443,35 +481,33 @@ export default function PreviewContainer(props: PreviewContainerProps) {
 
         <div className="export-options-row">
           <div className="export-dir-row">
-            <div className="export-dir-item">
+            <div className="export-dir-item export-merge-option">
               <span className="merge-clips-label" aria-hidden="true">
-                <span>MERGE</span>
-                <span>CLIPS</span>
+                {t("export.mergeClips")}
               </span>
-              <label className="custom-checkbox" aria-label="Merge clips">
-                <input
-                  type="checkbox"
-                  className="checkbox"
-                  checked={mergeClipsEnabled}
-                  onChange={(event) => setMergeClipsEnabled(event.target.checked)}
-                />
-                <span className="checkmark" />
-              </label>
+              <button
+                type="button"
+                className="export-merge-switch"
+                role="switch"
+                aria-label={t("export.mergeClips")}
+                aria-checked={mergeClipsEnabled}
+                onClick={() => setMergeClipsEnabled(!mergeClipsEnabled)}
+              />
             </div>
             {davinciAvailable && (
               <div className="export-dir-item">
                 <Tooltip
                   content={
                     davinciExportSelected
-                      ? "Exported clips go to the DaVinci Resolve timeline"
-                      : "Send exported clips to the DaVinci Resolve timeline (Studio only)"
+                      ? t("export.davinciOn")
+                      : t("export.davinciOff")
                   }
                 >
                   <button
                     type="button"
                     className={`davinci-export-toggle${davinciExportSelected ? " is-active" : ""}`}
                     aria-pressed={davinciExportSelected}
-                    aria-label="Send exported clips to DaVinci Resolve"
+                    aria-label={t("export.davinciAria")}
                     onClick={() => setDavinciExportSelected(!davinciExportSelected)}
                   >
                     <SiDavinciresolve />
@@ -479,15 +515,33 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                 </Tooltip>
               </div>
             )}
-            <div className="export-dir-item">
-              <div className="audio-stream-field" aria-label="Preview language selector">
+            <div className="export-dir-item export-post-passes-option">
+              <Tooltip content={t("export.configurePostPasses")}>
+                <button className="post-passes-label" type="button" onClick={() => openSettings("export")}>
+                  {t("export.postPasses")}
+                </button>
+              </Tooltip>
+              <button
+                type="button"
+                className="export-merge-switch"
+                role="switch"
+                aria-label={t("export.postPassesToggle")}
+                aria-checked={postExportPassesEnabled}
+                onClick={() => {
+                  const enabled = !postExportPassesEnabled;
+                  setPostExportPassesEnabled(enabled);
+                  if (enabled && !anyPassEnabled(generalSettings.postExportPasses)) openSettings("export");
+                }}
+              />
+            </div>
+            <div className="export-dir-item export-language-option">
+              <div className="audio-stream-field" aria-label={t("export.previewLanguageAria")}>
                 <span className="audio-stream-label" aria-hidden="true">
-                  <span>PREVIEW</span>
-                  <span>LANGUAGE</span>
+                  {t("export.previewLanguage")}
                 </span>
 
                 <Dropdown
-                  className="export-profile-select audio-stream-select"
+                  className="audio-stream-select"
                   options={audioStreamOptions}
                   value={previewAudioStreamIndex ?? (audioStreams[0]?.audioStreamIndex ?? 0)}
                   onChange={(index) => {
@@ -509,7 +563,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
         {/* wrapper span: with no selection the button is disabled and fires no
             pointer events, which is exactly when its hint matters most */}
         <Tooltip
-          content={!hasSelectedClips ? "Select at least one clip to export" : "Export selected clips"}
+          content={!hasSelectedClips ? t("export.selectAtLeastOne") : t("export.exportSelected")}
         >
           <span className="tooltip-anchor export-main-anchor">
             <button
@@ -517,7 +571,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
               disabled={!hasSelectedClips}
               onClick={onExportClick}
             >
-              Export Now
+              {t("export.exportNow")}
             </button>
           </span>
         </Tooltip>
@@ -534,11 +588,11 @@ export default function PreviewContainer(props: PreviewContainerProps) {
             className="episode-modal"
             onMouseDown={(e) => e.stopPropagation()}
           >
-            <div className="episode-modal-title">Merged file name</div>
+            <div className="episode-modal-title">{t("mergeModal.title")}</div>
             <input
               ref={mergeNameInputRef}
               className="episode-modal-input"
-              placeholder="Enter file name..."
+              placeholder={t("mergeModal.placeholder")}
               defaultValue={defaultMergedName}
               onKeyDown={(e) => {
                 if (e.key === "Enter") confirmMergeExport();
@@ -550,14 +604,14 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                 className="episode-modal-btn"
                 onClick={() => setShowMergeNameModal(false)}
               >
-                Cancel
+                {t("common:cancel")}
               </button>
               <button
                 type="button"
                 className="episode-modal-btn primary"
                 onClick={confirmMergeExport}
               >
-                Export
+                {t("mergeModal.export")}
               </button>
             </div>
           </div>

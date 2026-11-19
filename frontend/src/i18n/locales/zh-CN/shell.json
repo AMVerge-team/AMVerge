@@ -1,0 +1,340 @@
+{
+  "app": {
+    "resetFailedTitle": "重置失败",
+    "resetFailed": "无法重置视频存储目录：{{error}}",
+    "aiPack": {
+      "ml": "AI 场景检测",
+      "depth": "深度图",
+      "upscale": "超分辨率",
+      "generic": "AI 模型"
+    },
+    "progress": {
+      "sampling": "正在采样帧",
+      "embedding": "正在嵌入场景",
+      "searching": "正在搜索场景",
+      "thumbnails": "正在生成缩略图",
+      "reencoding": "正在重新编码",
+      "processing": "正在处理片段",
+      "previews": "正在生成预览 {{done}}/{{total}}",
+      "downloading": "正在下载：{{name}}"
+    }
+  },
+  "layout": {
+    "dropFiles": "将文件拖到此处。",
+    "resizeSidebar": "调整侧边栏宽度"
+  },
+  "navbar": {
+    "quickNav": "快速导航（Esc）",
+    "menu": "菜单",
+    "joinDiscord": "加入 AMVerge Discord",
+    "bigger": "放大磁贴，减少列数",
+    "smaller": "缩小磁贴，增加列数",
+    "gridCols_one": "网格：<strong>{{count}}</strong> 列",
+    "gridCols_other": "网格：<strong>{{count}}</strong> 列",
+    "unpin": "取消置顶",
+    "pin": "窗口置顶",
+    "minimize": "最小化",
+    "restore": "还原",
+    "maximize": "最大化"
+  },
+  "quickMenu": {
+    "ariaLabel": "快速菜单",
+    "title": "快速导航",
+    "subtitle": "快速切换页面、搜索或调整偏好设置。",
+    "search": {
+      "title": "搜索",
+      "desc": "搜索视频、片段集、设置和命令"
+    },
+    "tools": {
+      "title": "工具",
+      "desc": "对片段进行超分辨率处理或生成深度图"
+    },
+    "menu": {
+      "title": "菜单",
+      "desc": "关于、更新日志、控制台、致谢和问题反馈"
+    },
+    "settings": {
+      "title": "设置",
+      "desc": "常规选项、导出预设、外观和 AI 模型"
+    }
+  },
+  "splash": {
+    "tagline": "轻松挑选场景。"
+  },
+  "features": {
+    "aiSceneDetection": "AI 场景检测",
+    "sceneScout": "场景搜索（Scene Scout）",
+    "scenepacks": "片段集",
+    "depthPass": "深度图处理",
+    "upscalePass": "超分辨率处理",
+    "turnOn": "请在“设置 › 功能”中开启“{{feature}}”"
+  },
+  "sidebar": {
+    "library": "素材库",
+    "scenepacks": "片段集",
+    "sceneScout": "场景搜索",
+    "events": "社区活动",
+    "newEvents_one": "{{count}} 个新活动",
+    "newEvents_other": "{{count}} 个新活动",
+    "muteEvents": "关闭活动通知",
+    "unmuteEvents": "开启活动通知"
+  },
+  "menuPage": {
+    "label": "菜单",
+    "tabs": {
+      "about": "关于",
+      "console": "控制台",
+      "logs": "更新日志",
+      "credits": "致谢",
+      "resources": "资源",
+      "bugreport": "反馈问题"
+    }
+  },
+  "settingsPage": {
+    "title": "设置",
+    "tabs": {
+      "general": "常规",
+      "export": "导出",
+      "appearance": "外观",
+      "features": "功能",
+      "discord": "Discord RPC",
+      "storage": "存储"
+    }
+  },
+  "scenepacksPage": {
+    "failed": "失败：{{error}}"
+  },
+  "palette": {
+    "ariaLabel": "命令中心",
+    "placeholder": "搜索视频、片段集、操作、设置、菜单…",
+    "clear": "清空搜索",
+    "emptyTitle": "没有找到匹配的结果",
+    "emptyHint": "换个名称试试，或使用上方的分类筛选",
+    "navigate": "移动",
+    "open": "打开",
+    "nextFilter": "下一个分类",
+    "close": "关闭",
+    "chips": {
+      "all": "全部",
+      "episodes": "视频",
+      "scenepacks": "片段集",
+      "sceneScout": "场景搜索",
+      "actions": "操作",
+      "settings": "设置",
+      "menu": "系统与菜单"
+    },
+    "inspector": {
+      "empty": "选择一项以查看预览",
+      "target": "目标",
+      "execute": "执行命令",
+      "reveal": "在{{manager}}中显示"
+    }
+  },
+  "commands": {
+    "openShortcut": "↵ 打开",
+    "episode": {
+      "fallbackName": "视频 {{id}}",
+      "subtitle_one": "{{count}} 个场景 • {{path}}",
+      "subtitle_other": "{{count}} 个场景 • {{path}}",
+      "readyInWorkspace": "已在工作区中就绪",
+      "localFile": "本地视频文件",
+      "description": "立即将所有已切分的场景载入网格。"
+    },
+    "scenepack": {
+      "subtitle_one": "收藏了 {{count}} 个场景",
+      "subtitle_other": "收藏了 {{count}} 个场景",
+      "meta": "自定义片段集",
+      "description": "浏览、筛选并批量导出此片段集中的片段。"
+    },
+    "scoutDb": {
+      "subtitle": "{{episodes}} • {{scenes}}",
+      "episodes_one": "{{count}} 个视频",
+      "episodes_other": "{{count}} 个视频",
+      "scenes_one": "{{count}} 个场景",
+      "scenes_other": "{{count}} 个场景",
+      "description": "在场景搜索中打开并搜索此数据库。"
+    },
+    "scoutSearch": {
+      "title": "场景搜索：搜索",
+      "subtitle": "用文字描述来查找场景",
+      "meta": "场景搜索",
+      "description": "用文字描述一个场景，场景搜索会在你的所有数据库中找到它。"
+    },
+    "scoutFlow": {
+      "title": "场景搜索：查找衔接片段",
+      "subtitle": "选择一个视频文件，查找可以接在它后面的场景",
+      "meta": "衔接搜索",
+      "description": "查找看起来能接在所选文件最后一帧之后的场景。"
+    },
+    "import": {
+      "title": "导入新视频",
+      "subtitle": "选择视频文件，检测并切分为场景片段",
+      "meta": "场景检测流程",
+      "description": "打开文件对话框，使用 TransNetV2 AI 或快速关键帧切分。"
+    },
+    "selectAll": {
+      "title": "选择全部片段",
+      "subtitle_one": "选中时间线中的全部 {{count}} 个场景",
+      "subtitle_other": "选中时间线中的全部 {{count}} 个场景",
+      "meta": "批量选择",
+      "description": "选中所有场景，用于批量导出、合并或加入片段集。"
+    },
+    "clearSelection": {
+      "title": "清除片段选择",
+      "subtitle_one": "取消当前选中的 {{count}} 个场景",
+      "subtitle_other": "取消当前选中的 {{count}} 个场景",
+      "meta": "全部取消选择",
+      "description": "清除网格中的所有选择。"
+    },
+    "pin": {
+      "unpinTitle": "取消窗口置顶（普通模式）",
+      "pinTitle": "窗口置顶（始终在最前）",
+      "subtitle": "切换配合 After Effects / Premiere 使用的悬浮窗口",
+      "meta": "置顶模式",
+      "description": "缩小 AMVerge 并将其悬浮在剪辑软件上方。"
+    },
+    "sidebar": {
+      "hideTitle": "隐藏侧边栏",
+      "showTitle": "显示侧边栏",
+      "subtitle": "切换左侧导航和视频面板",
+      "meta": "侧边栏显示",
+      "description": "展开或收起左侧视频面板，节省屏幕空间。"
+    },
+    "preview": {
+      "showTitle": "显示视频预览面板",
+      "hideTitle": "隐藏视频预览面板",
+      "subtitle": "切换右侧预览播放器，让片段网格占满宽度",
+      "meta": "预览面板开关",
+      "description": "隐藏或恢复右侧的视频播放与导出控制面板。"
+    },
+    "columns_one": "当前每行 {{count}} 列",
+    "columns_other": "当前每行 {{count}} 列",
+    "zoomIn": {
+      "title": "网格：放大（更大的磁贴）",
+      "meta": "更大的片段卡片",
+      "description": "减少列数，让每个片段缩略图显示得更大。"
+    },
+    "zoomOut": {
+      "title": "网格：缩小（更多列）",
+      "meta": "更小的片段卡片",
+      "description": "增加列数，一眼浏览更多场景片段。"
+    },
+    "audio": {
+      "muteTitle": "悬停时静音",
+      "enableTitle": "悬停时播放声音",
+      "subtitle": "切换场景网格中片段悬停时的声音",
+      "meta": "悬停音频播放",
+      "description": "控制鼠标悬停在片段卡片上时是否播放其音轨。"
+    },
+    "settingsGeneral": {
+      "title": "设置：常规",
+      "subtitle": "场景检测方式、视频存储路径和应用默认值",
+      "meta": "常规偏好",
+      "defaultPath": "默认缓存目录",
+      "description": "配置检测算法、缓存位置和视频解码流程。"
+    },
+    "settingsExport": {
+      "title": "设置：导出预设",
+      "subtitle": "GPU 加速编码器（NVENC / AMF / QSV）和视频编码",
+      "meta": "导出配置",
+      "defaultPath": "默认导出文件夹",
+      "description": "管理导出编码器、码率、硬件预设和封装格式。"
+    },
+    "settingsAppearance": {
+      "title": "设置：外观",
+      "subtitle": "自定义颜色、壁纸背景模糊和片段样式",
+      "meta": "视觉样式",
+      "accent": "强调色：{{color}}",
+      "description": "个性化应用颜色、背景图片、不透明度和字体。"
+    },
+    "settingsFeatures": {
+      "title": "设置：功能",
+      "subtitle": "开启或关闭 AI 场景检测、场景搜索、片段集和导出后处理",
+      "meta": "功能与存储",
+      "description": "开启或关闭主要功能，下载所需文件，并查看它们占用的磁盘空间。"
+    },
+    "settingsDiscord": {
+      "title": "设置：Discord 动态状态",
+      "subtitle": "配置 Discord 状态徽章、文件名和详细信息",
+      "meta": "Discord RPC 集成",
+      "description": "在 Discord 上显示你的剪辑状态和当前片段数量。"
+    },
+    "library": {
+      "title": "素材库",
+      "subtitle": "已导入的视频及其片段",
+      "description": "返回视频网格。"
+    },
+    "scenepacks": {
+      "title": "片段集",
+      "subtitle": "按主题整理的片段合集",
+      "description": "浏览并导出你归入片段集的片段。"
+    },
+    "sceneScout": {
+      "title": "场景搜索",
+      "subtitle": "通过描述场景来搜索你的视频",
+      "description": "用文字搜索已建立索引的视频，或查找彼此衔接的片段。"
+    },
+    "events": {
+      "title": "社区活动",
+      "subtitle": "浏览比赛、合作和创作活动，或举办你自己的活动",
+      "description": "由 AMVerge 社区举办的活动，经审核后展示。"
+    },
+    "console": {
+      "title": "开发者控制台日志",
+      "subtitle": "实时 CLI IPC 事件、后端输出流和诊断日志",
+      "meta": "诊断控制台",
+      "description": "查看来自 FFmpeg、PyAV 和 AI 组件的实时 stderr/stdout 输出。"
+    },
+    "patchNotes": {
+      "title": "更新日志与补丁说明",
+      "subtitle": "查看 AMVerge v2 的版本历史和新功能",
+      "meta": "版本发布日志",
+      "description": "浏览更新记录、问题修复和新增功能。"
+    },
+    "about": {
+      "title": "关于 AMVerge",
+      "subtitle": "架构、系统信息和开源许可",
+      "meta": "关于 AMVerge 桌面版",
+      "description": "由 Crptk 及团队打造的高性能动漫与视频场景切分工具。"
+    },
+    "bugReport": {
+      "title": "反馈问题",
+      "subtitle": "附带诊断信息提交反馈，或前往 Discord 交流",
+      "meta": "反馈与问题报告",
+      "description": "将可复现的问题直接提交给开发团队。"
+    }
+  },
+  "colorPicker": {
+    "choose": "选择颜色",
+    "presets": "预设"
+  },
+  "crop": {
+    "title": "裁剪与变换",
+    "hint": "拖动四角可自由调整大小",
+    "resetTooltip": "重置所有更改",
+    "imageAlt": "待裁剪图片",
+    "aspectRatio": "宽高比",
+    "free": "自由",
+    "widthShort": "宽",
+    "heightShort": "高",
+    "width": "宽度",
+    "height": "高度",
+    "rotateFlip": "旋转与翻转",
+    "rotateLeft": "向左旋转",
+    "rotateRight": "向右旋转",
+    "flipHorizontal": "水平翻转",
+    "flipVertical": "垂直翻转",
+    "zoom": "缩放（{{percent}}%）",
+    "saveApply": "保存并应用"
+  },
+  "infoButton": {
+    "about": "关于“{{title}}”"
+  },
+  "modal": {
+    "closeLabel": "关闭{{label}}"
+  },
+  "previewAll": {
+    "start": "预览屏幕内的片段",
+    "stop": "停止自动预览"
+  }
+}

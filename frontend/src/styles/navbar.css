@@ -10,6 +10,7 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(16px);
     z-index: 100;
+    position: relative;
 }
 
 .navbar svg {
@@ -111,6 +112,13 @@
     flex: 0 0 auto;
 }
 
+/* centered over the clip grid instead of the window, left is set by the navbar */
+.navbar-center.over-grid {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
 .zoomWrapper {
     display: inline-flex;
     align-items: center;
@@ -124,7 +132,7 @@
 }
 
 .zoom-label {
-    font-size: 0.88rem;
+    font-size: 0.8rem;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.9);
     padding: 0 4px;
@@ -276,4 +284,15 @@
 .navbar h1 span,
 .zoom-label {
     pointer-events: none;
+}
+
+/* leave room for the native macos traffic lights */
+:root[data-platform="mac"] .navbar {
+    padding-left: 84px;
+}
+
+:root[data-platform="mac"] .window-control.minimize,
+:root[data-platform="mac"] .window-control.maximize,
+:root[data-platform="mac"] .window-control.close {
+    display: none;
 }

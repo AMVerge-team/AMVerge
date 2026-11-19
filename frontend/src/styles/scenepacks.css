@@ -148,6 +148,16 @@
   background: rgba(0, 0, 0, 0.22);
 }
 
+.episode-panel > .scenepack-search {
+  min-height: 36px;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
 .scenepack-search-icon {
   opacity: 0.4;
   font-size: 12px;

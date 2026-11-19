@@ -1,0 +1,82 @@
+{
+  "preview": {
+    "sceneLoadFailed": "无法加载此场景，所属视频可能已被移动。",
+    "loading": "正在加载预览",
+    "noClip": "未选择片段"
+  },
+  "player": {
+    "play": "播放",
+    "pause": "暂停",
+    "mute": "静音",
+    "unmute": "取消静音",
+    "volume": "音量",
+    "fullscreen": "全屏"
+  },
+  "export": {
+    "title": "导出设置",
+    "untitledProfile": "未命名预设",
+    "editSettings": "编辑导出设置",
+    "destinationPlaceholder": "选择导出位置…",
+    "browseFolder": "选择输出文件夹",
+    "mergeLabelLine1": "合并",
+    "mergeLabelLine2": "片段",
+    "mergeClips": "合并片段",
+    "davinciOn": "导出的片段将发送到 DaVinci Resolve 时间线",
+    "davinciOff": "将导出的片段发送到 DaVinci Resolve 时间线（仅限 Studio 版）",
+    "davinciAria": "将导出的片段发送到 DaVinci Resolve",
+    "previewLanguageAria": "预览语言选择",
+    "previewLanguage": "预览语言",
+    "postPasses": "导出后处理",
+    "postPassesToggle": "启用导出后处理",
+    "configurePostPasses": "在导出设置中配置后处理。关闭总开关会保留原有配置。",
+    "previewLanguageLine1": "预览",
+    "previewLanguageLine2": "语言",
+    "selectAtLeastOne": "请至少选择一个片段再导出",
+    "exportSelected": "导出所选片段",
+    "exportNow": "立即导出",
+    "unknownError": "未知错误"
+  },
+  "mergeModal": {
+    "title": "合并后的文件名",
+    "placeholder": "输入文件名…",
+    "export": "导出"
+  },
+  "howToUse": {
+    "titles": {
+      "library": "使用说明",
+      "scenepacks": "片段集使用说明",
+      "sceneScoutSearch": "场景搜索使用说明",
+      "sceneScoutFlow": "匹配功能使用说明"
+    },
+    "hide": "隐藏说明",
+    "show": "显示说明",
+    "showTour": "重新查看引导",
+    "steps": {
+      "select": "使用 <b>{{mod}} + 单击</b>、<b>Shift + 单击</b>或<b>双击</b>选择片段",
+      "exportNow": "点击<b>立即导出</b>导出所选内容",
+      "scenepacks": {
+        "create": "在左侧面板中创建片段集",
+        "add": "在<b>素材库</b>中选择片段，然后点击<b>添加到片段集</b>",
+        "open": "打开片段集即可查看其中的片段"
+      },
+      "sceneScoutSearch": {
+        "database": "在左侧面板中创建或打开一个<b>数据库</b>",
+        "searching": "将其移入<b>搜索中</b>：<b>双击</b>、向上拖动或右键单击它。只有“搜索中”的数据库会被搜索",
+        "addEpisode": "点击<b>添加视频</b>，将视频编入索引",
+        "describe": "在搜索栏中描述一个场景，然后按 <b>Enter</b>",
+        "preview": "单击结果即可<b>预览</b>"
+      },
+      "sceneScoutFlow": {
+        "import": "点击<b>导入</b>，或右键单击片段并选择<b>查找匹配片段</b>",
+        "matches": "匹配结果是看起来能接续你片段最后一帧的场景",
+        "resize": "拖动片段与匹配结果之间的分隔线可调整两者大小",
+        "preview": "单击匹配结果即可<b>预览</b>"
+      },
+      "library": {
+        "focus": "单击可<b>聚焦</b>片段",
+        "profile": "选择<b>导出预设</b>以设定导出参数",
+        "start": "点击<b>立即导出</b>开始导出"
+      }
+    }
+  }
+}

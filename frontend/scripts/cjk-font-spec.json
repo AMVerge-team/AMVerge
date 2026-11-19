@@ -1,0 +1,30 @@
+{
+  "unitsPerEm": 1200,
+  "vertical": {
+    "hheaAscent": 1300,
+    "hheaDescent": -300,
+    "hheaLineGap": 0,
+    "typoAscender": 1300,
+    "typoDescender": -300,
+    "typoLineGap": 0,
+    "winAscent": 1300,
+    "winDescent": 300,
+    "xHeight": 600,
+    "capHeight": 900,
+    "useTypoMetrics": false
+  },
+  "advances": {
+    "han": 1200,
+    "ideographicSpace": 1200,
+    "latinA": 800,
+    "latinI": 400,
+    "space": 600
+  },
+  "weightClass": 400,
+  "widthClass": 5,
+  "pixelGrid": 100,
+  "coverage": {
+    "codePoints": 7066,
+    "han": 6727
+  }
+}

@@ -46,7 +46,9 @@ pub fn save_custom_ai_root(app: &AppHandle, custom: Option<&Path>) -> Result<(),
                     let _ = std::fs::remove_file(pointer);
                 }
             } else {
-                std::fs::write(pointer, trimmed).map_err(|e| e.to_string())?;
+                let temp = dir.join(format!("ai_storage_path.{}.tmp", uuid::Uuid::new_v4().simple()));
+                std::fs::write(&temp, trimmed).map_err(|e| e.to_string())?;
+                std::fs::rename(&temp, &pointer).map_err(|e| e.to_string())?;
             }
         }
         None => {
@@ -64,7 +66,7 @@ fn home_dir() -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
-pub(crate) fn legacy_cli_models_dir() -> Option<PathBuf> {
+pub(crate) fn legacy_cli_config_dir() -> Option<PathBuf> {
     let config = match std::env::var_os("APPDATA").filter(|v| !v.is_empty()) {
         Some(appdata) => PathBuf::from(appdata).join("com.amverge.cli"),
         None => {
@@ -80,7 +82,11 @@ pub(crate) fn legacy_cli_models_dir() -> Option<PathBuf> {
             }
         }
     };
-    Some(config.join("models"))
+    Some(config)
+}
+
+pub(crate) fn legacy_cli_models_dir() -> Option<PathBuf> {
+    Some(legacy_cli_config_dir()?.join("models"))
 }
 
 pub(crate) fn legacy_scout_model_dir() -> Option<PathBuf> {
@@ -172,6 +178,26 @@ pub fn default_ai_root(app: &AppHandle) -> Result<PathBuf, String> {
         .join("AMVerge"))
 }
 
+fn custom_ai_location(custom_root: PathBuf) -> AiLocation {
+    AiLocation {
+        runtime_dir: custom_root.join("runtime"),
+        config_dir: Some(custom_root.join("config")),
+        hf_home_dir: Some(custom_root.join("hf-cache")),
+        custom_path: Some(custom_root.clone()),
+        root: custom_root,
+    }
+}
+
+pub fn resolve_ai_location_for_move(
+    app: &AppHandle,
+    custom_root: Option<&Path>,
+) -> Result<AiLocation, String> {
+    if let Some(root) = custom_root {
+        return Ok(custom_ai_location(root.to_path_buf()));
+    }
+    resolve_default_ai_location(app)
+}
+
 /// Resolves the active AI storage root, keeping existing AppData/legacy installs working until moved.
 pub fn resolve_ai_location(app: &AppHandle) -> Result<AiLocation, String> {
     if let Ok(dir) = std::env::var("AMVERGE_RUNTIME_DIR") {
@@ -193,15 +219,13 @@ pub fn resolve_ai_location(app: &AppHandle) -> Result<AiLocation, String> {
     }
 
     if let Some(custom_root) = load_custom_ai_root(app) {
-        return Ok(AiLocation {
-            runtime_dir: custom_root.join("runtime"),
-            config_dir: Some(custom_root.join("config")),
-            hf_home_dir: Some(custom_root.join("hf-cache")),
-            custom_path: Some(custom_root.clone()),
-            root: custom_root,
-        });
+        return Ok(custom_ai_location(custom_root));
     }
 
+    resolve_default_ai_location(app)
+}
+
+fn resolve_default_ai_location(app: &AppHandle) -> Result<AiLocation, String> {
     let local_root = app
         .path()
         .local_data_dir()
@@ -340,7 +364,9 @@ pub(crate) fn apply_ai_env_vars(app: &AppHandle, cmd: &mut Command) {
             cmd.env("AMVERGE_CONFIG_DIR", config);
         }
         if let Some(hf) = loc.hf_home_dir {
-            cmd.env("HF_HOME", hf);
+            cmd.env("HF_HOME", &hf)
+                .env("HF_HUB_CACHE", hf.join("hub"))
+                .env_remove("TRANSFORMERS_CACHE");
         }
     }
 }
@@ -448,6 +474,40 @@ mod runtime_dir_tests {
         assert!(written.contains("home = D:\\AMVerge\\ai\\runtime\\python\\cpython-3.12.9-windows-x86_64-none"));
         let _ = std::fs::remove_dir_all(&temp);
     }
+
+    #[test]
+    fn dev_cli_prefers_the_sibling_checkout() {
+        let root = tempfile::tempdir().unwrap();
+        let sibling = root.path().join("sibling");
+        let home = root.path().join("home");
+        std::fs::create_dir(&sibling).unwrap();
+        std::fs::create_dir(&home).unwrap();
+        for override_dir in [None, Some(""), Some("  ")] {
+            assert_eq!(dev_cli_dir(override_dir, sibling.clone(), Some(home.clone())), sibling);
+        }
+    }
+
+    #[test]
+    fn explicit_dev_cli_checkout_is_preserved() {
+        let custom = PathBuf::from("/custom/AMVerge-CLI");
+        assert_eq!(dev_cli_dir(custom.to_str(), PathBuf::from("/sibling"), None), custom);
+    }
+
+    #[test]
+    fn dev_cli_uses_home_when_the_sibling_checkout_is_missing() {
+        let root = tempfile::tempdir().unwrap();
+        let home = root.path().join("home");
+        std::fs::create_dir(&home).unwrap();
+        assert_eq!(dev_cli_dir(None, root.path().join("missing"), Some(home.clone())), home);
+    }
+
+    #[test]
+    fn missing_dev_checkouts_keep_the_expected_sibling_path() {
+        let root = tempfile::tempdir().unwrap();
+        let sibling = root.path().join("sibling");
+        assert_eq!(dev_cli_dir(None, sibling.clone(), None), sibling);
+        assert_eq!(dev_cli_dir(None, sibling.clone(), Some(root.path().join("missing"))), sibling);
+    }
 }
 
 pub fn ai_env_dir(app: &AppHandle) -> Result<PathBuf, String> {
@@ -496,14 +556,24 @@ pub fn ai_env_ready(app: &AppHandle) -> bool {
 
 /// the dev CLI checkout's editable venv, which already has every extra
 fn dev_venv_dir() -> Result<PathBuf, String> {
-    // current_dir is frontend/src-tauri during `tauri dev`; pop to the repo root
-    let mut root = std::env::current_dir().map_err(|e| e.to_string())?;
-    root.pop();
-    root.pop();
-    let cli_dir = std::env::var("AMVERGE_CLI_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| std::env::var("HOME").ok().map(|h| PathBuf::from(h).join("AMVerge-CLI")).unwrap_or_else(|| root.join("AMVerge-CLI")));
+    let sibling = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(3)
+        .unwrap()
+        .join("AMVerge-CLI");
+    let home = std::env::var_os("HOME").map(|dir| PathBuf::from(dir).join("AMVerge-CLI"));
+    let cli_dir = dev_cli_dir(std::env::var("AMVERGE_CLI_DIR").ok().as_deref(), sibling, home);
     Ok(cli_dir.join(".venv"))
+}
+
+fn dev_cli_dir(override_dir: Option<&str>, sibling: PathBuf, home: Option<PathBuf>) -> PathBuf {
+    if let Some(dir) = override_dir.filter(|dir| !dir.trim().is_empty()) {
+        return PathBuf::from(dir);
+    }
+    if sibling.is_dir() {
+        return sibling;
+    }
+    home.filter(|dir| dir.is_dir()).unwrap_or(sibling)
 }
 
 fn dev_amverge_exe() -> Result<PathBuf, String> {
@@ -588,6 +658,12 @@ pub fn amverge_command(app: &AppHandle) -> Result<Command, String> {
     } else {
         prod_amverge_exe(app)?
     };
+    if cfg!(debug_assertions) && !exe.is_file() {
+        return Err(format!(
+            "AMVerge CLI executable not found at '{}'. Run setup.sh / setup.ps1 or set AMVERGE_CLI_DIR to the CLI checkout.",
+            exe.display()
+        ));
+    }
     let mut cmd = base_command(exe);
     apply_ai_env_vars(app, &mut cmd);
     Ok(cmd)

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import About from "../components/menu/About";
 import Console from "../components/menu/Console";
 import PatchNotes from "../components/menu/PatchNotes";
@@ -9,15 +10,16 @@ import { useTabKeys } from "../components/common/useTabKeys";
 import { FaInfoCircle, FaTerminal, FaHistory, FaUsers, FaBug, FaToolbox } from '../components/icons/animated';
 
 const PAGES = [
-  { key: "about", label: "About", icon: FaInfoCircle },
-  { key: "console", label: "Console", icon: FaTerminal },
-  { key: "logs", label: "Update Logs", icon: FaHistory },
-  { key: "credits", label: "Credits", icon: FaUsers },
-  { key: "resources", label: "Resources", icon: FaToolbox },
-  { key: "bugreport", label: "Report Bug", icon: FaBug },
+  { key: "about", icon: FaInfoCircle },
+  { key: "console", icon: FaTerminal },
+  { key: "logs", icon: FaHistory },
+  { key: "credits", icon: FaUsers },
+  { key: "resources", icon: FaToolbox },
+  { key: "bugreport", icon: FaBug },
 ];
 
 export default function Menu() {
+  const { t } = useTranslation("shell");
   const [activePage, setActivePage] = useState("about");
   useTabKeys(PAGES.map((page) => page.key), activePage, setActivePage);
 
@@ -35,7 +37,7 @@ export default function Menu() {
                 onClick={() => setActivePage(page.key)}
               >
                 <Icon className="menu-nav-icon" />
-                <span>{page.label}</span>
+                <span>{t(`menuPage.tabs.${page.key}`)}</span>
               </button>
             );
           })}

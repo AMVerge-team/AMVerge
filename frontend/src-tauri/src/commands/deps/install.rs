@@ -112,6 +112,67 @@ pub(crate) fn run_uv_step(
     })
 }
 
+// waits before each retry; uv keeps finished downloads in its cache, so a retry resumes rather than restarts
+const FILE_LOCK_RETRY_DELAYS_SECS: &[u64] = &[5, 15, 30];
+
+// antivirus scanning a freshly unpacked file makes uv's rename of its temp folder fail on windows
+pub(crate) fn is_transient_file_lock(error: &str) -> bool {
+    let error = error.to_ascii_lowercase();
+    error.contains("os error 32")
+        || error.contains("being used by another process")
+        || (error.contains("os error 5") && error.contains("failed to rename"))
+}
+
+fn file_lock_message(app: &AppHandle, error: &str) -> String {
+    let folder = runtime_dir(app)
+        .map(|dir| dir.display().to_string())
+        .unwrap_or_else(|_| "the AMVerge runtime folder".to_string());
+    format!(
+        "Windows kept one of the downloaded files locked, usually because antivirus software was \
+         scanning it. Your downloads are kept, so Try again continues where this left off. If it \
+         keeps happening, add an antivirus exclusion for {folder}.\n\n{error}"
+    )
+}
+
+/// runs a uv step, rebuilding and rerunning it when a windows file lock (not a real failure) stops it
+pub(crate) fn run_uv_step_with_lock_retry(
+    app: &AppHandle,
+    install_state: &ActiveInstall,
+    pack: &str,
+    build: impl Fn() -> Result<Command, String>,
+    step_label: &str,
+) -> Result<(), String> {
+    let mut retries = FILE_LOCK_RETRY_DELAYS_SECS.iter();
+    loop {
+        let error = match run_uv_step(app, install_state, pack, build()?, step_label) {
+            Ok(()) => return Ok(()),
+            Err(error) => error,
+        };
+        if install_state.canceled() || !is_transient_file_lock(&error) {
+            return Err(error);
+        }
+        let Some(&delay) = retries.next() else {
+            return Err(file_lock_message(app, &error));
+        };
+
+        let attempt = FILE_LOCK_RETRY_DELAYS_SECS.len() - retries.len() + 1;
+        let total = FILE_LOCK_RETRY_DELAYS_SECS.len() + 1;
+        let note = format!(
+            "A downloaded file was locked by another program (often antivirus). Retrying in {delay}s, attempt {attempt} of {total}..."
+        );
+        console_log("DEPS|retry", &format!("{step_label}: file lock, retry {attempt}/{total} in {delay}s"));
+        emit_log(app, pack, &note);
+        emit_progress(app, pack, "packages", 10, true, &note);
+
+        for _ in 0..(delay * 4) {
+            if install_state.canceled() {
+                return Err("Install canceled.".to_string());
+            }
+            std::thread::sleep(std::time::Duration::from_millis(250));
+        }
+    }
+}
+
 pub(crate) fn install_ai_pack_inner(
     app: &AppHandle,
     install_state: &ActiveInstall,
@@ -265,45 +326,48 @@ pub(crate) fn install_ai_pack_inner(
         ),
     );
 
-    let mut cmd = uv_command(app)?;
-    cmd.arg("pip")
-        .arg("install")
-        .arg("--python")
-        .arg(&python)
-        .arg(&spec);
+    let build_install = || -> Result<Command, String> {
+        let mut cmd = uv_command(app)?;
+        cmd.arg("pip")
+            .arg("install")
+            .arg("--python")
+            .arg(&python)
+            .arg(&spec);
 
-    // always pin torch to the selected index; include torchvision only when depth is in the active extras
-    cmd.arg("torch");
-    if extras.contains(&"depth") {
-        cmd.arg("torchvision");
-    }
+        // always pin torch to the selected index; include torchvision only when depth is in the active extras
+        cmd.arg("torch");
+        if extras.contains(&"depth") {
+            cmd.arg("torchvision");
+        }
 
-    if want_nelux {
-        cmd.arg(TORCH_PIN_GPU_DECODE).arg(NELUX_PIN_GPU_DECODE);
-    }
+        if want_nelux {
+            cmd.arg(TORCH_PIN_GPU_DECODE).arg(NELUX_PIN_GPU_DECODE);
+        }
 
-    if gpu {
-        let on_cuda13 = installed
-            .get("torch")
-            .map(|v| v.contains("+cu13"))
-            .unwrap_or(false);
-        cmd.arg("--extra-index-url").arg(if want_nelux || on_cuda13 {
-            TORCH_CUDA_INDEX_GPU_DECODE
-        } else {
-            TORCH_CUDA_INDEX
-        });
-    }
+        if gpu {
+            let on_cuda13 = installed
+                .get("torch")
+                .map(|v| v.contains("+cu13"))
+                .unwrap_or(false);
+            cmd.arg("--extra-index-url").arg(if want_nelux || on_cuda13 {
+                TORCH_CUDA_INDEX_GPU_DECODE
+            } else {
+                TORCH_CUDA_INDEX
+            });
+        }
 
-    // a CPU torch satisfies every constraint, so uv reports "no changes" without this
-    if !variant_matches {
-        for dist in TORCH_FAMILY {
-            if installed.contains_key(*dist) {
-                cmd.arg("--reinstall-package").arg(dist);
+        // a CPU torch satisfies every constraint, so uv reports "no changes" without this
+        if !variant_matches {
+            for dist in TORCH_FAMILY {
+                if installed.contains_key(*dist) {
+                    cmd.arg("--reinstall-package").arg(dist);
+                }
             }
         }
-    }
+        Ok(cmd)
+    };
 
-    run_uv_step(app, install_state, pack.id, cmd, "Package install")?;
+    run_uv_step_with_lock_retry(app, install_state, pack.id, build_install, "Package install")?;
 
     // uv only warns about an extra the wheel lacks, so the step can "succeed" installing nothing; verify
     let after = installed_distributions(app, &python)?;
@@ -345,4 +409,32 @@ pub(crate) fn install_ai_pack_inner(
     emit_progress(app, pack.id, "cleanup", 100, false, "Done.");
     console_log("DEPS|install", &format!("pack={} ok", pack.id));
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_transient_file_lock;
+
+    #[test]
+    fn retries_windows_file_locks_from_uv() {
+        let colorama = r"Package install failed (exit code: 2):
+error: Failed to download `colorama==0.4.6`
+  Caused by: Failed to write to the distribution cache
+  Caused by: failed to rename file from C:\Users\x\AppData\Local\AMVerge\runtime\uv-cache\.tmpGj0w7y to C:\Users\x\AppData\Local\AMVerge\runtime\uv-cache\archive-v0\oBKusLaeVd56XREc: The process cannot access the file because it is being used by another process. (os error 32)";
+        let hf_xet = r"error: Failed to download `hf-xet==1.8.0`
+  Caused by: failed to rename file from C:\a\uv-cache\.tmpGJX499 to C:\a\uv-cache\archive-v0\Tb1c1_f6XcneHE0g: The process cannot access the file because it is being used by another process. (os error 32)";
+        let access_denied_rename = r"Caused by: failed to rename file from C:\a\.tmp1 to C:\a\archive-v0\b: Access is denied. (os error 5)";
+        assert!(is_transient_file_lock(colorama));
+        assert!(is_transient_file_lock(hf_xet));
+        assert!(is_transient_file_lock(access_denied_rename));
+    }
+
+    #[test]
+    fn does_not_retry_real_failures() {
+        assert!(!is_transient_file_lock(r"error: Failed to fetch: `https://pypi.org/simple/torch/`
+  Caused by: dns error: No such host is known. (os error 11001)"));
+        assert!(!is_transient_file_lock("error: No solution found when resolving dependencies"));
+        assert!(!is_transient_file_lock(r"error: failed to create directory C:\Program Files\x: Access is denied. (os error 5)"));
+        assert!(!is_transient_file_lock("Install canceled."));
+    }
 }

@@ -4,31 +4,27 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 15px;
+    padding: 20px 24px 24px;
     overflow-y: auto;
     overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    overscroll-behavior-y: contain;
+    scroll-padding-block: 20px;
     container-type: inline-size;
     container-name: previewContainer;
 }
 
+.preview-container > .preview-windows-layout,
+.preview-container > .export-panel,
+.preview-container > .info-panel {
+    flex: none;
+}
+
 .preview-container::-webkit-scrollbar {
-    width: 8px;
-}
-
-.preview-container::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 10px;
-}
-
-.preview-container::-webkit-scrollbar-thumb {
-    background: rgba(var(--accent-rgb), 0.3);
-    border-radius: 10px;
-    border: 2px solid transparent;
-    background-clip: content-box;
-}
-
-.preview-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(var(--accent-rgb), 0.5);
+    display: none;
+    width: 0;
+    height: 0;
 }
 
 .preview-windows-layout {
@@ -50,7 +46,7 @@
     align-items: center;
     background: black;
     border-radius: 8px;
-    border: 1px solid rgba(var(--accent-rgb), 0.3);
+    border: 2px solid var(--accent);
     overflow: hidden;
     position: relative;
     transition: all 0.3s ease;
@@ -64,5 +60,36 @@
 .preview-window.empty {
     background: #07090f;
     background-image: none;
-    border: 1px solid var(--accent);
+    border-color: var(--accent);
+}
+
+.preview-window .video-frame,
+.preview-window > .preview-window.empty {
+    border: none;
+    border-radius: 0;
+}
+
+/* a proxy still building shows the clip's poster, dimmed, under the spinner */
+.preview-window.empty>.preview-loading-poster {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: brightness(0.55);
+    pointer-events: none;
+}
+
+.preview-window.empty>.loading-spinner {
+    position: relative;
+    z-index: 1;
+}
+
+.preview-window > .preview-window.empty {
+    height: 100%;
+    aspect-ratio: auto;
+}
+
+.preview-empty-title {
+    font-weight: 600;
 }

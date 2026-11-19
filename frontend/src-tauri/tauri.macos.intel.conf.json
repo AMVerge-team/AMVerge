@@ -1,4 +1,18 @@
 {
+  "app": {
+    "windows": [
+      {
+        "title": "AMVerge",
+        "minWidth": 920,
+        "minHeight": 540,
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "backgroundColor": "#000000",
+        "trafficLightPosition": { "x": 16, "y": 23 }
+      }
+    ]
+  },
   "bundle": {
     "targets": ["app", "dmg"],
     "createUpdaterArtifacts": true,
@@ -10,7 +24,8 @@
       "bin/amverge-x86_64-apple-darwin/_internal/**/*",
       "bin/amverge-x86_64-apple-darwin/_internal/ffmpeg",
       "bin/amverge-x86_64-apple-darwin/_internal/ffprobe",
-      "bin/uv/x86_64-apple-darwin/uv"
+      "bin/uv/x86_64-apple-darwin/uv",
+      "../src/assets/fonts/licenses/jersey-10-OFL.txt"
     ]
   }
 }

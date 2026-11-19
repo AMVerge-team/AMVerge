@@ -1,0 +1,281 @@
+{
+  "font": {
+    "default": "默认（Calibri）",
+    "pixel": "像素（Jersey 10 + 中文像素字体）",
+    "search": "搜索字体…",
+    "loadAll": "加载全部已安装字体",
+    "loadAllTooltip": "列出此系统上安装的所有字体",
+    "noneFound": "未找到字体"
+  },
+  "resetToDefaults": "恢复默认设置",
+  "options": {
+    "sceneDetection": {
+      "ai": {
+        "label": "AI 场景检测",
+        "description": "使用 AI 精确查找场景切点"
+      },
+      "keyframe": {
+        "label": "关键帧检测",
+        "description": "在关键帧处切分，速度快，任何电脑都能用"
+      }
+    },
+    "previewMethod": {
+      "video": {
+        "label": "视频文件",
+        "description": "为每个场景切出真实的视频片段，悬停即可播放。"
+      },
+      "webp": {
+        "label": "WebP 文件",
+        "description": "生成小巧的动态预览，代替视频片段。"
+      }
+    },
+    "transcodeMode": {
+      "off": {
+        "description": "按原样播放片段。需要此电脑支持 HEVC。"
+      },
+      "hevc": {
+        "label": "仅 HEVC",
+        "description": "仅在源视频为 HEVC 时重新编码。"
+      },
+      "always": {
+        "label": "始终",
+        "description": "无论源视频格式如何，都重新编码所有预览。"
+      }
+    },
+    "transcodeQuality": {
+      "360p": "画质较低，速度快",
+      "480p": "均衡",
+      "720p": "画质较高，速度慢",
+      "1080p": "原始画质，速度最慢"
+    }
+  },
+  "general": {
+    "title": "常规",
+    "version": "应用版本",
+    "import": {
+      "title": "导入",
+      "sceneDetection": {
+        "label": "场景检测方式",
+        "description": "导入时 AMVerge 查找场景切点的方式。",
+        "info": {
+          "ai": {
+            "title": "AI 场景检测",
+            "p1": "将视频的每一帧交给 TransNetV2 分析。这是一个经过训练的神经网络，能识别一个镜头结束、下一个镜头开始的瞬间。它是最精确的选项，能捕捉到其他方式遗漏的切点。",
+            "p2": "它也是最慢的，因为整个视频都需要解码并逐帧分析。使用 GPU 可以大幅提速。",
+            "p3": "检测完成后，AMVerge 会重新编码 AI 场景预览，让每个片段都精确地从 AI 找到的镜头切换处开始，而不会早一点或晚一点。"
+          },
+          "keyframe": {
+            "title": "关键帧检测",
+            "p1": "视频文件并不会为每一帧都保存完整画面。它每隔一段时间保存一帧完整画面（称为关键帧），之后的帧只记录相对它的变化。只有在这些完整画面处，视频才能在不重新编码的情况下被切开。",
+            "p2": "此方式只在这些位置切分，因此几乎瞬间完成，而且任何电脑都能运行，无需 GPU。它是迄今为止最快的导入方式。",
+            "p3": "代价是精度。切点会落在最近的关键帧上而非精确的镜头切换处，因此片段可能会略早或略晚开始，而发生在两个关键帧之间的镜头切换则会被完全遗漏。这是 AMVerge 刚发布时使用的传统方式。"
+          }
+        }
+      },
+      "gpuDecoding": {
+        "label": "GPU 解码",
+        "devBuild": "开发版本：请改为将 nelux 安装到 CLI 源码目录的 venv 中。",
+        "description": "在 AI 场景检测期间使用 NVIDIA GPU 解码视频，处理长视频时速度快得多。",
+        "unsupported": "需要 NVIDIA GTX 16 系列、RTX 20 系列或更新的 GPU。",
+        "disabledWhileImporting": "导入进行中，此设置不可用"
+      }
+    },
+    "preview": {
+      "title": "预览与播放",
+      "method": {
+        "label": "预览方式",
+        "description": "鼠标悬停在片段上时网格中播放的内容。",
+        "info": {
+          "video": {
+            "title": "视频文件",
+            "p1": "为每个场景切出真实的视频片段。悬停在片段卡片上会播放实际视频，因此所见即导出所得（除非你调低了预览画质）。",
+            "p2": "每个正在播放的片段卡片都是一段实时解码的视频，因此包含数百个场景的长视频可能会占用较多资源。"
+          },
+          "webp": {
+            "title": "WebP 文件",
+            "p1": "改为给每个场景生成一个小巧的动态预览，有点类似 GIF。它们比视频轻量得多，即使有数百个场景，滚动和悬停也能保持流畅。如果应用感觉卡顿，就选这个。",
+            "p2": "代价是导入时间。所有预览都需要预先生成，因此导入耗时会明显长于使用视频文件。",
+            "p3": "这只影响网格中的预览。导出始终从原始视频切分，因此无论选择哪种方式，导出的片段都是原始画质。"
+          }
+        }
+      },
+      "reencode": {
+        "label": "重新编码预览",
+        "hevcForced": "此电脑无法播放 HEVC，因此这类预览必须重新编码。",
+        "description": "重新编码预览，使播放更流畅并支持 HEVC。"
+      },
+      "quality": {
+        "label": "预览画质",
+        "description": "重新编码预览的分辨率。音频和时间轴保持不变。"
+      },
+      "audioHover": {
+        "label": "悬停播放音频",
+        "description": "鼠标悬停在片段上时播放其音频。"
+      },
+      "volume": {
+        "label": "播放音量",
+        "description": "片段预览和播放的主音量。"
+      }
+    },
+    "integrations": {
+      "title": "集成",
+      "davinci": {
+        "label": "DaVinci Resolve 兼容",
+        "description": "将导出的片段直接发送到 DaVinci Resolve 时间线（仅限 Studio 版）。"
+      }
+    },
+    "storage": {
+      "title": "存储",
+      "path": {
+        "label": "视频存储路径",
+        "description": "导入的视频和片段的保存位置。"
+      },
+      "defaultPathMac": "默认（Application Support）",
+      "defaultPath": "默认（App Data）",
+      "pickDirTitle": "选择视频存储目录",
+      "moveFailedTitle": "移动失败",
+      "moveFailed": "移动现有视频失败：{{error}}",
+      "movingTo": "正在移动到 {{path}}…",
+      "moving": "正在移动…",
+      "change": "更改",
+      "selectPath": "选择路径"
+    },
+    "maintenance": {
+      "title": "维护",
+      "clearing": "正在清除…",
+      "clearFailedTitle": "清除失败",
+      "clearPanelFailed": "清除视频面板失败：{{error}}",
+      "clearScenepacksFailed": "清除片段集存储失败：{{error}}",
+      "clearPanel": {
+        "label": "清空视频面板",
+        "description": "从面板中移除所有视频并删除其文件。",
+        "button": "清除视频存储"
+      },
+      "clearScenepacks": {
+        "label": "清除片段集存储",
+        "description": "移除所有片段集并删除其文件。",
+        "button": "清除片段集存储"
+      },
+      "factoryReset": {
+        "label": "恢复出厂设置",
+        "description": "将所有常规设置恢复为默认值。"
+      },
+      "factoryResetConfirm": "这会将 AMVerge 恢复为默认设置，并将视频存储目录移回 {{location}}。你的自定义设置和存储位置改动都将重置。",
+      "clearPanelConfirm": "这会从视频面板中移除所有视频，并删除其在磁盘上的缓存文件。此操作无法撤销。",
+      "clearScenepacksConfirm": "这会移除所有片段集，并删除其在磁盘上生成的片段文件。此操作无法撤销。"
+    }
+  },
+  "appearance": {
+    "title": "外观",
+    "colors": {
+      "title": "颜色",
+      "accent": {
+        "label": "强调色",
+        "description": "按钮、高亮和图标的主色调。"
+      },
+      "gradient": {
+        "label": "背景渐变",
+        "description": "背景渐变中的第二种颜色。"
+      },
+      "episodePanel": {
+        "label": "剧集面板",
+        "description": "左侧剧集列表背后的底色。"
+      }
+    },
+    "background": {
+      "title": "背景",
+      "mediaFilter": "媒体文件",
+      "notAppliedTitle": "背景未应用",
+      "videoFailed": "应用背景视频失败：{{error}}",
+      "imageFailed": "应用背景图片失败：{{error}}",
+      "imageTimeout": "应用图片超时，请尝试更小的图片。",
+      "media": {
+        "label": "背景媒体",
+        "description": "使用你自己的图片、GIF 或视频作为背景。",
+        "change": "更换",
+        "upload": "上传",
+        "clear": "清除"
+      },
+      "opacity": {
+        "label": "背景不透明度",
+        "description": "背景的透明程度。"
+      },
+      "blur": {
+        "label": "背景模糊",
+        "description": "背景的模糊程度。"
+      }
+    },
+    "text": {
+      "title": "文字",
+      "font": {
+        "label": "应用字体",
+        "description": "可选择此电脑上安装的任意字体，每个选项都以其自身字体预览。不影响 Logo。"
+      },
+      "size": {
+        "label": "文字大小",
+        "description": "缩放所选字体以匹配应用的默认尺寸。仅在使用自定义字体时生效。"
+      }
+    },
+    "clipTiles": {
+      "title": "片段卡片",
+      "previewSpeed": {
+        "label": "网格预览速度",
+        "description": "预览在网格中的播放速度。"
+      },
+      "downloadButton": {
+        "label": "显示下载按钮",
+        "description": "在每个片段上显示下载按钮。"
+      },
+      "timestamps": {
+        "label": "显示片段时间戳",
+        "description": "在每个片段上显示时间戳。"
+      },
+      "endTime": {
+        "label": "显示结束时间",
+        "description": "在片段上显示“开始 - 结束”时间，而不仅显示开始时间。"
+      },
+      "widescreen": {
+        "label": "宽屏片段卡片",
+        "description": "以方形或宽屏样式显示片段卡片。"
+      }
+    },
+    "reset": {
+      "label": "重置外观",
+      "description": "将所有外观设置恢复为默认值。"
+    }
+  },
+  "discord": {
+    "title": "Discord 动态状态",
+    "status": {
+      "off": "动态状态已关闭。",
+      "connectedAs": "已以 {{user}} 的身份连接到 Discord。",
+      "connected": "已连接到 Discord。",
+      "waiting": "正在等待 Discord：打开 Discord 后会自动连接。"
+    },
+    "enable": {
+      "label": "启用动态状态",
+      "description": "在你的 Discord 个人资料中显示你正在 AMVerge 中做什么。"
+    },
+    "filename": {
+      "label": "显示文件名",
+      "description": "显示你正在编辑的视频名称。"
+    },
+    "statusIcons": {
+      "label": "显示状态图标",
+      "description": "显示编辑、加载和保存时的小图标。"
+    },
+    "elapsed": {
+      "label": "显示已用时间",
+      "description": "像游戏时长一样统计 AMVerge 已打开多久。"
+    },
+    "links": {
+      "label": "可点击链接",
+      "description": "让状态卡片可点击：图片打开 Discord 服务器，第一行文字打开官网。"
+    },
+    "preview": {
+      "heading": "正在玩游戏",
+      "elapsed": "已进行 {{time}}",
+      "empty": "暂无可显示的内容。"
+    }
+  }
+}

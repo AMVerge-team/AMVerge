@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import GridPageLayout from "../components/GridPageLayout";
+import GridPageLayout from "../components/layout/GridPageLayout";
 import { fileNameFromPath } from "../utils/episodeUtils";
 import { useAppStateStore } from "../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";

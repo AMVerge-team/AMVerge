@@ -1,4 +1,5 @@
 import type { DropdownOption } from "../../common/Dropdown";
+import { t } from "../../../i18n";
 import type {
   importMethod,
   PreviewTranscodeMode,
@@ -6,62 +7,70 @@ import type {
   SceneDetectionMethod,
 } from "../../../stores/settingsStore";
 
-export const SCENE_DETECTION_OPTIONS: DropdownOption<SceneDetectionMethod>[] = [
-  {
-    value: "transnetv2_gpu",
-    label: "AI Scene Detection",
-    description: "Runs AI to accurately find scene cuts",
-  },
-  {
-    value: "keyframe_detection",
-    label: "Keyframe Detection",
-    description: "Cuts at keyframes which is fast, and works on any PC",
-  },
-];
+function allSceneDetectionOptions(): DropdownOption<SceneDetectionMethod>[] {
+  return [
+    {
+      value: "transnetv2_gpu",
+      label: t("settings:options.sceneDetection.ai.label"),
+      description: t("settings:options.sceneDetection.ai.description"),
+    },
+    {
+      value: "keyframe_detection",
+      label: t("settings:options.sceneDetection.keyframe.label"),
+      description: t("settings:options.sceneDetection.keyframe.description"),
+    },
+  ];
+}
 
 /** the detection choices; AI Scene Detection stays visible (greyed out when off/uninstalled) so clicking it offers the download */
 export function sceneDetectionOptions(aiAvailable: boolean): DropdownOption<SceneDetectionMethod>[] {
-  return SCENE_DETECTION_OPTIONS.map((option) =>
+  return allSceneDetectionOptions().map((option) =>
     option.value === "transnetv2_gpu" && !aiAvailable
       ? { ...option, muted: true }
       : option
   );
 }
 
-export const PREVIEW_METHOD_OPTIONS: DropdownOption<importMethod>[] = [
-  {
-    value: "video_files",
-    label: "Video Files",
-    description: "Cuts a real video clip per scene. Hover to play it.",
-  },
-  {
-    value: "webp_files",
-    label: "WebP Files",
-    description: "Makes small animated previews instead of video clips.",
-  },
-];
+export function previewMethodOptions(): DropdownOption<importMethod>[] {
+  return [
+    {
+      value: "video_files",
+      label: t("settings:options.previewMethod.video.label"),
+      description: t("settings:options.previewMethod.video.description"),
+    },
+    {
+      value: "webp_files",
+      label: t("settings:options.previewMethod.webp.label"),
+      description: t("settings:options.previewMethod.webp.description"),
+    },
+  ];
+}
 
-export const PREVIEW_TRANSCODE_MODE_OPTIONS: DropdownOption<PreviewTranscodeMode>[] = [
-  {
-    value: "off",
-    label: "Off",
-    description: "Play clips as they are. Needs HEVC support on this PC.",
-  },
-  {
-    value: "hevc",
-    label: "HEVC Only",
-    description: "Only re-encode when the source is HEVC.",
-  },
-  {
-    value: "always",
-    label: "Always",
-    description: "Re-encode every preview, whatever the source is.",
-  },
-];
+export function previewTranscodeModeOptions(): DropdownOption<PreviewTranscodeMode>[] {
+  return [
+    {
+      value: "off",
+      label: t("common:off"),
+      description: t("settings:options.transcodeMode.off.description"),
+    },
+    {
+      value: "hevc",
+      label: t("settings:options.transcodeMode.hevc.label"),
+      description: t("settings:options.transcodeMode.hevc.description"),
+    },
+    {
+      value: "always",
+      label: t("settings:options.transcodeMode.always.label"),
+      description: t("settings:options.transcodeMode.always.description"),
+    },
+  ];
+}
 
-export const PREVIEW_TRANSCODE_QUALITY_OPTIONS: DropdownOption<PreviewTranscodeQuality>[] = [
-  { value: "360p", label: "360p", description: "Lower quality, fast" },
-  { value: "480p", label: "480p", description: "Balanced" },
-  { value: "720p", label: "720p", description: "Higher quality, slow" },
-  { value: "1080p", label: "1080p", description: "Full quality, slowest" },
-];
+export function previewTranscodeQualityOptions(): DropdownOption<PreviewTranscodeQuality>[] {
+  return [
+    { value: "360p", label: "360p", trailingLabel: t("settings:options.transcodeQuality.360p") },
+    { value: "480p", label: "480p", trailingLabel: t("settings:options.transcodeQuality.480p") },
+    { value: "720p", label: "720p", trailingLabel: t("settings:options.transcodeQuality.720p") },
+    { value: "1080p", label: "1080p", trailingLabel: t("settings:options.transcodeQuality.1080p") },
+  ];
+}

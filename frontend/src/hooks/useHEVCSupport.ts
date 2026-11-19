@@ -1,8 +1,12 @@
 import { useEffect } from "react";
 import { useAppStateStore } from "../stores/appStore";
+import { useGeneralSettingsStore } from "../stores/settingsStore";
 
 export default function useHEVCSupport() {
   const setUserHasHEVC = useAppStateStore((state) => state.setUserHasHEVC);
+  const userHasHEVC = useAppStateStore((state) => state.userHasHEVC);
+  const previewTranscodeMode = useGeneralSettingsStore((s) => s.previewTranscodeMode);
+  const previewTranscodeModeUserSet = useGeneralSettingsStore((s) => s.previewTranscodeModeUserSet);
 
   useEffect(() => {
     try {
@@ -29,4 +33,12 @@ export default function useHEVCSupport() {
       setUserHasHEVC(false);
     }
   }, [setUserHasHEVC]);
+
+  // a PC that already plays HEVC defaults Re-encode Previews to off; only an explicit pick in Settings sticks.
+  // set straight on the store so the default is not recorded as the user's choice
+  useEffect(() => {
+    if (!userHasHEVC || previewTranscodeModeUserSet) return;
+    if (previewTranscodeMode !== "hevc") return;
+    useGeneralSettingsStore.setState({ previewTranscodeMode: "off" });
+  }, [userHasHEVC, previewTranscodeMode, previewTranscodeModeUserSet]);
 }

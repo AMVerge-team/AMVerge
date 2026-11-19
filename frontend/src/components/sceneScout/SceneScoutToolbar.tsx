@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FaSyncAlt } from '../icons/animated';
 
 import Tooltip from "../common/Tooltip";
@@ -15,6 +16,7 @@ import { PreviewToggle, SidebarToggle, usePreviewPaneClearance } from "./PanelTo
 
 /** the Search tab's toolbar (Add Episode, tabs, search settings), in place of home's import row */
 export function SceneScoutToolbar() {
+  const { t } = useTranslation("scout");
   const query = useSceneScoutStore((s) => s.query);
   const runSearch = useSceneScoutStore((s) => s.runSearch);
   const searching = useSceneScoutStore((s) => s.searching);
@@ -33,9 +35,9 @@ export function SceneScoutToolbar() {
   // same pick as addVideos: the last clicked database, else the first searched one
   const addTarget = opened || selectedDatabases[0] || null;
   const addTargetName = addTarget
-    ? displayNames[addTarget] ?? databases.find((d) => samePath(d.path, addTarget))?.name ?? "database"
+    ? displayNames[addTarget] ?? databases.find((d) => samePath(d.path, addTarget))?.name ?? t("hero.databaseFallback")
     : null;
-  const GATE_HINT = "Please select a Database or Create one on the left panel first.";
+  const gateHint = t("toolbar.gateHint");
 
   const rerunSearch = () => {
     if (query.trim()) void runSearch();
@@ -55,7 +57,7 @@ export function SceneScoutToolbar() {
           <SidebarToggle />
 
           <AddEpisodeButton
-            hint={addTargetName ? `Add episodes to ${addTargetName}` : GATE_HINT}
+            hint={addTargetName ? t("hero.addTo", { name: addTargetName }) : gateHint}
             onClick={() => void startAddEpisodes()}
             disabled={searching || noDatabaseOpen}
           />
@@ -63,13 +65,13 @@ export function SceneScoutToolbar() {
           <ScoutModeTabs />
           <ScoutInfoButton />
 
-          <Tooltip content="Refresh databases">
+          <Tooltip content={t("toolbar.refreshDatabases")}>
             <button
               type="button"
               className={`import-button refresh-button${revealed ? " scene-scout-reveal" : ""}`}
               onClick={() => void refresh()}
               disabled={loading}
-              aria-label="Refresh databases"
+              aria-label={t("toolbar.refreshDatabases")}
             >
               <FaSyncAlt aria-hidden="true" />
             </button>

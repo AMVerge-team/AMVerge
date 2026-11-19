@@ -14,7 +14,8 @@
       "bin/amverge-x86_64-pc-windows-msvc/_internal/**/*",
       "bin/amverge-x86_64-pc-windows-msvc/_internal/ffmpeg.exe",
       "bin/amverge-x86_64-pc-windows-msvc/_internal/ffprobe.exe",
-      "bin/uv/x86_64-pc-windows-msvc/uv.exe"
+      "bin/uv/x86_64-pc-windows-msvc/uv.exe",
+      "../src/assets/fonts/licenses/jersey-10-OFL.txt"
     ]
   },
   "plugins": {

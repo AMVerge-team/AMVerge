@@ -1,85 +1,58 @@
-/** mounts preview-all video tiles one at a time, so the browser and GPU don't stall */
-import { useRef, useCallback, useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { isGridScrolling, whenGridScrollSettles } from "./gridScroll.ts";
 
-type StaggerDemand = {
-  order: number; // Lower = higher priority (top-left first)
-  onReady: () => void; // Called when it's this tile's turn to mount
-};
+type StaggerDemand = { order: number; onReady: () => void };
 
+const START_INTERVAL_MS = 50;
 
-export function useStaggeredMountQueue(delayMs = 50) {
-  const demandRef = useRef<Map<string, StaggerDemand>>(new Map());
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const startScheduledRef = useRef(false);
-  const startTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+export function createStaggeredMountQueue() {
+  const pending = new Map<string, StaggerDemand>();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let cancelScrollWait: (() => void) | undefined;
 
-  const tick = useCallback(() => {
-    if (demandRef.current.size === 0) {
-      if (intervalRef.current !== null) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      return;
-    }
-
-    let bestKey: string | null = null;
-    let bestOrder = Infinity;
-    for (const [key, entry] of demandRef.current) {
-      if (entry.order < bestOrder) {
-        bestOrder = entry.order;
-        bestKey = key;
-      }
-    }
-    if (!bestKey) return;
-
-    const entry = demandRef.current.get(bestKey)!;
-    demandRef.current.delete(bestKey);
-    entry.onReady();
-  }, []);
-
-  const startProcessing = useCallback(() => {
-    startScheduledRef.current = false;
-    if (intervalRef.current !== null) return;
-    if (demandRef.current.size === 0) return;
-
-    tick();
-    if (demandRef.current.size > 0) {
-      intervalRef.current = setInterval(tick, delayMs);
-    }
-  }, [tick, delayMs]);
-
-  // schedules the start of processing (defers to next macrotask)
-  const scheduleStart = useCallback(() => {
-    if (startScheduledRef.current || intervalRef.current !== null) return;
-    startScheduledRef.current = true;
-    startTimeoutRef.current = setTimeout(startProcessing, 0);
-  }, [startProcessing]);
-
-  // stops the tick when the grid unmounts, or it runs against a dead queue all session
-  useEffect(() => () => {
-    if (intervalRef.current !== null) clearInterval(intervalRef.current);
-    if (startTimeoutRef.current !== null) clearTimeout(startTimeoutRef.current);
-    intervalRef.current = null;
-    startTimeoutRef.current = null;
-    demandRef.current.clear();
-  }, []);
-
-  // tiles call this to register/unregister their demand to mount
-  const reportStaggerDemand = useCallback(
-    (key: string, demand: StaggerDemand | null) => {
-      if (!demand) {
-        demandRef.current.delete(key);
-        if (demandRef.current.size === 0 && intervalRef.current !== null) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
+  function schedule() {
+    if (timer !== undefined || cancelScrollWait || pending.size === 0) return;
+    timer = setTimeout(() => {
+      timer = undefined;
+      if (isGridScrolling()) {
+        cancelScrollWait = whenGridScrollSettles(() => {
+          cancelScrollWait = undefined;
+          schedule();
+        });
         return;
       }
-      demandRef.current.set(key, demand);
-      scheduleStart();
-    },
-    [scheduleStart]
-  );
 
-  return { reportStaggerDemand };
+      let next: [string, StaggerDemand] | undefined;
+      for (const entry of pending) {
+        if (!next || entry[1].order < next[1].order) next = entry;
+      }
+      if (!next) return;
+      const [key, demand] = next;
+      pending.delete(key);
+      demand.onReady();
+      schedule();
+    }, START_INTERVAL_MS);
+  }
+
+  function reportStaggerDemand(key: string, demand: StaggerDemand | null) {
+    if (demand) pending.set(key, demand);
+    else pending.delete(key);
+    schedule();
+  }
+
+  function reset() {
+    clearTimeout(timer);
+    timer = undefined;
+    cancelScrollWait?.();
+    cancelScrollWait = undefined;
+    pending.clear();
+  }
+
+  return { reportStaggerDemand, reset };
+}
+
+export function useStaggeredMountQueue() {
+  const queue = useMemo(createStaggeredMountQueue, []);
+  useEffect(() => queue.reset, [queue]);
+  return queue;
 }

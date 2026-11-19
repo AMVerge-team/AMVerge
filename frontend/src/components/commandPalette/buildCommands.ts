@@ -3,11 +3,11 @@ import { IoLibrary } from '../icons/animated';
 import { CommandItem } from "./types";
 import { ClipItem, EpisodeEntry, ScenepackEntry } from "../../types/domain";
 import type { ScoutDatabase } from "../../features/sceneScout/types";
-import { featureDef, type FeatureId } from "../../features/featureToggles";
+import type { FeatureId } from "../../features/featureToggles";
+import { t } from "../../i18n";
 
 const MIN_COLS = 1;
 const MAX_COLS = 9;
-const OPEN_SHORTCUT = "↵ Open";
 
 export type CommandDeps = {
   episodes: EpisodeEntry[];
@@ -47,19 +47,23 @@ export type CommandDeps = {
 };
 
 function episodeCommands(d: CommandDeps): CommandItem[] {
+  const openShortcut = t("shell:commands.openShortcut");
   return d.episodes.map((ep) => {
     const name =
       d.episodeNamesById[ep.id] ||
       ep.displayName ||
       ep.videoPath?.split(/[/\\]/).pop() ||
-      `Episode ${ep.id}`;
+      t("shell:commands.episode.fallbackName", { id: ep.id });
     const clipCount = ep.clips?.length || 0;
 
     return {
       id: `ep-${ep.id}`,
       category: "episodes",
       title: name,
-      subtitle: `${clipCount} cut scenes • ${ep.videoPath || "Ready in workspace"}`,
+      subtitle: t("shell:commands.episode.subtitle", {
+        count: clipCount,
+        path: ep.videoPath || t("shell:commands.episode.readyInWorkspace"),
+      }),
       icon: FaPlay,
       action: () => {
         d.openEpisode(ep.id);
@@ -69,16 +73,17 @@ function episodeCommands(d: CommandDeps): CommandItem[] {
       preview: {
         thumbnail: ep.clips?.[0]?.thumbnail || null,
         metaLine1: name,
-        metaLine2: ep.videoPath || "Local video file",
+        metaLine2: ep.videoPath || t("shell:commands.episode.localFile"),
         filePath: ep.videoPath,
-        description: "Immediately loads and streams all cut scenes into the grid timeline.",
-        shortcut: OPEN_SHORTCUT,
+        description: t("shell:commands.episode.description"),
+        shortcut: openShortcut,
       },
     };
   });
 }
 
 function scenepackCommands(d: CommandDeps): CommandItem[] {
+  const openShortcut = t("shell:commands.openShortcut");
   return d.scenepacks.map((sp) => {
     const count = sp.clips?.length || 0;
     return {
@@ -86,7 +91,7 @@ function scenepackCommands(d: CommandDeps): CommandItem[] {
       category: "scenepacks",
       feature: "scenepacks",
       title: sp.name,
-      subtitle: `${count} scenes in collection`,
+      subtitle: t("shell:commands.scenepack.subtitle", { count }),
       icon: FaLayerGroup,
       action: () => {
         d.setSelectedScenepackId(sp.id);
@@ -97,15 +102,16 @@ function scenepackCommands(d: CommandDeps): CommandItem[] {
       preview: {
         thumbnail: sp.clips?.[0]?.thumbnail || null,
         metaLine1: sp.name,
-        metaLine2: "Custom Scenepack Folder",
-        description: "Browse, filter, and batch export clips collected in this scenepack.",
-        shortcut: OPEN_SHORTCUT,
+        metaLine2: t("shell:commands.scenepack.meta"),
+        description: t("shell:commands.scenepack.description"),
+        shortcut: openShortcut,
       },
     };
   });
 }
 
 function sceneScoutCommands(d: CommandDeps): CommandItem[] {
+  const openShortcut = t("shell:commands.openShortcut");
   const databases: CommandItem[] = d.scoutDatabases.map((db) => {
     const name = d.scoutDisplayNames[db.path] || db.name;
     return {
@@ -113,7 +119,10 @@ function sceneScoutCommands(d: CommandDeps): CommandItem[] {
       category: "sceneScout",
       feature: "sceneScout",
       title: name,
-      subtitle: `${db.videoCount} episodes • ${db.sceneCount} scenes`,
+      subtitle: t("shell:commands.scoutDb.subtitle", {
+        episodes: t("shell:commands.scoutDb.episodes", { count: db.videoCount }),
+        scenes: t("shell:commands.scoutDb.scenes", { count: db.sceneCount }),
+      }),
       icon: FaDatabase,
       action: () => {
         d.closePalette();
@@ -123,8 +132,8 @@ function sceneScoutCommands(d: CommandDeps): CommandItem[] {
         metaLine1: name,
         metaLine2: db.path,
         filePath: db.path,
-        description: "Opens this database in Scene Scout and searches it.",
-        shortcut: OPEN_SHORTCUT,
+        description: t("shell:commands.scoutDb.description"),
+        shortcut: openShortcut,
       },
     };
   });
@@ -134,34 +143,34 @@ function sceneScoutCommands(d: CommandDeps): CommandItem[] {
       id: "scout-search",
       category: "sceneScout",
       feature: "sceneScout",
-      title: "Scene Scout: Search",
-      subtitle: "Find scenes by describing them",
+      title: t("shell:commands.scoutSearch.title"),
+      subtitle: t("shell:commands.scoutSearch.subtitle"),
       icon: FaSearchPlus,
       action: () => {
         d.closePalette();
         d.openScoutMode("search");
       },
       preview: {
-        metaLine1: "Scene Scout Search",
-        description: "Describe a scene in words and Scene Scout finds it across your databases.",
-        shortcut: OPEN_SHORTCUT,
+        metaLine1: t("shell:commands.scoutSearch.meta"),
+        description: t("shell:commands.scoutSearch.description"),
+        shortcut: openShortcut,
       },
     },
     {
       id: "scout-flow",
       category: "sceneScout",
       feature: "sceneScout",
-      title: "Scene Scout: Find matching clips",
-      subtitle: "Pick a video file and find scenes that could follow it",
+      title: t("shell:commands.scoutFlow.title"),
+      subtitle: t("shell:commands.scoutFlow.subtitle"),
       icon: FaWater,
       action: () => {
         d.closePalette();
         d.inputFlowFile();
       },
       preview: {
-        metaLine1: "Match Search",
-        description: "Finds scenes that look like they follow the last frame of the file you pick.",
-        shortcut: OPEN_SHORTCUT,
+        metaLine1: t("shell:commands.scoutFlow.meta"),
+        description: t("shell:commands.scoutFlow.description"),
+        shortcut: openShortcut,
       },
     },
     ...databases,
@@ -173,145 +182,146 @@ function actionCommands(d: CommandDeps): CommandItem[] {
     {
       id: "act-import",
       category: "actions",
-      title: "Import New Episode",
-      subtitle: "Select video file to detect and cut into scene clips",
+      title: t("shell:commands.import.title"),
+      subtitle: t("shell:commands.import.subtitle"),
       icon: FaFolderOpen,
       action: () => {
         d.closePalette();
         d.onImportClick();
       },
       preview: {
-        metaLine1: "Scene Detection Pipeline",
-        description: "Open file dialog to run TransNetV2 AI or fast keyframe demux.",
+        metaLine1: t("shell:commands.import.meta"),
+        description: t("shell:commands.import.description"),
         shortcut: "⌘I",
       },
     },
     {
       id: "act-select-all",
       category: "actions",
-      title: "Select All Clips",
-      subtitle: `Highlight all ${d.clips.length} scenes in timeline`,
+      title: t("shell:commands.selectAll.title"),
+      subtitle: t("shell:commands.selectAll.subtitle", { count: d.clips.length }),
       icon: FaThLarge,
       action: () => {
         d.setSelectedClips(new Set(d.clips.map((c) => c.id)));
         d.closePalette();
       },
       preview: {
-        metaLine1: "Bulk Selection",
-        description: "Selects every scene for batch export, merging, or scenepack grouping.",
+        metaLine1: t("shell:commands.selectAll.meta"),
+        description: t("shell:commands.selectAll.description"),
         shortcut: "Ctrl+A",
       },
     },
     {
       id: "act-clear-select",
       category: "actions",
-      title: "Clear Clip Selection",
-      subtitle: `Deselect currently selected ${d.selectedClips.size} scenes`,
+      title: t("shell:commands.clearSelection.title"),
+      subtitle: t("shell:commands.clearSelection.subtitle", { count: d.selectedClips.size }),
       icon: FaTimes,
       action: () => {
         d.setSelectedClips(new Set());
         d.closePalette();
       },
       preview: {
-        metaLine1: "Deselect All",
-        description: "Clears selection state across the grid.",
+        metaLine1: t("shell:commands.clearSelection.meta"),
+        description: t("shell:commands.clearSelection.description"),
       },
     },
     {
       id: "act-pin",
       category: "actions",
-      title: d.pinned ? "Unpin Window (Normal Mode)" : "Pin Window (Always on Top)",
-      subtitle: "Toggle floating companion window for After Effects / Premiere",
+      title: d.pinned ? t("shell:commands.pin.unpinTitle") : t("shell:commands.pin.pinTitle"),
+      subtitle: t("shell:commands.pin.subtitle"),
       icon: FaThumbtack,
       action: () => {
         d.togglePinned();
         d.closePalette();
       },
       preview: {
-        metaLine1: "Always on Top Mode",
-        description: "Shrinks and pins AMVerge floating above your editing application.",
+        metaLine1: t("shell:commands.pin.meta"),
+        description: t("shell:commands.pin.description"),
       },
     },
     {
       id: "act-toggle-sidebar",
       category: "actions",
-      title: d.sidebarEnabled ? "Hide Sidebar" : "Show Sidebar",
-      subtitle: "Toggle left navigation and episode tree panel",
+      title: d.sidebarEnabled ? t("shell:commands.sidebar.hideTitle") : t("shell:commands.sidebar.showTitle"),
+      subtitle: t("shell:commands.sidebar.subtitle"),
       icon: FaFolder,
       action: () => {
         d.setSidebarEnabled(!d.sidebarEnabled);
         d.closePalette();
       },
       preview: {
-        metaLine1: "Sidebar Visibility",
-        description: "Expands or collapses the left episode panel to save screen space.",
+        metaLine1: t("shell:commands.sidebar.meta"),
+        description: t("shell:commands.sidebar.description"),
       },
     },
     {
       id: "act-toggle-preview",
       category: "actions",
-      title: d.previewCollapsed ? "Show Video Preview Panel" : "Hide Video Preview Panel",
-      subtitle: "Toggle the right preview player to expand clip grid full-width",
+      title: d.previewCollapsed ? t("shell:commands.preview.showTitle") : t("shell:commands.preview.hideTitle"),
+      subtitle: t("shell:commands.preview.subtitle"),
       icon: FaExpand,
       action: () => {
         d.setPreviewCollapsed(!d.previewCollapsed);
         d.closePalette();
       },
       preview: {
-        metaLine1: "Preview Pane Toggle",
-        description: "Hides or restores the right video playback and export controls pane.",
+        metaLine1: t("shell:commands.preview.meta"),
+        description: t("shell:commands.preview.description"),
       },
     },
     {
       id: "act-grid-zoom-in",
       category: "actions",
-      title: "Grid: Zoom In (Larger Tiles)",
-      subtitle: `Currently ${d.cols} columns per row`,
+      title: t("shell:commands.zoomIn.title"),
+      subtitle: t("shell:commands.columns", { count: d.cols }),
       icon: FaColumns,
       action: () => {
         d.setCols((prev) => Math.max(MIN_COLS, prev - 1));
         d.closePalette();
       },
       preview: {
-        metaLine1: "Bigger Clip Tiles",
-        description: "Decreases columns to give each clip thumbnail more screen real estate.",
+        metaLine1: t("shell:commands.zoomIn.meta"),
+        description: t("shell:commands.zoomIn.description"),
       },
     },
     {
       id: "act-grid-zoom-out",
       category: "actions",
-      title: "Grid: Zoom Out (More Columns)",
-      subtitle: `Currently ${d.cols} columns per row`,
+      title: t("shell:commands.zoomOut.title"),
+      subtitle: t("shell:commands.columns", { count: d.cols }),
       icon: FaColumns,
       action: () => {
         d.setCols((prev) => Math.min(MAX_COLS, prev + 1));
         d.closePalette();
       },
       preview: {
-        metaLine1: "Smaller Clip Tiles",
-        description: "Increases columns to view more scene clips at a glance.",
+        metaLine1: t("shell:commands.zoomOut.meta"),
+        description: t("shell:commands.zoomOut.description"),
       },
     },
     {
       id: "act-toggle-audio",
       category: "actions",
-      title: d.audioPlaybackHover ? "Mute Audio on Hover" : "Enable Audio on Hover",
-      subtitle: "Toggle clip hover sound in the scene grid",
+      title: d.audioPlaybackHover ? t("shell:commands.audio.muteTitle") : t("shell:commands.audio.enableTitle"),
+      subtitle: t("shell:commands.audio.subtitle"),
       icon: d.audioPlaybackHover ? FaVolumeMute : FaVolumeUp,
       action: () => {
         d.setAudioPlaybackHover(!d.audioPlaybackHover);
         d.closePalette();
       },
       preview: {
-        metaLine1: "Hover Audio Playback",
+        metaLine1: t("shell:commands.audio.meta"),
         description:
-          "Controls whether hovering over a clip tile plays its synchronized audio track.",
+          t("shell:commands.audio.description"),
       },
     },
   ];
 }
 
 function settingsCommands(d: CommandDeps): CommandItem[] {
+  const openShortcut = t("shell:commands.openShortcut");
   const openSection = (section: string) => () => {
     d.closePalette();
     d.openSettings(section);
@@ -321,29 +331,29 @@ function settingsCommands(d: CommandDeps): CommandItem[] {
     {
       id: "set-general",
       category: "settings",
-      title: "Settings: General",
-      subtitle: "Scene detection methods, episodes storage path, and app defaults",
+      title: t("shell:commands.settingsGeneral.title"),
+      subtitle: t("shell:commands.settingsGeneral.subtitle"),
       icon: FaCog,
       action: openSection("general"),
       preview: {
-        metaLine1: "General Preferences",
-        metaLine2: d.episodesPath || "Default Cache Directory",
-        description: "Configure detection algorithms, cache locations, and video decode pipelines.",
-        shortcut: OPEN_SHORTCUT,
+        metaLine1: t("shell:commands.settingsGeneral.meta"),
+        metaLine2: d.episodesPath || t("shell:commands.settingsGeneral.defaultPath"),
+        description: t("shell:commands.settingsGeneral.description"),
+        shortcut: openShortcut,
       },
     },
     {
       id: "set-export",
       category: "settings",
-      title: "Settings: Export Profiles",
-      subtitle: "GPU acceleration encoders (NVENC / AMF / QSV) and video codecs",
+      title: t("shell:commands.settingsExport.title"),
+      subtitle: t("shell:commands.settingsExport.subtitle"),
       icon: FaFileExport,
       action: openSection("export"),
       preview: {
-        metaLine1: "Export Configuration",
-        metaLine2: d.exportPath || "Default Export Folder",
-        description: "Manage export encoders, bitrates, hardware profiles, and container formats.",
-        shortcut: OPEN_SHORTCUT,
+        metaLine1: t("shell:commands.settingsExport.meta"),
+        metaLine2: d.exportPath || t("shell:commands.settingsExport.defaultPath"),
+        description: t("shell:commands.settingsExport.description"),
+        shortcut: openShortcut,
       },
     },
     {
@@ -357,53 +367,54 @@ function settingsCommands(d: CommandDeps): CommandItem[] {
         metaLine1: "Storage & Locations",
         metaLine2: d.episodesPath || "Default Storage Directory",
         description: "Change where episodes and AI features live, inspect disk usage, and clear caches.",
-        shortcut: OPEN_SHORTCUT,
+        shortcut: openShortcut,
       },
     },
     {
       id: "set-appearance",
       category: "settings",
-      title: "Settings: Appearance",
-      subtitle: "Custom colors, wallpaper background blur, and clip styling",
+      title: t("shell:commands.settingsAppearance.title"),
+      subtitle: t("shell:commands.settingsAppearance.subtitle"),
       icon: FaSlidersH,
       action: openSection("appearance"),
       preview: {
-        metaLine1: "Visual Styling",
-        metaLine2: `Accent: ${d.accentColor}`,
-        description: "Personalize app colors, background images, opacity, and typography.",
-        shortcut: OPEN_SHORTCUT,
+        metaLine1: t("shell:commands.settingsAppearance.meta"),
+        metaLine2: t("shell:commands.settingsAppearance.accent", { color: d.accentColor }),
+        description: t("shell:commands.settingsAppearance.description"),
+        shortcut: openShortcut,
       },
     },
     {
       id: "set-features",
       category: "settings",
-      title: "Settings: Features",
-      subtitle: "Turn AI Scene Detection, Scene Scout, Scenepacks and export passes on or off",
+      title: t("shell:commands.settingsFeatures.title"),
+      subtitle: t("shell:commands.settingsFeatures.subtitle"),
       icon: FaBolt,
       action: openSection("features"),
       preview: {
-        metaLine1: "Features & storage",
-        description: "Switch major features on or off, download what they need, and see how much disk space they use.",
-        shortcut: OPEN_SHORTCUT,
+        metaLine1: t("shell:commands.settingsFeatures.meta"),
+        description: t("shell:commands.settingsFeatures.description"),
+        shortcut: openShortcut,
       },
     },
     {
       id: "set-discord",
       category: "settings",
-      title: "Settings: Discord Rich Presence",
-      subtitle: "Configure Discord status badges, filenames, and rich details",
+      title: t("shell:commands.settingsDiscord.title"),
+      subtitle: t("shell:commands.settingsDiscord.subtitle"),
       icon: FaCodeBranch,
       action: openSection("discord"),
       preview: {
-        metaLine1: "Discord RPC Integration",
-        description: "Show your editing status and active clips count on Discord.",
-        shortcut: OPEN_SHORTCUT,
+        metaLine1: t("shell:commands.settingsDiscord.meta"),
+        description: t("shell:commands.settingsDiscord.description"),
+        shortcut: openShortcut,
       },
     },
   ];
 }
 
 function menuCommands(d: CommandDeps): CommandItem[] {
+  const openShortcut = t("shell:commands.openShortcut");
   // every menu entry opens the same window; the titles say which page it lands on
   const openMenuPage = () => {
     d.closePalette();
@@ -419,110 +430,110 @@ function menuCommands(d: CommandDeps): CommandItem[] {
     {
       id: "page-library",
       category: "menu",
-      title: "Library",
-      subtitle: "Your imported episodes and their clips",
+      title: t("shell:commands.library.title"),
+      subtitle: t("shell:commands.library.subtitle"),
       icon: IoLibrary,
       action: goTo("home"),
       preview: {
-        metaLine1: "Library",
-        description: "Back to the episode grid.",
-        shortcut: OPEN_SHORTCUT,
+        metaLine1: t("shell:commands.library.title"),
+        description: t("shell:commands.library.description"),
+        shortcut: openShortcut,
       },
     },
     {
       id: "page-scenepacks",
       category: "menu",
       feature: "scenepacks",
-      title: "Scenepacks",
-      subtitle: "Themed collections of clips",
+      title: t("shell:commands.scenepacks.title"),
+      subtitle: t("shell:commands.scenepacks.subtitle"),
       icon: FaLayerGroup,
       action: goTo("scenepacks"),
       preview: {
-        metaLine1: "Scenepacks",
-        description: "Browse and export the clips you grouped into Scenepacks.",
-        shortcut: OPEN_SHORTCUT,
+        metaLine1: t("shell:commands.scenepacks.title"),
+        description: t("shell:commands.scenepacks.description"),
+        shortcut: openShortcut,
       },
     },
     {
       id: "page-scene-scout",
       category: "menu",
       feature: "sceneScout",
-      title: "Scene Scout",
-      subtitle: "Search your episodes by describing a scene",
+      title: t("shell:commands.sceneScout.title"),
+      subtitle: t("shell:commands.sceneScout.subtitle"),
       icon: FaSearchPlus,
       action: goTo("sceneScout"),
       preview: {
-        metaLine1: "Scene Scout",
-        description: "Search indexed episodes by text, or find clips that match each other.",
-        shortcut: OPEN_SHORTCUT,
+        metaLine1: t("shell:commands.sceneScout.title"),
+        description: t("shell:commands.sceneScout.description"),
+        shortcut: openShortcut,
       },
     },
     {
       id: "community-events",
       category: "menu",
-      title: "Community Events",
-      subtitle: "Browse contests, collabs, and jams, or host your own",
+      title: t("shell:commands.events.title"),
+      subtitle: t("shell:commands.events.subtitle"),
       icon: FaCalendarAlt,
       action: () => {
         d.closePalette();
         d.setActivePage("events");
       },
       preview: {
-        metaLine1: "Community Events",
-        description: "Events hosted by the AMVerge community, reviewed before they appear.",
-        shortcut: OPEN_SHORTCUT,
+        metaLine1: t("shell:commands.events.title"),
+        description: t("shell:commands.events.description"),
+        shortcut: openShortcut,
       },
     },
     {
       id: "menu-console",
       category: "menu",
-      title: "Developer Console Logs",
-      subtitle: "Live CLI IPC events, backend streams, and diagnostic logs",
+      title: t("shell:commands.console.title"),
+      subtitle: t("shell:commands.console.subtitle"),
       icon: FaTerminal,
       action: openMenuPage,
       preview: {
-        metaLine1: "Diagnostic Console",
-        description: "Inspect live stderr/stdout telemetry from FFmpeg, PyAV, and AI sidecars.",
-        shortcut: OPEN_SHORTCUT,
+        metaLine1: t("shell:commands.console.meta"),
+        description: t("shell:commands.console.description"),
+        shortcut: openShortcut,
       },
     },
     {
       id: "menu-patchnotes",
       category: "menu",
-      title: "Update Logs & Patch Notes",
-      subtitle: "Read release history and new features in AMVerge v2",
+      title: t("shell:commands.patchNotes.title"),
+      subtitle: t("shell:commands.patchNotes.subtitle"),
       icon: FaHistory,
       action: openMenuPage,
       preview: {
-        metaLine1: "Version Release Logs",
-        description: "Browse changelogs, bug fixes, and feature additions.",
-        shortcut: OPEN_SHORTCUT,
+        metaLine1: t("shell:commands.patchNotes.meta"),
+        description: t("shell:commands.patchNotes.description"),
+        shortcut: openShortcut,
       },
     },
     {
       id: "menu-about",
       category: "menu",
-      title: "About AMVerge",
-      subtitle: "Architecture, system info, and open-source licenses",
+      title: t("shell:commands.about.title"),
+      subtitle: t("shell:commands.about.subtitle"),
       icon: FaInfoCircle,
       action: openMenuPage,
       preview: {
-        metaLine1: "About AMVerge Desktop",
-        description: "High-performance anime & video scene cutter by Crptk & team.",
-        shortcut: OPEN_SHORTCUT,
+        metaLine1: t("shell:commands.about.meta"),
+        description: t("shell:commands.about.description"),
+        shortcut: openShortcut,
       },
     },
     {
       id: "menu-bugreport",
       category: "menu",
-      title: "Report a Bug / Issue",
-      subtitle: "Submit feedback with diagnostic telemetry or connect to Discord",
+      title: t("shell:commands.bugReport.title"),
+      subtitle: t("shell:commands.bugReport.subtitle"),
       icon: FaBug,
       action: openMenuPage,
       preview: {
-        metaLine1: "Feedback & Bug Reports",
-        description: "Submit reproducible bugs directly to the development team.",
-        shortcut: OPEN_SHORTCUT,
+        metaLine1: t("shell:commands.bugReport.meta"),
+        description: t("shell:commands.bugReport.description"),
+        shortcut: openShortcut,
       },
     },
   ];
@@ -539,7 +550,7 @@ function applyFeatureToggles(commands: CommandItem[], d: CommandDeps): CommandIt
       {
         ...cmd,
         disabled: true,
-        subtitle: `Turn on ${featureDef(cmd.feature).label} in Settings › Features`,
+        subtitle: t("shell:features.turnOn", { feature: t(`shell:features.${cmd.feature}`) }),
         action: () => {
           d.closePalette();
           d.openSettings("features");

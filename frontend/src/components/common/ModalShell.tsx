@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { FaTimes } from '../icons/animated';
 
 import Tooltip from "./Tooltip";
@@ -20,6 +21,7 @@ export default function ModalShell({
   className,
   children,
 }: ModalShellProps) {
+  const { t } = useTranslation("shell");
   const [contentReady, setContentReady] = useState(false);
   useEscapeToClose(onClose, open);
 
@@ -48,12 +50,12 @@ export default function ModalShell({
         aria-modal="true"
         aria-label={label}
       >
-        <Tooltip content="Close">
+        <Tooltip content={t("common:close")}>
           <button
             type="button"
             className="app-modal-close"
             onClick={onClose}
-            aria-label={`Close ${label.toLowerCase()}`}
+            aria-label={t("modal.closeLabel", { label: label.toLowerCase() })}
           >
             <FaTimes aria-hidden="true" />
           </button>

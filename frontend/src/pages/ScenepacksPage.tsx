@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
-import GridPageLayout from "../components/GridPageLayout";
+import { useTranslation } from "react-i18next";
+import GridPageLayout from "../components/layout/GridPageLayout";
 import { useAppStateStore } from "../stores/appStore";
 import { useScenepacksStore } from "../stores/scenepackStore";
 import { useScenepackPendingStore } from "../stores/scenepackPendingStore";
@@ -27,6 +28,7 @@ function scenepackClipToClipItem(
 }
 
 export default function ScenepacksPage() {
+  const { t } = useTranslation("shell");
   const overlayOpen = useUIStateStore(selectOverlayOpen);
   const openedScenepackId = useScenepacksStore((s) => s.openedScenepackId);
   const scenepacks = useScenepacksStore((s) => s.scenepacks);
@@ -79,9 +81,9 @@ export default function ScenepacksPage() {
       .map((p) => ({
         ...p.source,
         id: `pending_${p.key}`,
-        originalName: p.error ? `Failed: ${p.error}` : "Adding...",
+        originalName: p.error ? t("scenepacksPage.failed", { error: p.error }) : "Adding...",
       }));
-  }, [pending, openedScenepackId]);
+  }, [pending, openedScenepackId, t]);
 
   useEffect(() => {
     if (!openedScenepack) return;

@@ -1,4 +1,5 @@
 import { useId, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { errorText, showNotice } from "../../features/notice/notice";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
@@ -20,6 +21,12 @@ import SettingRow from "../common/SettingRow";
 import FontPicker from "./FontPicker";
 import SettingsSection from "../common/SettingsSection";
 
+// black first: it's the default; the rest are the accent presets' dark gradients, which suit a tint
+const EPISODE_PANEL_PRESET_COLORS = [
+  "#000000",
+  ...GRADIENT_PRESET_COLORS.filter((c) => c.toLowerCase() !== "#000000"),
+];
+
 type AppearanceSectionProps = {
   onThemeReset: () => void;
 };
@@ -27,6 +34,7 @@ type AppearanceSectionProps = {
 export default function AppearanceSection({
   onThemeReset
 }: AppearanceSectionProps) {
+  const { t } = useTranslation("settings");
   const themeSettings = useThemeSettingsStore();
   const setThemeSettings = useThemeSettingsStore.setState;
   const bgOpacityId = useId();
@@ -43,7 +51,7 @@ export default function AppearanceSection({
       multiple: false,
       filters: [
         {
-          name: "Media",
+          name: t("appearance.background.mediaFilter"),
           extensions: [
             "png",
             "jpg",
@@ -76,7 +84,10 @@ export default function AppearanceSection({
         }));
       } catch (error) {
         console.error("Failed to save background video:", error);
-        void showNotice("Background not applied", `Failed to apply background video: ${errorText(error)}`);
+        void showNotice(
+          t("appearance.background.notAppliedTitle"),
+          t("appearance.background.videoFailed", { error: errorText(error) })
+        );
       }
 
       return;
@@ -115,7 +126,7 @@ export default function AppearanceSection({
         }),
         new Promise<string>((_, reject) => {
           setTimeout(() => {
-            reject(new Error("Image apply timed out. Please try a smaller image."));
+            reject(new Error(t("appearance.background.imageTimeout")));
           }, timeoutMs);
         }),
       ]);
@@ -132,19 +143,22 @@ export default function AppearanceSection({
       setOriginalPath(null);
     } catch (error) {
       console.error("Failed to crop and save image:", error);
-      void showNotice("Background not applied", `Failed to apply background image: ${errorText(error)}`);
+      void showNotice(
+        t("appearance.background.notAppliedTitle"),
+        t("appearance.background.imageFailed", { error: errorText(error) })
+      );
     }
   };
 
   return (
     <section className="panel menu-panel settings-panel">
-      <h3>Appearance</h3>
+      <h3>{t("appearance.title")}</h3>
       <div className="about-content">
 
-        <SettingsSection id="appearance.colors" title="Colors">
+        <SettingsSection id="appearance.colors" title={t("appearance.colors.title")}>
         <SettingRow
-          label="Accent color"
-          description="The main color for buttons, highlights, and icons."
+          label={t("appearance.colors.accent.label")}
+          description={t("appearance.colors.accent.description")}
           control={
             <div className="settings-control">
               <ColorPicker
@@ -176,8 +190,8 @@ export default function AppearanceSection({
           }
         />
         <SettingRow
-          label="Background Gradient"
-          description="The second color in the background gradient."
+          label={t("appearance.colors.gradient.label")}
+          description={t("appearance.colors.gradient.description")}
           control={
             <div className="settings-control">
               <ColorPicker
@@ -196,16 +210,37 @@ export default function AppearanceSection({
             </div>
           }
         />
+        <SettingRow
+          label={t("appearance.colors.episodePanel.label")}
+          description={t("appearance.colors.episodePanel.description")}
+          control={
+            <div className="settings-control">
+              <ColorPicker
+                color={themeSettings.episodePanelColor}
+                presets={EPISODE_PANEL_PRESET_COLORS}
+                onChange={(newColor) =>
+                  setThemeSettings((prev) => ({
+                    ...prev,
+                    episodePanelColor: newColor,
+                  }))
+                }
+              />
+              <span className="settings-value">
+                {themeSettings.episodePanelColor.toUpperCase()}
+              </span>
+            </div>
+          }
+        />
         </SettingsSection>
 
-        <SettingsSection id="appearance.background" title="Background">
+        <SettingsSection id="appearance.background" title={t("appearance.background.title")}>
         <SettingRow
-          label="Background media"
-          description="Use your own image, GIF, or video as the background."
+          label={t("appearance.background.media.label")}
+          description={t("appearance.background.media.description")}
           control={
           <div className="settings-control">
             <button className="buttons" type="button" onClick={handlePickBackgroundMedia}>
-              {themeSettings.backgroundImagePath ? "Change" : "Upload"}
+              {themeSettings.backgroundImagePath ? t("appearance.background.media.change") : t("appearance.background.media.upload")}
             </button>
             <button
               className="buttons"
@@ -215,15 +250,15 @@ export default function AppearanceSection({
               }
               disabled={!themeSettings.backgroundImagePath}
             >
-              Clear
+              {t("appearance.background.media.clear")}
             </button>
           </div>
           }
         />
         
         <SettingRow
-          label="Background opacity"
-          description="How see-through the background is."
+          label={t("appearance.background.opacity.label")}
+          description={t("appearance.background.opacity.description")}
           control={
           <div className="settings-control">
             <input
@@ -248,8 +283,8 @@ export default function AppearanceSection({
         />
 
         <SettingRow
-          label="Background blur"
-          description="How blurry the background is."
+          label={t("appearance.background.blur.label")}
+          description={t("appearance.background.blur.description")}
           control={
             <div className="settings-control">
               <input
@@ -272,16 +307,16 @@ export default function AppearanceSection({
         />
         </SettingsSection>
 
-        <SettingsSection id="appearance.text" title="Text">
+        <SettingsSection id="appearance.text" title={t("appearance.text.title")}>
           <SettingRow
-            label="App font"
-            description="Pick any font installed on this PC. Each option previews in its own font. The logo is unaffected."
+            label={t("appearance.text.font.label")}
+            description={t("appearance.text.font.description")}
             control={<FontPicker />}
           />
 
           <SettingRow
-            label="Text size"
-            description="Scales the chosen font to match the app's default sizing. Only applies with a custom font."
+            label={t("appearance.text.size.label")}
+            description={t("appearance.text.size.description")}
             control={
               <div className="settings-control">
                 <input
@@ -291,7 +326,7 @@ export default function AppearanceSection({
                   max="0.6"
                   step="0.01"
                   value={themeSettings.appFontAdjust ?? 0.47}
-                  disabled={themeSettings.appFontFamily === JERSEY_FONT}
+                  disabled={!themeSettings.appFontFamily || themeSettings.appFontFamily === JERSEY_FONT}
                   onChange={(e) =>
                     setThemeSettings((prev) => ({
                       ...prev,
@@ -307,10 +342,10 @@ export default function AppearanceSection({
           />
         </SettingsSection>
 
-        <SettingsSection id="appearance.clipTiles" title="Clip Tiles">
+        <SettingsSection id="appearance.clipTiles" title={t("appearance.clipTiles.title")}>
         <SettingRow
-          label="Grid preview speed"
-          description="How fast previews play in the grid."
+          label={t("appearance.clipTiles.previewSpeed.label")}
+          description={t("appearance.clipTiles.previewSpeed.description")}
           control={
             <div className="settings-control">
               <input
@@ -333,8 +368,8 @@ export default function AppearanceSection({
         />
 
         <SettingRow
-          label="Show download button"
-          description="Show a download button on each clip."
+          label={t("appearance.clipTiles.downloadButton.label")}
+          description={t("appearance.clipTiles.downloadButton.description")}
           control={
             <div className="settings-control">
               <label className="custom-checkbox">
@@ -356,8 +391,8 @@ export default function AppearanceSection({
         />
 
         <SettingRow
-          label="Show clip timestamps"
-          description="Show timestamps on each clip."
+          label={t("appearance.clipTiles.timestamps.label")}
+          description={t("appearance.clipTiles.timestamps.description")}
           control={
             <div className="settings-control">
               <label className="custom-checkbox">
@@ -379,8 +414,8 @@ export default function AppearanceSection({
         />
 
         <SettingRow
-          label="Show end time"
-          description='Show "start - end" instead of only the start time on clips.'
+          label={t("appearance.clipTiles.endTime.label")}
+          description={t("appearance.clipTiles.endTime.description")}
           control={
             <div className="settings-control">
               <label className="custom-checkbox">
@@ -403,8 +438,8 @@ export default function AppearanceSection({
         />
 
         <SettingRow
-          label="Show clip duration"
-          description="Show each clip's duration in the bottom left on Library and Scene Scout."
+          label={t("release202:showDuration")}
+          description={t("release202:showDurationDescription")}
           control={
             <div className="settings-control">
               <label className="custom-checkbox">
@@ -426,8 +461,8 @@ export default function AppearanceSection({
         />
 
         <SettingRow
-          label="Widescreen clip tiles"
-          description="Show clip tiles as square or widescreen."
+          label={t("appearance.clipTiles.widescreen.label")}
+          description={t("appearance.clipTiles.widescreen.description")}
           control={
             <div className="settings-control">
               <label className="custom-checkbox">
@@ -449,8 +484,8 @@ export default function AppearanceSection({
         />
         </SettingsSection>
         <SettingRow
-          label="Appearance Reset"
-          description="Puts every Appearance setting back to its default."
+          label={t("appearance.reset.label")}
+          description={t("appearance.reset.description")}
           control={
             <div className="settings-control">
               <button
@@ -458,7 +493,7 @@ export default function AppearanceSection({
                 onClick={onThemeReset}
                 style={{ width: "auto", padding: "0 16px", marginBottom: 0, color: "red"}}
               >
-                Reset to Defaults
+                {t("resetToDefaults")}
               </button>
             </div>
           }

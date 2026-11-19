@@ -95,6 +95,9 @@ fn main() {
             commands::export::fast_merge,
             commands::export::fast_split,
             commands::extension_sync::write_app_theme,
+            commands::extension_sync::write_app_paths_sync,
+            commands::extension_sync::write_active_episode_sync,
+            commands::extension_sync::clear_active_episode_sync,
             commands::extension_sync::read_extension_sync_theme,
             commands::extension_sync::list_extension_sync_episodes,
             commands::extension_sync::clear_extension_sync,
@@ -127,6 +130,8 @@ fn main() {
             commands::settings::delete_profile_icon_file,
             commands::settings::reveal_in_file_manager,
             commands::settings::move_storage_to_new_dir,
+            commands::settings::finalize_storage_move,
+            commands::settings::rebase_storage_manifests,
             commands::settings::get_storage_breakdown,
             commands::settings::path_exists,
             commands::migration::v1_migration_source,
@@ -170,6 +175,7 @@ fn main() {
         .expect("error building app")
         .run(|app, event| {
             if let tauri::RunEvent::Exit = event {
+                let _ = commands::extension_sync::clear_active_episode_sync(app.clone());
                 kill_all_child_processes(app);
                 commands::export::clear_keyframe_cache(app);
             }

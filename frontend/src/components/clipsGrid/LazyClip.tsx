@@ -1,4 +1,5 @@
 import { memo, useCallback, useDeferredValue, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { FaCheck, FaPlus, FaTrashAlt } from '../icons/animated';
 import { LazyClipProps } from "./types.ts";
@@ -53,6 +54,7 @@ export const LazyClip = memo(function LazyClip({
   appearDelayMs,
   active = true,
 }: LazyClipProps) {
+  const { t } = useTranslation("library");
   const importToken = useAppStateStore((s) => s.importToken);
   const previewWebpPath = useScenePreviewStore((s) => s.animatedByClipId[clip.id]);
   const isSelected = useAppStateStore((s) => s.selectedClips.has(clip.id));
@@ -79,6 +81,7 @@ export const LazyClip = memo(function LazyClip({
   const episodeId = clip.episodeId ?? openedEpisodeId ?? clip.id.split("_").slice(0, -1).join("_");
 
   const [isVisible, setIsVisible] = useState(false);
+  const [isOnScreen, setIsOnScreen] = useState(false);
   const [hovered, setIsHovered] = useState(false);
   useEffect(() => {
     if (!active) setIsHovered(false);
@@ -119,11 +122,20 @@ export const LazyClip = memo(function LazyClip({
     clip.endSec !== undefined &&
     clip.endSec > clip.startSec;
   const isVideoPlayable = (isVideoMode || isUncutScene) && clip.clipMode !== "failed";
-  const usesRangePreview = isUncutScene && Boolean(clip.database);
+  const usesRangePreview = isUncutScene;
   const isProcessing =
     clip.originalName === "Merging..." ||
     clip.originalName === "Splitting..." ||
     clip.originalName === "Adding...";
+  // the placeholder name is a marker value; only its display is translated
+  const processingLabel =
+    clip.originalName === "Merging..."
+      ? t("clip.status.merging")
+      : clip.originalName === "Splitting..."
+        ? t("clip.status.splitting")
+        : clip.originalName === "Adding..."
+          ? t("clip.status.adding")
+          : clip.originalName;
   const needsDecodeProxy = (videoIsHEVC === true && userHasHEVC === false) || videoNeedsProxy;
   const resetKey = `${clip.src}::${importToken}::${previewAudioStreamIndex ?? "default"}`;
 
@@ -135,11 +147,7 @@ export const LazyClip = memo(function LazyClip({
   const staggerReady = useClipStagger({
     clipId: clip.id,
     index,
-    gridPreview,
-    isHovered,
-    isVisible,
-    needsDecodeProxy,
-    resetKey,
+    enabled: gridPreview && isOnScreen && (isVideoPlayable || Boolean(previewWebpPath)),
     reportStaggerDemand,
   });
 
@@ -163,7 +171,7 @@ export const LazyClip = memo(function LazyClip({
     rangeEnd: usesRangePreview ? clip.endSec : undefined,
   });
 
-  // a scout result plays its range preview; seeking the full source is only the hover fallback
+  // Play a short range preview for uncut scenes. Only hover may fall back to the full source.
   const seekIntoSource = isUncutScene && !source.rangeProxySrc;
 
   // mount on hover or preview-all only, so live decoders stay bounded; wait for a needed proxy or the clip renders black
@@ -222,10 +230,9 @@ export const LazyClip = memo(function LazyClip({
     reportWebpDemand,
   });
 
-  // gated on visibility: WebP mode forces preview-all, and animating every clip kills the renderer
-  const shouldShowWebpOverlay = webp.hasAnimatedWebp && (isHovered || (gridPreview && isVisible));
-  // the static layer falls back to the animated file until its jpeg exists, only safe near the viewport
-  const webpStaticReady = Boolean(webp.webpThumbnail) || !webp.hasAnimatedWebp;
+  const shouldShowWebpOverlay = webp.hasAnimatedWebp && (isHovered || staggerReady);
+  const staticThumbnail = webp.webpThumbnail ??
+    (webp.thumbnailSrc ? mediaSrcVersioned(webp.thumbnailSrc, importToken) : undefined);
 
   const shouldShowThumbnail = !shouldMountVideo || !video.isVideoReady;
   // a video-mode clip not cut yet shows a skeleton until clip_ready
@@ -238,7 +245,7 @@ export const LazyClip = memo(function LazyClip({
     ? clip.thumbnailReady === false || videoThumbFailed
     : clip.thumbnailReady === false || !webp.thumbnailLoaded || webp.thumbnailFailed;
 
-  // separates on-screen tiles from overscan rows, scoped to the scroll container
+  // Preload thumbnails near the viewport without granting playback there.
   useEffect(() => {
     const el = wrapperRef.current;
     if (!el) return;
@@ -255,6 +262,18 @@ export const LazyClip = memo(function LazyClip({
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    setIsOnScreen(false);
+    const el = wrapperRef.current;
+    if (!gridPreview || !el) return;
+    const root = el.closest(".clips-container");
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsOnScreen(entry.isIntersecting && entry.intersectionRatio >= 0.01);
+    }, { root, threshold: 0.01 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [gridPreview]);
 
   useEffect(() => {
     if (!showDownloadButton) return;
@@ -326,13 +345,21 @@ export const LazyClip = memo(function LazyClip({
   };
 
   const isScout = activePage === "sceneScout";
+  const durationLabel = showClipDuration && (activePage === "home" || isScout)
+    ? formatClipDuration(clip.startSec, clip.endSec)
+    : null;
+  const startTimeLabel = showClipTimestamps ? formatClipTime(clip.startSec) : null;
+  const endTimeLabel = startTimeLabel && showClipEndTime &&
+    clip.startSec !== undefined && clip.endSec !== undefined && clip.endSec > clip.startSec
+    ? formatClipTime(clip.endSec)
+    : null;
   const scoutTooltip = isScout
     ? [
         clip.originalName,
-        `Timeframe: ${formatClipTimeframe(clip.startSec, clip.endSec, true)}`,
+        t("clip.tooltip.timeframe", { timeframe: formatClipTimeframe(clip.startSec, clip.endSec, true) }),
         clip.score !== undefined ? formatScoreWithConfidence(clip.score) : null,
-        clip.motion ? `Starts: ${describeMotion(clip.motion.start)}` : null,
-        clip.motion ? `Ends: ${describeMotion(clip.motion.end)}` : null,
+        clip.motion ? t("clip.tooltip.starts", { motion: describeMotion(clip.motion.start) }) : null,
+        clip.motion ? t("clip.tooltip.ends", { motion: describeMotion(clip.motion.end) }) : null,
       ]
         .filter(Boolean)
         .join("\n")
@@ -391,11 +418,11 @@ export const LazyClip = memo(function LazyClip({
       }}
     >
       {(controlsMounted || isSelected) && (
-        <Tooltip content={isSelected ? "Deselect clip" : "Select clip"}>
+        <Tooltip content={isSelected ? t("clip.deselect") : t("clip.select")}>
           <button
             className={`clip-selected ${isSelected ? "active" : ""}`}
             onClick={(e) => onToggleSelection(clip.id, e)}
-            aria-label={isSelected ? "Deselect clip" : "Select clip"}
+            aria-label={isSelected ? t("clip.deselect") : t("clip.select")}
           >
             {isSelected ? <FaCheck /> : <FaPlus />}
           </button>
@@ -403,25 +430,18 @@ export const LazyClip = memo(function LazyClip({
       )}
 
       {videoClipPending ? (
-        <div className="clip clip-skeleton" style={{ borderRadius: 15 }} />
+        <div className="clip clip-skeleton" style={{ borderRadius: "var(--radius-xl)" }} />
       ) : (
         <>
           {/* webp mode static thumbnail; video mode uses the poster below instead */}
           {!isVideoPlayable &&
             !webp.thumbnailFailed &&
             clip.thumbnailReady !== false &&
-            (webpStaticReady || isVisible) &&
-            // no image yet (a webp episode has no posters): the skeleton shows until its webp is made
-            Boolean(webp.webpThumbnail || webp.hasAnimatedWebp || webp.thumbnailSrc) && (
+            staticThumbnail && (
               <img
                 ref={setThumbnailEl}
                 className="clip"
-                src={
-                  webp.webpThumbnail ??
-                  (webp.hasAnimatedWebp
-                    ? mediaSrcVersioned(previewWebpPath!, importToken)
-                    : mediaSrcVersioned(webp.thumbnailSrc, importToken))
-                }
+                src={staticThumbnail}
                 style={{ opacity: shouldShowThumbnail ? 1 : 0 }}
                 draggable={false}
                 onLoad={(e) => {
@@ -497,20 +517,21 @@ export const LazyClip = memo(function LazyClip({
 
           {isProcessing && (
             <div className="clip-status-overlay">
-              <span className="status-text">{clip.originalName}</span>
+              <span className="status-text">{processingLabel}</span>
             </div>
           )}
 
-          {showClipDuration && (activePage === "home" || activePage === "sceneScout") && (() => {
-            const dur = formatClipDuration(clip.startSec, clip.endSec);
-            return dur ? <div className="clip-duration-badge">{dur}</div> : null;
-          })()}
-
-          {showClipTimestamps && clip.startSec !== undefined && (
-            <div className={`clip-original-timestamp${showClipEndTime && clip.endSec !== undefined ? " is-timeframe" : ""}`}>
-              {showClipEndTime && clip.endSec !== undefined
-                ? formatClipTimeframe(clip.startSec, clip.endSec)
-                : formatClipTime(clip.startSec)}
+          {(durationLabel || startTimeLabel) && (
+            <div className="clip-timing-overlay">
+              {durationLabel && <div className="clip-timing-badge clip-duration-badge">{durationLabel}</div>}
+              {startTimeLabel && (
+                <div className="clip-timing-badge clip-original-timestamp">
+                  <span className="clip-timestamp-line">
+                    <span className="clip-timestamp-start">{startTimeLabel}</span>
+                    {endTimeLabel && <span className="clip-timestamp-end">{` - ${endTimeLabel}`}</span>}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
@@ -538,7 +559,7 @@ export const LazyClip = memo(function LazyClip({
           )}
 
           {activePage === "scenepacks" && (
-            <Tooltip content="Remove from Scenepack">
+            <Tooltip content={t("clip.removeFromScenepack")}>
               <button
                 className="clip-remove-from-scenepack"
                 onClick={(e) => {
@@ -550,7 +571,7 @@ export const LazyClip = memo(function LazyClip({
                     { index: clip.sceneIndex ?? 0, clipPath: clip.clipPath },
                   ]);
                 }}
-                aria-label="Remove from Scenepack"
+                aria-label={t("clip.removeFromScenepack")}
               >
                 <FaTrashAlt />
               </button>

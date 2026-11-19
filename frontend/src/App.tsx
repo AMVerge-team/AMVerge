@@ -1,25 +1,25 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 import { Event, listen } from "@tauri-apps/api/event";
 import { DEFAULT_GENERAL_SETTINGS } from "./stores/settingsStore";
 
-import AppLayout from "./components/AppLayout";
+import AppLayout from "./components/layout/AppLayout";
 import HomePage from "./pages/HomePage";
-import { AppNotice } from "./components/AppNotice";
+import { AppNotice } from "./components/dialogs/AppNotice";
 import { errorText, showNotice } from "./features/notice/notice";
-import type { StartupNotification } from "./components/StartupNotificationModal";
-import ImportTerminal from "./components/ImportTerminal";
-import BgProgressBar from "./components/BgProgressBar";
-import SplashScreen from "./components/SplashScreen";
+import type { StartupNotification } from "./components/dialogs/StartupNotificationModal";
+import ImportTerminal from "./components/jobs/ImportTerminal";
+import SplashScreen from "./components/layout/SplashScreen";
 import { useIntroStore } from "./features/intro/introStore";
-import ProcessConflictModal from "./components/ProcessConflictModal";
-import { registerProcessAbort } from "./features/processes/singleProcess";
+import ProcessConflictModal from "./components/dialogs/ProcessConflictModal";
+import { processLabel, registerProcessAbort, runningProcess } from "./features/processes/singleProcess";
 import { clearReencodeQueue, resumeBackgroundCuts } from "./features/import/reencodeQueue";
 import { importAbortRef } from "./features/import/importPipeline";
 
 const SettingsModal = lazy(() => import("./components/settings/SettingsModal"));
-const QuickMenu = lazy(() => import("./components/QuickMenu"));
-const CommandPalette = lazy(() => import("./components/CommandPalette"));
+const QuickMenu = lazy(() => import("./components/menu/QuickMenu"));
+const CommandPalette = lazy(() => import("./components/commandPalette/CommandPalette"));
 const MenuModal = lazy(() => import("./components/menu/MenuModal"));
 const ToolsModal = lazy(() => import("./components/tools/ToolsModal"));
 const FlowDatabasePrompt = lazy(() =>
@@ -32,15 +32,15 @@ const DenialNoticeModal = lazy(() => import("./components/events/DenialNoticeMod
 const ApprovalNoticeModal = lazy(() => import("./components/events/ApprovalNoticeModal"));
 const ScenepacksPage = lazy(() => import("./pages/ScenepacksPage"));
 const SceneScoutPage = lazy(() => import("./pages/SceneScoutPage"));
-const StartupNotificationModal = lazy(() => import("./components/StartupNotificationModal"));
+const StartupNotificationModal = lazy(() => import("./components/dialogs/StartupNotificationModal"));
 const V1ImportNotice = lazy(() =>
-  import("./components/V1ImportNotice").then((m) => ({ default: m.V1ImportNotice }))
+  import("./components/dialogs/V1ImportNotice").then((m) => ({ default: m.V1ImportNotice }))
 );
-const PostExportPassesModal = lazy(() => import("./components/PostExportPassesModal"));
-const PassTargetsModal = lazy(() => import("./components/PassTargetsModal"));
-const AiInstallModal = lazy(() => import("./components/AiInstallModal"));
-const StorageMoveModal = lazy(() => import("./components/StorageMoveModal"));
-const GettingStartedTour = lazy(() => import("./components/GettingStartedTour"));
+const PostExportPassesModal = lazy(() => import("./components/jobs/PostExportPassesModal"));
+const PassTargetsModal = lazy(() => import("./components/jobs/PassTargetsModal"));
+const AiInstallModal = lazy(() => import("./components/jobs/AiInstallModal"));
+const StorageMoveModal = lazy(() => import("./components/jobs/StorageMoveModal"));
+const GettingStartedTour = lazy(() => import("./components/dialogs/GettingStartedTour"));
 
 import useDiscordRPC from "./hooks/useDiscordRPC";
 import useHEVCSupport from "./hooks/useHEVCSupport";
@@ -57,16 +57,17 @@ import { rebaseStoragePaths, restoreOpenedEpisodeGrid } from "./features/storage
 import { useAiDepsStore } from "./stores/aiDepsStore";
 import { useAppStateStore } from "./stores/appStore";
 import { useWebpLoadingStore } from "./stores/webpLoadingStore";
-import { useSceneScoutStore } from "./stores/sceneScoutStore";
 import { useUIStateStore } from "./stores/UIStore";
 import { applyThemeSettings, useGeneralSettingsStore, useThemeSettingsStore } from "./stores/settingsStore";
 import { useEpisodePanelRuntimeStore } from "./stores/episodeStore";
+import { useScenePreviewStore } from "./stores/scenePreviewStore";
 
 /** dragging the sidebar divider past this folds the sidebar away, well under its 220px minimum */
 const SIDEBAR_COLLAPSE_BELOW_PX = 140;
 
 
 function App() {
+  const { t } = useTranslation("shell");
   const loading = useAppStateStore((s) => s.loading);
   const progress = useAppStateStore((s) => s.progress);
   const progressMsg = useAppStateStore((s) => s.progressMsg);
@@ -78,9 +79,6 @@ function App() {
   const bgImportProgress = useAppStateStore((s) => s.bgImportProgress);
   const reencodeProgress = useAppStateStore((s) => s.reencodeProgress);
   const reencodeQueueLength = useAppStateStore((s) => s.reencodeQueue.length);
-  // scene scout indexing reports two counted stages, so the card names whichever is running
-  const scoutIndexStage = useSceneScoutStore((s) => s.indexing?.stage);
-  const scoutAddLabel = scoutIndexStage === "sampling" ? "Sampling frames" : "Embedding scenes";
   const webpLoadDone = useWebpLoadingStore((s) => s.done);
   const webpLoadTotalRaw = useWebpLoadingStore((s) => s.total);
   const webpDismissed = useWebpLoadingStore((s) => s.dismissed);
@@ -133,22 +131,36 @@ function App() {
   const toolsOpen = useUIStateStore(s => s.toolsOpen);
 
   const handleResetGeneralSettings = async () => {
+    const active = runningProcess();
+    if (active) {
+      await showNotice(t("jobs:process.conflictTitle"), t("jobs:process.conflictRunning", { process: processLabel(active) }));
+      return;
+    }
     try {
+      const previousEpisodesPath = useGeneralSettingsStore.getState().episodesPath;
       // release the clip files the grid holds open, or windows blocks moving them
       useAppStateStore.getState().setClips([]);
       useAppStateStore.getState().setSelectedClips(new Set());
       await new Promise((resolve) => setTimeout(resolve, 250));
 
       await invoke<string>("move_storage_to_new_dir", {
-        oldDir: useGeneralSettingsStore.getState().episodesPath,
+        oldDir: previousEpisodesPath,
         newDir: null,
       });
 
       useGeneralSettingsStore.setState(DEFAULT_GENERAL_SETTINGS);
       // no custom path now, so this resolves to app data's storage root
       await rebaseStoragePaths();
+      try {
+        await invoke<string[]>("finalize_storage_move", {
+          oldDir: previousEpisodesPath,
+          currentDir: null,
+        });
+      } catch (err) {
+        console.warn("[storage] previous files kept as a backup", err);
+      }
     } catch (err) {
-      void showNotice("Reset failed", "Failed to reset episode directory: " + errorText(err));
+      void showNotice(t("app.resetFailedTitle"), t("app.resetFailed", { error: errorText(err) }));
     } finally {
       restoreOpenedEpisodeGrid();
     }
@@ -347,6 +359,62 @@ function App() {
     void invoke("write_app_theme", { themeJson: JSON.stringify(themeSettings) }).catch(() => {});
   }, [themeSettings]);
 
+  // Synchronize the currently opened episode with the AE extension sync pointer
+  const episodesPath = useGeneralSettingsStore((s) => s.episodesPath);
+
+  useEffect(() => {
+    void invoke("write_app_paths_sync", {
+      customEpisodesPath: episodesPath ?? null,
+    }).catch((err) => console.warn("[extension-sync] could not publish app paths", err));
+  }, [episodesPath]);
+  const openedEpisodeId = useEpisodePanelRuntimeStore((s) => s.openedEpisodeId);
+  const openedEpisode = useEpisodePanelRuntimeStore((s) =>
+    s.episodes.find((e) => e.id === s.openedEpisodeId)
+  );
+  const openedEpisodeClipsLen = openedEpisode?.clips.length ?? 0;
+  const openedEpisodeClipRevision = openedEpisode?.clips
+    .map((clip) => `${clip.clipPath ?? ""}:${clip.thumbnail}:${clip.thumbnailReady === true}`)
+    .join("|") ?? "";
+  const animatedByClipId = useScenePreviewStore((s) => s.animatedByClipId);
+
+  useEffect(() => {
+    if (!openedEpisodeId || !openedEpisode) {
+      void invoke("clear_active_episode_sync").catch(() => {});
+      return;
+    }
+
+    const payload = {
+      episode_id: openedEpisode.id,
+      video_path: openedEpisode.videoPath || "",
+      manifest_path: "",
+      scene_count: openedEpisodeClipsLen,
+      method: openedEpisode.importMethod || "video_files",
+      updated_at: Date.now(),
+      custom_path: episodesPath ?? null,
+      previews: openedEpisode.clips.flatMap((clip, index) => {
+        const preview = animatedByClipId[clip.id];
+        if (!preview) return [];
+        return [{
+          scene_index: clip.sceneIndex ?? index,
+          preview_webp_path: preview,
+          preview_poster_path: preview.replace(/\.webp$/i, ".jpg"),
+        }];
+      }),
+    };
+
+    void invoke("write_active_episode_sync", { payload })
+      .catch((err) => console.warn("[extension-sync] could not publish active episode", err));
+  }, [
+    openedEpisodeId,
+    openedEpisode?.id,
+    openedEpisode?.videoPath,
+    openedEpisodeClipsLen,
+    openedEpisodeClipRevision,
+    openedEpisode?.importMethod,
+    animatedByClipId,
+    episodesPath,
+  ]);
+
   // keeps the AI env's cli on the newest compatible patch; delayed so it never competes with startup
   useEffect(() => {
     if (!import.meta.env.PROD) return;
@@ -458,15 +526,6 @@ function App() {
     };
   }, [importedVideoPath, importToken, setVideoIsHEVC, setVideoNeedsProxy]);
 
-  // shared by the bar attached to the mini window and the standalone one
-  const clipProgress = reencodeProgress ?? bgProgress;
-  const clipLabel =
-    activeOperation === "scout_add" ? scoutAddLabel
-    : activeOperation === "scout_search" ? "Searching scenes"
-    : activeOperation === "scout_thumbnails" ? "Generating thumbnails"
-    : reencodeProgress ? "Reencoding"
-    : "Processing clips";
-
   return (
       <AppLayout
       windowWrapperRef={windowWrapperRef}
@@ -475,7 +534,7 @@ function App() {
         importUiActive ? (
           <ImportTerminal
             progress={previewsOnly ? Math.round((webpLoadDone / webpLoadTotal) * 100) : progress}
-            progressMsg={previewsOnly ? `Generating previews ${webpLoadDone}/${webpLoadTotal}` : progressMsg}
+            progressMsg={previewsOnly ? t("app.progress.previews", { done: webpLoadDone, total: webpLoadTotal }) : progressMsg}
             batchTotal={batchTotal}
             batchDone={batchDone}
             batchCurrentFile={batchCurrentFile || ""}
@@ -490,31 +549,6 @@ function App() {
             onToggleMinimize={() =>
               setMinimizeOverride((prev) => !(prev ?? autoMinimized))
             }
-            onClose={handleAbortAndCloseBgProgress}
-            bgBar={
-              <BgProgressBar
-                clipDone={clipProgress?.done ?? 0}
-                clipTotal={clipProgress?.total ?? 0}
-                clipLabel={clipLabel}
-                importDone={bgImportProgress?.done ?? 0}
-                importTotal={bgImportProgress?.total ?? 0}
-                webpDone={webpLoadDone}
-                // the window's own bar already shows previews when they are the job
-                webpTotal={previewsOnly ? 0 : webpLoadTotal}
-                onClose={handleAbortAndCloseBgProgress}
-                attached
-              />
-            }
-          />
-        ) : (bgProgress || bgImportProgress || reencodeProgress || webpLoadTotal > 0) ? (
-          <BgProgressBar
-            clipDone={clipProgress?.done ?? 0}
-            clipTotal={clipProgress?.total ?? 0}
-            clipLabel={clipLabel}
-            importDone={bgImportProgress?.done ?? 0}
-            importTotal={bgImportProgress?.total ?? 0}
-            webpDone={webpLoadDone}
-            webpTotal={webpLoadTotal}
             onClose={handleAbortAndCloseBgProgress}
           />
         ) : null

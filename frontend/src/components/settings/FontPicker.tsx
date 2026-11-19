@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FaChevronDown } from '../icons/animated';
 import Tooltip from "../common/Tooltip";
-import { JERSEY_FONT, useThemeSettingsStore } from "../../stores/settingsStore";
+import { fontStackFor, JERSEY_FONT, useThemeSettingsStore } from "../../stores/settingsStore";
+import { useTranslation } from "react-i18next";
 
 // common faces filtered to installed ones, shown with no permission prompt (the full list needs a user gesture)
 const CURATED_FONTS = [
@@ -18,6 +19,8 @@ const CURATED_FONTS = [
   "Inter", "Roboto", "Open Sans", "Lato", "Montserrat", "Poppins",
   "Source Sans Pro", "Noto Sans", "Fira Code", "JetBrains Mono", "Cascadia Code",
   "Ubuntu", "Nunito",
+  "PingFang SC", "Hiragino Sans GB", "Songti SC", "Kaiti SC", "Microsoft YaHei",
+  "SimHei", "SimSun", "Noto Sans CJK SC", "Source Han Sans SC",
 ];
 
 let detectCtx: CanvasRenderingContext2D | null | undefined;
@@ -63,6 +66,7 @@ async function queryAllFontFamilies(): Promise<string[]> {
 }
 
 export default function FontPicker() {
+  const { t } = useTranslation("settings");
   const appFontFamily = useThemeSettingsStore((s) => s.appFontFamily);
   const setAppFontFamily = useThemeSettingsStore((s) => s.setAppFontFamily);
 
@@ -104,6 +108,9 @@ export default function FontPicker() {
     }
   };
 
+  const fontLabel = (family: string | null) =>
+    family === null ? t("font.default") : family === JERSEY_FONT ? t("font.pixel") : family;
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return q ? fonts.filter((f) => f.toLowerCase().includes(q)) : fonts;
@@ -115,9 +122,9 @@ export default function FontPicker() {
         type="button"
         className="font-picker-trigger"
         onClick={() => setOpen((o) => !o)}
-        style={{ fontFamily: appFontFamily ? `"${appFontFamily}"` : "var(--app-font)" }}
+        style={{ fontFamily: fontStackFor(appFontFamily) }}
       >
-        <span>{appFontFamily ?? "Default (Calibri)"}</span>
+        <span>{fontLabel(appFontFamily)}</span>
         <FaChevronDown className={`font-picker-caret${open ? " open" : ""}`} open={open} aria-hidden="true" />
       </button>
 
@@ -127,13 +134,13 @@ export default function FontPicker() {
             <input
               type="text"
               className="font-picker-search"
-              placeholder="Search fonts..."
+              placeholder={t("font.search")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
             {canLoadAll && (
               // wrapper span: the button disables itself while loading
-              <Tooltip content="List every font installed on this system">
+              <Tooltip content={t("font.loadAllTooltip")}>
                 <span className="tooltip-anchor">
                   <button
                     type="button"
@@ -141,7 +148,7 @@ export default function FontPicker() {
                     onClick={handleLoadAll}
                     disabled={loadingAll}
                   >
-                    {loadingAll ? "Loading..." : "Load all installed"}
+                    {loadingAll ? t("common:loading") : t("font.loadAll")}
                   </button>
                 </span>
               </Tooltip>
@@ -152,29 +159,30 @@ export default function FontPicker() {
             <button
               type="button"
               className={`font-picker-option${appFontFamily === null ? " active" : ""}`}
+              style={{ fontFamily: fontStackFor(null) }}
               onClick={() => setAppFontFamily(null)}
             >
-              Default (Calibri)
+              {t("font.default")}
             </button>
 
             <button
               type="button"
               className={`font-picker-option${appFontFamily === JERSEY_FONT ? " active" : ""}`}
-              style={{ fontFamily: `"${JERSEY_FONT}"` }}
+              style={{ fontFamily: fontStackFor(JERSEY_FONT) }}
               onClick={() => setAppFontFamily(JERSEY_FONT)}
             >
-              {JERSEY_FONT}
+              {t("font.pixel")}
             </button>
 
             {filtered.length === 0 ? (
-              <p className="font-picker-empty">No fonts found</p>
+              <p className="font-picker-empty">{t("font.noneFound")}</p>
             ) : (
               filtered.filter((font) => font !== JERSEY_FONT).map((font) => (
                 <button
                   key={font}
                   type="button"
                   className={`font-picker-option${appFontFamily === font ? " active" : ""}`}
-                  style={{ fontFamily: `"${font}"` }}
+                  style={{ fontFamily: fontStackFor(font) }}
                   onClick={() => setAppFontFamily(font)}
                 >
                   {font}

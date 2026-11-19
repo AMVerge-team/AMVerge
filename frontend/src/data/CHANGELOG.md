@@ -1,6 +1,22 @@
-# v2.0.2
+# v2.0.5
 
-- Added a dedicated **Storage** settings tab next to Export with Episodes & App/AI location pickers, a live breakdown across Episodes, Scenepacks, Scene Scout indexes, AI packages/models, and caches, plus safe AI relocation (and defaulted new non-Program-Files installs to keep AI packages & models beside the install folder instead of `AppData`)
+- Added native Linux desktop support (`AppImage`, `.deb`, `.rpm`) with Linux sidecar/`uv`/FFmpeg packaging, GStreamer codecs, blob-URL preview streaming, WebKit DMA-BUF fallback, Linux file-manager & system-specs support, and dynamic OS labels across Settings & How to Use, plus Flatpak/Flathub packaging, WinGet manifests, and a multi-platform downloads table
+- Added a dedicated Storage settings tab next to Export with Episodes & App/AI location pickers, a live breakdown across Episodes, Scenepacks, Scene Scout indexes, AI packages/models, and caches, plus safe cross-drive AI relocation (and defaulted new non-system installs to keep AI packages & models beside the install folder)
+- Rebuilt storage moves around staged copies, backups, and rollback: active imports/exports/installs are blocked during a move, old files are deleted only after settings switch, and episode manifests, WebP sync metadata, Scenepacks, Scene Scout store state and SQLite rows, CLI config/models/FFmpeg, and Hugging Face caches all follow the new root
+- Standalone CLI launches and the After Effects extension now discover moved storage through `paths.json` and legacy `ai_storage_path.txt`, with explicit environment variables and manual extension path overrides taking precedence
+- Reworked After Effects extension sync: active-episode pointer, per-scene WebP/JPG preview metadata with true source-range AE imports, live manifest & preview reloads, JPG-at-rest/WebP-on-hover tiles, real AI-install cancellation, CLI executable failover, and verified batch installers
+- Added French and Simplified Chinese localization with Crowdin integration, and subset the CJK font from 936 KB to 224 KB with pinned metrics
+- Added the animated icon set and a UI polish pass: viewport-limited automatic previews, bottom-right clip timestamps, typography & control refinements, episode panel colors in Appearance, clip thumbnails instead of black frames on load, a post-export toggle, macOS native title bar, and macOS export panel overflow fixes
+- Fixed Free up space on Depth Map not uninstalling `torchvision`, stopped unrelated pack installs from pulling it in, renamed Depth Map Pass / Upscale Pass to Depth Map and Upscaling, and removed the unpublished adore model from export passes
+- Hardened Clear Episode Storage against same-path casing/trailing-slash self-overwrites, overlapping AI folders, Hugging Face symlink ordering, Windows file locks, and leftover partial episode folders
+- Fixed WebP companion `.jpg` posters capturing up to `0.5s` before the scene start (`-ss` now applies to both WebP and JPG outputs)
+- Made AI installs more reliable: `uv` temp folders no longer skew the progress meter, Windows file-lock interruptions retry automatically, and first-time installs offer a destination picker before downloading
+- Updated bundled CLI runtime to `v1.3.4` (canonical Practical-RIFE warping with SHA-256 model hashes, Scene Scout snapshot offline/repair recovery, desktop storage discovery, Windows UTF-8 pipe fixes, and the Scene Scout `AutoModel` import-race fix)
+- Added unified GitHub-to-Discord notifications (push, PRs, reviews, releases, issues, stars) with AMVerge-themed embeds, plus contributor greeter, stale cleanup, PR auto-labeler, typecheck/i18n/cargo CI, and Dependabot workflows
+- Improved Discord RPC episode cards and bug-report machine autofill, disabled the auto-updater during development runs, resolved the dev CLI checkout independently of launch directory, enabled RAM formatting on all platforms, and reorganized the repo with open developer docs
+
+## v2.0.2
+
 - Added an interactive first-time Getting Started tour covering pages, detection/preview methods, Features, and a final wrap-up back in Library (replayable anytime from "How to use" in Library)
 - Enabled the preview audio language selector in WebP mode so you can pick the export audio track
 - Added "Show in episode" to Scene Scout's clip right-click menu to jump straight to that clip in Library

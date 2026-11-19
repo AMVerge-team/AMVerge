@@ -1,5 +1,6 @@
 // menu and modal state hook for the Episode Panel. owns context menus, text modals, confirm modals, and close behavior
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useContextMenuStore } from "../../../stores/contextMenuStore";
 import { useEscapeToClose } from "../../common/useEscapeToClose";
 import type React from "react";
@@ -38,6 +39,7 @@ export default function useEpisodePanelMenus({
   onRenameEpisode,
   onRenameFolder,
 }: UseEpisodePanelMenusArgs) {
+  const { t } = useTranslation("library");
   const claimMenu = useContextMenuStore((s) => s.openContextMenu);
   const activeMenu = useContextMenuStore((s) => s.activeMenu);
 
@@ -184,10 +186,10 @@ export default function useEpisodePanelMenus({
     setFolderContextMenu(null);
 
     setTextModal({
-      title: "Rename Episode",
+      title: t("episodePanel.rename.episodeTitle"),
       initialValue: target.displayName,
-      placeholder: "Episode name",
-      confirmLabel: "Rename",
+      placeholder: t("episodePanel.rename.episodePlaceholder"),
+      confirmLabel: t("common:rename"),
       onConfirm: (value) => {
         onRenameEpisode(episodeId, value);
       },
@@ -203,10 +205,10 @@ export default function useEpisodePanelMenus({
     setFolderContextMenu(null);
 
     setTextModal({
-      title: "Rename Folder",
+      title: t("episodePanel.rename.folderTitle"),
       initialValue: target.name,
-      placeholder: "Folder name",
-      confirmLabel: "Rename",
+      placeholder: t("episodePanel.rename.folderPlaceholder"),
+      confirmLabel: t("common:rename"),
       onConfirm: (value) => {
         onRenameFolder(folderId, value);
       },

@@ -1,20 +1,22 @@
+import { useTranslation } from "react-i18next";
 import Tooltip from "../common/Tooltip";
 import { useSceneScoutStore, type ScoutMode } from "../../stores/sceneScoutStore";
 
-const TABS: { mode: ScoutMode; label: string; hint: string }[] = [
-  { mode: "search", label: "Search", hint: "Find scenes by describing them" },
-  { mode: "flow", label: "Match", hint: "Pick a clip and find scenes that look like they follow its last frame" },
+const TABS: { mode: ScoutMode; labelKey: string; hintKey: string }[] = [
+  { mode: "search", labelKey: "tabs.search", hintKey: "tabs.searchHint" },
+  { mode: "flow", labelKey: "tabs.match", hintKey: "tabs.matchHint" },
 ];
 
 /** Search and Flow are separate tools over the same databases, each with its own results */
 export function ScoutModeTabs() {
+  const { t } = useTranslation("scout");
   const mode = useSceneScoutStore((s) => s.mode);
   const setMode = useSceneScoutStore((s) => s.setMode);
 
   return (
-    <div className="scene-scout-mode-tabs" data-scout-tour="mode-tabs" role="tablist" aria-label="Scene Scout mode">
+    <div className="scene-scout-mode-tabs" data-scout-tour="mode-tabs" role="tablist" aria-label={t("tabs.ariaLabel")}>
       {TABS.map((tab) => (
-        <Tooltip key={tab.mode} content={tab.hint}>
+        <Tooltip key={tab.mode} content={t(tab.hintKey)}>
           <button
             type="button"
             role="tab"
@@ -22,7 +24,7 @@ export function ScoutModeTabs() {
             className={`scene-scout-mode-tab${mode === tab.mode ? " is-active" : ""}`}
             onClick={() => setMode(tab.mode)}
           >
-            {tab.label}
+            {t(tab.labelKey)}
           </button>
         </Tooltip>
       ))}

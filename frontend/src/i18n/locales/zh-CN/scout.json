@@ -1,0 +1,226 @@
+{
+  "hero": {
+    "blockedNoDatabase": "请先在下方创建数据库，再开始搜索…",
+    "blockedNoScenes": "请先向所选数据库添加视频，再进行搜索…",
+    "addTo": "向“{{name}}”添加视频",
+    "addNoTarget": "请先在下方选择或创建数据库",
+    "databaseFallback": "数据库",
+    "yourDatabases": "我的数据库",
+    "newDatabase": "新建数据库",
+    "loadingDatabases": "正在加载数据库…",
+    "noDatabases": "还没有数据库。创建一个即可开始为视频建立索引。",
+    "sceneCount_one": "{{count}} 个场景",
+    "sceneCount_other": "{{count}} 个场景",
+    "empty": "空"
+  },
+  "tabs": {
+    "ariaLabel": "场景搜索模式",
+    "search": "搜索",
+    "searchHint": "通过描述画面来查找场景",
+    "match": "匹配",
+    "matchHint": "选择一个片段，查找能自然衔接其最后一帧的场景"
+  },
+  "addEpisode": {
+    "label": "添加视频",
+    "indexing": "正在建立索引…"
+  },
+  "searchField": {
+    "placeholderOne": "描述一个场景，在“{{name}}”中搜索…",
+    "placeholderMany_one": "描述一个场景，在已选的 {{count}} 个数据库中搜索…",
+    "placeholderMany_other": "描述一个场景，在已选的 {{count}} 个数据库中搜索…",
+    "selectedDatabaseFallback": "所选数据库",
+    "placeholderAny": "描述你要找的场景…",
+    "placeholderNoDatabase": "创建数据库后即可开始搜索…",
+    "tooltip": "在所选数据库和视频中搜索",
+    "clear": "清除搜索",
+    "searching": "正在搜索…"
+  },
+  "toolbar": {
+    "gateHint": "请先在左侧面板中选择或创建数据库。",
+    "refreshDatabases": "刷新数据库"
+  },
+  "panels": {
+    "hideDatabasePanel": "隐藏数据库面板",
+    "showDatabasePanel": "显示数据库面板",
+    "hidePreviewPanel": "隐藏预览面板",
+    "showPreviewPanel": "显示预览面板"
+  },
+  "dbPrompt": {
+    "titleFlow": "选择要查找匹配场景的数据库",
+    "titleSearch": "选择要搜索的数据库",
+    "clearAll": "全部取消",
+    "selectAll": "全选",
+    "listLabel": "数据库",
+    "episodeCount_one": "{{count}} 个视频",
+    "episodeCount_other": "{{count}} 个视频",
+    "confirmFlow": "查找匹配片段"
+  },
+  "missing": {
+    "title": "找不到视频",
+    "message": "<b>{{name}}</b> 已不在 <code>{{path}}</code>，其场景无法播放。要从数据库中移除此视频吗？",
+    "removing": "正在移除…",
+    "remove": "从数据库移除",
+    "keep": "保留"
+  },
+  "visibility": {
+    "ariaLabel": "“{{name}}”中参与搜索的视频",
+    "showAll": "全部显示",
+    "hideAll": "全部隐藏",
+    "loading": "正在加载视频…",
+    "empty": "尚未为任何视频建立索引。"
+  },
+  "info": {
+    "search": {
+      "title": "Scene Scout：搜索",
+      "intro": "Scene Scout 根据描述而非文件名搜索已建立索引的视频。输入你记得的场景内容，它会找出最接近的结果。",
+      "gettingStarted": "快速上手",
+      "step1": "在左侧面板中创建或打开一个数据库，建议每部剧集一个。",
+      "step2": "双击、向上拖动或右键点击数据库，将其移入“搜索中”。“全部数据库”列出你拥有的所有数据库，只有“搜索中”的数据库才会被搜索。",
+      "step3": "点击“添加视频”并选择一个或多个视频。建立索引时会逐一分析每个场景并保存其特征指纹，耗时较长，但每个视频只需进行一次。",
+      "step4": "用日常语言描述你想要的场景，然后按 Enter。",
+      "settingsTitle": "搜索设置",
+      "settings": "“结果数”决定返回多少个匹配结果。场景检测方式在每次添加视频时选择。"
+    },
+    "flow": {
+      "title": "Scene Scout：匹配",
+      "intro": "匹配功能会查找能紧接在已有片段之后的场景。它会分析片段的最后一帧，从数据库中找出与之最相似的场景，让两者之间的剪辑衔接更连贯。",
+      "howTitle": "使用方法",
+      "step1": "将要搜索的数据库添加到左侧的“搜索中”列表。",
+      "step2": "点击“导入”并选择一个视频文件，或在素材库或搜索结果中右键点击片段，选择“查找匹配片段”。",
+      "step3": "点击匹配结果即可在预览面板中播放，并照常从那里导出。",
+      "tipsTitle": "提示",
+      "tips": "拖动片段与结果之间的分隔条，可调整两侧的空间。刷新按钮会用同一片段重新搜索，例如在更改要搜索的数据库之后。"
+    }
+  },
+  "flow": {
+    "heroInput": "导入文件以查找匹配场景",
+    "noDatabaseHint": "请先将数据库添加到左侧的“搜索中”列表",
+    "import": "导入",
+    "searchAgainHint": "重新搜索，例如在更改要搜索的数据库之后",
+    "searchAgain": "重新搜索",
+    "inputtedClip": "输入片段",
+    "previewFailed": "无法生成此片段的预览。",
+    "preparingPreview": "正在准备预览",
+    "inputEpisode": "导入视频",
+    "resizeLabel": "调整片段与结果区域的大小"
+  },
+  "tools": {
+    "modalLabel": "工具",
+    "tabsLabel": "工具",
+    "upscale": "超分辨率",
+    "upscaleBlurb": "生成更清晰、分辨率更高的片段副本",
+    "depth": "深度图",
+    "depthBlurb": "生成表示画面各部分与镜头距离的视频，用于合成",
+    "run": {
+      "upscale": "生成超分辨率",
+      "depth": "生成深度图"
+    },
+    "rerun": {
+      "upscale": "重新生成超分辨率",
+      "depth": "重新生成深度图"
+    },
+    "pack": {
+      "upscale": "超分辨率",
+      "depth": "深度图"
+    },
+    "packMissing": "尚未安装“{{pack}}”组件。",
+    "install": "安装",
+    "saved": "已保存 {{name}}",
+    "show": "查看",
+    "stopped": "已停止，未保存任何内容",
+    "error": "出现错误",
+    "dropHere": "松开以放入",
+    "dropVideo": "将视频拖到此处",
+    "dropHint": "或点击选择文件，支持任意格式。",
+    "model": "模型",
+    "fileQuality": "文件质量",
+    "colors": "配色",
+    "grayscale": "灰度",
+    "stop": "停止",
+    "opensIn": "将在 {{dir}} 中打开",
+    "chooseWhere": "选择保存位置",
+    "exporting": "正在导出…",
+    "export": "导出",
+    "viewer": {
+      "play": "播放",
+      "pause": "暂停",
+      "fullscreen": "全屏",
+      "previewFailed": "无法生成此片段的预览。",
+      "preparingPreview": "正在准备预览",
+      "resultFailed": "无法显示结果。",
+      "waitingFirstFrame": "正在等待第一帧",
+      "preparing": "正在准备…",
+      "original": "原始",
+      "result": {
+        "upscale": "超分辨率",
+        "depth": "深度图"
+      },
+      "waiting": {
+        "upscale": "超分辨率版本将在此处预览",
+        "depth": "深度图将在此处预览"
+      }
+    }
+  },
+  "events": {
+    "hideEpisodePanel": "隐藏视频面板",
+    "showEpisodePanel": "显示视频面板",
+    "bannedHint": "你已被禁止发起活动，点击查看原因",
+    "cooldownHint": "{{time}}后可再次申请活动",
+    "requestHint": "申请举办社区活动",
+    "banned": "已禁止",
+    "host": "发起活动",
+    "muteNotifications": "关闭新活动通知",
+    "unmuteNotifications": "开启新活动通知",
+    "refresh": "刷新活动",
+    "connected": "已连接：<strong>{{name}}</strong>",
+    "signOut": "退出登录",
+    "signOutDiscord": "退出 Discord 登录",
+    "waiting": "等待中…",
+    "login": "登录",
+    "searchPlaceholder": "搜索活动",
+    "searchLabel": "搜索活动",
+    "clearSearch": "清除搜索",
+    "filter": {
+      "all": "全部活动",
+      "allDescription": "显示全部",
+      "mine": "我的活动",
+      "mineDescription": "我发起的活动",
+      "hc": "仅 HC",
+      "hcDescription": "仅小时挑战",
+      "ec": "仅 EC",
+      "ecDescription": "仅长期比赛"
+    },
+    "sort": {
+      "dateDesc": "日期，最新",
+      "dateDescDescription": "开始日期最晚的在前",
+      "dateAsc": "日期，最早",
+      "dateAscDescription": "开始日期最早的在前",
+      "prizeDesc": "奖池，最高",
+      "prizeDescDescription": "奖金最高的在前",
+      "prizeAsc": "奖池，最低",
+      "prizeAscDescription": "奖金最低的在前"
+    },
+    "info": {
+      "title": "社区活动",
+      "intro": "社区规模很大，剪辑比赛也因此常常无人知晓。此页面将它们集中在一处，方便剪辑师找到值得参加的机会，也让主办方触达最可能参与的人。参与的人越多，活动就越精彩；成功的活动又会激励下一个人来举办。",
+      "hcTitle": "小时挑战（HC）",
+      "hc": "时间短且固定。剪辑师需要在规定的几个小时内（通常在同一天）从头到尾完成一部作品。投入较少，我个人非常喜欢参加这类活动（crptk）",
+      "ecTitle": "剪辑比赛（EC）",
+      "ec": "周期更长，至少持续一天，通常更久。有充足的时间构思和打磨，限制通常更少，奖品也往往更丰厚。",
+      "hostTitle": "举办活动",
+      "step1": "点击“登录”按钮通过 Discord 登录，以便后续管理活动。所有登录均通过 Discord 官方 API 完成，我们无法访问你的数据。",
+      "step2": "点击“发起活动”并选择形式：HC 为限时比赛，EC 为长期比赛。",
+      "step3": "填写标题、封面图片、简介、日期，以及活动实际所在 Discord 服务器的邀请链接。如有奖池，也请一并填写。",
+      "step4": "提交审核。每份申请上线前都会经过管理员审核，通常很快就能完成。",
+      "step5": "审核通过后你会收到通知。之后你仍可自行修改日期、邀请链接或奖池；修改标题、简介或封面则需要重新进行一次快速审核。"
+    }
+  },
+  "createDb": {
+    "dialogTitle": "新建场景搜索数据库",
+    "filter": "场景搜索数据库",
+    "title": "为数据库命名",
+    "placeholder": "数据库名称",
+    "failed": "无法创建数据库。",
+    "done": "完成"
+  }
+}

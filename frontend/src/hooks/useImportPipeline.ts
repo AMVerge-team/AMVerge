@@ -1,5 +1,6 @@
 import { useCallback, useRef, startTransition } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
+import { t } from "../i18n";
 import { EpisodeEntry } from "../types/domain";
 import { fileNameFromPath, truncateFileName } from "../utils/episodeUtils";
 import { buildEpisodeCacheId, logImportError } from "../features/import/manifest";
@@ -69,7 +70,7 @@ export function useImportPipeline({ abortedRef }: Params) {
       try {
         const app = useAppStateStore.getState();
         app.setProgress(0);
-        app.setProgressMsg("Starting...");
+        app.setProgressMsg(t("jobs:import.starting"));
         setActiveOperation("import");
         setLoading(true);
         app.setSelectedClips(new Set());
@@ -133,7 +134,7 @@ export function useImportPipeline({ abortedRef }: Params) {
       try {
         const app = useAppStateStore.getState();
         app.setProgress(0);
-        app.setProgressMsg("Starting...");
+        app.setProgressMsg(t("jobs:import.starting"));
         setActiveOperation("import");
         // batch shows the minimizable full loader; bgImportProgress lets closing the card abort the rest
         setLoading(true);
@@ -158,7 +159,7 @@ export function useImportPipeline({ abortedRef }: Params) {
           setBatchDone(i);
           setBatchCurrentFile(truncateFileName(fileName));
           useAppStateStore.getState().setProgress(0);
-          useAppStateStore.getState().setProgressMsg("Starting...");
+          useAppStateStore.getState().setProgressMsg(t("jobs:import.starting"));
           useAppStateStore.setState({ bgProgress: null });
           console.info("[import] batch file begin", {
             index: i + 1,
@@ -251,7 +252,7 @@ export function useImportPipeline({ abortedRef }: Params) {
     try {
       const files = await open({
         multiple: true,
-        filters: [{ name: "Video", extensions: VIDEO_EXTENSIONS }],
+        filters: [{ name: t("jobs:dialog.videoFilter"), extensions: VIDEO_EXTENSIONS }],
       });
       if (!files) {
         console.info("[import] picker canceled");

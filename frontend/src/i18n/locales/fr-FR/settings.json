@@ -1,0 +1,281 @@
+{
+  "font": {
+    "default": "Par défaut (Calibri)",
+    "pixel": "Pixel (Jersey 10 + police pixel chinoise)",
+    "search": "Rechercher une police…",
+    "loadAll": "Charger toutes les polices installées",
+    "loadAllTooltip": "Afficher toutes les polices installées sur cette machine",
+    "noneFound": "Aucune police trouvée"
+  },
+  "resetToDefaults": "Revenir aux valeurs par défaut",
+  "options": {
+    "sceneDetection": {
+      "ai": {
+        "label": "AI Scene Detection",
+        "description": "Lance une IA pour trouver les coupes avec précision"
+      },
+      "keyframe": {
+        "label": "Keyframe Detection",
+        "description": "Coupe sur les images clés : rapide, et fonctionne sur n'importe quel PC"
+      }
+    },
+    "previewMethod": {
+      "video": {
+        "label": "Video Files",
+        "description": "Découpe une vraie vidéo par scène. Survolez pour la lire."
+      },
+      "webp": {
+        "label": "WebP Files",
+        "description": "Crée de petits aperçus animés au lieu de vidéos."
+      }
+    },
+    "transcodeMode": {
+      "off": {
+        "description": "Lit les clips tels quels. Nécessite la prise en charge du HEVC sur ce PC."
+      },
+      "hevc": {
+        "label": "HEVC seulement",
+        "description": "Ne réencode que si la source est en HEVC."
+      },
+      "always": {
+        "label": "Toujours",
+        "description": "Réencode chaque aperçu, quelle que soit la source."
+      }
+    },
+    "transcodeQuality": {
+      "360p": "Qualité moindre, rapide",
+      "480p": "Équilibré",
+      "720p": "Meilleure qualité, lent",
+      "1080p": "Qualité maximale, le plus lent"
+    }
+  },
+  "general": {
+    "title": "Général",
+    "version": "Version de l'application",
+    "import": {
+      "title": "Import",
+      "sceneDetection": {
+        "label": "Méthode de détection de scènes",
+        "description": "Comment AMVerge trouve les coupes quand vous importez.",
+        "info": {
+          "ai": {
+            "title": "AI Scene Detection",
+            "p1": "Fait passer chaque image de l'épisode dans TransNetV2, un réseau de neurones entraîné à repérer le moment où un plan finit et où le suivant commence. C'est l'option la plus précise, et elle détecte des coupes que les autres méthodes manquent.",
+            "p2": "C'est aussi la plus lente, car tout l'épisode doit être décodé et analysé image par image. Une carte graphique accélère nettement le traitement.",
+            "p3": "Après la détection, AMVerge réencode les aperçus. Chaque clip commence ainsi exactement là où l'IA a trouvé le changement de plan, et non un instant avant ou après."
+          },
+          "keyframe": {
+            "title": "Keyframe Detection",
+            "p1": "Un fichier vidéo ne garde pas une image complète pour chaque image. De temps en temps il en enregistre une entière, appelée image clé, et les suivantes ne gardent que ce qui a changé depuis. Ces images complètes sont les seuls endroits où couper une vidéo sans la reconstruire.",
+            "p2": "Cette méthode ne coupe qu'à ces endroits : c'est immédiat, et elle fonctionne sur n'importe quel PC, sans carte graphique. C'est de loin la façon la plus rapide d'importer.",
+            "p3": "En échange, on perd en précision. Les coupes se placent sur l'image clé la plus proche, pas sur le changement de plan exact : un clip peut donc commencer un peu tôt ou un peu tard, et les changements de plan situés entre deux images clés sont manqués. C'était la méthode d'origine à la sortie d'AMVerge."
+          }
+        }
+      },
+      "gpuDecoding": {
+        "label": "Décodage par la carte graphique",
+        "devBuild": "Version de développement : installez plutôt nelux dans le venv du dépôt CLI.",
+        "description": "Décode la vidéo sur la carte NVIDIA pendant AI Scene Detection. Bien plus rapide sur les longs épisodes.",
+        "unsupported": "Nécessite une carte NVIDIA GTX série 16, RTX série 20 ou plus récente.",
+        "disabledWhileImporting": "Paramètre désactivé pendant les imports"
+      }
+    },
+    "preview": {
+      "title": "Aperçu et lecture",
+      "method": {
+        "label": "Méthode d'aperçu",
+        "description": "Ce que la grille lit quand vous survolez un clip.",
+        "info": {
+          "video": {
+            "title": "Video Files",
+            "p1": "Découpe une vraie vidéo pour chaque scène. Survoler une vignette lit la vidéo elle-même : ce que vous voyez est exactement ce que vous obtenez à l'export (sauf si vous baissez la qualité d'aperçu).",
+            "p2": "Chaque vignette lue est une vraie vidéo en train d'être décodée : un long épisode avec des centaines de scènes peut donc être exigeant pour la machine."
+          },
+          "webp": {
+            "title": "WebP Files",
+            "p1": "Crée plutôt un petit aperçu animé par scène, un peu comme un GIF. C'est bien plus léger que de la vidéo, le défilement et le survol restent donc souples même avec des centaines de scènes. Si l'application vous semble lente, c'est l'option à prendre.",
+            "p2": "Le coût, c'est le temps d'import. Chaque aperçu doit être créé à l'avance, l'import est donc nettement plus long qu'avec les fichiers vidéo.",
+            "p3": "Cela ne change que l'aperçu dans la grille. Les exports partent toujours de la vidéo d'origine, vos clips exportés sont donc en pleine qualité dans les deux cas."
+          }
+        }
+      },
+      "reencode": {
+        "label": "Réencoder les aperçus",
+        "hevcForced": "Ce PC ne peut pas lire le HEVC, ces aperçus doivent donc être réencodés.",
+        "description": "Réencode les aperçus pour une lecture plus souple et la prise en charge du HEVC."
+      },
+      "quality": {
+        "label": "Qualité des aperçus",
+        "description": "Résolution des aperçus réencodés. Le son et la synchronisation sont conservés."
+      },
+      "audioHover": {
+        "label": "Son au survol",
+        "description": "Joue le son d'un clip quand vous le survolez."
+      },
+      "volume": {
+        "label": "Volume de lecture",
+        "description": "Volume général des aperçus et de la lecture."
+      }
+    },
+    "integrations": {
+      "title": "Intégrations",
+      "davinci": {
+        "label": "Compatibilité DaVinci Resolve",
+        "description": "Envoie les clips exportés directement sur la timeline DaVinci Resolve (Studio uniquement)."
+      }
+    },
+    "storage": {
+      "title": "Stockage",
+      "path": {
+        "label": "Dossier de stockage des épisodes",
+        "description": "Où vos épisodes importés et vos clips sont enregistrés."
+      },
+      "defaultPathMac": "Par défaut (Application Support)",
+      "defaultPath": "Par défaut (App Data)",
+      "pickDirTitle": "Choisir le dossier de stockage des épisodes",
+      "moveFailedTitle": "Échec du déplacement",
+      "moveFailed": "Impossible de déplacer les épisodes existants : {{error}}",
+      "movingTo": "Déplacement vers {{path}}…",
+      "moving": "Déplacement…",
+      "change": "Changer",
+      "selectPath": "Choisir un dossier"
+    },
+    "maintenance": {
+      "title": "Maintenance",
+      "clearing": "Vidage…",
+      "clearFailedTitle": "Échec du vidage",
+      "clearPanelFailed": "Impossible de vider le panneau des épisodes : {{error}}",
+      "clearScenepacksFailed": "Impossible de vider le stockage des Scenepacks : {{error}}",
+      "clearPanel": {
+        "label": "Vider le panneau des épisodes",
+        "description": "Retire tous les épisodes du panneau et supprime leurs fichiers.",
+        "button": "Vider le stockage des épisodes"
+      },
+      "clearScenepacks": {
+        "label": "Vider le stockage des Scenepacks",
+        "description": "Supprime tous les Scenepacks et leurs fichiers.",
+        "button": "Vider le stockage des Scenepacks"
+      },
+      "factoryReset": {
+        "label": "Réinitialisation complète",
+        "description": "Remet chaque paramètre Général à sa valeur par défaut."
+      },
+      "factoryResetConfirm": "AMVerge reviendra à ses paramètres par défaut et votre dossier de stockage des épisodes repartira dans {{location}}. Vos paramètres personnalisés et vos changements d'emplacement seront perdus.",
+      "clearPanelConfirm": "TOUS les épisodes seront retirés du panneau et leurs fichiers en cache supprimés du disque. Vous ne pourrez pas les récupérer.",
+      "clearScenepacksConfirm": "TOUS les Scenepacks seront supprimés, ainsi que leurs fichiers de clips sur le disque. Vous ne pourrez pas les récupérer."
+    }
+  },
+  "appearance": {
+    "title": "Apparence",
+    "colors": {
+      "title": "Couleurs",
+      "accent": {
+        "label": "Couleur d'accent",
+        "description": "La couleur principale des boutons, des surbrillances et des icônes."
+      },
+      "gradient": {
+        "label": "Dégradé du fond",
+        "description": "La deuxième couleur du dégradé de fond."
+      },
+      "episodePanel": {
+        "label": "Panneau des épisodes",
+        "description": "La teinte derrière la liste des épisodes, à gauche."
+      }
+    },
+    "background": {
+      "title": "Fond",
+      "mediaFilter": "Médias",
+      "notAppliedTitle": "Fond non appliqué",
+      "videoFailed": "Impossible d'appliquer la vidéo de fond : {{error}}",
+      "imageFailed": "Impossible d'appliquer l'image de fond : {{error}}",
+      "imageTimeout": "L'application de l'image a pris trop de temps. Essayez une image plus petite.",
+      "media": {
+        "label": "Média de fond",
+        "description": "Utilisez votre propre image, GIF ou vidéo comme fond.",
+        "change": "Changer",
+        "upload": "Importer",
+        "clear": "Effacer"
+      },
+      "opacity": {
+        "label": "Opacité du fond",
+        "description": "À quel point le fond laisse passer ce qu'il y a derrière."
+      },
+      "blur": {
+        "label": "Flou du fond",
+        "description": "À quel point le fond est flou."
+      }
+    },
+    "text": {
+      "title": "Texte",
+      "font": {
+        "label": "Police de l'application",
+        "description": "Prenez n'importe quelle police installée sur ce PC. Chaque option s'affiche dans sa propre police. Le logo n'est pas touché."
+      },
+      "size": {
+        "label": "Taille du texte",
+        "description": "Met la police choisie à l'échelle des tailles par défaut de l'application. Ne s'applique qu'avec une police personnalisée."
+      }
+    },
+    "clipTiles": {
+      "title": "Vignettes de clips",
+      "previewSpeed": {
+        "label": "Vitesse des aperçus de la grille",
+        "description": "À quelle vitesse les aperçus défilent dans la grille."
+      },
+      "downloadButton": {
+        "label": "Afficher le bouton de téléchargement",
+        "description": "Affiche un bouton de téléchargement sur chaque clip."
+      },
+      "timestamps": {
+        "label": "Afficher les temps des clips",
+        "description": "Affiche les temps sur chaque clip."
+      },
+      "endTime": {
+        "label": "Afficher le temps de fin",
+        "description": "Affiche « début - fin » sur les clips au lieu du seul temps de début."
+      },
+      "widescreen": {
+        "label": "Vignettes au format large",
+        "description": "Affiche les vignettes en carré ou au format large."
+      }
+    },
+    "reset": {
+      "label": "Réinitialiser l'apparence",
+      "description": "Remet chaque paramètre d'Apparence à sa valeur par défaut."
+    }
+  },
+  "discord": {
+    "title": "Discord Rich Presence",
+    "status": {
+      "off": "Rich Presence est désactivé.",
+      "connectedAs": "Connecté à Discord en tant que {{user}}.",
+      "connected": "Connecté à Discord.",
+      "waiting": "En attente de Discord — ouvrez l'application, la connexion se fait toute seule."
+    },
+    "enable": {
+      "label": "Activer Rich Presence",
+      "description": "Affiche ce que vous faites dans AMVerge sur votre profil Discord."
+    },
+    "filename": {
+      "label": "Afficher le nom du fichier",
+      "description": "Affiche le nom de la vidéo que vous montez."
+    },
+    "statusIcons": {
+      "label": "Afficher les icônes d'état",
+      "description": "Affiche de petites icônes pour le montage, le chargement et l'enregistrement."
+    },
+    "elapsed": {
+      "label": "Afficher le temps écoulé",
+      "description": "Compte depuis combien de temps AMVerge est ouvert, comme une session de jeu."
+    },
+    "links": {
+      "label": "Liens cliquables",
+      "description": "Rend la carte cliquable : les images ouvrent le serveur Discord, la première ligne ouvre le site."
+    },
+    "preview": {
+      "heading": "Joue à un jeu",
+      "elapsed": "{{time}} écoulées",
+      "empty": "Rien à afficher pour l'instant."
+    }
+  }
+}

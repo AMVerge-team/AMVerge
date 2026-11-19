@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 import { useScenepacksStore } from "../../stores/scenepackStore";
 import { addClipsToScenepack } from "../../utils/scenepackAdd";
 import type { ClipItem, ScenepackEntry } from "../../types/domain";
@@ -30,6 +31,7 @@ export function ScenepackPickerMenu({
   onCreateNew,
   onFindFlow,
 }: ScenepackPickerMenuProps) {
+  const { t } = useTranslation("library");
   const scenepacks = useScenepacksStore((s) => s.scenepacks);
   const scenepackFolders = useScenepacksStore((s) => s.scenepackFolders);
   // only set while viewing a pack, the only place "use as cover" applies
@@ -171,14 +173,14 @@ export function ScenepackPickerMenu({
               onFindFlow();
             }}
           >
-            Find matching clips
+            {t("picker.findMatching")}
           </button>
           <div className="episode-context-menu-separator" />
         </>
       )}
 
       {clips.length > 1 && (
-        <div className="episode-context-menu-label">Add {clips.length} clips to Scenepack</div>
+        <div className="episode-context-menu-label">{t("addToScenepack.titleCount", { count: clips.length })}</div>
       )}
 
       {openedScenepackId && clips.length === 1 && clip.thumbnail && (
@@ -191,7 +193,7 @@ export function ScenepackPickerMenu({
               onClose();
             }}
           >
-            Set as Scenepack thumbnail
+            {t("picker.setThumbnail")}
           </button>
           <div className="episode-context-menu-separator" />
         </>
@@ -216,7 +218,7 @@ export function ScenepackPickerMenu({
               >
                 <span className="scenepack-picker-name">{pack.name}</span>
                 <span className="scenepack-picker-count">
-                  {isIn ? "added" : pack.clips.length}
+                  {isIn ? t("picker.added") : pack.clips.length}
                 </span>
               </button>
             );
@@ -236,7 +238,7 @@ export function ScenepackPickerMenu({
           onCreateNew();
         }}
       >
-        New Scenepack…
+        {t("picker.newScenepack")}
       </button>
 
     </div>,

@@ -1,5 +1,7 @@
 // post-export passes: extra cli steps on each exported file; global config in general settings
 
+import { t } from "../../i18n";
+
 export type DepthEncoder = "vits" | "vitb" | "vitl";
 export type DepthColormap =
   | "inferno"
@@ -18,7 +20,6 @@ export type DepthPassConfig = {
 
 export type UpscaleModel =
   | "shufflecugan"
-  | "adore"
   | "fallin_soft"
   | "fallin_strong";
 export type UpscaleQuality = "archival" | "high" | "balanced" | "fast";
@@ -43,11 +44,23 @@ export const DEFAULT_POST_EXPORT_PASSES: PostExportPasses = {
   upscale: { enabled: false, model: "fallin_soft", quality: "high" },
 };
 
+// labels are getters so they translate at read time; the constants stay importable everywhere
+function lazyOption<T, E extends object = object>(value: T, key: string, extra?: E): { value: T; label: string } & E {
+  return Object.defineProperty({ value, ...(extra ?? {}) }, "label", {
+    enumerable: true,
+    get: () => t(key),
+  }) as { value: T; label: string } & E;
+}
+
 export const DEPTH_ENCODER_OPTIONS: { value: DepthEncoder; label: string }[] = [
-  { value: "vits", label: "Depth Anything V2 - Small (fastest)" },
-  { value: "vitb", label: "Depth Anything V2 - Base" },
-  { value: "vitl", label: "Depth Anything V2 - Large (best)" },
+  lazyOption<DepthEncoder>("vits", "settingsExport:passes.depthEncoders.vits"),
+  lazyOption<DepthEncoder>("vitb", "settingsExport:passes.depthEncoders.vitb"),
+  lazyOption<DepthEncoder>("vitl", "settingsExport:passes.depthEncoders.vitl"),
 ];
+
+export function getDepthEncoderOptions(): { value: DepthEncoder; label: string }[] {
+  return DEPTH_ENCODER_OPTIONS.map(({ value, label }) => ({ value, label }));
+}
 
 export const DEPTH_COLORMAP_OPTIONS: { value: DepthColormap; label: string }[] = [
   { value: "inferno", label: "Inferno" },
@@ -60,17 +73,25 @@ export const DEPTH_COLORMAP_OPTIONS: { value: DepthColormap; label: string }[] =
 
 // torch models only (artcnn runs on onnxruntime's cpu build), each at its native scale: anything else is just a resize
 export const UPSCALE_MODEL_OPTIONS: { value: UpscaleModel; label: string; scale: number }[] = [
-  { value: "fallin_soft", label: "Fallin Soft - 2x, cleanest", scale: 2 },
-  { value: "adore", label: "Adore - 2x, high quality", scale: 2 },
-  { value: "fallin_strong", label: "Fallin Strong - 2x, sharper", scale: 2 },
-  { value: "shufflecugan", label: "ShuffleCUGAN - 2x, general purpose", scale: 2 },];
+  lazyOption<UpscaleModel, { scale: number }>("fallin_soft", "settingsExport:passes.upscaleModels.fallin_soft", { scale: 2 }),
+  lazyOption<UpscaleModel, { scale: number }>("fallin_strong", "settingsExport:passes.upscaleModels.fallin_strong", { scale: 2 }),
+  lazyOption<UpscaleModel, { scale: number }>("shufflecugan", "settingsExport:passes.upscaleModels.shufflecugan", { scale: 2 }),
+];
+
+export function getUpscaleModelOptions(): { value: UpscaleModel; label: string; scale: number }[] {
+  return UPSCALE_MODEL_OPTIONS.map(({ value, label, scale }) => ({ value, label, scale }));
+}
 
 export const UPSCALE_QUALITY_OPTIONS: { value: UpscaleQuality; label: string }[] = [
-  { value: "archival", label: "Lossless" },
-  { value: "high", label: "High" },
-  { value: "balanced", label: "Balanced" },
-  { value: "fast", label: "Fast" },
+  lazyOption<UpscaleQuality>("archival", "settingsExport:passes.upscaleQualities.archival"),
+  lazyOption<UpscaleQuality>("high", "settingsExport:passes.upscaleQualities.high"),
+  lazyOption<UpscaleQuality>("balanced", "settingsExport:passes.upscaleQualities.balanced"),
+  lazyOption<UpscaleQuality>("fast", "settingsExport:passes.upscaleQualities.fast"),
 ];
+
+export function getUpscaleQualityOptions(): { value: UpscaleQuality; label: string }[] {
+  return UPSCALE_QUALITY_OPTIONS.map(({ value, label }) => ({ value, label }));
+}
 
 // filename suffix each pass appends to the exported stem
 export const PASS_SUFFIX: Record<PostExportPassKind, string> = {
@@ -78,9 +99,17 @@ export const PASS_SUFFIX: Record<PostExportPassKind, string> = {
   upscale: "_upscaled",
 };
 
+export function getPassLabel(kind: PostExportPassKind): string {
+  return t(`settingsExport:passes.labels.${kind}`);
+}
+
 export const PASS_LABEL: Record<PostExportPassKind, string> = {
-  depth: "Depth map",
-  upscale: "Upscale",
+  get depth() {
+    return getPassLabel("depth");
+  },
+  get upscale() {
+    return getPassLabel("upscale");
+  },
 };
 
 export function depthArgs(c: DepthPassConfig): string[] {
@@ -97,6 +126,13 @@ export function upscaleArgs(c: UpscalePassConfig): string[] {
 
 export function anyPassEnabled(passes: PostExportPasses): boolean {
   return POST_EXPORT_PASS_KINDS.some((kind) => passes[kind].enabled);
+}
+
+export function effectivePostExportPasses(passes: PostExportPasses, enabled: boolean): PostExportPasses {
+  return enabled ? passes : {
+    depth: { ...passes.depth, enabled: false },
+    upscale: { ...passes.upscale, enabled: false },
+  };
 }
 
 // deep-merges persisted config over defaults so a missing or corrupt field never breaks anything

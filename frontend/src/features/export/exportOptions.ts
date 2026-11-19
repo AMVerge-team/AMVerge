@@ -3,6 +3,7 @@ import {
   isExportCodecContainerCompatible,
   type ExportProfile,
 } from "./profiles";
+import { t } from "../../i18n";
 
 export type ExportOptionsPayload = {
   profileId: string;
@@ -68,5 +69,5 @@ export function pathSeparatorFor(dir: string): string {
 
 export function errorMessage(err: unknown): string {
   if (typeof err === "string") return err;
-  return err instanceof Error ? err.message : "Unknown error";
+  return err instanceof Error ? err.message : t("preview:export.unknownError");
 }

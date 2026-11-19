@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { save } from "@tauri-apps/plugin-dialog";
 import { FaDatabase } from '../icons/animated';
 
@@ -9,6 +10,7 @@ type Created = { ok: boolean; message: string | null; path: string | null };
 
 /** pick a location, then name it in the app while the file is created (panel and first-visit layout) */
 export function useCreateScoutDatabase(onCreated?: (path: string) => void) {
+  const { t } = useTranslation("scout");
   const createDatabase = useSceneScoutStore((s) => s.createDatabase);
   const renameDatabase = useSceneScoutStore((s) => s.renameDatabase);
   const openDatabase = useSceneScoutStore((s) => s.openDatabase);
@@ -22,9 +24,9 @@ export function useCreateScoutDatabase(onCreated?: (path: string) => void) {
   const startCreate = async () => {
     setError("");
     const picked = await save({
-      title: "Create Scene Scout database",
+      title: t("createDb.dialogTitle"),
       defaultPath: "My Series.scoutdb",
-      filters: [{ name: "Scene Scout database", extensions: ["scoutdb"] }],
+      filters: [{ name: t("createDb.filter"), extensions: ["scoutdb"] }],
     });
     if (!picked) return;
 
@@ -39,7 +41,7 @@ export function useCreateScoutDatabase(onCreated?: (path: string) => void) {
     setCreating(false);
     if (!result.ok || !result.path) {
       setNaming(false);
-      setError(result.message || "Could not create the database.");
+      setError(result.message || t("createDb.failed"));
     }
   };
 
@@ -58,10 +60,10 @@ export function useCreateScoutDatabase(onCreated?: (path: string) => void) {
   };
 
   const modal = naming ? (
-    <ModalShell open onClose={() => void confirmName()} label="Name this database" className="scene-scout-name-modal">
+    <ModalShell open onClose={() => void confirmName()} label={t("createDb.title")} className="scene-scout-name-modal">
       <div className="denial-notice">
         <FaDatabase aria-hidden="true" className="denial-notice-icon" />
-        <h2>Name this database</h2>
+        <h2>{t("createDb.title")}</h2>
 
         <p className="events-subtitle ban-notice-note">
           This is only the label shown in the sidebar. The file keeps the name you gave it.
@@ -71,7 +73,7 @@ export function useCreateScoutDatabase(onCreated?: (path: string) => void) {
           autoFocus
           className="scene-scout-name-input"
           value={draftName}
-          placeholder="Database name"
+          placeholder={t("createDb.placeholder")}
           onChange={(e) => setDraftName(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") void confirmName();
@@ -86,7 +88,7 @@ export function useCreateScoutDatabase(onCreated?: (path: string) => void) {
                 Creating database…
               </>
             ) : (
-              "Done"
+              t("createDb.done")
             )}
           </button>
         </div>

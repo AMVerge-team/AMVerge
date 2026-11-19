@@ -17,6 +17,17 @@ use crate::utils::process::{apply_no_window, bind_to_app_lifetime, output_bound}
 /// codecs chromium (webview2) decodes on its own; hevc also needs the system extension
 const BROWSER_CODECS: &[&str] = &["h264", "hevc", "vp8", "vp9", "av1"];
 
+fn cached_preview(path: &Path, track_usage: bool) -> Option<String> {
+    let meta = std::fs::metadata(path).ok()?;
+    if !meta.is_file() || meta.len() == 0 {
+        return None;
+    }
+    if track_usage {
+        touch(path);
+    }
+    Some(path.to_string_lossy().into_owned())
+}
+
 #[derive(serde::Serialize, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 pub struct VideoCodecInfo {
@@ -129,6 +140,7 @@ pub async fn ensure_preview_proxy(
     preview_height: Option<u32>,
     preview_crf: Option<u32>,
     in_cache: Option<bool>,
+    cache_only: Option<bool>,
 ) -> Result<String, String> {
     let in_cache = in_cache.unwrap_or(false);
     let transcode_video = transcode_video.unwrap_or(true);
@@ -142,40 +154,6 @@ pub async fn ensure_preview_proxy(
     } else {
         "copy".to_string()
     };
-    let clip_key = format!("{}::{audio_suffix}::{mode_suffix}", clip_path);
-    let clip_lock = {
-        let mut map = proxy_locks.inner.lock().await;
-        map.retain(|_, v| Arc::strong_count(v) > 1);
-        map.entry(clip_key.clone())
-            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
-            .clone()
-    };
-    let _guard = clip_lock.lock().await;
-
-    let encode_threads = transcode_slots.threads_per_encode;
-    let _transcode_slot = if transcode_video {
-        Some(
-            transcode_slots
-                .semaphore
-                .clone()
-                .acquire_owned()
-                .await
-                .map_err(|e| format!("Preview transcode queue closed: {e}"))?,
-        )
-    } else {
-        None
-    };
-
-    let ffmpeg = resolve_bundled_tool(&app, "ffmpeg")?;
-    console_log(
-        "PROXY|start",
-        &format!(
-            "clip={} ffmpeg={}",
-            file_name_only(&clip_path),
-            ffmpeg.display()
-        ),
-    );
-
     let input_path = PathBuf::from(&clip_path);
     if !input_path.exists() {
         return Err(format!("Clip not found: {}", input_path.display()));
@@ -199,15 +177,48 @@ pub async fn ensure_preview_proxy(
     let proxy_path = parent.join(format!("{stem}.{audio_suffix}.{mode_suffix}.preview.mp4"));
     let proxy_tmp_path = parent.join(format!("{stem}.{audio_suffix}.{mode_suffix}.preview.tmp.mp4"));
 
-    if let Ok(meta) = std::fs::metadata(&proxy_path) {
-        if meta.is_file() && meta.len() > 0 {
-            if in_cache {
-                touch(&proxy_path);
-            }
-            return Ok(proxy_path.to_string_lossy().to_string());
-        }
+    if cache_only.unwrap_or(false) {
+        return Ok(cached_preview(&proxy_path, in_cache).unwrap_or_default());
     }
 
+    let clip_key = format!("{}::{audio_suffix}::{mode_suffix}", clip_path);
+    let clip_lock = {
+        let mut map = proxy_locks.inner.lock().await;
+        map.retain(|_, v| Arc::strong_count(v) > 1);
+        map.entry(clip_key)
+            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
+            .clone()
+    };
+    let _guard = clip_lock.lock().await;
+
+    if let Some(path) = cached_preview(&proxy_path, in_cache) {
+        return Ok(path);
+    }
+
+    // Cached previews never need to wait behind an encode of a different clip.
+    let encode_threads = transcode_slots.threads_per_encode;
+    let _transcode_slot = if transcode_video {
+        Some(
+            transcode_slots
+                .semaphore
+                .clone()
+                .acquire_owned()
+                .await
+                .map_err(|e| format!("Preview transcode queue closed: {e}"))?,
+        )
+    } else {
+        None
+    };
+
+    let ffmpeg = resolve_bundled_tool(&app, "ffmpeg")?;
+    console_log(
+        "PROXY|start",
+        &format!(
+            "clip={} ffmpeg={}",
+            file_name_only(&clip_path),
+            ffmpeg.display()
+        ),
+    );
     let _ = std::fs::remove_file(&proxy_tmp_path);
 
     let ffmpeg_clone = ffmpeg.clone();
@@ -220,7 +231,11 @@ pub async fn ensure_preview_proxy(
         apply_no_window(&mut cmd);
         #[cfg(not(windows))]
         cmd.process_group(0);
-        cmd.args(["-y", "-i"]);
+        cmd.arg("-y");
+        if transcode_video {
+            cmd.args(["-threads:v", &encode_threads.to_string(), "-filter_threads", "1"]);
+        }
+        cmd.arg("-i");
         cmd.arg(&input);
         cmd.args(["-map", "0:v:0"]);
 
@@ -356,6 +371,7 @@ pub async fn ensure_scene_range_preview(
     end_sec: f64,
     preview_height: Option<u32>,
     preview_crf: Option<u32>,
+    cache_only: Option<bool>,
 ) -> Result<String, String> {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
@@ -386,6 +402,10 @@ pub async fn ensure_scene_range_preview(
     let preview_path = cache_dir.join(format!("{hash:016x}.mp4"));
     let preview_tmp_path = cache_dir.join(format!("{hash:016x}.tmp.mp4"));
 
+    if cache_only.unwrap_or(false) {
+        return Ok(cached_preview(&preview_path, true).unwrap_or_default());
+    }
+
     let lock_key = preview_path.to_string_lossy().to_string();
     let clip_lock = {
         let mut map = proxy_locks.inner.lock().await;
@@ -396,11 +416,8 @@ pub async fn ensure_scene_range_preview(
     };
     let _guard = clip_lock.lock().await;
 
-    if let Ok(meta) = std::fs::metadata(&preview_path) {
-        if meta.is_file() && meta.len() > 0 {
-            touch(&preview_path);
-            return Ok(preview_path.to_string_lossy().to_string());
-        }
+    if let Some(path) = cached_preview(&preview_path, true) {
+        return Ok(path);
     }
 
     // same slot pool as the clip proxies, so a grid of scout tiles cannot run more encodes than an episode grid
@@ -431,7 +448,8 @@ pub async fn ensure_scene_range_preview(
                 cmd.args(["-hwaccel", "auto"]);
             }
             // input-side seek is frame accurate when re-encoding and skips decoding everything before the scene
-            cmd.args(["-y", "-ss", &format!("{start_sec:.3}"), "-i"]);
+            cmd.args(["-y", "-threads:v", &encode_threads.to_string(), "-filter_threads", "1"]);
+            cmd.args(["-ss", &format!("{start_sec:.3}"), "-i"]);
             cmd.arg(&input);
             cmd.args(["-t", &format!("{duration:.3}")]);
             cmd.args(["-map", "0:v:0", "-map", "0:a:0?"]);

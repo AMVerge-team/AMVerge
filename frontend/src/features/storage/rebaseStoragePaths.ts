@@ -4,11 +4,13 @@ import { useAppStateStore } from "../../stores/appStore";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore";
 import { useScenepacksStore } from "../../stores/scenepackStore";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore";
+import { useSceneScoutStore } from "../../stores/sceneScoutStore";
 import { useGeneralSettingsStore } from "../../stores/settingsStore";
 
 // the folders the app owns under the storage root (rust's OWNED_STORAGE_DIRS); change both together
 const EPISODES_DIR = "episodes_storage";
 const SCENEPACKS_DIR = "scene_packs";
+const SCENE_SCOUT_DIR = "amverge-scene-scout";
 
 const toSlashes = (p: string) => p.replace(/\\/g, "/");
 
@@ -32,12 +34,13 @@ function rebasePath(path: string, root: string, episodeFolder?: string): string 
   const sep = root.includes("\\") ? "\\" : "/";
   const join = (rest: string) => `${root}${sep}${rest.split("/").join(sep)}`;
 
-  for (const dir of [EPISODES_DIR, SCENEPACKS_DIR]) {
+  for (const dir of [EPISODES_DIR, SCENEPACKS_DIR, SCENE_SCOUT_DIR]) {
     const at = lower.lastIndexOf(`/${dir}/`);
     if (at >= 0) {
       const next = join(slashed.slice(at + 1));
       return toSlashes(next).toLowerCase() === lower ? path : next;
     }
+    if (lower.endsWith(`/${dir}`)) return join(dir);
   }
 
   if (episodeFolder) {
@@ -101,6 +104,78 @@ function rebaseScenepack(pack: ScenepackEntry, root: string): ScenepackEntry {
   return changed ? { ...pack, thumbnail, clips } : pack;
 }
 
+function rebaseSceneScoutPaths(root: string): number {
+  let changed = 0;
+  useSceneScoutStore.setState((s) => {
+    const own = (path: string) => rebasePath(path, root);
+    const rebaseVideos = (videos: typeof s.videos) =>
+      videos.map((video) => {
+        const filepath = own(video.filepath);
+        return filepath === video.filepath ? video : { ...video, filepath };
+      });
+    const rebaseHits = (hits: typeof s.results) =>
+      hits.map((hit) => {
+        const videoPath = own(hit.videoPath);
+        return videoPath === hit.videoPath ? hit : { ...hit, videoPath };
+      });
+    const rebaseRecord = <T,>(record: Record<string, T>, mapValue?: (value: T) => T) => {
+      const next: Record<string, T> = {};
+      for (const [key, value] of Object.entries(record)) {
+        next[own(key)] = mapValue ? mapValue(value) : value;
+      }
+      return next;
+    };
+
+    const candidates = [
+      ...s.databases.map((db) => db.path),
+      ...s.selectedDatabases,
+      ...s.externalPaths,
+      ...s.unloadedPaths,
+      ...s.hiddenVideos,
+      ...s.settings.selectedDatabases,
+      ...s.settings.selectedVideos,
+      ...Object.keys(s.displayNames),
+      ...Object.keys(s.expandedDatabases),
+      ...Object.keys(s.videosByDatabase),
+      ...s.videos.map((video) => video.filepath),
+      ...Object.values(s.videosByDatabase).flat().map((video) => video.filepath),
+      ...s.results.map((hit) => hit.videoPath),
+      ...s.flowResults.map((hit) => hit.videoPath),
+      s.openedDatabase,
+      s.status?.root,
+      s.flowFrom?.path,
+    ];
+    if (!candidates.some((path) => path && rebasePath(path, root) !== path)) return {};
+
+    changed = 1;
+    return {
+      databases: s.databases.map((db) => {
+        const path = own(db.path);
+        return path === db.path ? db : { ...db, path };
+      }),
+      openedDatabase: s.openedDatabase ? own(s.openedDatabase) : s.openedDatabase,
+      selectedDatabases: s.selectedDatabases.map(own),
+      externalPaths: s.externalPaths.map(own),
+      unloadedPaths: s.unloadedPaths.map(own),
+      displayNames: rebaseRecord(s.displayNames),
+      expandedDatabases: rebaseRecord(s.expandedDatabases),
+      videosByDatabase: rebaseRecord(s.videosByDatabase, rebaseVideos),
+      videos: rebaseVideos(s.videos),
+      hiddenVideos: s.hiddenVideos.map(own),
+      settings: {
+        ...s.settings,
+        selectedDatabases: s.settings.selectedDatabases.map(own),
+        selectedVideos: s.settings.selectedVideos.map(own),
+      },
+      status: s.status ? { ...s.status, root: own(s.status.root) } : s.status,
+      results: rebaseHits(s.results),
+      flowResults: rebaseHits(s.flowResults),
+      flowFrom: s.flowFrom ? { ...s.flowFrom, path: own(s.flowFrom.path) } : s.flowFrom,
+    };
+  });
+  return changed;
+}
+
 /** a storage move empties the grid so windows can move the files; this puts the open episode back afterwards */
 export function restoreOpenedEpisodeGrid(): void {
   const { episodes, openedEpisodeId } = useEpisodePanelRuntimeStore.getState();
@@ -117,6 +192,14 @@ export async function rebaseStoragePaths(root?: string): Promise<number> {
   const target = root ?? (await currentStorageRoot());
   let changed = 0;
 
+  try {
+    await invoke<number>("rebase_storage_manifests", {
+      customEpisodesPath: useGeneralSettingsStore.getState().episodesPath ?? null,
+    });
+  } catch (err) {
+    console.warn("[storage] could not repair manifest paths", err);
+  }
+
   useEpisodePanelRuntimeStore.setState((s) => {
     const episodes = s.episodes.map((episode) => rebaseEpisode(episode, target));
     const count = episodes.filter((episode, i) => episode !== s.episodes[i]).length;
@@ -131,6 +214,8 @@ export async function rebaseStoragePaths(root?: string): Promise<number> {
     return count > 0 ? { scenepacks } : {};
   });
 
+  changed += rebaseSceneScoutPaths(target);
+
   // the open episode's grid and its webp previews hold their own copies of the paths
   const openedId = useEpisodePanelRuntimeStore.getState().openedEpisodeId;
   useAppStateStore.setState((s) => ({
@@ -144,7 +229,7 @@ export async function rebaseStoragePaths(root?: string): Promise<number> {
   });
 
   if (changed > 0) {
-    console.info(`[storage] pointed ${changed} episode(s)/scenepack(s) at ${target}`);
+    console.info(`[storage] pointed ${changed} stored item(s) at ${target}`);
     useAppStateStore.getState().setImportToken(Date.now().toString());
   }
   return changed;

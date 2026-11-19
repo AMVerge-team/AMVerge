@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { FaChevronDown, FaChevronUp, FaQuestionCircle, FaWindows, FaApple, FaLinux } from '../icons/animated';
+import { Trans, useTranslation } from "react-i18next";
 
 import Tooltip from "../common/Tooltip";
 import { useUIStateStore } from "../../stores/UIStore";
@@ -22,55 +23,46 @@ const PLATFORM_INFO: Record<Platform, { label: string; icon: React.ReactNode; mo
   mac: { label: "macOS", icon: <FaApple />, mod: "Cmd" },
 };
 
-const TITLES: Record<Guide, string> = {
-  library: "HOW TO USE",
-  scenepacks: "HOW TO USE SCENEPACKS",
-  sceneScoutSearch: "HOW TO USE SCENE SCOUT",
-  sceneScoutFlow: "HOW TO USE MATCH",
-};
-
-// `mod` is the multi-select key for the chosen platform
-function steps(guide: Guide, mod: string): React.ReactNode[] {
-  const select = <>Select clips with <b>{mod} + Click</b>, <b>Shift + Click</b>, or <b>Double Click</b></>;
-  const exportNow = <>Click <b>Export Now</b> to export what you picked</>;
-
+// translation keys under howToUse.steps; `mod` is filled with the platform's multi-select key
+function steps(guide: Guide): string[] {
   switch (guide) {
     case "scenepacks":
       return [
-        <>Create a Scenepack in the left panel</>,
-        <>In the <b>Library</b>, select clips and click <b>Add to Scenepack</b></>,
-        <>Open a Scenepack to see its clips</>,
-        select,
-        exportNow,
+        "scenepacks.create",
+        "scenepacks.add",
+        "scenepacks.open",
+        "select",
+        "exportNow",
       ];
     case "sceneScoutSearch":
       return [
-        <>Create or open a <b>Database</b> in the left panel</>,
-        <>Move it into <b>Searching</b>: <b>Double Click</b> it, drag it up, or right click it. Only databases in Searching are searched</>,
-        <>Click <b>Add Episode</b> to index episodes into it</>,
-        <>Describe a scene in the search bar and press <b>Enter</b></>,
-        <>Single click a result to <b>Preview</b> it</>,
-        exportNow,
+        "sceneScoutSearch.database",
+        "sceneScoutSearch.searching",
+        "sceneScoutSearch.addEpisode",
+        "sceneScoutSearch.describe",
+        "sceneScoutSearch.preview",
+        "exportNow",
       ];
     case "sceneScoutFlow":
       return [
-        <>Click <b>Import</b>, or right-click a clip and pick <b>Find matching clips</b></>,
-        <>Matches are scenes that look like they continue from your clip's last frame</>,
-        <>Drag the line between your clip and the matches to resize them</>,
-        <>Single click a match to <b>Preview</b> it</>,
-        exportNow,
+        "sceneScoutFlow.import",
+        "sceneScoutFlow.matches",
+        "sceneScoutFlow.resize",
+        "sceneScoutFlow.preview",
+        "exportNow",
       ];
     default:
       return [
-        select,
-        <>Single click to <b>Focus</b> a clip</>,
-        <>Select <b>Export Profile</b> for export settings</>,
-        <>Click <b>Export Now</b> to start the process</>,
+        "select",
+        "library.focus",
+        "library.profile",
+        "library.start",
       ];
   }
 }
 
 export default function HowToUse() {
+  const { t } = useTranslation("preview");
   const platform = useMemo(() => detectCurrentPlatform(), []);
   const currentInfo = PLATFORM_INFO[platform];
 
@@ -95,13 +87,13 @@ export default function HowToUse() {
       <div className="info-header" onClick={() => setIsExpanded(!isExpanded)}>
         <div className="info-header-left">
           <FaQuestionCircle className="info-icon" />
-          <span className="info-title">{TITLES[guide]}</span>
+          <span className="info-title">{t(`howToUse.titles.${guide}`)}</span>
         </div>
-        <Tooltip content={isExpanded ? "Hide the guide" : "Show the guide"}>
+        <Tooltip content={isExpanded ? t("howToUse.hide") : t("howToUse.show")}>
           <button
             className="info-toggle"
             type="button"
-            aria-label={isExpanded ? "Hide the guide" : "Show the guide"}
+            aria-label={isExpanded ? t("howToUse.hide") : t("howToUse.show")}
             aria-expanded={isExpanded}
           >
             {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
@@ -119,25 +111,32 @@ export default function HowToUse() {
 
           <div className="info-steps">
             <ul className="steps-list">
-              {steps(guide, currentInfo.mod).map((step, index) => (
+              {steps(guide).map((step, index) => (
                 <li key={index}>
-                  <span className="step-text">{step}</span>
+                  <span className="step-text">
+                    <Trans
+                      t={t}
+                      i18nKey={`howToUse.steps.${step}`}
+                      values={{ mod: platform === "mac" ? "Cmd" : "Ctrl" }}
+                      components={{ b: <b /> }}
+                    />
+                  </span>
                 </li>
               ))}
             </ul>
             {guide === "library" && (
               <button type="button" className="info-tour-link" onClick={() => setGettingStartedSeen(false)}>
-                Getting started guide
+                {t("gettingStarted:ariaLabel")}
               </button>
             )}
             {guide === "sceneScoutSearch" && (
               <button type="button" className="info-tour-link" onClick={() => setTourSeen(false)}>
-                Show the walkthrough again
+                {t("howToUse.showTour")}
               </button>
             )}
             {guide === "sceneScoutFlow" && (
               <button type="button" className="info-tour-link" onClick={() => setTourSeen(false)}>
-                Show the walkthrough again
+                {t("howToUse.showTour")}
               </button>
             )}
           </div>

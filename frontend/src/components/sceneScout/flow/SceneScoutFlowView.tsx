@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import type { PointerEvent } from "react";
+import { useTranslation } from "react-i18next";
 
 import ClipsContainer from "../../clipsGrid/ClipsContainer";
 import Tooltip from "../../common/Tooltip";
@@ -15,6 +16,7 @@ const MIN_GRID_PX = 160;
 
 /** the Flow tab: the inputted clip on top, the scenes that could follow it below, a draggable bar between */
 export function SceneScoutFlowView() {
+  const { t } = useTranslation("scout");
   const flowFrom = useSceneScoutStore((s) => s.flowFrom);
   const noDatabase = useSceneScoutStore((s) => s.selectedDatabases.length === 0);
   const startFlowSearch = useSceneScoutStore((s) => s.startFlowSearch);
@@ -67,12 +69,12 @@ export function SceneScoutFlowView() {
         <FlowPlayer
           source={flowFrom}
           empty={
-            <Tooltip content={noDatabase ? "Add a database to the Searching list on the left first" : "Input a file to find scene matches"}>
+            <Tooltip content={noDatabase ? t("flow.noDatabaseHint") : t("flow.heroInput")}>
               {/* wrapper span: a disabled button fires no pointer events, so the tooltip listens on it instead */}
               <span className="tooltip-anchor">
                 <button type="button" className="event-host-btn scout-add-pick" onClick={() => void pickClip()} disabled={noDatabase}>
                   <ImportIcon />
-                  Input episode
+                  {t("flow.inputEpisode")}
                 </button>
               </span>
             </Tooltip>
@@ -85,7 +87,7 @@ export function SceneScoutFlowView() {
         onPointerDown={startResize}
         role="separator"
         aria-orientation="horizontal"
-        aria-label="Resize clip and results"
+        aria-label={t("flow.resizeLabel")}
       />
 
       <div className="scene-scout-view-grid">

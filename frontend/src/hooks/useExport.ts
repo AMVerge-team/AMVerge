@@ -1,12 +1,14 @@
 import { useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { t } from "../i18n";
 import { showNotice } from "../features/notice/notice";
 import { ClipItem } from "../types/domain";
 import { fileNameFromPath } from "../utils/episodeUtils";
 import { runPostExportPasses, type PassTarget } from "../features/export/runPostExportPasses";
 import {
   anyPassEnabled,
+  effectivePostExportPasses,
   PASS_SUFFIX,
   POST_EXPORT_PASS_KINDS,
   type PostExportPassKind,
@@ -69,9 +71,9 @@ export function useExport({ onRPCUpdate }: Params) {
         return;
       }
       console.error(logLabel, err);
-      useAppStateStore.getState().setProgressMsg(`Export failed: ${message}`);
+      useAppStateStore.getState().setProgressMsg(t("jobs:export.failedMsg", { message }));
       // the terminal closes in the caller's finally, so every failure gets a notice that stays
-      void showNotice("Export failed", message);
+      void showNotice(t("jobs:export.failedTitle"), message);
       if (notifyRPC) {
         onRPCUpdate?.({
           type: "update",
@@ -175,7 +177,7 @@ export function useExport({ onRPCUpdate }: Params) {
       try {
         // both go through the cli's merge, which keeps the profile's codec and fits mixed sizes with black bars
         mergedFiles = await runExportClips(selected.flatMap(clipExportSpecs), finalSavePath, true, exportOptions);
-        if (mergedFiles.length === 0) throw new Error("Export produced no files.");
+        if (mergedFiles.length === 0) throw new Error(t("jobs:export.noFiles"));
 
         const covers = (kind: PostExportPassKind) => picks[kind].size === selected.length;
         const targets: PassTarget[] = [];
@@ -236,7 +238,7 @@ export function useExport({ onRPCUpdate }: Params) {
         persistedState.setExportDir(dir);
       }
 
-      const passesSnapshot = generalSettings.postExportPasses;
+      const passesSnapshot = effectivePostExportPasses(generalSettings.postExportPasses, generalSettings.postExportPassesEnabled);
       // which selected clips get each pass; cancelling drops the export
       const picks = await pickPassTargets(selected, passesSnapshot, mergeEnabled);
       if (!picks) return;
@@ -311,6 +313,7 @@ export function useExport({ onRPCUpdate }: Params) {
     [
       persistedState,
       generalSettings.postExportPasses,
+      generalSettings.postExportPassesEnabled,
       exportMergedWithPasses,
       exportContextForClips,
       runExportClips,
@@ -334,7 +337,7 @@ export function useExport({ onRPCUpdate }: Params) {
         const fileName = (clip.originalName || fileNameFromPath(clip.src)).replace(/\.[^./\\]+$/, "");
         const savePath = await save({
           defaultPath: `${fileName}.${format}`,
-          filters: [{ name: "Video", extensions: [format] }],
+          filters: [{ name: t("jobs:dialog.videoFilter"), extensions: [format] }],
         });
         if (!savePath) return;
 

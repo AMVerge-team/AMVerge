@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ConfirmModal } from "../settings/general/ConfirmModal";
 import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
 
 /** asks which databases a flow ("Find matching clips") or a search with nothing selected should look in, then runs it */
 export function FlowDatabasePrompt() {
+  const { t } = useTranslation("scout");
   const prompt = useSceneScoutStore((s) => s.dbPrompt);
   const databases = useSceneScoutStore((s) => s.databases);
   const displayNames = useSceneScoutStore((s) => s.displayNames);
@@ -29,7 +31,7 @@ export function FlowDatabasePrompt() {
 
   return (
     <ConfirmModal
-      title={isFlow ? "Select databases to search for matches on" : "Select databases to search through"}
+      title={isFlow ? t("dbPrompt.titleFlow") : t("dbPrompt.titleSearch")}
       message={
         <>
           {databases.length > 1 && (
@@ -38,10 +40,10 @@ export function FlowDatabasePrompt() {
               className="flow-db-prompt-all"
               onClick={() => setChosen(allChosen ? [] : databases.map((d) => d.path))}
             >
-              {allChosen ? "Clear all" : "Select all"}
+              {allChosen ? t("dbPrompt.clearAll") : t("dbPrompt.selectAll")}
             </button>
           )}
-          <span className="flow-db-prompt-list" role="group" aria-label="Databases">
+          <span className="flow-db-prompt-list" role="group" aria-label={t("dbPrompt.listLabel")}>
             {databases.map((database) => (
               <button
                 key={database.path}
@@ -53,14 +55,14 @@ export function FlowDatabasePrompt() {
               >
                 <span className="flow-db-prompt-name">{displayNames[database.path] || database.name}</span>
                 <span className="flow-db-prompt-detail">
-                  {database.videoCount} episode{database.videoCount === 1 ? "" : "s"}
+                  {t("dbPrompt.episodeCount", { count: database.videoCount })}
                 </span>
               </button>
             ))}
           </span>
         </>
       }
-      confirmLabel={isFlow ? "Find matching clips" : "Search"}
+      confirmLabel={isFlow ? t("dbPrompt.confirmFlow") : t("common:search")}
       confirmDisabled={chosen.length === 0}
       onConfirm={() => void answer(chosen)}
       onClose={() => void answer([])}
