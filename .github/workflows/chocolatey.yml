@@ -1,0 +1,58 @@
+name: Chocolatey Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Push the built .nupkg to the Chocolatey Community Repository"
+        type: boolean
+        default: false
+
+jobs:
+  test:
+    name: Pack & Test Chocolatey Package
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pack .nupkg
+        shell: pwsh
+        run: |
+          cd chocolatey
+          choco pack amverge.nuspec
+
+      - name: Test install and uninstall
+        shell: pwsh
+        run: |
+          cd chocolatey
+          choco install amverge --source . --yes --no-progress
+          choco uninstall amverge --yes --no-progress
+
+      - name: Upload .nupkg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: amverge-chocolatey-nupkg
+          path: chocolatey/*.nupkg
+
+  publish:
+    name: Publish to Chocolatey Community Repository
+    needs: test
+    if: ${{ inputs.publish == true }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: amverge-chocolatey-nupkg
+          path: dist
+
+      - name: Push to Chocolatey
+        shell: pwsh
+        env:
+          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+        run: |
+          if (-not $env:CHOCOLATEY_API_KEY) {
+            Write-Error "CHOCOLATEY_API_KEY secret is not configured."
+            exit 1
+          }
+          $nupkg = Get-ChildItem -Path dist -Filter *.nupkg | Select-Object -First 1
+          choco push $nupkg.FullName --source "https://push.chocolatey.org/" --api-key "$env:CHOCOLATEY_API_KEY"
