@@ -21,6 +21,9 @@
     "bannerAlt": "Bannière de notification",
     "doNotShowAgain": "Ne plus afficher"
   },
+  "patchNotesNotice": {
+    "title": "Nouveautés d'AMVerge v{{version}}"
+  },
   "updateNotice": {
     "title": "Mise à jour disponible",
     "body": "Une nouvelle version d'AMVerge est sortie ! Vous pouvez la télécharger [ici](https://amverge.app/)."

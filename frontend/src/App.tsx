@@ -47,6 +47,7 @@ import useHEVCSupport from "./hooks/useHEVCSupport";
 import useDragDropImport from "./hooks/useDragDropImport";
 import useImportExport from "./hooks/useImportExport";
 import useStartupUpdateNotification from "./hooks/useStartupUpdateNotification";
+import useStartupPatchNotes from "./hooks/useStartupPatchNotes";
 import useExtensionSync from "./hooks/useExtensionSync";
 import useDiscordAuth from "./hooks/useDiscordAuth";
 import useEventsWatch from "./hooks/useEventsWatch";
@@ -173,6 +174,7 @@ function App() {
   const [startupNotification, setStartupNotification] = useState<StartupNotification | null>(null);
   const [showStartupNotification, setShowStartupNotification] = useState(false);
   const startupUpdateNotification = useStartupUpdateNotification();
+  const startupPatchNotes = useStartupPatchNotes();
   useExtensionSync();
   // app-level, since a login can finish after the events modal closed
   useDiscordAuth();
@@ -442,13 +444,14 @@ function App() {
   }, [activePage, scenepacksEnabled, sceneScoutEnabled]);
 
   useEffect(() => {
-    if (!startupUpdateNotification) {
+    const nextNotification = startupPatchNotes ?? startupUpdateNotification;
+    if (!nextNotification) {
       return;
     }
 
-    setStartupNotification(startupUpdateNotification);
+    setStartupNotification(nextNotification);
     setShowStartupNotification(true);
-  }, [startupUpdateNotification]);
+  }, [startupPatchNotes, startupUpdateNotification]);
 
   const handleCloseStartupNotification = (_doNotShowAgain: boolean) => {
     setShowStartupNotification(false);

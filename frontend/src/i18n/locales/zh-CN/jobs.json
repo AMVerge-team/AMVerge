@@ -21,6 +21,9 @@
     "bannerAlt": "通知横幅",
     "doNotShowAgain": "不再显示"
   },
+  "patchNotesNotice": {
+    "title": "AMVerge v{{version}} 更新内容"
+  },
   "updateNotice": {
     "title": "有可用更新",
     "body": "AMVerge 有新版本了！欢迎[点此](https://amverge.app/)下载。"

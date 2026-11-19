@@ -21,6 +21,9 @@
     "bannerAlt": "Banner de notificare",
     "doNotShowAgain": "Nu mai afisa din nou in viitor"
   },
+  "patchNotesNotice": {
+    "title": "What's new in AMVerge v{{version}}"
+  },
   "updateNotice": {
     "title": "Un nou update este valabil",
     "body": "Un nou update a fost lansat! Descarca-l de [aici](https://amverge.app/) daca doresti versiunea noua."
