@@ -303,34 +303,32 @@
     min-width: 0;
 }
 
-/* keep the two switches and language picker on one shared row */
+/* merge switch and language picker sit centered, side by side */
 .export-options-row .export-dir-row {
-    display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1.35fr);
+    display: flex;
+    flex-wrap: wrap;
     align-items: start;
-    gap: 10px;
+    justify-content: center;
+    gap: 10px 48px;
 }
 
 .export-options-row .export-dir-item {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     justify-content: flex-start;
     gap: 8px;
 }
 
 .export-options-row .export-dir-item:has(.davinci-export-toggle) {
-    grid-column: 1 / -1;
+    flex-basis: 100%;
     order: 1;
-}
-
-.export-options-row .export-language-option {
-    grid-column: auto;
 }
 
 .export-language-option .audio-stream-field {
     flex-direction: column;
-    align-items: stretch;
+    align-items: center;
     gap: 8px;
+    min-width: 160px;
 }
 
 .export-language-option .audio-stream-select {
@@ -362,7 +360,7 @@
 
 .export-options-row .export-merge-option {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     justify-content: flex-start;
     gap: 8px;
 }
