@@ -23,11 +23,17 @@ jobs:
           exempt-issue-labels: "pinned,security,help wanted,good first issue"
           exempt-pr-labels: "pinned,security,dependencies"
           stale-issue-message: >
-            This issue has been marked as stale due to 60 days of inactivity.
-            It will be closed in 14 days if there is no further activity.
+            This issue has been marked as stale after 60 days of inactivity.
+            Leave a comment if it's still relevant (or check in on our
+            [Discord](https://discord.gg/bmXjTgsAaN)), otherwise it will be closed in 14 days.
           stale-pr-message: >
-            This pull request has been marked as stale due to 45 days of inactivity.
-            It will be closed in 14 days if there is no further activity.
-          close-issue-message: "Closing this issue due to inactivity. Feel free to reopen it if this is still relevant."
-          close-pr-message: "Closing this pull request due to inactivity. Feel free to reopen it when ready."
+            This pull request has been marked as stale after 45 days of inactivity.
+            Leave a comment or push an update if you're still working on it, otherwise
+            it will be closed in 14 days.
+          close-issue-message: >
+            Closing this issue due to inactivity. Feel free to reopen it or reach out on
+            [Discord](https://discord.gg/bmXjTgsAaN) if this is still happening.
+          close-pr-message: >
+            Closing this pull request due to inactivity. Feel free to reopen it whenever
+            you're ready to continue.
           remove-stale-when-updated: true
