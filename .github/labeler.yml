@@ -22,8 +22,8 @@ i18n:
 packaging:
   - changed-files:
       - any-glob-to-any-file:
-          - "flatpak/**"
           - "winget/**"
+          - "chocolatey/**"
           - "frontend/scripts/**"
           - "setup.sh"
           - "setup.ps1"

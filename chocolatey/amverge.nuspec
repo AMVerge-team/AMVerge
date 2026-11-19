@@ -8,7 +8,7 @@
     <title>AMVerge</title>
     <authors>Crptk, AMVerge-team</authors>
     <projectUrl>https://amverge.app/</projectUrl>
-    <iconUrl>https://raw.githubusercontent.com/AMVerge-team/AMVerge/main/flatpak/icons/app.amverge.AMVerge-256.png</iconUrl>
+    <iconUrl>https://raw.githubusercontent.com/AMVerge-team/AMVerge/main/frontend/src-tauri/icons/128x128%402x.png</iconUrl>
     <copyright>Copyright (c) AMVerge-team</copyright>
     <licenseUrl>https://github.com/AMVerge-team/AMVerge/blob/main/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
