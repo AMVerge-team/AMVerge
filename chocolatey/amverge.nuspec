@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>amverge</id>
+    <version>2.0.5</version>
+    <packageSourceUrl>https://github.com/AMVerge-team/AMVerge/tree/main/chocolatey</packageSourceUrl>
+    <owners>AMVerge-team</owners>
+    <title>AMVerge</title>
+    <authors>Crptk, AMVerge-team</authors>
+    <projectUrl>https://amverge.app/</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/AMVerge-team/AMVerge/main/flatpak/icons/app.amverge.AMVerge-256.png</iconUrl>
+    <copyright>Copyright (c) AMVerge-team</copyright>
+    <licenseUrl>https://github.com/AMVerge-team/AMVerge/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectSourceUrl>https://github.com/AMVerge-team/AMVerge</projectSourceUrl>
+    <bugTrackerUrl>https://github.com/AMVerge-team/AMVerge/issues</bugTrackerUrl>
+    <tags>amverge video-editing scene-detection ffmpeg tauri clip-export</tags>
+    <summary>Desktop app for scene splitting, semantic scene search, clip organization, and video export for editors.</summary>
+    <description>AMVerge is an open-source desktop app for video editors. Import episodes, split them into scenes using keyframe or AI detection (TransNetV2), search footage semantically with Scene Scout, organize clips into folders or scenepacks, and export or send clips directly to After Effects, Premiere Pro, DaVinci Resolve, or CapCut.</description>
+    <releaseNotes>https://github.com/AMVerge-team/AMVerge/releases/tag/v2.0.5</releaseNotes>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>
