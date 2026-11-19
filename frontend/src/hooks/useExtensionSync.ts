@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
-import { EpisodeEntry } from "../types/domain";
+import type { ClipItem, EpisodeEntry } from "../types/domain";
 import { useEpisodePanelRuntimeStore } from "../stores/episodeStore";
 import {
   useThemeSettingsStore,
@@ -11,6 +11,16 @@ import { fileNameFromPath } from "../utils/episodeUtils";
 const POLL_INTERVAL_MS = 3000;
 const THEME_LAST_APPLIED_KEY = "amverge_extension_theme_last_applied";
 const EPISODES_HYDRATED_KEY = "amverge_extension_episodes_hydrated";
+
+function loadHydratedSignatures(): Record<string, string> {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(EPISODES_HYDRATED_KEY) || "{}");
+    if (Array.isArray(parsed)) return Object.fromEntries(parsed.map((id) => [id, ""]));
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
 
 function parseExtensionTheme(raw: string): Record<string, unknown> | null {
   try {
@@ -48,11 +58,7 @@ export default function useExtensionSync() {
   const appliedThemeUnixRef = useRef<number>(
     Number(window.localStorage.getItem(THEME_LAST_APPLIED_KEY)) || 0
   );
-  const hydratedRef = useRef<Set<string>>(
-    new Set(
-      JSON.parse(window.localStorage.getItem(EPISODES_HYDRATED_KEY) || "[]") as string[]
-    )
-  );
+  const hydratedRef = useRef<Record<string, string>>(loadHydratedSignatures());
 
   useEffect(() => {
     let cancelled = false;
@@ -117,10 +123,17 @@ export default function useExtensionSync() {
             continue;
           }
           const id = manifest?.source?.episodeCacheId;
-          if (!id || hydratedRef.current.has(id)) continue;
+          if (!id) continue;
 
           const clips = parseClipsFromManifest(manifest, id);
           if (clips.length === 0) continue;
+
+          const signature = JSON.stringify({
+            method: manifest?.source?.importMethod,
+            created: manifest?.createdAtUnix,
+            clips: clips.map((clip: ClipItem) => [clip.clipPath, clip.thumbnail, clip.thumbnailReady]),
+          });
+          if (hydratedRef.current[id] === signature) continue;
 
           const videoPath =
             typeof manifest?.source?.videoPath === "string"
@@ -133,18 +146,17 @@ export default function useExtensionSync() {
             folderId: null,
             importedAt: Number(manifest?.createdAtUnix) * 1000 || Date.now(),
             clips,
-            importMethod: "video_files",
+            importMethod: manifest?.source?.importMethod === "webp_files" ? "webp_files" : "video_files",
           };
           runtime.setEpisodes((prev) => [entry, ...prev.filter((ep) => ep.id !== id)]);
-          hydratedRef.current.add(id);
-          if (hydratedRef.current.size > 200) {
-            const liveIds = new Set(runtime.episodes.map((ep) => ep.id));
-            liveIds.add(id);
-            hydratedRef.current = new Set([...hydratedRef.current].filter((eid) => liveIds.has(eid)));
+          hydratedRef.current[id] = signature;
+          const hydratedEntries = Object.entries(hydratedRef.current);
+          if (hydratedEntries.length > 200) {
+            hydratedRef.current = Object.fromEntries(hydratedEntries.slice(-200));
           }
           window.localStorage.setItem(
             EPISODES_HYDRATED_KEY,
-            JSON.stringify([...hydratedRef.current])
+            JSON.stringify(hydratedRef.current)
           );
           console.info("[extension-sync] episode hydrated from extension", id);
         }

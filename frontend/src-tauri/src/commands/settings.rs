@@ -3,13 +3,15 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use image::DynamicImage;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, State};
 
+use crate::commands::scene_scout::SceneScoutWorkerState;
+use crate::state::{ActiveFfmpegPids, ActiveInstall, ActiveResume, ActiveSidecar, ExportAbortState};
 use crate::utils::ffmpeg::resolve_bundled_tool;
 use crate::utils::logging::console_log;
 use crate::utils::paths::{
     resolve_episodes_storage_dir, resolve_storage_root,
-    OWNED_STORAGE_DIRS,
+    OWNED_STORAGE_DIRS, STORAGE_MOVE_LOCK,
 };
 use crate::utils::process::apply_no_window;
 
@@ -98,6 +100,117 @@ fn rebase_storage_manifests_sync(storage_root: &Path) -> Result<usize, String> {
                     ),
                 }
             }
+        }
+    }
+    Ok(changed)
+}
+
+fn rebase_path_from_root(raw: &str, old_root: &Path, new_root: &Path) -> String {
+    let slashed = raw.replace('\\', "/");
+    let old_slashed = old_root.to_string_lossy().replace('\\', "/");
+    let old_trimmed = old_slashed.trim_end_matches('/');
+    let normalize = |path: &str| {
+        let value = path.replace('\\', "/");
+        let value = value.trim_end_matches('/').to_string();
+        if cfg!(windows) || cfg!(target_os = "macos") {
+            value.to_lowercase()
+        } else {
+            value
+        }
+    };
+    if normalize(&slashed) == normalize(old_trimmed) {
+        return new_root.to_string_lossy().to_string();
+    }
+    let prefix = format!("{old_trimmed}/");
+    if normalize(&slashed).starts_with(&normalize(&prefix)) {
+        return new_root
+            .join(&slashed[prefix.len()..])
+            .to_string_lossy()
+            .to_string();
+    }
+    raw.to_string()
+}
+
+fn scene_scout_table_exists(conn: &rusqlite::Connection, table: &str) -> bool {
+    conn.query_row(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1",
+        [table],
+        |_| Ok(true),
+    )
+    .unwrap_or(false)
+}
+
+fn rebase_scene_scout_database(
+    path: &Path,
+    old_root: &Path,
+    new_root: &Path,
+) -> Result<bool, String> {
+    let mut conn = rusqlite::Connection::open(path).map_err(|e| e.to_string())?;
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    let mut changed = false;
+    for (table, id_column, path_column) in [
+        ("processed_videos", "id", "filepath"),
+        ("image_embeddings", "id", "filepath"),
+        ("index_queue", "id", "path"),
+    ] {
+        if !scene_scout_table_exists(&tx, table) {
+            continue;
+        }
+        let mut updates = Vec::new();
+        {
+            let mut stmt = tx
+                .prepare(&format!("SELECT {id_column}, {path_column} FROM {table}"))
+                .map_err(|e| e.to_string())?;
+            let rows = stmt
+                .query_map([], |row| {
+                    let id: i64 = row.get(0)?;
+                    let path: String = row.get(1)?;
+                    Ok((id, path))
+                })
+                .map_err(|e| e.to_string())?;
+            for row in rows {
+                let (id, old_path) = row.map_err(|e| e.to_string())?;
+                let new_path = rebase_path_from_root(&old_path, old_root, new_root);
+                if new_path != old_path {
+                    updates.push((id, new_path));
+                }
+            }
+        }
+        for (id, new_path) in updates {
+            tx.execute(
+                &format!("UPDATE {table} SET {path_column} = ?1 WHERE {id_column} = ?2"),
+                rusqlite::params![new_path, id],
+            )
+            .map_err(|e| format!("Failed to rebase {} in {}: {e}", path.display(), table))?;
+            changed = true;
+        }
+    }
+    tx.commit().map_err(|e| e.to_string())?;
+    Ok(changed)
+}
+
+fn rebase_scene_scout_databases(
+    staged_root: &Path,
+    old_root: &Path,
+    new_root: &Path,
+) -> Result<usize, String> {
+    let directory = staged_root.join("amverge-scene-scout");
+    let Ok(entries) = fs::read_dir(directory) else {
+        return Ok(0);
+    };
+    let mut changed = 0;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let supported = path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| matches!(ext.to_lowercase().as_str(), "scoutdb" | "db" | "scdb" | "sqlite" | "sqlite3"))
+            .unwrap_or(false);
+        if supported && rebase_scene_scout_database(&path, old_root, new_root)? {
+            changed += 1;
         }
     }
     Ok(changed)
@@ -213,13 +326,42 @@ pub async fn get_storage_breakdown(
     .map_err(|e| format!("Storage breakdown failed: {e}"))?
 }
 
+pub(crate) fn ensure_media_idle(
+    sidecar: &ActiveSidecar,
+    install: &ActiveInstall,
+    resume: &ActiveResume,
+    ffmpeg: &ActiveFfmpegPids,
+    export: &ExportAbortState,
+) -> Result<(), String> {
+    let sidecar_active = sidecar.procs.lock().map(|procs| !procs.is_empty()).unwrap_or(true);
+    let resume_active = resume.pids.lock().map(|pids| !pids.is_empty()).unwrap_or(true);
+    let ffmpeg_active = ffmpeg.pids.lock().map(|pids| !pids.is_empty()).unwrap_or(true);
+    let export_active = export.pids.lock().map(|pids| !pids.is_empty()).unwrap_or(true);
+    if sidecar_active || install.is_running() || resume_active || ffmpeg_active || export_active {
+        return Err("Stop the current import, export, preview, or AI install before moving storage.".to_string());
+    }
+    Ok(())
+}
+
 /// moves every folder in `OWNED_STORAGE_DIRS` to the new root; returns the old episodes folder for path rewrites
 #[tauri::command]
 pub async fn move_storage_to_new_dir(
     app: AppHandle,
+    sidecar: State<'_, ActiveSidecar>,
+    install: State<'_, ActiveInstall>,
+    resume: State<'_, ActiveResume>,
+    ffmpeg: State<'_, ActiveFfmpegPids>,
+    export: State<'_, ExportAbortState>,
+    worker: State<'_, SceneScoutWorkerState>,
     old_dir: Option<String>,
     new_dir: Option<String>,
 ) -> Result<String, String> {
+    let _move_guard = STORAGE_MOVE_LOCK
+        .try_lock()
+        .map_err(|_| "Another storage move is already running.".to_string())?;
+    ensure_media_idle(&sidecar, &install, &resume, &ffmpeg, &export)?;
+    worker.stop_daemon("moving library storage").await;
+
     let old_root = resolve_storage_root(&app, old_dir.as_deref())?;
     let new_root = resolve_storage_root(&app, new_dir.as_deref())?;
 
@@ -397,7 +539,13 @@ impl<'a> MoveProgressTracker<'a> {
 
 #[allow(dead_code)]
 fn move_storage(old_root: &Path, new_root: &Path) -> Result<(), String> {
-    move_storage_with_progress(old_root, new_root, None)
+    move_storage_with_progress(old_root, new_root, None)?;
+    let leftovers = finalize_storage_move_sync(old_root, new_root);
+    if leftovers.is_empty() {
+        Ok(())
+    } else {
+        Err(format!("Could not clean previous storage: {}", leftovers.join(", ")))
+    }
 }
 
 pub(crate) fn normalize_fs_path(path: &Path) -> PathBuf {
@@ -452,17 +600,21 @@ fn move_storage_with_progress(
         return Ok(());
     }
 
-    // source folders that were copied but could not be deleted (locked files)
-    let mut leftovers: Vec<String> = Vec::new();
-
-    // a root inside one of the folders being moved would move that folder into itself
     for dir_name in OWNED_STORAGE_DIRS {
         if path_is_inside_fs(new_root, &old_root.join(dir_name)) {
             return Err(format!("Pick a folder outside the current {dir_name} folder."));
         }
+        if path_is_inside_fs(old_root, &new_root.join(dir_name))
+            && !same_fs_path(old_root, &new_root.join(dir_name))
+        {
+            return Err("Pick a folder that does not overlap the current storage subfolders.".to_string());
+        }
     }
 
     fs::create_dir_all(new_root).map_err(|e| format!("Failed to create new directory: {e}"))?;
+    let nonce = uuid::Uuid::new_v4().simple().to_string();
+    let stage_root = new_root.join(format!(".amverge-move-{nonce}"));
+    let backup_root = new_root.join(format!(".amverge-backup-{nonce}"));
 
     emit_move_progress(app, 0.0, true, "Scanning files...");
     let mut total_bytes = 0u64;
@@ -478,68 +630,76 @@ fn move_storage_with_progress(
 
     let mut tracker = MoveProgressTracker::new(app, total_bytes, total_files);
     tracker.log(format!(
-        "Moving library storage -> {} ({} across {} file{})",
+        "Staging library storage -> {} ({} across {} file{})",
         new_root.display(),
         format_bytes_human(total_bytes),
         total_files,
         if total_files == 1 { "" } else { "s" }
     ));
 
-    for dir_name in OWNED_STORAGE_DIRS {
-        let src_dir = old_root.join(dir_name);
-        if !src_dir.is_dir() {
-            continue;
+    let mut leftovers = Vec::new();
+    let mut committed: Vec<(PathBuf, PathBuf)> = Vec::new();
+    let result = (|| -> Result<(), String> {
+        for dir_name in OWNED_STORAGE_DIRS {
+            let src_dir = old_root.join(dir_name);
+            let dest_dir = new_root.join(dir_name);
+            let staged = stage_root.join(dir_name);
+            if dest_dir.is_dir() {
+                copy_entry_tracked(
+                    &dest_dir,
+                    &staged,
+                    &mut leftovers,
+                    Some(&mut tracker),
+                    &format!("existing/{dir_name}"),
+                )?;
+            }
+            if src_dir.is_dir() {
+                tracker.log(format!("Staging {dir_name}..."));
+                copy_entry_tracked(
+                    &src_dir,
+                    &staged,
+                    &mut leftovers,
+                    Some(&mut tracker),
+                    dir_name,
+                )?;
+            }
         }
 
-        let dest_dir = new_root.join(dir_name);
-        tracker.log(format!("Relocating {dir_name}..."));
+        rebase_scene_scout_databases(&stage_root, old_root, new_root)?;
 
-        // the whole folder goes over as one, so nothing of it stays behind at the old root
-        if !dest_dir.exists() {
-            move_entry_tracked(&src_dir, &dest_dir, &mut leftovers, Some(&mut tracker), dir_name)?;
-            continue;
+        for dir_name in OWNED_STORAGE_DIRS {
+            let staged = stage_root.join(dir_name);
+            if !staged.exists() {
+                continue;
+            }
+            let dest_dir = new_root.join(dir_name);
+            let backup = backup_root.join(dir_name);
+            replace_staged_entry(&staged, &dest_dir, &backup)?;
+            committed.push((dest_dir, backup));
         }
+        Ok(())
+    })();
 
-        // the new root already has one: merge everything into it, then drop the emptied old folder
-        for entry in
-            fs::read_dir(&src_dir).map_err(|e| format!("Failed to read old directory: {e}"))?
-        {
-            let entry = entry.map_err(|e| format!("Failed to read entry: {e}"))?;
-            let name = entry.file_name();
-            let rel = format!("{dir_name}/{}", name.to_string_lossy());
-            move_entry_tracked(
-                &entry.path(),
-                &dest_dir.join(name),
-                &mut leftovers,
-                Some(&mut tracker),
-                &rel,
-            )?;
+    if let Err(err) = result {
+        for (dest, backup) in committed.into_iter().rev() {
+            if dest.exists() {
+                let _ = remove_with_retries(&dest);
+            }
+            if backup.exists() {
+                let _ = fs::rename(&backup, &dest);
+            }
         }
-
-        if fs::read_dir(&src_dir).map(|mut it| it.next().is_none()).unwrap_or(false) {
-            let _ = fs::remove_dir(&src_dir);
-        }
+        let _ = fs::remove_dir_all(&stage_root);
+        let _ = fs::remove_dir_all(&backup_root);
+        return Err(err);
     }
 
-    if !leftovers.is_empty() {
-        tracker.log(format!(
-            "Finished copying; {} locked source item(s) left behind.",
-            leftovers.len()
-        ));
-        console_log(
-            "SETTINGS|move",
-            &format!(
-                "copied to new location, {} source folder(s) still locked and left in place",
-                leftovers.len()
-            ),
-        );
-    }
-
-    rebase_storage_manifests_sync(new_root)?;
+    let _ = fs::remove_dir_all(&stage_root);
+    let _ = fs::remove_dir_all(&backup_root);
+    let _ = rebase_storage_manifests_sync(new_root);
 
     emit_move_progress(app, 100.0, false, "Storage move complete.");
     tracker.log("Storage move complete.");
-
     Ok(())
 }
 
@@ -552,8 +712,29 @@ pub(crate) fn move_entry_tracked(
     src: &Path,
     dest: &Path,
     leftovers: &mut Vec<String>,
+    tracker: Option<&mut MoveProgressTracker<'_>>,
+    rel_label: &str,
+) -> Result<(), String> {
+    transfer_entry_tracked(src, dest, leftovers, tracker, rel_label, true)
+}
+
+pub(crate) fn copy_entry_tracked(
+    src: &Path,
+    dest: &Path,
+    leftovers: &mut Vec<String>,
+    tracker: Option<&mut MoveProgressTracker<'_>>,
+    rel_label: &str,
+) -> Result<(), String> {
+    transfer_entry_tracked(src, dest, leftovers, tracker, rel_label, false)
+}
+
+fn transfer_entry_tracked(
+    src: &Path,
+    dest: &Path,
+    leftovers: &mut Vec<String>,
     mut tracker: Option<&mut MoveProgressTracker<'_>>,
     rel_label: &str,
+    delete_source: bool,
 ) -> Result<(), String> {
     if same_fs_path(src, dest) {
         return Ok(());
@@ -564,7 +745,7 @@ pub(crate) fn move_entry_tracked(
     let is_symlink = sym_meta.file_type().is_symlink();
 
     // fast path: same volume, nothing holding the files open (only when destination doesn't already exist)
-    if fs::symlink_metadata(dest).is_err() && fs::rename(src, dest).is_ok() {
+    if delete_source && fs::symlink_metadata(dest).is_err() && fs::rename(src, dest).is_ok() {
         if let Some(t) = tracker.as_deref_mut() {
             let (b, f) = scan_path_stats(dest);
             t.advance(b, f, rel_label, true);
@@ -586,7 +767,7 @@ pub(crate) fn move_entry_tracked(
         if let Some(t) = tracker.as_deref_mut() {
             t.advance(0, 1, rel_label, false);
         }
-        if !remove_with_retries(src) {
+        if delete_source && !remove_with_retries(src) {
             leftovers.push(src.to_string_lossy().to_string());
         }
         return Ok(());
@@ -613,15 +794,16 @@ pub(crate) fn move_entry_tracked(
             let child_name = entry.file_name();
             let child_dest = dest.join(&child_name);
             let child_rel = format!("{rel_label}/{}", child_name.to_string_lossy());
-            move_entry_tracked(
+            transfer_entry_tracked(
                 &child_src,
                 &child_dest,
                 leftovers,
                 tracker.as_deref_mut(),
                 &child_rel,
+                delete_source,
             )?;
         }
-        if !remove_with_retries(src) {
+        if delete_source && !remove_with_retries(src) {
             leftovers.push(src.to_string_lossy().to_string());
         }
     } else {
@@ -633,12 +815,65 @@ pub(crate) fn move_entry_tracked(
         if let Some(t) = tracker.as_deref_mut() {
             t.advance(copied, 1, rel_label, false);
         }
-        if !remove_with_retries(src) {
+        if delete_source && !remove_with_retries(src) {
             leftovers.push(src.to_string_lossy().to_string());
         }
     }
 
     Ok(())
+}
+
+pub(crate) fn replace_staged_entry(
+    staged: &Path,
+    dest: &Path,
+    backup: &Path,
+) -> Result<(), String> {
+    if let Some(parent) = dest.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create destination parent: {e}"))?;
+    }
+    if let Some(parent) = backup.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Failed to create backup parent: {e}"))?;
+    }
+    let had_dest = fs::symlink_metadata(dest).is_ok();
+    if had_dest {
+        fs::rename(dest, backup).map_err(|e| {
+            format!("Failed to back up {}: {e}", dest.display())
+        })?;
+    }
+    if let Err(err) = fs::rename(staged, dest) {
+        if had_dest {
+            let _ = fs::rename(backup, dest);
+        }
+        return Err(format!("Failed to activate {}: {err}", dest.display()));
+    }
+    Ok(())
+}
+
+pub(crate) fn finalize_storage_move_sync(old_root: &Path, current_root: &Path) -> Vec<String> {
+    let mut leftovers = Vec::new();
+    if same_fs_path(old_root, current_root) {
+        return leftovers;
+    }
+    for dir_name in OWNED_STORAGE_DIRS {
+        let source = old_root.join(dir_name);
+        if source.exists() && !remove_with_retries(&source) {
+            leftovers.push(source.to_string_lossy().to_string());
+        }
+    }
+    leftovers
+}
+
+#[tauri::command]
+pub async fn finalize_storage_move(
+    app: AppHandle,
+    old_dir: Option<String>,
+    current_dir: Option<String>,
+) -> Result<Vec<String>, String> {
+    let old_root = resolve_storage_root(&app, old_dir.as_deref())?;
+    let current_root = resolve_storage_root(&app, current_dir.as_deref())?;
+    tauri::async_runtime::spawn_blocking(move || finalize_storage_move_sync(&old_root, &current_root))
+        .await
+        .map_err(|e| format!("Previous storage cleanup failed: {e}"))
 }
 
 /// recreates a symlink (like Hugging Face snapshot -> ../../blobs/<sha>) or hard-links/copies the moved target when symlink privilege is unavailable
@@ -701,7 +936,7 @@ fn recreate_or_materialize_symlink(
 }
 
 /// deletes with short retries, since windows frees handles just after the webview drops them; false leaves a leftover
-fn remove_with_retries(path: &Path) -> bool {
+pub(crate) fn remove_with_retries(path: &Path) -> bool {
     let is_real_dir = fs::symlink_metadata(path)
         .map(|m| m.is_dir() && !m.file_type().is_symlink())
         .unwrap_or(false);
@@ -1258,6 +1493,39 @@ mod tests {
     }
 
     #[test]
+    fn staged_move_preserves_source_until_final_cleanup() {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = tmp.path().join("old");
+        let new = tmp.path().join("new");
+        touch(&old.join("episodes_storage/ep1/manifest.json"));
+
+        move_storage_with_progress(&old, &new, None).unwrap();
+        assert!(old.join("episodes_storage/ep1/manifest.json").is_file());
+        assert!(new.join("episodes_storage/ep1/manifest.json").is_file());
+
+        assert!(finalize_storage_move_sync(&old, &new).is_empty());
+        assert!(!old.join("episodes_storage").exists());
+    }
+
+    #[test]
+    fn staged_activation_keeps_a_restorable_destination_backup() {
+        let tmp = tempfile::tempdir().unwrap();
+        let staged = tmp.path().join("staged");
+        let dest = tmp.path().join("dest");
+        let backup = tmp.path().join("backup");
+        touch(&staged.join("episodes_storage/ep1/new.txt"));
+        touch(&dest.join("episodes_storage/ep1/old.txt"));
+
+        replace_staged_entry(&staged, &dest, &backup).unwrap();
+        assert!(dest.join("episodes_storage/ep1/new.txt").is_file());
+        assert!(backup.join("episodes_storage/ep1/old.txt").is_file());
+
+        fs::remove_dir_all(&dest).unwrap();
+        fs::rename(&backup, &dest).unwrap();
+        assert!(dest.join("episodes_storage/ep1/old.txt").is_file());
+    }
+
+    #[test]
     fn merges_into_an_existing_folder_without_nesting() {
         let tmp = tempfile::tempdir().unwrap();
         let old = tmp.path().join("old");
@@ -1287,6 +1555,18 @@ mod tests {
         let err = move_storage(&old, &old.join("episodes_storage/inner")).unwrap_err();
         assert!(err.contains("episodes_storage"));
         assert!(old.join("episodes_storage/ep1/manifest.json").is_file());
+    }
+
+    #[test]
+    fn refuses_an_old_root_inside_a_new_owned_folder() {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = tmp.path().join("new/episodes_storage/old");
+        let new = tmp.path().join("new");
+        touch(&old.join("manifest.json"));
+
+        let err = move_storage(&old, &new).unwrap_err();
+        assert!(err.contains("overlap"));
+        assert!(old.join("manifest.json").is_file());
     }
 
     #[test]
@@ -1368,6 +1648,61 @@ mod tests {
             repaired["backendPayload"]["cache"]["secs_path"],
             new.join("episodes_storage/ep1/cache/secs.npy").to_string_lossy().to_string()
         );
+    }
+
+    #[test]
+    fn storage_move_rebases_scene_scout_source_paths_only_inside_the_library() {
+        let tmp = tempfile::tempdir().unwrap();
+        let old = tmp.path().join("old");
+        let new = tmp.path().join("new");
+        let db = old.join("amverge-scene-scout/library.scoutdb");
+        fs::create_dir_all(db.parent().unwrap()).unwrap();
+        let conn = rusqlite::Connection::open(&db).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE processed_videos (id INTEGER PRIMARY KEY, filepath TEXT UNIQUE);
+             CREATE TABLE image_embeddings (id INTEGER PRIMARY KEY, filepath TEXT);
+             CREATE TABLE index_queue (id INTEGER PRIMARY KEY, path TEXT);",
+        )
+        .unwrap();
+        let owned = old.join("episodes_storage/ep1/scene.mp4");
+        let external = tmp.path().join("external.mp4");
+        conn.execute(
+            "INSERT INTO processed_videos (id, filepath) VALUES (1, ?1), (2, ?2)",
+            rusqlite::params![owned.to_string_lossy().to_string(), external.to_string_lossy().to_string()],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO image_embeddings (id, filepath) VALUES (1, ?1)",
+            [owned.to_string_lossy().to_string()],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO index_queue (id, path) VALUES (1, ?1)",
+            [external.to_string_lossy().to_string()],
+        )
+        .unwrap();
+        drop(conn);
+
+        move_storage(&old, &new).unwrap();
+
+        let moved = new.join("amverge-scene-scout/library.scoutdb");
+        let conn = rusqlite::Connection::open(moved).unwrap();
+        let owned_now: String = conn
+            .query_row("SELECT filepath FROM processed_videos WHERE id = 1", [], |row| row.get(0))
+            .unwrap();
+        let external_now: String = conn
+            .query_row("SELECT filepath FROM processed_videos WHERE id = 2", [], |row| row.get(0))
+            .unwrap();
+        let image_now: String = conn
+            .query_row("SELECT filepath FROM image_embeddings WHERE id = 1", [], |row| row.get(0))
+            .unwrap();
+        let queue_now: String = conn
+            .query_row("SELECT path FROM index_queue WHERE id = 1", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(owned_now, new.join("episodes_storage/ep1/scene.mp4").to_string_lossy());
+        assert_eq!(image_now, new.join("episodes_storage/ep1/scene.mp4").to_string_lossy());
+        assert_eq!(external_now, external.to_string_lossy());
+        assert_eq!(queue_now, external.to_string_lossy());
     }
 
     #[test]

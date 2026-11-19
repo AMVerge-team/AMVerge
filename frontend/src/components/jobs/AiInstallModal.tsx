@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { Trans, useTranslation } from "react-i18next";
 
 import Tooltip from "../common/Tooltip";
@@ -14,6 +16,7 @@ import {
   formatSizeMb,
   isPackInstalled,
   plannedTorchVariant,
+  type AiEnvStatus,
 } from "../../features/aiDeps/packs";
 
 function formatDuration(sec: number): string {
@@ -48,6 +51,8 @@ export default function AiInstallModal() {
 
   const logRef = useRef<HTMLDivElement | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [movingStorage, setMovingStorage] = useState(false);
+  const [storageError, setStorageError] = useState<string | null>(null);
   const startTimeRef = useRef<number | null>(null);
 
   useLayoutEffect(() => {
@@ -129,6 +134,26 @@ export default function AiInstallModal() {
   const close = () => useAiDepsStore.getState().close();
   const install = () => void useAiDepsStore.getState().startInstall();
   const cancel = () => useAiDepsStore.getState().cancel();
+  const chooseStorage = async () => {
+    const selected = await openDialog({
+      directory: true,
+      multiple: false,
+      title: t("storage:pickAi"),
+    });
+    if (!selected || typeof selected !== "string") return;
+    setMovingStorage(true);
+    setStorageError(null);
+    try {
+      const next = await invoke<AiEnvStatus>("move_ai_storage_to_new_dir", {
+        newDir: selected,
+      });
+      useAiDepsStore.setState({ status: next });
+    } catch (err) {
+      setStorageError(String(err));
+    } finally {
+      setMovingStorage(false);
+    }
+  };
 
   // extract speed (e.g. "24.5MB/s" or "12.3 MiB/s") and size (e.g. "450MB / 2.7GB") if present
   let speedText: string | null = null;
@@ -278,6 +303,15 @@ export default function AiInstallModal() {
                 {t("aiInstall.uvMissing")}
               </p>
             ) : null}
+            <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+              <span className="aid-note" style={{ margin: 0 }}>
+                {t("storage:aiPath")}: {status?.aiCustomPath || status?.aiRootPath || t("storage:defaultLocation")}
+              </span>
+              <button type="button" className="aid-link-btn" onClick={() => void chooseStorage()} disabled={movingStorage}>
+                {movingStorage ? t("storage:movingAi") : t("storage:changeAi")}
+              </button>
+            </div>
+            {storageError ? <p className="pxm-errors">{storageError}</p> : null}
             <div className="aid-buttons">
               <button type="button" className="aid-btn" onClick={close}>
                 {t("aiInstall.notNow")}
@@ -286,7 +320,7 @@ export default function AiInstallModal() {
                 type="button"
                 className="aid-btn aid-btn-primary"
                 onClick={install}
-                disabled={Boolean(status && !status.uvAvailable)}
+                disabled={movingStorage || Boolean(status && !status.uvAvailable)}
               >
                 {t("aiInstall.install")}
               </button>

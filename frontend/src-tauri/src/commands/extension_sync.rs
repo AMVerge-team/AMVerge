@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use tauri::{AppHandle, Manager};
 
-use crate::utils::paths::{resolve_episodes_storage_dir, sanitize_episode_cache_id};
+use crate::utils::paths::{resolve_episodes_storage_dir, resolve_scene_scout_storage_dir, sanitize_episode_cache_id};
 use crate::utils::sidecar::resolve_ai_location;
 
 fn extension_sync_dir(app: &AppHandle) -> Result<PathBuf, String> {
@@ -21,6 +21,8 @@ pub struct AppPathsSyncPayload {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hf_home_dir: Option<String>,
     pub episodes_storage_dir: String,
+    #[serde(default)]
+    pub scene_scout_dir: String,
     pub updated_at: u64,
 }
 
@@ -61,10 +63,14 @@ pub fn write_app_paths_file(
             .map(PathBuf::from)
             .unwrap_or(resolve_episodes_storage_dir(app, None)?),
     };
+    let custom_root = episodes_storage_dir
+        .parent()
+        .and_then(|root| root.to_str());
+    let scene_scout_dir = resolve_scene_scout_storage_dir(app, custom_root)?;
 
     let updated_at = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs())
+        .map(|d| d.as_millis() as u64)
         .unwrap_or(0);
 
     let payload = AppPathsSyncPayload {
@@ -76,13 +82,14 @@ pub fn write_app_paths_file(
             .hf_home_dir
             .map(|p| p.to_string_lossy().to_string()),
         episodes_storage_dir: episodes_storage_dir.to_string_lossy().to_string(),
+        scene_scout_dir: scene_scout_dir.to_string_lossy().to_string(),
         updated_at,
     };
 
     let serialized = serde_json::to_vec_pretty(&payload)
         .map_err(|e| format!("Failed to serialize paths.json: {e}"))?;
     let paths_file = data_dir.join("paths.json");
-    let temp_path = data_dir.join("paths.json.tmp");
+    let temp_path = data_dir.join(format!("paths.json.{}.tmp", uuid::Uuid::new_v4().simple()));
     std::fs::write(&temp_path, serialized)
         .map_err(|e| format!("Failed to write paths.json: {e}"))?;
     std::fs::rename(&temp_path, &paths_file)
@@ -110,7 +117,7 @@ pub fn write_app_theme(app: AppHandle, theme_json: String) -> Result<(), String>
         .map_err(|e| e.to_string())?;
     std::fs::create_dir_all(&data_dir).map_err(|e| e.to_string())?;
     let theme_path = data_dir.join("theme.json");
-    let temp_path = data_dir.join("theme.json.tmp");
+    let temp_path = data_dir.join(format!("theme.json.{}.tmp", uuid::Uuid::new_v4().simple()));
     std::fs::write(&temp_path, serialized)
         .map_err(|e| format!("Failed to write theme.json: {e}"))?;
     std::fs::rename(&temp_path, &theme_path)
@@ -167,7 +174,7 @@ pub fn write_active_episode_sync(app: AppHandle, mut payload: ActiveEpisodeSyncP
         }
     }
 
-    let temp_path = sync_path.with_extension("json.tmp");
+    let temp_path = sync_path.with_extension(format!("{}.tmp", uuid::Uuid::new_v4().simple()));
     let serialized = serde_json::to_vec_pretty(&payload)
         .map_err(|e| format!("Failed to serialize active episode: {e}"))?;
 
@@ -178,7 +185,7 @@ pub fn write_active_episode_sync(app: AppHandle, mut payload: ActiveEpisodeSyncP
 
     if let Some(episode_dir) = PathBuf::from(&payload.manifest_path).parent().map(PathBuf::from) {
         let preview_path = episode_dir.join("sync_preview.json");
-        let preview_temp = episode_dir.join("sync_preview.json.tmp");
+        let preview_temp = episode_dir.join(format!("sync_preview.json.{}.tmp", uuid::Uuid::new_v4().simple()));
         let preview_data = serde_json::json!({
             "episode_id": payload.episode_id,
             "updated_at": payload.updated_at,

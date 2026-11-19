@@ -5,16 +5,19 @@ use tauri::{AppHandle, State};
 
 use crate::commands::scene_scout::SceneScoutWorkerState;
 use crate::commands::settings::{
-    emit_move_progress, format_bytes_human, move_entry_tracked, path_is_inside_fs, same_fs_path,
+    copy_entry_tracked, emit_move_progress, ensure_media_idle, format_bytes_human,
+    path_is_inside_fs, remove_with_retries, replace_staged_entry, same_fs_path,
     scan_path_stats, MoveProgressTracker,
 };
-use crate::state::ActiveInstall;
+use crate::state::{ActiveFfmpegPids, ActiveInstall, ActiveResume, ActiveSidecar, ExportAbortState};
 use crate::utils::logging::console_log;
+use crate::utils::paths::STORAGE_MOVE_LOCK;
 use crate::utils::process::kill_process_tree;
 use crate::utils::sidecar::{
     ai_env_dir, ai_env_python, ai_env_ready, default_ai_root, legacy_cli_config_dir,
-    legacy_scout_model_dir, load_custom_ai_root, patch_pyvenv_home, resolve_ai_location,
-    save_custom_ai_root, uv_cache_dir, uv_python_dir, SIGLIP_CACHE_DIR_NAME,
+    legacy_scout_model_dir, patch_pyvenv_home, resolve_ai_location,
+    resolve_ai_location_for_move, save_custom_ai_root, uv_cache_dir, uv_python_dir,
+    SIGLIP_CACHE_DIR_NAME,
 };
 
 mod cli_update;
@@ -192,9 +195,25 @@ pub async fn remove_ai_env(
 pub async fn move_ai_storage_to_new_dir(
     app: AppHandle,
     install_state: State<'_, ActiveInstall>,
+    sidecar: State<'_, ActiveSidecar>,
+    resume: State<'_, ActiveResume>,
+    ffmpeg: State<'_, ActiveFfmpegPids>,
+    export: State<'_, ExportAbortState>,
     worker_state: State<'_, SceneScoutWorkerState>,
     new_dir: Option<String>,
 ) -> Result<AiEnvStatus, String> {
+    let _move_guard = STORAGE_MOVE_LOCK
+        .try_lock()
+        .map_err(|_| "Another storage move is already running.".to_string())?;
+    if std::env::var("AMVERGE_RUNTIME_DIR")
+        .ok()
+        .map(|value| !value.trim().is_empty())
+        .unwrap_or(false)
+    {
+        return Err("AMVERGE_RUNTIME_DIR is set, so a storage move cannot change the active runtime. Clear it and restart AMVerge first.".to_string());
+    }
+    ensure_media_idle(&sidecar, &install_state, &resume, &ffmpeg, &export)?;
+
     let install_guard = install_state.inner().clone();
     install_guard.begin()?;
 
@@ -203,7 +222,6 @@ pub async fn move_ai_storage_to_new_dir(
     let app_for_task = app.clone();
     let outcome = tokio::task::spawn_blocking(move || -> Result<(), String> {
         let old_loc = resolve_ai_location(&app_for_task)?;
-        let old_custom = load_custom_ai_root(&app_for_task);
 
         let cleaned_new = new_dir
             .as_deref()
@@ -211,20 +229,7 @@ pub async fn move_ai_storage_to_new_dir(
             .filter(|s| !s.is_empty())
             .map(PathBuf::from);
 
-        let target_loc = match cleaned_new.as_ref() {
-            Some(p) => {
-                save_custom_ai_root(&app_for_task, Some(p))?;
-                let loc = resolve_ai_location(&app_for_task)?;
-                save_custom_ai_root(&app_for_task, old_custom.as_deref())?;
-                loc
-            }
-            None => {
-                save_custom_ai_root(&app_for_task, None)?;
-                let loc = resolve_ai_location(&app_for_task)?;
-                save_custom_ai_root(&app_for_task, old_custom.as_deref())?;
-                loc
-            }
-        };
+        let target_loc = resolve_ai_location_for_move(&app_for_task, cleaned_new.as_deref())?;
 
         let pointer_to_save = match (cleaned_new.as_ref(), default_ai_root(&app_for_task).ok()) {
             (Some(p), Some(def)) if same_fs_path(p, &def) => None,
@@ -315,30 +320,117 @@ pub async fn move_ai_storage_to_new_dir(
             if total_files == 1 { "" } else { "s" }
         ));
 
+        let nonce = uuid::Uuid::new_v4().simple().to_string();
+        let stage_root = target_loc.root.join(format!(".amverge-ai-move-{nonce}"));
+        let backup_root = target_loc.root.join(format!(".amverge-ai-backup-{nonce}"));
         let mut leftovers: Vec<String> = Vec::new();
-
-        // 1. Move runtime subfolders (`pyenv`, `python`, `uv-cache`) and patch `pyvenv.cfg`.
-        for sub in ["python", "pyenv", "uv-cache"] {
-            let src = old_loc.runtime_dir.join(sub);
-            if src.exists() {
-                tracker.log(format!("Relocating runtime/{sub}..."));
+        let mut committed: Vec<(PathBuf, PathBuf)> = Vec::new();
+        let transfer_result = (|| -> Result<(), String> {
+            for sub in ["python", "pyenv", "uv-cache"] {
+                let src = old_loc.runtime_dir.join(sub);
                 let dest = target_loc.runtime_dir.join(sub);
-                move_entry_tracked(
-                    &src,
-                    &dest,
+                let staged = stage_root.join("runtime").join(sub);
+                if dest.is_dir() {
+                    copy_entry_tracked(
+                        &dest,
+                        &staged,
+                        &mut leftovers,
+                        Some(&mut tracker),
+                        &format!("existing/runtime/{sub}"),
+                    )?;
+                }
+                if src.exists() {
+                    tracker.log(format!("Staging runtime/{sub}..."));
+                    copy_entry_tracked(
+                        &src,
+                        &staged,
+                        &mut leftovers,
+                        Some(&mut tracker),
+                        &format!("runtime/{sub}"),
+                    )?;
+                }
+            }
+
+            if target_config.is_dir() {
+                copy_entry_tracked(
+                    &target_config,
+                    &stage_root.join("config"),
                     &mut leftovers,
                     Some(&mut tracker),
-                    &format!("runtime/{sub}"),
+                    "existing/config",
                 )?;
             }
+            if let Some(ref src_config) = old_config {
+                tracker.log("Staging CLI config and model weights...");
+                copy_entry_tracked(
+                    src_config,
+                    &stage_root.join("config"),
+                    &mut leftovers,
+                    Some(&mut tracker),
+                    "config",
+                )?;
+            }
+
+            let dest_scout = target_hf.join("hub").join(SIGLIP_CACHE_DIR_NAME);
+            let staged_scout = stage_root.join("hf-cache").join(SIGLIP_CACHE_DIR_NAME);
+            if dest_scout.is_dir() {
+                copy_entry_tracked(
+                    &dest_scout,
+                    &staged_scout,
+                    &mut leftovers,
+                    Some(&mut tracker),
+                    "existing/hf-cache/siglip2",
+                )?;
+            }
+            if let Some(ref src_scout) = old_scout {
+                tracker.log("Staging Scene Scout SigLIP 2 model...");
+                copy_entry_tracked(
+                    src_scout,
+                    &staged_scout,
+                    &mut leftovers,
+                    Some(&mut tracker),
+                    "hf-cache/siglip2",
+                )?;
+            }
+
+            for sub in ["python", "pyenv", "uv-cache"] {
+                let staged = stage_root.join("runtime").join(sub);
+                if staged.exists() {
+                    let dest = target_loc.runtime_dir.join(sub);
+                    let backup = backup_root.join("runtime").join(sub);
+                    replace_staged_entry(&staged, &dest, &backup)?;
+                    committed.push((dest, backup));
+                }
+            }
+            if stage_root.join("config").exists() {
+                let backup = backup_root.join("config");
+                replace_staged_entry(&stage_root.join("config"), &target_config, &backup)?;
+                committed.push((target_config.clone(), backup));
+            }
+            if staged_scout.exists() {
+                let backup = backup_root.join("hf-cache").join(SIGLIP_CACHE_DIR_NAME);
+                replace_staged_entry(&staged_scout, &dest_scout, &backup)?;
+                committed.push((dest_scout, backup));
+            }
+            Ok(())
+        })();
+
+        if let Err(err) = transfer_result {
+            for (dest, backup) in committed.into_iter().rev() {
+                if dest.exists() {
+                    let _ = remove_with_retries(&dest);
+                }
+                if backup.exists() {
+                    let _ = std::fs::rename(&backup, &dest);
+                }
+            }
+            let _ = std::fs::remove_dir_all(&stage_root);
+            let _ = std::fs::remove_dir_all(&backup_root);
+            return Err(err);
         }
-        if old_loc.runtime_dir.is_dir()
-            && std::fs::read_dir(&old_loc.runtime_dir)
-                .map(|mut it| it.next().is_none())
-                .unwrap_or(false)
-        {
-            let _ = std::fs::remove_dir(&old_loc.runtime_dir);
-        }
+        let _ = std::fs::remove_dir_all(&stage_root);
+        let _ = std::fs::remove_dir_all(&backup_root);
+
         let moved_pyenv = target_loc.runtime_dir.join("pyenv");
         let moved_python_dir = target_loc.runtime_dir.join("python");
         let moved_cfg = moved_pyenv.join("pyvenv.cfg");
@@ -348,8 +440,6 @@ pub async fn move_ai_storage_to_new_dir(
             &moved_python_dir,
         )?;
 
-        // Regenerate uv's Windows trampoline exe (`pyenv/Scripts/python.exe`) and pyvenv.cfg offline
-        // while keeping every installed wheel in site-packages intact.
         if moved_pyenv.is_dir() {
             if let Some(base_py) = find_base_python_in(&moved_python_dir) {
                 if let Ok(uv) = crate::utils::sidecar::uv_binary(&app_for_task) {
@@ -386,44 +476,30 @@ pub async fn move_ai_storage_to_new_dir(
             }
         }
 
-        // Persist the new AI root as soon as runtime/ is relocated so an error on optional model weights
-        // never orphans the moved Python environment.
         save_custom_ai_root(&app_for_task, pointer_to_save.as_deref())?;
 
-        // move the whole cli config so weights, ffmpeg, presets and editor paths all survive
-        if let Some(src_config) = old_config {
-            if src_config.is_dir() && !same_fs_path(&src_config, &target_config) {
-                tracker.log("Relocating CLI config and model weights...");
-                if let Some(parent) = target_config.parent() {
-                    std::fs::create_dir_all(parent)
-                        .map_err(|e| format!("Failed to create CLI config folder: {e}"))?;
-                }
-                move_entry_tracked(
-                    &src_config,
-                    &target_config,
-                    &mut leftovers,
-                    Some(&mut tracker),
-                    "config",
-                )?;
+        for sub in ["python", "pyenv", "uv-cache"] {
+            let src = old_loc.runtime_dir.join(sub);
+            if src.exists() && !remove_with_retries(&src) {
+                leftovers.push(src.to_string_lossy().to_string());
             }
         }
-
-        // 3. Move Scene Scout's SigLIP 2 folder only (never touch unrelated HF models).
-        if let Some(src_scout) = old_scout {
-            let dest_hub = target_hf.join("hub");
-            let dest_scout = dest_hub.join(SIGLIP_CACHE_DIR_NAME);
-            if src_scout.is_dir() && !same_fs_path(&src_scout, &dest_scout) {
-                tracker.log("Relocating Scene Scout SigLIP 2 model...");
-                std::fs::create_dir_all(&dest_hub)
-                    .map_err(|e| format!("Failed to create HF cache folder: {e}"))?;
-                move_entry_tracked(
-                    &src_scout,
-                    &dest_scout,
-                    &mut leftovers,
-                    Some(&mut tracker),
-                    "hf-cache/siglip2",
-                )?;
+        if let Some(src_config) = old_config {
+            if src_config.exists() && !remove_with_retries(&src_config) {
+                leftovers.push(src_config.to_string_lossy().to_string());
             }
+        }
+        if let Some(src_scout) = old_scout {
+            if src_scout.exists() && !remove_with_retries(&src_scout) {
+                leftovers.push(src_scout.to_string_lossy().to_string());
+            }
+        }
+        if old_loc.runtime_dir.is_dir()
+            && std::fs::read_dir(&old_loc.runtime_dir)
+                .map(|mut it| it.next().is_none())
+                .unwrap_or(false)
+        {
+            let _ = std::fs::remove_dir(&old_loc.runtime_dir);
         }
         if !leftovers.is_empty() {
             tracker.log(format!(
@@ -446,7 +522,7 @@ pub async fn move_ai_storage_to_new_dir(
         }
         emit_move_progress(Some(&app_for_task), 100.0, false, "AI storage move complete.");
         tracker.log("AI storage move complete.");
-        let _ = crate::commands::extension_sync::write_app_paths_file(&app_for_task, None);
+        crate::commands::extension_sync::write_app_paths_file(&app_for_task, None)?;
         Ok(())
     })
     .await
@@ -484,6 +560,7 @@ fn find_base_python_in(dir: &std::path::Path) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::commands::settings::move_entry_tracked;
     use std::collections::HashMap;
     use std::fs;
 

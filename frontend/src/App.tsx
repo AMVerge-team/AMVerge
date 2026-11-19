@@ -13,7 +13,7 @@ import ImportTerminal from "./components/jobs/ImportTerminal";
 import SplashScreen from "./components/layout/SplashScreen";
 import { useIntroStore } from "./features/intro/introStore";
 import ProcessConflictModal from "./components/dialogs/ProcessConflictModal";
-import { registerProcessAbort } from "./features/processes/singleProcess";
+import { processLabel, registerProcessAbort, runningProcess } from "./features/processes/singleProcess";
 import { clearReencodeQueue, resumeBackgroundCuts } from "./features/import/reencodeQueue";
 import { importAbortRef } from "./features/import/importPipeline";
 
@@ -131,20 +131,34 @@ function App() {
   const toolsOpen = useUIStateStore(s => s.toolsOpen);
 
   const handleResetGeneralSettings = async () => {
+    const active = runningProcess();
+    if (active) {
+      await showNotice(t("jobs:process.conflictTitle"), t("jobs:process.conflictRunning", { process: processLabel(active) }));
+      return;
+    }
     try {
+      const previousEpisodesPath = useGeneralSettingsStore.getState().episodesPath;
       // release the clip files the grid holds open, or windows blocks moving them
       useAppStateStore.getState().setClips([]);
       useAppStateStore.getState().setSelectedClips(new Set());
       await new Promise((resolve) => setTimeout(resolve, 250));
 
       await invoke<string>("move_storage_to_new_dir", {
-        oldDir: useGeneralSettingsStore.getState().episodesPath,
+        oldDir: previousEpisodesPath,
         newDir: null,
       });
 
       useGeneralSettingsStore.setState(DEFAULT_GENERAL_SETTINGS);
       // no custom path now, so this resolves to app data's storage root
       await rebaseStoragePaths();
+      try {
+        await invoke<string[]>("finalize_storage_move", {
+          oldDir: previousEpisodesPath,
+          currentDir: null,
+        });
+      } catch (err) {
+        console.warn("[storage] previous files kept as a backup", err);
+      }
     } catch (err) {
       void showNotice(t("app.resetFailedTitle"), t("app.resetFailed", { error: errorText(err) }));
     } finally {
@@ -351,13 +365,16 @@ function App() {
   useEffect(() => {
     void invoke("write_app_paths_sync", {
       customEpisodesPath: episodesPath ?? null,
-    }).catch(() => {});
+    }).catch((err) => console.warn("[extension-sync] could not publish app paths", err));
   }, [episodesPath]);
   const openedEpisodeId = useEpisodePanelRuntimeStore((s) => s.openedEpisodeId);
   const openedEpisode = useEpisodePanelRuntimeStore((s) =>
     s.episodes.find((e) => e.id === s.openedEpisodeId)
   );
   const openedEpisodeClipsLen = openedEpisode?.clips.length ?? 0;
+  const openedEpisodeClipRevision = openedEpisode?.clips
+    .map((clip) => `${clip.clipPath ?? ""}:${clip.thumbnail}:${clip.thumbnailReady === true}`)
+    .join("|") ?? "";
   const animatedByClipId = useScenePreviewStore((s) => s.animatedByClipId);
 
   useEffect(() => {
@@ -372,7 +389,7 @@ function App() {
       manifest_path: "",
       scene_count: openedEpisodeClipsLen,
       method: openedEpisode.importMethod || "video_files",
-      updated_at: Math.floor(Date.now() / 1000),
+      updated_at: Date.now(),
       custom_path: episodesPath ?? null,
       previews: openedEpisode.clips.flatMap((clip, index) => {
         const preview = animatedByClipId[clip.id];
@@ -385,12 +402,14 @@ function App() {
       }),
     };
 
-    void invoke("write_active_episode_sync", { payload }).catch(() => {});
+    void invoke("write_active_episode_sync", { payload })
+      .catch((err) => console.warn("[extension-sync] could not publish active episode", err));
   }, [
     openedEpisodeId,
     openedEpisode?.id,
     openedEpisode?.videoPath,
     openedEpisodeClipsLen,
+    openedEpisodeClipRevision,
     openedEpisode?.importMethod,
     animatedByClipId,
     episodesPath,

@@ -7,6 +7,8 @@ pub const EPISODES_DIR_NAME: &str = "episodes_storage";
 pub const SCENEPACKS_DIR_NAME: &str = "scene_packs";
 pub const SCENE_SCOUT_DIR_NAME: &str = "amverge-scene-scout";
 
+pub static STORAGE_MOVE_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 pub fn resolve_storage_root(app: &AppHandle, custom_path: Option<&str>) -> Result<PathBuf, String> {
     match custom_path.map(str::trim) {
         Some(p) if !p.is_empty() => Ok(PathBuf::from(p)),
