@@ -74,7 +74,7 @@ const STEPS: Step[] = [
     targets: ["search-field"],
     title: "5. Describe a scene",
     body: (
-      <>``
+      <>
         Describe the scene you want, press <b>Enter</b>, select the clips you're looking for, then export it like
         any clip.
       </>
