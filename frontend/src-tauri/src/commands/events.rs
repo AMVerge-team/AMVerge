@@ -45,6 +45,25 @@ pub struct EventMutationResponse {
     pub retry_after_seconds: Option<u64>,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VideoUploadUrlResponse {
+    pub ok: bool,
+    pub message: Option<String>,
+    pub upload_url: Option<String>,
+    pub public_url: Option<String>,
+    pub content_type: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ApiVideoUploadUrlBody {
+    upload_url: Option<String>,
+    public_url: Option<String>,
+    content_type: Option<String>,
+    message: Option<String>,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EventSubmission {
@@ -355,6 +374,73 @@ pub async fn update_event_request(
         submission,
     )
     .await
+}
+
+/// requests a short-lived presigned R2 PUT URL for an announcement video
+#[tauri::command]
+pub async fn request_event_video_upload_url(
+    content_type: String,
+    size_bytes: u64,
+) -> Result<VideoUploadUrlResponse, String> {
+    let token = require_session()?;
+    let client = http_client()?;
+
+    let response = client
+        .post(api_url("/api/events/video-upload-url")?)
+        .bearer_auth(token)
+        .json(&serde_json::json!({
+            "contentType": content_type,
+            "sizeBytes": size_bytes,
+        }))
+        .send()
+        .await
+        .map_err(|e| format!("Could not reach AMVerge: {e}"))?;
+
+    let status = response.status();
+    let parsed = response.json::<ApiVideoUploadUrlBody>().await.ok();
+
+    if !status.is_success() {
+        if status == reqwest::StatusCode::UNAUTHORIZED {
+            discard_rejected_session();
+            return Ok(VideoUploadUrlResponse {
+                ok: false,
+                message: Some("Your sign-in has expired. Sign in with Discord again.".to_string()),
+                upload_url: None,
+                public_url: None,
+                content_type: None,
+            });
+        }
+
+        return Ok(VideoUploadUrlResponse {
+            ok: false,
+            message: Some(
+                parsed
+                    .and_then(|body| body.message)
+                    .unwrap_or_else(|| format!("Video upload request failed with HTTP {}.", status.as_u16())),
+            ),
+            upload_url: None,
+            public_url: None,
+            content_type: None,
+        });
+    }
+
+    let Some(body) = parsed else {
+        return Ok(VideoUploadUrlResponse {
+            ok: false,
+            message: Some("Invalid response from video upload endpoint.".to_string()),
+            upload_url: None,
+            public_url: None,
+            content_type: None,
+        });
+    };
+
+    Ok(VideoUploadUrlResponse {
+        ok: true,
+        message: None,
+        upload_url: body.upload_url,
+        public_url: body.public_url,
+        content_type: body.content_type,
+    })
 }
 
 #[cfg(test)]
