@@ -53,6 +53,8 @@ pub struct EventSubmission {
     pub discord_invite_url: String,
     /// the event's page if it is also on hyetta; the server checks the host
     pub hyetta_url: Option<String>,
+    /// optional YouTube or direct video URL for the host's announcement video
+    pub announcement_video_url: Option<String>,
     pub prize_pool: Option<String>,
     /// "contest" or "hour"; the server rejects anything else back to "contest"
     pub event_type: Option<String>,

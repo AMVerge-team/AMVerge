@@ -1,8 +1,10 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { open } from "@tauri-apps/plugin-shell";
+import { FaChevronLeft, FaChevronRight, FaImage, FaPlay } from "react-icons/fa";
 import { FaArrowLeft, FaCalendarAlt, FaCheckCircle, FaDiscord, FaEdit, FaExternalLinkAlt, FaTrash, FaTrophy } from '../icons/animated';
 
 import RichText from "./RichText";
+import { parseAnnouncementVideo } from "./videoUrl";
 import { formatCooldown, useCooldown } from "./useCooldown";
 import {
   countdownLabel,
@@ -35,6 +37,15 @@ export default function EventDetail({ event, onBack, onEdit, onDelete, preview =
   const ended = hasEnded(event);
   const status = statusLabel(event);
   const coverSrc = event.thumbnailDataUrl || event.thumbnailUrl;
+  const video = useMemo(() => parseAnnouncementVideo(event.announcementVideoUrl), [event.announcementVideoUrl]);
+  const hasBothMedia = Boolean(video && coverSrc);
+  const [activeSlide, setActiveSlide] = useState<"video" | "image">(video ? "video" : "image");
+
+  useEffect(() => {
+    setActiveSlide(video ? "video" : "image");
+  }, [event.id, video]);
+
+  const toggleSlide = () => setActiveSlide((s) => (s === "video" ? "image" : "video"));
 
   const handleJoin = () => {
     if (preview) return;
@@ -49,13 +60,80 @@ export default function EventDetail({ event, onBack, onEdit, onDelete, preview =
         </button>
       )}
 
-      <div className="event-detail-banner">
-        {coverSrc ? (
+      <div className={`event-detail-banner${video ? " has-video" : ""}`}>
+        {activeSlide === "video" && video ? (
+          preview ? (
+            <div className="event-media-video-preview">
+              {coverSrc && <img src={coverSrc} alt="" draggable={false} />}
+              <div className="event-media-video-preview-badge">
+                <FaPlay aria-hidden="true" />
+                <span>Announcement video ({video.kind === "youtube" ? "YouTube" : "Video"})</span>
+              </div>
+            </div>
+          ) : video.kind === "youtube" ? (
+            <iframe
+              className="event-detail-video-frame"
+              src={video.embedUrl}
+              title={`${event.title || "Event"} announcement video`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            <video
+              className="event-detail-video"
+              src={video.src}
+              poster={coverSrc || undefined}
+              controls
+              playsInline
+            />
+          )
+        ) : coverSrc ? (
           <img src={coverSrc} alt="" draggable={false} />
         ) : (
           <div className="event-card-thumb-empty" aria-hidden="true">
             <FaCalendarAlt />
           </div>
+        )}
+
+        {hasBothMedia && (
+          <>
+            <button
+              type="button"
+              className="event-media-nav is-prev"
+              onClick={toggleSlide}
+              aria-label="Previous media"
+            >
+              <FaChevronLeft aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="event-media-nav is-next"
+              onClick={toggleSlide}
+              aria-label="Next media"
+            >
+              <FaChevronRight aria-hidden="true" />
+            </button>
+            <div className="event-media-switcher" role="tablist" aria-label="Event media">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeSlide === "video"}
+                className={`event-media-tab${activeSlide === "video" ? " is-active" : ""}`}
+                onClick={() => setActiveSlide("video")}
+              >
+                <FaPlay aria-hidden="true" /> Video
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeSlide === "image"}
+                className={`event-media-tab${activeSlide === "image" ? " is-active" : ""}`}
+                onClick={() => setActiveSlide("image")}
+              >
+                <FaImage aria-hidden="true" /> Cover
+              </button>
+            </div>
+          </>
         )}
       </div>
 

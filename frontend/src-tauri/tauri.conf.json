@@ -21,7 +21,7 @@
       }
     ],
     "security": {
-      "csp": "connect-src ipc: http://ipc.localhost",
+      "csp": "connect-src ipc: http://ipc.localhost; frame-src https://www.youtube-nocookie.com https://www.youtube.com; media-src 'self' asset: http://asset.localhost https: blob:",
       "dangerousDisableAssetCspModification": ["style-src"],
       "assetProtocol": {
         "enable": true,

@@ -9,6 +9,7 @@ import EventDetail from "./EventDetail";
 import EventPreviewStage from "./EventPreviewStage";
 import { useEventsStore } from "../../stores/eventsStore";
 import type { CommunityEvent, EventThumbnail, EventType } from "./types";
+import { isValidAnnouncementVideoUrl } from "./videoUrl";
 
 // mirrors the server's limits so the host is told before the round trip
 const TITLE_MAX = 120;
@@ -28,6 +29,7 @@ type FormState = {
   description: string;
   discordInviteUrl: string;
   hyettaUrl: string;
+  announcementVideoUrl: string;
   prizePool: string;
   eventType: EventType;
   hostName: string;
@@ -41,6 +43,7 @@ const EMPTY_FORM: FormState = {
   description: "",
   discordInviteUrl: "",
   hyettaUrl: "",
+  announcementVideoUrl: "",
   prizePool: "",
   eventType: "contest",
   hostName: "",
@@ -66,6 +69,7 @@ const FIELD_ORDER = [
   "description",
   "discordInviteUrl",
   "hyettaUrl",
+  "announcementVideoUrl",
   "startsAt",
   "durationHours",
   "endsAt",
@@ -204,6 +208,7 @@ export default function HostEventModal() {
         description: editing.description,
         discordInviteUrl: editing.discordInviteUrl,
         hyettaUrl: editing.hyettaUrl ?? "",
+        announcementVideoUrl: editing.announcementVideoUrl ?? "",
         prizePool: (editing.prizePool ?? "").replace(/\D/g, ""),
         eventType: editing.eventType,
         hostName: editing.hostName ?? "",
@@ -279,6 +284,7 @@ export default function HostEventModal() {
 
   // the field only exists for hour contests, so a link typed before switching type is dropped
   const hyettaUrl = form.eventType === "hour" ? form.hyettaUrl.trim() || null : null;
+  const announcementVideoUrl = form.announcementVideoUrl.trim() || null;
 
   const draft: CommunityEvent = {
     id: editing?.id ?? "preview",
@@ -286,6 +292,7 @@ export default function HostEventModal() {
     description: form.description || "Your description will appear here.",
     discordInviteUrl: form.discordInviteUrl,
     hyettaUrl,
+    announcementVideoUrl,
     prizePool: form.prizePool ? `$${form.prizePool}` : null,
     eventType: form.eventType,
     durationHours: draftHours,
@@ -345,6 +352,8 @@ export default function HostEventModal() {
 
     if (hyettaUrl && !isValidHyettaLink(hyettaUrl))
       errors.hyettaUrl = "Use a hyetta.net/event link, or leave it blank.";
+    if (announcementVideoUrl && !isValidAnnouncementVideoUrl(announcementVideoUrl))
+      errors.announcementVideoUrl = "Use a YouTube link or a direct .mp4/.webm video URL, or leave it blank.";
 
     const startsAt = toIso(form.startsAt);
     if (!startsAt) {
@@ -400,6 +409,8 @@ export default function HostEventModal() {
       description: form.description.trim(),
       discordInviteUrl: form.discordInviteUrl.trim(),
       hyettaUrl,
+      announcementVideoUrl,
+    announcementVideoUrl,
       prizePool: form.prizePool ? `$${form.prizePool}` : null,
       eventType: form.eventType,
       hostName: form.hostName.trim() || null,
@@ -594,6 +605,24 @@ export default function HostEventModal() {
                       aria-invalid={fieldErrors.hyettaUrl ? true : undefined}
                     />
                   </div>
+                )}
+              </div>
+
+              <div className={fieldClass("announcementVideoUrl")} data-field="announcementVideoUrl">
+                <label className="bugreport-label" htmlFor="host-event-video">
+                  Announcement video <span className="optional-label">(optional)</span>
+                </label>
+                <input
+                  id="host-event-video"
+                  type="url"
+                  maxLength={INVITE_MAX}
+                  value={form.announcementVideoUrl}
+                  onChange={(changeEvent) => setField("announcementVideoUrl", changeEvent.target.value)}
+                  placeholder="https://youtube.com/watch?v=... or direct .mp4 link"
+                  aria-invalid={fieldErrors.announcementVideoUrl ? true : undefined}
+                />
+                {fieldErrors.announcementVideoUrl && (
+                  <span className="field-error">{fieldErrors.announcementVideoUrl}</span>
                 )}
               </div>
 
