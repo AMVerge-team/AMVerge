@@ -10,6 +10,7 @@
     "mute": "静音",
     "unmute": "取消静音",
     "volume": "音量",
+    "speed": "",
     "fullscreen": "全屏"
   },
   "export": {
