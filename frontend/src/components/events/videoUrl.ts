@@ -56,8 +56,8 @@ export function parseAnnouncementVideo(raw: string | null | undefined): ParsedAn
     return {
       kind: "youtube",
       id: ytId,
-      embedUrl: `https://www.youtube-nocookie.com/embed/${ytId}?rel=0&modestbranding=1`,
-      hoverEmbedUrl: `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${ytId}&modestbranding=1&rel=0`,
+      embedUrl: `https://amverge.app/embed/youtube.html?v=${ytId}&autoplay=0&mute=0&controls=1&loop=0`,
+      hoverEmbedUrl: `https://amverge.app/embed/youtube.html?v=${ytId}&autoplay=1&mute=1&controls=0&loop=1`,
       watchUrl: `https://www.youtube.com/watch?v=${ytId}`,
     };
   }
