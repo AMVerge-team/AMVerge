@@ -407,7 +407,6 @@ export default function HostEventModal() {
       discordInviteUrl: form.discordInviteUrl.trim(),
       hyettaUrl,
       announcementVideoUrl,
-    announcementVideoUrl,
       prizePool: form.prizePool ? `$${form.prizePool}` : null,
       eventType: form.eventType,
       hostName: form.hostName.trim() || null,
