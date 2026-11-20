@@ -9,7 +9,6 @@ import EventDetail from "./EventDetail";
 import EventPreviewStage from "./EventPreviewStage";
 import { useEventsStore } from "../../stores/eventsStore";
 import type { CommunityEvent, EventThumbnail, EventType } from "./types";
-import { isValidAnnouncementVideoUrl } from "./videoUrl";
 
 // mirrors the server's limits so the host is told before the round trip
 const TITLE_MAX = 120;
@@ -352,8 +351,6 @@ export default function HostEventModal() {
 
     if (hyettaUrl && !isValidHyettaLink(hyettaUrl))
       errors.hyettaUrl = "Use a hyetta.net/event link, or leave it blank.";
-    if (announcementVideoUrl && !isValidAnnouncementVideoUrl(announcementVideoUrl))
-      errors.announcementVideoUrl = "Use a YouTube link or a direct .mp4/.webm video URL, or leave it blank.";
 
     const startsAt = toIso(form.startsAt);
     if (!startsAt) {
@@ -605,24 +602,6 @@ export default function HostEventModal() {
                       aria-invalid={fieldErrors.hyettaUrl ? true : undefined}
                     />
                   </div>
-                )}
-              </div>
-
-              <div className={fieldClass("announcementVideoUrl")} data-field="announcementVideoUrl">
-                <label className="bugreport-label" htmlFor="host-event-video">
-                  Announcement video <span className="optional-label">(optional)</span>
-                </label>
-                <input
-                  id="host-event-video"
-                  type="url"
-                  maxLength={INVITE_MAX}
-                  value={form.announcementVideoUrl}
-                  onChange={(changeEvent) => setField("announcementVideoUrl", changeEvent.target.value)}
-                  placeholder="https://youtube.com/watch?v=... or direct .mp4 link"
-                  aria-invalid={fieldErrors.announcementVideoUrl ? true : undefined}
-                />
-                {fieldErrors.announcementVideoUrl && (
-                  <span className="field-error">{fieldErrors.announcementVideoUrl}</span>
                 )}
               </div>
 

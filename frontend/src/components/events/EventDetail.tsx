@@ -4,7 +4,6 @@ import { FaChevronLeft, FaChevronRight, FaImage, FaPlay } from "react-icons/fa";
 import { FaArrowLeft, FaCalendarAlt, FaCheckCircle, FaDiscord, FaEdit, FaExternalLinkAlt, FaTrash, FaTrophy } from '../icons/animated';
 
 import RichText from "./RichText";
-import { parseAnnouncementVideo } from "./videoUrl";
 import { formatCooldown, useCooldown } from "./useCooldown";
 import {
   countdownLabel,
@@ -37,13 +36,13 @@ export default function EventDetail({ event, onBack, onEdit, onDelete, preview =
   const ended = hasEnded(event);
   const status = statusLabel(event);
   const coverSrc = event.thumbnailDataUrl || event.thumbnailUrl;
-  const video = useMemo(() => parseAnnouncementVideo(event.announcementVideoUrl), [event.announcementVideoUrl]);
-  const hasBothMedia = Boolean(video && coverSrc);
-  const [activeSlide, setActiveSlide] = useState<"video" | "image">(video ? "video" : "image");
+  const videoSrc = event.announcementVideoUrl?.trim() || null;
+  const hasBothMedia = Boolean(videoSrc && coverSrc);
+  const [activeSlide, setActiveSlide] = useState<"video" | "image">(videoSrc ? "video" : "image");
 
   useEffect(() => {
-    setActiveSlide(video ? "video" : "image");
-  }, [event.id, video]);
+    setActiveSlide(videoSrc ? "video" : "image");
+  }, [event.id, videoSrc]);
 
   const toggleSlide = () => setActiveSlide((s) => (s === "video" ? "image" : "video"));
 
@@ -60,33 +59,16 @@ export default function EventDetail({ event, onBack, onEdit, onDelete, preview =
         </button>
       )}
 
-      <div className={`event-detail-banner${video ? " has-video" : ""}`}>
-        {activeSlide === "video" && video ? (
-          preview ? (
-            <div className="event-media-video-preview">
-              {coverSrc && <img src={coverSrc} alt="" draggable={false} />}
-              <div className="event-media-video-preview-badge">
-                <FaPlay aria-hidden="true" />
-                <span>Announcement video ({video.kind === "youtube" ? "YouTube" : "Video"})</span>
-              </div>
-            </div>
-          ) : video.kind === "youtube" ? (
-            <iframe
-              className="event-detail-video-frame"
-              src={video.embedUrl}
-              title={`${event.title || "Event"} announcement video`}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          ) : (
-            <video
-              className="event-detail-video"
-              src={video.src}
-              poster={coverSrc || undefined}
-              controls
-              playsInline
-            />
-          )
+      <div className={`event-detail-banner${videoSrc ? " has-video" : ""}`}>
+        {activeSlide === "video" && videoSrc ? (
+          <video
+            className="event-detail-video"
+            src={videoSrc}
+            poster={coverSrc || undefined}
+            controls={!preview}
+            muted={preview}
+            playsInline
+          />
         ) : coverSrc ? (
           <img src={coverSrc} alt="" draggable={false} />
         ) : (

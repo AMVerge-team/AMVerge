@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaPlay } from "react-icons/fa";
 import { FaCalendarAlt, FaTrash, FaTrophy } from '../icons/animated';
 
@@ -6,7 +6,6 @@ import Tooltip from "../common/Tooltip";
 
 import { countdownLabel, eventTypeBadge, eventTypeLabel, formatSchedule, hasEnded, isLive, statusLabel } from "./format";
 import type { CommunityEvent } from "./types";
-import { parseAnnouncementVideo } from "./videoUrl";
 
 const HOVER_PREVIEW_DELAY_MS = 250;
 
@@ -30,7 +29,7 @@ export default function EventCard({ event, onOpen, preview = false, onDelete, is
   const status = statusLabel(event);
   // pending/denied events cannot be served from the public thumbnail route, so use the host's inline data URL first
   const coverSrc = event.thumbnailDataUrl || event.thumbnailUrl;
-  const video = useMemo(() => parseAnnouncementVideo(event.announcementVideoUrl), [event.announcementVideoUrl]);
+  const videoSrc = event.announcementVideoUrl?.trim() || null;
   const [hoverPlaying, setHoverPlaying] = useState(false);
   const hoverTimerRef = useRef<number | null>(null);
 
@@ -39,7 +38,7 @@ export default function EventCard({ event, onOpen, preview = false, onDelete, is
   }, []);
 
   const handlePointerEnter = () => {
-    if (preview || !video) return;
+    if (preview || !videoSrc) return;
     if (hoverTimerRef.current !== null) window.clearTimeout(hoverTimerRef.current);
     hoverTimerRef.current = window.setTimeout(() => {
       hoverTimerRef.current = null;
@@ -65,30 +64,20 @@ export default function EventCard({ event, onOpen, preview = false, onDelete, is
             <FaCalendarAlt />
           </div>
         )}
-        {hoverPlaying && video && (
-          video.kind === "direct" ? (
-            <video
-              className="event-card-hover-video"
-              src={video.src}
-              autoPlay
-              muted
-              loop
-              playsInline
-            />
-          ) : (
-            <iframe
-              className="event-card-hover-video"
-              src={video.hoverEmbedUrl}
-              title=""
-              allow="autoplay; encrypted-media"
-              tabIndex={-1}
-            />
-          )
+        {hoverPlaying && videoSrc && (
+          <video
+            className="event-card-hover-video"
+            src={videoSrc}
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
         )}
         <span className="event-card-type" title={eventTypeLabel(event)}>
           {eventTypeBadge(event)}
         </span>
-        {video && (
+        {videoSrc && (
           <span className="event-card-video-badge" title="Includes announcement video">
             <FaPlay aria-hidden="true" /> Video
           </span>
