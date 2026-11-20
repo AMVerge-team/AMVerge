@@ -21,7 +21,7 @@
       }
     ],
     "security": {
-      "csp": "connect-src ipc: http://ipc.localhost; media-src 'self' asset: http://asset.localhost https: blob:",
+      "csp": "connect-src ipc: http://ipc.localhost https://*.r2.cloudflarestorage.com; media-src 'self' asset: http://asset.localhost https: blob:",
       "dangerousDisableAssetCspModification": ["style-src"],
       "assetProtocol": {
         "enable": true,
