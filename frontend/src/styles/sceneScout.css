@@ -310,9 +310,27 @@
 .scene-scout-logo .ss-logo-dark { fill: var(--ss-logo-dark); }
 .scene-scout-logo .ss-logo-deep { fill: var(--ss-logo-deep); }
 
-.scene-scout-hero-logo {
+.scene-scout-hero-logo-wrap {
     width: min(420px, 90%);
     margin: 0 auto 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.scene-scout-hero-logo {
+    width: 100%;
+    margin: 0;
+}
+
+.scene-scout-logo-credit {
+    align-self: flex-end;
+    margin-top: 2px;
+    font-family: var(--ui-font);
+    font-size: 0.62rem;
+    font-weight: 400;
+    letter-spacing: 0.2px;
+    color: rgb(255 255 255 / 0.35);
+    white-space: nowrap;
 }
 
 /* wraps instead of overflowing when the pane is narrow */
