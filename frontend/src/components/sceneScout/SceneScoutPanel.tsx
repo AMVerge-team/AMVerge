@@ -453,23 +453,23 @@ export function SceneScoutPanel() {
             </span>
           </div>
           <div className="episode-panel-actions" data-scout-tour="db-actions">
-            <Tooltip content={isOpening ? "Opening database…" : "Import a database file"}>
+            <Tooltip content={isOpening ? "Opening collection…" : "Import a collection file (.scoutdb)"}>
               <button
                 type="button"
                 className="episode-panel-action icon-only"
                 onClick={() => void startOpen()}
                 disabled={isOpening}
-                aria-label="Import a database file"
+                aria-label="Import a collection file"
               >
                 {isOpening ? <FaSpinner className="spinner" aria-hidden="true" /> : <DatabaseImportIcon />}
               </button>
             </Tooltip>
-            <Tooltip content="New database">
+            <Tooltip content="New collection">
               <button
                 type="button"
                 className="episode-panel-action icon-only"
                 onClick={() => void startCreate()}
-                aria-label="New database"
+                aria-label="New collection"
               >
                 <FaPlus aria-hidden="true" />
               </button>
@@ -482,7 +482,7 @@ export function SceneScoutPanel() {
           <input
             type="text"
             className="scenepack-search-input"
-            placeholder="Search databases..."
+            placeholder="Search collections..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -510,18 +510,18 @@ export function SceneScoutPanel() {
                 style={{ fontSize: 24, opacity: 0.4 }}
                 aria-hidden="true"
               />
-              <span style={{ fontSize: 13, opacity: 0.5 }}>Loading databases...</span>
+              <span style={{ fontSize: 13, opacity: 0.5 }}>Loading collections...</span>
             </div>
           ) : (
             <div className="scenepacks-empty-cta">
               <FaDatabase style={{ fontSize: 28, opacity: 0.3 }} aria-hidden="true" />
-              <span style={{ fontSize: 15, opacity: 0.6 }}>No databases yet</span>
+              <span style={{ fontSize: 15, opacity: 0.6 }}>No collections yet</span>
               <button
                 className="episode-modal-btn primary"
                 onClick={() => void startCreate()}
                 style={{ marginTop: 6, fontSize: 12, padding: "6px 12px" }}
               >
-                Create a Scene Scout Database
+                Create a Collection
               </button>
             </div>
           )}
@@ -538,8 +538,8 @@ export function SceneScoutPanel() {
             {searchVisible.length === 0 ? (
               <div className="scene-scout-drop-hint">
                 {selectedDatabases.length === 0
-                  ? "Nothing is searched yet. Double-click, drag or right-click a database below to search it"
-                  : "No searched databases match that filter."}
+                  ? "No collections active. Click + on a collection below to search it."
+                  : "No active collections match that filter."}
               </div>
             ) : (
               searchVisible.map((database) => renderDbRow(database, "search", searchVisible.map((d) => d.path)))
@@ -559,7 +559,7 @@ export function SceneScoutPanel() {
             data-scout-tour="all-databases"
             className={`episode-panel-list scene-scout-db-box${dropList === "all" ? " is-drop-target-root" : ""}`}
           >
-            <div className="scene-scout-section-label">All databases · {databases.length}</div>
+            <div className="scene-scout-section-label">All collections · {databases.length}</div>
             {isOpening && openingName && (
               <div className="episode-panel-row episode-row" style={{ opacity: 0.75, pointerEvents: "none" }}>
                 <FaSpinner className="episode-panel-import-icon spinner" style={{ animation: "spin 1s linear infinite" }} />
@@ -569,7 +569,7 @@ export function SceneScoutPanel() {
             )}
             {visible.length === 0 ? (
               // a search that matched nothing, which is not the same as having no databases at all
-              <div className="episode-panel-empty">No databases match that search.</div>
+              <div className="episode-panel-empty">No collections match that search.</div>
             ) : (
               visible.map((database) => renderDbRow(database, "all", visible.map((d) => d.path)))
             )}
@@ -666,7 +666,7 @@ export function SceneScoutPanel() {
         >
           <div className="denial-notice">
             <FaTrashAlt aria-hidden="true" className="denial-notice-icon" style={{ color: "#ef4444" }} />
-            <h2>Delete Database from System?</h2>
+            <h2>Delete Collection from System?</h2>
 
             <p className="events-subtitle ban-notice-note scene-scout-delete-question" style={{ color: "rgba(255,255,255,0.85)" }}>
               Are you sure you want to permanently delete <strong>{databaseToDelete.name}</strong> from your system?
@@ -676,12 +676,12 @@ export function SceneScoutPanel() {
               <div style={{ color: "rgba(255,255,255,0.5)", marginBottom: "4px" }}>File path:</div>
               <div style={{ fontFamily: "monospace", color: "rgba(255,255,255,0.9)" }}>{databaseToDelete.path}</div>
               <div style={{ marginTop: "6px", color: "rgba(255,255,255,0.6)" }}>
-                {databaseToDelete.videoCount} {databaseToDelete.videoCount === 1 ? "video" : "videos"} · {databaseToDelete.sceneCount} indexed {databaseToDelete.sceneCount === 1 ? "scene" : "scenes"}
+                {databaseToDelete.videoCount} {databaseToDelete.videoCount === 1 ? "video" : "videos"} · {databaseToDelete.sceneCount} {databaseToDelete.sceneCount === 1 ? "scene" : "scenes"}
               </div>
             </div>
 
             <p className="scene-scout-delete-warning">
-              This will permanently erase the database file and its embeddings from disk. This action cannot be undone. If you only want to remove it from this list, right-click it and choose Remove from list instead.
+              This will permanently erase the collection file and its saved scene data from disk. This action cannot be undone. If you only want to remove it from this list, right-click it and choose Remove from list instead.
             </p>
 
             <div className="denial-notice-actions">
@@ -752,8 +752,8 @@ export function SceneScoutPanel() {
 
             <p className="scene-scout-delete-warning">
               {videosToDelete.videos.length > 1
-                ? "This will remove these video entries and all their scene embeddings and thumbnails from this database. The video files on your computer will NOT be deleted."
-                : "This will remove the video entry and all its scene embeddings and thumbnails from this database. The video file on your computer will NOT be deleted."}
+                ? "This will remove these videos and their saved scene data and thumbnails from this collection. The video files on your computer will NOT be deleted."
+                : "This will remove this video and its saved scene data and thumbnails from this collection. The video file on your computer will NOT be deleted."}
             </p>
 
             <div className="denial-notice-actions">

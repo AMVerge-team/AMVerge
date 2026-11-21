@@ -82,7 +82,7 @@ export function useCreateScoutDatabase(onCreated?: (path: string) => void) {
         <h2>{t("createDb.dialogTitle")}</h2>
 
         <p className="events-subtitle ban-notice-note">
-          A database holds the searchable scenes for a series or clip pack. One per series works best.
+          A collection holds the searchable scenes for a series or clip pack. One per series works best.
         </p>
 
         <input

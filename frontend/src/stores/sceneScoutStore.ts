@@ -71,7 +71,7 @@ async function withModelLoadingCard<T>(search: () => Promise<T>): Promise<T> {
     appState.setActiveOperation("scout_search");
     appState.setLoading(true);
     appState.setProgress(0);
-    appState.setProgressMsg("Loading SigLIP 2 model weights…");
+    appState.setProgressMsg("Starting AI scene search…");
   });
 
   try {
@@ -661,7 +661,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             }
 
             if (stage === "loading_model") {
-              appState.setProgressMsg("Loading SigLIP 2 model weights…");
+              appState.setProgressMsg("Starting AI scene search…");
               useAppStateStore.setState((s) => ({ ...s, bgProgress: null }));
             } else if (stage === "detecting") {
               appState.setProgressMsg("Detecting scenes…");
@@ -674,8 +674,8 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
               advance(from + fraction(done, total) * (to - from));
               appState.setProgressMsg(
                 done > 0
-                  ? `Sampling representative frames ${done}/${total} (${pct}%)`
-                  : `Sampling ${total} representative frames…`
+                  ? `Reading scene frames ${done}/${total} (${pct}%)`
+                  : `Reading ${total} scene frames…`
               );
               useAppStateStore.setState((s) => ({
                 ...s,
@@ -685,14 +685,14 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
               const pct = total > 0 ? Math.round((done / total) * 100) : 0;
               const from = runsDetection ? 95 : 80;
               advance(from + fraction(done, total) * (100 - from));
-              appState.setProgressMsg(`Embedding scenes ${done}/${total} (${pct}%)`);
+              appState.setProgressMsg(`Scanning scenes ${done}/${total} (${pct}%)`);
               useAppStateStore.setState((s) => ({
                 ...s,
                 bgProgress: { done, total },
               }));
             } else if (stage === "done") {
               appState.setProgress(100);
-              appState.setProgressMsg("Indexed scenes successfully");
+              appState.setProgressMsg("Scenes ready to search");
             }
           });
 

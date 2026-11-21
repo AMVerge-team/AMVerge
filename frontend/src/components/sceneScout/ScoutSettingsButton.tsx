@@ -183,7 +183,7 @@ export function ScoutSettingsButton({ rerun, className = "" }: Props) {
               </label>
             </Tooltip>
 
-            <Tooltip content="Adding a full episode also cuts it into your Library, in a folder named after the database. Results then play those clips. Off: episodes are only indexed">
+            <Tooltip content="Also adds full episodes to your Library in a folder named after the collection so search results play as pre-cut clips.">
               <label className="scene-scout-setting scene-scout-setting-inline scene-scout-skip-edges">
                 <input
                   type="checkbox"
@@ -196,14 +196,14 @@ export function ScoutSettingsButton({ rerun, className = "" }: Props) {
           </div>
 
           <div className="scene-scout-options-footer">
-            <Tooltip content="Free the RAM / VRAM the search model is using right now">
+            <Tooltip content="Frees the RAM / VRAM used by AI search right now">
               <button
                 type="button"
                 className="buttons scene-scout-unload-btn"
                 onClick={() => void handleUnloadModel()}
                 disabled={unloading}
               >
-                {unloading ? "Unloading..." : freed ? "Unloaded" : "Unload model"}
+                {unloading ? "Freeing..." : freed ? "Memory freed" : "Free AI memory"}
               </button>
             </Tooltip>
           </div>
