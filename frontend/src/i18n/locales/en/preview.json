@@ -61,10 +61,10 @@
         "open": "Open a Scenepack to see its clips"
       },
       "sceneScoutSearch": {
-        "database": "Create or open a <b>Collection</b> for a series or clip pack",
+        "database": "Click <b>Create Collection</b> for an anime series or clip pack",
         "searching": "New collections are searched automatically. Click <b>+</b> or <b>×</b> on any collection to toggle it",
-        "addEpisode": "Click <b>Add Videos</b> to scan episodes or pre-cut clips into it",
-        "describe": "Describe a scene in the search bar and press <b>Enter</b>",
+        "addEpisode": "Click <b>Add Videos</b> to scan episodes, or skip detection for pre-cut clips",
+        "describe": "Describe what happens in the scene and press <b>Enter</b>",
         "preview": "Single click a result to <b>Preview</b> it"
       },
       "sceneScoutFlow": {
