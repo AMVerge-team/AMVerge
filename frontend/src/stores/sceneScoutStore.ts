@@ -189,7 +189,7 @@ type SceneScoutActions = {
   /** interactive in-UI walkthrough sandbox actions (never written to disk or localStorage) */
   startTutorial: () => void;
   tutorialCreateCollection: (name?: string) => void;
-  tutorialAddSampleVideos: () => void;
+  tutorialAddSampleVideos: (selectedUrls?: string[]) => void;
   endTutorial: () => void;
 };
 
@@ -241,6 +241,7 @@ type TutorialSnapshot = Pick<
 
 let tutorialSnapshot: TutorialSnapshot | null = null;
 let tutorialDbName = TUTORIAL_DB_NAME;
+let tutorialSelectedUrls: string[] | null = null;
 
 // databases already backfilled this session, so a repeat search does not respawn the cli for nothing
 const backfilled = new Set<string>();
@@ -657,6 +658,10 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
 
       addVideos: async (videoPaths, detectorArg, precutScenes) => {
         if (!videoPaths.length) return { ok: true, message: null };
+        if (get().tutorialStep !== null) {
+          get().tutorialAddSampleVideos(videoPaths);
+          return { ok: true, message: null };
+        }
         // remembered for scene scout only, so it never changes the home import default
         if (detectorArg) set({ settings: { ...get().settings, lastIndexDetection: detectorArg } });
         const database = get().openedDatabase || get().selectedDatabases[0];
@@ -832,7 +837,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         const query = get().query.trim();
         if (!query) return;
         if (get().tutorialStep !== null) {
-          const results = searchTutorialHits(query, tutorialDbName);
+          const results = searchTutorialHits(query, tutorialDbName, tutorialSelectedUrls);
           set({
             results,
             lastQuery: query,
@@ -993,7 +998,8 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           ?.replace(/\.scoutdb$/i, "")
           .trim();
         tutorialDbName = cleaned || TUTORIAL_DB_NAME;
-        const db = makeTutorialDatabase(false, tutorialDbName);
+        tutorialSelectedUrls = null;
+        const db = makeTutorialDatabase(0, tutorialDbName);
         set({
           databases: [db],
           openedDatabase: TUTORIAL_DB_PATH,
@@ -1005,9 +1011,10 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         });
       },
 
-      tutorialAddSampleVideos: () => {
-        const db = makeTutorialDatabase(true, tutorialDbName);
-        const demoVideos = makeTutorialVideos();
+      tutorialAddSampleVideos: (selectedUrls) => {
+        tutorialSelectedUrls = selectedUrls && selectedUrls.length > 0 ? selectedUrls : null;
+        const demoVideos = makeTutorialVideos(tutorialSelectedUrls);
+        const db = makeTutorialDatabase(demoVideos.length, tutorialDbName);
         set({
           databases: [db],
           openedDatabase: TUTORIAL_DB_PATH,
@@ -1024,6 +1031,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         const snap = tutorialSnapshot;
         tutorialSnapshot = null;
         tutorialDbName = TUTORIAL_DB_NAME;
+        tutorialSelectedUrls = null;
         if (snap) {
           set({ ...snap, tutorialStep: null });
         } else {

@@ -11,6 +11,7 @@ import { useAiDepsStore } from "../../stores/aiDepsStore";
 import { useGeneralSettingsStore, type SceneDetectionMethod } from "../../stores/settingsStore";
 import { sceneDetectionOptions } from "../settings/general/options";
 import { episodeSceneRanges, precutEpisodes, type SceneRange } from "../../features/sceneScout/precutEpisodes";
+import { makeTutorialLibraryEpisodes } from "../../features/sceneScout/tutorialDemo";
 import { VIDEO_EXTENSIONS } from "../../utils/videoExtensions";
 
 
@@ -32,7 +33,8 @@ export function useAddEpisodes() {
       ? s.displayNames[targetDatabase] ?? s.databases.find((d) => samePath(d.path, targetDatabase))?.name ?? null
       : null
   );
-  const indexedVideos =useSceneScoutStore((s) => (targetDatabase ? s.videosByDatabase[targetDatabase] : undefined));
+  const indexedVideos = useSceneScoutStore((s) => (targetDatabase ? s.videosByDatabase[targetDatabase] : undefined));
+  const tutorialStep = useSceneScoutStore((s) => s.tutorialStep);
 
   const [choosing, setChoosing] = useState(false);
   const [sourceTab, setSourceTab] = useState<"computer" | "library">("computer");
@@ -43,7 +45,10 @@ export function useAddEpisodes() {
   const [method, setMethod] = useState<IndexDetection>("transnetv2_gpu");
   const [error, setError] = useState("");
 
-  const offered = useMemo(() => precutEpisodes(homeEpisodes), [homeEpisodes]);
+  const offered = useMemo(
+    () => (tutorialStep !== null ? makeTutorialLibraryEpisodes() : precutEpisodes(homeEpisodes)),
+    [homeEpisodes, tutorialStep]
+  );
   const alreadyIndexed = (videoPath: string) => (indexedVideos ?? []).some((v) => samePath(v.filepath, videoPath));
 
   const startAddEpisodes = async () => {
@@ -51,6 +56,7 @@ export function useAddEpisodes() {
     if (offered.length > 0) {
       setPicked(new Set());
       anchorRef.current = null;
+      setSourceTab(tutorialStep !== null ? "library" : "computer");
       setChoosing(true);
       return;
     }
@@ -112,7 +118,7 @@ export function useAddEpisodes() {
 
   const chooser = choosing ? (
     <ModalShell open onClose={() => setChoosing(false)} label="Add videos" className="scout-add-modal">
-      <div className="scout-add">
+      <div className="scout-add" data-scout-tour="add-episodes-modal">
         <h2 className="scout-add-title">{targetName ? `Add videos to ${targetName}` : "Add videos"}</h2>
 
         <div className="scene-scout-mode-tabs" role="tablist" aria-label="Video source" style={{ marginBottom: 14, alignSelf: "flex-start" }}>

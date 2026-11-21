@@ -86,7 +86,7 @@ export function SceneScoutTour() {
     displayStep === 0
       ? ["create-modal", "hero-create-btn", "db-empty", "db-actions"]
       : displayStep === 1
-        ? ["hero-add-btn", "add-episode"]
+        ? ["add-episodes-modal", "hero-add-btn", "add-episode"]
         : displayStep === 2
           ? ["search-field"]
           : displayStep === 3
@@ -177,8 +177,8 @@ export function SceneScoutTour() {
           <>
             <h3 className="scout-tour-title">2. Add Videos or Clips</h3>
             <p className="scout-tour-body">
-              Click <b>Add Videos</b> to load 4 sample scenes. In normal use, you can add full episodes or pre-cut clips
-              (skipping scene detection).
+              Click <b>Add Videos</b>, select one or more sample clips from the <b>From Library</b> list, and click{" "}
+              <b>Add to collection</b>.
             </p>
           </>
         )}

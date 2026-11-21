@@ -32,8 +32,6 @@ export function SceneScoutHero() {
   const dismissHero = useSceneScoutStore((s) => s.dismissHero);
   const runSearch = useSceneScoutStore((s) => s.runSearch);
   const loadDatabases = useSceneScoutStore((s) => s.loadDatabases);
-  const tutorialStep = useSceneScoutStore((s) => s.tutorialStep);
-  const tutorialAddSampleVideos = useSceneScoutStore((s) => s.tutorialAddSampleVideos);
   const setTourSeen = useUIStateStore((s) => s.setSceneScoutTourSeen);
   // the centre holds the search bar on the Search tab and the clip player on the Flow tab
   const mode = useSceneScoutStore((s) => s.mode);
@@ -103,10 +101,6 @@ export function SceneScoutHero() {
   };
 
   const onAddEpisodes = () => {
-    if (tutorialStep === 1) {
-      tutorialAddSampleVideos();
-      return;
-    }
     if (!addTarget) return;
     setActiveDatabase(addTarget);
     void startAddEpisodes();

@@ -1,3 +1,4 @@
+import type { EpisodeEntry } from "../../types/domain";
 import type { ScoutDatabase, ScoutHit, ScoutVideo } from "./types";
 
 export const R2_TUTORIAL_BASE = "https://amverge.tsukyio.com/tutorial";
@@ -52,21 +53,26 @@ export function isRemoteMediaUrl(pathOrUrl: string | null | undefined): boolean 
   return Boolean(pathOrUrl && (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")));
 }
 
-export function makeTutorialDatabase(withClips: boolean, name = TUTORIAL_DB_NAME): ScoutDatabase {
+export function makeTutorialDatabase(videoCount: number, name = TUTORIAL_DB_NAME): ScoutDatabase {
   return {
     name: name.trim() || TUTORIAL_DB_NAME,
     path: TUTORIAL_DB_PATH,
-    videoCount: withClips ? TUTORIAL_CLIPS.length : 0,
-    sceneCount: withClips ? TUTORIAL_CLIPS.length : 0,
-    sizeBytes: withClips ? 128_000 : 8_192,
+    videoCount,
+    sceneCount: videoCount,
+    sizeBytes: videoCount > 0 ? videoCount * 32_000 : 8_192,
     modelVersion: "tutorial",
     createdAt: new Date().toISOString(),
   };
 }
 
-export function makeTutorialVideos(): ScoutVideo[] {
+export function makeTutorialVideos(selectedUrls?: string[] | null): ScoutVideo[] {
   const now = Date.now() / 1000;
-  return TUTORIAL_CLIPS.map((clip, i) => ({
+  const list =
+    selectedUrls && selectedUrls.length > 0
+      ? TUTORIAL_CLIPS.filter((c) => selectedUrls.includes(c.videoUrl))
+      : TUTORIAL_CLIPS;
+  const active = list.length > 0 ? list : TUTORIAL_CLIPS;
+  return active.map((clip, i) => ({
     id: i + 1,
     name: clip.title,
     filepath: clip.videoUrl,
@@ -76,9 +82,43 @@ export function makeTutorialVideos(): ScoutVideo[] {
   }));
 }
 
-export function searchTutorialHits(query: string, dbName = TUTORIAL_DB_NAME): ScoutHit[] {
+export function makeTutorialLibraryEpisodes(): EpisodeEntry[] {
+  const now = Date.now();
+  return TUTORIAL_CLIPS.map((clip, i) => ({
+    id: `tutorial_ep_${clip.id}`,
+    name: clip.title,
+    displayName: clip.title,
+    videoPath: clip.videoUrl,
+    folderId: null,
+    importedAt: now - i * 1000,
+    clips: [
+      {
+        id: `tutorial_clip_${clip.id}`,
+        src: clip.videoUrl,
+        clipPath: clip.videoUrl,
+        thumbnail: "",
+        originalPath: clip.videoUrl,
+        originalName: clip.title,
+        sceneIndex: 0,
+        startSec: 0,
+        endSec: clip.durationSec,
+      },
+    ],
+  }));
+}
+
+export function searchTutorialHits(
+  query: string,
+  dbName = TUTORIAL_DB_NAME,
+  selectedUrls?: string[] | null
+): ScoutHit[] {
   const q = query.trim().toLowerCase();
-  const scored = TUTORIAL_CLIPS.map((clip, idx) => {
+  const pool =
+    selectedUrls && selectedUrls.length > 0
+      ? TUTORIAL_CLIPS.filter((c) => selectedUrls.includes(c.videoUrl))
+      : TUTORIAL_CLIPS;
+  const active = pool.length > 0 ? pool : TUTORIAL_CLIPS;
+  const scored = active.map((clip, idx) => {
     let score = 0.74 - idx * 0.03;
     if (clip.prompt === q) score = 0.96;
     else if (clip.keywords.some((k) => q.includes(k))) score = 0.92;
