@@ -77,7 +77,7 @@ export function useCreateScoutDatabase(onCreated?: (path: string) => void) {
       label={t("createDb.dialogTitle")}
       className="scene-scout-name-modal"
     >
-      <div className="denial-notice">
+      <div className="denial-notice" data-scout-tour="create-modal">
         <FaDatabase aria-hidden="true" className="denial-notice-icon" />
         <h2>{t("createDb.dialogTitle")}</h2>
 

@@ -52,9 +52,9 @@ export function isRemoteMediaUrl(pathOrUrl: string | null | undefined): boolean 
   return Boolean(pathOrUrl && (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")));
 }
 
-export function makeTutorialDatabase(withClips: boolean): ScoutDatabase {
+export function makeTutorialDatabase(withClips: boolean, name = TUTORIAL_DB_NAME): ScoutDatabase {
   return {
-    name: TUTORIAL_DB_NAME,
+    name: name.trim() || TUTORIAL_DB_NAME,
     path: TUTORIAL_DB_PATH,
     videoCount: withClips ? TUTORIAL_CLIPS.length : 0,
     sceneCount: withClips ? TUTORIAL_CLIPS.length : 0,
@@ -76,7 +76,7 @@ export function makeTutorialVideos(): ScoutVideo[] {
   }));
 }
 
-export function searchTutorialHits(query: string): ScoutHit[] {
+export function searchTutorialHits(query: string, dbName = TUTORIAL_DB_NAME): ScoutHit[] {
   const q = query.trim().toLowerCase();
   const scored = TUTORIAL_CLIPS.map((clip, idx) => {
     let score = 0.74 - idx * 0.03;
@@ -88,7 +88,7 @@ export function searchTutorialHits(query: string): ScoutHit[] {
   scored.sort((a, b) => b.score - a.score);
 
   return scored.map(({ clip, score }, idx) => ({
-    database: TUTORIAL_DB_NAME,
+    database: dbName.trim() || TUTORIAL_DB_NAME,
     videoPath: clip.videoUrl,
     sceneIndex: idx + 1,
     startMs: 0,

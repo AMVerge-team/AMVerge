@@ -31,6 +31,7 @@ import { claimProcess } from "../features/processes/singleProcess";
 import type { SceneRange } from "../features/sceneScout/precutEpisodes";
 import { cutIntoLibrary, prioritizeHits } from "../features/sceneScout/library";
 import {
+  TUTORIAL_DB_NAME,
   TUTORIAL_DB_PATH,
   makeTutorialDatabase,
   makeTutorialVideos,
@@ -187,7 +188,7 @@ type SceneScoutActions = {
   answerDbPrompt: (paths: string[]) => Promise<void>;
   /** interactive in-UI walkthrough sandbox actions (never written to disk or localStorage) */
   startTutorial: () => void;
-  tutorialCreateCollection: () => void;
+  tutorialCreateCollection: (name?: string) => void;
   tutorialAddSampleVideos: () => void;
   endTutorial: () => void;
 };
@@ -239,6 +240,7 @@ type TutorialSnapshot = Pick<
 >;
 
 let tutorialSnapshot: TutorialSnapshot | null = null;
+let tutorialDbName = TUTORIAL_DB_NAME;
 
 // databases already backfilled this session, so a repeat search does not respawn the cli for nothing
 const backfilled = new Set<string>();
@@ -416,6 +418,10 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
 
       /** `pathOrName` is a full path when the user picked a location themselves */
       createDatabase: async (pathOrName) => {
+        if (get().tutorialStep !== null) {
+          get().tutorialCreateCollection(pathOrName);
+          return { ok: true, message: null, path: TUTORIAL_DB_PATH };
+        }
         try {
           const created = await scoutCreateDatabase(pathOrName, customPath());
           rememberIfExternal(created.path);
@@ -464,10 +470,12 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       },
 
       /** the label shown in the panel, which is separate from the file name */
-      renameDatabase: (path, displayName) =>
+      renameDatabase: (path, displayName) => {
+        if (get().tutorialStep !== null) return;
         set((state) => ({
           displayNames: { ...state.displayNames, [path]: displayName },
-        })),
+        }));
+      },
 
       unloadDatabase: (path) => {
         set((state) => {
@@ -496,6 +504,10 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       },
 
       openDatabase: async (name) => {
+        if (get().tutorialStep !== null) {
+          set({ openedDatabase: name });
+          return;
+        }
         set({ openedDatabase: name, videos: [] });
         if (name) await get().loadVideos(name);
       },
@@ -820,7 +832,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         const query = get().query.trim();
         if (!query) return;
         if (get().tutorialStep !== null) {
-          const results = searchTutorialHits(query);
+          const results = searchTutorialHits(query, tutorialDbName);
           set({
             results,
             lastQuery: query,
@@ -974,8 +986,14 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         });
       },
 
-      tutorialCreateCollection: () => {
-        const db = makeTutorialDatabase(false);
+      tutorialCreateCollection: (rawName) => {
+        const cleaned = (rawName ?? "")
+          .split(/[/\\]/)
+          .pop()
+          ?.replace(/\.scoutdb$/i, "")
+          .trim();
+        tutorialDbName = cleaned || TUTORIAL_DB_NAME;
+        const db = makeTutorialDatabase(false, tutorialDbName);
         set({
           databases: [db],
           openedDatabase: TUTORIAL_DB_PATH,
@@ -988,7 +1006,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       },
 
       tutorialAddSampleVideos: () => {
-        const db = makeTutorialDatabase(true);
+        const db = makeTutorialDatabase(true, tutorialDbName);
         const demoVideos = makeTutorialVideos();
         set({
           databases: [db],
@@ -1005,6 +1023,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         if (get().tutorialStep === null) return;
         const snap = tutorialSnapshot;
         tutorialSnapshot = null;
+        tutorialDbName = TUTORIAL_DB_NAME;
         if (snap) {
           set({ ...snap, tutorialStep: null });
         } else {

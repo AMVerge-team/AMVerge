@@ -33,7 +33,6 @@ export function SceneScoutHero() {
   const runSearch = useSceneScoutStore((s) => s.runSearch);
   const loadDatabases = useSceneScoutStore((s) => s.loadDatabases);
   const tutorialStep = useSceneScoutStore((s) => s.tutorialStep);
-  const tutorialCreateCollection = useSceneScoutStore((s) => s.tutorialCreateCollection);
   const tutorialAddSampleVideos = useSceneScoutStore((s) => s.tutorialAddSampleVideos);
   const setTourSeen = useUIStateStore((s) => s.setSceneScoutTourSeen);
   // the centre holds the search bar on the Search tab and the clip player on the Flow tab
@@ -113,14 +112,6 @@ export function SceneScoutHero() {
     void startAddEpisodes();
   };
 
-  const onCreateCollection = () => {
-    if (tutorialStep === 0) {
-      tutorialCreateCollection();
-      return;
-    }
-    void startCreate();
-  };
-
   const needsFirstCollection = databases.length === 0;
   const needsFirstVideos = !needsFirstCollection && !selectedHaveScenes;
 
@@ -152,7 +143,7 @@ export function SceneScoutHero() {
                   data-scout-tour="hero-create-btn"
                   className="event-host-btn"
                   style={{ fontSize: 12, padding: "8px 16px", marginTop: 4 }}
-                  onClick={onCreateCollection}
+                  onClick={() => void startCreate()}
                 >
                   <FaPlus aria-hidden="true" style={{ marginRight: 6 }} />
                   Create Collection

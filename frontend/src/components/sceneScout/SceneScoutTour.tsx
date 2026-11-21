@@ -84,7 +84,7 @@ export function SceneScoutTour() {
 
   const stepTargets =
     displayStep === 0
-      ? ["hero-create-btn", "db-empty", "db-actions"]
+      ? ["create-modal", "hero-create-btn", "db-empty", "db-actions"]
       : displayStep === 1
         ? ["hero-add-btn", "add-episode"]
         : displayStep === 2
