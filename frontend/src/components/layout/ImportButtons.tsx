@@ -8,6 +8,9 @@ import { SelectionCount } from "../clipsGrid/SelectionCount";
 import { useAppStateStore } from "../../stores/appStore";
 import { useUIStateStore } from "../../stores/UIStore";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore";
+import { useGeneralSettingsStore } from "../../stores/settingsStore";
+import { useAiDepsStore } from "../../stores/aiDepsStore";
+import { isPackInstalled } from "../../features/aiDeps/packs";
 import { openEpisodeById } from "../../hooks/useEpisodePanelState";
 import useImportExport from "../../hooks/useImportExport";
 
@@ -23,7 +26,26 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
   const setSidebarEnabled = useUIStateStore((s: any) => s.setSidebarEnabled);
   const previewSplitPct = useUIStateStore((s: any) => s.previewSplitPct);
   const openedEpisodeId = useEpisodePanelRuntimeStore((s) => s.openedEpisodeId);
+  const sceneDetectionMethod = useGeneralSettingsStore((s) => s.sceneDetectionMethod);
+  const setSceneDetectionMethod = useGeneralSettingsStore((s) => s.setSceneDetectionMethod);
+  const aiSceneDetectionEnabled = useGeneralSettingsStore((s) => s.aiSceneDetectionEnabled);
+  const aiStatus = useAiDepsStore((s) => s.status);
+  const mlInstalled = isPackInstalled(aiStatus, "ml");
+  const isAiActive = sceneDetectionMethod === "transnetv2_gpu" && aiSceneDetectionEnabled && mlInstalled;
   const { onImportClick } = useImportExport();
+
+  const handleToggleDetection = async () => {
+    if (isAiActive) {
+      setSceneDetectionMethod("keyframe_detection");
+      return;
+    }
+    if (!mlInstalled) {
+      const installed = await useAiDepsStore.getState().ensurePack("ml");
+      if (!installed) return;
+    }
+    useGeneralSettingsStore.setState({ aiSceneDetectionEnabled: true });
+    setSceneDetectionMethod("transnetv2_gpu");
+  };
 
   // drives the one-shot spin animation on the refresh icon
   const [refreshSpinning, setRefreshSpinning] = useState(false);
@@ -71,6 +93,23 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
                   {t("importButtons.import")}
                 </button>
               </span>
+            </Tooltip>
+            <Tooltip
+              content={
+                isAiActive
+                  ? "Using AI Scene Detection (exact shot cuts). Click to switch to Keyframe Detection."
+                  : "Using Keyframe Detection (instant, no GPU needed). Click to switch to AI Scene Detection."
+              }
+            >
+              <button
+                type="button"
+                className={`import-button icon-action-button${isAiActive ? " active" : ""}`}
+                onClick={() => void handleToggleDetection()}
+                aria-pressed={isAiActive}
+                style={{ fontSize: 12, padding: "0 10px" }}
+              >
+                {isAiActive ? "AI Detection" : "Keyframe"}
+              </button>
             </Tooltip>
             </>
           )}
