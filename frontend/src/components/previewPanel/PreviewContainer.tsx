@@ -149,11 +149,14 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const [sceneRangeCut, setSceneRangeCut] = React.useState<{ key: string; path: string } | null>(null);
   const sceneRangeSrc = sceneRangeCut && sceneRangeCut.key === sceneRangeKey ? sceneRangeCut.path : null;
   const [sceneRangeErrorKey, setSceneRangeErrorKey] = React.useState<string | null>(null);
+  const [sceneRangeSeekFallbackKey, setSceneRangeSeekFallbackKey] = React.useState<string | null>(null);
   const sceneRangeFailed = sceneRangeKey !== null && sceneRangeErrorKey === sceneRangeKey;
+  const inSceneRangeSeekFallback =
+    sceneRange !== null && sceneRangeKey !== null && sceneRangeSeekFallbackKey === sceneRangeKey && !sceneRangeFailed;
 
   const previewVideoSrc = sceneRange ? sceneRangeSrc : (sourceClipObj?.clipPath || props.sourceClip);
-  // range previews start at zero like materialized clips
-  const isCutClip = Boolean(sourceClipObj?.clipPath) || Boolean(sceneRange);
+  // range previews start at zero like materialized clips; seek fallback plays the full source within [startSec, endSec]
+  const isCutClip = Boolean(sourceClipObj?.clipPath) || (Boolean(sceneRange) && !inSceneRangeSeekFallback);
   const sceneStartTime = isCutClip ? undefined : sourceClipObj?.startSec;
   const sceneEndTime = isCutClip ? undefined : sourceClipObj?.endSec;
 
@@ -177,10 +180,21 @@ export default function PreviewContainer(props: PreviewContainerProps) {
       previewHeight: transcodePreset.height,
       previewCrf: transcodePreset.crf,
     })
-      .then((path) => { if (!cancelled && path) setSceneRangeCut({ key: sceneRangeKey, path }); })
+      .then((path) => {
+        if (!cancelled && path) {
+          setSceneRangeCut({ key: sceneRangeKey, path });
+          setSceneRangeSeekFallbackKey((prev) => (prev === sceneRangeKey ? null : prev));
+        }
+      })
       .catch((err) => {
         console.warn("scene range preview failed", err);
-        if (!cancelled) setSceneRangeErrorKey(sceneRangeKey);
+        if (cancelled) return;
+        // Missing source files cannot be seeked directly; other failures fall back to seeking in the source.
+        if (String(err).startsWith("Video not found")) {
+          setSceneRangeErrorKey(sceneRangeKey);
+        } else {
+          setSceneRangeSeekFallbackKey(sceneRangeKey);
+        }
       });
     return () => { cancelled = true; };
     // sceneRange is rebuilt every render; its key is what identifies it
@@ -224,7 +238,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
 
   // the raw clip renders black while a transcode is pending, so the player waits for the proxy
   const playableVideoSrc = sceneRange
-    ? sceneRangeSrc
+    ? (inSceneRangeSeekFallback ? sceneRange.videoPath : sceneRangeSrc)
     : needsPreviewTranscode
       ? languageProxySrc
       : (languageProxySrc ?? previewVideoSrc);
@@ -392,7 +406,10 @@ export default function PreviewContainer(props: PreviewContainerProps) {
                   onTimeUpdate={props.onTimeUpdate}
                   poster={previewPoster}
                   onError={() => {
-                    if (sceneRangeKey) setSceneRangeErrorKey(sceneRangeKey);
+                    if (sceneRangeKey) {
+                      if (inSceneRangeSeekFallback) setSceneRangeErrorKey(sceneRangeKey);
+                      else setSceneRangeSeekFallbackKey(sceneRangeKey);
+                    }
                     else if (languageProxySrc) setProxyErrorKey(previewProxyKey);
                     else if (previewVideoSrc) setDecodeErrorSource(previewVideoSrc);
                   }}
