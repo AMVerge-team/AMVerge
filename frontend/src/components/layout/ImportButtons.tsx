@@ -1,8 +1,9 @@
 import { AiSceneDetectionIcon, KeyframeDetectionIcon, PanelLeftIcon, PanelRightIcon } from "../icons/chrome/ChromeIcons";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
+import { useMemo, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { FaSyncAlt } from '../icons/animated';
 import Tooltip from "../common/Tooltip";
+import InfoButton from "../common/InfoButton";
 import PreviewAllToggle from "../common/PreviewAllToggle";
 import { SelectionCount } from "../clipsGrid/SelectionCount";
 import { useAppStateStore } from "../../stores/appStore";
@@ -15,7 +16,12 @@ import { openEpisodeById } from "../../hooks/useEpisodePanelState";
 import useImportExport from "../../hooks/useImportExport";
 
 export default function ImportButtons({ showImportControls = true }: { showImportControls?: boolean }) {
-  const { t } = useTranslation("jobs");
+  const { t } = useTranslation(["jobs", "preview", "gettingStarted"]);
+  const modKey = useMemo(
+    () => (typeof navigator !== "undefined" && /mac/i.test(navigator.userAgent) ? "Cmd" : "Ctrl"),
+    []
+  );
+  const setGettingStartedSeen = useUIStateStore((s) => s.setGettingStartedSeen);
   const hasSelection = useAppStateStore((s: any) => s.selectedClips.size > 0);
   const loading = useAppStateStore((s: any) => s.loading);
   const bgProgress = useAppStateStore((s: any) => s.bgProgress);
@@ -115,7 +121,7 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
 
           <PreviewAllToggle />
 
-          {showImportControls && (
+          {showImportControls ? (
             <>
             {/* wrapper span: a disabled button fires no pointer events of its
                 own, so the tooltip listens on the element around it */}
@@ -134,7 +140,72 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
                 </button>
               </span>
             </Tooltip>
+            <InfoButton
+              title={t("preview:howToUse.titles.library")}
+              variant="toolbar"
+              icon="question"
+              dataGettingStarted="how-to-use"
+            >
+              <p>
+                Library is where you import anime episodes, browse through every detected clip, preview scenes, and
+                export the clips you want for your edit.
+              </p>
+              <ul className="steps-list" style={{ marginTop: 10 }}>
+                {["select", "library.focus", "library.profile", "library.start"].map((step) => (
+                  <li key={step}>
+                    <span className="step-text">
+                      <Trans
+                        t={t}
+                        ns="preview"
+                        i18nKey={`howToUse.steps.${step}`}
+                        values={{ mod: modKey }}
+                        components={{ b: <b /> }}
+                      />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  className="event-host-btn"
+                  style={{ fontSize: 12, padding: "7px 14px" }}
+                  onClick={() => {
+                    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+                    window.setTimeout(() => setGettingStartedSeen(false), 0);
+                  }}
+                >
+                  {t("gettingStarted:ariaLabel")}
+                </button>
+              </div>
+            </InfoButton>
             </>
+          ) : (
+            <InfoButton
+              title={t("preview:howToUse.titles.scenepacks")}
+              variant="toolbar"
+              icon="question"
+            >
+              <p>
+                Scene Packs lets you organize your favorite clips from different episodes into reusable packs so you can
+                browse, preview, and export them together anytime.
+              </p>
+              <ul className="steps-list" style={{ marginTop: 10 }}>
+                {["scenepacks.create", "scenepacks.add", "scenepacks.open", "select", "exportNow"].map((step) => (
+                  <li key={step}>
+                    <span className="step-text">
+                      <Trans
+                        t={t}
+                        ns="preview"
+                        i18nKey={`howToUse.steps.${step}`}
+                        values={{ mod: modKey }}
+                        components={{ b: <b /> }}
+                      />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </InfoButton>
           )}
         </div>
         <div className="grid-checkboxes">

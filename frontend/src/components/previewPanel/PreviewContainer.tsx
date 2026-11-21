@@ -1,4 +1,3 @@
-import HowToUse from "./HowToUse.tsx"
 import VideoPlayer from "./VideoPlayer.tsx"
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -558,8 +557,6 @@ export default function PreviewContainer(props: PreviewContainerProps) {
           </span>
         </Tooltip>
       </div>
-
-      <HowToUse />
 
       {showMergeNameModal && (
         <div

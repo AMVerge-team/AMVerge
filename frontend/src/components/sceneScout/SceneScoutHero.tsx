@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { FaDatabase, FaPlus } from '../icons/animated';
-import { FiDatabase } from '../icons/animated';
+import { FaPlus } from '../icons/animated';
 
 import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
 import { useUIStateStore } from "../../stores/UIStore";
@@ -27,7 +26,6 @@ export function SceneScoutHero() {
   const searching = useSceneScoutStore((s) => s.searching);
   const storeError = useSceneScoutStore((s) => s.error);
   const addToSearch = useSceneScoutStore((s) => s.addToSearch);
-  const removeFromSearch = useSceneScoutStore((s) => s.removeFromSearch);
   const setActiveDatabase = useSceneScoutStore((s) => s.setActiveDatabase);
   const dismissHero = useSceneScoutStore((s) => s.dismissHero);
   const runSearch = useSceneScoutStore((s) => s.runSearch);
@@ -73,24 +71,6 @@ export function SceneScoutHero() {
       : selectedDatabases.length > 0 && !selectedHaveScenes
         ? t("hero.blockedNoScenes")
         : null;
-
-  const toggleDatabase = (path: string) => {
-    if (inSearch(path)) {
-      // keep the only database active so a stray click doesn't disable Add Episode and Search
-      if (databases.length === 1 && selectedDatabases.length === 1) {
-        setActiveDatabase(path);
-        return;
-      }
-      removeFromSearch([path]);
-      if (opened && samePath(opened, path)) {
-        const next = selectedDatabases.find((p) => !samePath(p, path)) ?? null;
-        setActiveDatabase(next);
-      }
-    } else {
-      addToSearch([path]);
-      setActiveDatabase(path);
-    }
-  };
 
   const startFirstSearch = () => {
     const rect = fieldRef.current?.getBoundingClientRect();
@@ -181,41 +161,6 @@ export function SceneScoutHero() {
                 </button>
               </div>
             </div>
-
-            <div className="scene-scout-hero-dbs" style={{ marginTop: 10 }}>
-              <div className="scene-scout-hero-dbs-head">
-                <span>{t("hero.yourDatabases")}</span>
-                <button type="button" className="scene-scout-hero-new" onClick={() => void startCreate()}>
-                  <FaPlus aria-hidden="true" />
-                  {t("hero.newDatabase")}
-                </button>
-              </div>
-              <div className="scene-scout-hero-db-list">
-                {databases.map((database) => {
-                  const selected = inSearch(database.path);
-                  const isTarget = addTarget !== null && samePath(addTarget, database.path);
-                  return (
-                    <button
-                      key={database.path}
-                      type="button"
-                      className={`scene-scout-hero-db${selected ? " is-selected" : ""}${isTarget ? " is-target" : ""}`}
-                      onClick={() => toggleDatabase(database.path)}
-                      aria-pressed={selected}
-                    >
-                      {database.videoCount === 0 ? (
-                        <FiDatabase className="scene-scout-hero-db-icon" aria-hidden="true" />
-                      ) : (
-                        <FaDatabase className="scene-scout-hero-db-icon" aria-hidden="true" />
-                      )}
-                      <span className="scene-scout-hero-db-name">{labelFor(database.path, database.name)}</span>
-                      <span className="scene-scout-hero-db-count">
-                        {database.sceneCount > 0 ? t("hero.sceneCount", { count: database.sceneCount }) : t("hero.empty")}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
           </>
         ) : (
           <>
@@ -240,39 +185,45 @@ export function SceneScoutHero() {
               </div>
             )}
 
-            <div className="scene-scout-hero-dbs" data-scout-tour="hero-dbs">
-              <div className="scene-scout-hero-dbs-head">
-                <span>{t("hero.yourDatabases")}</span>
-                <button type="button" className="scene-scout-hero-new" onClick={() => void startCreate()}>
-                  <FaPlus aria-hidden="true" />
-                  {t("hero.newDatabase")}
+            <div
+              className="scene-scout-hero-dbs"
+              data-scout-tour="hero-dbs"
+              style={{ maxHeight: 240, overflowY: "auto", padding: "14px 16px", textAlign: "left" }}
+            >
+              <div className="scene-scout-hero-dbs-head" style={{ marginBottom: 8 }}>
+                <span>How to use Scene Scout</span>
+                <button
+                  type="button"
+                  className="scene-scout-hero-new"
+                  onClick={() => setTourSeen(false)}
+                >
+                  Show walkthrough
                 </button>
               </div>
-
-              <div className="scene-scout-hero-db-list">
-                {databases.map((database) => {
-                  const selected = inSearch(database.path);
-                  const isTarget = addTarget !== null && samePath(addTarget, database.path);
-                  return (
-                    <button
-                      key={database.path}
-                      type="button"
-                      className={`scene-scout-hero-db${selected ? " is-selected" : ""}${isTarget ? " is-target" : ""}`}
-                      onClick={() => toggleDatabase(database.path)}
-                      aria-pressed={selected}
-                    >
-                      {database.videoCount === 0 ? (
-                        <FiDatabase className="scene-scout-hero-db-icon" aria-hidden="true" />
-                      ) : (
-                        <FaDatabase className="scene-scout-hero-db-icon" aria-hidden="true" />
-                      )}
-                      <span className="scene-scout-hero-db-name">{labelFor(database.path, database.name)}</span>
-                      <span className="scene-scout-hero-db-count">
-                        {database.sceneCount > 0 ? t("hero.sceneCount", { count: database.sceneCount }) : t("hero.empty")}
-                      </span>
-                    </button>
-                  );
-                })}
+              <div style={{ fontSize: 12.5, lineHeight: 1.55, color: "rgba(255,255,255,0.78)", display: "flex", flexDirection: "column", gap: 8 }}>
+                <p style={{ margin: 0 }}>
+                  <b style={{ color: "rgba(255,255,255,0.94)" }}>What is a Collection?</b> A Collection is a local{" "}
+                  <code>.scoutdb</code> index of your anime episodes or clips. Manage, check, or hide collections in the
+                  left sidebar to choose what gets searched.
+                </p>
+                <ol style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 4 }}>
+                  <li>
+                    <b style={{ color: "rgba(255,255,255,0.92)" }}>Create or open a collection</b> from the left sidebar.
+                  </li>
+                  <li>
+                    <b style={{ color: "rgba(255,255,255,0.92)" }}>Add videos</b> (full episodes with AI/Keyframe
+                    detection, or pre-cut clips with Skip detection).
+                  </li>
+                  <li>
+                    <b style={{ color: "rgba(255,255,255,0.92)" }}>Search by description</b> (e.g.{" "}
+                    <i>"character crying in the rain"</i>) or switch to <b>Match</b> to find clips that visually flow
+                    from a reference clip.
+                  </li>
+                  <li>
+                    <b style={{ color: "rgba(255,255,255,0.92)" }}>Preview &amp; Export</b> any result from the right
+                    panel.
+                  </li>
+                </ol>
               </div>
             </div>
           </>
