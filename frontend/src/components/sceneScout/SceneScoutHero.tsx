@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { open as openUrl } from "@tauri-apps/plugin-shell";
 import { FaDatabase, FaPlus } from '../icons/animated';
 import { FiDatabase } from '../icons/animated';
 
@@ -14,6 +15,8 @@ import { PreviewToggle, SidebarToggle } from "./PanelToggles";
 import { ScoutModeTabs } from "./ScoutModeTabs";
 import { AddEpisodeButton } from "./AddEpisodeButton";
 import { FlowHeroClip } from "./flow/FlowHeroClip";
+
+const MIWO_URL = "https://4miwo.carrd.co/";
 
 /** the centered layout Scene Scout opens with each session, until the first search slides the bar up */
 export function SceneScoutHero() {
@@ -98,7 +101,19 @@ export function SceneScoutHero() {
   return (
     <div className="scene-scout-hero">
       <div className="scene-scout-hero-inner">
-        <SceneScoutLogo className="scene-scout-hero-logo" />
+        <div className="scene-scout-hero-logo-wrap">
+          <SceneScoutLogo className="scene-scout-hero-logo" />
+          <span className="scene-scout-logo-credit">
+            Logo by:{" "}
+            <button
+              type="button"
+              className="scene-scout-credit-link"
+              onClick={() => void openUrl(MIWO_URL)}
+            >
+              Miwo
+            </button>
+          </span>
+        </div>
 
         <div className="scene-scout-hero-actions">
           <SidebarToggle />
