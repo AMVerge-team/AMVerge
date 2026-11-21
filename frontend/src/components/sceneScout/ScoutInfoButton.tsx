@@ -103,8 +103,7 @@ function SearchInfo() {
           <b>Keyframe Detection:</b> Fast scene cuts at video keyframes; works quickly on any PC.
         </li>
         <li>
-          <b>Already cut clips (Skip detection):</b> Best for pre-cut flow clips or scenepack folders (indexes 1 scene
-          per file immediately).
+          <b>Skip detection:</b> Treat each file as 1 scene (best for pre-cut flow clips or scenepack folders).
         </li>
       </ul>
 

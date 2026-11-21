@@ -21,7 +21,6 @@ type IndexDetection = "transnetv2_gpu" | "keyframe_detection" | "single_scene";
 export function useAddEpisodes() {
   const addVideos = useSceneScoutStore((s) => s.addVideos);
   const lastIndexDetection = useSceneScoutStore((s) => s.settings.lastIndexDetection);
-  const fallbackDetection = useGeneralSettingsStore((s) => s.sceneDetectionMethod);
   const aiSceneDetectionEnabled = useGeneralSettingsStore((s) => s.aiSceneDetectionEnabled);
   const aiStatus = useAiDepsStore((s) => s.status);
   const mlInstalled = isPackInstalled(aiStatus, "ml");
@@ -73,8 +72,8 @@ export function useAddEpisodes() {
     if (!files) return;
     const paths = Array.isArray(files) ? (files as string[]) : [files as string];
     if (paths.length === 0) return;
-    // ai detection switched off in Settings > Features: keyframes is the only choice
-    const preferred = (lastIndexDetection ?? fallbackDetection) as IndexDetection;
+    // default Scene Scout to AI scene detection when enabled, while remembering the user's last choice
+    const preferred = (lastIndexDetection ?? "transnetv2_gpu") as IndexDetection;
     setMethod(aiSceneDetectionEnabled ? preferred : "keyframe_detection");
     setPending(paths);
   };
@@ -244,9 +243,9 @@ export function useAddEpisodes() {
             onClick={() => setMethod("single_scene")}
             onDoubleClick={() => void confirm()}
           >
-            <span className="scene-scout-detection-choice-label">Already cut clips (Skip detection)</span>
+            <span className="scene-scout-detection-choice-label">Skip detection</span>
             <span className="scene-scout-detection-choice-desc">
-              Each file is already a single clip (e.g. flow clips or a scenepack folder). Skips scene detection and indexes 1 scene per file.
+              Treat each file as 1 scene
             </span>
           </button>
         </div>

@@ -206,8 +206,7 @@ export function SceneScoutTour() {
             </p>
             <p className="scout-tour-body" style={{ marginTop: 8, fontSize: 12, opacity: 0.85 }}>
               When importing from <b>From your computer</b>, you can pick <b>AI Scene Detection</b> (accurate cuts),{" "}
-              <b>Keyframe Detection</b> (fast on any PC), or <b>Already cut clips (Skip detection)</b> for flow clips
-              and scenepacks.
+              <b>Keyframe Detection</b> (fast on any PC), or <b>Skip detection</b> (treat each file as 1 scene).
             </p>
           </>
         )}
