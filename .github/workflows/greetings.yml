@@ -15,18 +15,15 @@ jobs:
     steps:
       - uses: actions/first-interaction@v3
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          issue-message: |
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          issue_message: |
             Thanks for opening your first issue in **AMVerge**!
-
             To help us look into this faster:
             - Include your **OS**, **AMVerge version**, and **steps to reproduce** (plus any logs from **Menu → Console** if it's a bug).
             - If the issue is specific to the Python video/AI backend, it may belong in [AMVerge-CLI](https://github.com/AMVerge-team/AMVerge-CLI).
-
             You can also reach the team and community on our [Discord server](https://discord.gg/bmXjTgsAaN).
-          pr-message: |
+          pr_message: |
             Thanks for your first pull request to **AMVerge**!
-
             A few quick notes while a maintainer reviews your changes:
             - Make sure your PR targets the `development` branch and follows [CONTRIBUTING.md](https://github.com/AMVerge-team/AMVerge/blob/main/CONTRIBUTING.md).
             - If your PR changes the UI, please attach **screenshots or a short video** in the description.
