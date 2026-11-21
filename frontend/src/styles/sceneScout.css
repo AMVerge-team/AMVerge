@@ -302,6 +302,7 @@
     width: 100%;
     height: auto;
     display: block;
+    filter: drop-shadow(0 0 20px rgb(var(--accent-rgb) / 0.2));
 }
 
 .scene-scout-logo .ss-logo-light { fill: var(--ss-logo-light); }
@@ -311,10 +312,10 @@
 .scene-scout-logo .ss-logo-deep { fill: var(--ss-logo-deep); }
 
 .scene-scout-logo .ss-logo-white-light { fill: #ffffff; }
-.scene-scout-logo .ss-logo-white-base { fill: #f1f5f9; }
-.scene-scout-logo .ss-logo-white-mid { fill: #e2e8f0; }
-.scene-scout-logo .ss-logo-white-dark { fill: #cbd5e1; }
-.scene-scout-logo .ss-logo-white-deep { fill: #94a3b8; }
+.scene-scout-logo .ss-logo-white-base { fill: #f7f7f7; }
+.scene-scout-logo .ss-logo-white-mid { fill: #ececec; }
+.scene-scout-logo .ss-logo-white-dark { fill: #dedede; }
+.scene-scout-logo .ss-logo-white-deep { fill: #cccccc; }
 
 .scene-scout-hero-logo {
     width: min(420px, 90%);
