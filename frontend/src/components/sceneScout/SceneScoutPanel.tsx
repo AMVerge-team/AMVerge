@@ -43,11 +43,20 @@ export function SceneScoutPanel() {
   const deleteVideo = useSceneScoutStore((s) => s.deleteVideo);
   const unloadDatabase = useSceneScoutStore((s) => s.unloadDatabase);
   const displayNames = useSceneScoutStore((s) => s.displayNames);
+  const tutorialStep = useSceneScoutStore((s) => s.tutorialStep);
+  const tutorialCreateCollection = useSceneScoutStore((s) => s.tutorialCreateCollection);
 
-  const { startCreate, modal: createModal, error: createError } = useCreateScoutDatabase((path) => {
+  const { startCreate: startRealCreate, modal: createModal, error: createError } = useCreateScoutDatabase((path) => {
     addToSearch([path]);
     setActiveDatabase(path);
   });
+  const startCreate = () => {
+    if (tutorialStep === 0) {
+      tutorialCreateCollection();
+      return;
+    }
+    return startRealCreate();
+  };
   const [panelError, setError] = useState("");
   const error = panelError || createError;
   const [searchQuery, setSearchQuery] = useState("");

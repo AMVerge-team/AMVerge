@@ -30,6 +30,12 @@ import {
 import { claimProcess } from "../features/processes/singleProcess";
 import type { SceneRange } from "../features/sceneScout/precutEpisodes";
 import { cutIntoLibrary, prioritizeHits } from "../features/sceneScout/library";
+import {
+  TUTORIAL_DB_PATH,
+  makeTutorialDatabase,
+  makeTutorialVideos,
+  searchTutorialHits,
+} from "../features/sceneScout/tutorialDemo";
 import { DETECT_CANCELED, importAbortRef } from "../features/import/importPipeline";
 import { useAiDepsStore } from "./aiDepsStore";
 import { useAppStateStore } from "./appStore";
@@ -127,6 +133,8 @@ type SceneScoutState = {
   flowError: string | null;
   /** runtime only: a flow or search waiting here while the user picks which databases to search */
   dbPrompt: DbPrompt | null;
+  /** runtime only: active step of the in-UI interactive walkthrough (null when inactive) */
+  tutorialStep: number | null;
 };
 
 export type DbPrompt = { kind: "flow"; source: FlowSource } | { kind: "search" };
@@ -177,6 +185,11 @@ type SceneScoutActions = {
   runFlowSearch: () => Promise<void>;
   /** the database prompt's answer: search those, then run the flow or search that was waiting; empty cancels */
   answerDbPrompt: (paths: string[]) => Promise<void>;
+  /** interactive in-UI walkthrough sandbox actions (never written to disk or localStorage) */
+  startTutorial: () => void;
+  tutorialCreateCollection: () => void;
+  tutorialAddSampleVideos: () => void;
+  endTutorial: () => void;
 };
 
 const INITIAL: SceneScoutState = {
@@ -207,7 +220,25 @@ const INITIAL: SceneScoutState = {
   flowSearching: false,
   flowError: null,
   dbPrompt: null,
+  tutorialStep: null,
 };
+
+type TutorialSnapshot = Pick<
+  SceneScoutState,
+  | "databases"
+  | "openedDatabase"
+  | "videos"
+  | "videosByDatabase"
+  | "selectedDatabases"
+  | "query"
+  | "results"
+  | "lastQuery"
+  | "heroDismissed"
+  | "mode"
+  | "error"
+>;
+
+let tutorialSnapshot: TutorialSnapshot | null = null;
 
 // databases already backfilled this session, so a repeat search does not respawn the cli for nothing
 const backfilled = new Set<string>();
@@ -337,6 +368,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       },
 
       loadDatabases: async () => {
+        if (get().tutorialStep !== null) return;
         // a cached list renders at once and refreshes silently; the spinner is only for an empty panel
         set({ loading: get().databases.length === 0, error: null });
         try {
@@ -787,6 +819,18 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       runSearch: async () => {
         const query = get().query.trim();
         if (!query) return;
+        if (get().tutorialStep !== null) {
+          const results = searchTutorialHits(query);
+          set({
+            results,
+            lastQuery: query,
+            heroDismissed: true,
+            searching: false,
+            error: null,
+            tutorialStep: 3,
+          });
+          return;
+        }
         // nothing to search in: ask which databases, the answer runs this search
         if (get().selectedDatabases.length === 0 && (await hasDatabases())) {
           set({ dbPrompt: { kind: "search" } });
@@ -896,22 +940,100 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           set({ flowSearching: false });
         }
       },
+      startTutorial: () => {
+        const s = get();
+        if (s.tutorialStep === null) {
+          tutorialSnapshot = {
+            databases: s.databases,
+            openedDatabase: s.openedDatabase,
+            videos: s.videos,
+            videosByDatabase: s.videosByDatabase,
+            selectedDatabases: s.selectedDatabases,
+            query: s.query,
+            results: s.results,
+            lastQuery: s.lastQuery,
+            heroDismissed: s.heroDismissed,
+            mode: s.mode,
+            error: s.error,
+          };
+        }
+        set({
+          tutorialStep: 0,
+          loading: false,
+          databases: [],
+          openedDatabase: null,
+          videos: [],
+          videosByDatabase: {},
+          selectedDatabases: [],
+          query: "",
+          results: [],
+          lastQuery: "",
+          heroDismissed: false,
+          mode: "search",
+          error: null,
+        });
+      },
+
+      tutorialCreateCollection: () => {
+        const db = makeTutorialDatabase(false);
+        set({
+          databases: [db],
+          openedDatabase: TUTORIAL_DB_PATH,
+          selectedDatabases: [TUTORIAL_DB_PATH],
+          videos: [],
+          videosByDatabase: { [TUTORIAL_DB_PATH]: [] },
+          tutorialStep: 1,
+          error: null,
+        });
+      },
+
+      tutorialAddSampleVideos: () => {
+        const db = makeTutorialDatabase(true);
+        const demoVideos = makeTutorialVideos();
+        set({
+          databases: [db],
+          openedDatabase: TUTORIAL_DB_PATH,
+          selectedDatabases: [TUTORIAL_DB_PATH],
+          videos: demoVideos,
+          videosByDatabase: { [TUTORIAL_DB_PATH]: demoVideos },
+          tutorialStep: 2,
+          error: null,
+        });
+      },
+
+      endTutorial: () => {
+        if (get().tutorialStep === null) return;
+        const snap = tutorialSnapshot;
+        tutorialSnapshot = null;
+        if (snap) {
+          set({ ...snap, tutorialStep: null });
+        } else {
+          set({ tutorialStep: null });
+        }
+        const appState = useAppStateStore.getState();
+        appState.setFocusedClip(null);
+        appState.setFocusedClipId(null);
+        appState.setSelectedClips(new Set());
+      },
     }),
     {
       name: "amverge.scenescout.v1",
       // results and status are re-read on open; a stale copy would be worse than none
-      partialize: (state) => ({
-        settings: state.settings,
-        openedDatabase: state.openedDatabase,
-        // drawn on mount instead of waiting on a cli spawn, then re-read from disk
-        databases: state.databases,
-        selectedDatabases: state.selectedDatabases,
-        hiddenVideos: state.hiddenVideos,
-        externalPaths: state.externalPaths,
-        unloadedPaths: state.unloadedPaths,
-        displayNames: state.displayNames,
-        panelSplitPct: state.panelSplitPct,
-      }),
+      partialize: (state) => {
+        const live = state.tutorialStep !== null && tutorialSnapshot ? tutorialSnapshot : state;
+        return {
+          settings: state.settings,
+          openedDatabase: live.openedDatabase,
+          // drawn on mount instead of waiting on a cli spawn, then re-read from disk
+          databases: live.databases,
+          selectedDatabases: live.selectedDatabases,
+          hiddenVideos: state.hiddenVideos,
+          externalPaths: state.externalPaths,
+          unloadedPaths: state.unloadedPaths,
+          displayNames: state.displayNames,
+          panelSplitPct: state.panelSplitPct,
+        };
+      },
     }
   )
 );

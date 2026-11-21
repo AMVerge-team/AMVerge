@@ -2,13 +2,16 @@ import type { ClipItem } from "../../types/domain";
 import type { ScoutHit } from "./types";
 import { generateScoutPlaceholderSvg } from "./scoutPlaceholder";
 import { formatClipTimeframe } from "../../components/clipsGrid/clipFormat";
+import { isRemoteMediaUrl } from "./tutorialDemo";
 
 export function hitToClipItem(hit: ScoutHit, index: number): ClipItem {
   const timeframe = formatClipTimeframe(hit.startSec, hit.endSec) ?? "";
+  const remote = isRemoteMediaUrl(hit.videoPath);
   const name = fileName(hit.videoPath);
   return {
     id: `scout_${hit.database}_${hitKey(hit)}`,
     src: hit.videoPath,
+    ...(remote ? { clipPath: hit.videoPath } : {}),
     thumbnail: hit.thumbnailB64
       ? `data:image/jpeg;base64,${hit.thumbnailB64}`
       : generateScoutPlaceholderSvg(name, timeframe),
@@ -22,7 +25,7 @@ export function hitToClipItem(hit: ScoutHit, index: number): ClipItem {
     database: hit.database,
     sourceKind: "video",
     episodeId: scoutCacheId(hit.database),
-    scoutNeedsThumb: !hit.thumbnailB64,
+    scoutNeedsThumb: !remote && !hit.thumbnailB64,
     motion: hit.motion ?? null,
   };
 }

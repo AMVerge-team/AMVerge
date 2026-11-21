@@ -186,7 +186,7 @@ export const LazyClip = memo(function LazyClip({
   // one source of truth for the src, shared with the media-release effect
   const rawVideoPath = source.rangeProxySrc ?? source.videoProxySrc ?? clip.clipPath ?? clip.src;
   const videoSrcUrl = shouldMountVideo
-    ? `${convertFileSrc(rawVideoPath)}?v=${importToken}`
+    ? mediaSrcVersioned(rawVideoPath, importToken)
     : null;
 
   const video = useClipVideoElement({

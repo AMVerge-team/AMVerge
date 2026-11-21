@@ -18,7 +18,7 @@ export function SceneScoutSearchView() {
         <ScoutSearchField fieldRef={fieldRef} />
       </div>
 
-      <div className="scene-scout-view-grid">
+      <div className="scene-scout-view-grid" data-scout-tour="results-grid">
         <ClipsContainer />
       </div>
     </div>

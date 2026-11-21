@@ -68,7 +68,9 @@ export function useClipVideoSource({
   const mergedInFlightRef = useRef(false);
   const mergedFetchedKeyRef = useRef<string | null>(null);
 
-  const { needed: needsPreviewTranscode, preset: transcodePreset } = usePreviewTranscode();
+  const { needed: configuredTranscode, preset: transcodePreset } = usePreviewTranscode();
+  const isRemoteClip = Boolean(clip.clipPath?.startsWith("http://") || clip.clipPath?.startsWith("https://"));
+  const needsPreviewTranscode = !isRemoteClip && configuredTranscode;
 
   const selectedMappedAudioStreamIndex =
     previewAudioStreamIndex !== null && previewAudioStreamIndex > 0 ? previewAudioStreamIndex : null;
@@ -175,7 +177,7 @@ export function useClipVideoSource({
   // video mode proxies the cut clip once, covering both an undecodable codec and a non-default language
   useEffect(() => {
     const clipPath = clip.clipPath;
-    if (!isVideoMode || !clipPath || !videoProxyKey) return;
+    if (!isVideoMode || !clipPath || !videoProxyKey || isRemoteClip) return;
     if (videoProxySrc) return;
 
     const wantsAudioMapped = proxyAudioStreamIndex !== null && isHovered;
