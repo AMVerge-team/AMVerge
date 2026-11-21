@@ -248,7 +248,11 @@ export function useAddEpisodes() {
                     </span>
                   )}
                 </span>
-                <span className="scene-scout-detection-choice-desc">{option.description}</span>
+                <span className="scene-scout-detection-choice-desc">
+                  {option.value === "transnetv2_gpu"
+                    ? `${option.description}. Works best with a decent GPU.`
+                    : option.description}
+                </span>
               </button>
             );
           })}
@@ -262,7 +266,7 @@ export function useAddEpisodes() {
           >
             <span className="scene-scout-detection-choice-label">Skip detection</span>
             <span className="scene-scout-detection-choice-desc">
-              Treat each file as 1 scene
+              Treat each file as 1 scene. Useful for flow clips, scenepacks, or already cut clips.
             </span>
           </button>
         </div>
