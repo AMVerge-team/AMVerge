@@ -268,13 +268,24 @@ export function SceneScoutHero() {
           </>
         )}
 
-        {error && <p className="events-error scene-scout-hero-error">{error}</p>}
+        {error && (
+          <p className="events-error scene-scout-hero-error" style={{ textAlign: "center", width: "100%" }}>
+            {error}
+          </p>
+        )}
 
         {(needsFirstCollection || needsFirstVideos) && (
           <button
             type="button"
-            className="info-tour-link"
-            style={{ marginTop: 12, alignSelf: "center" }}
+            className="event-host-btn"
+            style={{
+              marginTop: 12,
+              alignSelf: "center",
+              fontSize: 12,
+              padding: "7px 14px",
+              background: "rgba(255,255,255,0.06)",
+              borderColor: "rgba(255,255,255,0.15)",
+            }}
             onClick={() => setTourSeen(false)}
           >
             Show walkthrough
