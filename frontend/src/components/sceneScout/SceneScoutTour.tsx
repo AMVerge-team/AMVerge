@@ -24,12 +24,12 @@ const STEPS: Step[] = [
     ),
   },
   {
-    targets: ["db-actions", "db-empty"],
+    targets: ["hero-dbs", "db-actions", "db-empty"],
     title: "1. Create a collection",
     body: (
       <>
-        A <b>collection</b> holds the searchable scenes for a series or clip pack. Click <b>+</b> to create one (or
-        import an existing <code>.scoutdb</code> file), and it will be active for search automatically.
+        A <b>collection</b> holds the searchable scenes for a series or clip pack. Click <b>Create Collection</b> (or{" "}
+        <b>+</b> in the sidebar) to make one, and it will be active for search automatically.
       </>
     ),
   },
@@ -38,8 +38,8 @@ const STEPS: Step[] = [
     title: "2. Add episodes or clips",
     body: (
       <>
-        Click <b>Add Videos</b> to scan full episodes or pre-cut clips into your collection. Already cut clips (like
-        flow clips or scenepacks) can skip scene detection and go straight to AI search.
+        Once your collection is created, click <b>Add Videos</b> to scan full episodes or pre-cut clips into it. Already
+        cut clips (like flow clips or scenepacks) can skip scene detection and go straight to AI search.
       </>
     ),
   },
@@ -48,7 +48,8 @@ const STEPS: Step[] = [
     title: "3. Search by description",
     body: (
       <>
-        Type what happens in the scene, press <b>Enter</b>, pick the clips you want, and export them like usual.
+        As soon as your collection has scenes, the search bar appears. Type what happens in the scene, press{" "}
+        <b>Enter</b>, pick the clips you want, and export them from the preview panel.
       </>
     ),
   },
