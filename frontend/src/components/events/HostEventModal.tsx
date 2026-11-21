@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { open as openExternal } from "@tauri-apps/plugin-shell";
-import { FaChevronLeft, FaChevronRight, FaDiscord, FaExternalLinkAlt, FaImage, FaMinus, FaPlus, FaSpinner } from '../icons/animated';
+import { FaChevronLeft, FaChevronRight, FaDiscord, FaExternalLinkAlt, FaImage, FaMinus, FaPlus, FaSpinner, FaTimes, FaVideo } from '../icons/animated';
 
 import ModalShell from "../common/ModalShell";
 import DateTimePicker from "./DateTimePicker";
@@ -23,11 +24,70 @@ const MAX_THUMBNAIL_BYTES = 10 * 1024 * 1024;
 const MAX_THUMBNAIL_MB = Math.round(MAX_THUMBNAIL_BYTES / (1024 * 1024));
 const ALLOWED_THUMBNAIL_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 
+// matches the server's R2 announcement video limits
+const MAX_VIDEO_BYTES = 250 * 1024 * 1024;
+const MAX_VIDEO_MB = Math.round(MAX_VIDEO_BYTES / (1024 * 1024));
+const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+const VIDEO_ACCEPT = "video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov";
+
+type VideoUploadUrlResponse = {
+  ok: boolean;
+  message?: string | null;
+  uploadUrl?: string | null;
+  publicUrl?: string | null;
+  contentType?: string | null;
+};
+
+function resolveVideoContentType(file: File): string | null {
+  const mime = (file.type || "").toLowerCase();
+  if (ALLOWED_VIDEO_TYPES.includes(mime)) return mime;
+  const name = file.name.toLowerCase();
+  if (name.endsWith(".mp4")) return "video/mp4";
+  if (name.endsWith(".webm")) return "video/webm";
+  if (name.endsWith(".mov")) return "video/quicktime";
+  return null;
+}
+
+function formatFileSize(bytes: number): string {
+  const mb = bytes / (1024 * 1024);
+  return mb >= 10 ? `${Math.round(mb)} MB` : `${mb.toFixed(1)} MB`;
+}
+
+function uploadVideoToR2(
+  uploadUrl: string,
+  file: File,
+  contentType: string,
+  onProgress: (percent: number) => void
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl, true);
+    xhr.setRequestHeader("Content-Type", contentType);
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) {
+        onProgress(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress(100);
+        resolve();
+      } else {
+        reject(new Error(`Video upload failed with HTTP ${xhr.status}.`));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Video upload failed. Check your connection and try again."));
+    xhr.onabort = () => reject(new Error("Video upload was cancelled."));
+    xhr.send(file);
+  });
+}
+
 type FormState = {
   title: string;
   description: string;
   discordInviteUrl: string;
   hyettaUrl: string;
+  announcementVideoUrl: string;
   prizePool: string;
   eventType: EventType;
   hostName: string;
@@ -41,6 +101,7 @@ const EMPTY_FORM: FormState = {
   description: "",
   discordInviteUrl: "",
   hyettaUrl: "",
+  announcementVideoUrl: "",
   prizePool: "",
   eventType: "contest",
   hostName: "",
@@ -66,6 +127,7 @@ const FIELD_ORDER = [
   "description",
   "discordInviteUrl",
   "hyettaUrl",
+  "announcementVideoUrl",
   "startsAt",
   "durationHours",
   "endsAt",
@@ -151,6 +213,9 @@ export default function HostEventModal() {
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [thumbnail, setThumbnail] = useState<EventThumbnail | null>(null);
+  const [pendingVideoFile, setPendingVideoFile] = useState<File | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [videoUploadProgress, setVideoUploadProgress] = useState<number | null>(null);
   const [previewMode, setPreviewMode] = useState<PreviewMode>("tile");
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -159,6 +224,7 @@ export default function HostEventModal() {
   // cleared on unmount and reopen so a pending auto-close never hits a returned-to form
   const closeTimerRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const videoInputRef = useRef<HTMLInputElement | null>(null);
 
   const editing = useMemo(
     () => (editingId ? mine.find((event) => event.id === editingId) ?? null : null),
@@ -179,6 +245,12 @@ export default function HostEventModal() {
     setFieldErrors({});
     setSubmitting(false);
     setThumbnail(null);
+    setPendingVideoFile(null);
+    setVideoUploadProgress(null);
+    setVideoPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
     setPreviewMode("tile");
 
     if (closeTimerRef.current !== null) {
@@ -204,6 +276,7 @@ export default function HostEventModal() {
         description: editing.description,
         discordInviteUrl: editing.discordInviteUrl,
         hyettaUrl: editing.hyettaUrl ?? "",
+        announcementVideoUrl: editing.announcementVideoUrl ?? "",
         prizePool: (editing.prizePool ?? "").replace(/\D/g, ""),
         eventType: editing.eventType,
         hostName: editing.hostName ?? "",
@@ -215,6 +288,13 @@ export default function HostEventModal() {
       setForm(EMPTY_FORM);
     }
   }, [open, editingId, editing]);
+
+  // revoke any local object URL when it changes or on unmount
+  useEffect(() => {
+    return () => {
+      if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
+    };
+  }, [videoPreviewUrl]);
 
   // a close scheduled after a submit must not fire once unmounted
   useEffect(
@@ -279,6 +359,7 @@ export default function HostEventModal() {
 
   // the field only exists for hour contests, so a link typed before switching type is dropped
   const hyettaUrl = form.eventType === "hour" ? form.hyettaUrl.trim() || null : null;
+  const announcementVideoUrl = form.announcementVideoUrl.trim() || null;
 
   const draft: CommunityEvent = {
     id: editing?.id ?? "preview",
@@ -286,6 +367,7 @@ export default function HostEventModal() {
     description: form.description || "Your description will appear here.",
     discordInviteUrl: form.discordInviteUrl,
     hyettaUrl,
+    announcementVideoUrl: videoPreviewUrl ?? announcementVideoUrl,
     prizePool: form.prizePool ? `$${form.prizePool}` : null,
     eventType: form.eventType,
     durationHours: draftHours,
@@ -319,6 +401,35 @@ export default function HostEventModal() {
     } catch (readError) {
       setError(readError instanceof Error ? readError.message : String(readError));
     }
+  };
+
+  const handlePickVideo = (file: File | undefined) => {
+    if (!file) return;
+
+    const contentType = resolveVideoContentType(file);
+    if (!contentType) {
+      setError("Announcement video must be an MP4, WebM, or MOV file.");
+      return;
+    }
+
+    if (file.size <= 0 || file.size > MAX_VIDEO_BYTES) {
+      setError(`Announcement video must be ${MAX_VIDEO_MB} MB or smaller.`);
+      return;
+    }
+
+    const nextPreview = URL.createObjectURL(file);
+    setPendingVideoFile(file);
+    setVideoPreviewUrl(nextPreview);
+    setVideoUploadProgress(null);
+    setError("");
+    clearFieldError("announcementVideoUrl");
+  };
+
+  const handleRemoveVideo = () => {
+    setPendingVideoFile(null);
+    setVideoPreviewUrl(null);
+    setVideoUploadProgress(null);
+    setField("announcementVideoUrl", "");
   };
 
   /** every problem at once, keyed by field, so the host fixes them in one go */
@@ -395,11 +506,56 @@ export default function HostEventModal() {
     setError("");
     setFieldErrors({});
 
+    let resolvedVideoUrl = announcementVideoUrl;
+
+    if (pendingVideoFile) {
+      const contentType = resolveVideoContentType(pendingVideoFile);
+      if (!contentType) {
+        setSubmitting(false);
+        setError("Announcement video must be an MP4, WebM, or MOV file.");
+        return;
+      }
+
+      try {
+        setVideoUploadProgress(0);
+        const presign = await invoke<VideoUploadUrlResponse>("request_event_video_upload_url", {
+          contentType,
+          sizeBytes: pendingVideoFile.size,
+        });
+
+        if (!presign.ok || !presign.uploadUrl || !presign.publicUrl) {
+          throw new Error(presign.message || "Could not start video upload.");
+        }
+
+        await uploadVideoToR2(
+          presign.uploadUrl,
+          pendingVideoFile,
+          presign.contentType || contentType,
+          (percent) => setVideoUploadProgress(percent)
+        );
+
+        resolvedVideoUrl = presign.publicUrl;
+        setField("announcementVideoUrl", presign.publicUrl);
+        setPendingVideoFile(null);
+      } catch (uploadErr) {
+        const reason = uploadErr instanceof Error ? uploadErr.message : String(uploadErr);
+        console.warn("[events] video upload failed:", reason);
+        setSubmitting(false);
+        setVideoUploadProgress(null);
+        setError(reason);
+        requestAnimationFrame(() =>
+          formRef.current?.querySelector(".host-event-alert")?.scrollIntoView({ block: "nearest", behavior: "smooth" })
+        );
+        return;
+      }
+    }
+
     const result = await saveEvent({
       title: form.title.trim(),
       description: form.description.trim(),
       discordInviteUrl: form.discordInviteUrl.trim(),
       hyettaUrl,
+      announcementVideoUrl: resolvedVideoUrl,
       prizePool: form.prizePool ? `$${form.prizePool}` : null,
       eventType: form.eventType,
       hostName: form.hostName.trim() || null,
@@ -413,6 +569,7 @@ export default function HostEventModal() {
       const reason = result.message || "Could not submit the event.";
       console.warn("[events] submission refused:", reason);
       setSubmitting(false);
+      setVideoUploadProgress(null);
       setError(reason);
       requestAnimationFrame(() =>
         formRef.current?.querySelector(".host-event-alert")?.scrollIntoView({ block: "nearest", behavior: "smooth" })
@@ -537,6 +694,63 @@ export default function HostEventModal() {
                   <FaImage aria-hidden="true" />
                   {thumbnailDataUrl ? "Replace thumbnail" : "Choose thumbnail"}
                 </button>
+              </div>
+
+              <div className={fieldClass("announcementVideoUrl")} data-field="announcementVideoUrl">
+                <label className="bugreport-label">Announcement video</label>
+                <p className="bugreport-help">
+                  Optional. MP4, WebM, or MOV. Up to {MAX_VIDEO_MB} MB.
+                </p>
+                <input
+                  ref={videoInputRef}
+                  className="bugreport-file-input"
+                  type="file"
+                  accept={VIDEO_ACCEPT}
+                  onChange={(changeEvent) => {
+                    handlePickVideo(changeEvent.target.files?.[0]);
+                    changeEvent.target.value = "";
+                  }}
+                />
+                <div className="host-event-video-actions">
+                  <button
+                    type="button"
+                    className="event-secondary-btn"
+                    onClick={() => videoInputRef.current?.click()}
+                    disabled={submitting}
+                  >
+                    <FaVideo aria-hidden="true" />
+                    {pendingVideoFile || announcementVideoUrl ? "Replace video" : "Choose video"}
+                  </button>
+                  {(pendingVideoFile || announcementVideoUrl) && (
+                    <button
+                      type="button"
+                      className="event-secondary-btn"
+                      onClick={handleRemoveVideo}
+                      disabled={submitting}
+                    >
+                      <FaTimes aria-hidden="true" />
+                      Remove
+                    </button>
+                  )}
+                </div>
+                {pendingVideoFile && (
+                  <p className="bugreport-help host-event-video-meta">
+                    {pendingVideoFile.name} ({formatFileSize(pendingVideoFile.size)})
+                  </p>
+                )}
+                {!pendingVideoFile && announcementVideoUrl && (
+                  <p className="bugreport-help host-event-video-meta">
+                    Announcement video attached.
+                  </p>
+                )}
+                {videoUploadProgress !== null && (
+                  <div className="host-event-upload-progress" aria-label="Video upload progress">
+                    <div
+                      className="host-event-upload-progress-fill"
+                      style={{ width: `${videoUploadProgress}%` }}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className={fieldClass("description")} data-field="description">
@@ -711,7 +925,10 @@ export default function HostEventModal() {
                 <button type="submit" className="event-host-btn" disabled={submitting}>
                   {submitting ? (
                     <>
-                      <FaSpinner className="host-event-spinner" aria-hidden="true" /> Submitting...
+                      <FaSpinner className="host-event-spinner" aria-hidden="true" />{" "}
+                      {videoUploadProgress !== null && videoUploadProgress < 100
+                        ? `Uploading video (${videoUploadProgress}%)...`
+                        : "Submitting..."}
                     </>
                   ) : (
                     <>

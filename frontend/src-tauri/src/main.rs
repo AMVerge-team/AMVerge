@@ -56,6 +56,7 @@ fn main() {
             commands::events::fetch_my_events,
             commands::events::submit_event_request,
             commands::events::update_event_request,
+            commands::events::request_event_video_upload_url,
             commands::events::delete_event_request,
             commands::events::acknowledge_event_denial,
             commands::events::acknowledge_ban_notice,

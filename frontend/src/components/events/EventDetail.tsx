@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { open } from "@tauri-apps/plugin-shell";
+import { FaChevronLeft, FaChevronRight, FaImage, FaPlay } from "react-icons/fa";
 import { FaArrowLeft, FaCalendarAlt, FaCheckCircle, FaDiscord, FaEdit, FaExternalLinkAlt, FaTrash, FaTrophy } from '../icons/animated';
 
 import RichText from "./RichText";
@@ -35,6 +36,15 @@ export default function EventDetail({ event, onBack, onEdit, onDelete, preview =
   const ended = hasEnded(event);
   const status = statusLabel(event);
   const coverSrc = event.thumbnailDataUrl || event.thumbnailUrl;
+  const videoSrc = event.announcementVideoUrl?.trim() || null;
+  const hasBothMedia = Boolean(videoSrc && coverSrc);
+  const [activeSlide, setActiveSlide] = useState<"video" | "image">(videoSrc ? "video" : "image");
+
+  useEffect(() => {
+    setActiveSlide(videoSrc ? "video" : "image");
+  }, [event.id, videoSrc]);
+
+  const toggleSlide = () => setActiveSlide((s) => (s === "video" ? "image" : "video"));
 
   const handleJoin = () => {
     if (preview) return;
@@ -49,13 +59,63 @@ export default function EventDetail({ event, onBack, onEdit, onDelete, preview =
         </button>
       )}
 
-      <div className="event-detail-banner">
-        {coverSrc ? (
+      <div className={`event-detail-banner${videoSrc ? " has-video" : ""}`}>
+        {activeSlide === "video" && videoSrc ? (
+          <video
+            className="event-detail-video"
+            src={videoSrc}
+            poster={coverSrc || undefined}
+            controls={!preview}
+            muted={preview}
+            playsInline
+          />
+        ) : coverSrc ? (
           <img src={coverSrc} alt="" draggable={false} />
         ) : (
           <div className="event-card-thumb-empty" aria-hidden="true">
             <FaCalendarAlt />
           </div>
+        )}
+
+        {hasBothMedia && (
+          <>
+            <button
+              type="button"
+              className="event-media-nav is-prev"
+              onClick={toggleSlide}
+              aria-label="Previous media"
+            >
+              <FaChevronLeft aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="event-media-nav is-next"
+              onClick={toggleSlide}
+              aria-label="Next media"
+            >
+              <FaChevronRight aria-hidden="true" />
+            </button>
+            <div className="event-media-switcher" role="tablist" aria-label="Event media">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeSlide === "video"}
+                className={`event-media-tab${activeSlide === "video" ? " is-active" : ""}`}
+                onClick={() => setActiveSlide("video")}
+              >
+                <FaPlay aria-hidden="true" /> Video
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeSlide === "image"}
+                className={`event-media-tab${activeSlide === "image" ? " is-active" : ""}`}
+                onClick={() => setActiveSlide("image")}
+              >
+                <FaImage aria-hidden="true" /> Cover
+              </button>
+            </div>
+          </>
         )}
       </div>
 

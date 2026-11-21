@@ -37,6 +37,8 @@ export type CommunityEvent = {
   editCooldownSeconds?: number | null;
   /** the event's page on hyetta: from the feed, or linked by the host */
   hyettaUrl?: string | null;
+  /** optional YouTube or direct video URL for the host's announcement video */
+  announcementVideoUrl?: string | null;
 };
 
 export type EventThumbnail = {
@@ -49,6 +51,7 @@ export type EventSubmission = {
   description: string;
   discordInviteUrl: string;
   hyettaUrl: string | null;
+  announcementVideoUrl: string | null;
   prizePool: string | null;
   eventType: EventType;
   /** the name shown publicly; null hosts anonymously */
