@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import MainLayout from "../MainLayout";
-import HowToUse from "../components/previewPanel/HowToUse";
 import SceneScoutToolbar from "../components/sceneScout/SceneScoutToolbar";
 import SceneScoutHero from "../components/sceneScout/SceneScoutHero";
 import { SceneScoutSearchView } from "../components/sceneScout/SceneScoutSearchView";
@@ -107,11 +106,7 @@ export default function SceneScoutPage() {
       {toolbar}
 
       <div className="main-layout-wrapper">
-        <MainLayout
-          active={!overlayOpen}
-          left={left}
-          right={firstVisit ? <main className="preview-container"><HowToUse /></main> : undefined}
-        />
+        <MainLayout active={!overlayOpen} left={left} />
 
         <div className="info-bar" />
       </div>

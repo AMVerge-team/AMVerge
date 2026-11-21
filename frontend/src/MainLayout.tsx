@@ -14,7 +14,6 @@ export default function MainLayout({
     intro = false,
     active = true,
     left,
-    right,
     previewIdle = false,
     fullWidth = false,
 }: {
@@ -22,8 +21,6 @@ export default function MainLayout({
     active?: boolean;
     /** replaces the clip grid in the left pane. Events fills it with its own grid */
     left?: React.ReactNode;
-    /** replaces PreviewContainer in the right pane when a page has no clips to preview yet */
-    right?: React.ReactNode;
     /** drops the preview pane and divider for pages with nothing to preview */
     fullWidth?: boolean;
     /** keeps the pane as the user left it but empty (Events) */
@@ -118,13 +115,11 @@ export default function MainLayout({
                     style={{ width: previewCollapsed ? 0 : `${100 - leftWidth}%`, ...(intro ? { ["--intro-delay" as any]: "180ms" } : {}) }}
                     aria-hidden={previewCollapsed}
                 >
-                    {right ?? (
-                        <PreviewContainer
-                            sourceClip={previewIdle ? null : focusedClip}
-                            sourceClipThumbnail={previewIdle ? null : focusedClipThumbnail}
-                            active={!previewIdle && active && !previewCollapsed}
-                        />
-                    )}
+                    <PreviewContainer
+                        sourceClip={previewIdle ? null : focusedClip}
+                        sourceClipThumbnail={previewIdle ? null : focusedClipThumbnail}
+                        active={!previewIdle && active && !previewCollapsed}
+                    />
                 </div>
                 )}
             </div>
