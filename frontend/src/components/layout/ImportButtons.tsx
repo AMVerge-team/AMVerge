@@ -28,10 +28,9 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
   const openedEpisodeId = useEpisodePanelRuntimeStore((s) => s.openedEpisodeId);
   const sceneDetectionMethod = useGeneralSettingsStore((s) => s.sceneDetectionMethod);
   const setSceneDetectionMethod = useGeneralSettingsStore((s) => s.setSceneDetectionMethod);
-  const aiSceneDetectionEnabled = useGeneralSettingsStore((s) => s.aiSceneDetectionEnabled);
   const aiStatus = useAiDepsStore((s) => s.status);
   const mlInstalled = isPackInstalled(aiStatus, "ml");
-  const isAiActive = sceneDetectionMethod === "transnetv2_gpu" && aiSceneDetectionEnabled && mlInstalled;
+  const isAiActive = sceneDetectionMethod === "transnetv2_gpu";
   const { onImportClick } = useImportExport();
 
   const handleToggleDetection = async () => {
@@ -39,7 +38,7 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
       setSceneDetectionMethod("keyframe_detection");
       return;
     }
-    if (!mlInstalled) {
+    if (aiStatus && !mlInstalled) {
       const installed = await useAiDepsStore.getState().ensurePack("ml");
       if (!installed) return;
     }
