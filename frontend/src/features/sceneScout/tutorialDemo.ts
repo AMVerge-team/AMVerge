@@ -16,12 +16,36 @@ export type TutorialClip = {
 
 export const TUTORIAL_CLIPS: TutorialClip[] = [
   {
+    id: "sword-fight",
+    title: "Episode 04 - Sword Fight.mp4",
+    prompt: "sword fight",
+    keywords: ["sword", "fight", "blade", "action", "battle", "attack"],
+    videoUrl: `${R2_TUTORIAL_BASE}/sword-fight.mp4`,
+    durationSec: 4.5,
+  },
+  {
+    id: "crying-rain",
+    title: "Episode 07 - Crying in Rain.mp4",
+    prompt: "crying in the rain",
+    keywords: ["crying", "rain", "sad", "tears", "water"],
+    videoUrl: `${R2_TUTORIAL_BASE}/crying-rain.mp4`,
+    durationSec: 4.0,
+  },
+  {
     id: "open-up-eyes",
     title: "Episode 02 - Open Up Eyes.mp4",
     prompt: "open up eyes",
     keywords: ["open", "eyes", "eye", "face", "close", "stare", "look"],
     videoUrl: `${R2_TUTORIAL_BASE}/open-up-eyes.mp4`,
     durationSec: 3.5,
+  },
+  {
+    id: "sunset-sky",
+    title: "Episode 11 - Sunset Sky.mp4",
+    prompt: "sunset sky",
+    keywords: ["sunset", "sky", "clouds", "orange", "horizon", "sun"],
+    videoUrl: `${R2_TUTORIAL_BASE}/sunset-sky.mp4`,
+    durationSec: 5.0,
   },
 ];
 
