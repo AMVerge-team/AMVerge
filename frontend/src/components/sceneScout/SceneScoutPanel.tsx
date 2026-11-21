@@ -44,7 +44,10 @@ export function SceneScoutPanel() {
   const unloadDatabase = useSceneScoutStore((s) => s.unloadDatabase);
   const displayNames = useSceneScoutStore((s) => s.displayNames);
 
-  const { startCreate, modal: createModal, error: createError } = useCreateScoutDatabase();
+  const { startCreate, modal: createModal, error: createError } = useCreateScoutDatabase((path) => {
+    addToSearch([path]);
+    setActiveDatabase(path);
+  });
   const [panelError, setError] = useState("");
   const error = panelError || createError;
   const [searchQuery, setSearchQuery] = useState("");
@@ -243,6 +246,9 @@ export function SceneScoutPanel() {
       const result = await openExistingDatabase(picked);
       if (!result.ok) {
         setError(result.message || "Could not open the database.");
+      } else if (result.database?.path) {
+        addToSearch([result.database.path]);
+        setActiveDatabase(result.database.path);
       }
     } finally {
       setIsOpening(false);
@@ -362,6 +368,27 @@ export function SceneScoutPanel() {
           )}
           <span className="episode-panel-episode-name">{labelFor(path, database.name)}</span>
           <span className="episode-panel-count">{database.sceneCount}</span>
+          {list === "all" && (
+            <Tooltip content={searched ? "Remove from Searching" : "Add to Searching"}>
+              <button
+                type="button"
+                className={`episode-panel-import-icon episode-folder-btn${searched ? " is-active" : ""}`}
+                onPointerDown={stop}
+                onDoubleClick={stop}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (searched) removeFromSearch([path]);
+                  else {
+                    addToSearch([path]);
+                    setActiveDatabase(path);
+                  }
+                }}
+                aria-label={searched ? `Stop searching ${database.name}` : `Search ${database.name}`}
+              >
+                {searched ? <FaTimes aria-hidden="true" /> : <FaPlus aria-hidden="true" />}
+              </button>
+            </Tooltip>
+          )}
           {list === "search" && (() => {
             const hiddenHere = (videosByDatabase[path] ?? []).filter((v) =>
               hiddenVideos.some((h) => samePath(h, v.filepath))
