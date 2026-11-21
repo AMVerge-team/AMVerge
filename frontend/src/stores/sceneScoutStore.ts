@@ -159,7 +159,7 @@ type SceneScoutActions = {
   /** `precutScenes` maps a video to the scenes it was already cut into on home; those skip detection */
   addVideos: (
     videoPaths: string[],
-    detector?: "transnetv2_gpu" | "keyframe_detection",
+    detector?: "transnetv2_gpu" | "keyframe_detection" | "single_scene",
     precutScenes?: Record<string, SceneRange[]>
   ) => Promise<{ ok: boolean; message: string | null }>;
   dismissHero: () => void;
@@ -732,7 +732,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             });
 
             let scenes = precutScenes?.[videoPath] ?? null;
-            if (!scenes && cutToLibrary) {
+            if (!scenes && cutToLibrary && detector !== "single_scene") {
               // detection runs once, in the library import; the index reuses its scenes
               appState.setProgressMsg(`Cutting ${name} into the library…`);
               scenes = await cutIntoLibrary(videoPath, folderName, detector);

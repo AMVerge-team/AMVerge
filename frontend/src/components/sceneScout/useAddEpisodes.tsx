@@ -14,7 +14,7 @@ import { episodeSceneRanges, precutEpisodes, type SceneRange } from "../../featu
 import { VIDEO_EXTENSIONS } from "../../utils/videoExtensions";
 
 
-type IndexDetection = "transnetv2_gpu" | "keyframe_detection";
+type IndexDetection = "transnetv2_gpu" | "keyframe_detection" | "single_scene";
 
 /** Add Episode: reuse a home episode's scenes, or pick a full video and choose detection; no home episodes skips to the picker */
 export function useAddEpisodes() {
@@ -117,6 +117,9 @@ export function useAddEpisodes() {
         <div className="scout-add-columns">
           <section className="scout-add-column">
             <h3>Pick an episode from your library</h3>
+            <p className="events-subtitle" style={{ fontSize: 12, margin: "0 0 8px", opacity: 0.65 }}>
+              Already split in AMVerge — skips scene detection.
+            </p>
             <div className="scout-add-list" role="listbox" aria-multiselectable="true" aria-label="Library episodes">
               {offered.map((episode) => {
                 const isPicked = picked.has(episode.id);
@@ -158,7 +161,10 @@ export function useAddEpisodes() {
           <div className="scout-add-divider" aria-hidden="true" />
 
           <section className="scout-add-column scout-add-full">
-            <h3>Pick a video file from your computer</h3>
+            <h3>Pick video files from your computer</h3>
+            <p className="events-subtitle" style={{ fontSize: 12, margin: "0 0 10px", opacity: 0.65 }}>
+              Full episodes or pre-cut clips (e.g. flow clips / scenepacks).
+            </p>
             <button type="button" className="event-host-btn scout-add-pick" onClick={() => void pickFullEpisodes()}>
               <ImportIcon />
               Choose video…
@@ -204,6 +210,19 @@ export function useAddEpisodes() {
               </button>
             );
           })}
+          <button
+            type="button"
+            role="radio"
+            aria-checked={method === "single_scene"}
+            className={`scene-scout-detection-choice${method === "single_scene" ? " is-active" : ""}`}
+            onClick={() => setMethod("single_scene")}
+            onDoubleClick={() => void confirm()}
+          >
+            <span className="scene-scout-detection-choice-label">Already cut clips (Skip detection)</span>
+            <span className="scene-scout-detection-choice-desc">
+              Each file is already a single clip (e.g. flow clips or a scenepack folder). Skips scene detection and indexes 1 scene per file.
+            </span>
+          </button>
         </div>
 
         <div className="denial-notice-actions">
