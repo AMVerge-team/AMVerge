@@ -62,7 +62,7 @@
       },
       "sceneScoutSearch": {
         "database": "Click <b>Create Collection</b> for an anime series or clip pack",
-        "searching": "New collections are searched automatically. Click <b>+</b> or <b>×</b> on any collection to toggle it",
+        "searching": "New collections are searched automatically. Click a collection's <b>checkbox</b> (or right-click it) to toggle it",
         "addEpisode": "Click <b>Add Videos</b> to scan episodes, or skip detection for pre-cut clips",
         "describe": "Describe what happens in the scene and press <b>Enter</b>",
         "preview": "Single click a result to <b>Preview</b> it"

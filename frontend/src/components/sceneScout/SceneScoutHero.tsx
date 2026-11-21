@@ -106,8 +106,10 @@ export function SceneScoutHero() {
     void startAddEpisodes();
   };
 
+  const anyHaveScenes = databases.some((d) => d.sceneCount > 0);
   const needsFirstCollection = databases.length === 0;
-  const needsFirstVideos = !needsFirstCollection && !selectedHaveScenes;
+  const needsFirstVideos =
+    !needsFirstCollection && !selectedHaveScenes && (!anyHaveScenes || selectedDatabases.length > 0);
 
   const error = addError || createError || storeError;
 
@@ -118,6 +120,14 @@ export function SceneScoutHero() {
         <p className="events-subtitle" style={{ margin: "-6px 0 10px", textAlign: "center", opacity: 0.7 }}>
           {mode === "flow" ? t("hero.subtitleFlow") : t("hero.subtitleSearch")}
         </p>
+
+        {(needsFirstCollection || needsFirstVideos) && (
+          <div className="scene-scout-hero-actions">
+            <SidebarToggle />
+            <ScoutInfoButton />
+            <PreviewToggle />
+          </div>
+        )}
 
         {needsFirstCollection ? (
           <div className="scene-scout-hero-dbs" data-scout-tour="hero-dbs">

@@ -259,9 +259,10 @@ export function SceneScoutTour() {
           <>
             <h3 className="scout-tour-title">6. Manage Collections &amp; Episodes</h3>
             <p className="scout-tour-body">
-              In the left panel, click <b>+</b> / <b>×</b> (or drag) to choose which collections are searched. Expand a
-              collection to see its videos, click the <b>eye icon</b> to hide episodes from search, or use the{" "}
-              <b>trash icon</b> / right-click menu to remove from the list or <b>delete from disk</b>.
+              In the left panel, click a collection's <b>checkbox</b> (or double-click it) to include or exclude it from
+              search. Expand a collection to see its videos, click the <b>eye icon</b> to hide episodes, or{" "}
+              <b>right-click</b> any collection or video to rename, reveal in file manager, remove from list, or{" "}
+              <b>delete from disk</b>.
             </p>
           </>
         )}
