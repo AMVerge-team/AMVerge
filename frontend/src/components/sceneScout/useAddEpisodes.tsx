@@ -54,7 +54,7 @@ export function useAddEpisodes() {
   const startAddEpisodes = async () => {
     setError("");
     if (offered.length > 0) {
-      setPicked(new Set());
+      setPicked(tutorialStep !== null ? new Set(offered.map((e) => e.id)) : new Set());
       anchorRef.current = null;
       setSourceTab(tutorialStep !== null ? "library" : "computer");
       setChoosing(true);
