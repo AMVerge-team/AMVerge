@@ -4,6 +4,7 @@ import { FaDatabase, FaPlus } from '../icons/animated';
 import { FiDatabase } from '../icons/animated';
 
 import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
+import { useUIStateStore } from "../../stores/UIStore";
 import { setHeroFlip } from "../../features/sceneScout/heroTransition";
 import { ScoutSearchField } from "./ScoutSearchField";
 import { ScoutInfoButton } from "./ScoutInfoButton";
@@ -31,6 +32,7 @@ export function SceneScoutHero() {
   const dismissHero = useSceneScoutStore((s) => s.dismissHero);
   const runSearch = useSceneScoutStore((s) => s.runSearch);
   const loadDatabases = useSceneScoutStore((s) => s.loadDatabases);
+  const setTourSeen = useUIStateStore((s) => s.setSceneScoutTourSeen);
   // the centre holds the search bar on the Search tab and the clip player on the Flow tab
   const mode = useSceneScoutStore((s) => s.mode);
 
@@ -265,6 +267,17 @@ export function SceneScoutHero() {
         )}
 
         {error && <p className="events-error scene-scout-hero-error">{error}</p>}
+
+        {(needsFirstCollection || needsFirstVideos) && (
+          <button
+            type="button"
+            className="info-tour-link"
+            style={{ marginTop: 12, alignSelf: "center" }}
+            onClick={() => setTourSeen(false)}
+          >
+            Show walkthrough
+          </button>
+        )}
       </div>
 
       {addModal}
