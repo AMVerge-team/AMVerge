@@ -50,9 +50,15 @@ export function SceneScoutHero() {
   const inSearch = (path: string) => selectedDatabases.some((p) => samePath(p, path));
   const labelFor = (path: string, fallback: string) => displayNames[path] ?? fallback;
 
-  // add episode indexes into the active database, which here is always one the user selected
+  // add videos targets the active collection, falling back to the only collection so Add Videos isn't greyed out
   const addTarget =
-    opened && inSearch(opened) ? opened : selectedDatabases.length > 0 ? selectedDatabases[0] : null;
+    opened && inSearch(opened)
+      ? opened
+      : selectedDatabases.length > 0
+        ? selectedDatabases[0]
+        : databases.length === 1
+          ? databases[0].path
+          : null;
   const addTargetName = addTarget
     ? labelFor(addTarget, databases.find((d) => samePath(d.path, addTarget))?.name ?? t("hero.databaseFallback"))
     : null;
@@ -139,8 +145,19 @@ export function SceneScoutHero() {
           </div>
 
           {databases.length === 0 ? (
-            <div className="scene-scout-hero-empty">
-              {loading ? t("hero.loadingDatabases") : t("hero.noDatabases")}
+            <div className="scene-scout-hero-empty" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "16px 12px" }}>
+              <span>{loading ? t("hero.loadingDatabases") : t("hero.noDatabases")}</span>
+              {!loading && (
+                <button
+                  type="button"
+                  className="event-host-btn"
+                  style={{ fontSize: 12, padding: "7px 14px" }}
+                  onClick={() => void startCreate()}
+                >
+                  <FaPlus aria-hidden="true" style={{ marginRight: 6 }} />
+                  Create your first collection
+                </button>
+              )}
             </div>
           ) : (
             <div className="scene-scout-hero-db-list">
