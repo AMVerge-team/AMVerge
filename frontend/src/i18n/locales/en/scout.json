@@ -78,7 +78,7 @@
       "gettingStarted": "Getting started",
       "step1": "Create a collection for a series or clip pack. New collections are automatically active for search.",
       "step2": "Use the + / × toggle in the left panel (or click a collection pill) to choose which collections are searched.",
-      "step3": "Press Add Videos and pick episodes or pre-cut clips. Scene Scout scans each scene once so you can search through it anytime.",
+      "step3": "Press Add Videos and pick episodes or pre-cut clips. Already cut clips (like flow clips or scenepacks) can skip scene detection and go straight to AI search.",
       "step4": "Describe the scene you want in plain language and press Enter.",
       "settingsTitle": "Search settings",
       "settings": "Results controls how many matches come back. Scene detection is chosen each time you add videos."

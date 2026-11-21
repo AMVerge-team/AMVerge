@@ -38,8 +38,8 @@ const STEPS: Step[] = [
     title: "2. Add episodes or clips",
     body: (
       <>
-        Click <b>Add Videos</b> to scan full episodes or pre-cut clips into your collection. Scanning only happens once
-        per video.
+        Click <b>Add Videos</b> to scan full episodes or pre-cut clips into your collection. Already cut clips (like
+        flow clips or scenepacks) can skip scene detection and go straight to AI search.
       </>
     ),
   },
