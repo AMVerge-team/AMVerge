@@ -14,7 +14,9 @@ export function hitToClipItem(hit: ScoutHit, index: number): ClipItem {
     ...(remote ? { clipPath: hit.videoPath } : {}),
     thumbnail: hit.thumbnailB64
       ? `data:image/jpeg;base64,${hit.thumbnailB64}`
-      : generateScoutPlaceholderSvg(name, timeframe),
+      : remote
+        ? hit.videoPath.replace(/\.mp4$/i, ".jpg")
+        : generateScoutPlaceholderSvg(name, timeframe),
     thumbnailReady: true,
     originalPath: hit.videoPath,
     originalName: name,
