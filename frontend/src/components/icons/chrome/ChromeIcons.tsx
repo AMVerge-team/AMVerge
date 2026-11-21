@@ -314,67 +314,109 @@ export function DatabaseDownloadIcon() {
 
 /* ------------------------------------------------------- scene detection */
 
-/** AI scene detection: a 4-point sparkle with two satellite stars that twinkle on hover/press */
+/**
+ * AI scene detection: a video frame being scanned by a laser beam and cleanly
+ * split into two exact scenes on hover/press (no generic sparkles).
+ */
 export function AiSceneDetectionIcon({ filled = true }: ToggleProps) {
-  const { hostRef, playing } = useIconPlay(640);
+  const { hostRef, playing } = useIconPlay(680);
   return (
     <svg ref={hostRef} viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <motion.path
-        d="M11 3.5l1.9 5.6L18.5 11l-5.6 1.9L11 18.5l-1.9-5.6L3.5 11l5.6-1.9z"
-        fill={filled ? 'currentColor' : 'none'}
+      {/* left half of the split video frame */}
+      <motion.g
         animate={playing}
         variants={{
-          rest: { scale: 1, rotate: 0 },
-          hover: { scale: [1, 1.12, 1], rotate: [0, 14, 0], transition: { duration: 0.42, ease: 'easeInOut' } },
-          press: { scale: [1, 0.85, 1.18, 1], rotate: [0, -10, 45, 0], transition: { duration: 0.6, times: [0, 0.2, 0.6, 1], ease: 'easeInOut' } },
+          rest: { x: 0 },
+          hover: { x: [0, 0, -1.6, -1.6], transition: { duration: 0.46, times: [0, 0.35, 0.78, 1], ease: 'easeInOut' } },
+          press: { x: [0, 0, -2.4, -2.4, 0], transition: { duration: 0.66, times: [0, 0.25, 0.55, 0.8, 1], ease: 'easeInOut' } },
         }}
-        style={at(11, 11)}
-      />
-      <motion.path
-        d="M19 3.5v3M17.5 5h3"
-        strokeWidth="1.7"
+        style={at(7, 12)}
+      >
+        <path d="M10.2 5H5.2A2.2 2.2 0 0 0 3 7.2v9.6A2.2 2.2 0 0 0 5.2 19h5" />
+        {filled && <rect x="5" y="7.2" width="4.4" height="9.6" rx="0.8" fill="currentColor" stroke="none" opacity="0.32" />}
+      </motion.g>
+
+      {/* right half of the split video frame */}
+      <motion.g
         animate={playing}
         variants={{
-          rest: { scale: 1, opacity: 0.85 },
-          hover: { scale: [1, 1.35, 1], opacity: [0.85, 1, 0.85], transition: { duration: 0.36, delay: 0.08, ease: 'easeInOut' } },
-          press: { scale: [1, 0.6, 1.4, 1], opacity: [0.85, 0.4, 1, 0.85], transition: { duration: 0.56, ease: 'easeInOut' } },
+          rest: { x: 0 },
+          hover: { x: [0, 0, 1.6, 1.6], transition: { duration: 0.46, times: [0, 0.35, 0.78, 1], ease: 'easeInOut' } },
+          press: { x: [0, 0, 2.4, 2.4, 0], transition: { duration: 0.66, times: [0, 0.25, 0.55, 0.8, 1], ease: 'easeInOut' } },
         }}
-        style={at(19, 5)}
-      />
-      <motion.path
-        d="M18.5 16.5v3M17 18h3"
-        strokeWidth="1.7"
+        style={at(17, 12)}
+      >
+        <path d="M13.8 5h5A2.2 2.2 0 0 1 21 7.2v9.6a2.2 2.2 0 0 1-2.2 2.2h-5" />
+        {filled && <rect x="14.6" y="7.2" width="4.4" height="9.6" rx="0.8" fill="currentColor" stroke="none" opacity="0.72" />}
+      </motion.g>
+
+      {/* AI scan/cut laser beam that sweeps vertically down the center */}
+      <motion.line
+        x1="12"
+        y1="2.5"
+        x2="12"
+        y2="21.5"
+        strokeWidth="1.9"
+        strokeDasharray="2.4 2.2"
         animate={playing}
         variants={{
-          rest: { scale: 1, opacity: 0.85 },
-          hover: { scale: [1, 1.35, 1], opacity: [0.85, 1, 0.85], transition: { duration: 0.36, delay: 0.16, ease: 'easeInOut' } },
-          press: { scale: [1, 0.6, 1.4, 1], opacity: [0.85, 0.4, 1, 0.85], transition: { duration: 0.56, delay: 0.08, ease: 'easeInOut' } },
+          rest: { scaleY: 0.88, opacity: 0.85 },
+          hover: { scaleY: [0.6, 1.08, 1], opacity: [0.4, 1, 1], transition: { duration: 0.38, ease: 'easeOut' } },
+          press: { scaleY: [0.4, 1.12, 1, 0.88], opacity: [0.3, 1, 1, 0.85], transition: { duration: 0.62, ease: 'easeInOut' } },
         }}
-        style={at(18.5, 18)}
+        style={at(12, 12)}
       />
     </svg>
   );
 }
 
-/** Keyframe detection: an editor keyframe diamond on a timeline track that pulses and steps on hover/press */
+/**
+ * Keyframe detection: a timeline rail with three keyframe diamonds and a
+ * playhead that snaps across them on hover/press.
+ */
 export function KeyframeDetectionIcon() {
-  const { hostRef, playing } = useIconPlay(620);
+  const { hostRef, playing } = useIconPlay(680);
+  const keys = [5, 12, 19];
   return (
-    <svg ref={hostRef} viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <line x1="2.5" y1="12" x2="7.5" y2="12" opacity="0.65" />
-      <line x1="16.5" y1="12" x2="21.5" y2="12" opacity="0.65" />
+    <svg ref={hostRef} viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {/* timeline track */}
+      <line x1="2.5" y1="15" x2="21.5" y2="15" opacity="0.45" />
+
+      {/* playhead marker snapping from keyframe 1 -> 2 -> 3 */}
       <motion.g
         animate={playing}
         variants={{
-          rest: { scale: 1, rotate: 0 },
-          hover: { scale: [1, 1.18, 1], transition: { duration: 0.34, ease: 'easeInOut' } },
-          press: { scale: [1, 0.82, 1.22, 1], rotate: [0, 0, 90, 90], transition: { duration: 0.58, times: [0, 0.2, 0.65, 1], ease: 'easeInOut' } },
+          rest: { x: 0 },
+          hover: { x: [0, 7, 7], transition: { duration: 0.36, times: [0, 0.7, 1], ease: 'easeOut' } },
+          press: { x: [-7, 0, 7, 0], transition: { duration: 0.64, times: [0, 0.3, 0.72, 1], ease: 'easeInOut' } },
         }}
-        style={at(12, 12)}
+        style={at(12, 6)}
       >
-        <path d="M12 5.5L18.5 12L12 18.5L5.5 12Z" />
-        <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
+        <path d="M9.5 3.5h5L12 7.5z" fill="currentColor" stroke="none" />
+        <line x1="12" y1="7" x2="12" y2="11.5" strokeWidth="1.6" />
       </motion.g>
+
+      {/* three keyframe diamonds along the track */}
+      {keys.map((cx, i) => (
+        <motion.path
+          key={cx}
+          d={`M${cx} 11.8l2.7 3.2-2.7 3.2-2.7-3.2z`}
+          fill={i === 1 ? 'currentColor' : 'none'}
+          animate={playing}
+          variants={{
+            rest: { scale: 1 },
+            hover: {
+              scale: i === 2 ? [1, 1.32, 1.1] : [1, 1, 1],
+              transition: { duration: 0.38, delay: i === 2 ? 0.14 : 0, ease: 'easeOut' },
+            },
+            press: {
+              scale: [1, 1.3, 1],
+              transition: { duration: 0.32, delay: i * 0.14, ease: 'easeInOut' },
+            },
+          }}
+          style={at(cx, 15)}
+        />
+      ))}
     </svg>
   );
 }
