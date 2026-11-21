@@ -29,7 +29,7 @@ const STEPS: Step[] = [
     body: (
       <>
         A <b>collection</b> holds the searchable scenes for a series or clip pack. Click <b>+</b> to create one (or
-        import an existing <code>.scoutdb</code> file) — it is automatically active for search.
+        import an existing <code>.scoutdb</code> file), and it will be active for search automatically.
       </>
     ),
   },

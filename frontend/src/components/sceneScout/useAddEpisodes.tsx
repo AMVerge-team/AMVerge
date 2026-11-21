@@ -151,7 +151,7 @@ export function useAddEpisodes() {
           <section className="scout-add-column" style={{ width: "100%" }}>
             <h3>Pick episodes already in your Library</h3>
             <p className="events-subtitle" style={{ fontSize: 12, margin: "0 0 8px", opacity: 0.7 }}>
-              Reuses your existing scene cuts — skips scene detection.
+              Reuses your existing scene cuts and skips scene detection.
             </p>
             <div className="scout-add-list" role="listbox" aria-multiselectable="true" aria-label="Library episodes">
               {offered.map((episode) => {
