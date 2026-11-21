@@ -74,31 +74,31 @@
   "info": {
     "search": {
       "title": "Scene Scout: Search",
-      "intro": "Scene Scout searches your indexed episodes by description rather than by filename. Type what you remember of a scene and it finds the closest matches.",
+      "intro": "Scene Scout searches your episodes and clips by description rather than by filename. Type what happens in a scene and it finds the closest matches.",
       "gettingStarted": "Getting started",
-      "step1": "Create or open a database in the left panel. One per series works well.",
-      "step2": "Move it into Searching by double-clicking it, dragging it up, or right-clicking it. All databases lists everything you have; only the ones in Searching are searched.",
-      "step3": "Press Add Episode and pick one or more videos. Indexing watches every scene once and stores a fingerprint of each, which takes a while but only happens once per episode.",
+      "step1": "Create a collection for a series or clip pack. New collections are automatically active for search.",
+      "step2": "Use the + / × toggle in the left panel (or click a collection pill) to choose which collections are searched.",
+      "step3": "Press Add Videos and pick episodes or pre-cut clips. Scene Scout scans each scene once so you can search through it anytime.",
       "step4": "Describe the scene you want in plain language and press Enter.",
       "settingsTitle": "Search settings",
-      "settings": "Results controls how many matches come back. Scene detection is chosen each time you add episodes."
+      "settings": "Results controls how many matches come back. Scene detection is chosen each time you add videos."
     },
     "flow": {
       "title": "Scene Scout: Match",
-      "intro": "Match finds scenes that could come right after a clip you already have. It looks at the clip's last frame and returns the scenes in your databases that look most like it, so the cut between them feels continuous.",
+      "intro": "Match finds scenes that could come right after a clip you already have. It looks at the clip's last frame and returns the scenes in your collections that look most like it, so the cut between them feels continuous.",
       "howTitle": "How to use it",
-      "step1": "Add the databases to search to the Searching list on the left.",
+      "step1": "Make sure at least one collection is active in the Searching list on the left.",
       "step2": "Press Import and pick a video file, or right-click a clip in your Library or in Search results and pick Find matching clips.",
       "step3": "Click a match to play it in the preview pane, and export it from there as usual.",
       "tipsTitle": "Tips",
-      "tips": "Drag the bar between the clip and the results to give either more room. The refresh button runs the same clip again, for example after changing which databases are searched."
+      "tips": "Drag the bar between the clip and the results to give either more room. The refresh button runs the same clip again, for example after changing which collections are searched."
     }
   },
   "flow": {
     "heroInput": "Input a file to find scene matches",
-    "noDatabaseHint": "Add a database to the Searching list on the left first",
+    "noDatabaseHint": "Create or select a collection on the left first",
     "import": "Import",
-    "searchAgainHint": "Search again, e.g. after changing which databases are searched",
+    "searchAgainHint": "Search again, e.g. after changing which collections are searched",
     "searchAgain": "Search again",
     "inputtedClip": "Inputted clip",
     "previewFailed": "Could not prepare a preview of this clip.",

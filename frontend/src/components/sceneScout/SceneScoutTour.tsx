@@ -18,65 +18,37 @@ const STEPS: Step[] = [
     title: "Welcome to Scene Scout",
     body: (
       <>
-        Find any scene by describing it, like <i>"girl crying in the rain"</i>. Scene Scout indexes your
-        episodes into a <b>database</b> once, then searches them in seconds.
+        Find any scene by describing it, like <i>"girl crying in the rain"</i>. Add your episodes or clips to a{" "}
+        <b>collection</b> once, then search through them in seconds.
       </>
     ),
   },
   {
-    targets: ["db-actions"],
-    title: "1. Create or open a database",
+    targets: ["db-actions", "db-empty"],
+    title: "1. Create a collection",
     body: (
       <>
-        Use <b>+</b> to create a new database, or the <b>database arrow</b> to import a database file you already have. One
-        database per series works well.
+        A <b>collection</b> holds the searchable scenes for a series or clip pack. Click <b>+</b> to create one (or
+        import an existing <code>.scoutdb</code> file) — it is automatically active for search.
       </>
     ),
-  },
-  {
-    targets: ["all-databases", "db-empty"],
-    title: "2. All databases",
-    body: (
-      <>
-        Every database you created or opened is listed here. Being in this list does <b>not</b> mean it
-        gets searched. To search one, <b>double-click</b> it or <b>drag</b> it up into Searching.
-      </>
-    ),
-  },
-  {
-    targets: ["searching", "db-empty"],
-    title: "3. Searching",
-    body: (
-      <>
-        Only databases in <b>Searching</b> are searched. Move one up by <b>double-clicking</b> it,{" "}
-        <b>dragging</b> it here, or <b>right-clicking</b> it. Expand a database here to search only some of
-        its episodes.
-      </>
-    ),
-  },
-  {
-    targets: ["hero-dbs"],
-    title: "Quick pick",
-    body: <>Clicking a database here also adds it to Searching, or takes it out again.</>,
-    optional: true,
   },
   {
     targets: ["add-episode"],
-    title: "4. Add episodes",
+    title: "2. Add episodes or clips",
     body: (
       <>
-        <b>Add Episode</b> indexes episodes into the selected database. It takes a while, but only once per
-        episode.
+        Click <b>Add Videos</b> to scan full episodes or pre-cut clips into your collection. Scanning only happens once
+        per video.
       </>
     ),
   },
   {
     targets: ["search-field"],
-    title: "5. Describe a scene",
+    title: "3. Search by description",
     body: (
       <>
-        Describe the scene you want, press <b>Enter</b>, select the clips you're looking for, then export it like
-        any clip.
+        Type what happens in the scene, press <b>Enter</b>, pick the clips you want, and export them like usual.
       </>
     ),
   },
@@ -85,8 +57,8 @@ const STEPS: Step[] = [
     title: "Search and Match",
     body: (
       <>
-        <b>Search</b> finds scenes from a description. <b>Match</b> takes a clip you already have and finds
-        scenes that look like they could come right after it.
+        <b>Search</b> finds scenes from a description. <b>Match</b> takes a clip you already have and finds scenes that
+        flow right after its last frame.
       </>
     ),
   },

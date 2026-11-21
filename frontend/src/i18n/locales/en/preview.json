@@ -61,9 +61,9 @@
         "open": "Open a Scenepack to see its clips"
       },
       "sceneScoutSearch": {
-        "database": "Create or open a <b>Database</b> in the left panel",
-        "searching": "Move it into <b>Searching</b>: <b>Double Click</b> it, drag it up, or right click it. Only databases in Searching are searched",
-        "addEpisode": "Click <b>Add Episode</b> to index episodes into it",
+        "database": "Create or open a <b>Collection</b> for a series or clip pack",
+        "searching": "New collections are searched automatically — click <b>+</b> or <b>×</b> on any collection to toggle it",
+        "addEpisode": "Click <b>Add Videos</b> to scan episodes or pre-cut clips into it",
         "describe": "Describe a scene in the search bar and press <b>Enter</b>",
         "preview": "Single click a result to <b>Preview</b> it"
       },
