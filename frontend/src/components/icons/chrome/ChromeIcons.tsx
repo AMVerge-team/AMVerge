@@ -371,52 +371,31 @@ export function AiSceneDetectionIcon({ filled = true }: ToggleProps) {
 }
 
 /**
- * Keyframe detection: a timeline rail with three keyframe diamonds and a
- * playhead that snaps across them on hover/press.
+ * Keyframe detection: matches the rounded video-frame silhouette of the other
+ * toolbar icons, with a crisp keyframe diamond inside that pulses and snaps on hover/press.
  */
 export function KeyframeDetectionIcon() {
-  const { hostRef, playing } = useIconPlay(680);
-  const keys = [5, 12, 19];
+  const { hostRef, playing } = useIconPlay(620);
   return (
-    <svg ref={hostRef} viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {/* timeline track */}
-      <line x1="2.5" y1="15" x2="21.5" y2="15" opacity="0.45" />
-
-      {/* playhead marker snapping from keyframe 1 -> 2 -> 3 */}
-      <motion.g
+    <svg ref={hostRef} viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {/* outer video frame matching PanelToggle / AiSceneDetectionIcon geometry */}
+      <rect x="3" y="4.5" width="18" height="15" rx="2.2" />
+      {/* subtle timeline rail ticks on the sides */}
+      <line x1="3.5" y1="12" x2="6.2" y2="12" opacity="0.45" />
+      <line x1="17.8" y1="12" x2="20.5" y2="12" opacity="0.45" />
+      {/* centered keyframe diamond that snaps/pulses on hover and press */}
+      <motion.path
+        d="M12 8.1L15.9 12L12 15.9L8.1 12Z"
+        fill="currentColor"
+        stroke="none"
         animate={playing}
         variants={{
-          rest: { x: 0 },
-          hover: { x: [0, 7, 7], transition: { duration: 0.36, times: [0, 0.7, 1], ease: 'easeOut' } },
-          press: { x: [-7, 0, 7, 0], transition: { duration: 0.64, times: [0, 0.3, 0.72, 1], ease: 'easeInOut' } },
+          rest: { scale: 1, rotate: 0 },
+          hover: { scale: [1, 1.24, 1.08], transition: { duration: 0.32, ease: 'easeOut' } },
+          press: { scale: [1, 0.78, 1.28, 1], rotate: [0, 0, 90, 90], transition: { duration: 0.56, times: [0, 0.2, 0.65, 1], ease: 'easeInOut' } },
         }}
-        style={at(12, 6)}
-      >
-        <path d="M9.5 3.5h5L12 7.5z" fill="currentColor" stroke="none" />
-        <line x1="12" y1="7" x2="12" y2="11.5" strokeWidth="1.6" />
-      </motion.g>
-
-      {/* three keyframe diamonds along the track */}
-      {keys.map((cx, i) => (
-        <motion.path
-          key={cx}
-          d={`M${cx} 11.8l2.7 3.2-2.7 3.2-2.7-3.2z`}
-          fill={i === 1 ? 'currentColor' : 'none'}
-          animate={playing}
-          variants={{
-            rest: { scale: 1 },
-            hover: {
-              scale: i === 2 ? [1, 1.32, 1.1] : [1, 1, 1],
-              transition: { duration: 0.38, delay: i === 2 ? 0.14 : 0, ease: 'easeOut' },
-            },
-            press: {
-              scale: [1, 1.3, 1],
-              transition: { duration: 0.32, delay: i * 0.14, ease: 'easeInOut' },
-            },
-          }}
-          style={at(cx, 15)}
-        />
-      ))}
+        style={at(12, 12)}
+      />
     </svg>
   );
 }
