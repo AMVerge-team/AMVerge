@@ -106,7 +106,7 @@ export default function SceneScoutPage() {
       {toolbar}
 
       <div className="main-layout-wrapper">
-        <MainLayout active={!overlayOpen} left={left} />
+        <MainLayout active={!overlayOpen} left={left} fullWidth={firstVisit} />
 
         <div className="info-bar" />
       </div>
