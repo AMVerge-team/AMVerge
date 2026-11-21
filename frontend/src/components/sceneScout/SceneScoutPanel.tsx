@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
 import { FaCheck, FaChevronRight, FaDatabase, FaEye, FaEyeSlash, FaPlus, FaSearch, FaSpinner, FaTimes, FaTrashAlt, FaVideo } from '../icons/animated';
@@ -11,12 +12,16 @@ import { useEscapeToClose } from "../common/useEscapeToClose";
 import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
 import { useContextMenuStore } from "../../stores/contextMenuStore";
 import type { ScoutDatabase, ScoutVideo } from "../../features/sceneScout/types";
+import { useAddEpisodes } from "./useAddEpisodes";
 import { useCreateScoutDatabase } from "./useCreateScoutDatabase";
 import { EpisodeVisibilityPopover } from "./EpisodeVisibilityPopover";
 
 const SONICFREAK_URL = "https://www.youtube.com/@sonicfreak1111";
 
-type DbMenu = { paths: string[]; x: number; y: number };
+type PanelMenu =
+  | { kind: "db"; paths: string[]; x: number; y: number }
+  | { kind: "video"; database: ScoutDatabase; videos: ScoutVideo[]; x: number; y: number }
+  | { kind: "panel"; x: number; y: number };
 
 /** sidebar panel for the databases and their episodes, on the same shell as the episode and Scenepacks panels */
 export function SceneScoutPanel() {
@@ -39,24 +44,30 @@ export function SceneScoutPanel() {
   const deleteDatabase = useSceneScoutStore((s) => s.deleteDatabase);
   const deleteVideo = useSceneScoutStore((s) => s.deleteVideo);
   const unloadDatabase = useSceneScoutStore((s) => s.unloadDatabase);
+  const renameDatabase = useSceneScoutStore((s) => s.renameDatabase);
+  const setVideosHidden = useSceneScoutStore((s) => s.setVideosHidden);
+  const refresh = useSceneScoutStore((s) => s.refresh);
   const displayNames = useSceneScoutStore((s) => s.displayNames);
 
   const { startCreate, modal: createModal, error: createError } = useCreateScoutDatabase((path) => {
     addToSearch([path]);
     setActiveDatabase(path);
   });
+  const { startAddEpisodes, modal: addModal, error: addError } = useAddEpisodes();
   const [panelError, setError] = useState("");
-  const error = panelError || createError;
+  const error = panelError || createError || addError;
   const [searchQuery, setSearchQuery] = useState("");
   const [isOpening, setIsOpening] = useState(false);
   const [openingName, setOpeningName] = useState<string | null>(null);
   const [databaseToDelete, setDatabaseToDelete] = useState<ScoutDatabase | null>(null);
+  const [databaseToRename, setDatabaseToRename] = useState<ScoutDatabase | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
   const [videosToDelete, setVideosToDelete] = useState<{ videos: ScoutVideo[]; database: ScoutDatabase } | null>(null);
   const [isDeletingVideo, setIsDeletingVideo] = useState(false);
   const [videosDeleted, setVideosDeleted] = useState(0);
   // explorer-style highlight for click, ctrl and shift; separate from which databases are searched
   const [highlightPaths, setHighlightPaths] = useState<string[]>([]);
-  const [menu, setMenu] = useState<DbMenu | null>(null);
+  const [menu, setMenu] = useState<PanelMenu | null>(null);
   // highlighted episodes, for removing several at once; never changes what is searched
   const [picked, setPicked] = useState<{ database: string; paths: string[] }>({ database: "", paths: [] });
   // the searched database whose episode visibility popover is open, and its eye button
@@ -169,7 +180,27 @@ export function SceneScoutPanel() {
     const paths = targetsFor(path);
     if (!isHighlighted(path)) setHighlightPaths([path]);
     claimMenu("scene-scout-database");
-    setMenu({ paths, x: e.clientX, y: e.clientY });
+    setMenu({ kind: "db", paths, x: e.clientX, y: e.clientY });
+  };
+
+  const openVideoMenu = (database: ScoutDatabase, videosForMenu: ScoutVideo[]) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    claimMenu("scene-scout-database");
+    setMenu({ kind: "video", database, videos: videosForMenu, x: e.clientX, y: e.clientY });
+  };
+
+  const openPanelMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    claimMenu("scene-scout-database");
+    setMenu({ kind: "panel", x: e.clientX, y: e.clientY });
+  };
+
+  const revealPath = (targetPath: string) => {
+    void invoke("reveal_in_file_manager", { path: targetPath }).catch((err) => {
+      console.error("reveal_in_file_manager failed", err);
+    });
   };
 
   const startOpen = async () => {
@@ -235,6 +266,7 @@ export function SceneScoutPanel() {
             e.stopPropagation();
             pickVideo(database.path, video.filepath, e, allDbVideoPaths);
           }}
+          onContextMenu={openVideoMenu(database, deleteTargets)}
         >
           <FaVideo className="episode-panel-import-icon scene-scout-row-icon" aria-hidden="true" />
           <span className="episode-panel-episode-name">{video.name}</span>
@@ -467,6 +499,7 @@ export function SceneScoutPanel() {
           data-scout-tour="searching"
           className="episode-panel-list scene-scout-db-box"
           style={{ flex: 1, minHeight: 0 }}
+          onContextMenu={openPanelMenu}
         >
           <div className="scene-scout-section-label">
             Collections · {selectedDatabases.length} active / {databases.length}
@@ -496,17 +529,126 @@ export function SceneScoutPanel() {
       )}
 
       {menu && (() => {
+        const close = () => setMenu(null);
+        const menuStyle = {
+          left: Math.min(menu.x, window.innerWidth - 220),
+          top: Math.min(menu.y, window.innerHeight - 240),
+        };
+
+        if (menu.kind === "panel") {
+          return (
+            <div
+              className="episode-context-menu scene-scout-db-menu"
+              style={menuStyle}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="episode-context-menu-item"
+                onClick={() => {
+                  close();
+                  void startCreate();
+                }}
+              >
+                New Collection…
+              </button>
+              <button
+                type="button"
+                className="episode-context-menu-item"
+                onClick={() => {
+                  close();
+                  void startOpen();
+                }}
+              >
+                Import Collection (.scoutdb)…
+              </button>
+              <div className="episode-context-menu-separator" />
+              <button
+                type="button"
+                className="episode-context-menu-item"
+                onClick={() => {
+                  close();
+                  void refresh();
+                }}
+              >
+                Refresh Collections
+              </button>
+            </div>
+          );
+        }
+
+        if (menu.kind === "video") {
+          const paths = menu.videos.map((v) => v.filepath);
+          const allHidden = paths.every((p) => hiddenVideos.some((h) => samePath(h, p)));
+          const singleVideo = menu.videos.length === 1 ? menu.videos[0] : null;
+          return (
+            <div
+              className="episode-context-menu scene-scout-db-menu"
+              style={menuStyle}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="episode-context-menu-item"
+                onClick={() => {
+                  setVideosHidden(paths, !allHidden);
+                  close();
+                }}
+              >
+                {allHidden ? "Show in searches" : "Hide from searches"}
+              </button>
+              {singleVideo && (
+                <button
+                  type="button"
+                  className="episode-context-menu-item"
+                  onClick={() => {
+                    revealPath(singleVideo.filepath);
+                    close();
+                  }}
+                >
+                  Reveal file in file manager
+                </button>
+              )}
+              <div className="episode-context-menu-separator" />
+              <button
+                type="button"
+                className="episode-context-menu-item scene-scout-menu-danger"
+                onClick={() => {
+                  setVideosToDelete({ videos: menu.videos, database: menu.database });
+                  close();
+                }}
+              >
+                {menu.videos.length > 1
+                  ? `Remove ${menu.videos.length} videos from collection`
+                  : "Remove from collection"}
+              </button>
+            </div>
+          );
+        }
+
         const n = menu.paths.length;
         const single = n === 1 ? databases.find((d) => samePath(d.path, menu.paths[0])) ?? null : null;
         const toAdd = menu.paths.filter((p) => !inSearch(p));
         const allActive = toAdd.length === 0;
-        const close = () => setMenu(null);
         return (
           <div
             className="episode-context-menu scene-scout-db-menu"
-            style={{ left: menu.x, top: menu.y }}
+            style={menuStyle}
             onClick={(e) => e.stopPropagation()}
           >
+            {single && (
+              <button
+                type="button"
+                className="episode-context-menu-item"
+                onClick={() => {
+                  setActiveDatabase(single.path);
+                  close();
+                  void startAddEpisodes();
+                }}
+              >
+                Add Videos…
+              </button>
+            )}
             <button
               type="button"
               className="episode-context-menu-item"
@@ -523,6 +665,31 @@ export function SceneScoutPanel() {
                   ? `Include ${n} collections in search`
                   : "Include in search"}
             </button>
+            {single && (
+              <>
+                <button
+                  type="button"
+                  className="episode-context-menu-item"
+                  onClick={() => {
+                    setDatabaseToRename(single);
+                    setRenameDraft(labelFor(single.path, single.name));
+                    close();
+                  }}
+                >
+                  Rename…
+                </button>
+                <button
+                  type="button"
+                  className="episode-context-menu-item"
+                  onClick={() => {
+                    revealPath(single.path);
+                    close();
+                  }}
+                >
+                  Reveal in file manager
+                </button>
+              </>
+            )}
             <div className="episode-context-menu-separator" />
             <button
               type="button"
@@ -552,6 +719,54 @@ export function SceneScoutPanel() {
       })()}
 
       {createModal}
+      {addModal}
+
+      {databaseToRename && (
+        <ModalShell
+          open
+          onClose={() => setDatabaseToRename(null)}
+          label="Rename collection"
+          className="scene-scout-name-modal"
+        >
+          <div className="denial-notice">
+            <FaDatabase aria-hidden="true" className="denial-notice-icon" />
+            <h2>Rename Collection</h2>
+            <input
+              autoFocus
+              className="scene-scout-name-input"
+              value={renameDraft}
+              onChange={(e) => setRenameDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && renameDraft.trim()) {
+                  renameDatabase(databaseToRename.path, renameDraft.trim());
+                  setDatabaseToRename(null);
+                }
+              }}
+            />
+            <div className="denial-notice-actions">
+              <button
+                type="button"
+                className="event-host-btn"
+                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}
+                onClick={() => setDatabaseToRename(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="event-host-btn"
+                disabled={!renameDraft.trim()}
+                onClick={() => {
+                  renameDatabase(databaseToRename.path, renameDraft.trim());
+                  setDatabaseToRename(null);
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </ModalShell>
+      )}
 
       {databaseToDelete && (
         <ModalShell
