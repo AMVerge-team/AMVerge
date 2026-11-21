@@ -68,6 +68,11 @@ export function SceneScoutHero() {
 
   const toggleDatabase = (path: string) => {
     if (inSearch(path)) {
+      // keep the only database active so a stray click doesn't disable Add Episode and Search
+      if (databases.length === 1 && selectedDatabases.length === 1) {
+        setActiveDatabase(path);
+        return;
+      }
       removeFromSearch([path]);
       if (opened && samePath(opened, path)) {
         const next = selectedDatabases.find((p) => !samePath(p, path)) ?? null;
@@ -99,6 +104,9 @@ export function SceneScoutHero() {
     <div className="scene-scout-hero">
       <div className="scene-scout-hero-inner">
         <SceneScoutLogo className="scene-scout-hero-logo" />
+        <p className="events-subtitle" style={{ margin: "-6px 0 10px", textAlign: "center", opacity: 0.7 }}>
+          {mode === "flow" ? t("hero.subtitleFlow") : t("hero.subtitleSearch")}
+        </p>
 
         <div className="scene-scout-hero-actions">
           <SidebarToggle />

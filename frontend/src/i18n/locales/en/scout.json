@@ -1,14 +1,16 @@
 {
   "hero": {
+    "subtitleSearch": "Find any scene across your episodes or clips by describing what happens.",
+    "subtitleFlow": "Drop a clip to find scenes that visually match and flow from its last frame.",
     "blockedNoDatabase": "Create a database below to start searching...",
-    "blockedNoScenes": "Add episodes to the selected database before searching...",
-    "addTo": "Add episodes to {{name}}",
+    "blockedNoScenes": "Add episodes or clips to the selected database before searching...",
+    "addTo": "Add episodes or clips to {{name}}",
     "addNoTarget": "Select or create a database below first",
     "databaseFallback": "database",
     "yourDatabases": "Your databases",
     "newDatabase": "New database",
     "loadingDatabases": "Loading databases...",
-    "noDatabases": "No databases yet. Create one to start indexing episodes.",
+    "noDatabases": "No databases yet. Create one for a series or clip pack to start searching through episodes.",
     "sceneCount_one": "{{count}} scene",
     "sceneCount_other": "{{count}} scenes",
     "empty": "empty"
