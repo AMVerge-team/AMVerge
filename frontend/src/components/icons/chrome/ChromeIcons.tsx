@@ -311,3 +311,70 @@ export function DatabaseDownloadIcon() {
     </svg>
   );
 }
+
+/* ------------------------------------------------------- scene detection */
+
+/** AI scene detection: a 4-point sparkle with two satellite stars that twinkle on hover/press */
+export function AiSceneDetectionIcon({ filled = true }: ToggleProps) {
+  const { hostRef, playing } = useIconPlay(640);
+  return (
+    <svg ref={hostRef} viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <motion.path
+        d="M11 3.5l1.9 5.6L18.5 11l-5.6 1.9L11 18.5l-1.9-5.6L3.5 11l5.6-1.9z"
+        fill={filled ? 'currentColor' : 'none'}
+        animate={playing}
+        variants={{
+          rest: { scale: 1, rotate: 0 },
+          hover: { scale: [1, 1.12, 1], rotate: [0, 14, 0], transition: { duration: 0.42, ease: 'easeInOut' } },
+          press: { scale: [1, 0.85, 1.18, 1], rotate: [0, -10, 45, 0], transition: { duration: 0.6, times: [0, 0.2, 0.6, 1], ease: 'easeInOut' } },
+        }}
+        style={at(11, 11)}
+      />
+      <motion.path
+        d="M19 3.5v3M17.5 5h3"
+        strokeWidth="1.7"
+        animate={playing}
+        variants={{
+          rest: { scale: 1, opacity: 0.85 },
+          hover: { scale: [1, 1.35, 1], opacity: [0.85, 1, 0.85], transition: { duration: 0.36, delay: 0.08, ease: 'easeInOut' } },
+          press: { scale: [1, 0.6, 1.4, 1], opacity: [0.85, 0.4, 1, 0.85], transition: { duration: 0.56, ease: 'easeInOut' } },
+        }}
+        style={at(19, 5)}
+      />
+      <motion.path
+        d="M18.5 16.5v3M17 18h3"
+        strokeWidth="1.7"
+        animate={playing}
+        variants={{
+          rest: { scale: 1, opacity: 0.85 },
+          hover: { scale: [1, 1.35, 1], opacity: [0.85, 1, 0.85], transition: { duration: 0.36, delay: 0.16, ease: 'easeInOut' } },
+          press: { scale: [1, 0.6, 1.4, 1], opacity: [0.85, 0.4, 1, 0.85], transition: { duration: 0.56, delay: 0.08, ease: 'easeInOut' } },
+        }}
+        style={at(18.5, 18)}
+      />
+    </svg>
+  );
+}
+
+/** Keyframe detection: an editor keyframe diamond on a timeline track that pulses and steps on hover/press */
+export function KeyframeDetectionIcon() {
+  const { hostRef, playing } = useIconPlay(620);
+  return (
+    <svg ref={hostRef} viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="2.5" y1="12" x2="7.5" y2="12" opacity="0.65" />
+      <line x1="16.5" y1="12" x2="21.5" y2="12" opacity="0.65" />
+      <motion.g
+        animate={playing}
+        variants={{
+          rest: { scale: 1, rotate: 0 },
+          hover: { scale: [1, 1.18, 1], transition: { duration: 0.34, ease: 'easeInOut' } },
+          press: { scale: [1, 0.82, 1.22, 1], rotate: [0, 0, 90, 90], transition: { duration: 0.58, times: [0, 0.2, 0.65, 1], ease: 'easeInOut' } },
+        }}
+        style={at(12, 12)}
+      >
+        <path d="M12 5.5L18.5 12L12 18.5L5.5 12Z" />
+        <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
+      </motion.g>
+    </svg>
+  );
+}

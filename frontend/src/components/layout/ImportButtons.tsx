@@ -1,4 +1,4 @@
-import { PanelLeftIcon, PanelRightIcon } from "../icons/chrome/ChromeIcons";
+import { AiSceneDetectionIcon, KeyframeDetectionIcon, PanelLeftIcon, PanelRightIcon } from "../icons/chrome/ChromeIcons";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FaSyncAlt } from '../icons/animated';
@@ -103,12 +103,12 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
             >
               <button
                 type="button"
-                className={`import-button icon-action-button${isAiActive ? " active" : ""}`}
+                className={`import-button panel-toggle-button${isAiActive ? " active" : ""}`}
                 onClick={() => void handleToggleDetection()}
+                aria-label={isAiActive ? "AI Scene Detection active. Switch to Keyframe Detection" : "Keyframe Detection active. Switch to AI Scene Detection"}
                 aria-pressed={isAiActive}
-                style={{ fontSize: 12, padding: "0 10px" }}
               >
-                {isAiActive ? "AI Detection" : "Keyframe"}
+                {isAiActive ? <AiSceneDetectionIcon filled /> : <KeyframeDetectionIcon />}
               </button>
             </Tooltip>
             </>
