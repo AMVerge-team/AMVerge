@@ -173,8 +173,6 @@ export function GettingStartedTour() {
       ui.setQuickMenuOpen(false);
       ui.closeSettings();
       ui.setActivePage("home");
-      ui.setPreviewCollapsed(false);
-      ui.setHowToUseExpanded(true);
     }
   };
 
