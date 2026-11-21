@@ -251,7 +251,9 @@ export function useAddEpisodes() {
                 <span className="scene-scout-detection-choice-desc">
                   {option.value === "transnetv2_gpu"
                     ? `${option.description}. Works best with a decent GPU.`
-                    : option.description}
+                    : option.value === "keyframe_detection"
+                      ? `${option.description}. Great for building collections quickly without a GPU.`
+                      : option.description}
                 </span>
               </button>
             );
