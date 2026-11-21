@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FaSyncAlt } from '../icons/animated';
+import { FaArrowLeft, FaSyncAlt } from '../icons/animated';
 
 import Tooltip from "../common/Tooltip";
 import PreviewAllToggle from "../common/PreviewAllToggle";
@@ -25,6 +25,7 @@ export function SceneScoutToolbar() {
   const databases = useSceneScoutStore((s) => s.databases);
   const displayNames = useSceneScoutStore((s) => s.displayNames);
   const refresh = useSceneScoutStore((s) => s.refresh);
+  const showHero = useSceneScoutStore((s) => s.showHero);
   const loading = useSceneScoutStore((s) => s.loading);
   const storeError = useSceneScoutStore((s) => s.error);
 
@@ -55,6 +56,17 @@ export function SceneScoutToolbar() {
         <div className="import-buttons-container events-toolbar-row">
           {/* first in the row, over the panel it controls, same as home and events */}
           <SidebarToggle />
+
+          <Tooltip content="Back to Scene Scout home">
+            <button
+              type="button"
+              className="import-button refresh-button"
+              onClick={showHero}
+              aria-label="Back to Scene Scout home"
+            >
+              <FaArrowLeft aria-hidden="true" />
+            </button>
+          </Tooltip>
 
           <AddEpisodeButton
             hint={addTargetName ? t("hero.addTo", { name: addTargetName }) : gateHint}

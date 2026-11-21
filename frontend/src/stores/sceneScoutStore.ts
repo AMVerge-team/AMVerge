@@ -172,6 +172,7 @@ type SceneScoutActions = {
     precutScenes?: Record<string, SceneRange[]>
   ) => Promise<{ ok: boolean; message: string | null }>;
   dismissHero: () => void;
+  showHero: () => void;
   unloadModel: () => Promise<void>;
   setQuery: (query: string) => void;
   runSearch: () => Promise<void>;
@@ -561,6 +562,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       setActiveDatabase: (path) => set({ openedDatabase: path }),
 
       dismissHero: () => set({ heroDismissed: true }),
+      showHero: () => set({ heroDismissed: false }),
 
       setPanelSplitPct: (pct) => set({ panelSplitPct: Math.min(85, Math.max(15, pct)) }),
 
