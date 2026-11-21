@@ -46,9 +46,9 @@
     min-width: 0;
     height: 38px;
     padding: 0 12px;
-    border: 1px solid rgb(var(--accent-rgb) / 0.35);
+    border: 1px solid rgb(255 255 255 / 0.18);
     border-radius: 8px;
-    background: color-mix(in srgb, var(--accent) 8%, rgb(255 255 255 / 0.06));
+    background: rgb(255 255 255 / 0.05);
     transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -64,13 +64,13 @@
 
 .scene-scout-search-field:focus-within:not(.is-disabled) {
     border-color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 11%, rgb(255 255 255 / 0.08));
+    background: rgb(255 255 255 / 0.07);
     box-shadow: 0 0 0 2px rgb(var(--accent-rgb) / 0.16);
 }
 
 .scene-scout-search-icon {
     flex: 0 0 auto;
-    color: rgb(var(--accent-rgb) / 0.8);
+    color: rgb(255 255 255 / 0.55);
 }
 
 .scene-scout-search-field input {
