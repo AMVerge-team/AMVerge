@@ -177,7 +177,7 @@ export function SceneScoutTour() {
           <>
             <h3 className="scout-tour-title">2. Add Videos or Clips</h3>
             <p className="scout-tour-body">
-              Click <b>Add Videos</b>, select one or more sample clips from the <b>From Library</b> list, and click{" "}
+              Click <b>Add Videos</b>, select the sample clip from the <b>From Library</b> list, and click{" "}
               <b>Add to collection</b>.
             </p>
           </>
