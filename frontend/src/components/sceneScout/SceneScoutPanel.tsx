@@ -450,7 +450,7 @@ export function SceneScoutPanel() {
           <input
             type="text"
             className="scenepack-search-input"
-            placeholder="Search collections..."
+            placeholder="Filter collections..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
