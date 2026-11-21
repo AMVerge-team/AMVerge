@@ -230,7 +230,24 @@ export function useAddEpisodes() {
                 }}
                 onDoubleClick={() => void confirm()}
               >
-                <span className="scene-scout-detection-choice-label">{option.label}</span>
+                <span className="scene-scout-detection-choice-label" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  {option.label}
+                  {option.value === "transnetv2_gpu" && (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 600,
+                        padding: "1px 6px",
+                        borderRadius: 999,
+                        background: "rgb(var(--accent-rgb) / 0.18)",
+                        color: "var(--accent)",
+                        border: "1px solid rgb(var(--accent-rgb) / 0.35)",
+                      }}
+                    >
+                      Recommended
+                    </span>
+                  )}
+                </span>
                 <span className="scene-scout-detection-choice-desc">{option.description}</span>
               </button>
             );
