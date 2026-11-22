@@ -1,0 +1,39 @@
+# Maintainer: Moongetsu <moongetsu1@gmail.com>
+# Maintainer: Crptk <https://github.com/crptk>
+
+pkgname=amverge-bin
+pkgver=2.0.5
+pkgrel=1
+pkgdesc="High-performance anime and video scene cutter by Crptk, Moongetsu & team"
+arch=('x86_64')
+url="https://amverge.app"
+license=('GPL-3.0-only')
+depends=('fuse2' 'webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator')
+provides=('amverge')
+conflicts=('amverge')
+options=('!strip' '!debug')
+_appimage="AMVerge_${pkgver}_amd64.AppImage"
+source_x86_64=("${_appimage}::https://github.com/AMVerge-team/AMVerge/releases/download/v${pkgver}/${_appimage}")
+sha256sums_x86_64=('e15fcd3de61c8f97389f735c6bf3c5465ce6ec967aad07cebb8d230d6ad872d7')
+
+prepare() {
+    chmod +x "${srcdir}/${_appimage}"
+    "${srcdir}/${_appimage}" --appimage-extract >/dev/null
+    sed -i -E 's|^Exec=.*|Exec=/usr/bin/amverge %U|' "${srcdir}/squashfs-root/"*.desktop
+}
+
+package() {
+    install -Dm755 "${srcdir}/${_appimage}" "${pkgdir}/opt/${pkgname}/${_appimage}"
+
+    install -dm755 "${pkgdir}/usr/bin"
+    cat <<EOF > "${pkgdir}/usr/bin/amverge"
+#!/bin/sh
+exec /opt/${pkgname}/${_appimage} "\$@"
+EOF
+    chmod 755 "${pkgdir}/usr/bin/amverge"
+
+    install -Dm644 "${srcdir}/squashfs-root/"*.desktop "${pkgdir}/usr/share/applications/amverge.desktop"
+    if [ -d "${srcdir}/squashfs-root/usr/share/icons" ]; then
+        cp -a "${srcdir}/squashfs-root/usr/share/icons" "${pkgdir}/usr/share/"
+    fi
+}

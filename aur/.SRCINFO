@@ -1,0 +1,19 @@
+pkgbase = amverge-bin
+	pkgdesc = High-performance anime and video scene cutter by Crptk, Moongetsu & team
+	pkgver = 2.0.5
+	pkgrel = 1
+	url = https://amverge.app
+	arch = x86_64
+	license = GPL-3.0-only
+	depends = fuse2
+	depends = webkit2gtk-4.1
+	depends = gtk3
+	depends = libayatana-appindicator
+	provides = amverge
+	conflicts = amverge
+	options = !strip
+	options = !debug
+	source_x86_64 = AMVerge_2.0.5_amd64.AppImage::https://github.com/AMVerge-team/AMVerge/releases/download/v2.0.5/AMVerge_2.0.5_amd64.AppImage
+	sha256sums_x86_64 = e15fcd3de61c8f97389f735c6bf3c5465ce6ec967aad07cebb8d230d6ad872d7
+
+pkgname = amverge-bin
