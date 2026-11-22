@@ -6,7 +6,7 @@
     <packageSourceUrl>https://github.com/AMVerge-team/AMVerge/tree/main/chocolatey</packageSourceUrl>
     <owners>AMVerge-team</owners>
     <title>AMVerge</title>
-    <authors>Crptk, AMVerge-team</authors>
+    <authors>Crptk, Moongetsu, AMVerge-team</authors>
     <projectUrl>https://amverge.app/</projectUrl>
     <iconUrl>https://raw.githubusercontent.com/AMVerge-team/AMVerge/main/frontend/src-tauri/icons/128x128%402x.png</iconUrl>
     <copyright>Copyright (c) AMVerge-team</copyright>
