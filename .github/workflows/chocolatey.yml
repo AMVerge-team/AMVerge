@@ -13,7 +13,7 @@ jobs:
     name: Pack & Test Chocolatey Package
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Pack .nupkg
         shell: pwsh
@@ -29,7 +29,7 @@ jobs:
           choco uninstall amverge --yes --no-progress
 
       - name: Upload .nupkg artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: amverge-chocolatey-nupkg
           path: chocolatey/*.nupkg
@@ -40,7 +40,7 @@ jobs:
     if: ${{ inputs.publish == true }}
     runs-on: windows-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: amverge-chocolatey-nupkg
           path: dist
