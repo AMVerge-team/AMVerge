@@ -163,3 +163,20 @@ export function scoutRelinkDatabase(
   });
 }
 
+export type ScoutUpgradeResult = {
+  database: ScoutDatabase;
+  backupPath?: string | null;
+};
+
+export function scoutUpgradeDatabase(
+  path: string,
+  backup: boolean,
+  customPath: string | null
+): Promise<ScoutUpgradeResult> {
+  return invoke<ScoutUpgradeResult>("scout_upgrade_database", {
+    path,
+    backup,
+    customPath,
+  });
+}
+

@@ -75,27 +75,38 @@ fn strip_verbatim_prefix(p: PathBuf) -> String {
     s
 }
 
-fn open_v4_ro(path: &Path) -> Option<Connection> {
+fn open_ro(path: &Path) -> Option<Connection> {
     if !path.is_file() {
         return None;
     }
-    let conn = Connection::open_with_flags(
+    Connection::open_with_flags(
         path,
         OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
     )
-    .ok()?;
+    .ok()
+}
+
+fn table_set(conn: &Connection) -> HashSet<String> {
+    let mut set = HashSet::new();
+    if let Ok(mut stmt) = conn.prepare("SELECT name FROM sqlite_master WHERE type = 'table'") {
+        if let Ok(rows) = stmt.query_map([], |r| r.get::<_, String>(0)) {
+            set.extend(rows.flatten());
+        }
+    }
+    set
+}
+
+fn open_v4_ro(path: &Path) -> Option<Connection> {
+    let conn = open_ro(path)?;
     let user_version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).ok()?;
-    if user_version != 4 {
+    if user_version > 4 {
         return None;
     }
-    let has_core: bool = conn
-        .query_row(
-            "SELECT COUNT(*) = 3 FROM sqlite_master WHERE type = 'table' AND name IN ('processed_videos', 'db_metadata', 'preprocessing_configs')",
-            [],
-            |r| r.get(0),
-        )
-        .unwrap_or(false);
-    if !has_core {
+    let tables = table_set(&conn);
+    let has_v4_core = ["processed_videos", "scenes", "video_embeddings", "db_metadata", "preprocessing_configs"]
+        .iter()
+        .all(|t| tables.contains(*t));
+    if !has_v4_core {
         return None;
     }
     Some(conn)
@@ -103,11 +114,19 @@ fn open_v4_ro(path: &Path) -> Option<Connection> {
 
 pub(super) fn try_read_database_info_v4(raw: &str, root: &str) -> Option<ScoutDatabase> {
     let resolved = resolve_db_path(raw, Path::new(root));
-    read_database_info_file_v4(&resolved)
+    read_database_info_file_any(&resolved)
 }
 
-fn read_database_info_file_v4(path: &Path) -> Option<ScoutDatabase> {
-    let conn = open_v4_ro(path)?;
+fn read_database_info_file_any(path: &Path) -> Option<ScoutDatabase> {
+    let conn = open_ro(path)?;
+    let tables = table_set(&conn);
+    let has_any_core = ["processed_videos", "scenes", "scene_embeddings", "image_embeddings"]
+        .iter()
+        .any(|t| tables.contains(*t));
+    if !has_any_core {
+        return None;
+    }
+
     let size_bytes = std::fs::metadata(path).map(|m| m.len()).unwrap_or(0);
     let stem = path
         .file_stem()
@@ -115,47 +134,112 @@ fn read_database_info_file_v4(path: &Path) -> Option<ScoutDatabase> {
         .unwrap_or("database")
         .to_string();
 
+    let uv: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).ok()?;
+
     let mut meta: HashMap<String, String> = HashMap::new();
-    if let Ok(mut stmt) = conn.prepare("SELECT key, value FROM db_metadata") {
-        if let Ok(rows) = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))) {
-            for pair in rows.flatten() {
-                meta.insert(pair.0, pair.1);
+    if tables.contains("db_metadata") {
+        if let Ok(mut stmt) = conn.prepare("SELECT key, value FROM db_metadata") {
+            if let Ok(rows) = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))) {
+                for pair in rows.flatten() {
+                    meta.insert(pair.0, pair.1);
+                }
             }
         }
     }
 
     let mut media_roots: Vec<String> = Vec::new();
-    if let Ok(mut stmt) = conn.prepare("SELECT root_path FROM media_roots ORDER BY root_path") {
-        if let Ok(rows) = stmt.query_map([], |r| r.get::<_, String>(0)) {
-            media_roots.extend(rows.flatten());
+    if tables.contains("media_roots") {
+        if let Ok(mut stmt) = conn.prepare("SELECT root_path FROM media_roots ORDER BY root_path") {
+            if let Ok(rows) = stmt.query_map([], |r| r.get::<_, String>(0)) {
+                media_roots.extend(rows.flatten());
+            }
         }
     }
 
-    let (video_count, scene_count): (u64, u64) = conn
-        .query_row(
-            "SELECT COUNT(*), COALESCE(SUM(scene_count), 0) FROM processed_videos",
-            [],
-            |r| {
-                let vc: i64 = r.get(0)?;
-                let sc: i64 = r.get(1)?;
-                Ok((vc.max(0) as u64, sc.max(0) as u64))
-            },
-        )
-        .ok()?;
+    let has_v4_core = ["processed_videos", "scenes", "video_embeddings", "db_metadata", "preprocessing_configs"]
+        .iter()
+        .all(|t| tables.contains(*t));
 
-    let model_version: String = conn
-        .query_row(
-            "SELECT pc.model_id FROM processed_videos pv JOIN preprocessing_configs pc ON pc.id = pv.config_id LIMIT 1",
-            [],
-            |r| r.get(0),
-        )
-        .or_else(|_| conn.query_row("SELECT model_id FROM preprocessing_configs LIMIT 1", [], |r| r.get(0)))
-        .unwrap_or_else(|_| DEFAULT_MODEL_VERSION.to_string());
+    let (schema_version, schema_status) = if uv > 4 {
+        (Some(uv as u32), "unsupported_newer".to_string())
+    } else if has_v4_core {
+        let sv = meta
+            .get("schema_version")
+            .and_then(|v| v.parse::<u32>().ok())
+            .or(Some(4));
+        (sv, "ready".to_string())
+    } else {
+        let inferred = if uv > 0 {
+            uv as u32
+        } else if tables.contains("scene_embeddings") {
+            3
+        } else if tables.contains("index_queue") {
+            2
+        } else {
+            1
+        };
+        (Some(inferred), "needs_upgrade".to_string())
+    };
 
-    let schema_version = meta
-        .get("schema_version")
-        .and_then(|v| v.parse::<u32>().ok())
-        .or(Some(4));
+    let mut video_count: u64 = 0;
+    let mut scene_count: u64 = 0;
+    let mut model_version = DEFAULT_MODEL_VERSION.to_string();
+
+    if tables.contains("processed_videos") {
+        let has_scene_count_col: bool = conn
+            .query_row(
+                "SELECT COUNT(*) > 0 FROM pragma_table_info('processed_videos') WHERE name = 'scene_count'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap_or(false);
+
+        if has_scene_count_col {
+            if let Ok((vc, sc)) = conn.query_row(
+                "SELECT COUNT(*), COALESCE(SUM(scene_count), 0) FROM processed_videos",
+                [],
+                |r| {
+                    let vc: i64 = r.get(0)?;
+                    let sc: i64 = r.get(1)?;
+                    Ok((vc.max(0) as u64, sc.max(0) as u64))
+                },
+            ) {
+                video_count = vc;
+                scene_count = sc;
+            }
+        } else {
+            video_count = conn
+                .query_row("SELECT COUNT(*) FROM processed_videos", [], |r| r.get::<_, i64>(0))
+                .map(|v| v.max(0) as u64)
+                .unwrap_or(0);
+            if tables.contains("scenes") {
+                scene_count = conn
+                    .query_row("SELECT COUNT(*) FROM scenes", [], |r| r.get::<_, i64>(0))
+                    .map(|v| v.max(0) as u64)
+                    .unwrap_or(0);
+            } else if tables.contains("scene_embeddings") {
+                scene_count = conn
+                    .query_row("SELECT COUNT(*) FROM scene_embeddings", [], |r| r.get::<_, i64>(0))
+                    .map(|v| v.max(0) as u64)
+                    .unwrap_or(0);
+            }
+        }
+
+        if tables.contains("preprocessing_configs") {
+            model_version = conn
+                .query_row(
+                    "SELECT pc.model_id FROM processed_videos pv JOIN preprocessing_configs pc ON pc.id = pv.config_id LIMIT 1",
+                    [],
+                    |r| r.get(0),
+                )
+                .or_else(|_| conn.query_row("SELECT model_id FROM preprocessing_configs LIMIT 1", [], |r| r.get(0)))
+                .unwrap_or_else(|_| DEFAULT_MODEL_VERSION.to_string());
+        } else if let Ok(mv) = conn.query_row("SELECT model_version FROM processed_videos LIMIT 1", [], |r| r.get::<_, String>(0)) {
+            if !mv.is_empty() {
+                model_version = mv;
+            }
+        }
+    }
 
     let clean_path = strip_verbatim_prefix(std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf()));
 
@@ -169,6 +253,7 @@ fn read_database_info_file_v4(path: &Path) -> Option<ScoutDatabase> {
         created_at: meta.remove("created_at"),
         database_id: meta.remove("database_id"),
         schema_version,
+        schema_status,
         created_by_app: meta.remove("created_by_app"),
         created_by_version: meta.remove("created_by_version"),
         updated_by_app: meta.remove("updated_by_app"),
@@ -204,9 +289,9 @@ pub(super) fn try_list_databases_v4(root: &str) -> Option<Vec<ScoutDatabase>> {
         if !seen.insert(canon) {
             continue;
         }
-        // If any database in root is pre-v4, return None so CLI handles mixed roots identically
-        let info = read_database_info_file_v4(&p)?;
-        out.push(info);
+        if let Some(info) = read_database_info_file_any(&p) {
+            out.push(info);
+        }
     }
     Some(out)
 }
@@ -304,6 +389,20 @@ mod tests {
                  sampling_strategy TEXT NOT NULL,
                  sampling_config TEXT NOT NULL
              );
+             CREATE TABLE scenes (
+                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                 video_id INTEGER NOT NULL,
+                 scene_index INTEGER NOT NULL,
+                 start_time_ms INTEGER NOT NULL,
+                 end_time_ms INTEGER NOT NULL
+             );
+             CREATE TABLE video_embeddings (
+                 video_id INTEGER PRIMARY KEY,
+                 scene_count INTEGER NOT NULL,
+                 dim INTEGER NOT NULL,
+                 dtype TEXT NOT NULL,
+                 embeddings BLOB NOT NULL
+             );
              CREATE TABLE processed_videos (
                  id INTEGER PRIMARY KEY AUTOINCREMENT,
                  filepath TEXT UNIQUE NOT NULL,
@@ -354,19 +453,49 @@ mod tests {
     }
 
     #[test]
-    fn returns_none_for_legacy_v3_database_so_cli_fallback_runs() {
+    fn reads_legacy_v3_and_v5_metadata_without_mutation() {
         let tmp = tempfile::tempdir().unwrap();
-        let db = tmp.path().join("old_v3.scoutdb");
-        let conn = Connection::open(&db).unwrap();
+        let db3 = tmp.path().join("old_v3.scoutdb");
+        let conn = Connection::open(&db3).unwrap();
         conn.execute_batch(
-            "CREATE TABLE processed_videos (id INTEGER PRIMARY KEY, filepath TEXT UNIQUE);
+            "CREATE TABLE processed_videos (id INTEGER PRIMARY KEY, filepath TEXT UNIQUE, model_version TEXT);
+             CREATE TABLE scene_embeddings (id INTEGER PRIMARY KEY, video_id INTEGER, scene_index INTEGER);
+             INSERT INTO processed_videos VALUES (1, 'D:/ep1.mkv', 'google/siglip2-so400m-patch16-naflex');
+             INSERT INTO scene_embeddings VALUES (1, 1, 0);
              PRAGMA user_version = 3;",
         )
         .unwrap();
         drop(conn);
 
+        let db5 = tmp.path().join("future_v5.scoutdb");
+        let conn5 = Connection::open(&db5).unwrap();
+        conn5
+            .execute_batch(
+                "CREATE TABLE db_metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+                 CREATE TABLE processed_videos (id INTEGER PRIMARY KEY, filepath TEXT UNIQUE, scene_count INTEGER DEFAULT 0);
+                 INSERT INTO db_metadata VALUES ('schema_version', '5'), ('updated_by_app', 'scene-scout'), ('updated_by_version', '1.5.0');
+                 PRAGMA user_version = 5;",
+            )
+            .unwrap();
+        drop(conn5);
+
         let root = tmp.path().to_string_lossy().to_string();
-        assert!(try_list_databases_v4(&root).is_none());
-        assert!(try_read_videos_v4(db.to_str().unwrap(), &root).is_none());
+        let listed = try_list_databases_v4(&root).expect("mixed root listing should succeed natively");
+        assert_eq!(listed.len(), 2);
+
+        let v5 = listed.iter().find(|d| d.name == "future_v5").unwrap();
+        assert_eq!(v5.schema_status, "unsupported_newer");
+        assert_eq!(v5.schema_version, Some(5));
+        assert_eq!(v5.updated_by_app.as_deref(), Some("scene-scout"));
+        assert_eq!(v5.updated_by_version.as_deref(), Some("1.5.0"));
+
+        let v3 = listed.iter().find(|d| d.name == "old_v3").unwrap();
+        assert_eq!(v3.schema_status, "needs_upgrade");
+        assert_eq!(v3.schema_version, Some(3));
+        assert_eq!(v3.video_count, 1);
+        assert_eq!(v3.scene_count, 1);
+
+        assert!(try_read_videos_v4(db3.to_str().unwrap(), &root).is_none());
+        assert!(try_read_videos_v4(db5.to_str().unwrap(), &root).is_none());
     }
 }

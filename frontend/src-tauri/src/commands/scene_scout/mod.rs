@@ -88,6 +88,22 @@ pub async fn scout_open_database(
 }
 
 #[tauri::command]
+pub async fn scout_upgrade_database(
+    app: AppHandle,
+    path: String,
+    backup: bool,
+    custom_path: Option<String>,
+) -> Result<ScoutUpgradeResult, String> {
+    let root = scout_root(&app, custom_path.as_deref())?;
+    let backup_flag = if backup { "--backup" } else { "--no-backup" };
+    scout_json(
+        &app,
+        &["upgrade", &path, backup_flag, "--yes", "--root", &root],
+    )
+    .await
+}
+
+#[tauri::command]
 pub async fn scout_list_databases(app: AppHandle, custom_path: Option<String>) -> Result<Vec<ScoutDatabase>, String> {
     let root = scout_root(&app, custom_path.as_deref())?;
     let root_cl = root.clone();

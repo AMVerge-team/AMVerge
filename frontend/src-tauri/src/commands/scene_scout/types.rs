@@ -2,6 +2,10 @@
 
 use serde::{Deserialize, Serialize};
 
+fn default_schema_status() -> String {
+    "ready".to_string()
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ScoutDatabase {
@@ -17,6 +21,8 @@ pub struct ScoutDatabase {
     pub database_id: Option<String>,
     #[serde(default)]
     pub schema_version: Option<u32>,
+    #[serde(default = "default_schema_status")]
+    pub schema_status: String,
     #[serde(default)]
     pub created_by_app: Option<String>,
     #[serde(default)]
@@ -203,4 +209,12 @@ pub struct ScoutRelinkResult {
     pub updated: Vec<ScoutRelinkUpdatedItem>,
     #[serde(default)]
     pub error: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ScoutUpgradeResult {
+    pub database: ScoutDatabase,
+    #[serde(default)]
+    pub backup_path: Option<String>,
 }

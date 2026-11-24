@@ -11,6 +11,7 @@ export type ScoutDatabase = {
   createdAt: string | null;
   databaseId?: string | null;
   schemaVersion?: number;
+  schemaStatus?: "ready" | "needs_upgrade" | "unsupported_newer";
   createdByApp?: string | null;
   createdByVersion?: string | null;
   updatedByApp?: string | null;

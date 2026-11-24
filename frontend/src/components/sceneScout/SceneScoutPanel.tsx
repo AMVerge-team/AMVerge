@@ -9,7 +9,7 @@ import { DatabaseImportIcon } from "../icons/ToolbarIcons";
 import ModalShell from "../common/ModalShell";
 import Tooltip from "../common/Tooltip";
 import { useEscapeToClose } from "../common/useEscapeToClose";
-import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
+import { isScoutDatabaseReady, samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
 import { useContextMenuStore } from "../../stores/contextMenuStore";
 import type { ScoutDatabase, ScoutVideo } from "../../features/sceneScout/types";
 import { useAddEpisodes } from "./useAddEpisodes";
@@ -41,6 +41,7 @@ export function SceneScoutPanel() {
   const setActiveDatabase = useSceneScoutStore((s) => s.setActiveDatabase);
   const loadVideos = useSceneScoutStore((s) => s.loadVideos);
   const openExistingDatabase = useSceneScoutStore((s) => s.openExistingDatabase);
+  const upgradeDatabase = useSceneScoutStore((s) => s.upgradeDatabase);
   const deleteDatabase = useSceneScoutStore((s) => s.deleteDatabase);
   const deleteVideo = useSceneScoutStore((s) => s.deleteVideo);
   const unloadDatabase = useSceneScoutStore((s) => s.unloadDatabase);
@@ -65,6 +66,11 @@ export function SceneScoutPanel() {
   const [videosToDelete, setVideosToDelete] = useState<{ videos: ScoutVideo[]; database: ScoutDatabase } | null>(null);
   const [isDeletingVideo, setIsDeletingVideo] = useState(false);
   const [videosDeleted, setVideosDeleted] = useState(0);
+  const [upgradeCandidate, setUpgradeCandidate] = useState<ScoutDatabase | null>(null);
+  const [upgradeBackup, setUpgradeBackup] = useState(true);
+  const [isUpgrading, setIsUpgrading] = useState(false);
+  const [upgradeError, setUpgradeError] = useState<string | null>(null);
+  const [unsupportedModalDb, setUnsupportedModalDb] = useState<ScoutDatabase | null>(null);
   // explorer-style highlight for click, ctrl and shift; separate from which databases are searched
   const [highlightPaths, setHighlightPaths] = useState<string[]>([]);
   const [menu, setMenu] = useState<PanelMenu | null>(null);
@@ -226,7 +232,15 @@ export function SceneScoutPanel() {
     try {
       const result = await openExistingDatabase(picked);
       if (!result.ok) {
-        setError(result.message || "Could not open the database.");
+        if (result.reason === "needs_upgrade" && result.database) {
+          setUpgradeBackup(true);
+          setUpgradeError(null);
+          setUpgradeCandidate(result.database);
+        } else if (result.reason === "unsupported_newer" && result.database) {
+          setUnsupportedModalDb(result.database);
+        } else {
+          setError(result.message || "Could not open the database.");
+        }
       } else if (result.database?.path) {
         addToSearch([result.database.path]);
         setActiveDatabase(result.database.path);
@@ -308,13 +322,17 @@ export function SceneScoutPanel() {
     const path = database.path;
     const isExpanded = Boolean(expandedDatabases[path]);
     const lit = isHighlighted(path);
-    const searched = inSearch(path);
+    const needsUpgrade = database.schemaStatus === "needs_upgrade";
+    const isUnsupported = database.schemaStatus === "unsupported_newer";
+    const ready = isScoutDatabaseReady(database);
+    const searched = ready && inSearch(path);
     const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
     let rowClass = "episode-panel-row episode-row scene-scout-db-row";
     if (lit) rowClass += highlightPaths.length > 1 ? " is-multi-selected is-selected" : " is-selected";
     if (isExpanded) rowClass += " is-open";
     if (searched) rowClass += " is-search-active";
+    if (isUnsupported) rowClass += " is-unsupported";
 
     const hiddenHere = searched
       ? (videosByDatabase[path] ?? []).filter((v) => hiddenVideos.some((h) => samePath(h, v.filepath))).length
@@ -325,30 +343,58 @@ export function SceneScoutPanel() {
         <div
           className={rowClass}
           onClick={onRowClick(path, order)}
-          onDoubleClick={() => toggleSearch(targetsFor(path), !searched)}
+          onDoubleClick={() => {
+            if (isUnsupported) setUnsupportedModalDb(database);
+            else if (needsUpgrade) {
+              setUpgradeBackup(true);
+              setUpgradeError(null);
+              setUpgradeCandidate(database);
+            } else {
+              toggleSearch(targetsFor(path), !searched);
+            }
+          }}
           onContextMenu={openMenu(path)}
         >
           <button
             type="button"
             className={`episode-panel-caret${isExpanded ? " is-expanded" : ""}`}
             onDoubleClick={stop}
+            disabled={isUnsupported}
             onClick={(e) => {
               e.stopPropagation();
-              void toggleDatabaseExpanded(path);
+              if (!isUnsupported) void toggleDatabaseExpanded(path);
             }}
             aria-label={isExpanded ? "Collapse collection" : "Expand collection"}
           >
             <FaChevronRight className="episode-panel-caret-icon" />
           </button>
-          <Tooltip content={searched ? "Included in search (click to exclude)" : "Excluded from search (click to include)"}>
+          <Tooltip
+            content={
+              isUnsupported
+                ? `Unsupported schema v${database.schemaVersion ?? "?"} — update AMVerge`
+                : needsUpgrade
+                ? `Schema v${database.schemaVersion ?? 3} — click to upgrade to v4`
+                : searched
+                ? "Included in search (click to exclude)"
+                : "Excluded from search (click to include)"
+            }
+          >
             <button
               type="button"
               className={`scout-active-toggle${searched ? " is-active" : ""}`}
               onDoubleClick={stop}
               onClick={(e) => {
                 e.stopPropagation();
-                toggleSearch([path], !searched);
-                if (!searched) setActiveDatabase(path);
+                if (isUnsupported) {
+                  setUnsupportedModalDb(database);
+                } else if (needsUpgrade) {
+                  setUpgradeBackup(true);
+                  setUpgradeError(null);
+                  setUpgradeCandidate(database);
+                } else {
+                  toggleSearch([path], !searched);
+                  if (!searched) setActiveDatabase(path);
+                }
               }}
               aria-label={searched ? `Stop searching ${database.name}` : `Search ${database.name}`}
               aria-pressed={searched}
@@ -362,6 +408,36 @@ export function SceneScoutPanel() {
             <FaDatabase className="episode-panel-import-icon scene-scout-row-icon" aria-hidden="true" />
           )}
           <span className="episode-panel-episode-name">{labelFor(path, database.name)}</span>
+          {needsUpgrade && (
+            <button
+              type="button"
+              className="scout-schema-badge is-upgrade"
+              onDoubleClick={stop}
+              onClick={(e) => {
+                e.stopPropagation();
+                setUpgradeBackup(true);
+                setUpgradeError(null);
+                setUpgradeCandidate(database);
+              }}
+              title="Legacy schema — click to upgrade to v4"
+            >
+              v{database.schemaVersion ?? 3} · Upgrade
+            </button>
+          )}
+          {isUnsupported && (
+            <button
+              type="button"
+              className="scout-schema-badge is-unsupported"
+              onDoubleClick={stop}
+              onClick={(e) => {
+                e.stopPropagation();
+                setUnsupportedModalDb(database);
+              }}
+              title={`Schema v${database.schemaVersion ?? "?"} is newer than this AMVerge build supports`}
+            >
+              Unsupported v{database.schemaVersion ?? "?"}
+            </button>
+          )}
           <span className="episode-panel-count">{database.sceneCount}</span>
           {searched && (
             <Tooltip content={hiddenHere > 0 ? `${hiddenHere} episodes hidden from searches` : "Choose which episodes are searched"}>
@@ -630,6 +706,8 @@ export function SceneScoutPanel() {
 
         const n = menu.paths.length;
         const single = n === 1 ? databases.find((d) => samePath(d.path, menu.paths[0])) ?? null : null;
+        const singleNeedsUpgrade = single?.schemaStatus === "needs_upgrade";
+        const singleUnsupported = single?.schemaStatus === "unsupported_newer";
         const toAdd = menu.paths.filter((p) => !inSearch(p));
         const allActive = toAdd.length === 0;
         return (
@@ -638,7 +716,33 @@ export function SceneScoutPanel() {
             style={menuStyle}
             onClick={(e) => e.stopPropagation()}
           >
-            {single && (
+            {singleNeedsUpgrade && single && (
+              <button
+                type="button"
+                className="episode-context-menu-item"
+                onClick={() => {
+                  setUpgradeBackup(true);
+                  setUpgradeError(null);
+                  setUpgradeCandidate(single);
+                  close();
+                }}
+              >
+                Upgrade to v4…
+              </button>
+            )}
+            {singleUnsupported && single && (
+              <button
+                type="button"
+                className="episode-context-menu-item"
+                onClick={() => {
+                  setUnsupportedModalDb(single);
+                  close();
+                }}
+              >
+                Compatibility Info…
+              </button>
+            )}
+            {single && !singleNeedsUpgrade && !singleUnsupported && (
               <button
                 type="button"
                 className="episode-context-menu-item"
@@ -651,22 +755,24 @@ export function SceneScoutPanel() {
                 Add Videos…
               </button>
             )}
-            <button
-              type="button"
-              className="episode-context-menu-item"
-              onClick={() => {
-                toggleSearch(menu.paths, !allActive);
-                close();
-              }}
-            >
-              {allActive
-                ? n > 1
-                  ? `Exclude ${n} collections from search`
-                  : "Exclude from search"
-                : n > 1
-                  ? `Include ${n} collections in search`
-                  : "Include in search"}
-            </button>
+            {!singleNeedsUpgrade && !singleUnsupported && (
+              <button
+                type="button"
+                className="episode-context-menu-item"
+                onClick={() => {
+                  toggleSearch(menu.paths, !allActive);
+                  close();
+                }}
+              >
+                {allActive
+                  ? n > 1
+                    ? `Exclude ${n} collections from search`
+                    : "Exclude from search"
+                  : n > 1
+                    ? `Include ${n} collections in search`
+                    : "Include in search"}
+              </button>
+            )}
             {single && (
               <>
                 <button
@@ -907,6 +1013,132 @@ export function SceneScoutPanel() {
                   : videosToDelete.videos.length > 1
                   ? `Remove ${videosToDelete.videos.length} Videos`
                   : "Remove Video"}
+              </button>
+            </div>
+          </div>
+        </ModalShell>
+      )}
+
+      {upgradeCandidate && (
+        <ModalShell
+          open
+          onClose={() => !isUpgrading && setUpgradeCandidate(null)}
+          label="Upgrade collection to v4"
+          className="scene-scout-delete-modal"
+        >
+          <div className="denial-notice">
+            <FaDatabase aria-hidden="true" className="denial-notice-icon" style={{ color: "#f59e0b" }} />
+            <h2>Upgrade Collection to Schema v4?</h2>
+
+            <p className="events-subtitle ban-notice-note" style={{ color: "rgba(255,255,255,0.85)" }}>
+              <strong>{upgradeCandidate.name}</strong> uses legacy schema{" "}
+              <strong>v{upgradeCandidate.schemaVersion ?? 3}</strong> ({upgradeCandidate.videoCount}{" "}
+              {upgradeCandidate.videoCount === 1 ? "video" : "videos"} · {upgradeCandidate.sceneCount}{" "}
+              {upgradeCandidate.sceneCount === 1 ? "scene" : "scenes"}).
+            </p>
+
+            <div className="scout-upgrade-warning-box">
+              Upgrading converts this collection to Scene Scout schema v4 for faster searching and smaller storage.{" "}
+              <strong>
+                Once upgraded, older versions of AMVerge and Scene Scout will no longer be able to read this file.
+              </strong>
+            </div>
+
+            <label className="scout-upgrade-backup-check">
+              <input
+                type="checkbox"
+                checked={upgradeBackup}
+                disabled={isUpgrading}
+                onChange={(e) => setUpgradeBackup(e.target.checked)}
+              />
+              <span>Save a backup copy (.v3.bak) before upgrading</span>
+            </label>
+
+            {upgradeError && <p className="events-error scene-scout-panel-error">{upgradeError}</p>}
+
+            <div className="denial-notice-actions">
+              <button
+                type="button"
+                className="event-host-btn"
+                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}
+                onClick={() => setUpgradeCandidate(null)}
+                disabled={isUpgrading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="event-host-btn"
+                disabled={isUpgrading}
+                onClick={async () => {
+                  const target = upgradeCandidate;
+                  setIsUpgrading(true);
+                  setUpgradeError(null);
+                  try {
+                    const res = await upgradeDatabase(target.path, upgradeBackup);
+                    if (!res.ok) {
+                      setUpgradeError(res.message || "Upgrade failed.");
+                      return;
+                    }
+                    if (res.database?.path) {
+                      addToSearch([res.database.path]);
+                      setActiveDatabase(res.database.path);
+                    }
+                    setUpgradeCandidate(null);
+                  } finally {
+                    setIsUpgrading(false);
+                  }
+                }}
+              >
+                {isUpgrading ? "Upgrading…" : "Upgrade to v4"}
+              </button>
+            </div>
+          </div>
+        </ModalShell>
+      )}
+
+      {unsupportedModalDb && (
+        <ModalShell
+          open
+          onClose={() => setUnsupportedModalDb(null)}
+          label="Unsupported collection schema"
+          className="scene-scout-delete-modal"
+        >
+          <div className="denial-notice">
+            <FaDatabase aria-hidden="true" className="denial-notice-icon" style={{ color: "#ef4444" }} />
+            <h2>Unsupported Collection Schema</h2>
+
+            <p className="events-subtitle ban-notice-note" style={{ color: "rgba(255,255,255,0.85)" }}>
+              <strong>{unsupportedModalDb.name}</strong> uses Scene Scout schema{" "}
+              <strong>v{unsupportedModalDb.schemaVersion ?? "?"}</strong>, which is newer than this version of AMVerge
+              supports (<strong>v4</strong>).
+            </p>
+
+            <div className="scene-scout-delete-details">
+              <div style={{ color: "rgba(255,255,255,0.5)", marginBottom: "4px" }}>File path:</div>
+              <div style={{ fontFamily: "monospace", color: "rgba(255,255,255,0.9)" }}>{unsupportedModalDb.path}</div>
+              {(unsupportedModalDb.updatedByApp || unsupportedModalDb.createdByApp) && (
+                <div style={{ marginTop: "8px", color: "rgba(255,255,255,0.8)" }}>
+                  Last updated by:{" "}
+                  <strong>
+                    {unsupportedModalDb.updatedByApp || unsupportedModalDb.createdByApp}{" "}
+                    {unsupportedModalDb.updatedByVersion || unsupportedModalDb.createdByVersion || ""}
+                  </strong>
+                </div>
+              )}
+            </div>
+
+            <p className="scene-scout-delete-warning">
+              Please update AMVerge to a newer version to open or search this collection. The file was not modified.
+            </p>
+
+            <div className="denial-notice-actions">
+              <button
+                type="button"
+                className="event-host-btn"
+                onClick={() => setUnsupportedModalDb(null)}
+              >
+                Close
               </button>
             </div>
           </div>

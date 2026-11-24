@@ -15,6 +15,7 @@ import {
   scoutStatus,
   scoutUnloadModel,
   scoutGenerateThumbnails,
+  scoutUpgradeDatabase,
   isScoutCanceled,
 } from "../features/sceneScout/api";
 import {
@@ -148,7 +149,18 @@ type SceneScoutActions = {
   refreshStatus: () => Promise<void>;
   loadDatabases: () => Promise<void>;
   createDatabase: (pathOrName: string) => Promise<{ ok: boolean; message: string | null; path: string | null }>;
-  openExistingDatabase: (filePath: string) => Promise<{ ok: boolean; message: string | null; database?: ScoutDatabase }>;
+  openExistingDatabase: (filePath: string) => Promise<{
+    ok: boolean;
+    reason?: "needs_upgrade" | "unsupported_newer" | "error";
+    message: string | null;
+    database?: ScoutDatabase;
+  }>;
+  upgradeDatabase: (filePath: string, backup: boolean) => Promise<{
+    ok: boolean;
+    message: string | null;
+    database?: ScoutDatabase;
+    backupPath?: string | null;
+  }>;
   renameDatabase: (path: string, displayName: string) => void;
   unloadDatabase: (path: string) => void;
   deleteDatabase: (name: string) => Promise<void>;
@@ -265,6 +277,14 @@ export function samePath(a: string | null | undefined, b: string | null | undefi
   if (!a || !b) return false;
   const norm = (p: string) => p.replace(/\\/g, "/").toLowerCase();
   return norm(a) === norm(b);
+}
+
+/** True when a collection is on schema v4 and can be searched or indexed immediately. */
+export function isScoutDatabaseReady(db: ScoutDatabase | null | undefined): boolean {
+  if (!db) return false;
+  if (db.schemaStatus === "needs_upgrade" || db.schemaStatus === "unsupported_newer") return false;
+  if (db.schemaVersion !== undefined && db.schemaVersion !== 4) return false;
+  return true;
 }
 
 /** True when `path` sits under the storage root (case/separator insensitive). */
@@ -406,17 +426,18 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             set({ openedDatabase: null, videos: [] });
           }
 
-          // persisted "Search in" chips must never point at a database that is gone
+          // persisted "Search in" chips must never point at a database that is gone or not v4-ready
+          const readyDbs = databases.filter(isScoutDatabaseReady);
           const settings = get().settings;
           const kept = settings.selectedDatabases.filter((p) =>
-            databases.some((d) => samePath(d.path, p))
+            readyDbs.some((d) => samePath(d.path, p))
           );
           if (kept.length !== settings.selectedDatabases.length) {
             set({ settings: { ...settings, selectedDatabases: kept } });
           }
-          // same for the Searching list: a gone path counted there but showed nothing and blocked the prompt
+          // same for the Searching list: a gone or un-upgraded path cannot be searched
           const searching = get().selectedDatabases;
-          const stillThere = searching.filter((p) => databases.some((d) => samePath(d.path, p)));
+          const stillThere = searching.filter((p) => readyDbs.some((d) => samePath(d.path, p)));
           if (stillThere.length !== searching.length) set({ selectedDatabases: stillThere });
         } catch (err) {
           set({ loading: false, error: message(err) });
@@ -450,8 +471,29 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         const baseName = filePath.split(/[/\\]/).pop() || filePath;
         appState.setActiveOperation("scout_open");
         appState.setLoading(true);
-        appState.setProgressMsg(`Opening database ${baseName}…`);
+        appState.setProgressMsg(`Inspecting database ${baseName}…`);
         try {
+          const inspected = await scoutDatabaseInfo(filePath, customPath());
+          if (inspected.schemaStatus === "unsupported_newer") {
+            const ver = inspected.schemaVersion ?? "?";
+            return {
+              ok: false,
+              reason: "unsupported_newer",
+              database: inspected,
+              message: `${baseName} uses schema v${ver}, which is newer than AMVerge supports (v4).`,
+            };
+          }
+          if (inspected.schemaStatus === "needs_upgrade") {
+            const ver = inspected.schemaVersion ?? 3;
+            return {
+              ok: false,
+              reason: "needs_upgrade",
+              database: inspected,
+              message: `${baseName} uses legacy schema v${ver} and must be upgraded to v4 before opening.`,
+            };
+          }
+
+          appState.setProgressMsg(`Opening database ${baseName}…`);
           const db = await scoutOpenDatabase(filePath, customPath());
           rememberIfExternal(db.path);
 
@@ -467,6 +509,36 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           get().backfillThumbnails([db.path]);
           await new Promise((r) => setTimeout(r, 600));
           return { ok: true, message: null, database: db };
+        } catch (err) {
+          return { ok: false, reason: "error", message: message(err) };
+        } finally {
+          appState.setActiveOperation(null);
+          appState.setLoading(false);
+          appState.setProgressMsg("");
+        }
+      },
+
+      upgradeDatabase: async (filePath, backup) => {
+        const appState = useAppStateStore.getState();
+        const baseName = filePath.split(/[/\\]/).pop() || filePath;
+        appState.setActiveOperation("scout_open");
+        appState.setLoading(true);
+        appState.setProgressMsg(`Upgrading ${baseName} to schema v4…`);
+        try {
+          const res = await scoutUpgradeDatabase(filePath, backup, customPath());
+          const db = res.database;
+          rememberIfExternal(db.path);
+
+          if (get().unloadedPaths.some((p) => samePath(p, db.path))) {
+            set({ unloadedPaths: get().unloadedPaths.filter((p) => !samePath(p, db.path)) });
+          }
+
+          await get().loadDatabases();
+          await get().openDatabase(db.path);
+          get().selectDatabase(db.path, "single");
+          appState.setProgressMsg("Database upgraded to v4");
+          get().backfillThumbnails([db.path]);
+          return { ok: true, message: null, database: db, backupPath: res.backupPath };
         } catch (err) {
           return { ok: false, message: message(err) };
         } finally {
@@ -546,7 +618,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       },
 
       selectAllDatabases: () => {
-        set({ selectedDatabases: get().databases.map((d) => d.path) });
+        set({ selectedDatabases: get().databases.filter(isScoutDatabaseReady).map((d) => d.path) });
       },
 
       clearSelection: () => {
@@ -554,8 +626,13 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       },
 
       addToSearch: (paths) => {
+        const dbs = get().databases;
         const current = get().selectedDatabases;
-        const added = paths.filter((p) => !current.some((c) => samePath(c, p)));
+        const added = paths.filter((p) => {
+          if (current.some((c) => samePath(c, p))) return false;
+          const meta = dbs.find((d) => samePath(d.path, p));
+          return meta ? isScoutDatabaseReady(meta) : true;
+        });
         if (added.length) set({ selectedDatabases: [...current, ...added] });
       },
 
