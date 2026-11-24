@@ -73,12 +73,14 @@ async function withModelLoadingCard<T>(search: () => Promise<T>): Promise<T> {
   const stopListening = await listen<ScoutIndexProgress>("scout_progress", (e) => {
     if (e.payload.stage !== "loading_model") return;
     // this card shares the job window's state, so closing it would close a running export's window
-    if (useAppStateStore.getState().activeOperation) return;
+    if (!cardOpened && useAppStateStore.getState().activeOperation) return;
+    const { done, total } = e.payload;
+    const pct = total > 0 ? Math.max(0, Math.min(100, Math.round((done / total) * 100))) : 0;
     cardOpened = true;
     appState.setActiveOperation("scout_search");
     appState.setLoading(true);
-    appState.setProgress(0);
-    appState.setProgressMsg("Loading AI model (first run downloads ~3.5 GB, please wait)…");
+    appState.setProgress(pct);
+    appState.setProgressMsg("Loading AI model…");
   });
 
   try {
@@ -716,7 +718,11 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
 
             if (stage === "loading_model") {
               appState.setLoading(true);
-              appState.setProgressMsg("Loading AI model (first run downloads ~3.5 GB, please wait)…");
+              const pct = total > 1 ? Math.max(0, Math.min(100, Math.round((done / total) * 100))) : null;
+              appState.setProgressMsg(pct !== null && pct > 0 ? `Loading AI model… (${pct}%)` : "Loading AI model…");
+              if (pct !== null && useAppStateStore.getState().progress < pct) {
+                advance(pct);
+              }
               useAppStateStore.setState((s) => ({ ...s, bgProgress: null }));
             } else if (stage === "detecting") {
               appState.setProgressMsg("Detecting scenes…");

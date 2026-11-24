@@ -223,9 +223,12 @@ jobs:
         run: |
           FFMPEG_DIR="$GITHUB_WORKSPACE/frontend/.ffmpeg-bin"
           mkdir -p "$FFMPEG_DIR"
-          cp "$(which ffmpeg)" "$FFMPEG_DIR/ffmpeg"
-          cp "$(which ffprobe)" "$FFMPEG_DIR/ffprobe"
+          curl -fsSL "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz" -o /tmp/ffmpeg.tar.xz
+          tar -xJf /tmp/ffmpeg.tar.xz -C /tmp
+          cp /tmp/ffmpeg-n8.1-latest-linux64-gpl-8.1/bin/ffmpeg "$FFMPEG_DIR/ffmpeg"
+          cp /tmp/ffmpeg-n8.1-latest-linux64-gpl-8.1/bin/ffprobe "$FFMPEG_DIR/ffprobe"
           chmod +x "$FFMPEG_DIR/ffmpeg" "$FFMPEG_DIR/ffprobe"
+          rm -rf /tmp/ffmpeg.tar.xz /tmp/ffmpeg-n8.1-latest-linux64-gpl-8.1
           "$FFMPEG_DIR/ffmpeg" -version | head -n 1
           "$FFMPEG_DIR/ffprobe" -version | head -n 1
           echo "FFMPEG_BIN_DIR=$FFMPEG_DIR" >> "$GITHUB_ENV"

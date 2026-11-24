@@ -337,7 +337,6 @@ export function SceneScoutPanel() {
               void toggleDatabaseExpanded(path);
             }}
             aria-label={isExpanded ? "Collapse collection" : "Expand collection"}
-            style={{ marginRight: "6px" }}
           >
             <FaChevronRight className="episode-panel-caret-icon" />
           </button>

@@ -223,6 +223,40 @@
     justify-content: flex-end;
 }
 
+.window-controls-spacer {
+    width: 108px;
+    height: 28px;
+    flex: 0 0 auto;
+}
+
+.window-controls-overlay {
+    position: fixed;
+    top: 9px;
+    right: 8px;
+    z-index: 19500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    pointer-events: none;
+}
+
+.window-controls-overlay .window-control {
+    pointer-events: auto;
+}
+
+.window-controls-overlay svg {
+    width: 22px;
+    height: 22px;
+    color: white;
+    transition: filter 0.2s ease, transform 0.2s ease;
+    display: block;
+}
+
+.window-controls-overlay svg:hover {
+    cursor: pointer;
+    filter: drop-shadow(0 0 10px var(--accent));
+}
+
 .window-control {
     display: inline-flex;
     align-items: center;
@@ -293,6 +327,8 @@
 
 :root[data-platform="mac"] .window-control.minimize,
 :root[data-platform="mac"] .window-control.maximize,
-:root[data-platform="mac"] .window-control.close {
+:root[data-platform="mac"] .window-control.close,
+:root[data-platform="mac"] .window-controls-spacer,
+:root[data-platform="mac"] .window-controls-overlay {
     display: none;
 }

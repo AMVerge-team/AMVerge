@@ -107,25 +107,6 @@ export default function EventsToolbar() {
           </button>
         </Tooltip>
 
-        <InfoButton title={t("events.info.title")} variant="toolbar">
-          <p>{t("events.info.intro")}</p>
-
-          <h4>{t("events.info.hcTitle")}</h4>
-          <p>{t("events.info.hc")}</p>
-
-          <h4>{t("events.info.ecTitle")}</h4>
-          <p>{t("events.info.ec")}</p>
-
-          <h4>{t("events.info.hostTitle")}</h4>
-          <ol>
-            <li>{t("events.info.step1")}</li>
-            <li>{t("events.info.step2")}</li>
-            <li>{t("events.info.step3")}</li>
-            <li>{t("events.info.step4")}</li>
-            <li>{t("events.info.step5")}</li>
-          </ol>
-        </InfoButton>
-
         <Tooltip content={notificationsMuted ? t("events.unmuteNotifications") : t("events.muteNotifications")}>
           <button
             type="button"
@@ -149,6 +130,25 @@ export default function EventsToolbar() {
             <FaSyncAlt aria-hidden="true" />
           </button>
         </Tooltip>
+
+        <InfoButton title={t("events.info.title")} variant="toolbar" icon="question">
+          <p>{t("events.info.intro")}</p>
+
+          <h4>{t("events.info.hcTitle")}</h4>
+          <p>{t("events.info.hc")}</p>
+
+          <h4>{t("events.info.ecTitle")}</h4>
+          <p>{t("events.info.ec")}</p>
+
+          <h4>{t("events.info.hostTitle")}</h4>
+          <ol>
+            <li>{t("events.info.step1")}</li>
+            <li>{t("events.info.step2")}</li>
+            <li>{t("events.info.step3")}</li>
+            <li>{t("events.info.step4")}</li>
+            <li>{t("events.info.step5")}</li>
+          </ol>
+        </InfoButton>
 
         {/* Right end of the row, over the pane it controls - the mirror of the
             episode panel toggle at the far left, same as the import row. */}

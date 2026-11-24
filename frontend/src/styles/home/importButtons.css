@@ -72,13 +72,19 @@
     width: 2rem;
     min-width: 2rem;
     margin-left: 8px;
+    padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 15px;
+    line-height: 0;
     transition: border 0.2s ease,
                 box-shadow 0.2s ease,
                 color 0.2s ease;
+}
+
+.refresh-button svg {
+    flex: none;
 }
 
 /* square icon buttons: import episode, add episode, search settings */
