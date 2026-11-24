@@ -347,3 +347,30 @@
     flex: 1 1 auto;
     min-width: 0;
 }
+
+.host-event-video-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.host-event-video-meta {
+  margin-top: 6px;
+  opacity: 0.85;
+}
+
+.host-event-upload-progress {
+  margin-top: 8px;
+  height: 6px;
+  width: 100%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.host-event-upload-progress-fill {
+  height: 100%;
+  background: var(--accent-color, #ff6b9d);
+  transition: width 120ms ease-out;
+}

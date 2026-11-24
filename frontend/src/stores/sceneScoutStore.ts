@@ -78,7 +78,7 @@ async function withModelLoadingCard<T>(search: () => Promise<T>): Promise<T> {
     appState.setActiveOperation("scout_search");
     appState.setLoading(true);
     appState.setProgress(0);
-    appState.setProgressMsg("Starting AI scene search…");
+    appState.setProgressMsg("Loading AI model (first run downloads ~3.5 GB, please wait)…");
   });
 
   try {
@@ -712,7 +712,8 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             }
 
             if (stage === "loading_model") {
-              appState.setProgressMsg("Starting AI scene search…");
+              appState.setLoading(true);
+              appState.setProgressMsg("Loading AI model (first run downloads ~3.5 GB, please wait)…");
               useAppStateStore.setState((s) => ({ ...s, bgProgress: null }));
             } else if (stage === "detecting") {
               appState.setProgressMsg("Detecting scenes…");
