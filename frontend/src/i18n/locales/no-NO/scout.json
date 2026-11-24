@@ -1,5 +1,7 @@
 {
   "hero": {
+    "subtitleSearch": "",
+    "subtitleFlow": "",
     "blockedNoDatabase": "",
     "blockedNoScenes": "",
     "addTo": "",
