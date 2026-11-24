@@ -1,14 +1,16 @@
 {
   "hero": {
-    "blockedNoDatabase": "请先在下方创建数据库，再开始搜索…",
-    "blockedNoScenes": "请先向所选数据库添加视频，再进行搜索…",
-    "addTo": "向“{{name}}”添加视频",
-    "addNoTarget": "请先在下方选择或创建数据库",
-    "databaseFallback": "数据库",
-    "yourDatabases": "我的数据库",
-    "newDatabase": "新建数据库",
-    "loadingDatabases": "正在加载数据库…",
-    "noDatabases": "还没有数据库。创建一个即可开始为视频建立索引。",
+    "subtitleSearch": "",
+    "subtitleFlow": "",
+    "blockedNoDatabase": "",
+    "blockedNoScenes": "",
+    "addTo": "",
+    "addNoTarget": "",
+    "databaseFallback": "",
+    "yourDatabases": "",
+    "newDatabase": "",
+    "loadingDatabases": "",
+    "noDatabases": "",
     "sceneCount_one": "{{count}} 个场景",
     "sceneCount_other": "{{count}} 个场景",
     "empty": "空"
@@ -18,85 +20,85 @@
     "search": "搜索",
     "searchHint": "通过描述画面来查找场景",
     "match": "匹配",
-    "matchHint": "选择一个片段，查找能自然衔接其最后一帧的场景"
+    "matchHint": ""
   },
   "addEpisode": {
-    "label": "添加视频",
-    "indexing": "正在建立索引…"
+    "label": "",
+    "indexing": ""
   },
   "searchField": {
     "placeholderOne": "描述一个场景，在“{{name}}”中搜索…",
-    "placeholderMany_one": "描述一个场景，在已选的 {{count}} 个数据库中搜索…",
-    "placeholderMany_other": "描述一个场景，在已选的 {{count}} 个数据库中搜索…",
-    "selectedDatabaseFallback": "所选数据库",
+    "placeholderMany_one": "",
+    "placeholderMany_other": "",
+    "selectedDatabaseFallback": "",
     "placeholderAny": "描述你要找的场景…",
-    "placeholderNoDatabase": "创建数据库后即可开始搜索…",
-    "tooltip": "在所选数据库和视频中搜索",
+    "placeholderNoDatabase": "",
+    "tooltip": "",
     "clear": "清除搜索",
     "searching": "正在搜索…"
   },
   "toolbar": {
-    "gateHint": "请先在左侧面板中选择或创建数据库。",
-    "refreshDatabases": "刷新数据库"
+    "gateHint": "",
+    "refreshDatabases": ""
   },
   "panels": {
-    "hideDatabasePanel": "隐藏数据库面板",
-    "showDatabasePanel": "显示数据库面板",
+    "hideDatabasePanel": "",
+    "showDatabasePanel": "",
     "hidePreviewPanel": "隐藏预览面板",
     "showPreviewPanel": "显示预览面板"
   },
   "dbPrompt": {
-    "titleFlow": "选择要查找匹配场景的数据库",
-    "titleSearch": "选择要搜索的数据库",
+    "titleFlow": "",
+    "titleSearch": "",
     "clearAll": "全部取消",
     "selectAll": "全选",
-    "listLabel": "数据库",
-    "episodeCount_one": "{{count}} 个视频",
-    "episodeCount_other": "{{count}} 个视频",
+    "listLabel": "",
+    "episodeCount_one": "",
+    "episodeCount_other": "",
     "confirmFlow": "查找匹配片段"
   },
   "missing": {
-    "title": "找不到视频",
-    "message": "<b>{{name}}</b> 已不在 <code>{{path}}</code>，其场景无法播放。要从数据库中移除此视频吗？",
+    "title": "",
+    "message": "",
     "removing": "正在移除…",
-    "remove": "从数据库移除",
+    "remove": "",
     "keep": "保留"
   },
   "visibility": {
-    "ariaLabel": "“{{name}}”中参与搜索的视频",
+    "ariaLabel": "",
     "showAll": "全部显示",
     "hideAll": "全部隐藏",
-    "loading": "正在加载视频…",
-    "empty": "尚未为任何视频建立索引。"
+    "loading": "",
+    "empty": ""
   },
   "info": {
     "search": {
       "title": "Scene Scout：搜索",
-      "intro": "Scene Scout 根据描述而非文件名搜索已建立索引的视频。输入你记得的场景内容，它会找出最接近的结果。",
+      "intro": "",
       "gettingStarted": "快速上手",
-      "step1": "在左侧面板中创建或打开一个数据库，建议每部剧集一个。",
-      "step2": "双击、向上拖动或右键点击数据库，将其移入“搜索中”。“全部数据库”列出你拥有的所有数据库，只有“搜索中”的数据库才会被搜索。",
-      "step3": "点击“添加视频”并选择一个或多个视频。建立索引时会逐一分析每个场景并保存其特征指纹，耗时较长，但每个视频只需进行一次。",
+      "step1": "",
+      "step2": "",
+      "step3": "",
       "step4": "用日常语言描述你想要的场景，然后按 Enter。",
       "settingsTitle": "搜索设置",
-      "settings": "“结果数”决定返回多少个匹配结果。场景检测方式在每次添加视频时选择。"
+      "settings": ""
     },
     "flow": {
       "title": "Scene Scout：匹配",
-      "intro": "匹配功能会查找能紧接在已有片段之后的场景。它会分析片段的最后一帧，从数据库中找出与之最相似的场景，让两者之间的剪辑衔接更连贯。",
+      "intro": "",
       "howTitle": "使用方法",
-      "step1": "将要搜索的数据库添加到左侧的“搜索中”列表。",
+      "step1": "",
       "step2": "点击“导入”并选择一个视频文件，或在素材库或搜索结果中右键点击片段，选择“查找匹配片段”。",
-      "step3": "点击匹配结果即可在预览面板中播放，并照常从那里导出。",
+      "step3": "",
       "tipsTitle": "提示",
-      "tips": "拖动片段与结果之间的分隔条，可调整两侧的空间。刷新按钮会用同一片段重新搜索，例如在更改要搜索的数据库之后。"
+      "tips": ""
     }
   },
   "flow": {
     "heroInput": "导入文件以查找匹配场景",
-    "noDatabaseHint": "请先将数据库添加到左侧的“搜索中”列表",
+    "noDatabaseHint": "",
     "import": "导入",
-    "searchAgainHint": "重新搜索，例如在更改要搜索的数据库之后",
+    "searchAgainHint": "",
     "searchAgain": "重新搜索",
     "inputtedClip": "输入片段",
     "previewFailed": "无法生成此片段的预览。",
@@ -216,11 +218,11 @@
     }
   },
   "createDb": {
-    "dialogTitle": "新建场景搜索数据库",
-    "filter": "场景搜索数据库",
-    "title": "为数据库命名",
-    "placeholder": "数据库名称",
-    "failed": "无法创建数据库。",
-    "done": "完成"
+    "dialogTitle": "",
+    "filter": "",
+    "title": "",
+    "placeholder": "",
+    "failed": "",
+    "done": ""
   }
 }
