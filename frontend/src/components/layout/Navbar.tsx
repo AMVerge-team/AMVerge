@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Trans, useTranslation } from "react-i18next";
 import { FaBars, FaDiscord } from '../icons/animated';
 import { WindowCloseIcon, WindowMaximizeIcon, WindowMinimizeIcon, WindowPinIcon, ZoomInIcon, ZoomOutIcon } from '../icons/chrome/ChromeIcons';
@@ -181,38 +182,45 @@ export default function Navbar({}: NavbarProps) {
                         <WindowPinIcon pinned={pinned} />
                     </button>
                 </Tooltip>
-
-                <Tooltip content={t("navbar.minimize")} placement="bottom-end">
-                    <button
-                        type="button"
-                        className="window-control minimize"
-                        onClick={handleMinimize}
-                        aria-label={t("navbar.minimize")}
-                    >
-                        <WindowMinimizeIcon />
-                    </button>
-                </Tooltip>
-                <Tooltip content={isMaximized ? t("navbar.restore") : t("navbar.maximize")} placement="bottom-end">
-                    <button
-                        type="button"
-                        className="window-control maximize"
-                        onClick={handleToggleMaximize}
-                        aria-label={isMaximized ? t("navbar.restore") : t("navbar.maximize")}
-                    >
-                        <WindowMaximizeIcon isMaximized={isMaximized} />
-                    </button>
-                </Tooltip>
-                <Tooltip content={t("common:close")} placement="bottom-end">
-                    <button
-                        type="button"
-                        className="window-control close"
-                        onClick={handleClose}
-                        aria-label={t("common:close")}
-                    >
-                        <WindowCloseIcon />
-                    </button>
-                </Tooltip>
+                {/* reserves space for the floating minimize/maximize/close controls portalled above all overlays */}
+                <span className="window-controls-spacer" aria-hidden="true" data-tauri-drag-region />
             </div>
+
+            {createPortal(
+                <div className="window-controls-overlay">
+                    <Tooltip content={t("navbar.minimize")} placement="bottom-end">
+                        <button
+                            type="button"
+                            className="window-control minimize"
+                            onClick={handleMinimize}
+                            aria-label={t("navbar.minimize")}
+                        >
+                            <WindowMinimizeIcon />
+                        </button>
+                    </Tooltip>
+                    <Tooltip content={isMaximized ? t("navbar.restore") : t("navbar.maximize")} placement="bottom-end">
+                        <button
+                            type="button"
+                            className="window-control maximize"
+                            onClick={handleToggleMaximize}
+                            aria-label={isMaximized ? t("navbar.restore") : t("navbar.maximize")}
+                        >
+                            <WindowMaximizeIcon isMaximized={isMaximized} />
+                        </button>
+                    </Tooltip>
+                    <Tooltip content={t("common:close")} placement="bottom-end">
+                        <button
+                            type="button"
+                            className="window-control close"
+                            onClick={handleClose}
+                            aria-label={t("common:close")}
+                        >
+                            <WindowCloseIcon />
+                        </button>
+                    </Tooltip>
+                </div>,
+                document.body
+            )}
         </div>
     );
 }

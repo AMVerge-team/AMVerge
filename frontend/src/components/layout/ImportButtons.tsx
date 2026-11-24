@@ -145,12 +145,13 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
               variant="toolbar"
               icon="question"
               dataGettingStarted="how-to-use"
+              modalClassName="how-to-use-modal"
             >
               <p>
                 Library is where you import anime episodes, browse through every detected clip, preview scenes, and
                 export the clips you want for your edit.
               </p>
-              <ul className="steps-list" style={{ marginTop: 10 }}>
+              <ul className="steps-list">
                 {["select", "library.focus", "library.profile", "library.start"].map((step) => (
                   <li key={step}>
                     <span className="step-text">
@@ -165,7 +166,7 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
                   </li>
                 ))}
               </ul>
-              <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
+              <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
                 <button
                   type="button"
                   className="event-host-btn"
@@ -185,12 +186,13 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
               title={t("preview:howToUse.titles.scenepacks")}
               variant="toolbar"
               icon="question"
+              modalClassName="how-to-use-modal"
             >
               <p>
                 Scene Packs lets you organize your favorite clips from different episodes into reusable packs so you can
                 browse, preview, and export them together anytime.
               </p>
-              <ul className="steps-list" style={{ marginTop: 10 }}>
+              <ul className="steps-list">
                 {["scenepacks.create", "scenepacks.add", "scenepacks.open", "select", "exportNow"].map((step) => (
                   <li key={step}>
                     <span className="step-text">
