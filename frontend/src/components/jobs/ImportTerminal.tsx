@@ -178,8 +178,11 @@ export default function ImportTerminal({
           (e) => {
             const { stage, done, total } = e.payload;
             if (stage === "loading_model") {
-              pushLine("event", translate("jobs:terminal.loadingSiglip"));
-              pushLine("event", "First run downloads the ~3.5 GB AI model in the background; this may take a few minutes.");
+              if (!(stage in lastStep)) {
+                lastStep[stage] = 0;
+                pushLine("event", translate("jobs:terminal.loadingSiglip"));
+                pushLine("event", "First run downloads the ~3.5 GB AI model in the background; this may take a few minutes.");
+              }
             } else if (stage === "detecting") {
               // repeats as detection streams its percent; the live bar shows that
               if (!(stage in lastStep)) {
