@@ -65,7 +65,7 @@ export function CommandInspector({ command }: Props) {
           <button
             type="button"
             className="inspector-btn-secondary"
-            onClick={() => void invoke("reveal_in_file_manager", { path: preview.filePath })}
+            onClick={() => void invoke("reveal_in_file_manager", { filePath: preview.filePath })}
           >
             <FaFolderOpen />
             <span>{t("palette.inspector.reveal", { manager: getFileManagerName() })}</span>

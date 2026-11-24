@@ -198,7 +198,7 @@ export function SceneScoutPanel() {
   };
 
   const revealPath = (targetPath: string) => {
-    void invoke("reveal_in_file_manager", { path: targetPath }).catch((err) => {
+    void invoke("reveal_in_file_manager", { filePath: targetPath }).catch((err) => {
       console.error("reveal_in_file_manager failed", err);
     });
   };
@@ -420,7 +420,7 @@ export function SceneScoutPanel() {
             </span>
           </div>
           <div className="episode-panel-actions" data-scout-tour="db-actions">
-            <Tooltip content={isOpening ? "Opening collection…" : "Import a collection file (.scoutdb)"}>
+            <Tooltip content={isOpening ? "Opening collection" : "Import a collection file (.scoutdb)"}>
               <button
                 type="button"
                 className="episode-panel-action icon-only"
@@ -509,7 +509,7 @@ export function SceneScoutPanel() {
           {isOpening && openingName && (
             <div className="episode-panel-row episode-row" style={{ opacity: 0.75, pointerEvents: "none" }}>
               <FaSpinner className="episode-panel-import-icon spinner" style={{ animation: "spin 1s linear infinite" }} />
-              <span className="episode-panel-episode-name">Opening {openingName}…</span>
+              <span className="episode-panel-episode-name">Opening {openingName}</span>
               <span className="episode-panel-count">loading</span>
             </div>
           )}
@@ -552,7 +552,7 @@ export function SceneScoutPanel() {
                   void startCreate();
                 }}
               >
-                New Collection…
+                New Collection
               </button>
               <button
                 type="button"
@@ -562,7 +562,7 @@ export function SceneScoutPanel() {
                   void startOpen();
                 }}
               >
-                Import Collection (.scoutdb)…
+                Import Collection (.scoutdb)
               </button>
               <div className="episode-context-menu-separator" />
               <button
@@ -648,7 +648,7 @@ export function SceneScoutPanel() {
                   void startAddEpisodes();
                 }}
               >
-                Add Videos…
+                Add videos
               </button>
             )}
             <button
@@ -678,7 +678,7 @@ export function SceneScoutPanel() {
                     close();
                   }}
                 >
-                  Rename…
+                  Rename
                 </button>
                 <button
                   type="button"
@@ -713,7 +713,7 @@ export function SceneScoutPanel() {
                   close();
                 }}
               >
-                Delete from disk…
+                Delete from disk
               </button>
             )}
           </div>
