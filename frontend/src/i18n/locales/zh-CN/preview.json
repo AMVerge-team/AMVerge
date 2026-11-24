@@ -61,10 +61,10 @@
         "open": "打开片段集即可查看其中的片段"
       },
       "sceneScoutSearch": {
-        "database": "在左侧面板中创建或打开一个<b>数据库</b>",
-        "searching": "将其移入<b>搜索中</b>：<b>双击</b>、向上拖动或右键单击它。只有“搜索中”的数据库会被搜索",
-        "addEpisode": "点击<b>添加视频</b>，将视频编入索引",
-        "describe": "在搜索栏中描述一个场景，然后按 <b>Enter</b>",
+        "database": "",
+        "searching": "",
+        "addEpisode": "",
+        "describe": "",
         "preview": "单击结果即可<b>预览</b>"
       },
       "sceneScoutFlow": {
