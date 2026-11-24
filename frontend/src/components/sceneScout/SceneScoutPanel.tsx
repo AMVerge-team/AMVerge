@@ -648,7 +648,7 @@ export function SceneScoutPanel() {
                   void startAddEpisodes();
                 }}
               >
-                Add Videos…
+                Add videos
               </button>
             )}
             <button
@@ -678,7 +678,7 @@ export function SceneScoutPanel() {
                     close();
                   }}
                 >
-                  Rename…
+                  Rename
                 </button>
                 <button
                   type="button"
