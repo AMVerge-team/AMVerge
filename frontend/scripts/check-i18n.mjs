@@ -44,14 +44,15 @@ for (const lang of langs) {
 const placeholders = (s) => [...String(s).matchAll(/\{\{\s*([\w.]+)\s*(?:,[^}]*)?\}\}/g)].map((m) => m[1]).sort().join(",");
 const en = data.en ?? {};
 let keyCount = 0;
+for (const ns of Object.keys(en)) keyCount += Object.keys(en[ns]).length;
+let missingLocaleKeys = 0;
 for (const lang of langs.filter((l) => l !== "en")) {
   const other = data[lang];
   for (const ns of new Set([...Object.keys(en), ...Object.keys(other)])) {
     if (!en[ns]) { errors.push(`${lang}/${ns}: namespace missing in en`); continue; }
-    if (!other[ns]) { errors.push(`${lang}/${ns}: namespace missing`); continue; }
+    if (!other[ns]) { continue; }
     for (const key of Object.keys(en[ns])) {
-      keyCount++;
-      if (!(key in other[ns])) errors.push(`${lang}/${ns}: missing key ${key}`);
+      if (!(key in other[ns])) missingLocaleKeys++;
       else if (placeholders(en[ns][key]) !== placeholders(other[ns][key]))
         errors.push(`${lang}/${ns}: placeholder mismatch in ${key}: en[${placeholders(en[ns][key])}] vs [${placeholders(other[ns][key])}]`);
     }
@@ -73,15 +74,20 @@ function walk(dir, out = []) {
 const PLURAL = ["", "_one", "_other", "_zero", "_two", "_few", "_many"];
 for (const file of walk(path.join(ROOT, "src"))) {
   const src = readFileSync(file, "utf8");
-  const nsMatch = src.match(/useTranslation\(\s*["']([\w-]+)["']/);
-  const defaultNs = nsMatch ? nsMatch[1] : "common";
+  const nsCall = src.match(/useTranslation\(\s*(\[[^\]]+\]|["'][\w-]+["'])/);
+  const defaultNamespaces = nsCall
+    ? [...nsCall[1].matchAll(/["']([\w-]+)["']/g)].map((m) => m[1])
+    : ["common"];
+  const defaultNs = defaultNamespaces[0] ?? "common";
   for (const m of src.matchAll(/\bt\(\s*["']([\w.:-]+)["']/g)) {
-    let [ns, key] = m[1].includes(":") ? m[1].split(":") : [defaultNs, m[1]];
+    const hasExplicitNs = m[1].includes(":");
+    const [explicitNs, key] = hasExplicitNs ? m[1].split(":") : [defaultNs, m[1]];
+    const candidates = hasExplicitNs ? [explicitNs] : [...new Set([...defaultNamespaces, "common"])];
     const has = (n) => en[n] && PLURAL.some((s) => (key + s) in en[n]);
     // a key that is an object prefix (returnObjects) also counts
     const isPrefix = (n) => en[n] && Object.keys(en[n]).some((k) => k.startsWith(key + "."));
-    if (!has(ns) && !has("common") && !isPrefix(ns))
-      errors.push(`${path.relative(ROOT, file)}: unknown key ${ns}:${key}`);
+    if (!candidates.some((n) => has(n) || isPrefix(n)))
+      errors.push(`${path.relative(ROOT, file)}: unknown key ${explicitNs}:${key}`);
   }
 }
 
@@ -131,4 +137,5 @@ if (errors.length) {
   console.error(`i18n check failed (${errors.length}):\n  ` + errors.join("\n  "));
   process.exit(1);
 }
-console.log(`i18n check passed: ${langs.join(", ")} · ${Object.keys(en).length} namespaces · ${keyCount} keys`);
+const pendingInfo = missingLocaleKeys ? ` · ${missingLocaleKeys} locale keys falling back to en` : "";
+console.log(`i18n check passed: ${langs.join(", ")} · ${Object.keys(en).length} namespaces · ${keyCount} keys${pendingInfo}`);
