@@ -61,10 +61,10 @@
         "open": "Ouvrez un Scenepack pour voir ses clips"
       },
       "sceneScoutSearch": {
-        "database": "Créez ou ouvrez une <b>base</b> dans le panneau de gauche",
-        "searching": "Mettez-la dans <b>Searching</b> : <b>double clic</b>, glissez-la vers le haut, ou faites un clic droit. Seules les bases dans Searching sont incluses dans la recherche",
-        "addEpisode": "Cliquez sur <b>Add Episode</b> pour y indexer des épisodes",
-        "describe": "Décrivez une scène dans la barre de recherche et appuyez sur <b>Entrée</b>",
+        "database": "",
+        "searching": "",
+        "addEpisode": "",
+        "describe": "",
         "preview": "Cliquez une fois sur un résultat pour le <b>voir</b>"
       },
       "sceneScoutFlow": {
