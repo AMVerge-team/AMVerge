@@ -14,7 +14,7 @@
     },
     "3": {
       "title": "",
-      "body": "<b>Scene Scout</b> cherche dans vos épisodes indexés à partir d'une description, avec vos mots (ou trouve les clips qui enchaînent avec un clip que vous avez déjà). Activez-le et téléchargez-le quand vous voulez dans <b>Paramètres › Fonctionnalités</b>."
+      "body": ""
     },
     "4": {
       "title": "",
@@ -42,7 +42,7 @@
     },
     "10": {
       "title": "10. C'est prêt",
-      "body": "Le tutoriel s'arrête là. Pour le revoir, il est dans la section <b>« How to Use »</b>, à droite de la page. Bon montage !"
+      "body": ""
     }
   },
   "ariaLabel": "Guide de prise en main",
