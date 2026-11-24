@@ -9,6 +9,14 @@ export type ScoutDatabase = {
   sizeBytes: number;
   modelVersion: string;
   createdAt: string | null;
+  databaseId?: string | null;
+  schemaVersion?: number;
+  createdByApp?: string | null;
+  createdByVersion?: string | null;
+  updatedByApp?: string | null;
+  updatedByVersion?: string | null;
+  updatedAt?: string | null;
+  mediaRoots?: string[];
 };
 
 /** A video indexed into a database. */
@@ -20,6 +28,16 @@ export type ScoutVideo = {
   /** "indexing" until the run finishes, so a partial row is visibly partial */
   status: string;
   modifiedAt: number;
+  modelId?: string | null;
+  detector?: string | null;
+  samplingStrategy?: string | null;
+  samplingConfig?: Record<string, unknown> | null;
+  fileSize?: number | null;
+  contentFingerprint?: string | null;
+  durationMs?: number | null;
+  fps?: number | null;
+  width?: number | null;
+  height?: number | null;
 };
 
 /** subject direction on screen (+y down), or still / unclear */
@@ -91,6 +109,8 @@ export type ScoutSearchSettings = {
   selectedDatabases: string[];
   /** empty means all videos in selected databases */
   selectedVideos: string[];
+  /** specific video filepaths excluded from search (e.g. hidden episodes) */
+  excludeVideos?: string[];
   /** scene detection last picked when indexing, preselected next time */
   lastIndexDetection?: "transnetv2_gpu" | "keyframe_detection" | "single_scene";
   /** leave scenes near each episode's start and end out of results, where openings and endings usually sit */

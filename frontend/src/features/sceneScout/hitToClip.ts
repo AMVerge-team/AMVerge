@@ -4,6 +4,12 @@ import { generateScoutPlaceholderSvg } from "./scoutPlaceholder";
 import { formatClipTimeframe } from "../../components/clipsGrid/clipFormat";
 import { isRemoteMediaUrl } from "./tutorialDemo";
 
+function thumbnailDataUrl(b64: string): string {
+  // WebP starts with "RIFF....WEBP" ("UklGR" in base64); legacy DBs hold JPEG
+  const mime = b64.startsWith("UklGR") ? "image/webp" : "image/jpeg";
+  return `data:${mime};base64,${b64}`;
+}
+
 export function hitToClipItem(hit: ScoutHit, index: number): ClipItem {
   const timeframe = formatClipTimeframe(hit.startSec, hit.endSec) ?? "";
   const remote = isRemoteMediaUrl(hit.videoPath);
@@ -13,7 +19,7 @@ export function hitToClipItem(hit: ScoutHit, index: number): ClipItem {
     src: hit.videoPath,
     ...(remote ? { clipPath: hit.videoPath } : {}),
     thumbnail: hit.thumbnailB64
-      ? `data:image/jpeg;base64,${hit.thumbnailB64}`
+      ? thumbnailDataUrl(hit.thumbnailB64)
       : remote
         ? hit.videoPath.replace(/\.mp4$/i, ".jpg")
         : generateScoutPlaceholderSvg(name, timeframe),

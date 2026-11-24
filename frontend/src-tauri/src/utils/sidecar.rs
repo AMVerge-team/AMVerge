@@ -359,6 +359,8 @@ pub(crate) fn scout_model_dir_for_app(app: &AppHandle) -> Option<PathBuf> {
 }
 
 pub(crate) fn apply_ai_env_vars(app: &AppHandle, cmd: &mut Command) {
+    cmd.env("AMVERGE_CALLER_APP", "amverge")
+        .env("AMVERGE_CALLER_VERSION", app.package_info().version.to_string());
     if let Ok(loc) = resolve_ai_location(app) {
         if let Some(config) = loc.config_dir {
             cmd.env("AMVERGE_CONFIG_DIR", config);

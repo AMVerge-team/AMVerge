@@ -13,6 +13,22 @@ pub struct ScoutDatabase {
     pub model_version: String,
     #[serde(default)]
     pub created_at: Option<String>,
+    #[serde(default)]
+    pub database_id: Option<String>,
+    #[serde(default)]
+    pub schema_version: Option<u32>,
+    #[serde(default)]
+    pub created_by_app: Option<String>,
+    #[serde(default)]
+    pub created_by_version: Option<String>,
+    #[serde(default)]
+    pub updated_by_app: Option<String>,
+    #[serde(default)]
+    pub updated_by_version: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
+    #[serde(default)]
+    pub media_roots: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -25,6 +41,26 @@ pub struct ScoutVideo {
     pub status: String,
     #[serde(default)]
     pub modified_at: f64,
+    #[serde(default)]
+    pub model_id: Option<String>,
+    #[serde(default)]
+    pub detector: Option<String>,
+    #[serde(default)]
+    pub sampling_strategy: Option<String>,
+    #[serde(default)]
+    pub sampling_config: Option<serde_json::Value>,
+    #[serde(default)]
+    pub file_size: Option<u64>,
+    #[serde(default)]
+    pub content_fingerprint: Option<String>,
+    #[serde(default)]
+    pub duration_ms: Option<i64>,
+    #[serde(default)]
+    pub fps: Option<f64>,
+    #[serde(default)]
+    pub width: Option<u32>,
+    #[serde(default)]
+    pub height: Option<u32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -96,6 +132,8 @@ pub struct ScoutSearchArgs {
     #[serde(default)]
     pub videos: Vec<String>,
     #[serde(default)]
+    pub exclude_videos: Vec<String>,
+    #[serde(default)]
     pub top_k: Option<u32>,
     #[serde(default)]
     pub threshold: Option<f64>,
@@ -136,6 +174,33 @@ pub(super) struct VideosEnvelope {
 #[derive(Deserialize)]
 pub(super) struct ResultsEnvelope {
     pub results: Vec<ScoutHit>,
+    #[serde(default)]
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ScoutRelinkUpdatedItem {
+    pub id: i64,
+    pub old_path: String,
+    pub new_path: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ScoutRelinkResult {
+    #[serde(default)]
+    pub database: String,
+    #[serde(default)]
+    pub checked: u64,
+    #[serde(default)]
+    pub missing: u64,
+    #[serde(default)]
+    pub relinked: u64,
+    #[serde(default)]
+    pub unresolved: u64,
+    #[serde(default)]
+    pub updated: Vec<ScoutRelinkUpdatedItem>,
     #[serde(default)]
     pub error: Option<String>,
 }

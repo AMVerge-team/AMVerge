@@ -75,6 +75,7 @@ export function scoutSearch(
       query,
       databases: settings.selectedDatabases,
       videos: settings.selectedVideos,
+      excludeVideos: settings.excludeVideos ?? [],
       topK: settings.topK,
       includeThumbnails: settings.includeThumbnails,
       skipEdgesMs: settings.skipEpisodeEdges ? EPISODE_EDGE_MS : 0,
@@ -137,5 +138,28 @@ export function scoutGenerateThumbnails(
     "scout_generate_thumbnails",
     { database, customPath, reportProgress }
   );
+}
+
+export type ScoutRelinkResult = {
+  database: string;
+  checked: number;
+  missing: number;
+  relinked: number;
+  unresolved: number;
+  updated: { id: number; oldPath: string; newPath: string }[];
+};
+
+export function scoutRelinkDatabase(
+  database: string,
+  searchDirs: string[],
+  customPath: string | null,
+  verifyHash = true
+): Promise<ScoutRelinkResult> {
+  return invoke<ScoutRelinkResult>("scout_relink_database", {
+    database,
+    searchDirs,
+    customPath,
+    verifyHash,
+  });
 }
 

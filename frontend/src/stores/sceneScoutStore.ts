@@ -301,26 +301,29 @@ async function searchBlocker(): Promise<string | null> {
 }
 
 /**
- * the settings a search or flow sends: the Searching list, and the episodes still shown in it.
- * the cli's video filter keeps only the listed videos, so with any hidden every shown one is listed
+ * the settings a search or flow sends: the Searching list, and any hidden episodes to exclude.
  */
 async function currentSearchSettings(): Promise<ScoutSearchSettings> {
   const store = useSceneScoutStore.getState();
   const { selectedDatabases, hiddenVideos } = store;
-  const base = { ...store.settings, selectedDatabases, selectedVideos: [] };
+  const base: ScoutSearchSettings = {
+    ...store.settings,
+    selectedDatabases,
+    selectedVideos: [],
+    excludeVideos: hiddenVideos,
+  };
   if (hiddenVideos.length === 0) return base;
 
-  await Promise.all(
-    selectedDatabases
-      .filter((db) => !useSceneScoutStore.getState().videosByDatabase[db])
-      .map((db) => store.loadVideos(db))
-  );
-  const { videosByDatabase } = useSceneScoutStore.getState();
-  const all = selectedDatabases.flatMap((db) => (videosByDatabase[db] ?? []).map((v) => v.filepath));
-  const shown = all.filter((path) => !hiddenVideos.some((h) => samePath(h, path)));
-  if (shown.length === all.length) return base;
-  if (shown.length === 0) throw new Error("Every episode in the searched databases is hidden. Show one with its eye icon.");
-  return { ...base, selectedVideos: shown };
+  // Still check if every episode across the selected databases was hidden, so the clear message holds
+  const { videosByDatabase } = store;
+  const allLoaded = selectedDatabases.every((db) => Boolean(videosByDatabase[db]));
+  if (allLoaded) {
+    const all = selectedDatabases.flatMap((db) => (videosByDatabase[db] ?? []).map((v) => v.filepath));
+    if (all.length > 0 && all.every((path) => hiddenVideos.some((h) => samePath(h, path)))) {
+      throw new Error("Every episode in the searched databases is hidden. Show one with its eye icon.");
+    }
+  }
+  return base;
 }
 
 /** whether there is any database to offer in the picker, loading the list once if it is still empty */

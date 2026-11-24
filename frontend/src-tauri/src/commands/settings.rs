@@ -150,6 +150,7 @@ fn rebase_scene_scout_database(
     let mut changed = false;
     for (table, id_column, path_column) in [
         ("processed_videos", "id", "filepath"),
+        ("media_roots", "rowid", "root_path"),
         ("image_embeddings", "id", "filepath"),
         ("index_queue", "id", "path"),
     ] {
@@ -170,15 +171,19 @@ fn rebase_scene_scout_database(
                 .map_err(|e| e.to_string())?;
             for row in rows {
                 let (id, old_path) = row.map_err(|e| e.to_string())?;
-                let new_path = rebase_path_from_root(&old_path, old_root, new_root);
+                let mut new_path = rebase_path_from_root(&old_path, old_root, new_root);
+                if table == "media_roots" && new_path != old_path {
+                    new_path = new_path.replace('\\', "/");
+                }
                 if new_path != old_path {
                     updates.push((id, new_path));
                 }
             }
         }
         for (id, new_path) in updates {
+            let verb = if table == "media_roots" { "UPDATE OR IGNORE" } else { "UPDATE" };
             tx.execute(
-                &format!("UPDATE {table} SET {path_column} = ?1 WHERE {id_column} = ?2"),
+                &format!("{verb} {table} SET {path_column} = ?1 WHERE {id_column} = ?2"),
                 rusqlite::params![new_path, id],
             )
             .map_err(|e| format!("Failed to rebase {} in {}: {e}", path.display(), table))?;
@@ -1660,15 +1665,22 @@ mod tests {
         let conn = rusqlite::Connection::open(&db).unwrap();
         conn.execute_batch(
             "CREATE TABLE processed_videos (id INTEGER PRIMARY KEY, filepath TEXT UNIQUE);
+             CREATE TABLE media_roots (root_path TEXT PRIMARY KEY, added_at TEXT NOT NULL);
              CREATE TABLE image_embeddings (id INTEGER PRIMARY KEY, filepath TEXT);
              CREATE TABLE index_queue (id INTEGER PRIMARY KEY, path TEXT);",
         )
         .unwrap();
         let owned = old.join("episodes_storage/ep1/scene.mp4");
+        let owned_root = old.join("episodes_storage/ep1").to_string_lossy().replace('\\', "/");
         let external = tmp.path().join("external.mp4");
         conn.execute(
             "INSERT INTO processed_videos (id, filepath) VALUES (1, ?1), (2, ?2)",
             rusqlite::params![owned.to_string_lossy().to_string(), external.to_string_lossy().to_string()],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO media_roots (root_path, added_at) VALUES (?1, '2026-11-24T00:00:00Z'), ('D:/ExternalAnime', '2026-11-24T00:00:00Z')",
+            [owned_root],
         )
         .unwrap();
         conn.execute(
@@ -1703,6 +1715,11 @@ mod tests {
         assert_eq!(image_now, new.join("episodes_storage/ep1/scene.mp4").to_string_lossy());
         assert_eq!(external_now, external.to_string_lossy());
         assert_eq!(queue_now, external.to_string_lossy());
+        let mut roots_stmt = conn.prepare("SELECT root_path FROM media_roots ORDER BY root_path").unwrap();
+        let roots: Vec<String> = roots_stmt.query_map([], |r| r.get(0)).unwrap().map(|r| r.unwrap()).collect();
+        let expected_rebased_root = new.join("episodes_storage/ep1").to_string_lossy().replace('\\', "/");
+        assert!(roots.contains(&expected_rebased_root));
+        assert!(roots.contains(&"D:/ExternalAnime".to_string()));
     }
 
     #[test]
