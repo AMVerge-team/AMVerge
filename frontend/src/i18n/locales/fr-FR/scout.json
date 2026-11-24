@@ -1,14 +1,16 @@
 {
   "hero": {
-    "blockedNoDatabase": "Créez une base ci-dessous pour commencer à chercher…",
-    "blockedNoScenes": "Ajoutez des épisodes à la base sélectionnée avant de chercher…",
-    "addTo": "Ajouter des épisodes à {{name}}",
-    "addNoTarget": "Sélectionnez ou créez d'abord une base ci-dessous",
-    "databaseFallback": "base",
-    "yourDatabases": "Vos bases",
-    "newDatabase": "Nouvelle base",
-    "loadingDatabases": "Chargement des bases…",
-    "noDatabases": "Aucune base pour l'instant. Créez-en une pour commencer à indexer des épisodes.",
+    "subtitleSearch": "",
+    "subtitleFlow": "",
+    "blockedNoDatabase": "",
+    "blockedNoScenes": "",
+    "addTo": "",
+    "addNoTarget": "",
+    "databaseFallback": "",
+    "yourDatabases": "",
+    "newDatabase": "",
+    "loadingDatabases": "",
+    "noDatabases": "",
     "sceneCount_one": "{{count}} scène",
     "sceneCount_other": "{{count}} scènes",
     "empty": "vide"
@@ -18,85 +20,85 @@
     "search": "",
     "searchHint": "Trouver des scènes en les décrivant",
     "match": "",
-    "matchHint": "Sélectionner un clip et trouver les scènes qui semblent suivre sa dernière image"
+    "matchHint": ""
   },
   "addEpisode": {
     "label": "",
-    "indexing": "Indexation…"
+    "indexing": ""
   },
   "searchField": {
     "placeholderOne": "Décrivez une scène à chercher dans « {{name}} »…",
-    "placeholderMany_one": "Décrivez une scène à chercher dans {{count}} base sélectionnée…",
-    "placeholderMany_other": "Décrivez une scène à chercher dans {{count}} bases sélectionnées…",
-    "selectedDatabaseFallback": "base sélectionnée",
+    "placeholderMany_one": "",
+    "placeholderMany_other": "",
+    "selectedDatabaseFallback": "",
     "placeholderAny": "Décrivez la scène que vous cherchez…",
-    "placeholderNoDatabase": "Créez une base pour commencer à chercher…",
-    "tooltip": "Chercher dans les bases et les épisodes sélectionnés",
+    "placeholderNoDatabase": "",
+    "tooltip": "",
     "clear": "Effacer la recherche",
     "searching": "Recherche…"
   },
   "toolbar": {
-    "gateHint": "Sélectionnez d'abord une base dans le panneau de gauche, ou créez-en une.",
-    "refreshDatabases": "Actualiser les bases"
+    "gateHint": "",
+    "refreshDatabases": ""
   },
   "panels": {
-    "hideDatabasePanel": "Masquer le panneau des bases",
-    "showDatabasePanel": "Afficher le panneau des bases",
+    "hideDatabasePanel": "",
+    "showDatabasePanel": "",
     "hidePreviewPanel": "Masquer le panneau d'aperçu",
     "showPreviewPanel": "Afficher le panneau d'aperçu"
   },
   "dbPrompt": {
-    "titleFlow": "Sélectionnez les bases où chercher les correspondances",
-    "titleSearch": "Sélectionnez les bases où chercher",
+    "titleFlow": "",
+    "titleSearch": "",
     "clearAll": "Tout effacer",
     "selectAll": "Tout sélectionner",
-    "listLabel": "Bases",
-    "episodeCount_one": "{{count}} épisode",
-    "episodeCount_other": "{{count}} épisodes",
+    "listLabel": "",
+    "episodeCount_one": "",
+    "episodeCount_other": "",
     "confirmFlow": "Trouver les clips qui enchaînent"
   },
   "missing": {
-    "title": "Épisode introuvable",
-    "message": "<b>{{name}}</b> n'est plus dans <code>{{path}}</code>, ses scènes ne peuvent donc pas être lues. Retirer cet épisode de la base ?",
+    "title": "",
+    "message": "",
     "removing": "Suppression…",
-    "remove": "Retirer de la base",
+    "remove": "",
     "keep": "Garder"
   },
   "visibility": {
-    "ariaLabel": "Épisodes pris en compte dans {{name}}",
+    "ariaLabel": "",
     "showAll": "Tout afficher",
     "hideAll": "Tout masquer",
-    "loading": "Chargement des épisodes…",
-    "empty": "Aucun épisode indexé pour l'instant."
+    "loading": "",
+    "empty": ""
   },
   "info": {
     "search": {
       "title": "Scene Scout : Search",
-      "intro": "Scene Scout cherche dans vos épisodes indexés par description, pas par nom de fichier. Tapez ce dont vous vous souvenez d'une scène, il trouve les plus proches.",
+      "intro": "",
       "gettingStarted": "Pour commencer",
-      "step1": "Créez ou ouvrez une base dans le panneau de gauche. Une base par série fonctionne bien.",
-      "step2": "Mettez-la dans Searching : double clic, glissez-la vers le haut, ou clic droit. All databases montre tout ce que vous avez ; seules celles dans Searching sont incluses dans la recherche.",
-      "step3": "Cliquez sur Add Episode et choisissez une ou plusieurs vidéos. L'indexation analyse chaque scène une fois et garde une empreinte de chacune : c'est long, mais cela n'arrive qu'une fois par épisode.",
+      "step1": "",
+      "step2": "",
+      "step3": "",
       "step4": "Décrivez la scène que vous cherchez, avec vos mots, et appuyez sur Entrée.",
       "settingsTitle": "Paramètres de recherche",
-      "settings": "Results décide du nombre de résultats renvoyés. La détection de scènes se choisit à chaque ajout d'épisodes."
+      "settings": ""
     },
     "flow": {
       "title": "Scene Scout : Match",
-      "intro": "Match trouve les scènes qui pourraient venir juste après un clip que vous avez déjà. Il analyse la dernière image du clip et renvoie les scènes de vos bases qui lui ressemblent le plus, pour que l'enchaînement paraîsse continu.",
+      "intro": "",
       "howTitle": "Comment s'en servir",
-      "step1": "Ajoutez les bases où chercher à la liste Searching, à gauche.",
+      "step1": "",
       "step2": "Cliquez sur Import et choisissez un fichier vidéo, ou faites un clic droit sur un clip dans Library ou dans les résultats de Search et choisissez Trouver les clips qui enchaînent.",
-      "step3": "Cliquez sur un résultat pour le lire dans le panneau d'aperçu, et exportez-le de là comme d'habitude.",
+      "step3": "",
       "tipsTitle": "Astuces",
-      "tips": "Glissez la barre entre le clip et les résultats pour donner plus de place à l'un ou à l'autre. Le bouton d'actualisation relance le même clip, par exemple après avoir changé les bases sélectionnées."
+      "tips": ""
     }
   },
   "flow": {
     "heroInput": "Chargez un fichier pour trouver des scènes qui enchaînent",
-    "noDatabaseHint": "Ajoutez d'abord une base à la liste Searching, à gauche",
+    "noDatabaseHint": "",
     "import": "",
-    "searchAgainHint": "Relancer la recherche, par exemple après avoir changé les bases sélectionnées",
+    "searchAgainHint": "",
     "searchAgain": "Relancer la recherche",
     "inputtedClip": "Clip chargé",
     "previewFailed": "Impossible de préparer un aperçu de ce clip.",
@@ -216,11 +218,11 @@
     }
   },
   "createDb": {
-    "dialogTitle": "Créer une base Scene Scout",
-    "filter": "Base Scene Scout",
-    "title": "Nommez cette base",
-    "placeholder": "Nom de la base",
-    "failed": "Impossible de créer la base.",
-    "done": "Terminé"
+    "dialogTitle": "",
+    "filter": "",
+    "title": "",
+    "placeholder": "",
+    "failed": "",
+    "done": ""
   }
 }
