@@ -98,6 +98,33 @@
     cursor: pointer;
 }
 
+.scene-scout-search-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border-radius: 6px;
+    font-size: 14px;
+    line-height: 0;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.scene-scout-search-clear:hover {
+    color: #fff;
+    background: rgb(255 255 255 / 0.08);
+}
+
+.events-toolbar-row .refresh-button.scene-scout-refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 15px;
+    line-height: 0;
+}
+
 .scene-scout-search-go {
     padding: 0 12px;
     height: 26px;
@@ -348,6 +375,7 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+    overflow: hidden;
     padding: 10px;
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -357,18 +385,33 @@
 }
 
 .scene-scout-hero-dbs-head {
+    flex: none;
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     align-items: center;
     justify-content: space-between;
-    padding: 0 2px 4px;
+    padding: 0 2px 2px;
+    margin: 0;
     font-family: var(--ui-font);
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: rgba(255, 255, 255, 0.5);
+}
+
+.scene-scout-hero-guide-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 6px;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.78);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .scene-scout-hero-new {
@@ -496,8 +539,8 @@
 .scout-add {
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    padding: 22px 24px 20px;
+    gap: 10px;
+    padding: 18px 22px 18px;
     font-family: var(--ui-font);
     font-size-adjust: none;
     color: #fff;
@@ -521,7 +564,7 @@
 .scout-add-column {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     min-width: 0;
 }
 
@@ -659,29 +702,58 @@
 /* same thin accent scrollbar as the episode panel and the clip grid */
 .scout-add-list::-webkit-scrollbar,
 .scout-visibility-list::-webkit-scrollbar,
+.scene-scout-hero::-webkit-scrollbar,
+.scene-scout-hero-guide-body::-webkit-scrollbar,
 .scene-scout-hero-db-list::-webkit-scrollbar,
-.scene-scout-delete-list::-webkit-scrollbar {
+.scene-scout-delete-list::-webkit-scrollbar,
+.flow-db-prompt-list::-webkit-scrollbar,
+.scout-guide-scroll::-webkit-scrollbar {
     width: 8px;
+    background: transparent;
+}
+
+.scout-add-list::-webkit-scrollbar-track,
+.scout-visibility-list::-webkit-scrollbar-track,
+.scene-scout-hero::-webkit-scrollbar-track,
+.scene-scout-hero-guide-body::-webkit-scrollbar-track,
+.scene-scout-hero-db-list::-webkit-scrollbar-track,
+.scene-scout-delete-list::-webkit-scrollbar-track,
+.flow-db-prompt-list::-webkit-scrollbar-track,
+.scout-guide-scroll::-webkit-scrollbar-track {
     background: transparent;
 }
 
 .scout-add-list::-webkit-scrollbar-thumb,
 .scout-visibility-list::-webkit-scrollbar-thumb,
+.scene-scout-hero::-webkit-scrollbar-thumb,
+.scene-scout-hero-guide-body::-webkit-scrollbar-thumb,
 .scene-scout-hero-db-list::-webkit-scrollbar-thumb,
-.scene-scout-delete-list::-webkit-scrollbar-thumb {
+.scene-scout-delete-list::-webkit-scrollbar-thumb,
+.flow-db-prompt-list::-webkit-scrollbar-thumb,
+.scout-guide-scroll::-webkit-scrollbar-thumb {
     background: rgb(var(--accent-rgb) / 0.35);
     border-radius: 999px;
 }
 
 .scout-add-list::-webkit-scrollbar-thumb:hover,
+.scout-visibility-list::-webkit-scrollbar-thumb:hover,
+.scene-scout-hero::-webkit-scrollbar-thumb:hover,
+.scene-scout-hero-guide-body::-webkit-scrollbar-thumb:hover,
 .scene-scout-hero-db-list::-webkit-scrollbar-thumb:hover,
-.scene-scout-delete-list::-webkit-scrollbar-thumb:hover {
+.scene-scout-delete-list::-webkit-scrollbar-thumb:hover,
+.flow-db-prompt-list::-webkit-scrollbar-thumb:hover,
+.scout-guide-scroll::-webkit-scrollbar-thumb:hover {
     background: rgb(var(--accent-rgb) / 0.6);
 }
 
 .scout-add-list::-webkit-scrollbar-button,
+.scout-visibility-list::-webkit-scrollbar-button,
+.scene-scout-hero::-webkit-scrollbar-button,
+.scene-scout-hero-guide-body::-webkit-scrollbar-button,
 .scene-scout-hero-db-list::-webkit-scrollbar-button,
-.scene-scout-delete-list::-webkit-scrollbar-button {
+.scene-scout-delete-list::-webkit-scrollbar-button,
+.flow-db-prompt-list::-webkit-scrollbar-button,
+.scout-guide-scroll::-webkit-scrollbar-button {
     display: none;
 }
 
@@ -744,7 +816,7 @@
 .scout-add-go,
 .scout-add-pick {
     align-self: flex-start;
-    margin-top: 4px;
+    margin-top: 2px;
 }
 
 .scout-add-go:disabled {
@@ -1262,6 +1334,11 @@ body.scene-scout-resizing {
 
 /* "Searching" / "All databases": calibri so they stay readable whatever font the user picks */
 .scene-scout-section-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 8px;
     font-family: var(--ui-font);
     font-size-adjust: none;
     padding: 4px 6px 6px;
@@ -1270,6 +1347,11 @@ body.scene-scout-resizing {
     letter-spacing: 0.06em;
     text-transform: uppercase;
     opacity: 0.5;
+}
+
+.scene-scout-section-count {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 }
 
 .scene-scout-drop-hint {
@@ -1319,14 +1401,71 @@ body.scene-scout-resizing {
 
 .scene-scout-db-row .scout-row-hover-action,
 .scout-video-row .episode-delete-btn {
+    width: 0;
+    min-width: 0;
+    margin-left: -8px;
+    padding: 0;
+    border-width: 0;
+    overflow: hidden;
     opacity: 0;
-    transition: opacity 0.14s ease;
+    pointer-events: none;
+    transition: width 0.16s ease, margin-left 0.16s ease, opacity 0.16s ease, background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .scene-scout-db-row:hover .scout-row-hover-action,
+.scene-scout-db-row:focus-within .scout-row-hover-action,
 .scene-scout-db-row .scout-row-hover-action.has-hidden,
-.scout-video-row:hover .episode-delete-btn {
+.scout-video-row:hover .episode-delete-btn,
+.scout-video-row:focus-within .episode-delete-btn {
+    width: 24px;
+    margin-left: 0;
+    border-width: 1px;
     opacity: 1;
+    pointer-events: auto;
+}
+
+.info-modal.scout-guide-modal {
+    height: min(600px, 100%);
+    max-height: min(600px, 100%);
+}
+
+.info-modal.scout-guide-modal .info-modal-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    padding: 12px 18px 16px;
+}
+
+.scout-info-tabs {
+    flex: none;
+    align-self: flex-start;
+    margin: 0 0 10px;
+    display: inline-flex;
+}
+
+.scout-guide-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 6px;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--accent-rgb) / 0.42) transparent;
+}
+
+.scout-guide-scroll > h4:first-child,
+.scout-guide-scroll > p:first-child {
+    margin-top: 0;
+}
+
+.scout-guide-footer {
+    flex: none;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: flex-end;
 }
 
 .scene-scout-drag-ghost {

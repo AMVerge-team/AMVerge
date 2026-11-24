@@ -113,7 +113,7 @@ export function SceneScoutHero() {
           <div className="scene-scout-hero-dbs" data-scout-tour="hero-dbs">
             <div
               className="scene-scout-hero-empty"
-              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "22px 16px" }}
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "10px 14px" }}
             >
               <strong style={{ fontSize: 14, color: "rgba(255,255,255,0.92)" }}>
                 1. Create your first collection
@@ -126,7 +126,7 @@ export function SceneScoutHero() {
                   type="button"
                   data-scout-tour="hero-create-btn"
                   className="event-host-btn"
-                  style={{ fontSize: 12, padding: "8px 16px", marginTop: 4 }}
+                  style={{ fontSize: 12, padding: "8px 16px", marginTop: 2 }}
                   onClick={() => void startCreate()}
                 >
                   <FaPlus aria-hidden="true" style={{ marginRight: 6 }} />
@@ -140,19 +140,19 @@ export function SceneScoutHero() {
             <div className="scene-scout-hero-dbs" data-scout-tour="hero-dbs">
               <div
                 className="scene-scout-hero-empty"
-                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "20px 16px" }}
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "10px 14px" }}
               >
                 <strong style={{ fontSize: 14, color: "rgba(255,255,255,0.92)" }}>
                   2. Add videos to {addTargetName ?? t("hero.databaseFallback")}
                 </strong>
                 <span style={{ maxWidth: 440, textAlign: "center", lineHeight: 1.45 }}>
-                  Add full anime episodes or pre-cut clip files (like flow clips or scenepacks) to start searching.
+                  Add full anime episodes or pre-cut clip files to start searching.
                 </span>
                 <button
                   type="button"
                   data-scout-tour="hero-add-btn"
                   className="event-host-btn"
-                  style={{ fontSize: 12, padding: "8px 16px", marginTop: 4 }}
+                  style={{ fontSize: 12, padding: "8px 16px", marginTop: 2 }}
                   onClick={onAddEpisodes}
                   disabled={!addTarget || searching}
                 >
@@ -188,10 +188,12 @@ export function SceneScoutHero() {
             <div
               className="scene-scout-hero-dbs"
               data-scout-tour="hero-dbs"
-              style={{ maxHeight: 240, overflowY: "auto", padding: "14px 16px", textAlign: "left" }}
+              style={{ maxHeight: 240, padding: "14px 16px", textAlign: "left" }}
             >
-              <div className="scene-scout-hero-dbs-head" style={{ marginBottom: 8 }}>
-                <span>How to use Scene Scout</span>
+              <div className="scene-scout-hero-dbs-head">
+                <span style={{ fontSize: 13, letterSpacing: "0.04em", color: "rgba(255,255,255,0.78)" }}>
+                  How to use Scene Scout
+                </span>
                 <button
                   type="button"
                   className="scene-scout-hero-new"
@@ -200,7 +202,7 @@ export function SceneScoutHero() {
                   Show walkthrough
                 </button>
               </div>
-              <div style={{ fontSize: 12.5, lineHeight: 1.55, color: "rgba(255,255,255,0.78)", display: "flex", flexDirection: "column", gap: 8 }}>
+              <div className="scene-scout-hero-guide-body">
                 <p style={{ margin: 0 }}>
                   <b style={{ color: "rgba(255,255,255,0.94)" }}>What is a Collection?</b> A Collection is a local{" "}
                   <code>.scoutdb</code> index of your anime episodes or clips. Manage, check, or hide collections in the
@@ -216,7 +218,7 @@ export function SceneScoutHero() {
                   </li>
                   <li>
                     <b style={{ color: "rgba(255,255,255,0.92)" }}>Search by description</b> (e.g.{" "}
-                    <i>"character crying in the rain"</i>) or switch to <b>Match</b> to find clips that visually flow
+                    <i>"character crying in the rain"</i>) or switch to <b>Match</b> to find visually similar clips
                     from a reference clip.
                   </li>
                   <li>
@@ -240,7 +242,7 @@ export function SceneScoutHero() {
             type="button"
             className="event-host-btn"
             style={{
-              marginTop: 12,
+              marginTop: -4,
               alignSelf: "center",
               fontSize: 12,
               padding: "7px 14px",

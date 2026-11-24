@@ -120,7 +120,7 @@ export function useAddEpisodes() {
       <div className="scout-add" data-scout-tour="add-episodes-modal">
         <h2 className="scout-add-title">{targetName ? `Add videos to ${targetName}` : "Add videos"}</h2>
 
-        <div className="scene-scout-mode-tabs" role="tablist" aria-label="Video source" style={{ marginBottom: 14, alignSelf: "flex-start" }}>
+        <div className="scene-scout-mode-tabs" role="tablist" aria-label="Video source" style={{ marginBottom: 0, alignSelf: "flex-start" }}>
           <button
             type="button"
             role="tab"
@@ -142,9 +142,9 @@ export function useAddEpisodes() {
         </div>
 
         {sourceTab === "computer" ? (
-          <section className="scout-add-column scout-add-full" style={{ width: "100%", padding: "20px 12px" }}>
+          <section className="scout-add-column scout-add-full" style={{ width: "100%", padding: "2px 0 0" }}>
             <h3>Choose episodes or pre-cut clips</h3>
-            <p className="events-subtitle" style={{ fontSize: 12, margin: "0 0 12px", opacity: 0.7 }}>
+            <p className="events-subtitle" style={{ fontSize: 12, margin: "0 0 4px", opacity: 0.7 }}>
               Pick full anime episodes or already-cut clip files (e.g. flow clips / scenepacks).
             </p>
             <button type="button" className="event-host-btn scout-add-pick" onClick={() => void pickFullEpisodes()}>
@@ -155,7 +155,7 @@ export function useAddEpisodes() {
         ) : (
           <section className="scout-add-column" style={{ width: "100%" }}>
             <h3>Pick episodes already in your Library</h3>
-            <p className="events-subtitle" style={{ fontSize: 12, margin: "0 0 8px", opacity: 0.7 }}>
+            <p className="events-subtitle" style={{ fontSize: 12, margin: "0 0 4px", opacity: 0.7 }}>
               Reuses your existing scene cuts and skips scene detection.
             </p>
             <div className="scout-add-list" role="listbox" aria-multiselectable="true" aria-label="Library episodes">

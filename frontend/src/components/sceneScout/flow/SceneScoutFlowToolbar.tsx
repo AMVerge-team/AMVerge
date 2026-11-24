@@ -67,7 +67,7 @@ export function SceneScoutFlowToolbar() {
           <Tooltip content={t("flow.searchAgainHint")}>
             <button
               type="button"
-              className="import-button refresh-button"
+              className="import-button refresh-button scene-scout-refresh-btn"
               onClick={() => void runFlowSearch()}
               disabled={busy || !flowFrom}
               aria-label={t("flow.searchAgain")}

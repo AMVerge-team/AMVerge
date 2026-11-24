@@ -206,7 +206,7 @@ export function SceneScoutTour() {
             </p>
             <p className="scout-tour-body" style={{ marginTop: 8, fontSize: 12, opacity: 0.85 }}>
               When importing from <b>From your computer</b>, you can pick <b>AI Scene Detection</b> (accurate cuts),{" "}
-              <b>Keyframe Detection</b> (fast on any PC), or <b>Skip detection</b> (treat each file as 1 scene).
+              <b>Keyframe Detection</b> (fast but less accurate), or <b>Skip detection</b> (treat each file as 1 scene).
             </p>
           </>
         )}
@@ -270,7 +270,7 @@ export function SceneScoutTour() {
           <>
             <h3 className="scout-tour-title">7. Match Mode &amp; Toolbar</h3>
             <p className="scout-tour-body">
-              Switch to <b>Match</b> anytime to drop a clip and find scenes that visually flow from its last frame. You
+              Switch to <b>Match</b> anytime to drop a clip and find visually similar scenes across your collections. You
               can also click <b>←</b> to return to the Scene Scout home screen, or use the gear icon to adjust result
               count and search settings.
             </p>

@@ -502,7 +502,10 @@ export function SceneScoutPanel() {
           onContextMenu={openPanelMenu}
         >
           <div className="scene-scout-section-label">
-            Collections · {selectedDatabases.length} active / {databases.length}
+            <span>Collections</span>
+            <span className="scene-scout-section-count">
+              Searching through: {selectedDatabases.length}/{databases.length}
+            </span>
           </div>
           {isOpening && openingName && (
             <div className="episode-panel-row episode-row" style={{ opacity: 0.75, pointerEvents: "none" }}>

@@ -80,7 +80,7 @@ export function SceneScoutToolbar() {
           <Tooltip content={t("toolbar.refreshDatabases")}>
             <button
               type="button"
-              className={`import-button refresh-button${revealed ? " scene-scout-reveal" : ""}`}
+              className={`import-button refresh-button scene-scout-refresh-btn${revealed ? " scene-scout-reveal" : ""}`}
               onClick={() => void refresh()}
               disabled={loading}
               aria-label={t("toolbar.refreshDatabases")}

@@ -18,12 +18,11 @@ export function ScoutInfoButton() {
   };
 
   return (
-    <InfoButton title="Scene Scout Guide" variant="toolbar">
+    <InfoButton title="Scene Scout Guide" variant="toolbar" modalClassName="scout-guide-modal">
       <div
-        className="scene-scout-mode-tabs"
+        className="scene-scout-mode-tabs scout-info-tabs"
         role="tablist"
         aria-label="Scene Scout guide sections"
-        style={{ marginBottom: 14, display: "inline-flex" }}
       >
         <button
           type="button"
@@ -54,19 +53,13 @@ export function ScoutInfoButton() {
         </button>
       </div>
 
-      {tab === "search" && <SearchInfo />}
-      {tab === "flow" && <FlowInfo />}
-      {tab === "faq" && <FaqInfo />}
+      <div className="scout-guide-scroll">
+        {tab === "search" && <SearchInfo />}
+        {tab === "flow" && <FlowInfo />}
+        {tab === "faq" && <FaqInfo />}
+      </div>
 
-      <div
-        style={{
-          marginTop: 16,
-          paddingTop: 12,
-          borderTop: "1px solid rgba(255,255,255,0.1)",
-          display: "flex",
-          justifyContent: "flex-end",
-        }}
-      >
+      <div className="scout-guide-footer">
         <button
           type="button"
           className="event-host-btn"
@@ -125,6 +118,17 @@ function FlowInfo() {
         <li>{t("info.flow.step2")}</li>
         <li>{t("info.flow.step3")}</li>
       </ol>
+
+      <h4>What it matches</h4>
+      <ul>
+        <li>
+          <b>Visual look:</b> Compares color palette, lighting, camera angle, and scene layout.
+        </li>
+        <li>
+          <b>Cross-series matches:</b> Searches every active collection at once to find parallel shots or similar
+          scenes across different anime.
+        </li>
+      </ul>
 
       <h4>{t("info.flow.tipsTitle")}</h4>
       <p>{t("info.flow.tips")}</p>

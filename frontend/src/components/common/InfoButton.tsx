@@ -13,6 +13,7 @@ type InfoButtonProps = {
   variant?: "inline" | "toolbar";
   icon?: "info" | "question";
   dataGettingStarted?: string;
+  modalClassName?: string;
 };
 
 /** small "i" or "?" button that opens a short explainer modal */
@@ -22,6 +23,7 @@ export default function InfoButton({
   variant = "inline",
   icon = "info",
   dataGettingStarted,
+  modalClassName,
 }: InfoButtonProps) {
   const { t } = useTranslation("shell");
   const [open, setOpen] = useState(false);
@@ -50,7 +52,7 @@ export default function InfoButton({
             if (e.target === e.currentTarget) setOpen(false);
           }}
         >
-          <div className="info-modal" role="dialog" aria-modal="true" aria-label={title}>
+          <div className={modalClassName ? `info-modal ${modalClassName}` : "info-modal"} role="dialog" aria-modal="true" aria-label={title}>
             <div className="info-modal-head">
               <h3 className="info-modal-title">{title}</h3>
               <Tooltip content={t("common:close")}>
