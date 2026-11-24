@@ -311,3 +311,91 @@ export function DatabaseDownloadIcon() {
     </svg>
   );
 }
+
+/* ------------------------------------------------------- scene detection */
+
+/**
+ * AI scene detection: a video frame being scanned by a laser beam and cleanly
+ * split into two exact scenes on hover/press (no generic sparkles).
+ */
+export function AiSceneDetectionIcon({ filled = true }: ToggleProps) {
+  const { hostRef, playing } = useIconPlay(680);
+  return (
+    <svg ref={hostRef} viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {/* left half of the split video frame */}
+      <motion.g
+        animate={playing}
+        variants={{
+          rest: { x: 0 },
+          hover: { x: [0, 0, -1.6, -1.6], transition: { duration: 0.46, times: [0, 0.35, 0.78, 1], ease: 'easeInOut' } },
+          press: { x: [0, 0, -2.4, -2.4, 0], transition: { duration: 0.66, times: [0, 0.25, 0.55, 0.8, 1], ease: 'easeInOut' } },
+        }}
+        style={at(7, 12)}
+      >
+        <path d="M10.2 5H5.2A2.2 2.2 0 0 0 3 7.2v9.6A2.2 2.2 0 0 0 5.2 19h5" />
+        {filled && <rect x="5" y="7.2" width="4.4" height="9.6" rx="0.8" fill="currentColor" stroke="none" opacity="0.32" />}
+      </motion.g>
+
+      {/* right half of the split video frame */}
+      <motion.g
+        animate={playing}
+        variants={{
+          rest: { x: 0 },
+          hover: { x: [0, 0, 1.6, 1.6], transition: { duration: 0.46, times: [0, 0.35, 0.78, 1], ease: 'easeInOut' } },
+          press: { x: [0, 0, 2.4, 2.4, 0], transition: { duration: 0.66, times: [0, 0.25, 0.55, 0.8, 1], ease: 'easeInOut' } },
+        }}
+        style={at(17, 12)}
+      >
+        <path d="M13.8 5h5A2.2 2.2 0 0 1 21 7.2v9.6a2.2 2.2 0 0 1-2.2 2.2h-5" />
+        {filled && <rect x="14.6" y="7.2" width="4.4" height="9.6" rx="0.8" fill="currentColor" stroke="none" opacity="0.72" />}
+      </motion.g>
+
+      {/* AI scan/cut laser beam that sweeps vertically down the center */}
+      <motion.line
+        x1="12"
+        y1="2.5"
+        x2="12"
+        y2="21.5"
+        strokeWidth="1.9"
+        strokeDasharray="2.4 2.2"
+        animate={playing}
+        variants={{
+          rest: { scaleY: 0.88, opacity: 0.85 },
+          hover: { scaleY: [0.6, 1.08, 1], opacity: [0.4, 1, 1], transition: { duration: 0.38, ease: 'easeOut' } },
+          press: { scaleY: [0.4, 1.12, 1, 0.88], opacity: [0.3, 1, 1, 0.85], transition: { duration: 0.62, ease: 'easeInOut' } },
+        }}
+        style={at(12, 12)}
+      />
+    </svg>
+  );
+}
+
+/**
+ * Keyframe detection: matches the rounded video-frame silhouette of the other
+ * toolbar icons, with a crisp keyframe diamond inside that pulses and snaps on hover/press.
+ */
+export function KeyframeDetectionIcon() {
+  const { hostRef, playing } = useIconPlay(620);
+  return (
+    <svg ref={hostRef} viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {/* outer video frame matching PanelToggle / AiSceneDetectionIcon geometry */}
+      <rect x="3" y="4.5" width="18" height="15" rx="2.2" />
+      {/* subtle timeline rail ticks on the sides */}
+      <line x1="3.5" y1="12" x2="6.2" y2="12" opacity="0.45" />
+      <line x1="17.8" y1="12" x2="20.5" y2="12" opacity="0.45" />
+      {/* centered keyframe diamond that snaps/pulses on hover and press */}
+      <motion.path
+        d="M12 8.1L15.9 12L12 15.9L8.1 12Z"
+        fill="currentColor"
+        stroke="none"
+        animate={playing}
+        variants={{
+          rest: { scale: 1, rotate: 0 },
+          hover: { scale: [1, 1.24, 1.08], transition: { duration: 0.32, ease: 'easeOut' } },
+          press: { scale: [1, 0.78, 1.28, 1], rotate: [0, 0, 90, 90], transition: { duration: 0.56, times: [0, 0.2, 0.65, 1], ease: 'easeInOut' } },
+        }}
+        style={at(12, 12)}
+      />
+    </svg>
+  );
+}

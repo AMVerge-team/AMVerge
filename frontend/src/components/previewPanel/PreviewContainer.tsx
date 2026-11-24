@@ -1,4 +1,3 @@
-import HowToUse from "./HowToUse.tsx"
 import VideoPlayer from "./VideoPlayer.tsx"
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -15,7 +14,7 @@ import { useUIStateStore } from "../../stores/UIStore.ts";
 import { useGeneralSettingsStore } from "../../stores/settingsStore.ts";
 import { usePreviewTranscode } from "../../features/preview/usePreviewTranscode.ts";
 import LoadingSpinner from "../common/LoadingSpinner";
-import { imageThumbnail, mediaSrcVersioned } from "../../utils/mediaSrc";
+import { imageThumbnail, mediaSrc, mediaSrcVersioned } from "../../utils/mediaSrc";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore.ts";
 import { useScenePreviewStore } from "../../stores/scenePreviewStore.ts";
 import { clampWebpEnd, webpFpsForRange } from "../clipsGrid/webpQueueUtils.ts";
@@ -167,7 +166,11 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   const [proxyErrorKey, setProxyErrorKey] = React.useState<string | null>(null);
 
   const [decodeErrorSource, setDecodeErrorSource] = React.useState<string | null>(null);
-  const needsPreviewTranscode = configuredTranscode || (previewVideoSrc !== null && decodeErrorSource === previewVideoSrc);
+  const isRemoteVideo = Boolean(
+    previewVideoSrc?.startsWith("http://") || previewVideoSrc?.startsWith("https://")
+  );
+  const needsPreviewTranscode =
+    !isRemoteVideo && (configuredTranscode || (previewVideoSrc !== null && decodeErrorSource === previewVideoSrc));
 
   // match the grid's quality settings to reuse its cached range preview
   React.useEffect(() => {
@@ -211,7 +214,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
   React.useEffect(() => {
     if (webpPreviewMode) return;
     if (sceneRange) return;
-    if (!previewVideoSrc) return;
+    if (!previewVideoSrc || isRemoteVideo) return;
     if (selectedMappedAudioStreamIndex === null && !needsPreviewTranscode) return;
     let cancelled = false;
     invoke<string>("ensure_preview_proxy", {
@@ -379,7 +382,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
 
   return (
     <main className="preview-container" >
-      <div className="preview-windows-layout single">
+      <div className="preview-windows-layout single" data-scout-tour="preview-panel">
         {hasSource && (
           <div className="preview-window-wrapper source" key="source-wrapper">
             <div className="preview-window">
@@ -398,7 +401,7 @@ export default function PreviewContainer(props: PreviewContainerProps) {
               ) : !webpPreviewMode && playableVideoSrc && !previewFailed && props.active !== false ? (
                 <VideoPlayer
                   key={`${playableVideoSrc}-${importToken}`}
-                  src={convertFileSrc(playableVideoSrc)}
+                  src={mediaSrc(playableVideoSrc)}
                   volume={generalSettings.playbackVolume}
                   clipId={sourceClipObj?.id}
                   startTime={sceneStartTime}
@@ -571,8 +574,6 @@ export default function PreviewContainer(props: PreviewContainerProps) {
           </span>
         </Tooltip>
       </div>
-
-      <HowToUse />
 
       {showMergeNameModal && (
         <div

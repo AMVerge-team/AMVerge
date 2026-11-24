@@ -9,9 +9,10 @@ use std::sync::{Arc, Mutex};
 
 use tauri::{AppHandle, Emitter, State};
 
+use crate::utils::ffmpeg::resolve_bundled_tool;
 use crate::utils::logging::{console_log, emit_console_log, sanitize_for_console};
 use crate::utils::paths::file_name_only;
-use crate::utils::process::{bind_to_app_lifetime, kill_process_tree_async};
+use crate::utils::process::{apply_no_window, bind_to_app_lifetime, kill_process_tree_async};
 use cli::{
     fast_list_videos_batch, forward_stderr, read_json_lines, scout_json, scout_root, spawn_scout,
     TempFile,
@@ -326,6 +327,34 @@ pub async fn scout_unload_model(
     Ok(true)
 }
 
+/// probes a clip's duration in milliseconds via ffprobe for pre-cut single-scene indexing
+async fn probe_duration_ms(app: &AppHandle, video_path: &str) -> u64 {
+    let Ok(ffprobe) = resolve_bundled_tool(app, "ffprobe") else {
+        return 60_000;
+    };
+    let mut std_cmd = std::process::Command::new(ffprobe);
+    apply_no_window(&mut std_cmd);
+    std_cmd.args([
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "default=noprint_wrappers=1:nokey=1",
+        video_path,
+    ]);
+    let Ok(output) = tokio::process::Command::from(std_cmd).output().await else {
+        return 60_000;
+    };
+    let text = String::from_utf8_lossy(&output.stdout);
+    let secs = text.trim().parse::<f64>().unwrap_or(0.0);
+    if secs.is_finite() && secs > 0.0 {
+        (secs * 1000.0).round().max(100.0) as u64
+    } else {
+        60_000
+    }
+}
+
 /// indexes a video, streaming progress to the webview as `scout_progress`
 #[tauri::command]
 pub async fn scout_add_video(
@@ -345,7 +374,11 @@ pub async fn scout_add_video(
     let method = detector.unwrap_or_else(|| "keyframe_detection".to_string());
     let video_name = file_name_only(&video_path);
     let db_name = file_name_only(&database);
-    let scenes = scenes.filter(|s| !s.is_empty());
+    let mut scenes = scenes.filter(|s| !s.is_empty());
+    if scenes.is_none() && method == "single_scene" {
+        let dur_ms = probe_duration_ms(&app, &video_path).await;
+        scenes = Some(vec![[0, dur_ms]]);
+    }
 
     console_log(
         "SCOUT|start",

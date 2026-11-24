@@ -1,102 +1,17 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { useUIStateStore } from "../../stores/UIStore";
-
-type Step = {
-  /** data-scout-tour anchors to highlight, first one on screen wins; none on screen centers the card */
-  targets: string[];
-  title: string;
-  body: ReactNode;
-  /** only part of some layouts, so left out when its target is missing instead of centered */
-  optional?: boolean;
-};
-
-const STEPS: Step[] = [
-  {
-    targets: [],
-    title: "Welcome to Scene Scout",
-    body: (
-      <>
-        Find any scene by describing it, like <i>"girl crying in the rain"</i>. Scene Scout indexes your
-        episodes into a <b>database</b> once, then searches them in seconds.
-      </>
-    ),
-  },
-  {
-    targets: ["db-actions"],
-    title: "1. Create or open a database",
-    body: (
-      <>
-        Use <b>+</b> to create a new database, or the <b>database arrow</b> to import a database file you already have. One
-        database per series works well.
-      </>
-    ),
-  },
-  {
-    targets: ["all-databases", "db-empty"],
-    title: "2. All databases",
-    body: (
-      <>
-        Every database you created or opened is listed here. Being in this list does <b>not</b> mean it
-        gets searched. To search one, <b>double-click</b> it or <b>drag</b> it up into Searching.
-      </>
-    ),
-  },
-  {
-    targets: ["searching", "db-empty"],
-    title: "3. Searching",
-    body: (
-      <>
-        Only databases in <b>Searching</b> are searched. Move one up by <b>double-clicking</b> it,{" "}
-        <b>dragging</b> it here, or <b>right-clicking</b> it. Expand a database here to search only some of
-        its episodes.
-      </>
-    ),
-  },
-  {
-    targets: ["hero-dbs"],
-    title: "Quick pick",
-    body: <>Clicking a database here also adds it to Searching, or takes it out again.</>,
-    optional: true,
-  },
-  {
-    targets: ["add-episode"],
-    title: "4. Add episodes",
-    body: (
-      <>
-        <b>Add Episode</b> indexes episodes into the selected database. It takes a while, but only once per
-        episode.
-      </>
-    ),
-  },
-  {
-    targets: ["search-field"],
-    title: "5. Describe a scene",
-    body: (
-      <>
-        Describe the scene you want, press <b>Enter</b>, select the clips you're looking for, then export it like
-        any clip.
-      </>
-    ),
-  },
-  {
-    targets: ["mode-tabs"],
-    title: "Search and Match",
-    body: (
-      <>
-        <b>Search</b> finds scenes from a description. <b>Match</b> takes a clip you already have and finds
-        scenes that look like they could come right after it.
-      </>
-    ),
-  },
-];
+import { useSceneScoutStore } from "../../stores/sceneScoutStore";
+import { useAppStateStore } from "../../stores/appStore";
+import { TUTORIAL_CLIPS } from "../../features/sceneScout/tutorialDemo";
 
 type Box = { top: number; left: number; width: number; height: number };
 
 const PAD = 6;
 const GAP = 14;
 const MARGIN = 12;
+const TOTAL_STEPS = 7;
 
 function findTarget(targets: string[]): Box | null {
   for (const target of targets) {
@@ -109,7 +24,6 @@ function findTarget(targets: string[]): Box | null {
   return null;
 }
 
-// right of the target, else left, else below, else above, always kept on screen
 function placeCard(box: Box | null, w: number, h: number) {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
@@ -122,34 +36,76 @@ function placeCard(box: Box | null, w: number, h: number) {
   return { left: clampLeft(box.left), top: clampTop(box.top - GAP - h) };
 }
 
-/** first-visit walkthrough of scene scout, highlighting each part of the page in turn */
+/** Interactive in-UI walkthrough: hands-on core loop (steps 1-4) + spotlighted feature tour (steps 5-7). */
 export function SceneScoutTour() {
   const setSeen = useUIStateStore((s) => s.setSceneScoutTourSeen);
   const setSidebarEnabled = useUIStateStore((s) => s.setSidebarEnabled);
-  const [index, setIndex] = useState(0);
+  const setPreviewCollapsed = useUIStateStore((s) => s.setPreviewCollapsed);
+
+  const tutorialStep = useSceneScoutStore((s) => s.tutorialStep);
+  const startTutorial = useSceneScoutStore((s) => s.startTutorial);
+  const endTutorial = useSceneScoutStore((s) => s.endTutorial);
+  const setQuery = useSceneScoutStore((s) => s.setQuery);
+
+  const focusedClipId = useAppStateStore((s) => s.focusedClipId);
+
+  // post-preview info steps: 0 = Preview & Export, 1 = Manage Collections, 2 = Match & Toolbar
+  const [infoOffset, setInfoOffset] = useState(0);
   const [box, setBox] = useState<Box | null>(null);
-  const [cardSize, setCardSize] = useState({ w: 340, h: 180 });
+  const [cardSize, setCardSize] = useState({ w: 360, h: 190 });
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const steps = STEPS.filter((s) => !s.optional || findTarget(s.targets));
-  const step = steps[Math.min(index, steps.length - 1)];
-  const last = index >= steps.length - 1;
+  const step = tutorialStep ?? 0;
+  const previewDone = step === 3 && focusedClipId !== null;
+  const displayStep = previewDone ? 4 + infoOffset : step;
+  const isInteractiveStep = displayStep < 4;
 
-  const finish = () => setSeen(true);
-  const next = () => (last ? finish() : setIndex((i) => i + 1));
-  const back = () => setIndex((i) => Math.max(0, i - 1));
+  const finish = () => {
+    endTutorial();
+    setSeen(true);
+  };
 
-  // the databases live in the sidebar, so it has to be showing
+  // enter sandbox tutorial mode on mount, restore real workspace on unmount
   useEffect(() => {
     setSidebarEnabled(true);
-  }, [setSidebarEnabled]);
+    setPreviewCollapsed(false);
+    setInfoOffset(0);
+    startTutorial();
+    return () => {
+      useSceneScoutStore.getState().endTutorial();
+    };
+  }, [setSidebarEnabled, setPreviewCollapsed, startTutorial]);
 
-  // follows the target while the layout settles or the window resizes
+  // auto-focus the real search input when reaching step 3
+  useEffect(() => {
+    if (step !== 2) return;
+    const timer = window.setTimeout(() => {
+      const input = document.querySelector<HTMLInputElement>('[data-scout-tour="search-field"] input');
+      input?.focus();
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [step]);
+
+  const stepTargets =
+    displayStep === 0
+      ? ["create-modal", "hero-create-btn", "db-empty", "db-actions"]
+      : displayStep === 1
+        ? ["add-episodes-modal", "hero-add-btn", "add-episode"]
+        : displayStep === 2
+          ? ["search-field"]
+          : displayStep === 3
+            ? ["results-grid"]
+            : displayStep === 4
+              ? ["preview-panel"]
+              : displayStep === 5
+                ? ["searching", "all-databases"]
+                : ["mode-tabs"];
+
   useEffect(() => {
     let frame = 0;
     let prev = "";
     const tick = () => {
-      const found = findTarget(step.targets);
+      const found = findTarget(stepTargets);
       const key = JSON.stringify(found);
       if (key !== prev) {
         prev = key;
@@ -159,58 +115,197 @@ export function SceneScoutTour() {
     };
     tick();
     return () => cancelAnimationFrame(frame);
-  }, [step]);
+  }, [displayStep]);
 
   useLayoutEffect(() => {
     const el = cardRef.current;
     if (el) setCardSize({ w: el.offsetWidth, h: el.offsetHeight });
-  }, [step]);
+  }, [displayStep]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") finish();
-      else if (e.key === "ArrowRight" || e.key === "Enter") next();
-      else if (e.key === "ArrowLeft") back();
-      else return;
-      e.preventDefault();
-      e.stopPropagation();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        finish();
+      }
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
   });
 
+  const fillRealSearch = (prompt: string) => {
+    setQuery(prompt);
+    const input = document.querySelector<HTMLInputElement>('[data-scout-tour="search-field"] input');
+    input?.focus();
+  };
+
   const pos = placeCard(box, cardSize.w, cardSize.h);
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
 
   return createPortal(
-    <div className="scout-tour" role="dialog" aria-modal="true" aria-label="Scene Scout walkthrough">
+    <div
+      className={`scout-tour${isInteractiveStep ? " is-interactive" : ""}`}
+      role="dialog"
+      aria-modal={!isInteractiveStep}
+      aria-label="Scene Scout walkthrough"
+    >
       {box ? (
-        <div className="scout-tour-highlight" style={box} />
+        <>
+          {isInteractiveStep && (
+            <>
+              <div className="scout-tour-shield" style={{ top: 0, left: 0, width: vw, height: Math.max(0, box.top) }} />
+              <div
+                className="scout-tour-shield"
+                style={{
+                  top: box.top + box.height,
+                  left: 0,
+                  width: vw,
+                  height: Math.max(0, vh - (box.top + box.height)),
+                }}
+              />
+              <div
+                className="scout-tour-shield"
+                style={{ top: box.top, left: 0, width: Math.max(0, box.left), height: box.height }}
+              />
+              <div
+                className="scout-tour-shield"
+                style={{
+                  top: box.top,
+                  left: box.left + box.width,
+                  width: Math.max(0, vw - (box.left + box.width)),
+                  height: box.height,
+                }}
+              />
+            </>
+          )}
+          <div className="scout-tour-highlight" style={box} />
+        </>
       ) : (
         <div className="scout-tour-dim" />
       )}
 
-      <div ref={cardRef} className="scout-tour-card" style={pos}>
-        <h3 className="scout-tour-title">{step.title}</h3>
-        <p className="scout-tour-body">{step.body}</p>
+      <div ref={cardRef} className="scout-tour-card" style={{ ...pos, width: 370 }}>
+        {displayStep === 0 && (
+          <>
+            <h3 className="scout-tour-title">1. Create a Collection</h3>
+            <p className="scout-tour-body">
+              Click <b>Create Collection</b> and name it for an anime series or clip pack. Everything runs{" "}
+              <b>100% locally</b> on your computer, so your videos are never uploaded.
+            </p>
+          </>
+        )}
+
+        {displayStep === 1 && (
+          <>
+            <h3 className="scout-tour-title">2. Add Videos &amp; Detection Modes</h3>
+            <p className="scout-tour-body">
+              Click <b>Add Videos</b>, select the sample clips from <b>From Library</b>, and click{" "}
+              <b>Add to collection</b>.
+            </p>
+            <p className="scout-tour-body" style={{ marginTop: 8, fontSize: 12, opacity: 0.85 }}>
+              When importing from <b>From your computer</b>, you can pick <b>AI Scene Detection</b> (accurate cuts),{" "}
+              <b>Keyframe Detection</b> (fast but less accurate), or <b>Skip detection</b> (treat each file as 1 scene).
+            </p>
+          </>
+        )}
+
+        {displayStep === 2 && (
+          <>
+            <h3 className="scout-tour-title">3. Search by Description</h3>
+            <p className="scout-tour-body">
+              Describe what happens in the scene in the highlighted search bar and press <b>Enter</b> (or click a
+              suggestion to fill it):
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+              {TUTORIAL_CLIPS.map((clip) => (
+                <button
+                  key={clip.id}
+                  type="button"
+                  className="scout-tour-btn"
+                  style={{ fontSize: 11, padding: "4px 8px" }}
+                  onClick={() => fillRealSearch(clip.prompt)}
+                >
+                  "{clip.prompt}"
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {displayStep === 3 && (
+          <>
+            <h3 className="scout-tour-title">4. Hover &amp; Click to Preview</h3>
+            <p className="scout-tour-body">
+              Hover over any tile to watch it in the grid, or <b>click a scene</b> to open it in the Preview panel on
+              the right.
+            </p>
+          </>
+        )}
+
+        {displayStep === 4 && (
+          <>
+            <h3 className="scout-tour-title">5. Preview &amp; Export</h3>
+            <p className="scout-tour-body">
+              Your clicked scene plays here in the <b>Preview</b> panel. Select one or more clips in the grid, choose an
+              export profile and destination below, and click <b>Export Now</b> (or toggle <b>Merge clips</b>).
+            </p>
+          </>
+        )}
+
+        {displayStep === 5 && (
+          <>
+            <h3 className="scout-tour-title">6. Manage Collections &amp; Episodes</h3>
+            <p className="scout-tour-body">
+              In the left panel, click a collection's <b>checkbox</b> (or double-click it) to include or exclude it from
+              search. Expand a collection to see its videos, click the <b>eye icon</b> to hide episodes, or{" "}
+              <b>right-click</b> any collection or video to rename, reveal in file manager, remove from list, or{" "}
+              <b>delete from disk</b>.
+            </p>
+          </>
+        )}
+
+        {displayStep === 6 && (
+          <>
+            <h3 className="scout-tour-title">7. Match Mode &amp; Toolbar</h3>
+            <p className="scout-tour-body">
+              Switch to <b>Match</b> anytime to drop a clip and find visually similar scenes across your collections. You
+              can also click <b>←</b> to return to the Scene Scout home screen, or use the gear icon to adjust result
+              count and search settings.
+            </p>
+          </>
+        )}
 
         <div className="scout-tour-footer">
           <span className="scout-tour-count">
-            {Math.min(index, steps.length - 1) + 1} / {steps.length}
+            {displayStep + 1} / {TOTAL_STEPS}
           </span>
           <div className="scout-tour-actions">
-            {!last && (
+            {displayStep < TOTAL_STEPS - 1 && (
               <button type="button" className="scout-tour-btn is-ghost" onClick={finish}>
                 Skip
               </button>
             )}
-            {index > 0 && (
-              <button type="button" className="scout-tour-btn" onClick={back}>
+            {displayStep >= 4 && infoOffset > 0 && (
+              <button type="button" className="scout-tour-btn" onClick={() => setInfoOffset((n) => n - 1)}>
                 Back
               </button>
             )}
-            <button type="button" className="scout-tour-btn is-primary" onClick={next}>
-              {last ? "Got it" : "Next"}
-            </button>
+            {displayStep >= 4 && displayStep < TOTAL_STEPS - 1 && (
+              <button
+                type="button"
+                className="scout-tour-btn is-primary"
+                onClick={() => setInfoOffset((n) => n + 1)}
+              >
+                Next
+              </button>
+            )}
+            {displayStep === TOTAL_STEPS - 1 && (
+              <button type="button" className="scout-tour-btn is-primary" onClick={finish}>
+                Start using Scene Scout
+              </button>
+            )}
           </div>
         </div>
       </div>

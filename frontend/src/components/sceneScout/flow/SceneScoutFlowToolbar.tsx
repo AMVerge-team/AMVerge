@@ -1,4 +1,4 @@
-import { FaSyncAlt } from '../../icons/animated';
+import { FaArrowLeft, FaSyncAlt } from '../../icons/animated';
 import { useTranslation } from "react-i18next";
 
 import Tooltip from "../../common/Tooltip";
@@ -19,6 +19,7 @@ export function SceneScoutFlowToolbar() {
   const selectedDatabases = useSceneScoutStore((s) => s.selectedDatabases);
   const startFlowSearch = useSceneScoutStore((s) => s.startFlowSearch);
   const runFlowSearch = useSceneScoutStore((s) => s.runFlowSearch);
+  const showHero = useSceneScoutStore((s) => s.showHero);
 
   const busy = flowSearching;
   const noDatabase = selectedDatabases.length === 0;
@@ -34,6 +35,17 @@ export function SceneScoutFlowToolbar() {
       <div className="events-toolbar-rows">
         <div className="import-buttons-container events-toolbar-row">
           <SidebarToggle />
+
+          <Tooltip content="Back to Scene Scout home">
+            <button
+              type="button"
+              className="import-button refresh-button"
+              onClick={showHero}
+              aria-label="Back to Scene Scout home"
+            >
+              <FaArrowLeft aria-hidden="true" />
+            </button>
+          </Tooltip>
 
           {/* wrapper span: a disabled button fires no pointer events, so the tooltip listens on it instead */}
           <Tooltip content={noDatabase ? t("flow.noDatabaseHint") : t("flow.heroInput")}>
@@ -55,7 +67,7 @@ export function SceneScoutFlowToolbar() {
           <Tooltip content={t("flow.searchAgainHint")}>
             <button
               type="button"
-              className="import-button refresh-button"
+              className="import-button refresh-button scene-scout-refresh-btn"
               onClick={() => void runFlowSearch()}
               disabled={busy || !flowFrom}
               aria-label={t("flow.searchAgain")}

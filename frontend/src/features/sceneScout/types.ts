@@ -92,7 +92,7 @@ export type ScoutSearchSettings = {
   /** empty means all videos in selected databases */
   selectedVideos: string[];
   /** scene detection last picked when indexing, preselected next time */
-  lastIndexDetection?: "transnetv2_gpu" | "keyframe_detection";
+  lastIndexDetection?: "transnetv2_gpu" | "keyframe_detection" | "single_scene";
   /** leave scenes near each episode's start and end out of results, where openings and endings usually sit */
   skipEpisodeEdges?: boolean;
   /** full episodes are cut into the library (a folder per database) and indexed on those scenes; unset means on */

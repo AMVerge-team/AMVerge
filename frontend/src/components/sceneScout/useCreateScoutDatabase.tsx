@@ -6,9 +6,7 @@ import { FaDatabase } from '../icons/animated';
 import ModalShell from "../common/ModalShell";
 import { useSceneScoutStore } from "../../stores/sceneScoutStore";
 
-type Created = { ok: boolean; message: string | null; path: string | null };
-
-/** pick a location, then name it in the app while the file is created (panel and first-visit layout) */
+/** 1-step database creation inside AMVerge's managed Scene Scout folder, with an optional custom file path picker */
 export function useCreateScoutDatabase(onCreated?: (path: string) => void) {
   const { t } = useTranslation("scout");
   const createDatabase = useSceneScoutStore((s) => s.createDatabase);
@@ -18,74 +16,112 @@ export function useCreateScoutDatabase(onCreated?: (path: string) => void) {
   const [naming, setNaming] = useState(false);
   const [creating, setCreating] = useState(false);
   const [draftName, setDraftName] = useState("");
+  const [customPath, setCustomPath] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const creationRef = useRef<Promise<Created> | null>(null);
+  const creatingRef = useRef(false);
 
   const startCreate = async () => {
     setError("");
+    setDraftName("");
+    setCustomPath(null);
+    setCreating(false);
+    creatingRef.current = false;
+    setNaming(true);
+  };
+
+  const pickCustomLocation = async () => {
+    const suggested = (draftName.trim() || "My Series") + ".scoutdb";
     const picked = await save({
       title: t("createDb.dialogTitle"),
-      defaultPath: "My Series.scoutdb",
+      defaultPath: suggested,
       filters: [{ name: t("createDb.filter"), extensions: ["scoutdb"] }],
     });
     if (!picked) return;
-
-    // the name modal opens at once; the cli creates the file meanwhile
-    setDraftName(picked.split(/[/\\]/).pop()?.replace(/\.scoutdb$/i, "") ?? "Database");
-    setNaming(true);
-    setCreating(true);
-    const creation = createDatabase(picked);
-    creationRef.current = creation;
-    const result = await creation;
-    if (creationRef.current !== creation) return;
-    setCreating(false);
-    if (!result.ok || !result.path) {
-      setNaming(false);
-      setError(result.message || t("createDb.failed"));
+    setCustomPath(picked);
+    if (!draftName.trim()) {
+      setDraftName(picked.split(/[/\\]/).pop()?.replace(/\.scoutdb$/i, "") ?? "Database");
     }
   };
 
-  const confirmName = async () => {
-    const creation = creationRef.current;
-    if (!creation || creating) return;
-    const result = await creation;
-    creationRef.current = null;
-    setNaming(false);
-    if (!result.ok || !result.path) return;
-    // label keyed by the cli's resolved path, like the database list
+  const confirmCreate = async () => {
+    if (creatingRef.current) return;
     const name = draftName.trim();
-    if (name) renameDatabase(result.path, name);
-    void openDatabase(result.path);
-    onCreated?.(result.path);
+    const target = customPath || name;
+    if (!target) return;
+
+    creatingRef.current = true;
+    setCreating(true);
+    setError("");
+    try {
+      const result = await createDatabase(target);
+      if (!result.ok || !result.path) {
+        setError(result.message || t("createDb.failed"));
+        return;
+      }
+      if (name) renameDatabase(result.path, name);
+      setNaming(false);
+      void openDatabase(result.path);
+      onCreated?.(result.path);
+    } finally {
+      creatingRef.current = false;
+      setCreating(false);
+    }
   };
 
   const modal = naming ? (
-    <ModalShell open onClose={() => void confirmName()} label={t("createDb.title")} className="scene-scout-name-modal">
-      <div className="denial-notice">
+    <ModalShell
+      open
+      onClose={() => {
+        if (!creating) setNaming(false);
+      }}
+      label={t("createDb.dialogTitle")}
+      className="scene-scout-name-modal"
+    >
+      <div className="denial-notice" data-scout-tour="create-modal">
         <FaDatabase aria-hidden="true" className="denial-notice-icon" />
-        <h2>{t("createDb.title")}</h2>
+        <h2>{t("createDb.dialogTitle")}</h2>
 
         <p className="events-subtitle ban-notice-note">
-          This is only the label shown in the sidebar. The file keeps the name you gave it.
+          A collection holds the searchable scenes for a series or clip pack. One per series works best.
         </p>
 
         <input
           autoFocus
           className="scene-scout-name-input"
           value={draftName}
-          placeholder={t("createDb.placeholder")}
+          placeholder="e.g. Naruto Shippuden or Flow Clips"
           onChange={(e) => setDraftName(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") void confirmName();
+            if (e.key === "Enter") void confirmCreate();
           }}
         />
 
+        {customPath && (
+          <p className="events-subtitle" style={{ fontSize: 11, opacity: 0.7, wordBreak: "break-all" }}>
+            Location: {customPath}
+          </p>
+        )}
+
         <div className="denial-notice-actions">
-          <button type="button" className="event-host-btn" onClick={() => void confirmName()} disabled={creating}>
+          <button
+            type="button"
+            className="event-host-btn"
+            style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)" }}
+            onClick={() => void pickCustomLocation()}
+            disabled={creating}
+          >
+            {customPath ? "Change location…" : "Custom location…"}
+          </button>
+          <button
+            type="button"
+            className="event-host-btn"
+            onClick={() => void confirmCreate()}
+            disabled={creating || (!draftName.trim() && !customPath)}
+          >
             {creating ? (
               <>
                 <span className="loading-spinner scene-scout-create-spinner" aria-hidden="true" />
-                Creating database…
+                Creating…
               </>
             ) : (
               t("createDb.done")

@@ -11,16 +11,16 @@ import { useAiDepsStore } from "../../stores/aiDepsStore";
 import { useGeneralSettingsStore, type SceneDetectionMethod } from "../../stores/settingsStore";
 import { sceneDetectionOptions } from "../settings/general/options";
 import { episodeSceneRanges, precutEpisodes, type SceneRange } from "../../features/sceneScout/precutEpisodes";
+import { makeTutorialLibraryEpisodes } from "../../features/sceneScout/tutorialDemo";
 import { VIDEO_EXTENSIONS } from "../../utils/videoExtensions";
 
 
-type IndexDetection = "transnetv2_gpu" | "keyframe_detection";
+type IndexDetection = "transnetv2_gpu" | "keyframe_detection" | "single_scene";
 
 /** Add Episode: reuse a home episode's scenes, or pick a full video and choose detection; no home episodes skips to the picker */
 export function useAddEpisodes() {
   const addVideos = useSceneScoutStore((s) => s.addVideos);
   const lastIndexDetection = useSceneScoutStore((s) => s.settings.lastIndexDetection);
-  const fallbackDetection = useGeneralSettingsStore((s) => s.sceneDetectionMethod);
   const aiSceneDetectionEnabled = useGeneralSettingsStore((s) => s.aiSceneDetectionEnabled);
   const aiStatus = useAiDepsStore((s) => s.status);
   const mlInstalled = isPackInstalled(aiStatus, "ml");
@@ -32,9 +32,11 @@ export function useAddEpisodes() {
       ? s.displayNames[targetDatabase] ?? s.databases.find((d) => samePath(d.path, targetDatabase))?.name ?? null
       : null
   );
-  const indexedVideos =useSceneScoutStore((s) => (targetDatabase ? s.videosByDatabase[targetDatabase] : undefined));
+  const indexedVideos = useSceneScoutStore((s) => (targetDatabase ? s.videosByDatabase[targetDatabase] : undefined));
+  const tutorialStep = useSceneScoutStore((s) => s.tutorialStep);
 
   const [choosing, setChoosing] = useState(false);
+  const [sourceTab, setSourceTab] = useState<"computer" | "library">("computer");
   const [picked, setPicked] = useState<Set<string>>(new Set());
   // the episode a shift-click ranges from
   const anchorRef = useRef<string | null>(null);
@@ -42,14 +44,18 @@ export function useAddEpisodes() {
   const [method, setMethod] = useState<IndexDetection>("transnetv2_gpu");
   const [error, setError] = useState("");
 
-  const offered = useMemo(() => precutEpisodes(homeEpisodes), [homeEpisodes]);
+  const offered = useMemo(
+    () => (tutorialStep !== null ? makeTutorialLibraryEpisodes() : precutEpisodes(homeEpisodes)),
+    [homeEpisodes, tutorialStep]
+  );
   const alreadyIndexed = (videoPath: string) => (indexedVideos ?? []).some((v) => samePath(v.filepath, videoPath));
 
   const startAddEpisodes = async () => {
     setError("");
     if (offered.length > 0) {
-      setPicked(new Set());
+      setPicked(tutorialStep !== null ? new Set(offered.map((e) => e.id)) : new Set());
       anchorRef.current = null;
+      setSourceTab(tutorialStep !== null ? "library" : "computer");
       setChoosing(true);
       return;
     }
@@ -66,8 +72,8 @@ export function useAddEpisodes() {
     if (!files) return;
     const paths = Array.isArray(files) ? (files as string[]) : [files as string];
     if (paths.length === 0) return;
-    // ai detection switched off in Settings > Features: keyframes is the only choice
-    const preferred = (lastIndexDetection ?? fallbackDetection) as IndexDetection;
+    // default Scene Scout to AI scene detection when enabled, while remembering the user's last choice
+    const preferred = (lastIndexDetection ?? "transnetv2_gpu") as IndexDetection;
     setMethod(aiSceneDetectionEnabled ? preferred : "keyframe_detection");
     setPending(paths);
   };
@@ -110,13 +116,48 @@ export function useAddEpisodes() {
   };
 
   const chooser = choosing ? (
-    <ModalShell open onClose={() => setChoosing(false)} label="Add episodes" className="scout-add-modal">
-      <div className="scout-add">
-        <h2 className="scout-add-title">{targetName ? `Add episodes to ${targetName}` : "Add episodes"}</h2>
+    <ModalShell open onClose={() => setChoosing(false)} label="Add videos" className="scout-add-modal">
+      <div className="scout-add" data-scout-tour="add-episodes-modal">
+        <h2 className="scout-add-title">{targetName ? `Add videos to ${targetName}` : "Add videos"}</h2>
 
-        <div className="scout-add-columns">
-          <section className="scout-add-column">
-            <h3>Pick an episode from your library</h3>
+        <div className="scene-scout-mode-tabs" role="tablist" aria-label="Video source" style={{ marginBottom: 0, alignSelf: "flex-start" }}>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={sourceTab === "computer"}
+            className={`scene-scout-mode-tab${sourceTab === "computer" ? " is-active" : ""}`}
+            onClick={() => setSourceTab("computer")}
+          >
+            From your computer
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={sourceTab === "library"}
+            className={`scene-scout-mode-tab${sourceTab === "library" ? " is-active" : ""}`}
+            onClick={() => setSourceTab("library")}
+          >
+            From Library ({offered.length})
+          </button>
+        </div>
+
+        {sourceTab === "computer" ? (
+          <section className="scout-add-column scout-add-full" style={{ width: "100%", padding: "2px 0 0" }}>
+            <h3>Choose episodes or pre-cut clips</h3>
+            <p className="events-subtitle" style={{ fontSize: 12, margin: "0 0 4px", opacity: 0.7 }}>
+              Pick full anime episodes or already-cut clip files (e.g. flow clips / scenepacks).
+            </p>
+            <button type="button" className="event-host-btn scout-add-pick" onClick={() => void pickFullEpisodes()}>
+              <ImportIcon />
+              Choose video files…
+            </button>
+          </section>
+        ) : (
+          <section className="scout-add-column" style={{ width: "100%" }}>
+            <h3>Pick episodes already in your Library</h3>
+            <p className="events-subtitle" style={{ fontSize: 12, margin: "0 0 4px", opacity: 0.7 }}>
+              Reuses your existing scene cuts and skips scene detection.
+            </p>
             <div className="scout-add-list" role="listbox" aria-multiselectable="true" aria-label="Library episodes">
               {offered.map((episode) => {
                 const isPicked = picked.has(episode.id);
@@ -138,7 +179,7 @@ export function useAddEpisodes() {
                     <span className="scout-add-check" aria-hidden="true">{isPicked && <FaCheck />}</span>
                     <span className="scout-add-name">{episode.displayName}</span>
                     <span className="scout-add-meta">
-                      {alreadyIndexed(episode.videoPath) ? "in database · " : ""}
+                      {alreadyIndexed(episode.videoPath) ? "in collection · " : ""}
                       {sceneCount} scenes
                     </span>
                   </button>
@@ -151,31 +192,21 @@ export function useAddEpisodes() {
               onClick={() => void addPrecut()}
               disabled={picked.size === 0}
             >
-              {picked.size > 1 ? `Add ${picked.size} episodes` : "Add episode"}
+              {picked.size > 1 ? `Add ${picked.size} episodes` : "Add to collection"}
             </button>
           </section>
-
-          <div className="scout-add-divider" aria-hidden="true" />
-
-          <section className="scout-add-column scout-add-full">
-            <h3>Pick a video file from your computer</h3>
-            <button type="button" className="event-host-btn scout-add-pick" onClick={() => void pickFullEpisodes()}>
-              <ImportIcon />
-              Choose video…
-            </button>
-          </section>
-        </div>
+        )}
       </div>
     </ModalShell>
   ) : null;
 
   const count = pending?.length ?? 0;
   const detectionModal = pending ? (
-    <ModalShell open onClose={() => setPending(null)} label="Index episodes" className="scene-scout-index-modal">
+    <ModalShell open onClose={() => setPending(null)} label="Add videos" className="scene-scout-index-modal">
       <div className="denial-notice">
         <FaVideo aria-hidden="true" className="denial-notice-icon" />
-        <h2>{count > 1 ? `Index ${count} episodes` : "Index episode"}</h2>
-        <p className="events-subtitle ban-notice-note">How should scenes be found before indexing?</p>
+        <h2>{count > 1 ? `Add ${count} videos` : "Add video"}</h2>
+        <p className="events-subtitle ban-notice-note">How should AMVerge split scenes before scanning?</p>
 
         <div className="scene-scout-detection-choices" role="radiogroup" aria-label="Scene detection">
           {sceneDetectionOptions(aiAvailable).map((option) => {
@@ -199,11 +230,47 @@ export function useAddEpisodes() {
                 }}
                 onDoubleClick={() => void confirm()}
               >
-                <span className="scene-scout-detection-choice-label">{option.label}</span>
-                <span className="scene-scout-detection-choice-desc">{option.description}</span>
+                <span className="scene-scout-detection-choice-label" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  {option.label}
+                  {option.value === "transnetv2_gpu" && (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 600,
+                        padding: "1px 6px",
+                        borderRadius: 999,
+                        background: "rgb(var(--accent-rgb) / 0.18)",
+                        color: "var(--accent)",
+                        border: "1px solid rgb(var(--accent-rgb) / 0.35)",
+                      }}
+                    >
+                      Recommended
+                    </span>
+                  )}
+                </span>
+                <span className="scene-scout-detection-choice-desc">
+                  {option.value === "transnetv2_gpu"
+                    ? `${option.description}. Works best with a decent GPU.`
+                    : option.value === "keyframe_detection"
+                      ? `${option.description}. Great for building collections quickly without a GPU.`
+                      : option.description}
+                </span>
               </button>
             );
           })}
+          <button
+            type="button"
+            role="radio"
+            aria-checked={method === "single_scene"}
+            className={`scene-scout-detection-choice${method === "single_scene" ? " is-active" : ""}`}
+            onClick={() => setMethod("single_scene")}
+            onDoubleClick={() => void confirm()}
+          >
+            <span className="scene-scout-detection-choice-label">Skip detection</span>
+            <span className="scene-scout-detection-choice-desc">
+              Treat each file as 1 scene. Useful for flow clips, scenepacks, or already cut clips.
+            </span>
+          </button>
         </div>
 
         <div className="denial-notice-actions">
@@ -216,7 +283,7 @@ export function useAddEpisodes() {
             Cancel
           </button>
           <button type="button" className="event-host-btn" onClick={() => void confirm()}>
-            Index
+            Add to collection
           </button>
         </div>
       </div>

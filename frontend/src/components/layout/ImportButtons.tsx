@@ -1,18 +1,27 @@
-import { PanelLeftIcon, PanelRightIcon } from "../icons/chrome/ChromeIcons";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
+import { AiSceneDetectionIcon, KeyframeDetectionIcon, PanelLeftIcon, PanelRightIcon } from "../icons/chrome/ChromeIcons";
+import { useMemo, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { FaSyncAlt } from '../icons/animated';
 import Tooltip from "../common/Tooltip";
+import InfoButton from "../common/InfoButton";
 import PreviewAllToggle from "../common/PreviewAllToggle";
 import { SelectionCount } from "../clipsGrid/SelectionCount";
 import { useAppStateStore } from "../../stores/appStore";
 import { useUIStateStore } from "../../stores/UIStore";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore";
+import { useGeneralSettingsStore } from "../../stores/settingsStore";
+import { useAiDepsStore } from "../../stores/aiDepsStore";
+import { isPackInstalled } from "../../features/aiDeps/packs";
 import { openEpisodeById } from "../../hooks/useEpisodePanelState";
 import useImportExport from "../../hooks/useImportExport";
 
 export default function ImportButtons({ showImportControls = true }: { showImportControls?: boolean }) {
-  const { t } = useTranslation("jobs");
+  const { t } = useTranslation(["jobs", "preview", "gettingStarted"]);
+  const modKey = useMemo(
+    () => (typeof navigator !== "undefined" && /mac/i.test(navigator.userAgent) ? "Cmd" : "Ctrl"),
+    []
+  );
+  const setGettingStartedSeen = useUIStateStore((s) => s.setGettingStartedSeen);
   const hasSelection = useAppStateStore((s: any) => s.selectedClips.size > 0);
   const loading = useAppStateStore((s: any) => s.loading);
   const bgProgress = useAppStateStore((s: any) => s.bgProgress);
@@ -23,7 +32,25 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
   const setSidebarEnabled = useUIStateStore((s: any) => s.setSidebarEnabled);
   const previewSplitPct = useUIStateStore((s: any) => s.previewSplitPct);
   const openedEpisodeId = useEpisodePanelRuntimeStore((s) => s.openedEpisodeId);
+  const sceneDetectionMethod = useGeneralSettingsStore((s) => s.sceneDetectionMethod);
+  const setSceneDetectionMethod = useGeneralSettingsStore((s) => s.setSceneDetectionMethod);
+  const aiStatus = useAiDepsStore((s) => s.status);
+  const mlInstalled = isPackInstalled(aiStatus, "ml");
+  const isAiActive = sceneDetectionMethod === "transnetv2_gpu";
   const { onImportClick } = useImportExport();
+
+  const handleToggleDetection = async () => {
+    if (isAiActive) {
+      setSceneDetectionMethod("keyframe_detection");
+      return;
+    }
+    if (aiStatus && !mlInstalled) {
+      const installed = await useAiDepsStore.getState().ensurePack("ml");
+      if (!installed) return;
+    }
+    useGeneralSettingsStore.setState({ aiSceneDetectionEnabled: true });
+    setSceneDetectionMethod("transnetv2_gpu");
+  };
 
   // drives the one-shot spin animation on the refresh icon
   const [refreshSpinning, setRefreshSpinning] = useState(false);
@@ -72,12 +99,29 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
                 </button>
               </span>
             </Tooltip>
+            <Tooltip
+              content={
+                isAiActive
+                  ? "Using AI Scene Detection (exact shot cuts). Click to switch to Keyframe Detection."
+                  : "Using Keyframe Detection (instant, no GPU needed). Click to switch to AI Scene Detection."
+              }
+            >
+              <button
+                type="button"
+                className={`import-button panel-toggle-button${isAiActive ? " active" : ""}`}
+                onClick={() => void handleToggleDetection()}
+                aria-label={isAiActive ? "AI Scene Detection active. Switch to Keyframe Detection" : "Keyframe Detection active. Switch to AI Scene Detection"}
+                aria-pressed={isAiActive}
+              >
+                {isAiActive ? <AiSceneDetectionIcon filled /> : <KeyframeDetectionIcon />}
+              </button>
+            </Tooltip>
             </>
           )}
 
           <PreviewAllToggle />
 
-          {showImportControls && (
+          {showImportControls ? (
             <>
             {/* wrapper span: a disabled button fires no pointer events of its
                 own, so the tooltip listens on the element around it */}
@@ -96,7 +140,72 @@ export default function ImportButtons({ showImportControls = true }: { showImpor
                 </button>
               </span>
             </Tooltip>
+            <InfoButton
+              title={t("preview:howToUse.titles.library")}
+              variant="toolbar"
+              icon="question"
+              dataGettingStarted="how-to-use"
+            >
+              <p>
+                Library is where you import anime episodes, browse through every detected clip, preview scenes, and
+                export the clips you want for your edit.
+              </p>
+              <ul className="steps-list" style={{ marginTop: 10 }}>
+                {["select", "library.focus", "library.profile", "library.start"].map((step) => (
+                  <li key={step}>
+                    <span className="step-text">
+                      <Trans
+                        t={t}
+                        ns="preview"
+                        i18nKey={`howToUse.steps.${step}`}
+                        values={{ mod: modKey }}
+                        components={{ b: <b /> }}
+                      />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  className="event-host-btn"
+                  style={{ fontSize: 12, padding: "7px 14px" }}
+                  onClick={() => {
+                    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+                    window.setTimeout(() => setGettingStartedSeen(false), 0);
+                  }}
+                >
+                  {t("gettingStarted:ariaLabel")}
+                </button>
+              </div>
+            </InfoButton>
             </>
+          ) : (
+            <InfoButton
+              title={t("preview:howToUse.titles.scenepacks")}
+              variant="toolbar"
+              icon="question"
+            >
+              <p>
+                Scene Packs lets you organize your favorite clips from different episodes into reusable packs so you can
+                browse, preview, and export them together anytime.
+              </p>
+              <ul className="steps-list" style={{ marginTop: 10 }}>
+                {["scenepacks.create", "scenepacks.add", "scenepacks.open", "select", "exportNow"].map((step) => (
+                  <li key={step}>
+                    <span className="step-text">
+                      <Trans
+                        t={t}
+                        ns="preview"
+                        i18nKey={`howToUse.steps.${step}`}
+                        values={{ mod: modKey }}
+                        components={{ b: <b /> }}
+                      />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </InfoButton>
           )}
         </div>
         <div className="grid-checkboxes">

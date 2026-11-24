@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { FaInfo, FaTimes } from '../icons/animated';
+import { FaInfo, FaQuestionCircle, FaTimes } from '../icons/animated';
 
 import Tooltip from "./Tooltip";
 import { useEscapeToClose } from "./useEscapeToClose";
@@ -11,10 +11,20 @@ type InfoButtonProps = {
   children: ReactNode;
   /** "toolbar" sizes it like the toolbar buttons beside it (rounded square, accent border) */
   variant?: "inline" | "toolbar";
+  icon?: "info" | "question";
+  dataGettingStarted?: string;
+  modalClassName?: string;
 };
 
-/** small "i" beside a setting label that opens a short explainer */
-export default function InfoButton({ title, children, variant = "inline" }: InfoButtonProps) {
+/** small "i" or "?" button that opens a short explainer modal */
+export default function InfoButton({
+  title,
+  children,
+  variant = "inline",
+  icon = "info",
+  dataGettingStarted,
+  modalClassName,
+}: InfoButtonProps) {
   const { t } = useTranslation("shell");
   const [open, setOpen] = useState(false);
 
@@ -28,8 +38,9 @@ export default function InfoButton({ title, children, variant = "inline" }: Info
           className={variant === "toolbar" ? "info-button toolbar-info-button" : "info-button"}
           onClick={() => setOpen(true)}
           aria-label={t("infoButton.about", { title })}
+          data-getting-started={dataGettingStarted}
         >
-          <FaInfo aria-hidden="true" />
+          {icon === "question" ? <FaQuestionCircle aria-hidden="true" /> : <FaInfo aria-hidden="true" />}
         </button>
       </Tooltip>
 
@@ -41,7 +52,7 @@ export default function InfoButton({ title, children, variant = "inline" }: Info
             if (e.target === e.currentTarget) setOpen(false);
           }}
         >
-          <div className="info-modal" role="dialog" aria-modal="true" aria-label={title}>
+          <div className={modalClassName ? `info-modal ${modalClassName}` : "info-modal"} role="dialog" aria-modal="true" aria-label={title}>
             <div className="info-modal-head">
               <h3 className="info-modal-title">{title}</h3>
               <Tooltip content={t("common:close")}>

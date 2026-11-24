@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
-import { FaDatabase, FaPlus } from '../icons/animated';
-import { FiDatabase } from '../icons/animated';
+import { FaPlus } from '../icons/animated';
 
 import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
+import { useUIStateStore } from "../../stores/UIStore";
 import { setHeroFlip } from "../../features/sceneScout/heroTransition";
 import { ScoutSearchField } from "./ScoutSearchField";
 import { ScoutInfoButton } from "./ScoutInfoButton";
@@ -29,11 +29,11 @@ export function SceneScoutHero() {
   const searching = useSceneScoutStore((s) => s.searching);
   const storeError = useSceneScoutStore((s) => s.error);
   const addToSearch = useSceneScoutStore((s) => s.addToSearch);
-  const removeFromSearch = useSceneScoutStore((s) => s.removeFromSearch);
   const setActiveDatabase = useSceneScoutStore((s) => s.setActiveDatabase);
   const dismissHero = useSceneScoutStore((s) => s.dismissHero);
   const runSearch = useSceneScoutStore((s) => s.runSearch);
   const loadDatabases = useSceneScoutStore((s) => s.loadDatabases);
+  const setTourSeen = useUIStateStore((s) => s.setSceneScoutTourSeen);
   // the centre holds the search bar on the Search tab and the clip player on the Flow tab
   const mode = useSceneScoutStore((s) => s.mode);
 
@@ -53,9 +53,15 @@ export function SceneScoutHero() {
   const inSearch = (path: string) => selectedDatabases.some((p) => samePath(p, path));
   const labelFor = (path: string, fallback: string) => displayNames[path] ?? fallback;
 
-  // add episode indexes into the active database, which here is always one the user selected
+  // add videos targets the active collection, falling back to the only collection so Add Videos isn't greyed out
   const addTarget =
-    opened && inSearch(opened) ? opened : selectedDatabases.length > 0 ? selectedDatabases[0] : null;
+    opened && inSearch(opened)
+      ? opened
+      : selectedDatabases.length > 0
+        ? selectedDatabases[0]
+        : databases.length === 1
+          ? databases[0].path
+          : null;
   const addTargetName = addTarget
     ? labelFor(addTarget, databases.find((d) => samePath(d.path, addTarget))?.name ?? t("hero.databaseFallback"))
     : null;
@@ -68,19 +74,6 @@ export function SceneScoutHero() {
       : selectedDatabases.length > 0 && !selectedHaveScenes
         ? t("hero.blockedNoScenes")
         : null;
-
-  const toggleDatabase = (path: string) => {
-    if (inSearch(path)) {
-      removeFromSearch([path]);
-      if (opened && samePath(opened, path)) {
-        const next = selectedDatabases.find((p) => !samePath(p, path)) ?? null;
-        setActiveDatabase(next);
-      }
-    } else {
-      addToSearch([path]);
-      setActiveDatabase(path);
-    }
-  };
 
   const startFirstSearch = () => {
     const rect = fieldRef.current?.getBoundingClientRect();
@@ -95,6 +88,11 @@ export function SceneScoutHero() {
     setActiveDatabase(addTarget);
     void startAddEpisodes();
   };
+
+  const anyHaveScenes = databases.some((d) => d.sceneCount > 0);
+  const needsFirstCollection = databases.length === 0;
+  const needsFirstVideos =
+    !needsFirstCollection && !selectedHaveScenes && (!anyHaveScenes || selectedDatabases.length > 0);
 
   const error = addError || createError || storeError;
 
@@ -114,71 +112,163 @@ export function SceneScoutHero() {
             </button>
           </span>
         </div>
+        <p className="events-subtitle" style={{ margin: "-6px 0 10px", textAlign: "center", opacity: 0.7 }}>
+          {mode === "flow" ? t("hero.subtitleFlow") : t("hero.subtitleSearch")}
+        </p>
 
-        <div className="scene-scout-hero-actions">
-          <SidebarToggle />
-          <AddEpisodeButton
-            hint={addTargetName ? t("hero.addTo", { name: addTargetName }) : t("hero.addNoTarget")}
-            onClick={onAddEpisodes}
-            disabled={!addTarget || searching}
-          />
-          <ScoutModeTabs />
-          <ScoutInfoButton />
-          {/* far right, above the end of the search bar */}
-          <PreviewToggle />
-        </div>
-
-        {mode === "flow" ? (
-          <FlowHeroClip blockedHint={blockedHint} />
-        ) : (
-          <div className="scene-scout-hero-search">
-            <ScoutSearchField fieldRef={fieldRef} onSubmit={startFirstSearch} blockedHint={blockedHint} />
+        {(needsFirstCollection || needsFirstVideos) && (
+          <div className="scene-scout-hero-actions">
+            <SidebarToggle />
+            <ScoutInfoButton />
+            <PreviewToggle />
           </div>
         )}
 
-        <div className="scene-scout-hero-dbs" data-scout-tour="hero-dbs">
-          <div className="scene-scout-hero-dbs-head">
-            <span>{t("hero.yourDatabases")}</span>
-            <button type="button" className="scene-scout-hero-new" onClick={() => void startCreate()}>
-              <FaPlus aria-hidden="true" />
-              {t("hero.newDatabase")}
-            </button>
+        {needsFirstCollection ? (
+          <div className="scene-scout-hero-dbs" data-scout-tour="hero-dbs">
+            <div
+              className="scene-scout-hero-empty"
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "10px 14px" }}
+            >
+              <strong style={{ fontSize: 14, color: "rgba(255,255,255,0.92)" }}>
+                1. Create your first collection
+              </strong>
+              <span style={{ maxWidth: 420, textAlign: "center", lineHeight: 1.45 }}>
+                {loading ? t("hero.loadingDatabases") : t("hero.noDatabases")}
+              </span>
+              {!loading && (
+                <button
+                  type="button"
+                  data-scout-tour="hero-create-btn"
+                  className="event-host-btn"
+                  style={{ fontSize: 12, padding: "8px 16px", marginTop: 2 }}
+                  onClick={() => void startCreate()}
+                >
+                  <FaPlus aria-hidden="true" style={{ marginRight: 6 }} />
+                  Create Collection
+                </button>
+              )}
+            </div>
           </div>
-
-          {databases.length === 0 ? (
-            <div className="scene-scout-hero-empty">
-              {loading ? t("hero.loadingDatabases") : t("hero.noDatabases")}
+        ) : needsFirstVideos ? (
+          <>
+            <div className="scene-scout-hero-dbs" data-scout-tour="hero-dbs">
+              <div
+                className="scene-scout-hero-empty"
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "10px 14px" }}
+              >
+                <strong style={{ fontSize: 14, color: "rgba(255,255,255,0.92)" }}>
+                  2. Add videos to {addTargetName ?? t("hero.databaseFallback")}
+                </strong>
+                <span style={{ maxWidth: 440, textAlign: "center", lineHeight: 1.45 }}>
+                  Add full anime episodes or pre-cut clip files to start searching.
+                </span>
+                <button
+                  type="button"
+                  data-scout-tour="hero-add-btn"
+                  className="event-host-btn"
+                  style={{ fontSize: 12, padding: "8px 16px", marginTop: 2 }}
+                  onClick={onAddEpisodes}
+                  disabled={!addTarget || searching}
+                >
+                  <FaPlus aria-hidden="true" style={{ marginRight: 6 }} />
+                  Add Videos
+                </button>
+              </div>
             </div>
-          ) : (
-            <div className="scene-scout-hero-db-list">
-              {databases.map((database) => {
-                const selected = inSearch(database.path);
-                const isTarget = addTarget !== null && samePath(addTarget, database.path);
-                return (
-                  <button
-                    key={database.path}
-                    type="button"
-                    className={`scene-scout-hero-db${selected ? " is-selected" : ""}${isTarget ? " is-target" : ""}`}
-                    onClick={() => toggleDatabase(database.path)}
-                    aria-pressed={selected}
-                  >
-                    {database.videoCount === 0 ? (
-                      <FiDatabase className="scene-scout-hero-db-icon" aria-hidden="true" />
-                    ) : (
-                      <FaDatabase className="scene-scout-hero-db-icon" aria-hidden="true" />
-                    )}
-                    <span className="scene-scout-hero-db-name">{labelFor(database.path, database.name)}</span>
-                    <span className="scene-scout-hero-db-count">
-                      {database.sceneCount > 0 ? t("hero.sceneCount", { count: database.sceneCount }) : t("hero.empty")}
-                    </span>
-                  </button>
-                );
-              })}
+          </>
+        ) : (
+          <>
+            <div className="scene-scout-hero-actions">
+              <SidebarToggle />
+              <AddEpisodeButton
+                hint={addTargetName ? t("hero.addTo", { name: addTargetName }) : t("hero.addNoTarget")}
+                onClick={onAddEpisodes}
+                disabled={!addTarget || searching}
+              />
+              <ScoutModeTabs />
+              <ScoutInfoButton />
+              {/* far right, above the end of the search bar */}
+              <PreviewToggle />
             </div>
-          )}
-        </div>
 
-        {error && <p className="events-error scene-scout-hero-error">{error}</p>}
+            {mode === "flow" ? (
+              <FlowHeroClip blockedHint={blockedHint} />
+            ) : (
+              <div className="scene-scout-hero-search">
+                <ScoutSearchField fieldRef={fieldRef} onSubmit={startFirstSearch} blockedHint={blockedHint} />
+              </div>
+            )}
+
+            <div
+              className="scene-scout-hero-dbs"
+              data-scout-tour="hero-dbs"
+              style={{ maxHeight: 240, padding: "14px 16px", textAlign: "left" }}
+            >
+              <div className="scene-scout-hero-dbs-head">
+                <span style={{ fontSize: 13, letterSpacing: "0.04em", color: "rgba(255,255,255,0.78)" }}>
+                  How to use Scene Scout
+                </span>
+                <button
+                  type="button"
+                  className="scene-scout-hero-new"
+                  onClick={() => setTourSeen(false)}
+                >
+                  Show walkthrough
+                </button>
+              </div>
+              <div className="scene-scout-hero-guide-body">
+                <p style={{ margin: 0 }}>
+                  <b style={{ color: "rgba(255,255,255,0.94)" }}>What is a Collection?</b> A Collection is a local{" "}
+                  <code>.scoutdb</code> index of your anime episodes or clips. Manage, check, or hide collections in the
+                  left sidebar to choose what gets searched.
+                </p>
+                <ol style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 4 }}>
+                  <li>
+                    <b style={{ color: "rgba(255,255,255,0.92)" }}>Create or open a collection</b> from the left sidebar.
+                  </li>
+                  <li>
+                    <b style={{ color: "rgba(255,255,255,0.92)" }}>Add videos</b> (full episodes with AI/Keyframe
+                    detection, or pre-cut clips with Skip detection).
+                  </li>
+                  <li>
+                    <b style={{ color: "rgba(255,255,255,0.92)" }}>Search by description</b> (e.g.{" "}
+                    <i>"character crying in the rain"</i>) or switch to <b>Match</b> to find visually similar clips
+                    from a reference clip.
+                  </li>
+                  <li>
+                    <b style={{ color: "rgba(255,255,255,0.92)" }}>Preview &amp; Export</b> any result from the right
+                    panel.
+                  </li>
+                </ol>
+              </div>
+            </div>
+          </>
+        )}
+
+        {error && (
+          <p className="events-error scene-scout-hero-error" style={{ textAlign: "center", width: "100%" }}>
+            {error}
+          </p>
+        )}
+
+        {(needsFirstCollection || needsFirstVideos) && (
+          <button
+            type="button"
+            className="event-host-btn"
+            style={{
+              marginTop: -4,
+              alignSelf: "center",
+              fontSize: 12,
+              padding: "7px 14px",
+              background: "rgba(255,255,255,0.06)",
+              borderColor: "rgba(255,255,255,0.15)",
+            }}
+            onClick={() => setTourSeen(false)}
+          >
+            Show walkthrough
+          </button>
+        )}
       </div>
 
       {addModal}

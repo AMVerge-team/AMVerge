@@ -1,14 +1,16 @@
 {
   "hero": {
-    "blockedNoDatabase": "Create a database below to start searching...",
-    "blockedNoScenes": "Add episodes to the selected database before searching...",
-    "addTo": "Add episodes to {{name}}",
-    "addNoTarget": "Select or create a database below first",
-    "databaseFallback": "database",
-    "yourDatabases": "Your databases",
-    "newDatabase": "New database",
-    "loadingDatabases": "Loading databases...",
-    "noDatabases": "No databases yet. Create one to start indexing episodes.",
+    "subtitleSearch": "Find any scene across your episodes or clips by describing what happens.",
+    "subtitleFlow": "Drop a clip to find scenes that look visually similar.",
+    "blockedNoDatabase": "Create a collection below to start searching...",
+    "blockedNoScenes": "Add videos to the selected collection before searching...",
+    "addTo": "Add videos to {{name}}",
+    "addNoTarget": "Select or create a collection below first",
+    "databaseFallback": "collection",
+    "yourDatabases": "Your collections",
+    "newDatabase": "New collection",
+    "loadingDatabases": "Loading collections...",
+    "noDatabases": "No collections yet. Create one for a series or clip pack to start searching through episodes.",
     "sceneCount_one": "{{count}} scene",
     "sceneCount_other": "{{count}} scenes",
     "empty": "empty"
@@ -18,85 +20,85 @@
     "search": "Search",
     "searchHint": "Find scenes by describing them",
     "match": "Match",
-    "matchHint": "Pick a clip and find scenes that look like they follow its last frame"
+    "matchHint": "Pick a clip and find visually similar scenes"
   },
   "addEpisode": {
-    "label": "Add Episode",
-    "indexing": "Indexing..."
+    "label": "Add Videos",
+    "indexing": "Scanning..."
   },
   "searchField": {
     "placeholderOne": "Describe a scene to search in \"{{name}}\"...",
-    "placeholderMany_one": "Describe a scene to search across {{count}} selected database...",
-    "placeholderMany_other": "Describe a scene to search across {{count}} selected databases...",
-    "selectedDatabaseFallback": "selected database",
+    "placeholderMany_one": "Describe a scene to search across {{count}} selected collection...",
+    "placeholderMany_other": "Describe a scene to search across {{count}} selected collections...",
+    "selectedDatabaseFallback": "selected collection",
     "placeholderAny": "Describe a scene to search for...",
-    "placeholderNoDatabase": "Create a database to start searching...",
-    "tooltip": "Search the selected databases and episodes",
+    "placeholderNoDatabase": "Create a collection to start searching...",
+    "tooltip": "Search the selected collections and episodes",
     "clear": "Clear search",
     "searching": "Searching..."
   },
   "toolbar": {
-    "gateHint": "Please select a Database or Create one on the left panel first.",
-    "refreshDatabases": "Refresh databases"
+    "gateHint": "Select or create a collection in the left panel first.",
+    "refreshDatabases": "Refresh collections"
   },
   "panels": {
-    "hideDatabasePanel": "Hide database panel",
-    "showDatabasePanel": "Show database panel",
+    "hideDatabasePanel": "Hide collections panel",
+    "showDatabasePanel": "Show collections panel",
     "hidePreviewPanel": "Hide preview panel",
     "showPreviewPanel": "Show preview panel"
   },
   "dbPrompt": {
-    "titleFlow": "Select databases to search for matches on",
-    "titleSearch": "Select databases to search through",
+    "titleFlow": "Select collections to search for matches in",
+    "titleSearch": "Select collections to search through",
     "clearAll": "Clear all",
     "selectAll": "Select all",
-    "listLabel": "Databases",
-    "episodeCount_one": "{{count}} episode",
-    "episodeCount_other": "{{count}} episodes",
+    "listLabel": "Collections",
+    "episodeCount_one": "{{count}} video",
+    "episodeCount_other": "{{count}} videos",
     "confirmFlow": "Find matching clips"
   },
   "missing": {
-    "title": "Episode not found",
-    "message": "<b>{{name}}</b> is no longer at <code>{{path}}</code>, so its scenes can't play. Remove this episode from the database?",
+    "title": "Video not found",
+    "message": "<b>{{name}}</b> is no longer at <code>{{path}}</code>, so its scenes can't play. Remove this video from the collection?",
     "removing": "Removing…",
-    "remove": "Remove from database",
+    "remove": "Remove from collection",
     "keep": "Keep"
   },
   "visibility": {
-    "ariaLabel": "Episodes searched in {{name}}",
+    "ariaLabel": "Videos searched in {{name}}",
     "showAll": "Show all",
     "hideAll": "Hide all",
-    "loading": "Loading episodes…",
-    "empty": "No episodes indexed yet."
+    "loading": "Loading videos…",
+    "empty": "No videos added yet."
   },
   "info": {
     "search": {
       "title": "Scene Scout: Search",
-      "intro": "Scene Scout searches your indexed episodes by description rather than by filename. Type what you remember of a scene and it finds the closest matches.",
+      "intro": "Scene Scout searches your episodes and clips by description rather than by filename. Type what happens in a scene and it finds the closest matches.",
       "gettingStarted": "Getting started",
-      "step1": "Create or open a database in the left panel. One per series works well.",
-      "step2": "Move it into Searching by double-clicking it, dragging it up, or right-clicking it. All databases lists everything you have; only the ones in Searching are searched.",
-      "step3": "Press Add Episode and pick one or more videos. Indexing watches every scene once and stores a fingerprint of each, which takes a while but only happens once per episode.",
+      "step1": "Create a collection for a series or clip pack. New collections are automatically active for search.",
+      "step2": "Use the checkbox in the left panel (or right-click a collection) to choose which collections are searched.",
+      "step3": "Press Add Videos and pick episodes or pre-cut clips. Clips which are already cut can skip scene detection.",
       "step4": "Describe the scene you want in plain language and press Enter.",
       "settingsTitle": "Search settings",
-      "settings": "Results controls how many matches come back. Scene detection is chosen each time you add episodes."
+      "settings": "Results controls how many matches come back. Scene detection is chosen each time you add videos."
     },
     "flow": {
       "title": "Scene Scout: Match",
-      "intro": "Match finds scenes that could come right after a clip you already have. It looks at the clip's last frame and returns the scenes in your databases that look most like it, so the cut between them feels continuous.",
+      "intro": "Match finds clips in your collections that look visually similar to a clip you already have. Instead of typing a description, it compares the look of your clip and returns scenes with matching colors, lighting, framing, or composition.",
       "howTitle": "How to use it",
-      "step1": "Add the databases to search to the Searching list on the left.",
+      "step1": "Make sure at least one collection is checked as active in the left panel.",
       "step2": "Press Import and pick a video file, or right-click a clip in your Library or in Search results and pick Find matching clips.",
-      "step3": "Click a match to play it in the preview pane, and export it from there as usual.",
+      "step3": "Click any match to play it in the preview pane, and export it from there as usual.",
       "tipsTitle": "Tips",
-      "tips": "Drag the bar between the clip and the results to give either more room. The refresh button runs the same clip again, for example after changing which databases are searched."
+      "tips": "Drag the bar between the clip and the results to give either side more room. The refresh button runs the same clip again after you turn collections on or off."
     }
   },
   "flow": {
     "heroInput": "Input a file to find scene matches",
-    "noDatabaseHint": "Add a database to the Searching list on the left first",
+    "noDatabaseHint": "Create or select a collection on the left first",
     "import": "Import",
-    "searchAgainHint": "Search again, e.g. after changing which databases are searched",
+    "searchAgainHint": "Search again, e.g. after changing which collections are searched",
     "searchAgain": "Search again",
     "inputtedClip": "Inputted clip",
     "previewFailed": "Could not prepare a preview of this clip.",
@@ -216,11 +218,11 @@
     }
   },
   "createDb": {
-    "dialogTitle": "Create Scene Scout database",
-    "filter": "Scene Scout database",
-    "title": "Name this database",
-    "placeholder": "Database name",
-    "failed": "Could not create the database.",
-    "done": "Done"
+    "dialogTitle": "Create Scene Scout collection",
+    "filter": "Scene Scout collection",
+    "title": "Name this collection",
+    "placeholder": "Collection name",
+    "failed": "Could not create the collection.",
+    "done": "Create"
   }
 }

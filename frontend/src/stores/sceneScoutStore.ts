@@ -30,6 +30,13 @@ import {
 import { claimProcess } from "../features/processes/singleProcess";
 import type { SceneRange } from "../features/sceneScout/precutEpisodes";
 import { cutIntoLibrary, prioritizeHits } from "../features/sceneScout/library";
+import {
+  TUTORIAL_DB_NAME,
+  TUTORIAL_DB_PATH,
+  makeTutorialDatabase,
+  makeTutorialVideos,
+  searchTutorialHits,
+} from "../features/sceneScout/tutorialDemo";
 import { DETECT_CANCELED, importAbortRef } from "../features/import/importPipeline";
 import { useAiDepsStore } from "./aiDepsStore";
 import { useAppStateStore } from "./appStore";
@@ -127,6 +134,8 @@ type SceneScoutState = {
   flowError: string | null;
   /** runtime only: a flow or search waiting here while the user picks which databases to search */
   dbPrompt: DbPrompt | null;
+  /** runtime only: active step of the in-UI interactive walkthrough (null when inactive) */
+  tutorialStep: number | null;
 };
 
 export type DbPrompt = { kind: "flow"; source: FlowSource } | { kind: "search" };
@@ -159,10 +168,11 @@ type SceneScoutActions = {
   /** `precutScenes` maps a video to the scenes it was already cut into on home; those skip detection */
   addVideos: (
     videoPaths: string[],
-    detector?: "transnetv2_gpu" | "keyframe_detection",
+    detector?: "transnetv2_gpu" | "keyframe_detection" | "single_scene",
     precutScenes?: Record<string, SceneRange[]>
   ) => Promise<{ ok: boolean; message: string | null }>;
   dismissHero: () => void;
+  showHero: () => void;
   unloadModel: () => Promise<void>;
   setQuery: (query: string) => void;
   runSearch: () => Promise<void>;
@@ -177,6 +187,11 @@ type SceneScoutActions = {
   runFlowSearch: () => Promise<void>;
   /** the database prompt's answer: search those, then run the flow or search that was waiting; empty cancels */
   answerDbPrompt: (paths: string[]) => Promise<void>;
+  /** interactive in-UI walkthrough sandbox actions (never written to disk or localStorage) */
+  startTutorial: () => void;
+  tutorialCreateCollection: (name?: string) => void;
+  tutorialAddSampleVideos: (selectedUrls?: string[]) => void;
+  endTutorial: () => void;
 };
 
 const INITIAL: SceneScoutState = {
@@ -207,7 +222,27 @@ const INITIAL: SceneScoutState = {
   flowSearching: false,
   flowError: null,
   dbPrompt: null,
+  tutorialStep: null,
 };
+
+type TutorialSnapshot = Pick<
+  SceneScoutState,
+  | "databases"
+  | "openedDatabase"
+  | "videos"
+  | "videosByDatabase"
+  | "selectedDatabases"
+  | "query"
+  | "results"
+  | "lastQuery"
+  | "heroDismissed"
+  | "mode"
+  | "error"
+>;
+
+let tutorialSnapshot: TutorialSnapshot | null = null;
+let tutorialDbName = TUTORIAL_DB_NAME;
+let tutorialSelectedUrls: string[] | null = null;
 
 // databases already backfilled this session, so a repeat search does not respawn the cli for nothing
 const backfilled = new Set<string>();
@@ -337,6 +372,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       },
 
       loadDatabases: async () => {
+        if (get().tutorialStep !== null) return;
         // a cached list renders at once and refreshes silently; the spinner is only for an empty panel
         set({ loading: get().databases.length === 0, error: null });
         try {
@@ -384,6 +420,10 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
 
       /** `pathOrName` is a full path when the user picked a location themselves */
       createDatabase: async (pathOrName) => {
+        if (get().tutorialStep !== null) {
+          get().tutorialCreateCollection(pathOrName);
+          return { ok: true, message: null, path: TUTORIAL_DB_PATH };
+        }
         try {
           const created = await scoutCreateDatabase(pathOrName, customPath());
           rememberIfExternal(created.path);
@@ -432,10 +472,12 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       },
 
       /** the label shown in the panel, which is separate from the file name */
-      renameDatabase: (path, displayName) =>
+      renameDatabase: (path, displayName) => {
+        if (get().tutorialStep !== null) return;
         set((state) => ({
           displayNames: { ...state.displayNames, [path]: displayName },
-        })),
+        }));
+      },
 
       unloadDatabase: (path) => {
         set((state) => {
@@ -464,6 +506,10 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       },
 
       openDatabase: async (name) => {
+        if (get().tutorialStep !== null) {
+          set({ openedDatabase: name });
+          return;
+        }
         set({ openedDatabase: name, videos: [] });
         if (name) await get().loadVideos(name);
       },
@@ -516,6 +562,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       setActiveDatabase: (path) => set({ openedDatabase: path }),
 
       dismissHero: () => set({ heroDismissed: true }),
+      showHero: () => set({ heroDismissed: false }),
 
       setPanelSplitPct: (pct) => set({ panelSplitPct: Math.min(85, Math.max(15, pct)) }),
 
@@ -613,6 +660,10 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
 
       addVideos: async (videoPaths, detectorArg, precutScenes) => {
         if (!videoPaths.length) return { ok: true, message: null };
+        if (get().tutorialStep !== null) {
+          get().tutorialAddSampleVideos(videoPaths);
+          return { ok: true, message: null };
+        }
         // remembered for scene scout only, so it never changes the home import default
         if (detectorArg) set({ settings: { ...get().settings, lastIndexDetection: detectorArg } });
         const database = get().openedDatabase || get().selectedDatabases[0];
@@ -675,8 +726,8 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
               advance(from + fraction(done, total) * (to - from));
               appState.setProgressMsg(
                 done > 0
-                  ? `Sampling representative frames ${done}/${total} (${pct}%)`
-                  : `Sampling ${total} representative frames…`
+                  ? `Reading scene frames ${done}/${total} (${pct}%)`
+                  : `Reading ${total} scene frames…`
               );
               useAppStateStore.setState((s) => ({
                 ...s,
@@ -686,14 +737,14 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
               const pct = total > 0 ? Math.round((done / total) * 100) : 0;
               const from = runsDetection ? 95 : 80;
               advance(from + fraction(done, total) * (100 - from));
-              appState.setProgressMsg(`Embedding scenes ${done}/${total} (${pct}%)`);
+              appState.setProgressMsg(`Scanning scenes ${done}/${total} (${pct}%)`);
               useAppStateStore.setState((s) => ({
                 ...s,
                 bgProgress: { done, total },
               }));
             } else if (stage === "done") {
               appState.setProgress(100);
-              appState.setProgressMsg("Indexed scenes successfully");
+              appState.setProgressMsg("Scenes ready to search");
             }
           });
 
@@ -733,7 +784,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             });
 
             let scenes = precutScenes?.[videoPath] ?? null;
-            if (!scenes && cutToLibrary) {
+            if (!scenes && cutToLibrary && detector !== "single_scene") {
               // detection runs once, in the library import; the index reuses its scenes
               appState.setProgressMsg(`Cutting ${name} into the library…`);
               scenes = await cutIntoLibrary(videoPath, folderName, detector);
@@ -788,6 +839,18 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       runSearch: async () => {
         const query = get().query.trim();
         if (!query) return;
+        if (get().tutorialStep !== null) {
+          const results = searchTutorialHits(query, tutorialDbName, tutorialSelectedUrls);
+          set({
+            results,
+            lastQuery: query,
+            heroDismissed: true,
+            searching: false,
+            error: null,
+            tutorialStep: 3,
+          });
+          return;
+        }
         // nothing to search in: ask which databases, the answer runs this search
         if (get().selectedDatabases.length === 0 && (await hasDatabases())) {
           set({ dbPrompt: { kind: "search" } });
@@ -897,22 +960,110 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           set({ flowSearching: false });
         }
       },
+      startTutorial: () => {
+        const s = get();
+        if (s.tutorialStep === null) {
+          tutorialSnapshot = {
+            databases: s.databases,
+            openedDatabase: s.openedDatabase,
+            videos: s.videos,
+            videosByDatabase: s.videosByDatabase,
+            selectedDatabases: s.selectedDatabases,
+            query: s.query,
+            results: s.results,
+            lastQuery: s.lastQuery,
+            heroDismissed: s.heroDismissed,
+            mode: s.mode,
+            error: s.error,
+          };
+        }
+        set({
+          tutorialStep: 0,
+          loading: false,
+          databases: [],
+          openedDatabase: null,
+          videos: [],
+          videosByDatabase: {},
+          selectedDatabases: [],
+          query: "",
+          results: [],
+          lastQuery: "",
+          heroDismissed: false,
+          mode: "search",
+          error: null,
+        });
+      },
+
+      tutorialCreateCollection: (rawName) => {
+        const cleaned = (rawName ?? "")
+          .split(/[/\\]/)
+          .pop()
+          ?.replace(/\.scoutdb$/i, "")
+          .trim();
+        tutorialDbName = cleaned || TUTORIAL_DB_NAME;
+        tutorialSelectedUrls = null;
+        const db = makeTutorialDatabase(0, tutorialDbName);
+        set({
+          databases: [db],
+          openedDatabase: TUTORIAL_DB_PATH,
+          selectedDatabases: [TUTORIAL_DB_PATH],
+          videos: [],
+          videosByDatabase: { [TUTORIAL_DB_PATH]: [] },
+          tutorialStep: 1,
+          error: null,
+        });
+      },
+
+      tutorialAddSampleVideos: (selectedUrls) => {
+        tutorialSelectedUrls = selectedUrls && selectedUrls.length > 0 ? selectedUrls : null;
+        const demoVideos = makeTutorialVideos(tutorialSelectedUrls);
+        const db = makeTutorialDatabase(demoVideos.length, tutorialDbName);
+        set({
+          databases: [db],
+          openedDatabase: TUTORIAL_DB_PATH,
+          selectedDatabases: [TUTORIAL_DB_PATH],
+          videos: demoVideos,
+          videosByDatabase: { [TUTORIAL_DB_PATH]: demoVideos },
+          tutorialStep: 2,
+          error: null,
+        });
+      },
+
+      endTutorial: () => {
+        if (get().tutorialStep === null) return;
+        const snap = tutorialSnapshot;
+        tutorialSnapshot = null;
+        tutorialDbName = TUTORIAL_DB_NAME;
+        tutorialSelectedUrls = null;
+        if (snap) {
+          set({ ...snap, tutorialStep: null });
+        } else {
+          set({ tutorialStep: null });
+        }
+        const appState = useAppStateStore.getState();
+        appState.setFocusedClip(null);
+        appState.setFocusedClipId(null);
+        appState.setSelectedClips(new Set());
+      },
     }),
     {
       name: "amverge.scenescout.v1",
       // results and status are re-read on open; a stale copy would be worse than none
-      partialize: (state) => ({
-        settings: state.settings,
-        openedDatabase: state.openedDatabase,
-        // drawn on mount instead of waiting on a cli spawn, then re-read from disk
-        databases: state.databases,
-        selectedDatabases: state.selectedDatabases,
-        hiddenVideos: state.hiddenVideos,
-        externalPaths: state.externalPaths,
-        unloadedPaths: state.unloadedPaths,
-        displayNames: state.displayNames,
-        panelSplitPct: state.panelSplitPct,
-      }),
+      partialize: (state) => {
+        const live = state.tutorialStep !== null && tutorialSnapshot ? tutorialSnapshot : state;
+        return {
+          settings: state.settings,
+          openedDatabase: live.openedDatabase,
+          // drawn on mount instead of waiting on a cli spawn, then re-read from disk
+          databases: live.databases,
+          selectedDatabases: live.selectedDatabases,
+          hiddenVideos: state.hiddenVideos,
+          externalPaths: state.externalPaths,
+          unloadedPaths: state.unloadedPaths,
+          displayNames: state.displayNames,
+          panelSplitPct: state.panelSplitPct,
+        };
+      },
     }
   )
 );

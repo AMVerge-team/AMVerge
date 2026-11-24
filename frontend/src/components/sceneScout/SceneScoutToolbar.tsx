@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FaSyncAlt } from '../icons/animated';
+import { FaArrowLeft, FaSyncAlt } from '../icons/animated';
 
 import Tooltip from "../common/Tooltip";
 import PreviewAllToggle from "../common/PreviewAllToggle";
@@ -25,6 +25,7 @@ export function SceneScoutToolbar() {
   const databases = useSceneScoutStore((s) => s.databases);
   const displayNames = useSceneScoutStore((s) => s.displayNames);
   const refresh = useSceneScoutStore((s) => s.refresh);
+  const showHero = useSceneScoutStore((s) => s.showHero);
   const loading = useSceneScoutStore((s) => s.loading);
   const storeError = useSceneScoutStore((s) => s.error);
 
@@ -56,6 +57,17 @@ export function SceneScoutToolbar() {
           {/* first in the row, over the panel it controls, same as home and events */}
           <SidebarToggle />
 
+          <Tooltip content="Back to Scene Scout home">
+            <button
+              type="button"
+              className="import-button refresh-button"
+              onClick={showHero}
+              aria-label="Back to Scene Scout home"
+            >
+              <FaArrowLeft aria-hidden="true" />
+            </button>
+          </Tooltip>
+
           <AddEpisodeButton
             hint={addTargetName ? t("hero.addTo", { name: addTargetName }) : gateHint}
             onClick={() => void startAddEpisodes()}
@@ -68,7 +80,7 @@ export function SceneScoutToolbar() {
           <Tooltip content={t("toolbar.refreshDatabases")}>
             <button
               type="button"
-              className={`import-button refresh-button${revealed ? " scene-scout-reveal" : ""}`}
+              className={`import-button refresh-button scene-scout-refresh-btn${revealed ? " scene-scout-reveal" : ""}`}
               onClick={() => void refresh()}
               disabled={loading}
               aria-label={t("toolbar.refreshDatabases")}
