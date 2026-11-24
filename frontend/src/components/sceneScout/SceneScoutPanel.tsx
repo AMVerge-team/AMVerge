@@ -198,7 +198,7 @@ export function SceneScoutPanel() {
   };
 
   const revealPath = (targetPath: string) => {
-    void invoke("reveal_in_file_manager", { path: targetPath }).catch((err) => {
+    void invoke("reveal_in_file_manager", { filePath: targetPath }).catch((err) => {
       console.error("reveal_in_file_manager failed", err);
     });
   };
