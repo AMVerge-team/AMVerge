@@ -35,7 +35,7 @@
   },
   "container": {
     "label": "Conteneur",
-    "description": "Le format de fichier : MP4 ou MOV.",
+    "description": "Format du fichier vidéo exporté.",
     "auto": "Conteneur automatique"
   },
   "codec": {

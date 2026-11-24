@@ -35,7 +35,7 @@
   },
   "container": {
     "label": "封装格式",
-    "description": "输出文件格式：MP4 或 MOV。",
+    "description": "导出视频的文件格式。",
     "auto": "自动封装格式"
   },
   "codec": {
