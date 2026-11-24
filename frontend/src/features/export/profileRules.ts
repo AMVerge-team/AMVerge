@@ -151,6 +151,7 @@ export function isExportCodecContainerCompatible(
       return family === "h264" || family === "h265" || family === "av1" || family === "prores";
     case "mxf":
       return family === "prores";
+    case "mkv":
     default:
       return true;
   }

@@ -37,7 +37,9 @@ export function findActiveProfile(
 // the profile's container, unless an encode's codec won't fit in it
 export function resolveExportFormat(profile: ExportProfile | undefined): string {
   const preferred = profile?.container || "mp4";
-  if (!profile || profile.workflow !== "video_encode") return preferred;
+  if (!profile || profile.workflow !== "video_encode") {
+    return preferred === "mkv" ? "mp4" : preferred;
+  }
   return isExportCodecContainerCompatible(profile.codec, preferred)
     ? preferred
     : getRecommendedContainerForCodec(profile.codec);
