@@ -29,7 +29,8 @@ import {
 } from "../features/sceneScout/types";
 import { claimProcess } from "../features/processes/singleProcess";
 import type { SceneRange } from "../features/sceneScout/precutEpisodes";
-import { cutIntoLibrary, prioritizeHits } from "../features/sceneScout/library";
+import { cutIntoLibrary, existingLibraryScenes, prioritizeHits } from "../features/sceneScout/library";
+import { buildEpisodeCacheId } from "../features/import/manifest";
 import {
   TUTORIAL_DB_NAME,
   TUTORIAL_DB_PATH,
@@ -789,17 +790,35 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
               },
             });
 
-            let scenes = precutScenes?.[videoPath] ?? null;
-            if (!scenes && cutToLibrary && detector !== "single_scene") {
-              // detection runs once, in the library import; the index reuses its scenes
-              appState.setProgressMsg(`Cutting ${name} into the library…`);
-              scenes = await cutIntoLibrary(videoPath, folderName, detector);
-              // a ✕ in the moment between the cut and indexing still stops the whole add
+            const existingScenes = precutScenes?.[videoPath] ?? existingLibraryScenes(videoPath);
+            if (!existingScenes && cutToLibrary && detector === "transnetv2_gpu") {
+              // Run TransNetV2 + SigLIP2 in the warm daemon first, writing .npy cache so cutIntoLibrary skips torch
+              const episodeCacheId = buildEpisodeCacheId(videoPath);
+              const episodesCustomPath = useGeneralSettingsStore.getState().episodesPath;
+              runsDetection = true;
+              await scoutAddVideo(database, videoPath, detector, customPath(), null, {
+                episodeCacheId,
+                episodesCustomPath,
+                mergeShort: true,
+              });
               if (importAbortRef.current) throw new Error(DETECT_CANCELED);
               appState.setProgress(0);
+              appState.setProgressMsg(`Cutting ${name} into the library…`);
+              await cutIntoLibrary(videoPath, folderName, detector, { preserveSceneCache: true });
+              if (importAbortRef.current) throw new Error(DETECT_CANCELED);
+            } else {
+              let scenes = existingScenes;
+              if (!scenes && cutToLibrary && detector !== "single_scene") {
+                // detection runs once, in the library import; the index reuses its scenes
+                appState.setProgressMsg(`Cutting ${name} into the library…`);
+                scenes = await cutIntoLibrary(videoPath, folderName, detector);
+                // a ✕ in the moment between the cut and indexing still stops the whole add
+                if (importAbortRef.current) throw new Error(DETECT_CANCELED);
+                appState.setProgress(0);
+              }
+              runsDetection = detector === "transnetv2_gpu" && !scenes;
+              await scoutAddVideo(database, videoPath, detector, customPath(), scenes);
             }
-            runsDetection = detector === "transnetv2_gpu" && !scenes;
-            await scoutAddVideo(database, videoPath, detector, customPath(), scenes);
             console.log(`SCOUT|queue [${i + 1}/${totalVideos}] completed ${name}`);
           }
           await Promise.all([get().loadVideos(database), get().loadDatabases()]);
