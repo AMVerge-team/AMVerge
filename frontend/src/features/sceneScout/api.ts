@@ -96,7 +96,12 @@ export function scoutAddVideo(
   videoPath: string,
   detector: string,
   customPath: string | null,
-  scenes: SceneRange[] | null = null
+  scenes: SceneRange[] | null = null,
+  options?: {
+    episodeCacheId?: string;
+    episodesCustomPath?: string | null;
+    mergeShort?: boolean;
+  }
 ): Promise<number> {
   return invoke<number>("scout_add_video", {
     database,
@@ -106,6 +111,9 @@ export function scoutAddVideo(
     keepModelInMemory: true,
     gpuStandby: true,
     scenes,
+    episodeCacheId: options?.episodeCacheId ?? null,
+    episodesCustomPath: options?.episodesCustomPath ?? null,
+    mergeShort: options?.mergeShort ?? false,
   });
 }
 

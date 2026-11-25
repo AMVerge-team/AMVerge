@@ -111,6 +111,12 @@ function libraryFolder(name: string): string {
   return folder.id;
 }
 
+export function existingLibraryScenes(videoPath: string): SceneRange[] | null {
+  const existing = episodeByVideo(useEpisodePanelRuntimeStore.getState().episodes).get(norm(videoPath));
+  const ranges = existing ? episodeSceneRanges(existing) : [];
+  return ranges.length > 0 ? ranges : null;
+}
+
 /**
  * cuts a full episode into the library, in a folder named after the database, and returns its scenes to index.
  * only the stream-copy phase is waited on: the re-encodes go to the background queue, and searches pull hits forward.
@@ -119,11 +125,11 @@ function libraryFolder(name: string): string {
 export async function cutIntoLibrary(
   videoPath: string,
   folderName: string,
-  detection: SceneDetectionMethod
+  detection: SceneDetectionMethod,
+  options?: { preserveSceneCache?: boolean }
 ): Promise<SceneRange[]> {
-  const existing = episodeByVideo(useEpisodePanelRuntimeStore.getState().episodes).get(norm(videoPath));
-  const existingRanges = existing ? episodeSceneRanges(existing) : [];
-  if (existingRanges.length > 0) return existingRanges;
+  const existingRanges = existingLibraryScenes(videoPath);
+  if (existingRanges) return existingRanges;
 
   const episodeId = buildEpisodeCacheId(videoPath);
   try {
@@ -132,6 +138,7 @@ export async function cutIntoLibrary(
       folderId: libraryFolder(folderName),
       importMethod: "video_files",
       detection,
+      preserveSceneCache: options?.preserveSceneCache,
       // the ✕ during the handoff stops everything, so nothing is queued after it
       onUncut: () => {
         if (!importAbortRef.current) queueBackgroundReencode(episodeId);

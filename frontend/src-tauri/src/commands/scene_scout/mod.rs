@@ -439,6 +439,9 @@ pub async fn scout_add_video(
     gpu_standby: Option<bool>,
     // an episode already cut on home: its [start_ms, end_ms] ranges, so the cli skips detection
     scenes: Option<Vec<[u64; 2]>>,
+    episode_cache_id: Option<String>,
+    episodes_custom_path: Option<String>,
+    merge_short: Option<bool>,
     active_index: State<'_, ActiveScoutIndex>,
     worker_state: State<'_, SceneScoutWorkerState>,
 ) -> Result<u64, String> {
@@ -451,6 +454,16 @@ pub async fn scout_add_video(
         let dur_ms = probe_duration_ms(&app, &video_path).await;
         scenes = Some(vec![[0, dur_ms]]);
     }
+    let scene_cache_dir = if let Some(raw_id) = episode_cache_id.as_deref() {
+        let base_dir = crate::utils::paths::resolve_episodes_storage_dir(&app, episodes_custom_path.as_deref())?;
+        let id = crate::utils::paths::sanitize_episode_cache_id(raw_id)?;
+        let dir = base_dir.join(id);
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        Some(dir.to_string_lossy().to_string())
+    } else {
+        None
+    };
+    let merge_short = merge_short.unwrap_or(false);
 
     console_log(
         "SCOUT|start",
@@ -481,6 +494,8 @@ pub async fn scout_add_video(
                 "database": database,
                 "detector": method,
                 "scenes": scenes,
+                "merge_short": merge_short,
+                "scene_cache_dir": scene_cache_dir,
             });
             let res = session.send_request_streaming(req, emit_progress).await;
             active_index.finish(child_pid);
@@ -524,6 +539,12 @@ pub async fn scout_add_video(
     ];
     if let Some(file) = &scenes_file {
         args.extend(["--scenes-json", file.path_str()]);
+    }
+    if merge_short {
+        args.push("--merge-short");
+    }
+    if let Some(cache_dir) = &scene_cache_dir {
+        args.extend(["--scene-cache-dir", cache_dir.as_str()]);
     }
     let (mut child, child_pid) = spawn_scout(&app, "add", &args)?;
     console_log("SCOUT|pid", &format!("pid={child_pid}"));
