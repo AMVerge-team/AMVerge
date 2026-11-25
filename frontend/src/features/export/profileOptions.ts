@@ -52,6 +52,7 @@ export const EXPORT_CONTAINER_OPTIONS: { value: ExportContainer; label: string }
   { value: "avi", label: "AVI" },
   { value: "mp4", label: "MP4" },
   { value: "mov", label: "MOV" },
+  { value: "mkv", label: "MKV" },
 ];
 
 export function getExportHardwareOptions(): { value: ExportHardwareMode; label: string }[] {
