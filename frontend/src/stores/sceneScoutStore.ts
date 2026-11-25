@@ -348,11 +348,11 @@ async function currentSearchSettings(): Promise<ScoutSearchSettings> {
   return base;
 }
 
-/** whether there is any database to offer in the picker, loading the list once if it is still empty */
+/** whether there is any ready v4 database to offer in the picker, loading the list once if it is still empty */
 async function hasDatabases(): Promise<boolean> {
   const store = useSceneScoutStore.getState();
   if (store.databases.length === 0) await store.loadDatabases().catch(() => {});
-  return useSceneScoutStore.getState().databases.length > 0;
+  return useSceneScoutStore.getState().databases.some(isScoutDatabaseReady);
 }
 
 /** remembers a database outside the managed folder, which the root listing can't find on its own */
@@ -748,8 +748,19 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         }
         // remembered for scene scout only, so it never changes the home import default
         if (detectorArg) set({ settings: { ...get().settings, lastIndexDetection: detectorArg } });
-        const database = get().openedDatabase || get().selectedDatabases[0];
-        if (!database) return { ok: false, message: "Select or open a database first." };
+        const rawTarget = get().openedDatabase || get().selectedDatabases[0];
+        if (!rawTarget) return { ok: false, message: "Select or open a database first." };
+        const targetMeta = get().databases.find((d) => samePath(d.path, rawTarget));
+        if (targetMeta && !isScoutDatabaseReady(targetMeta)) {
+          return {
+            ok: false,
+            message:
+              targetMeta.schemaStatus === "needs_upgrade"
+                ? `Upgrade '${targetMeta.name}' to schema v4 in the sidebar before adding videos.`
+                : `'${targetMeta.name}' uses an unsupported schema version and cannot be modified.`,
+          };
+        }
+        const database = rawTarget;
 
         // one long job at a time: asks to stop whatever runs, or keeps it and drops this one
         if (!(await claimProcess("scout_add"))) return { ok: false, message: null };
@@ -974,13 +985,13 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       updateSettings: (changes) =>
         set((state) => ({ settings: { ...state.settings, ...changes } })),
 
-      /** fills missing thumbnails in the background: no loading card, once per database per session */
+      /** fills missing thumbnails in the background: no loading card, once per database per session (keeps existing legacy thumbnails untouched) */
       backfillThumbnails: (paths) => {
         for (const path of paths) {
           const key = path.toLowerCase();
           if (backfilled.has(key)) continue;
           backfilled.add(key);
-          void scoutGenerateThumbnails(path, customPath())
+          void scoutGenerateThumbnails(path, customPath(), false, true)
             .then((res) => console.log(`SCOUT|thumbs backfilled ${res.generated} into ${path}`))
             .catch((err) => {
               // a failed run may be retried later this session
@@ -1014,10 +1025,12 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       answerDbPrompt: async (paths) => {
         const prompt = get().dbPrompt;
         set({ dbPrompt: null });
-        if (!prompt || paths.length === 0) return;
+        const readySet = new Set(get().databases.filter(isScoutDatabaseReady).map((d) => d.path));
+        const safePaths = paths.filter((p) => readySet.has(p));
+        if (!prompt || safePaths.length === 0) return;
         set({
-          selectedDatabases: paths,
-          openedDatabase: paths.length === 1 ? paths[0] : get().openedDatabase,
+          selectedDatabases: safePaths,
+          openedDatabase: safePaths.length === 1 ? safePaths[0] : get().openedDatabase,
         });
         if (prompt.kind === "flow") await get().startFlowSearch(prompt.source);
         else await get().runSearch();

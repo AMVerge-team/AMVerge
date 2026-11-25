@@ -132,11 +132,12 @@ export function isScoutCanceled(err: unknown): boolean {
 export function scoutGenerateThumbnails(
   database: string,
   customPath: string | null,
-  reportProgress = false
+  reportProgress = false,
+  missingOnly = false
 ): Promise<{ done: boolean; generated: number; database: string }> {
   return invoke<{ done: boolean; generated: number; database: string }>(
     "scout_generate_thumbnails",
-    { database, customPath, reportProgress }
+    { database, customPath, reportProgress, missingOnly }
   );
 }
 

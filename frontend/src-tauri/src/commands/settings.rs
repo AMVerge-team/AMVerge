@@ -151,7 +151,7 @@ fn rebase_scene_scout_database(
     for (table, id_column, path_column) in [
         ("processed_videos", "id", "filepath"),
         ("media_roots", "rowid", "root_path"),
-        ("image_embeddings", "id", "filepath"),
+        ("image_embeddings", "rowid", "filepath"),
         ("index_queue", "id", "path"),
     ] {
         if !scene_scout_table_exists(&tx, table) {
@@ -181,12 +181,24 @@ fn rebase_scene_scout_database(
             }
         }
         for (id, new_path) in updates {
-            let verb = if table == "media_roots" { "UPDATE OR IGNORE" } else { "UPDATE" };
-            tx.execute(
-                &format!("{verb} {table} SET {path_column} = ?1 WHERE {id_column} = ?2"),
-                rusqlite::params![new_path, id],
-            )
-            .map_err(|e| format!("Failed to rebase {} in {}: {e}", path.display(), table))?;
+            if table == "media_roots" {
+                let updated = tx
+                    .execute(
+                        "UPDATE OR IGNORE media_roots SET root_path = ?1 WHERE rowid = ?2",
+                        rusqlite::params![new_path, id],
+                    )
+                    .map_err(|e| format!("Failed to rebase {} in {}: {e}", path.display(), table))?;
+                if updated == 0 {
+                    tx.execute("DELETE FROM media_roots WHERE rowid = ?1", rusqlite::params![id])
+                        .map_err(|e| format!("Failed to deduplicate {} in {}: {e}", path.display(), table))?;
+                }
+            } else {
+                tx.execute(
+                    &format!("UPDATE {table} SET {path_column} = ?1 WHERE {id_column} = ?2"),
+                    rusqlite::params![new_path, id],
+                )
+                .map_err(|e| format!("Failed to rebase {} in {}: {e}", path.display(), table))?;
+            }
             changed = true;
         }
     }
@@ -1781,5 +1793,61 @@ mod tests {
         assert!(moved_snap.exists());
         assert_eq!(fs::read(&moved_snap).unwrap(), b"safetensors-weights");
         assert!(!src.exists());
+    }
+
+    #[test]
+    fn storage_move_rebases_v3_image_embeddings_and_deduplicates_media_roots() {
+        let tmp = tempfile::tempdir().unwrap();
+        let old_root = tmp.path().join("OldStorage");
+        let new_root = tmp.path().join("NewStorage");
+
+        let old_ep = old_root.join("episodes/ep1.mp4").to_string_lossy().to_string();
+        let old_img = old_root.join("episodes/poster.jpg").to_string_lossy().to_string();
+        let old_mr = old_root.join("episodes").to_string_lossy().replace('\\', "/");
+        let new_mr = new_root.join("episodes").to_string_lossy().replace('\\', "/");
+
+        let db_v3 = tmp.path().join("legacy_v3.scoutdb");
+        {
+            let conn = rusqlite::Connection::open(&db_v3).unwrap();
+            conn.execute_batch(
+                "CREATE TABLE processed_videos (id INTEGER PRIMARY KEY, filepath TEXT UNIQUE NOT NULL);
+                 CREATE TABLE image_embeddings (filepath TEXT PRIMARY KEY, modified_at REAL NOT NULL, embedding BLOB NOT NULL);",
+            )
+            .unwrap();
+            conn.execute("INSERT INTO processed_videos VALUES (1, ?1)", rusqlite::params![old_ep])
+                .unwrap();
+            conn.execute(
+                "INSERT INTO image_embeddings VALUES (?1, 1.0, X'0000')",
+                rusqlite::params![old_img],
+            )
+            .unwrap();
+        }
+        assert!(rebase_scene_scout_database(&db_v3, &old_root, &new_root).unwrap());
+        {
+            let conn = rusqlite::Connection::open(&db_v3).unwrap();
+            let got_img: String = conn
+                .query_row("SELECT filepath FROM image_embeddings", [], |r| r.get(0))
+                .unwrap();
+            assert_eq!(PathBuf::from(got_img), new_root.join("episodes/poster.jpg"));
+        }
+
+        let db_v4 = tmp.path().join("modern_v4.scoutdb");
+        {
+            let conn = rusqlite::Connection::open(&db_v4).unwrap();
+            conn.execute_batch("CREATE TABLE media_roots (root_path TEXT PRIMARY KEY, added_at TEXT NOT NULL);")
+                .unwrap();
+            conn.execute("INSERT INTO media_roots VALUES (?1, '2026-01-01')", rusqlite::params![old_mr])
+                .unwrap();
+            conn.execute("INSERT INTO media_roots VALUES (?1, '2026-01-02')", rusqlite::params![new_mr])
+                .unwrap();
+        }
+        assert!(rebase_scene_scout_database(&db_v4, &old_root, &new_root).unwrap());
+        {
+            let conn = rusqlite::Connection::open(&db_v4).unwrap();
+            let count: i64 = conn
+                .query_row("SELECT COUNT(*) FROM media_roots", [], |r| r.get(0))
+                .unwrap();
+            assert_eq!(count, 1);
+        }
     }
 }

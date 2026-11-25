@@ -231,11 +231,16 @@ pub async fn scout_generate_thumbnails(
     database: String,
     custom_path: Option<String>,
     report_progress: Option<bool>,
+    missing_only: Option<bool>,
 ) -> Result<ScoutGenerateThumbnailsResult, String> {
     let report_progress = report_progress.unwrap_or(false);
+    let missing_only = missing_only.unwrap_or(false);
     let root = scout_root(&app, custom_path.as_deref())?;
-    let (mut child, child_pid) =
-        spawn_scout(&app, "generate-thumbnails", &["generate-thumbnails", "--db", &database, "--root", &root])?;
+    let mut args = vec!["generate-thumbnails", "--db", &database, "--root", &root];
+    if missing_only {
+        args.push("--missing-only");
+    }
+    let (mut child, child_pid) = spawn_scout(&app, "generate-thumbnails", &args)?;
     if report_progress {
         active_index.start(child_pid);
     }
