@@ -140,6 +140,8 @@ type SceneScoutState = {
   dbPrompt: DbPrompt | null;
   /** runtime only: active step of the in-UI interactive walkthrough (null when inactive) */
   tutorialStep: number | null;
+  /** runtime only: paths currently being auto-upgraded in the background */
+  upgradingPaths: string[];
 };
 
 export type DbPrompt = { kind: "flow"; source: FlowSource } | { kind: "search" };
@@ -162,6 +164,7 @@ type SceneScoutActions = {
     database?: ScoutDatabase;
     backupPath?: string | null;
   }>;
+  clearAutoUpgradeFailures: () => void;
   renameDatabase: (path: string, displayName: string) => void;
   unloadDatabase: (path: string) => void;
   deleteDatabase: (name: string) => Promise<void>;
@@ -238,6 +241,7 @@ const INITIAL: SceneScoutState = {
   flowError: null,
   dbPrompt: null,
   tutorialStep: null,
+  upgradingPaths: [],
 };
 
 type TutorialSnapshot = Pick<
@@ -261,6 +265,15 @@ let tutorialSelectedUrls: string[] | null = null;
 
 // databases already backfilled this session, so a repeat search does not respawn the cli for nothing
 const backfilled = new Set<string>();
+
+// guards against concurrent or infinitely-retrying auto-upgrades on the same path
+const inFlightAutoUpgrades = new Set<string>();
+const failedAutoUpgrades = new Set<string>();
+let autoUpgradeRunning = false;
+
+function normPath(p: string): string {
+  return p.replace(/\\/g, "/").toLowerCase();
+}
 
 // bumped per search: a newer search takes over, and an older one's results are dropped when they land
 let searchGen = 0;
@@ -440,6 +453,53 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           const searching = get().selectedDatabases;
           const stillThere = searching.filter((p) => readyDbs.some((d) => samePath(d.path, p)));
           if (stillThere.length !== searching.length) set({ selectedDatabases: stillThere });
+
+          // If auto-upgrade is enabled, sequentially upgrade discovered legacy databases in the background
+          if (useGeneralSettingsStore.getState().scoutAutoUpgradeDatabases && !autoUpgradeRunning) {
+            const toUpgrade = databases.filter(
+              (db) =>
+                db.schemaStatus === "needs_upgrade" &&
+                !inFlightAutoUpgrades.has(normPath(db.path)) &&
+                !failedAutoUpgrades.has(normPath(db.path))
+            );
+            if (toUpgrade.length > 0) {
+              autoUpgradeRunning = true;
+              void (async () => {
+                try {
+                  for (const candidate of toUpgrade) {
+                    const key = normPath(candidate.path);
+                    if (!useGeneralSettingsStore.getState().scoutAutoUpgradeDatabases) break;
+                    if (inFlightAutoUpgrades.has(key) || failedAutoUpgrades.has(key)) continue;
+                    inFlightAutoUpgrades.add(key);
+                    set((s) => ({
+                      upgradingPaths: s.upgradingPaths.some((p) => samePath(p, candidate.path))
+                        ? s.upgradingPaths
+                        : [...s.upgradingPaths, candidate.path],
+                    }));
+                    try {
+                      const backup = useGeneralSettingsStore.getState().scoutBackupBeforeUpgrade;
+                      const res = await scoutUpgradeDatabase(candidate.path, backup, customPath());
+                      const upgraded = res.database;
+                      set((s) => ({
+                        databases: s.databases.map((d) => (samePath(d.path, candidate.path) ? upgraded : d)),
+                      }));
+                      get().backfillThumbnails([upgraded.path]);
+                    } catch (err) {
+                      failedAutoUpgrades.add(key);
+                      set({ error: `Auto-upgrade failed for ${candidate.name}: ${message(err)}` });
+                    } finally {
+                      inFlightAutoUpgrades.delete(key);
+                      set((s) => ({
+                        upgradingPaths: s.upgradingPaths.filter((p) => !samePath(p, candidate.path)),
+                      }));
+                    }
+                  }
+                } finally {
+                  autoUpgradeRunning = false;
+                }
+              })();
+            }
+          }
         } catch (err) {
           set({ loading: false, error: message(err) });
         }
@@ -485,6 +545,25 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             };
           }
           if (inspected.schemaStatus === "needs_upgrade") {
+            const { scoutAutoUpgradeDatabases, scoutBackupBeforeUpgrade } = useGeneralSettingsStore.getState();
+            if (scoutAutoUpgradeDatabases) {
+              appState.setProgressMsg(`Auto-upgrading ${baseName} to schema v4…`);
+              const upgradedRes = await scoutUpgradeDatabase(filePath, scoutBackupBeforeUpgrade, customPath());
+              const db = upgradedRes.database;
+              rememberIfExternal(db.path);
+
+              if (get().unloadedPaths.some((p) => samePath(p, db.path))) {
+                set({ unloadedPaths: get().unloadedPaths.filter((p) => !samePath(p, db.path)) });
+              }
+
+              await get().loadDatabases();
+              await get().openDatabase(db.path);
+              get().selectDatabase(db.path, "single");
+              appState.setProgressMsg("Database upgraded to v4");
+              get().backfillThumbnails([db.path]);
+              await new Promise((r) => setTimeout(r, 600));
+              return { ok: true, message: null, database: db };
+            }
             const ver = inspected.schemaVersion ?? 3;
             return {
               ok: false,
@@ -519,7 +598,12 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         }
       },
 
+      clearAutoUpgradeFailures: () => {
+        failedAutoUpgrades.clear();
+      },
+
       upgradeDatabase: async (filePath, backup) => {
+        failedAutoUpgrades.delete(normPath(filePath));
         const appState = useAppStateStore.getState();
         const baseName = filePath.split(/[/\\]/).pop() || filePath;
         appState.setActiveOperation("scout_open");

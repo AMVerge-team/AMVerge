@@ -10,6 +10,7 @@ import ModalShell from "../common/ModalShell";
 import Tooltip from "../common/Tooltip";
 import { useEscapeToClose } from "../common/useEscapeToClose";
 import { isScoutDatabaseReady, samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
+import { useGeneralSettingsStore } from "../../stores/settingsStore";
 import { useContextMenuStore } from "../../stores/contextMenuStore";
 import type { ScoutDatabase, ScoutVideo } from "../../features/sceneScout/types";
 import { useAddEpisodes } from "./useAddEpisodes";
@@ -42,6 +43,7 @@ export function SceneScoutPanel() {
   const loadVideos = useSceneScoutStore((s) => s.loadVideos);
   const openExistingDatabase = useSceneScoutStore((s) => s.openExistingDatabase);
   const upgradeDatabase = useSceneScoutStore((s) => s.upgradeDatabase);
+  const upgradingPaths = useSceneScoutStore((s) => s.upgradingPaths);
   const deleteDatabase = useSceneScoutStore((s) => s.deleteDatabase);
   const deleteVideo = useSceneScoutStore((s) => s.deleteVideo);
   const unloadDatabase = useSceneScoutStore((s) => s.unloadDatabase);
@@ -68,8 +70,16 @@ export function SceneScoutPanel() {
   const [videosDeleted, setVideosDeleted] = useState(0);
   const [upgradeCandidate, setUpgradeCandidate] = useState<ScoutDatabase | null>(null);
   const [upgradeBackup, setUpgradeBackup] = useState(true);
+  const [alwaysAutoUpgrade, setAlwaysAutoUpgrade] = useState(false);
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
+
+  const openUpgradePrompt = (db: ScoutDatabase) => {
+    setUpgradeBackup(useGeneralSettingsStore.getState().scoutBackupBeforeUpgrade);
+    setAlwaysAutoUpgrade(false);
+    setUpgradeError(null);
+    setUpgradeCandidate(db);
+  };
   const [unsupportedModalDb, setUnsupportedModalDb] = useState<ScoutDatabase | null>(null);
   // explorer-style highlight for click, ctrl and shift; separate from which databases are searched
   const [highlightPaths, setHighlightPaths] = useState<string[]>([]);
@@ -233,9 +243,7 @@ export function SceneScoutPanel() {
       const result = await openExistingDatabase(picked);
       if (!result.ok) {
         if (result.reason === "needs_upgrade" && result.database) {
-          setUpgradeBackup(true);
-          setUpgradeError(null);
-          setUpgradeCandidate(result.database);
+          openUpgradePrompt(result.database);
         } else if (result.reason === "unsupported_newer" && result.database) {
           setUnsupportedModalDb(result.database);
         } else {
@@ -322,6 +330,7 @@ export function SceneScoutPanel() {
     const path = database.path;
     const isExpanded = Boolean(expandedDatabases[path]);
     const lit = isHighlighted(path);
+    const isAutoUpgrading = upgradingPaths.some((p) => samePath(p, path));
     const needsUpgrade = database.schemaStatus === "needs_upgrade";
     const isUnsupported = database.schemaStatus === "unsupported_newer";
     const ready = isScoutDatabaseReady(database);
@@ -344,12 +353,10 @@ export function SceneScoutPanel() {
           className={rowClass}
           onClick={onRowClick(path, order)}
           onDoubleClick={() => {
+            if (isAutoUpgrading) return;
             if (isUnsupported) setUnsupportedModalDb(database);
-            else if (needsUpgrade) {
-              setUpgradeBackup(true);
-              setUpgradeError(null);
-              setUpgradeCandidate(database);
-            } else {
+            else if (needsUpgrade) openUpgradePrompt(database);
+            else {
               toggleSearch(targetsFor(path), !searched);
             }
           }}
@@ -383,14 +390,14 @@ export function SceneScoutPanel() {
               type="button"
               className={`scout-active-toggle${searched ? " is-active" : ""}`}
               onDoubleClick={stop}
+              disabled={isAutoUpgrading}
               onClick={(e) => {
                 e.stopPropagation();
+                if (isAutoUpgrading) return;
                 if (isUnsupported) {
                   setUnsupportedModalDb(database);
                 } else if (needsUpgrade) {
-                  setUpgradeBackup(true);
-                  setUpgradeError(null);
-                  setUpgradeCandidate(database);
+                  openUpgradePrompt(database);
                 } else {
                   toggleSearch([path], !searched);
                   if (!searched) setActiveDatabase(path);
@@ -408,22 +415,25 @@ export function SceneScoutPanel() {
             <FaDatabase className="episode-panel-import-icon scene-scout-row-icon" aria-hidden="true" />
           )}
           <span className="episode-panel-episode-name">{labelFor(path, database.name)}</span>
-          {needsUpgrade && (
+          {isAutoUpgrading ? (
+            <span className="scout-schema-badge is-upgrade" title="Upgrading collection to schema v4…">
+              <FaSpinner className="spinner" aria-hidden="true" style={{ marginRight: 4 }} />
+              Upgrading…
+            </span>
+          ) : needsUpgrade ? (
             <button
               type="button"
               className="scout-schema-badge is-upgrade"
               onDoubleClick={stop}
               onClick={(e) => {
                 e.stopPropagation();
-                setUpgradeBackup(true);
-                setUpgradeError(null);
-                setUpgradeCandidate(database);
+                openUpgradePrompt(database);
               }}
               title="Legacy schema — click to upgrade to v4"
             >
               v{database.schemaVersion ?? 3} · Upgrade
             </button>
-          )}
+          ) : null}
           {isUnsupported && (
             <button
               type="button"
@@ -721,9 +731,7 @@ export function SceneScoutPanel() {
                 type="button"
                 className="episode-context-menu-item"
                 onClick={() => {
-                  setUpgradeBackup(true);
-                  setUpgradeError(null);
-                  setUpgradeCandidate(single);
+                  openUpgradePrompt(single);
                   close();
                 }}
               >
@@ -1051,7 +1059,17 @@ export function SceneScoutPanel() {
                 disabled={isUpgrading}
                 onChange={(e) => setUpgradeBackup(e.target.checked)}
               />
-              <span>Save a backup copy (.v3.bak) before upgrading</span>
+              <span>Save a backup copy (.v{upgradeCandidate.schemaVersion ?? 3}.bak) before upgrading</span>
+            </label>
+
+            <label className="scout-upgrade-backup-check" style={{ marginTop: "6px" }}>
+              <input
+                type="checkbox"
+                checked={alwaysAutoUpgrade}
+                disabled={isUpgrading}
+                onChange={(e) => setAlwaysAutoUpgrade(e.target.checked)}
+              />
+              <span>Always upgrade older databases automatically</span>
             </label>
 
             {upgradeError && <p className="events-error scene-scout-panel-error">{upgradeError}</p>}
@@ -1075,6 +1093,12 @@ export function SceneScoutPanel() {
                   setIsUpgrading(true);
                   setUpgradeError(null);
                   try {
+                    if (alwaysAutoUpgrade) {
+                      useGeneralSettingsStore.setState({
+                        scoutAutoUpgradeDatabases: true,
+                        scoutBackupBeforeUpgrade: upgradeBackup,
+                      });
+                    }
                     const res = await upgradeDatabase(target.path, upgradeBackup);
                     if (!res.ok) {
                       setUpgradeError(res.message || "Upgrade failed.");
