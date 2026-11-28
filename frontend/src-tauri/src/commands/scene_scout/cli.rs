@@ -235,11 +235,18 @@ for raw in sys.argv[2:]:
         continue
     try:
         conn = sqlite3.connect(str(p), timeout=5.0)
-        rows = conn.execute(
-            'SELECT v.id, v.filepath, v.status, v.modified_at, COUNT(s.id) '
-            'FROM processed_videos v LEFT JOIN scene_embeddings s ON s.video_id = v.id '
-            'GROUP BY v.id ORDER BY v.id DESC'
-        ).fetchall()
+        pv_cols = {r[1] for r in conn.execute('PRAGMA table_info(processed_videos)').fetchall()}
+        if 'scene_count' in pv_cols:
+            rows = conn.execute(
+                'SELECT id, filepath, status, modified_at, scene_count '
+                'FROM processed_videos ORDER BY id DESC'
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                'SELECT v.id, v.filepath, v.status, v.modified_at, COUNT(s.id) '
+                'FROM processed_videos v LEFT JOIN scene_embeddings s ON s.video_id = v.id '
+                'GROUP BY v.id ORDER BY v.id DESC'
+            ).fetchall()
         conn.close()
         out[raw] = [{
             'id': r[0],

@@ -71,6 +71,8 @@ export type GeneralSettings = {
     hideDisabledFeatures: boolean;
     davinciResolveEnabled: boolean;
     davinciExportSelected: boolean;
+    scoutAutoUpgradeDatabases: boolean;
+    scoutBackupBeforeUpgrade: boolean;
 };
 
 export type GeneralSettingsStore = GeneralSettings & {
@@ -149,6 +151,8 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     hideDisabledFeatures: false,
     davinciResolveEnabled: false,
     davinciExportSelected: false,
+    scoutAutoUpgradeDatabases: false,
+    scoutBackupBeforeUpgrade: true,
 };
 
 const LEGACY_FAST_REMUX_PROFILE_ID = "remux-fast-mov";

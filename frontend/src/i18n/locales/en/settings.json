@@ -124,6 +124,18 @@
         "description": "Send exported clips straight to the DaVinci Resolve timeline (Studio only)."
       }
     },
+    "sceneScout": {
+      "title": "Scene Scout",
+      "autoUpgrade": {
+        "label": "Automatically upgrade older databases",
+        "description": "Automatically migrate legacy Scene Scout collections to the newest schema without asking first. Older app versions will no longer be able to read upgraded files."
+      },
+      "backupBeforeUpgrade": {
+        "label": "Create backup before upgrading",
+        "description": "Save a .bak copy next to the collection before migrating it to a newer schema.",
+        "noBackupWarning": "Auto-upgrade is enabled without backups. Legacy collections will be modified in place and cannot be opened in older app versions."
+      }
+    },
     "storage": {
       "title": "Storage",
       "path": {

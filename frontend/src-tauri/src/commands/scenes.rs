@@ -203,6 +203,7 @@ pub async fn detect_scenes(
     custom_path: Option<String>,
     scene_detection_method: Option<String>,
     import_method: Option<String>,
+    preserve_scene_cache: Option<bool>,
 ) -> Result<String, String> {
     let video_name = file_name_only(&video_path);
 
@@ -216,7 +217,19 @@ pub async fn detect_scenes(
     };
 
     std::fs::create_dir_all(&output_dir).map_err(|e| e.to_string())?;
-    clear_files_in_dir(&output_dir);
+    let preserve_cache = preserve_scene_cache.unwrap_or(false);
+    if preserve_cache {
+        if let Ok(entries) = std::fs::read_dir(&output_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_file() && path.extension().and_then(|e| e.to_str()) != Some("npy") {
+                    let _ = std::fs::remove_file(path);
+                }
+            }
+        }
+    } else {
+        clear_files_in_dir(&output_dir);
+    }
     let output_dir_str = output_dir.to_string_lossy().to_string();
 
     console_log(
@@ -232,8 +245,23 @@ pub async fn detect_scenes(
     let method = scene_detection_method
         .clone()
         .unwrap_or_else(|| "transnetv2_gpu".to_string());
-    // TransNetV2 needs the AI env; every other method runs on the sidecar
-    let needs_ai = method == "transnetv2_gpu";
+    let has_cached_npy = preserve_cache
+        && std::fs::read_dir(&output_dir).ok().map_or(false, |entries| {
+            let mut has_secs = false;
+            let mut has_frames = false;
+            for entry in entries.flatten() {
+                if let Some(name) = entry.file_name().to_str() {
+                    if name.ends_with("_transnet_secs.npy") {
+                        has_secs = true;
+                    } else if name.ends_with("_transnet_frames.npy") {
+                        has_frames = true;
+                    }
+                }
+            }
+            has_secs && has_frames
+        });
+    // TransNetV2 needs the AI env unless .npy scene cache already exists; every other method runs on the sidecar
+    let needs_ai = method == "transnetv2_gpu" && !has_cached_npy;
 
     let mut cmd = if needs_ai {
         amverge_ai_command(&app)?

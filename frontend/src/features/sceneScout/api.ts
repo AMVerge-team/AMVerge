@@ -75,6 +75,7 @@ export function scoutSearch(
       query,
       databases: settings.selectedDatabases,
       videos: settings.selectedVideos,
+      excludeVideos: settings.excludeVideos ?? [],
       topK: settings.topK,
       includeThumbnails: settings.includeThumbnails,
       skipEdgesMs: settings.skipEpisodeEdges ? EPISODE_EDGE_MS : 0,
@@ -95,7 +96,12 @@ export function scoutAddVideo(
   videoPath: string,
   detector: string,
   customPath: string | null,
-  scenes: SceneRange[] | null = null
+  scenes: SceneRange[] | null = null,
+  options?: {
+    episodeCacheId?: string;
+    episodesCustomPath?: string | null;
+    mergeShort?: boolean;
+  }
 ): Promise<number> {
   return invoke<number>("scout_add_video", {
     database,
@@ -105,6 +111,9 @@ export function scoutAddVideo(
     keepModelInMemory: true,
     gpuStandby: true,
     scenes,
+    episodeCacheId: options?.episodeCacheId ?? null,
+    episodesCustomPath: options?.episodesCustomPath ?? null,
+    mergeShort: options?.mergeShort ?? false,
   });
 }
 
@@ -131,11 +140,52 @@ export function isScoutCanceled(err: unknown): boolean {
 export function scoutGenerateThumbnails(
   database: string,
   customPath: string | null,
-  reportProgress = false
+  reportProgress = false,
+  missingOnly = false
 ): Promise<{ done: boolean; generated: number; database: string }> {
   return invoke<{ done: boolean; generated: number; database: string }>(
     "scout_generate_thumbnails",
-    { database, customPath, reportProgress }
+    { database, customPath, reportProgress, missingOnly }
   );
+}
+
+export type ScoutRelinkResult = {
+  database: string;
+  checked: number;
+  missing: number;
+  relinked: number;
+  unresolved: number;
+  updated: { id: number; oldPath: string; newPath: string }[];
+};
+
+export function scoutRelinkDatabase(
+  database: string,
+  searchDirs: string[],
+  customPath: string | null,
+  verifyHash = true
+): Promise<ScoutRelinkResult> {
+  return invoke<ScoutRelinkResult>("scout_relink_database", {
+    database,
+    searchDirs,
+    customPath,
+    verifyHash,
+  });
+}
+
+export type ScoutUpgradeResult = {
+  database: ScoutDatabase;
+  backupPath?: string | null;
+};
+
+export function scoutUpgradeDatabase(
+  path: string,
+  backup: boolean,
+  customPath: string | null
+): Promise<ScoutUpgradeResult> {
+  return invoke<ScoutUpgradeResult>("scout_upgrade_database", {
+    path,
+    backup,
+    customPath,
+  });
 }
 

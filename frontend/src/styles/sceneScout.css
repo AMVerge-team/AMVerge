@@ -1750,3 +1750,59 @@ body.scene-scout-resizing {
     color: var(--accent);
     font-weight: 700;
 }
+
+.scene-scout-db-row.is-unsupported {
+    opacity: 0.72;
+}
+
+.scout-schema-badge {
+    flex: none;
+    margin-right: 6px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.5;
+    cursor: pointer;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.scout-schema-badge.is-upgrade {
+    background: rgba(245, 158, 11, 0.18);
+    border-color: rgba(245, 158, 11, 0.45);
+    color: #fbbf24;
+}
+
+.scout-schema-badge.is-upgrade:hover {
+    background: rgba(245, 158, 11, 0.28);
+}
+
+.scout-schema-badge.is-unsupported {
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(239, 68, 68, 0.45);
+    color: #f87171;
+}
+
+.scout-upgrade-warning-box {
+    margin: 8px 0 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 12.5px;
+    line-height: 1.45;
+    text-align: left;
+}
+
+.scout-upgrade-backup-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0 10px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.88);
+    cursor: pointer;
+    user-select: none;
+}

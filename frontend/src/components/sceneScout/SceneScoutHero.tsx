@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { open as openUrl } from "@tauri-apps/plugin-shell";
 import { FaPlus } from '../icons/animated';
 
-import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
+import { isScoutDatabaseReady, samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
 import { useUIStateStore } from "../../stores/UIStore";
 import { setHeroFlip } from "../../features/sceneScout/heroTransition";
 import { ScoutSearchField } from "./ScoutSearchField";
@@ -53,14 +53,16 @@ export function SceneScoutHero() {
   const inSearch = (path: string) => selectedDatabases.some((p) => samePath(p, path));
   const labelFor = (path: string, fallback: string) => displayNames[path] ?? fallback;
 
-  // add videos targets the active collection, falling back to the only collection so Add Videos isn't greyed out
+  // add videos targets the active ready v4 collection, falling back to the only ready collection
+  const readyDatabases = databases.filter(isScoutDatabaseReady);
+  const openedReady = opened && readyDatabases.some((d) => samePath(d.path, opened));
   const addTarget =
-    opened && inSearch(opened)
+    openedReady && inSearch(opened!)
       ? opened
       : selectedDatabases.length > 0
         ? selectedDatabases[0]
-        : databases.length === 1
-          ? databases[0].path
+        : readyDatabases.length === 1
+          ? readyDatabases[0].path
           : null;
   const addTargetName = addTarget
     ? labelFor(addTarget, databases.find((d) => samePath(d.path, addTarget))?.name ?? t("hero.databaseFallback"))

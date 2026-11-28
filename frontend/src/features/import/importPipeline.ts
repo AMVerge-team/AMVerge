@@ -14,6 +14,8 @@ export type ImportOptions = {
   folderId: string | null;
   importMethod: NonNullable<EpisodeEntry["importMethod"]>;
   detection: SceneDetectionMethod;
+  /** keep pre-computed .npy scene detection cache files in the episode folder */
+  preserveSceneCache?: boolean;
   /** the preview phase ended with clips still uncut (ai re-encodes); the cli is already stopped */
   onUncut: () => void;
 };
@@ -28,7 +30,7 @@ export const DETECT_CANCELED = "Scene detection was canceled.";
 
 /** detects and cuts one episode; video mode resolves after the preview phase and hands uncut clips to `onUncut` */
 export async function runImportPipeline(file: string, episodeId: string, options: ImportOptions): Promise<ImportResult> {
-  const { focusGrid, folderId, importMethod, detection, onUncut } = options;
+  const { focusGrid, folderId, importMethod, detection, preserveSceneCache, onUncut } = options;
   const episodesPath = useGeneralSettingsStore.getState().episodesPath;
 
   // the ml pack may be gone since it was chosen, so prompt now instead of failing mid-import
@@ -43,6 +45,7 @@ export async function runImportPipeline(file: string, episodeId: string, options
       customPath: episodesPath,
       sceneDetectionMethod: detection,
       importMethod,
+      preserveSceneCache: Boolean(preserveSceneCache),
     });
 
   const entry = (clips: EpisodeEntry["clips"], method: ImportOptions["importMethod"]): EpisodeEntry => ({

@@ -24,6 +24,7 @@ import {
 import { ConfirmModal } from "./general/ConfirmModal";
 import { useDavinciInstalled } from "../../features/davinci/useDavinciAvailable";
 import LanguagePicker from "./general/LanguagePicker";
+import { useSceneScoutStore } from "../../stores/sceneScoutStore";
 
 type GeneralSettingsProps = {
   onGeneralSettingsReset: () => void;
@@ -303,6 +304,63 @@ export default function GeneralSettings({
         />
         </SettingsSection>
         )}
+
+        <SettingsSection id="general.sceneScout" title={t("general.sceneScout.title")}>
+        <SettingRow
+          label={t("general.sceneScout.autoUpgrade.label")}
+          description={t("general.sceneScout.autoUpgrade.description")}
+          control={
+            <div className="settings-control">
+              <label className="custom-checkbox">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={generalSettings.scoutAutoUpgradeDatabases}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setGeneralSettings((prev) => ({
+                      ...prev,
+                      scoutAutoUpgradeDatabases: checked,
+                    }));
+                    if (checked) {
+                      useSceneScoutStore.getState().clearAutoUpgradeFailures();
+                      void useSceneScoutStore.getState().loadDatabases();
+                    }
+                  }}
+                />
+                <span className="checkmark"></span>
+              </label>
+            </div>
+          }
+        />
+
+        <SettingRow
+          label={t("general.sceneScout.backupBeforeUpgrade.label")}
+          description={
+            generalSettings.scoutAutoUpgradeDatabases && !generalSettings.scoutBackupBeforeUpgrade
+              ? t("general.sceneScout.backupBeforeUpgrade.noBackupWarning")
+              : t("general.sceneScout.backupBeforeUpgrade.description")
+          }
+          control={
+            <div className="settings-control">
+              <label className="custom-checkbox">
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={generalSettings.scoutBackupBeforeUpgrade}
+                  onChange={(e) =>
+                    setGeneralSettings((prev) => ({
+                      ...prev,
+                      scoutBackupBeforeUpgrade: e.target.checked,
+                    }))
+                  }
+                />
+                <span className="checkmark"></span>
+              </label>
+            </div>
+          }
+        />
+        </SettingsSection>
 
         <SettingsSection id="general.maintenance" title={t("general.maintenance.title")}>
         <SettingRow

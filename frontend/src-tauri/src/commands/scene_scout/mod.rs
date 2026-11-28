@@ -1,6 +1,7 @@
 //! Scene Scout: thin wrappers over `amverge scout ...`; the CLI owns the model and databases, this side passes `--root` and parses `--json`
 
 mod cli;
+mod db_read;
 mod types;
 mod worker;
 
@@ -16,6 +17,9 @@ use crate::utils::process::{apply_no_window, bind_to_app_lifetime, kill_process_
 use cli::{
     fast_list_videos_batch, forward_stderr, read_json_lines, scout_json, scout_root, spawn_scout,
     TempFile,
+};
+use db_read::{
+    try_list_databases_v4, try_read_database_info_v4, try_read_videos_batch_v4, try_read_videos_v4,
 };
 use worker::{emit_loading_model, ensure_worker};
 
@@ -63,6 +67,11 @@ pub async fn scout_database_info(
     custom_path: Option<String>,
 ) -> Result<ScoutDatabase, String> {
     let root = scout_root(&app, custom_path.as_deref())?;
+    let path_cl = path.clone();
+    let root_cl = root.clone();
+    if let Ok(Some(db)) = tokio::task::spawn_blocking(move || try_read_database_info_v4(&path_cl, &root_cl)).await {
+        return Ok(db);
+    }
     let envelope: DatabaseEnvelope = scout_json(&app, &["info", &path, "--root", &root]).await?;
     Ok(envelope.database)
 }
@@ -79,8 +88,28 @@ pub async fn scout_open_database(
 }
 
 #[tauri::command]
+pub async fn scout_upgrade_database(
+    app: AppHandle,
+    path: String,
+    backup: bool,
+    custom_path: Option<String>,
+) -> Result<ScoutUpgradeResult, String> {
+    let root = scout_root(&app, custom_path.as_deref())?;
+    let backup_flag = if backup { "--backup" } else { "--no-backup" };
+    scout_json(
+        &app,
+        &["upgrade", &path, backup_flag, "--yes", "--root", &root],
+    )
+    .await
+}
+
+#[tauri::command]
 pub async fn scout_list_databases(app: AppHandle, custom_path: Option<String>) -> Result<Vec<ScoutDatabase>, String> {
     let root = scout_root(&app, custom_path.as_deref())?;
+    let root_cl = root.clone();
+    if let Ok(Some(dbs)) = tokio::task::spawn_blocking(move || try_list_databases_v4(&root_cl)).await {
+        return Ok(dbs);
+    }
     let envelope: DatabasesEnvelope = scout_json(&app, &["databases", "--root", &root]).await?;
     Ok(envelope.databases)
 }
@@ -110,6 +139,11 @@ pub async fn scout_list_videos(
     custom_path: Option<String>,
 ) -> Result<Vec<ScoutVideo>, String> {
     let root = scout_root(&app, custom_path.as_deref())?;
+    let db_cl = database.clone();
+    let root_cl = root.clone();
+    if let Ok(Some(videos)) = tokio::task::spawn_blocking(move || try_read_videos_v4(&db_cl, &root_cl)).await {
+        return Ok(videos);
+    }
     if let Some(mut map) = fast_list_videos_batch(&app, &root, std::slice::from_ref(&database)).await {
         if let Some(videos) = map.remove(&database) {
             return Ok(videos);
@@ -126,6 +160,11 @@ pub async fn scout_list_videos_batch(
     custom_path: Option<String>,
 ) -> Result<std::collections::HashMap<String, Vec<ScoutVideo>>, String> {
     let root = scout_root(&app, custom_path.as_deref())?;
+    let dbs_cl = databases.clone();
+    let root_cl = root.clone();
+    if let Ok(Some(map)) = tokio::task::spawn_blocking(move || try_read_videos_batch_v4(&root_cl, &dbs_cl)).await {
+        return Ok(map);
+    }
     if let Some(map) = fast_list_videos_batch(&app, &root, &databases).await {
         return Ok(map);
     }
@@ -160,6 +199,30 @@ pub async fn scout_status(app: AppHandle, custom_path: Option<String>) -> Result
     scout_json(&app, &["status", "--root", &root]).await
 }
 
+/// relinks missing video files in a database using stored media roots and content fingerprints
+#[tauri::command]
+pub async fn scout_relink_database(
+    app: AppHandle,
+    database: String,
+    search_dirs: Vec<String>,
+    custom_path: Option<String>,
+    verify_hash: Option<bool>,
+) -> Result<ScoutRelinkResult, String> {
+    let root = scout_root(&app, custom_path.as_deref())?;
+    let mut argv: Vec<String> = vec!["relink".into(), database];
+    argv.extend(search_dirs);
+    argv.extend(["--root".into(), root]);
+    if verify_hash == Some(false) {
+        argv.push("--no-verify-hash".into());
+    }
+    let borrowed: Vec<&str> = argv.iter().map(String::as_str).collect();
+    let res: ScoutRelinkResult = scout_json(&app, &borrowed).await?;
+    if let Some(err) = res.error {
+        return Err(err);
+    }
+    Ok(res)
+}
+
 /// fills in missing thumbnails and redoes low-resolution ones
 #[tauri::command]
 pub async fn scout_generate_thumbnails(
@@ -168,11 +231,16 @@ pub async fn scout_generate_thumbnails(
     database: String,
     custom_path: Option<String>,
     report_progress: Option<bool>,
+    missing_only: Option<bool>,
 ) -> Result<ScoutGenerateThumbnailsResult, String> {
     let report_progress = report_progress.unwrap_or(false);
+    let missing_only = missing_only.unwrap_or(false);
     let root = scout_root(&app, custom_path.as_deref())?;
-    let (mut child, child_pid) =
-        spawn_scout(&app, "generate-thumbnails", &["generate-thumbnails", "--db", &database, "--root", &root])?;
+    let mut args = vec!["generate-thumbnails", "--db", &database, "--root", &root];
+    if missing_only {
+        args.push("--missing-only");
+    }
+    let (mut child, child_pid) = spawn_scout(&app, "generate-thumbnails", &args)?;
     if report_progress {
         active_index.start(child_pid);
     }
@@ -230,6 +298,7 @@ pub async fn scout_search(
                 "query": args.query,
                 "databases": args.databases,
                 "videos": args.videos,
+                "exclude_videos": args.exclude_videos,
                 "top_k": args.top_k.unwrap_or(24),
                 "threshold": args.threshold.unwrap_or(-1.0),
                 "include_thumbnails": args.include_thumbnails.unwrap_or(true),
@@ -297,6 +366,9 @@ pub async fn scout_search(
     }
     for video in &args.videos {
         argv.extend(["--video".into(), video.clone()]);
+    }
+    for ex_video in &args.exclude_videos {
+        argv.extend(["--exclude-video".into(), ex_video.clone()]);
     }
     if args.include_thumbnails == Some(false) {
         argv.push("--no-thumbnails".into());
@@ -367,6 +439,9 @@ pub async fn scout_add_video(
     gpu_standby: Option<bool>,
     // an episode already cut on home: its [start_ms, end_ms] ranges, so the cli skips detection
     scenes: Option<Vec<[u64; 2]>>,
+    episode_cache_id: Option<String>,
+    episodes_custom_path: Option<String>,
+    merge_short: Option<bool>,
     active_index: State<'_, ActiveScoutIndex>,
     worker_state: State<'_, SceneScoutWorkerState>,
 ) -> Result<u64, String> {
@@ -379,6 +454,16 @@ pub async fn scout_add_video(
         let dur_ms = probe_duration_ms(&app, &video_path).await;
         scenes = Some(vec![[0, dur_ms]]);
     }
+    let scene_cache_dir = if let Some(raw_id) = episode_cache_id.as_deref() {
+        let base_dir = crate::utils::paths::resolve_episodes_storage_dir(&app, episodes_custom_path.as_deref())?;
+        let id = crate::utils::paths::sanitize_episode_cache_id(raw_id)?;
+        let dir = base_dir.join(id);
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        Some(dir.to_string_lossy().to_string())
+    } else {
+        None
+    };
+    let merge_short = merge_short.unwrap_or(false);
 
     console_log(
         "SCOUT|start",
@@ -409,6 +494,8 @@ pub async fn scout_add_video(
                 "database": database,
                 "detector": method,
                 "scenes": scenes,
+                "merge_short": merge_short,
+                "scene_cache_dir": scene_cache_dir,
             });
             let res = session.send_request_streaming(req, emit_progress).await;
             active_index.finish(child_pid);
@@ -452,6 +539,12 @@ pub async fn scout_add_video(
     ];
     if let Some(file) = &scenes_file {
         args.extend(["--scenes-json", file.path_str()]);
+    }
+    if merge_short {
+        args.push("--merge-short");
+    }
+    if let Some(cache_dir) = &scene_cache_dir {
+        args.extend(["--scene-cache-dir", cache_dir.as_str()]);
     }
     let (mut child, child_pid) = spawn_scout(&app, "add", &args)?;
     console_log("SCOUT|pid", &format!("pid={child_pid}"));

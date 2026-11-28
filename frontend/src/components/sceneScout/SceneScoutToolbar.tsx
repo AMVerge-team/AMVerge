@@ -5,7 +5,7 @@ import { FaArrowLeft, FaSyncAlt } from '../icons/animated';
 import Tooltip from "../common/Tooltip";
 import PreviewAllToggle from "../common/PreviewAllToggle";
 import { SelectionCount } from "../clipsGrid/SelectionCount";
-import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
+import { isScoutDatabaseReady, samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
 import { AddEpisodeButton } from "./AddEpisodeButton";
 import { heroFlipPending } from "../../features/sceneScout/heroTransition";
 import { ScoutInfoButton } from "./ScoutInfoButton";
@@ -32,9 +32,11 @@ export function SceneScoutToolbar() {
   // padded so the row ends at the grid's edge instead of running under the preview pane
   const clearOfPreview = usePreviewPaneClearance();
 
-  const noDatabaseOpen = !opened && selectedDatabases.length === 0;
-  // same pick as addVideos: the last clicked database, else the first searched one
-  const addTarget = opened || selectedDatabases[0] || null;
+  const openedDb = opened ? databases.find((d) => samePath(d.path, opened)) : null;
+  const openedReady = openedDb ? isScoutDatabaseReady(openedDb) : false;
+  // same pick as addVideos: the last clicked ready database, else the first searched one
+  const addTarget = (openedReady ? opened : null) || selectedDatabases[0] || null;
+  const noDatabaseOpen = !addTarget;
   const addTargetName = addTarget
     ? displayNames[addTarget] ?? databases.find((d) => samePath(d.path, addTarget))?.name ?? t("hero.databaseFallback")
     : null;

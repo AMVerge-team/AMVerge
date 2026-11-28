@@ -15,6 +15,7 @@ import {
   scoutStatus,
   scoutUnloadModel,
   scoutGenerateThumbnails,
+  scoutUpgradeDatabase,
   isScoutCanceled,
 } from "../features/sceneScout/api";
 import {
@@ -29,7 +30,8 @@ import {
 } from "../features/sceneScout/types";
 import { claimProcess } from "../features/processes/singleProcess";
 import type { SceneRange } from "../features/sceneScout/precutEpisodes";
-import { cutIntoLibrary, prioritizeHits } from "../features/sceneScout/library";
+import { cutIntoLibrary, existingLibraryScenes, prioritizeHits } from "../features/sceneScout/library";
+import { buildEpisodeCacheId } from "../features/import/manifest";
 import {
   TUTORIAL_DB_NAME,
   TUTORIAL_DB_PATH,
@@ -138,6 +140,8 @@ type SceneScoutState = {
   dbPrompt: DbPrompt | null;
   /** runtime only: active step of the in-UI interactive walkthrough (null when inactive) */
   tutorialStep: number | null;
+  /** runtime only: paths currently being auto-upgraded in the background */
+  upgradingPaths: string[];
 };
 
 export type DbPrompt = { kind: "flow"; source: FlowSource } | { kind: "search" };
@@ -148,7 +152,19 @@ type SceneScoutActions = {
   refreshStatus: () => Promise<void>;
   loadDatabases: () => Promise<void>;
   createDatabase: (pathOrName: string) => Promise<{ ok: boolean; message: string | null; path: string | null }>;
-  openExistingDatabase: (filePath: string) => Promise<{ ok: boolean; message: string | null; database?: ScoutDatabase }>;
+  openExistingDatabase: (filePath: string) => Promise<{
+    ok: boolean;
+    reason?: "needs_upgrade" | "unsupported_newer" | "error";
+    message: string | null;
+    database?: ScoutDatabase;
+  }>;
+  upgradeDatabase: (filePath: string, backup: boolean) => Promise<{
+    ok: boolean;
+    message: string | null;
+    database?: ScoutDatabase;
+    backupPath?: string | null;
+  }>;
+  clearAutoUpgradeFailures: () => void;
   renameDatabase: (path: string, displayName: string) => void;
   unloadDatabase: (path: string) => void;
   deleteDatabase: (name: string) => Promise<void>;
@@ -225,6 +241,7 @@ const INITIAL: SceneScoutState = {
   flowError: null,
   dbPrompt: null,
   tutorialStep: null,
+  upgradingPaths: [],
 };
 
 type TutorialSnapshot = Pick<
@@ -249,6 +266,15 @@ let tutorialSelectedUrls: string[] | null = null;
 // databases already backfilled this session, so a repeat search does not respawn the cli for nothing
 const backfilled = new Set<string>();
 
+// guards against concurrent or infinitely-retrying auto-upgrades on the same path
+const inFlightAutoUpgrades = new Set<string>();
+const failedAutoUpgrades = new Set<string>();
+let autoUpgradeRunning = false;
+
+function normPath(p: string): string {
+  return p.replace(/\\/g, "/").toLowerCase();
+}
+
 // bumped per search: a newer search takes over, and an older one's results are dropped when they land
 let searchGen = 0;
 
@@ -265,6 +291,14 @@ export function samePath(a: string | null | undefined, b: string | null | undefi
   if (!a || !b) return false;
   const norm = (p: string) => p.replace(/\\/g, "/").toLowerCase();
   return norm(a) === norm(b);
+}
+
+/** True when a collection is on schema v4 and can be searched or indexed immediately. */
+export function isScoutDatabaseReady(db: ScoutDatabase | null | undefined): boolean {
+  if (!db) return false;
+  if (db.schemaStatus === "needs_upgrade" || db.schemaStatus === "unsupported_newer") return false;
+  if (db.schemaVersion !== undefined && db.schemaVersion !== 4) return false;
+  return true;
 }
 
 /** True when `path` sits under the storage root (case/separator insensitive). */
@@ -303,33 +337,36 @@ async function searchBlocker(): Promise<string | null> {
 }
 
 /**
- * the settings a search or flow sends: the Searching list, and the episodes still shown in it.
- * the cli's video filter keeps only the listed videos, so with any hidden every shown one is listed
+ * the settings a search or flow sends: the Searching list, and any hidden episodes to exclude.
  */
 async function currentSearchSettings(): Promise<ScoutSearchSettings> {
   const store = useSceneScoutStore.getState();
   const { selectedDatabases, hiddenVideos } = store;
-  const base = { ...store.settings, selectedDatabases, selectedVideos: [] };
+  const base: ScoutSearchSettings = {
+    ...store.settings,
+    selectedDatabases,
+    selectedVideos: [],
+    excludeVideos: hiddenVideos,
+  };
   if (hiddenVideos.length === 0) return base;
 
-  await Promise.all(
-    selectedDatabases
-      .filter((db) => !useSceneScoutStore.getState().videosByDatabase[db])
-      .map((db) => store.loadVideos(db))
-  );
-  const { videosByDatabase } = useSceneScoutStore.getState();
-  const all = selectedDatabases.flatMap((db) => (videosByDatabase[db] ?? []).map((v) => v.filepath));
-  const shown = all.filter((path) => !hiddenVideos.some((h) => samePath(h, path)));
-  if (shown.length === all.length) return base;
-  if (shown.length === 0) throw new Error("Every episode in the searched databases is hidden. Show one with its eye icon.");
-  return { ...base, selectedVideos: shown };
+  // Still check if every episode across the selected databases was hidden, so the clear message holds
+  const { videosByDatabase } = store;
+  const allLoaded = selectedDatabases.every((db) => Boolean(videosByDatabase[db]));
+  if (allLoaded) {
+    const all = selectedDatabases.flatMap((db) => (videosByDatabase[db] ?? []).map((v) => v.filepath));
+    if (all.length > 0 && all.every((path) => hiddenVideos.some((h) => samePath(h, path)))) {
+      throw new Error("Every episode in the searched databases is hidden. Show one with its eye icon.");
+    }
+  }
+  return base;
 }
 
-/** whether there is any database to offer in the picker, loading the list once if it is still empty */
+/** whether there is any ready v4 database to offer in the picker, loading the list once if it is still empty */
 async function hasDatabases(): Promise<boolean> {
   const store = useSceneScoutStore.getState();
   if (store.databases.length === 0) await store.loadDatabases().catch(() => {});
-  return useSceneScoutStore.getState().databases.length > 0;
+  return useSceneScoutStore.getState().databases.some(isScoutDatabaseReady);
 }
 
 /** remembers a database outside the managed folder, which the root listing can't find on its own */
@@ -403,18 +440,66 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
             set({ openedDatabase: null, videos: [] });
           }
 
-          // persisted "Search in" chips must never point at a database that is gone
+          // persisted "Search in" chips must never point at a database that is gone or not v4-ready
+          const readyDbs = databases.filter(isScoutDatabaseReady);
           const settings = get().settings;
           const kept = settings.selectedDatabases.filter((p) =>
-            databases.some((d) => samePath(d.path, p))
+            readyDbs.some((d) => samePath(d.path, p))
           );
           if (kept.length !== settings.selectedDatabases.length) {
             set({ settings: { ...settings, selectedDatabases: kept } });
           }
-          // same for the Searching list: a gone path counted there but showed nothing and blocked the prompt
+          // same for the Searching list: a gone or un-upgraded path cannot be searched
           const searching = get().selectedDatabases;
-          const stillThere = searching.filter((p) => databases.some((d) => samePath(d.path, p)));
+          const stillThere = searching.filter((p) => readyDbs.some((d) => samePath(d.path, p)));
           if (stillThere.length !== searching.length) set({ selectedDatabases: stillThere });
+
+          // If auto-upgrade is enabled, sequentially upgrade discovered legacy databases in the background
+          if (useGeneralSettingsStore.getState().scoutAutoUpgradeDatabases && !autoUpgradeRunning) {
+            const toUpgrade = databases.filter(
+              (db) =>
+                db.schemaStatus === "needs_upgrade" &&
+                !inFlightAutoUpgrades.has(normPath(db.path)) &&
+                !failedAutoUpgrades.has(normPath(db.path))
+            );
+            if (toUpgrade.length > 0) {
+              autoUpgradeRunning = true;
+              void (async () => {
+                try {
+                  for (const candidate of toUpgrade) {
+                    const key = normPath(candidate.path);
+                    if (!useGeneralSettingsStore.getState().scoutAutoUpgradeDatabases) break;
+                    if (inFlightAutoUpgrades.has(key) || failedAutoUpgrades.has(key)) continue;
+                    inFlightAutoUpgrades.add(key);
+                    set((s) => ({
+                      upgradingPaths: s.upgradingPaths.some((p) => samePath(p, candidate.path))
+                        ? s.upgradingPaths
+                        : [...s.upgradingPaths, candidate.path],
+                    }));
+                    try {
+                      const backup = useGeneralSettingsStore.getState().scoutBackupBeforeUpgrade;
+                      const res = await scoutUpgradeDatabase(candidate.path, backup, customPath());
+                      const upgraded = res.database;
+                      set((s) => ({
+                        databases: s.databases.map((d) => (samePath(d.path, candidate.path) ? upgraded : d)),
+                      }));
+                      get().backfillThumbnails([upgraded.path]);
+                    } catch (err) {
+                      failedAutoUpgrades.add(key);
+                      set({ error: `Auto-upgrade failed for ${candidate.name}: ${message(err)}` });
+                    } finally {
+                      inFlightAutoUpgrades.delete(key);
+                      set((s) => ({
+                        upgradingPaths: s.upgradingPaths.filter((p) => !samePath(p, candidate.path)),
+                      }));
+                    }
+                  }
+                } finally {
+                  autoUpgradeRunning = false;
+                }
+              })();
+            }
+          }
         } catch (err) {
           set({ loading: false, error: message(err) });
         }
@@ -447,8 +532,48 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         const baseName = filePath.split(/[/\\]/).pop() || filePath;
         appState.setActiveOperation("scout_open");
         appState.setLoading(true);
-        appState.setProgressMsg(`Opening database ${baseName}…`);
+        appState.setProgressMsg(`Inspecting database ${baseName}…`);
         try {
+          const inspected = await scoutDatabaseInfo(filePath, customPath());
+          if (inspected.schemaStatus === "unsupported_newer") {
+            const ver = inspected.schemaVersion ?? "?";
+            return {
+              ok: false,
+              reason: "unsupported_newer",
+              database: inspected,
+              message: `${baseName} uses schema v${ver}, which is newer than AMVerge supports (v4).`,
+            };
+          }
+          if (inspected.schemaStatus === "needs_upgrade") {
+            const { scoutAutoUpgradeDatabases, scoutBackupBeforeUpgrade } = useGeneralSettingsStore.getState();
+            if (scoutAutoUpgradeDatabases) {
+              appState.setProgressMsg(`Auto-upgrading ${baseName} to schema v4…`);
+              const upgradedRes = await scoutUpgradeDatabase(filePath, scoutBackupBeforeUpgrade, customPath());
+              const db = upgradedRes.database;
+              rememberIfExternal(db.path);
+
+              if (get().unloadedPaths.some((p) => samePath(p, db.path))) {
+                set({ unloadedPaths: get().unloadedPaths.filter((p) => !samePath(p, db.path)) });
+              }
+
+              await get().loadDatabases();
+              await get().openDatabase(db.path);
+              get().selectDatabase(db.path, "single");
+              appState.setProgressMsg("Database upgraded to v4");
+              get().backfillThumbnails([db.path]);
+              await new Promise((r) => setTimeout(r, 600));
+              return { ok: true, message: null, database: db };
+            }
+            const ver = inspected.schemaVersion ?? 3;
+            return {
+              ok: false,
+              reason: "needs_upgrade",
+              database: inspected,
+              message: `${baseName} uses legacy schema v${ver} and must be upgraded to v4 before opening.`,
+            };
+          }
+
+          appState.setProgressMsg(`Opening database ${baseName}…`);
           const db = await scoutOpenDatabase(filePath, customPath());
           rememberIfExternal(db.path);
 
@@ -464,6 +589,41 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
           get().backfillThumbnails([db.path]);
           await new Promise((r) => setTimeout(r, 600));
           return { ok: true, message: null, database: db };
+        } catch (err) {
+          return { ok: false, reason: "error", message: message(err) };
+        } finally {
+          appState.setActiveOperation(null);
+          appState.setLoading(false);
+          appState.setProgressMsg("");
+        }
+      },
+
+      clearAutoUpgradeFailures: () => {
+        failedAutoUpgrades.clear();
+      },
+
+      upgradeDatabase: async (filePath, backup) => {
+        failedAutoUpgrades.delete(normPath(filePath));
+        const appState = useAppStateStore.getState();
+        const baseName = filePath.split(/[/\\]/).pop() || filePath;
+        appState.setActiveOperation("scout_open");
+        appState.setLoading(true);
+        appState.setProgressMsg(`Upgrading ${baseName} to schema v4…`);
+        try {
+          const res = await scoutUpgradeDatabase(filePath, backup, customPath());
+          const db = res.database;
+          rememberIfExternal(db.path);
+
+          if (get().unloadedPaths.some((p) => samePath(p, db.path))) {
+            set({ unloadedPaths: get().unloadedPaths.filter((p) => !samePath(p, db.path)) });
+          }
+
+          await get().loadDatabases();
+          await get().openDatabase(db.path);
+          get().selectDatabase(db.path, "single");
+          appState.setProgressMsg("Database upgraded to v4");
+          get().backfillThumbnails([db.path]);
+          return { ok: true, message: null, database: db, backupPath: res.backupPath };
         } catch (err) {
           return { ok: false, message: message(err) };
         } finally {
@@ -543,7 +703,7 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       },
 
       selectAllDatabases: () => {
-        set({ selectedDatabases: get().databases.map((d) => d.path) });
+        set({ selectedDatabases: get().databases.filter(isScoutDatabaseReady).map((d) => d.path) });
       },
 
       clearSelection: () => {
@@ -551,8 +711,13 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       },
 
       addToSearch: (paths) => {
+        const dbs = get().databases;
         const current = get().selectedDatabases;
-        const added = paths.filter((p) => !current.some((c) => samePath(c, p)));
+        const added = paths.filter((p) => {
+          if (current.some((c) => samePath(c, p))) return false;
+          const meta = dbs.find((d) => samePath(d.path, p));
+          return meta ? isScoutDatabaseReady(meta) : true;
+        });
         if (added.length) set({ selectedDatabases: [...current, ...added] });
       },
 
@@ -668,8 +833,19 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
         }
         // remembered for scene scout only, so it never changes the home import default
         if (detectorArg) set({ settings: { ...get().settings, lastIndexDetection: detectorArg } });
-        const database = get().openedDatabase || get().selectedDatabases[0];
-        if (!database) return { ok: false, message: "Select or open a database first." };
+        const rawTarget = get().openedDatabase || get().selectedDatabases[0];
+        if (!rawTarget) return { ok: false, message: "Select or open a database first." };
+        const targetMeta = get().databases.find((d) => samePath(d.path, rawTarget));
+        if (targetMeta && !isScoutDatabaseReady(targetMeta)) {
+          return {
+            ok: false,
+            message:
+              targetMeta.schemaStatus === "needs_upgrade"
+                ? `Upgrade '${targetMeta.name}' to schema v4 in the sidebar before adding videos.`
+                : `'${targetMeta.name}' uses an unsupported schema version and cannot be modified.`,
+          };
+        }
+        const database = rawTarget;
 
         // one long job at a time: asks to stop whatever runs, or keeps it and drops this one
         if (!(await claimProcess("scout_add"))) return { ok: false, message: null };
@@ -789,17 +965,35 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
               },
             });
 
-            let scenes = precutScenes?.[videoPath] ?? null;
-            if (!scenes && cutToLibrary && detector !== "single_scene") {
-              // detection runs once, in the library import; the index reuses its scenes
-              appState.setProgressMsg(`Cutting ${name} into the library…`);
-              scenes = await cutIntoLibrary(videoPath, folderName, detector);
-              // a ✕ in the moment between the cut and indexing still stops the whole add
+            const existingScenes = precutScenes?.[videoPath] ?? existingLibraryScenes(videoPath);
+            if (!existingScenes && cutToLibrary && detector === "transnetv2_gpu") {
+              // Run TransNetV2 + SigLIP2 in the warm daemon first, writing .npy cache so cutIntoLibrary skips torch
+              const episodeCacheId = buildEpisodeCacheId(videoPath);
+              const episodesCustomPath = useGeneralSettingsStore.getState().episodesPath;
+              runsDetection = true;
+              await scoutAddVideo(database, videoPath, detector, customPath(), null, {
+                episodeCacheId,
+                episodesCustomPath,
+                mergeShort: true,
+              });
               if (importAbortRef.current) throw new Error(DETECT_CANCELED);
               appState.setProgress(0);
+              appState.setProgressMsg(`Cutting ${name} into the library…`);
+              await cutIntoLibrary(videoPath, folderName, detector, { preserveSceneCache: true });
+              if (importAbortRef.current) throw new Error(DETECT_CANCELED);
+            } else {
+              let scenes = existingScenes;
+              if (!scenes && cutToLibrary && detector !== "single_scene") {
+                // detection runs once, in the library import; the index reuses its scenes
+                appState.setProgressMsg(`Cutting ${name} into the library…`);
+                scenes = await cutIntoLibrary(videoPath, folderName, detector);
+                // a ✕ in the moment between the cut and indexing still stops the whole add
+                if (importAbortRef.current) throw new Error(DETECT_CANCELED);
+                appState.setProgress(0);
+              }
+              runsDetection = detector === "transnetv2_gpu" && !scenes;
+              await scoutAddVideo(database, videoPath, detector, customPath(), scenes);
             }
-            runsDetection = detector === "transnetv2_gpu" && !scenes;
-            await scoutAddVideo(database, videoPath, detector, customPath(), scenes);
             console.log(`SCOUT|queue [${i + 1}/${totalVideos}] completed ${name}`);
           }
           await Promise.all([get().loadVideos(database), get().loadDatabases()]);
@@ -894,13 +1088,13 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       updateSettings: (changes) =>
         set((state) => ({ settings: { ...state.settings, ...changes } })),
 
-      /** fills missing thumbnails in the background: no loading card, once per database per session */
+      /** fills missing thumbnails in the background: no loading card, once per database per session (keeps existing legacy thumbnails untouched) */
       backfillThumbnails: (paths) => {
         for (const path of paths) {
           const key = path.toLowerCase();
           if (backfilled.has(key)) continue;
           backfilled.add(key);
-          void scoutGenerateThumbnails(path, customPath())
+          void scoutGenerateThumbnails(path, customPath(), false, true)
             .then((res) => console.log(`SCOUT|thumbs backfilled ${res.generated} into ${path}`))
             .catch((err) => {
               // a failed run may be retried later this session
@@ -934,10 +1128,12 @@ export const useSceneScoutStore = create<SceneScoutState & SceneScoutActions>()(
       answerDbPrompt: async (paths) => {
         const prompt = get().dbPrompt;
         set({ dbPrompt: null });
-        if (!prompt || paths.length === 0) return;
+        const readySet = new Set(get().databases.filter(isScoutDatabaseReady).map((d) => d.path));
+        const safePaths = paths.filter((p) => readySet.has(p));
+        if (!prompt || safePaths.length === 0) return;
         set({
-          selectedDatabases: paths,
-          openedDatabase: paths.length === 1 ? paths[0] : get().openedDatabase,
+          selectedDatabases: safePaths,
+          openedDatabase: safePaths.length === 1 ? safePaths[0] : get().openedDatabase,
         });
         if (prompt.kind === "flow") await get().startFlowSearch(prompt.source);
         else await get().runSearch();

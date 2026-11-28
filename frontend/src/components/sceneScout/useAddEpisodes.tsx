@@ -4,7 +4,7 @@ import { FaCheck, FaVideo } from '../icons/animated';
 
 import ModalShell from "../common/ModalShell";
 import { ImportIcon } from "../icons/ToolbarIcons";
-import { samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
+import { isScoutDatabaseReady, samePath, useSceneScoutStore } from "../../stores/sceneScoutStore";
 import { useEpisodePanelRuntimeStore } from "../../stores/episodeStore";
 import { isPackInstalled } from "../../features/aiDeps/packs";
 import { useAiDepsStore } from "../../stores/aiDepsStore";
@@ -26,7 +26,10 @@ export function useAddEpisodes() {
   const mlInstalled = isPackInstalled(aiStatus, "ml");
   const aiAvailable = aiSceneDetectionEnabled && mlInstalled;
   const homeEpisodes = useEpisodePanelRuntimeStore((s) => s.episodes);
-  const targetDatabase = useSceneScoutStore((s) => s.openedDatabase || s.selectedDatabases[0] || null);
+  const targetDatabase = useSceneScoutStore((s) => {
+    const openedDb = s.openedDatabase ? s.databases.find((d) => samePath(d.path, s.openedDatabase)) : null;
+    return (openedDb && isScoutDatabaseReady(openedDb) ? s.openedDatabase : null) || s.selectedDatabases[0] || null;
+  });
   const targetName = useSceneScoutStore((s) =>
     targetDatabase
       ? s.displayNames[targetDatabase] ?? s.databases.find((d) => samePath(d.path, targetDatabase))?.name ?? null
